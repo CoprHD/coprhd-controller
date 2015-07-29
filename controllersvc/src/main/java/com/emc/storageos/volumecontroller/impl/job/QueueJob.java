@@ -13,7 +13,7 @@ import java.util.Map;
 /**
  * A job that resides in the job queue
  */
-public class QueueJob {
+public class QueueJob implements Serializable {
 
     protected Map<String, Object> _map = new HashMap<String, Object>();
     private static final String JOB_NAME = "job";
@@ -33,7 +33,7 @@ public class QueueJob {
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             ObjectOutputStream oout = new ObjectOutputStream(out);
-            oout.writeObject(_map);
+            oout.writeObject(_map); // NOSONAR
             return out.toByteArray();
         } catch (Exception e) {
             throw new IllegalStateException(e);
@@ -44,7 +44,7 @@ public class QueueJob {
         try {
             QueueJob job = new QueueJob();
             ObjectInputStream oim = new ObjectInputStream(new ByteArrayInputStream(bytes));
-            Map<String, Object> map = (Map<String, Object>)oim.readObject();
+            Map<String, Object> map = (Map<String, Object>) oim.readObject();
             job._map = map;
             return job;
         } catch (IOException e) {

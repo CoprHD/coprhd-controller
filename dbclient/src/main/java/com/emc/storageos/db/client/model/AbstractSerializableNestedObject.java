@@ -15,25 +15,20 @@
 
 package com.emc.storageos.db.client.model;
 
-
-import org.omg.CosNaming.IstringHelper;
-
-import javax.xml.bind.annotation.XmlTransient;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.util.*;
 
-
 /**
- * Abstract base for nested types.  Uses simple Java properties serialization format
+ * Abstract base for nested types. Uses simple Java properties serialization format
  * to de/serialize nested objects from/to byte[].
- *
+ * 
  * Note that we only support 'flat' nested types currently - this means nested types may contain
  * only primitive fields and no further nesting of other complex types is supported.
  */
-public abstract class AbstractSerializableNestedObject{
+public abstract class AbstractSerializableNestedObject {
     /**
      * 
      */
@@ -81,16 +76,16 @@ public abstract class AbstractSerializableNestedObject{
     }
 
     protected List<String> getListOfStringsField(String key) {
-       List<String> result = new ArrayList<String>();
-       String val = _field.getProperty(key);
-       if (val == null) {
-           return result;
-       }
-       StringTokenizer tokenizer = new StringTokenizer(val, ",");
-       while (tokenizer.hasMoreElements()) {
-           result.add(tokenizer.nextToken());
-       }
-       return result;
+        List<String> result = new ArrayList<String>();
+        String val = _field.getProperty(key);
+        if (val == null) {
+            return result;
+        }
+        StringTokenizer tokenizer = new StringTokenizer(val, ",");
+        while (tokenizer.hasMoreElements()) {
+            result.add(tokenizer.nextToken());
+        }
+        return result;
     }
 
     protected Integer getIntField(String key) {
@@ -145,7 +140,7 @@ public abstract class AbstractSerializableNestedObject{
 
     /**
      * Serializes this nested object into byte[]
-     *
+     * 
      * @return
      */
     public byte[] toBytes() {
@@ -160,7 +155,7 @@ public abstract class AbstractSerializableNestedObject{
 
     /**
      * Deserializes byte[]
-     *
+     * 
      * @param content
      */
     public void loadBytes(byte[] content) {
@@ -174,7 +169,7 @@ public abstract class AbstractSerializableNestedObject{
 
     /**
      * Needed for use in generic Set
-     *
+     * 
      * @param obj
      * @return
      */
@@ -183,7 +178,11 @@ public abstract class AbstractSerializableNestedObject{
         if (!(obj instanceof AbstractSerializableNestedObject)) {
             return false;
         }
-        return _field.equals(((AbstractSerializableNestedObject)obj)._field);
+        return _field.equals(((AbstractSerializableNestedObject) obj)._field);
     }
 
+    @Override
+    public int hashCode() {
+        return _field.hashCode();
+    }
 }

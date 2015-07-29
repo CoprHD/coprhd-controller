@@ -22,6 +22,8 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
@@ -31,7 +33,12 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+//Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+//This is a CLI application and main method will not be called by multiple threads
+@SuppressWarnings("squid:S2444")
 public class BackupCmd {
+
+    private static final Logger log = LoggerFactory.getLogger(BackupCmd.class);
 
     private static final Options options = new Options();
     private static final String TOOL_NAME = "bkutils";
@@ -63,18 +70,18 @@ public class BackupCmd {
 
     static {
         Option createOption = OptionBuilder.hasOptionalArg()
-                                        .withArgName("[backup]")
-                                        .withDescription(CommandType.create.getDescription())
-                                        .withLongOpt(CommandType.create.name())
-                                        .create("c");
+                .withArgName("[backup]")
+                .withDescription(CommandType.create.getDescription())
+                .withLongOpt(CommandType.create.name())
+                .create("c");
         options.addOption(createOption);
         options.addOption("l", CommandType.list.name(), false, CommandType.list.getDescription());
         options.addOption("d", CommandType.delete.name(), true, CommandType.delete.getDescription());
         Option restoreOption = OptionBuilder.hasArgs()
-                                         .withArgName("args")
-                                         .withDescription(CommandType.restore.getDescription())
-                                         .withLongOpt(CommandType.restore.name())
-                                         .create("r");
+                .withArgName("args")
+                .withDescription(CommandType.restore.getDescription())
+                .withLongOpt(CommandType.restore.name())
+                .create("r");
         options.addOption(restoreOption);
         options.addOption("q", CommandType.quota.name(), false, CommandType.quota.getDescription());
         options.addOption("f", CommandType.force.name(), false, CommandType.force.getDescription());
@@ -86,36 +93,40 @@ public class BackupCmd {
         options.addOption(purgeOption);
     }
 
-    private static RestoreManager initRestoreManager() {
+    private static void initRestoreManager() {
         if (restoreManager == null) {
             ApplicationContext context = new ClassPathXmlApplicationContext("backup-restore-conf.xml");
             restoreManager = context.getBean("restoreManager", RestoreManager.class);
         }
-        return restoreManager;
     }
 
-    public static void main(String[] args) {
-        restoreManager = initRestoreManager();
+    private static void initCommandLine(String[] args) {
         CommandLineParser parser = new PosixParser();
         HelpFormatter formatter = new HelpFormatter();
         try {
-            if (args == null || args.length == 0)
+            if (args == null || args.length == 0) {
                 throw new IllegalArgumentException("");
+            }
             cli = parser.parse(options, args);
-            if (cli.getOptions().length == 0)
+            if (cli.getOptions().length == 0) {
                 throw new IllegalArgumentException(
-                        String.format("Invalid argument: %s\n", Arrays.toString(args)));
+                        String.format("Invalid argument: %s%n", Arrays.toString(args)));
+            }
             String[] invalidArgs = cli.getArgs();
-            if (invalidArgs != null && invalidArgs.length != 0){
+            if (invalidArgs != null && invalidArgs.length != 0) {
                 throw new IllegalArgumentException(
-                        String.format("Invalid argument: %s\n", Arrays.toString(invalidArgs)));
+                        String.format("Invalid argument: %s%n", Arrays.toString(invalidArgs)));
             }
         } catch (Exception p) {
             System.err.print(p.getMessage());
-            p.printStackTrace();
+            log.error("Caught Exception when parsing command line input: ", p);
             formatter.printHelp(TOOL_NAME, options);
             System.exit(-1);
         }
+    }
+
+    public static void main(String[] args) {
+        init(args);
 
         try {
             createBackup();
@@ -132,49 +143,55 @@ public class BackupCmd {
         System.exit(0);
     }
 
-    /**
-     * Singleton method to get BackupOps instance
-     * @return the instance of BackupOps
-     */
-    private static synchronized BackupOps getBackupOps() {
+    private static void init(String[] args) {
+        initCommandLine(args);
+        initRestoreManager();
+        initBackupOps();
+    }
+
+    private static void initBackupOps() {
         if (backupOps == null) {
             ApplicationContext context = new ClassPathXmlApplicationContext("backup-client-conf.xml");
             backupOps = context.getBean("backupOps", BackupOps.class);
         }
-        return backupOps;
     }
 
     private static void createBackup() {
-        if (!cli.hasOption(CommandType.create.name()))
+        if (!cli.hasOption(CommandType.create.name())) {
             return;
+        }
         String backupName = cli.getOptionValue(CommandType.create.name());
-        if (backupName == null || backupName.isEmpty())
+        if (backupName == null || backupName.isEmpty()) {
             backupName = BackupOps.createBackupName();
+        }
 
         boolean force = false;
-        if (cli.hasOption(CommandType.force.name())) { 
+        if (cli.hasOption(CommandType.force.name())) {
             force = true;
         }
 
         System.out.println("Start to create backup...");
-        getBackupOps().createBackup(backupName, force);
+        backupOps.createBackup(backupName, force);
         System.out.println(
                 String.format("Backup (%s) is created successfully", backupName));
     }
 
     private static void listBackup() {
-        if (!cli.hasOption(CommandType.list.name()))
+        if (!cli.hasOption(CommandType.list.name())) {
             return;
+        }
         System.out.println("Start to list backup...");
-        List<BackupSetInfo> backupList = getBackupOps().listBackup();
+        List<BackupSetInfo> backupList = backupOps.listBackup();
         System.out.println(
                 String.format("Backups are listed successfully, total: %d", backupList.size()));
-        if (backupList.isEmpty())
+        if (backupList.isEmpty()) {
             return;
+        }
         int maxLength = Integer.MIN_VALUE;
         for (BackupSetInfo backupSetInfo : backupList) {
-            if (backupSetInfo.getName().length() > maxLength)
+            if (backupSetInfo.getName().length() > maxLength) {
                 maxLength = backupSetInfo.getName().length();
+            }
         }
         maxLength = maxLength < 18 ? 20 : maxLength + 2;
         String titleFormat = String.format(BackupConstants.LIST_BACKUP_TITLE, maxLength);
@@ -194,34 +211,38 @@ public class BackupCmd {
     }
 
     private static void deleteBackup() {
-        if (!cli.hasOption(CommandType.delete.name()))
+        if (!cli.hasOption(CommandType.delete.name())) {
             return;
+        }
         System.out.println("Start to delete backup...");
         String backupName = cli.getOptionValue(CommandType.delete.name());
-        getBackupOps().deleteBackup(backupName);
+        backupOps.deleteBackup(backupName);
         System.out.println(
                 String.format("Backup (%s) is deleted successfully", backupName));
     }
 
     private static void purgeViprData() {
-        if (!cli.hasOption(CommandType.purge.name()))
+        if (!cli.hasOption(CommandType.purge.name())) {
             return;
+        }
         String multiVdcStr = cli.getOptionValue(CommandType.purge.name());
         System.out.println("Start to purge ViPR data...");
-        if (multiVdcStr == null || "no".equalsIgnoreCase(multiVdcStr.trim()))
+        if (multiVdcStr == null || "no".equalsIgnoreCase(multiVdcStr.trim())) {
             restoreManager.purge(false);
-        else if ("yes".equalsIgnoreCase(multiVdcStr.trim()))
+        } else if ("yes".equalsIgnoreCase(multiVdcStr.trim())) {
             restoreManager.purge(true);
-        else
+        } else {
             throw new IllegalArgumentException("Invalid argument, must be yes or no(default)");
+        }
         System.out.println("ViPR data has been purged successfully!");
     }
 
     private static void restoreBackup() {
-        if (!cli.hasOption(CommandType.restore.name()))
+        if (!cli.hasOption(CommandType.restore.name())) {
             return;
+        }
         String[] restoreArgs = cli.getOptionValues(CommandType.restore.name());
-        if(restoreArgs.length != 2){
+        if (restoreArgs.length != 2) {
             System.out.println("Invalid number of restore args.");
             new HelpFormatter().printHelp(TOOL_NAME, options);
             System.exit(-1);
@@ -249,7 +270,7 @@ public class BackupCmd {
             return;
         }
         System.out.println("Start to get quota of backup...");
-        int quota = getBackupOps().getQuotaGb();
+        int quota = backupOps.getQuotaGb();
         System.out.println(String.format("Quota of backup is: %d GB", quota));
     }
 }

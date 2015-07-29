@@ -9,7 +9,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "catalog_upgrade")
 public class CatalogUpgrade {
-    
+
     private boolean upgradeAvailable = Boolean.FALSE;
 
     @XmlElement(name = "upgrade_available")

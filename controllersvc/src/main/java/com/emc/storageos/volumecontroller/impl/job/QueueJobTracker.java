@@ -33,16 +33,23 @@ public class QueueJobTracker extends DistributedQueueConsumer<QueueJob> implemen
     private ConcurrentLinkedQueue<JobWrapper> _activeJobs = new ConcurrentLinkedQueue<JobWrapper>();
     private JobContext _jobContext;
 
-    private class  JobWrapper
+    private class JobWrapper
     {
         Job _job;
         DistributedQueueItemProcessedCallback _cb;
+
         public JobWrapper(Job job, DistributedQueueItemProcessedCallback cb) {
             _job = job;
             _cb = cb;
         }
-        public Job getJob() { return _job; }
-        public DistributedQueueItemProcessedCallback getJobDoneCallback() { return _cb; }
+
+        public Job getJob() {
+            return _job;
+        }
+
+        public DistributedQueueItemProcessedCallback getJobDoneCallback() {
+            return _cb;
+        }
     }
 
     public void setJobContext(JobContext jobContext) {
@@ -60,14 +67,14 @@ public class QueueJobTracker extends DistributedQueueConsumer<QueueJob> implemen
 
     public void run() {
         HashMap<String, HashMap<String, Integer>> jobProgressMap = new HashMap<String, HashMap<String, Integer>>();
-        while(true) {
+        while (true) {
             JobWrapper jobWrapper = null;
             _logger.debug("Tracker: Will check job status after {} ms...", _trackingPeriodInMillis);
             try {
                 ArrayList<String> completedJobs = new ArrayList<String>();
                 Thread.sleep(_trackingPeriodInMillis);
                 _logger.debug("Tracker: Checking status of {} jobs", _activeJobs.size());
-                for(Iterator<JobWrapper> iter = _activeJobs.iterator(); iter.hasNext();) {
+                for (Iterator<JobWrapper> iter = _activeJobs.iterator(); iter.hasNext();) {
                     jobWrapper = iter.next();
                     Job job = jobWrapper.getJob();
                     try {
@@ -88,10 +95,11 @@ public class QueueJobTracker extends DistributedQueueConsumer<QueueJob> implemen
                             if (trackingTime > Job.JOB_TRACKING_LIMIT) {
                                 // Stop tracking job if maximum job tracking time was reached.
                                 msg = String.format("Tracker: Stopping tracking job %s with status: %s and post-processing status %s .\n" +
-                                                "The job tracking time reached job tracking time limit, job tracking time %d hours.",
+                                        "The job tracking time reached job tracking time limit, job tracking time %d hours.",
                                         result.getJobId(), result.getJobStatus(), result.getJobPostProcessingStatus(),
-                                        trackingTime / (60 * 60 * 1000) );
-                                String errorMsg = String.format("Could not execute job %s on backend device. Exceeded time limit for job status tracking.",
+                                        trackingTime / (60 * 60 * 1000));
+                                String errorMsg = String.format(
+                                        "Could not execute job %s on backend device. Exceeded time limit for job status tracking.",
                                         result.getJobName());
                                 ServiceError error = DeviceControllerException.errors.unableToExecuteJob(errorMsg);
                                 job.getTaskCompleter().error(_jobContext.getDbClient(), error);
@@ -103,24 +111,25 @@ public class QueueJobTracker extends DistributedQueueConsumer<QueueJob> implemen
                             stopTrackingJob(jobWrapper);
                             completedJobs.add(result.getJobId());
                         }
-                    } catch (Throwable th) {
-                        _logger.error("Tracker: Unexpected exception.", th);
+                    } catch (Exception ex) {
+                        _logger.error("Tracker: Unexpected exception.", ex);
                     }
                 }
                 if (!jobProgressMap.isEmpty()) {
-                    _logger.info(String.format("Progress of jobs - \n %s", jobProgressMap.toString()));
+                    _logger.info(String.format("Progress of jobs - %n %s", jobProgressMap.toString()));
                 }
                 removeCompletedJobProgressItems(jobProgressMap, completedJobs);
             } catch (InterruptedException ie) {
+                _logger.info("Tracker: Unexpected Interrupted exception.", ie);
             } catch (Exception e) {
                 _logger.info("Tracker: Unexpected exception.", e);
             }
         }
     }
 
-    private void updateJobProgress(HashMap<String, HashMap<String, Integer>> jobProgressMap, JobPollResult result){
+    private void updateJobProgress(HashMap<String, HashMap<String, Integer>> jobProgressMap, JobPollResult result) {
         HashMap<String, Integer> jobInstancesForJobName = jobProgressMap.get(result.getJobName());
-        if(jobInstancesForJobName == null) {
+        if (jobInstancesForJobName == null) {
             jobInstancesForJobName = new HashMap<String, Integer>();
             jobProgressMap.put(result.getJobName(), jobInstancesForJobName);
         }
@@ -128,14 +137,14 @@ public class QueueJobTracker extends DistributedQueueConsumer<QueueJob> implemen
     }
 
     private void removeCompletedJobProgressItems(HashMap<String, HashMap<String, Integer>> jobProgressMap,
-                                                 ArrayList<String> completedJobs) {
-        for(String jobId : completedJobs) {
+            ArrayList<String> completedJobs) {
+        for (String jobId : completedJobs) {
             Iterator<String> jobProgressMapIter = jobProgressMap.keySet().iterator();
-            while(jobProgressMapIter.hasNext()) {
+            while (jobProgressMapIter.hasNext()) {
                 HashMap<String, Integer> jobProgressItemMap = jobProgressMap.get(jobProgressMapIter.next());
-                if(jobProgressItemMap.containsKey(jobId)) {
+                if (jobProgressItemMap.containsKey(jobId)) {
                     jobProgressItemMap.remove(jobId);
-                    if(jobProgressItemMap.isEmpty()) {
+                    if (jobProgressItemMap.isEmpty()) {
                         jobProgressMapIter.remove();
                     }
                     break;

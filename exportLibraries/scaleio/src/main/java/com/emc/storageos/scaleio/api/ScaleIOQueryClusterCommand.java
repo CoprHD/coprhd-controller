@@ -19,8 +19,8 @@ import java.util.List;
 
 public class ScaleIOQueryClusterCommand extends AbstractScaleIOQueryCommand<ScaleIOQueryClusterResult> {
 
-// Mode: Cluster, Cluster State: Normal, Tie-Breaker State: Connected
-// Primary IP: 10.247.78.40 Secondary IP: 10.247.78.41 Tie-Breaker IP: 10.247.78.42
+    // Mode: Cluster, Cluster State: Normal, Tie-Breaker State: Connected
+    // Primary IP: 10.247.78.40 Secondary IP: 10.247.78.41 Tie-Breaker IP: 10.247.78.42
 
     private static final String CLUSTER_STATUSES = "ClusterStatuses";
     private static final String CLUSTER_IPS = "ClusterIPs";
@@ -28,7 +28,7 @@ public class ScaleIOQueryClusterCommand extends AbstractScaleIOQueryCommand<Scal
     private static final String SECONDARY_IP = "SecondaryIP";
     private static final String TIE_BREAKER = "TieBreaker";
 
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern("\\s+Mode:\\s+(\\w+),\\s+Cluster State:\\s+(\\w+),\\s+Tie-Breaker State:\\s+(\\w+)", CLUSTER_STATUSES),
             new ParsePattern("\\s+Primary IP:\\s+(\\S+)\\s+Secondary IP:\\s+(\\S+)\\s+Tie-Breaker IP:\\s+(\\S+)", CLUSTER_IPS),
             new ParsePattern("\\s+Primary IP:\\s+(\\S+)", PRIMARY_IP),
@@ -42,7 +42,7 @@ public class ScaleIOQueryClusterCommand extends AbstractScaleIOQueryCommand<Scal
 
     @Override
     ParsePattern[] getOutputPatternSpecification() {
-        return PARSING_CONFIG;
+        return PARSING_CONFIG.clone(); // No need to check not null condition here
     }
 
     @Override

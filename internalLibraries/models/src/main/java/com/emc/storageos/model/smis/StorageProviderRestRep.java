@@ -23,7 +23,6 @@ import com.emc.storageos.model.RelatedResourceRep;
 import java.util.ArrayList;
 import java.util.List;
 
-
 @XmlRootElement(name = "storage_provider")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class StorageProviderRestRep extends DataObjectRestRep {
@@ -48,10 +47,12 @@ public class StorageProviderRestRep extends DataObjectRestRep {
     private String secondaryUsername;
     private String elementManagerURL;
 
-    public StorageProviderRestRep() {}
-    
-    /** 
+    public StorageProviderRestRep() {
+    }
+
+    /**
      * Status of the connection.
+     * 
      * @valid CONNECTED
      * @valid NOTCONNECTED
      */
@@ -64,8 +65,9 @@ public class StorageProviderRestRep extends DataObjectRestRep {
         this.connectionStatus = connectionStatus;
     }
 
-    /** 
+    /**
      * Information relevant to the provider software.
+     * 
      * @valid none
      */
     @XmlElement(name = "description")
@@ -77,8 +79,9 @@ public class StorageProviderRestRep extends DataObjectRestRep {
         this.description = description;
     }
 
-    /** 
+    /**
      * Intarface type
+     * 
      * @valid none
      */
     @XmlElement(name = "interface")
@@ -92,6 +95,7 @@ public class StorageProviderRestRep extends DataObjectRestRep {
 
     /**
      * provider's IP address.
+     * 
      * @valid none
      */
     @XmlElement(name = "ip_address")
@@ -105,6 +109,7 @@ public class StorageProviderRestRep extends DataObjectRestRep {
 
     /**
      * Name of the manufacturer.
+     * 
      * @valid none
      */
     @XmlElement(name = "manufacturer")
@@ -119,6 +124,7 @@ public class StorageProviderRestRep extends DataObjectRestRep {
     /**
      * The port number used to connect with the
      * provider, typically 5988 or 5989.
+     * 
      * @valid none
      */
     @XmlElement(name = "port_number")
@@ -133,6 +139,7 @@ public class StorageProviderRestRep extends DataObjectRestRep {
     /**
      * A combination of the provider's IP address and the port
      * number, used as an ID.
+     * 
      * @valid none
      */
     @XmlElement(name = "provider_id")
@@ -162,8 +169,9 @@ public class StorageProviderRestRep extends DataObjectRestRep {
         this.storageSystems = storageSystems;
     }
 
-    /** 
+    /**
      * Login credential at the provider.
+     * 
      * @valid none
      */
     @XmlElement(name = "user_name")
@@ -177,6 +185,7 @@ public class StorageProviderRestRep extends DataObjectRestRep {
 
     /**
      * Whether or not secure SSL connection is used.
+     * 
      * @valid true
      * @valid false
      */
@@ -189,8 +198,9 @@ public class StorageProviderRestRep extends DataObjectRestRep {
         this.useSSL = useSSL;
     }
 
-    /** 
+    /**
      * provider software revision number.
+     * 
      * @valid none
      */
     @XmlElement(name = "version_string")
@@ -204,9 +214,10 @@ public class StorageProviderRestRep extends DataObjectRestRep {
 
     /**
      * Status of the provider scan job.
+     * 
      * @valid CREATED
      * @valid IN_PROGRESS
-     * @valid COMPLETE 
+     * @valid COMPLETE
      * @valid ERROR
      */
     @XmlElement(name = "job_scan_status")
@@ -218,8 +229,9 @@ public class StorageProviderRestRep extends DataObjectRestRep {
         this.scanStatus = scanStatus;
     }
 
-    /** 
+    /**
      * Status message from the last scan.
+     * 
      * @valid none
      */
     @XmlElement(name = "last_scan_status_message")
@@ -233,6 +245,7 @@ public class StorageProviderRestRep extends DataObjectRestRep {
 
     /**
      * Time the last scan occurred.
+     * 
      * @valid none
      */
     @XmlElement(name = "last_scan_time")
@@ -246,6 +259,7 @@ public class StorageProviderRestRep extends DataObjectRestRep {
 
     /**
      * Time for which the next scan job is scheduled.
+     * 
      * @valid none
      */
     @XmlElement(name = "next_scan_time")
@@ -256,10 +270,10 @@ public class StorageProviderRestRep extends DataObjectRestRep {
     public void setNextScanTime(Long nextScanTime) {
         this.nextScanTime = nextScanTime;
     }
-    
+
     /**
      * The latest timestamp when the system run scanning successfully
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "success_scan_time")
@@ -273,6 +287,7 @@ public class StorageProviderRestRep extends DataObjectRestRep {
 
     /**
      * Registration status of the provider
+     * 
      * @valid REGISTERED
      * @valid UNREGISTERED
      */
@@ -285,9 +300,10 @@ public class StorageProviderRestRep extends DataObjectRestRep {
         this.registrationStatus = registrationStatus;
     }
 
-    /** 
+    /**
      * Whether or not the provider software is compatible with
      * ViPR.
+     * 
      * @valid COMPATIBLE
      * @valid INCOMPATIBLE
      * @valid UNKNOWN
@@ -303,7 +319,7 @@ public class StorageProviderRestRep extends DataObjectRestRep {
 
     /**
      * Username for an optional, secondary credential
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "secondary_username")
@@ -317,7 +333,7 @@ public class StorageProviderRestRep extends DataObjectRestRep {
 
     /**
      * URL of the Element Management system that is associated with the Provider.
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "element_manager_url")

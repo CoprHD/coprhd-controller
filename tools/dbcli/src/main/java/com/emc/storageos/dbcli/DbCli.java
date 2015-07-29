@@ -82,11 +82,11 @@ public class DbCli {
     Document doc = null;
     Element schemaNode = null;
 
-    public enum DbCliOperation{
+    public enum DbCliOperation {
         LIST, DUMP, LOAD, CREATE
     }
 
-    public DbCli(){
+    public DbCli() {
         DataObjectModelPackageScanner dataObjectModelPackageScanner = new DataObjectModelPackageScanner();
         _cfMap = dataObjectModelPackageScanner.getCfMaps();
     }
@@ -94,13 +94,14 @@ public class DbCli {
     /**
      * Initiate the dbclient
      */
-    public void initDbClient(){
+    public void initDbClient() {
         try {
             System.out.println("Initializing db client ...");
             _dbClient.start();
 
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Caught Exception: " + e);
+            log.error("Caught Exception: ", e);
         }
     }
 
@@ -112,41 +113,42 @@ public class DbCli {
         this._dbClient = dbClient;
     }
 
-    public DataObjectScanner getDataObjectscanner(){
+    public DataObjectScanner getDataObjectscanner() {
         return dataObjectscanner;
     }
 
-    public void setDataObjectscanner(DataObjectScanner dataObjectscanner){
+    public void setDataObjectscanner(DataObjectScanner dataObjectscanner) {
         this.dataObjectscanner = dataObjectscanner;
     }
 
     public void stop() {
-        if(_dbClient != null){
+        if (_dbClient != null) {
             _dbClient.stop();
         }
     }
-    
-    public void start(boolean skipMigrationCheck){
-    	_dbClient.setBypassMigrationLock(skipMigrationCheck);
-   		_dbClient.start();
+
+    public void start(boolean skipMigrationCheck) {
+        _dbClient.setBypassMigrationLock(skipMigrationCheck);
+        _dbClient.start();
     }
-    
+
     /**
      * Print column families.
      */
-    public void printCfMaps(){
+    public void printCfMaps() {
         Iterator it = _cfMap.entrySet().iterator();
-        while(it.hasNext()){
+        while (it.hasNext()) {
             Entry entry = (Entry) it.next();
             System.out.println(String.format("\t\tColumn family: %s", entry.getKey()));
         }
     }
 
     /**
-     * Print the fields' info of column family. 
+     * Print the fields' info of column family.
+     * 
      * @Param cfName
      */
-    public void printFieldsByCf(String cfName){
+    public void printFieldsByCf(String cfName) {
         Class clazz = _cfMap.get(cfName);
         if (DataObject.class.isAssignableFrom(clazz)) {
             DataObjectType doType = TypeMap.getDoType(clazz);
@@ -155,54 +157,59 @@ public class DbCli {
             Iterator it = cfs.iterator();
             while (it.hasNext()) {
                 ColumnField field = (ColumnField) it.next();
-                System.out.println(String.format("\tfield=%-30s\ttype=%s", field.getName(), 
-                       field.getPropertyDescriptor().getPropertyType().toString().substring(6)));
+                System.out.println(String.format("\tfield=%-30s\ttype=%s", field.getName(),
+                        field.getPropertyDescriptor().getPropertyType().toString().substring(6)));
             }
         }
     }
 
     /**
      * Load xml file and persist model object
+     * 
      * @Param fileName
      */
-    public void loadFileAndPersist(String fileName){
-        try{
-            readXMLAndPersist(fileName, DbCliOperation.LOAD); 
+    public void loadFileAndPersist(String fileName) {
+        try {
+            readXMLAndPersist(fileName, DbCliOperation.LOAD);
             System.out.println(String.format("Load from file: %s successfully", fileName));
             log.info("Load from file: {} successfully", fileName);
-        } catch(Exception e){
-            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("Caught Exception: " + e);
+            log.error("Caught Exception: ", e);
         }
     }
 
     /**
      * Load xml file, create and persist model object
+     * 
      * @Param fileName
      */
-    public void loadFileAndCreate(String fileName){
-        try{
+    public void loadFileAndCreate(String fileName) {
+        try {
             readXMLAndPersist(fileName, DbCliOperation.CREATE);
             System.out.println(String.format("Load and create from file: %s successfully", fileName));
             log.info("Load and create from file: {} successfully", fileName);
-        } catch(Exception e){
-            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("Caught Exception: " + e);
+            log.error("Caught Exception: ", e);
         }
     }
 
     /**
      * Load xml file and save model object into Cassandra.
+     * 
      * @Param fileName
      */
-    private <T extends DataObject> void readXMLAndPersist(String fileName, DbCliOperation operation) throws Exception{
+    private <T extends DataObject> void readXMLAndPersist(String fileName, DbCliOperation operation) throws Exception {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = dbf.newDocumentBuilder();
-        Document doc = builder.parse(fileName); 
+        Document doc = builder.parse(fileName);
 
-        //Read root node
-        Element root = doc.getDocumentElement(); 
+        // Read root node
+        Element root = doc.getDocumentElement();
         Element dataObjectNode = (Element) root.getElementsByTagName("data_object_schema").item(0);
 
-        //Get column family's name
+        // Get column family's name
         String cfName = dataObjectNode.getAttribute("name");
         System.out.println("Column Family based on XML: " + cfName);
         NodeList recordNodes = dataObjectNode.getElementsByTagName("record");
@@ -212,9 +219,9 @@ public class DbCli {
             System.out.println("Unknown Column Family: " + cfName);
             return;
         }
-        //Get class info
+        // Get class info
         BeanInfo bInfo;
-        try{
+        try {
             bInfo = Introspector.getBeanInfo(clazz);
         } catch (IntrospectionException ex) {
             throw new RuntimeException("Unexpected exception getting bean info", ex);
@@ -222,7 +229,7 @@ public class DbCli {
 
         PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
 
-        //get position of xml node
+        // get position of xml node
         InputStream xmlIs = new FileInputStream(new File(fileName));
         Document docForPosition = PositionalXMLReader.readXML(xmlIs);
         xmlIs.close();
@@ -231,13 +238,13 @@ public class DbCli {
             Element record = (Element) recordNodes.item(i);
             T object = null;
             String idStr = null;
-    
-            if(operation == DbCliOperation.LOAD){// query record based id
+
+            if (operation == DbCliOperation.LOAD) {// query record based id
                 String recordId = record.getAttribute("id");
                 System.out.println(String.format("Object id:\t%s", recordId));
                 idStr = recordId;
                 object = queryObject(URI.create(recordId), clazz);
-            } else if (operation == DbCliOperation.CREATE){ // create new id for create record
+            } else if (operation == DbCliOperation.CREATE) { // create new id for create record
                 URI id = URIUtil.createId(clazz);
                 object = clazz.newInstance();
                 object.setId(id);
@@ -249,72 +256,73 @@ public class DbCli {
             HashMap<String, Class> fieldTypeMap = new HashMap<String, Class>();
             HashMap<String, String> fieldLocationMap = new HashMap<String, String>();
             HashMap<String, Node> fieldNodeMap = new HashMap<String, Node>();
-            
+
             NodeList fields = record.getElementsByTagName("field");
 
-            //get field info from xml file
+            // get field info from xml file
             for (int j = 0; j < fields.getLength(); j++) {
                 Element field = (Element) fields.item(j);
-                if(DEBUG){
+                if (DEBUG) {
                     System.out.println(field.getAttribute("name") + "\t" + field.getAttribute("type") + "\t" + field.getAttribute("value"));
                 }
                 fieldValueMap.put(field.getAttribute("name"), field.getAttribute("value"));
                 fieldTypeMap.put(field.getAttribute("name"), Class.forName(field.getAttribute("type")));
                 fieldLocationMap.put(field.getAttribute("name"),
-                       ((Element)docForPosition.getElementsByTagName("record").item(i)).getElementsByTagName("field").item(j).getUserData("lineNumber").toString());
+                        ((Element) docForPosition.getElementsByTagName("record").item(i)).getElementsByTagName("field").item(j)
+                                .getUserData("lineNumber").toString());
 
-                if(field.getElementsByTagName("wrapper").item(0) != null){
+                if (field.getElementsByTagName("wrapper").item(0) != null) {
                     fieldNodeMap.put(field.getAttribute("name"), field.getElementsByTagName("wrapper").item(0));
-                } 
+                }
             }
 
             Iterator locationIt = fieldLocationMap.entrySet().iterator();
-            while(locationIt.hasNext()){
-                Entry entry = (Entry)locationIt.next();
-                String key = (String)entry.getKey();
-                String value = (String)entry.getValue();
-                
-                if(DEBUG){
+            while (locationIt.hasNext()) {
+                Entry entry = (Entry) locationIt.next();
+                String key = (String) entry.getKey();
+                String value = (String) entry.getValue();
+
+                if (DEBUG) {
                     System.out.println("key:\t" + key + "\tvalue\t" + value);
                 }
             }
 
-            //update object's fields
+            // update object's fields
             for (PropertyDescriptor pd : pds) {
                 // skip class property, id property
                 if (pd.getName().equals("class") || pd.getName().equals("id")) {
                     continue;
                 }
-    
-                String fieldValue = fieldValueMap.get(pd.getName());  
+
+                String fieldValue = fieldValueMap.get(pd.getName());
                 Class fieldClass = fieldTypeMap.get(pd.getName());
                 String fieldLocation = fieldLocationMap.get(pd.getName());
 
                 Node fieldNode = fieldNodeMap.get(pd.getName());
 
-                if(fieldValue != null){
+                if (fieldValue != null) {
                     Class type = pd.getPropertyType();
-                    if(DEBUG){
+                    if (DEBUG) {
                         System.out.print("\t" + pd.getName() + " = " + type);
                     }
 
-                    try{
+                    try {
                         if (type == URI.class) {
                             pd.getWriteMethod().invoke(object, URI.create(fieldValue));
                         } else if (type == NamedURI.class) {
                             pd.getWriteMethod().invoke(object, NamedURI.fromString(fieldValue));
                         } else if (type == Date.class) {
-                            //Can not find records with value which owns this type. Remains to be verified correct or not.
-                            //System.out.println("\ttype: Date ");
+                            // Can not find records with value which owns this type. Remains to be verified correct or not.
+                            // System.out.println("\ttype: Date ");
                         } else if (type == Calendar.class) {
                             Calendar calendar = FieldType.toCalendar(fieldValue);
-                            if(!verifyField(calendar)){
+                            if (!verifyField(calendar)) {
                                 throw new Exception("field format exception");
                             }
                             pd.getWriteMethod().invoke(object, calendar);
                         } else if (type == StringMap.class) {
                             StringMap newStringMap = FieldType.convertType(fieldNode, StringMapWrapper.class);
-                            if(!verifyField(newStringMap)){
+                            if (!verifyField(newStringMap)) {
                                 throw new Exception("field format exception");
                             }
                             StringMap sMap = (StringMap) pd.getReadMethod().invoke(object);
@@ -327,7 +335,7 @@ public class DbCli {
 
                         } else if (type == StringSet.class) {
                             StringSet stringSet = FieldType.convertType(fieldNode, StringSetWrapper.class);
-                            if(!verifyField(stringSet)){
+                            if (!verifyField(stringSet)) {
                                 throw new Exception("field format exception");
                             }
 
@@ -341,12 +349,12 @@ public class DbCli {
 
                         } else if (type == OpStatusMap.class) {
                             OpStatusMap opStatusMap = FieldType.convertType(fieldNode, OpStatusMapWrapper.class);
-                            if(!verifyField(opStatusMap)){
+                            if (!verifyField(opStatusMap)) {
                                 throw new Exception("field format exception");
                             }
                         } else if (type == StringSetMap.class) {
                             StringSetMap newSetMap = FieldType.convertType(fieldNode, StringSetMapWrapper.class);
-                            if(!verifyField(newSetMap)){
+                            if (!verifyField(newSetMap)) {
                                 throw new Exception("field format exception");
                             }
                             StringSetMap sMap = (StringSetMap) pd.getReadMethod().invoke(object);
@@ -362,76 +370,78 @@ public class DbCli {
 
                         } else if (type == FSExportMap.class) {
                             FSExportMap fSExportMap = FieldType.convertType(fieldNode, FSExportMapWrapper.class);
-                            if(!verifyField(fSExportMap)){
+                            if (!verifyField(fSExportMap)) {
                                 throw new Exception("field format exception");
                             }
                             pd.getWriteMethod().invoke(object, fSExportMap);
                         } else if (type == SMBShareMap.class) {
                             SMBShareMap sMBShareMap = FieldType.convertType(fieldNode, SMBShareMapWrapper.class);
-                            if(!verifyField(sMBShareMap)){
+                            if (!verifyField(sMBShareMap)) {
                                 throw new Exception("field format exception");
                             }
                             pd.getWriteMethod().invoke(object, sMBShareMap);
                         } else if (type == ScopedLabelSet.class) {
                             ScopedLabelSet scopedLabelSet = FieldType.convertType(fieldNode, ScopedLabelSetWrapper.class);
-                            if(!verifyField(scopedLabelSet)){
+                            if (!verifyField(scopedLabelSet)) {
                                 throw new Exception("field format exception");
                             }
-                        } else if (type == String.class){
+                        } else if (type == String.class) {
                             pd.getWriteMethod().invoke(object, fieldClass.cast(fieldValue));
                         } else if (type.isEnum()) {
                             Object enumTypeObject = null;
                             try {
                                 enumTypeObject = Enum.valueOf(type, fieldValue);
-                            } catch(Exception e){
+                            } catch (Exception e) {
                                 throw new Exception("field format exception");
                             }
                             pd.getWriteMethod().invoke(object, enumTypeObject);
-                        } else if (type == Integer.class){
+                        } else if (type == Integer.class) {
                             Integer intNum = FieldType.toInteger(fieldValue);
-                            if(!verifyField(intNum)){
+                            if (!verifyField(intNum)) {
                                 throw new Exception("field format exception");
                             }
                             pd.getWriteMethod().invoke(object, intNum);
-                        } else if (type == Boolean.class){
+                        } else if (type == Boolean.class) {
                             Boolean boolVal = FieldType.toBoolean(fieldValue);
-                            if(!verifyField(boolVal)){
+                            if (!verifyField(boolVal)) {
                                 throw new Exception("field format exception");
                             }
                             pd.getWriteMethod().invoke(object, boolVal);
-                        } else if (type == Long.class){
+                        } else if (type == Long.class) {
                             Long longNum = FieldType.toLong(fieldValue);
-                            if(!verifyField(longNum)){
+                            if (!verifyField(longNum)) {
                                 throw new Exception("field format exception");
                             }
                             pd.getWriteMethod().invoke(object, longNum);
-                        } else{
+                        } else {
                             pd.getWriteMethod().invoke(object, fieldValue);
                         }
-                    } catch(Exception e){
-                        System.out.println(String.format("Exception in getting field:%s in xml file line:%s.", pd.getName(), fieldLocation));
+                    } catch (Exception e) {
+                        System.out
+                                .println(String.format("Exception in getting field:%s in xml file line:%s.", pd.getName(), fieldLocation));
                         log.error("Exception in getting field value in xml file line:{}.", fieldLocation, e);
                         throw new Exception(String.format("Exception in getting field value in line:%s.", fieldLocation));
                     }
 
-                    if(DEBUG){
+                    if (DEBUG) {
                         Object fieldValue1 = pd.getReadMethod().invoke(object);
-                        System.out.println("write " + fieldValue1 + "\ttype: "+ type +  " success");
+                        System.out.println("write " + fieldValue1 + "\ttype: " + type + " success");
                     }
                 }
             }
 
             if (operation == DbCliOperation.CREATE) {
-                _dbClient.createObject(object);//Save model object.
+                _dbClient.createObject(object);// Save model object.
             } else if (operation == DbCliOperation.LOAD) {
                 _dbClient.persistObject(object);
             }
-            log.info(String.format("Successfully update Column family:%s, \tdata object id:%s \tinto Cassandra, based on xml file %s", cfName, idStr, fileName));
+            log.info(String.format("Successfully update Column family:%s, \tdata object id:%s \tinto Cassandra, based on xml file %s",
+                    cfName, idStr, fileName));
         }
     }
 
-    private boolean verifyField(Object fieldObject){
-        if(fieldObject == null){
+    private boolean verifyField(Object fieldObject) {
+        if (fieldObject == null) {
             return false;
         }
         return true;
@@ -440,6 +450,7 @@ public class DbCli {
     /**
      * Query for a record with the given id and type, and print the contents in human readable format
      * if query URI list, use queryAndPrintRecords(ids, clazz) method instead.
+     * 
      * @param id
      * @param clazz
      * @param <T>
@@ -455,13 +466,13 @@ public class DbCli {
 
         BeanInfo bInfo;
 
-        try{
+        try {
             bInfo = Introspector.getBeanInfo(clazz);
         } catch (IntrospectionException ex) {
             throw new RuntimeException("Unexpected exception getting bean info", ex);
         }
 
-        if(operationType == DbCliOperation.LIST){
+        if (operationType == DbCliOperation.LIST) {
             printBeanProperties(bInfo.getPropertyDescriptors(), object);
         } else {
             dumpBeanProperties(bInfo.getPropertyDescriptors(), object);
@@ -470,15 +481,17 @@ public class DbCli {
 
     /**
      * Initiate the root node in xml file
+     * 
      * @Param cfName
      */
-    private void initDumpXmlFile(String cfName){
+    private void initDumpXmlFile(String cfName) {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = null;
         try {
             builder = dbf.newDocumentBuilder();
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Caught Exception: " + e);
+            log.error("Caught Exception: ", e);
         }
         doc = builder.newDocument();
         Element root = doc.createElement("dbschemas");
@@ -491,9 +504,10 @@ public class DbCli {
 
     /**
      * Write model object records into xml file
+     * 
      * @Param outFileName
      */
-    private void writeToXmlFile(String outFileName){
+    private void writeToXmlFile(String outFileName) {
         try {
             FileOutputStream fos = new FileOutputStream(outFileName);
             OutputStreamWriter outwriter = new OutputStreamWriter(fos);
@@ -503,10 +517,11 @@ public class DbCli {
             System.out.println(String.format("Dump into file: %s successfully", outFileName));
             log.info("Dump into file: {} successfully", outFileName);
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Caught Exception: " + e);
+            log.error("Caught Exception: ", e);
         }
     }
-    
+
     /**
      * Dump the contents in xml format
      * 
@@ -520,7 +535,7 @@ public class DbCli {
         record.setAttribute("id", object.getId().toString());
         schemaNode.appendChild(record);
 
-        //Add readOnlyField node.
+        // Add readOnlyField node.
         Element readOnlyElement = doc.createElement("readOnlyField");
         record.appendChild(readOnlyElement);
 
@@ -532,22 +547,22 @@ public class DbCli {
             if (objValue == null) {
                 continue;
             }
-            
+
             // Skip password property.
-            if(pd.getName().toLowerCase().matches("[a-zA-Z\\d]*password[a-zA-Z\\d]*")) {
+            if (pd.getName().toLowerCase().matches("[a-zA-Z\\d]*password[a-zA-Z\\d]*")) {
                 continue;
             }
-            
+
             // Skip some properties.
             if (pd.getName().equals("class") || pd.getName().equals("id")) {
                 Element readOnlyfieldNode = doc.createElement("field");
-                readOnlyfieldNode.setAttribute("type", pd.getPropertyType().toString().substring(6)); //delete the prefix string "class "
+                readOnlyfieldNode.setAttribute("type", pd.getPropertyType().toString().substring(6)); // delete the prefix string "class "
                 readOnlyfieldNode.setAttribute("name", pd.getName().toString());
                 readOnlyfieldNode.setAttribute("value", objValue.toString());
                 readOnlyElement.appendChild(readOnlyfieldNode);
                 continue;
             }
-            
+
             // Skip the fields without @Name annotation
             Name name = pd.getReadMethod().getAnnotation(Name.class);
             if (name == null) {
@@ -556,14 +571,14 @@ public class DbCli {
                         pd.getName());
                 continue;
             }
-            
+
             type = pd.getPropertyType();
-            if(DEBUG){
+            if (DEBUG) {
                 System.out.print("\t" + pd.getPropertyType() + "\t" + pd.getName() + " = ");
             }
 
             Element fieldNode = doc.createElement("field");
-            fieldNode.setAttribute("type", type.toString().substring(6)); //delete the prefix string "class "
+            fieldNode.setAttribute("type", type.toString().substring(6)); // delete the prefix string "class "
             fieldNode.setAttribute("name", pd.getName().toString());
 
             if (type == StringSetMap.class) {
@@ -597,7 +612,7 @@ public class DbCli {
 
     /**
      * Print the contents in human readable format
-     *
+     * 
      * @param pds
      * @param object
      * @throws Exception
@@ -646,6 +661,7 @@ public class DbCli {
 
     /**
      * Query and dump into xml for a particular id in a ColumnFamily
+     * 
      * @param cfName
      * @param ids
      * @throws Exception
@@ -662,7 +678,7 @@ public class DbCli {
             return;
         }
         initDumpXmlFile(cfName);
-        for(String id: ids){
+        for (String id : ids) {
             queryAndPrintRecord(URI.create(id), clazz, DbCliOperation.DUMP);
         }
         writeToXmlFile(fileName);
@@ -670,6 +686,7 @@ public class DbCli {
 
     /**
      * Query and list for a particular id in a ColumnFamily
+     * 
      * @param cfName
      * @param ids
      * @throws Exception
@@ -685,7 +702,7 @@ public class DbCli {
             System.out.println("TimeSeries data not supported with this command.");
             return;
         }
-        for(String id: ids){
+        for (String id : ids) {
             queryAndPrintRecord(URI.create(id), clazz, DbCliOperation.LIST);
         }
     }
@@ -703,6 +720,7 @@ public class DbCli {
 
     /**
      * Write contents into xml file
+     * 
      * @Param doc
      * @Param writer
      * @Param encoding
@@ -717,30 +735,35 @@ public class DbCli {
             xformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
             xformer.transform(source, result);
         } catch (TransformerConfigurationException e) {
-            e.printStackTrace();
+            System.err.println("Caught TransformerConfigurationException" + e);
+            log.error("Caught TransformerConfigurationException: ", e);
         } catch (TransformerException e) {
-            e.printStackTrace();
+            System.err.println("Caught TransformerException" + e);
+            log.error("Caught TransformerException: ", e);
         }
     }
 
     /**
      * Delete objects.
+     * 
      * @Param cfName
      * @Param ids
      * @Param force
      */
-    public void deleteRecords(String cfName, String[] ids, boolean force){
-        for(String id: ids){
-            try{
+    public void deleteRecords(String cfName, String[] ids, boolean force) {
+        for (String id : ids) {
+            try {
                 delete(id, cfName, force);
-            } catch(Exception e){
-                e.printStackTrace();
+            } catch (Exception e) {
+                System.err.println("Caught exception" + e);
+                log.error("Caught Exception: ", e);
             }
         }
     }
 
     /**
-     * Delete object. 
+     * Delete object.
+     * 
      * @param id
      * @param cfName
      * @param force
@@ -766,12 +789,13 @@ public class DbCli {
 
     /**
      * Query for a record with the given id and type, and print the contents in human readable format
+     * 
      * @param id
      * @param clazz
      * @param <T>
      */
     private <T extends DataObject> boolean queryAndDeleteObject(URI id, Class<T> clazz, boolean force)
-                throws Exception {
+            throws Exception {
         if (_dependencyChecker == null) {
             DependencyTracker dependencyTracker = dataObjectscanner.getDependencyTracker();
             _dependencyChecker = new DependencyChecker(_dbClient, dependencyTracker);
@@ -779,39 +803,41 @@ public class DbCli {
 
         if (_dependencyChecker.checkDependencies(id, clazz, false) != null) {
             if (!force) {
-                System.out.println(String.format("Failed to delete the object %s: there are active dependencies", id)); 
+                System.out.println(String.format("Failed to delete the object %s: there are active dependencies", id));
                 return false;
             }
             log.info("Force to delete object {} that has active dependencies", id);
         }
-           
+
         T object = queryObject(id, clazz);
 
         if (object == null) {
-            System.out.println(String.format("The object %s has already been deleted",id));
+            System.out.println(String.format("The object %s has already been deleted", id));
             return false;
         }
 
         if ((object.canBeDeleted() == null) || force) {
-            if (object.canBeDeleted() != null)
+            if (object.canBeDeleted() != null) {
                 log.info("Force to delete object {} that can't be deleted", id);
+            }
 
             _dbClient.removeObject(object);
             return true;
         }
 
-        System.out.println(String.format("The object %s can't be deleted",id));
+        System.out.println(String.format("The object %s can't be deleted", id));
 
         return false;
     }
 
     /**
      * Iteratively list records from DB in a user readable format
+     * 
      * @param cfName
      * @throws Exception
      */
     @SuppressWarnings("unchecked")
-    public void listRecords(String cfName) throws Exception  {
+    public void listRecords(String cfName) throws Exception {
         final Class clazz = _cfMap.get(cfName); // fill in type from cfName
         if (clazz == null) {
             System.out.println("Unknown Column Family: " + cfName);
@@ -833,6 +859,7 @@ public class DbCli {
 
     /**
      * Query for records with the given ids and type, and print the contents in human readable format
+     * 
      * @param ids
      * @param clazz
      * @param <T>
@@ -855,8 +882,9 @@ public class DbCli {
                 printBeanProperties(bInfo.getPropertyDescriptors(), object);
                 countLimit++;
                 countAll++;
-                if (!turnOnLimit || countLimit != listLimit)
+                if (!turnOnLimit || countLimit != listLimit) {
                     continue;
+                }
                 System.out.println(String.format("Read %s rows ", countAll));
                 do {
                     System.out.println("\nPress 'ENTER' to continue or 'q<ENTER>' to quit...");
@@ -865,8 +893,9 @@ public class DbCli {
                         countLimit = 0;
                         break;
                     }
-                    if (input.equalsIgnoreCase(QUITCHAR))
+                    if (input.equalsIgnoreCase(QUITCHAR)) {
                         return countAll;
+                    }
                 } while (!input.isEmpty());
             }
         } catch (DatabaseException ex) {
@@ -885,7 +914,7 @@ public class DbCli {
     /**
      * get the keys of column family for list/count
      */
-    private List<URI> getColumnUris(Class clazz, boolean isActive){
+    private List<URI> getColumnUris(Class clazz, boolean isActive) {
         List<URI> uris = null;
         try {
             uris = _dbClient.queryByType(clazz, isActive);
@@ -899,7 +928,7 @@ public class DbCli {
     public void setListLimit(int listLimit) {
         this.listLimit = listLimit;
     }
-    
+
     public void setTurnOnLimit(boolean turnOnLimit) {
         this.turnOnLimit = turnOnLimit;
     }
@@ -924,6 +953,7 @@ public class DbCli {
         /**
          * Processes data object or time series class and extracts CF
          * requirements
+         * 
          * @param clazz data object or time series class
          */
         @Override

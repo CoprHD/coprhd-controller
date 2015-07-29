@@ -59,22 +59,20 @@ import com.google.common.base.Preconditions;
 
 public class BackupOps {
     private static final Logger log = LoggerFactory.getLogger(BackupOps.class);
-    private static final String BACKUP_NAME_FORMAT =
-            "%s" + BackupConstants.BACKUP_NAME_DELIMITER + "%s";
     private static final String BACKUP_LOCK = "backup";
     private static final String IP_ADDR_DELIMITER = ":";
     private static final String IP_ADDR_FORMAT = "%s" + IP_ADDR_DELIMITER + "%d";
     private static final Format FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
     private static final String BACKUP_FILE_PERMISSION = "644";
+    private static final int LOCK_TIMEOUT = 1000;
     private String serviceUrl = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
     private Map<String, String> hosts;
-    private Map<String, String> dualAddrHosts; 
+    private Map<String, String> dualAddrHosts;
     private List<Integer> ports;
     private CoordinatorClient coordinatorClient;
-    private static final int LOCK_TIMEOUT = 1000;
     private int quorumSize;
     private List<String> vdcList;
-    private static File backupDir;
+    private File backupDir;
 
     /**
      * Default constructor.
@@ -84,8 +82,9 @@ public class BackupOps {
 
     /**
      * Sets jmx service url
+     * 
      * @param serviceUrl
-     *          The string format of jmx service url
+     *            The string format of jmx service url
      */
     public void setServiceUrl(String serviceUrl) {
         this.serviceUrl = serviceUrl;
@@ -93,14 +92,15 @@ public class BackupOps {
 
     /**
      * Sets jmx service hosts
+     * 
      * @param hosts
-     *          The list of jmx service hosts
+     *            The list of jmx service hosts
      */
     void setHosts(Map<String, String> hosts) {
         this.hosts = hosts;
-        this.quorumSize = hosts.size()/2 + 1;
+        this.quorumSize = hosts.size() / 2 + 1;
     }
-    
+
     /**
      * Normalize DualInetAddress so to persist String into _info.properties file
      * 
@@ -142,27 +142,29 @@ public class BackupOps {
      * @return map of node name to IP address for each ViPR host
      */
     private Map<String, String> getHosts() {
+        if (hosts == null || hosts.isEmpty()) {
+            hosts = initHosts();
+        }
+        return hosts;
+    }
+
+    private synchronized Map<String, String> initHosts() {
         if (hosts != null && !hosts.isEmpty()) {
             return hosts;
         }
-        synchronized (this) {
-            if (hosts != null && !hosts.isEmpty()) {
-                return hosts;
+        CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
+        hosts = new TreeMap<>();
+        for (String nodeName : addressMap.getControllerNodeIPLookupMap().keySet()) {
+            try {
+                String ipAddr = addressMap.getConnectableInternalAddress(nodeName);
+                DualInetAddress inetAddress = DualInetAddress.fromAddress(ipAddr);
+                String host = normalizeDualInetAddress(inetAddress);
+                hosts.put(nodeName, host);
+            } catch (Exception ex) {
+                throw BackupException.fatals.failedToGetHost(nodeName, ex);
             }
-            CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
-            hosts = new TreeMap<>();
-            for (String nodeName : addressMap.getControllerNodeIPLookupMap().keySet()) {
-                try {
-                    String ipAddr = addressMap.getConnectableInternalAddress(nodeName);
-                    DualInetAddress inetAddress = DualInetAddress.fromAddress(ipAddr);
-                    String host = normalizeDualInetAddress(inetAddress);
-                    hosts.put(nodeName, host);
-                } catch (Exception ex) {
-                    throw BackupException.fatals.failedToGetHost(nodeName, ex);
-                }
-            }
-            this.quorumSize = hosts.size() / 2 + 1;
         }
+        this.quorumSize = hosts.size() / 2 + 1;
         return hosts;
     }
 
@@ -172,23 +174,29 @@ public class BackupOps {
      * @return map of node name to IP address(both IPv4 and IPv6 if configured)
      *         for each ViPR host
      */
+    // Suppress Sonar violation of Multithreaded correctness
+    // This is a get method, it's thread safe
+    @SuppressWarnings("findbugs:IS2_INCONSISTENT_SYNC")
     private Map<String, String> getHostsWithDualInetAddrs() {
+        if (dualAddrHosts == null || dualAddrHosts.isEmpty()) {
+            dualAddrHosts = initDualAddrHosts();
+        }
+        return dualAddrHosts;
+    }
+
+    private synchronized Map<String, String> initDualAddrHosts() {
         if (dualAddrHosts != null && !dualAddrHosts.isEmpty()) {
             return dualAddrHosts;
         }
-        synchronized (this) {
-            if (dualAddrHosts != null && !dualAddrHosts.isEmpty()) {
-                return dualAddrHosts;
+        dualAddrHosts = new TreeMap<>();
+        CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
+        for (String nodeName : addressMap.getControllerNodeIPLookupMap().keySet()) {
+            String normalizedHost = normalizeDualInetAddress(addressMap.get(nodeName));
+            if (normalizedHost == null) {
+                throw BackupException.fatals
+                        .failedToGetValidDualInetAddress("Neither IPv4 or IPv6 address is configured");
             }
-            dualAddrHosts = new TreeMap<>();
-            CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
-            for (String nodeName : addressMap.getControllerNodeIPLookupMap().keySet()) {
-                String normalizedHost = normalizeDualInetAddress(addressMap.get(nodeName));
-                if (normalizedHost == null)
-                    throw BackupException.fatals
-                            .failedToGetValidDualInetAddress("Neither IPv4 or IPv6 address is configured");
-                dualAddrHosts.put(nodeName, normalizedHost);
-            }
+            dualAddrHosts.put(nodeName, normalizedHost);
         }
         return dualAddrHosts;
     }
@@ -199,8 +207,9 @@ public class BackupOps {
 
     /**
      * Sets jmx service ports
+     * 
      * @param ports
-     *          The list of jmx service ports
+     *            The list of jmx service ports
      */
     public void setPorts(List<Integer> ports) {
         this.ports = ports;
@@ -208,8 +217,9 @@ public class BackupOps {
 
     /**
      * Sets coordinator client
+     * 
      * @param coordinatorClient
-     *          The instance of coordinator client
+     *            The instance of coordinator client
      */
     public void setCoordinatorClient(CoordinatorClient coordinatorClient) {
         this.coordinatorClient = coordinatorClient;
@@ -224,8 +234,9 @@ public class BackupOps {
 
     /**
      * Sets vdc list
+     * 
      * @param vdcList
-     *          The list of vdcs
+     *            The list of vdcs
      */
     public void setVdcList(List<String> vdcList) {
         this.vdcList = vdcList;
@@ -241,8 +252,9 @@ public class BackupOps {
 
     /**
      * Create backup file on all nodes
+     * 
      * @param backupTag
-     *          The tag of this backup
+     *            The tag of this backup
      */
     public void createBackup(String backupTag) {
         createBackup(backupTag, false);
@@ -250,10 +262,11 @@ public class BackupOps {
 
     /**
      * Create backup file on all nodes
+     * 
      * @param backupTag
-     *          The tag of this backup
+     *            The tag of this backup
      * @param force
-     *          Ignore the errors during the creation
+     *            Ignore the errors during the creation
      */
     public void createBackup(String backupTag, boolean force) {
         if (backupTag == null) {
@@ -314,33 +327,39 @@ public class BackupOps {
                         }
                         boolean retry = (cause instanceof RetryableBackupException);
                         boolean exist = (cause instanceof BackupException) &&
-                                (((BackupException)cause).getServiceCode()
-                                        == ServiceCode.BACKUP_CREATE_EXSIT);
+                                (((BackupException) cause).getServiceCode()
+                                    == ServiceCode.BACKUP_CREATE_EXSIT);
                         result = (result == null || retry || exist || ignoreError(result))
                                 ? cause : result;
                     }
                 }
-                if (result != null)
-                    throw result;
+                if (result != null) {
+                    if (result instanceof Exception) {
+                        throw (Exception) result;
+                    } else {
+                        throw new Exception(result);
+                    }
+                }
                 log.info("Create backup({}) success", backupTag);
                 persistBackupInfo(backupTag);
                 return;
-            } catch (Throwable t) {
-                boolean retry = (t instanceof RetryableBackupException) &&
+            } catch (Exception e) {
+                boolean retry = (e instanceof RetryableBackupException) &&
                         (retryCnt < BackupConstants.RETRY_MAX_CNT - 1);
                 if (retry) {
                     deleteBackupWithoutLock(backupTag, true);
                     log.info("Retry to create backup...");
                     continue;
                 }
-                boolean exist = (t instanceof BackupException) &&
-                        (((BackupException)t).getServiceCode() == ServiceCode.BACKUP_CREATE_EXSIT);
+                boolean exist = (e instanceof BackupException) &&
+                        (((BackupException) e).getServiceCode() == ServiceCode.BACKUP_CREATE_EXSIT);
                 if (exist) {
-                    throw BackupException.fatals.failedToCreateBackup(backupTag, errorList.toString(), t);
+                    throw BackupException.fatals.failedToCreateBackup(backupTag, errorList.toString(), e);
                 }
                 if (!checkCreateResult(backupTag, errorList, force)) {
                     deleteBackupWithoutLock(backupTag, true);
-                    throw BackupException.fatals.failedToCreateBackup(backupTag, errorList.toString(), t);
+                    Throwable cause = (e.getCause() == null ? e : e.getCause());
+                    throw BackupException.fatals.failedToCreateBackup(backupTag, errorList.toString(), cause);
                 }
                 break;
             }
@@ -351,10 +370,10 @@ public class BackupOps {
         int dbFailedCnt = 0;
         int geodbFailedCnt = 0;
         int zkFailedCnt = 0;
-        List<String> newErrList = (List<String>)((ArrayList<String>)errorList).clone();
+        List<String> newErrList = (List<String>) ((ArrayList<String>) errorList).clone();
         for (String ip : newErrList) {
             int port = Integer.parseInt(ip.split(IP_ADDR_DELIMITER)[1]);
-            switch(port) {
+            switch (port) {
                 case 7199:
                     dbFailedCnt++;
                     break;
@@ -363,14 +382,15 @@ public class BackupOps {
                     break;
                 case 7399:
                     zkFailedCnt++;
-                    if ((ip.split(IP_ADDR_DELIMITER)[0]).equals("follower"))
+                    if ((ip.split(IP_ADDR_DELIMITER)[0]).equals("follower")) {
                         errorList.remove(ip);
+                    }
                     break;
                 default:
                     log.error("Invalid port({}) during backup", port);
-             }
+            }
         }
-        if (dbFailedCnt == 0 && geodbFailedCnt ==0 && zkFailedCnt < hosts.size()) {
+        if (dbFailedCnt == 0 && geodbFailedCnt == 0 && zkFailedCnt < hosts.size()) {
             log.info("Create backup({}) success", backupTag);
             persistBackupInfo(backupTag);
             return true;
@@ -399,30 +419,30 @@ public class BackupOps {
     }
 
     private boolean isValidLinuxFileName(String fileName) {
-    	// the original Linux file name length limitation is 256 
-    	// 200 is our more restricted limitation as described above BackupService.createBackup method.
-    	if(fileName == null || fileName.trim().isEmpty() || fileName.contains("/") || fileName.length() > 200) {
-    		return false;
-    	}
-    	return true;
+        // the original Linux file name length limitation is 256
+        // 200 is our more restricted limitation as described above BackupService.createBackup method.
+        if (fileName == null || fileName.trim().isEmpty() || fileName.contains("/") || fileName.length() > 200) {
+            return false;
+        }
+        return true;
     }
 
-    private void createBackupFromNode(String backupTag, String host, int port) 
-            throws IOException{
+    private void createBackupFromNode(String backupTag, String host, int port)
+            throws IOException {
         JMXConnector conn = initJMXConnector(host, port);
         try {
             BackupManagerMBean backupMBean =
                     JMX.newMBeanProxy(getMBeanServerConnection(conn),
                             initObjectName(), BackupManagerMBean.class);
             backupMBean.create(backupTag);
-            log.info(String.format("Node(%s:%d) - Create backup(name=%s) success", 
+            log.info(String.format("Node(%s:%d) - Create backup(name=%s) success",
                     host, port, backupTag));
         } catch (BackupException e) {
             if (ignoreError(e)) {
-                log.info(String.format("Node(%s:%d) - Create backup(name=%s) finished", 
+                log.info(String.format("Node(%s:%d) - Create backup(name=%s) finished",
                         host, port, backupTag));
             } else {
-                log.error(String.format("Node(%s:%d) - Create backup(name=%s) failed", 
+                log.error(String.format("Node(%s:%d) - Create backup(name=%s) failed",
                         host, port, backupTag));
             }
             throw e;
@@ -433,10 +453,10 @@ public class BackupOps {
 
     private boolean ignoreError(Throwable error) {
         boolean noNeedBackup = (error != null)
-                            && (error instanceof BackupException)
-                            && (((BackupException)error).getServiceCode()
-                                        == ServiceCode.BACKUP_INTERNAL_NOT_LEADER);
-        return noNeedBackup; 
+                && (error instanceof BackupException)
+                && (((BackupException) error).getServiceCode()
+                    == ServiceCode.BACKUP_INTERNAL_NOT_LEADER);
+        return noNeedBackup;
     }
 
     /**
@@ -444,10 +464,11 @@ public class BackupOps {
      */
     private void persistBackupInfo(String backupTag) {
         File targetDir = new File(getBackupDir(), backupTag);
-        if (!targetDir.exists() || !targetDir.isDirectory())
+        if (!targetDir.exists() || !targetDir.isDirectory()) {
             return;
+        }
         File infoFile = new File(targetDir, backupTag + BackupConstants.BACKUP_INFO_SUFFIX);
-        try (OutputStream fos = new FileOutputStream(infoFile)){
+        try (OutputStream fos = new FileOutputStream(infoFile)) {
             Properties properties = new Properties();
             properties.setProperty(BackupConstants.BACKUP_INFO_VERSION, getCurrentVersion());
             properties.setProperty(BackupConstants.BACKUP_INFO_HOSTS, getHostsWithDualInetAddrs().values().toString());
@@ -469,8 +490,9 @@ public class BackupOps {
 
     /**
      * Delete backup file on all nodes
+     * 
      * @param backupTag
-     *          The tag of the backup
+     *            The tag of the backup
      */
     public void deleteBackup(String backupTag) {
         validateBackupName(backupTag);
@@ -493,10 +515,11 @@ public class BackupOps {
 
     /**
      * Deletes backup file on all nodes without lock, please be careful to use it.
+     * 
      * @param backupTag
-     *          The tag of the backup
+     *            The tag of the backup
      * @param ignore
-     *          True means ignore error/exception
+     *            True means ignore error/exception
      */
     private void deleteBackupWithoutLock(final String backupTag, final boolean ignore) {
         List<String> errorList = new ArrayList<String>();
@@ -505,13 +528,13 @@ public class BackupOps {
                     (new BackupProcessor(getHosts(), Arrays.asList(ports.get(0)), backupTag))
                             .process(new DeleteBackupCallable(), false);
             Throwable result = null;
-            for (BackupProcessor.BackupTask task: backupTasks) {
+            for (BackupProcessor.BackupTask task : backupTasks) {
                 try {
                     task.getResponse().getFuture().get();
-                    log.info("Delete backup(name={}) on node({})success", 
+                    log.info("Delete backup(name={}) on node({})success",
                             backupTag, task.getRequest().getHost());
                 } catch (CancellationException e) {
-                    log.warn(String.format("The task of deleting backup(%s) on node(%s) was canceled", 
+                    log.warn(String.format("The task of deleting backup(%s) on node(%s) was canceled",
                             backupTag, task.getRequest().getHost()), e);
                 } catch (InterruptedException e) {
                     log.error(String.format("Delete backup on node(%s:%d) failed.",
@@ -526,11 +549,16 @@ public class BackupOps {
                     errorList.add(task.getRequest().getHost());
                 }
             }
-            if (result != null) 
-                throw result;
+            if (result != null) {
+                if (result instanceof Exception) {
+                    throw (Exception) result;
+                } else {
+                    throw new Exception(result);
+                }
+            }
             log.info("Delete backup(name={}) success", backupTag);
-        } catch (Throwable t) {
-            List<String> newErrList = (List<String>)((ArrayList<String>)errorList).clone();
+        } catch (Exception ex) {
+            List<String> newErrList = (List<String>) ((ArrayList<String>) errorList).clone();
             for (String host : newErrList) {
                 for (int i = 1; i < ports.size(); i++) {
                     try {
@@ -545,13 +573,14 @@ public class BackupOps {
                     }
                 }
             }
-            if (!errorList.isEmpty()) { 
+            if (!errorList.isEmpty()) {
+                Throwable cause = (ex.getCause() == null ? ex : ex.getCause());
                 if (ignore) {
                     log.warn(String.format(
-                        "Delete backup({%s}) on nodes(%s) failed, but ignore ingnore the errors", 
-                        backupTag, errorList.toString()), t);
+                            "Delete backup({%s}) on nodes(%s) failed, but ignore ingnore the errors",
+                            backupTag, errorList.toString()), cause);
                 } else {
-                    throw BackupException.fatals.failedToDeleteBackup(backupTag, errorList.toString(), t);
+                    throw BackupException.fatals.failedToDeleteBackup(backupTag, errorList.toString(), cause);
                 }
             } else {
                 log.info("Delete backup(name={}) success", backupTag);
@@ -590,15 +619,16 @@ public class BackupOps {
         }
         if (!acquired) {
             log.error("Unable to acquire lock: {}", name);
-            throw BackupException.fatals.unableToGetLock(name); 
+            throw BackupException.fatals.unableToGetLock(name);
         }
         log.info("Got lock: {}", name);
         return lock;
     }
 
     private void releaseLock(InterProcessLock lock) {
-        if (lock == null) 
+        if (lock == null) {
             return;
+        }
         try {
             lock.release();
         } catch (Exception ignore) {
@@ -614,9 +644,10 @@ public class BackupOps {
     }
 
     /**
-     * Get a list of backup sets that have zk backup files 
+     * Get a list of backup sets that have zk backup files
      * and quorum db/geodb backup files
-     * @return  a list of backup sets info
+     * 
+     * @return a list of backup sets info
      */
     public List<BackupSetInfo> listBackup() {
         return listBackup(true);
@@ -624,6 +655,7 @@ public class BackupOps {
 
     /**
      * Get a list of backup sets info
+     * 
      * @param ignore if true, ignore the errors during the operation
      */
     public BackupFileSet listRawBackup(final boolean ignore) {
@@ -634,10 +666,9 @@ public class BackupOps {
                     (new BackupProcessor(getHosts(), Arrays.asList(ports.get(0)), null))
                             .process(new ListBackupCallable(), false);
             Throwable result = null;
-            for (BackupProcessor.BackupTask task: backupTasks) {
+            for (BackupProcessor.BackupTask task : backupTasks) {
                 try {
-                    List<BackupSetInfo> nodeBackupFileList
-                            = (List<BackupSetInfo>)task.getResponse().getFuture().get();
+                    List<BackupSetInfo> nodeBackupFileList = (List<BackupSetInfo>) task.getResponse().getFuture().get();
                     clusterBackupFiles.addAll(nodeBackupFileList, task.getRequest().getNode());
                     log.info("List backup on node({})success",
                             task.getRequest().getHost());
@@ -657,11 +688,16 @@ public class BackupOps {
                     errorList.add(task.getRequest().getNode());
                 }
             }
-            if (result != null)
-                throw result;
-        } catch (Throwable t) {
-            log.error("Exception when listing backups", t);
-            List<String> newErrList = (List<String>)((ArrayList<String>)errorList).clone();
+            if (result != null) {
+                if (result instanceof Exception) {
+                    throw (Exception) result;
+                } else {
+                    throw new Exception(result);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Exception when listing backups", e);
+            List<String> newErrList = (List<String>) ((ArrayList<String>) errorList).clone();
             for (String node : newErrList) {
                 List<BackupSetInfo> nodeBackupFileList = retryListBackupWithOtherPorts(getHosts().get(node));
                 if (nodeBackupFileList != null) {
@@ -670,11 +706,12 @@ public class BackupOps {
                 }
             }
             if (!errorList.isEmpty()) {
+                Throwable cause = (e.getCause() == null ? e : e.getCause());
                 if (ignore) {
                     log.warn("List backup on nodes({}) failed, but ignore the errors",
-                            errorList.toString(), t);
+                            errorList.toString(), cause);
                 } else {
-                    throw BackupException.fatals.failedToListBackup(errorList.toString(), t);
+                    throw BackupException.fatals.failedToListBackup(errorList.toString(), cause);
                 }
             }
         }
@@ -684,6 +721,7 @@ public class BackupOps {
 
     /**
      * Get a list of backup sets info
+     * 
      * @param ignore if true, ignore the errors during the operation
      */
     public List<BackupSetInfo> listBackup(boolean ignore) {
@@ -693,7 +731,7 @@ public class BackupOps {
             Collections.sort(backupSetList, new Comparator<BackupSetInfo>() {
                 @Override
                 public int compare(BackupSetInfo o1, BackupSetInfo o2) {
-                    return (int)(o2.getCreateTime() - o1.getCreateTime());
+                    return (int) (o2.getCreateTime() - o1.getCreateTime());
                 }
             });
         }
@@ -708,8 +746,9 @@ public class BackupOps {
                     JMX.newMBeanProxy(getMBeanServerConnection(conn),
                             initObjectName(), BackupManagerMBean.class);
             List<BackupSetInfo> backupFileList = backupMBean.list();
-            if (backupFileList == null)
+            if (backupFileList == null) {
                 throw new IllegalStateException("Get backup list is null");
+            }
             log.info(String.format("Node(%s:%d) - List backup success", host, port));
             return backupFileList;
         } catch (BackupException e) {
@@ -768,12 +807,15 @@ public class BackupOps {
 
     private BackupSetInfo initBackupSetInfo(String backupTag, Long size, Long createTime) {
         BackupSetInfo backupInfo = new BackupSetInfo();
-        if (backupTag != null)
+        if (backupTag != null) {
             backupInfo.setName(backupTag);
-        if (size != null)
+        }
+        if (size != null) {
             backupInfo.setSize(size);
-        if (createTime != null)
+        }
+        if (createTime != null) {
             backupInfo.setCreateTime(createTime);
+        }
         return backupInfo;
     }
 
@@ -802,7 +844,7 @@ public class BackupOps {
         Preconditions.checkNotNull(coordinatorClient,
                 "Please initialize coordinator client before any operations");
         DualInetAddress inetAddress = coordinatorClient.getInetAddessLookupMap().getDualInetAddress();
-        return inetAddress.hasInet4()?inetAddress.getInet4():inetAddress.getInet6();
+        return inetAddress.hasInet4() ? inetAddress.getInet4() : inetAddress.getInet6();
     }
 
     private static ObjectName initObjectName() {
@@ -820,27 +862,29 @@ public class BackupOps {
         } catch (IOException e) {
             throw new IllegalStateException("IOException when getting the JMXConnector "
                     + "connection:", e);
-        } 
+        }
     }
 
     private JMXServiceURL getJMXServerURL(String host, int port) {
         try {
             String connectorAddress = String.format(serviceUrl, host, port);
             JMXServiceURL jmxUrl = new JMXServiceURL(connectorAddress);
-            return jmxUrl; 
+            return jmxUrl;
         } catch (MalformedURLException e) {
             throw new IllegalStateException("Invalid jmx url", e);
         }
     }
 
     private MBeanServerConnection getMBeanServerConnection(JMXConnector conn) {
-        if (conn == null)
+        if (conn == null) {
             throw new IllegalStateException("null JMXConnector");
+        }
 
         try {
             MBeanServerConnection mbsc = conn.getMBeanServerConnection();
-            if (mbsc == null)
+            if (mbsc == null) {
                 throw new IllegalStateException("null MBeanServerConnection");
+            }
             return mbsc;
         } catch (IOException e) {
             throw new IllegalStateException("Failed to get MBeanServerConnection:", e);

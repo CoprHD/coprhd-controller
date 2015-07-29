@@ -19,7 +19,6 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.hds.api.HDSApiClient;
 import com.emc.storageos.hds.model.LogicalUnit;
 import com.emc.storageos.volumecontroller.JobContext;
@@ -35,10 +34,9 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.util.ArrayList;
 
-
 /**
  * Job for volumeExpand operation.
- *
+ * 
  */
 public class HDSVolumeExpandJob extends HDSJob {
     private static final Logger _log = LoggerFactory.getLogger(HDSVolumeExpandJob.class);
@@ -112,14 +110,14 @@ public class HDSVolumeExpandJob extends HDSJob {
 
                 logMsgBuilder
                         .append(String
-                                .format("\n   Capacity: %s, Provisioned capacity: %s, Allocated Capacity: %s",
+                                .format("%n   Capacity: %s, Provisioned capacity: %s, Allocated Capacity: %s",
                                         volume.getCapacity(),
                                         volume.getProvisionedCapacity(),
                                         volume.getAllocatedCapacity()));
                 if (volume.getIsComposite()) {
                     logMsgBuilder
                             .append(String
-                                    .format("\n   Is Meta: %s, Total meta member capacity: %s, Meta member count %s, Meta member size: %s",
+                                    .format("%n  Is Meta: %s, Total meta member capacity: %s, Meta member count %s, Meta member size: %s",
                                             volume.getIsComposite(),
                                             volume.getTotalMetaMemberCapacity(),
                                             volume.getMetaMemberCount(),

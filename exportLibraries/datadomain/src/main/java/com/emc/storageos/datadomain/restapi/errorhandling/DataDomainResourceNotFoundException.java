@@ -25,11 +25,12 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 public class DataDomainResourceNotFoundException extends InternalException {
 
     /** Holds the methods used to create DataDomain related exceptions */
-    public static final DataDomainResourceNotFoundExceptions notFound = ExceptionMessagesProxy.create(DataDomainResourceNotFoundExceptions.class);
+    public static final DataDomainResourceNotFoundExceptions notFound = ExceptionMessagesProxy
+            .create(DataDomainResourceNotFoundExceptions.class);
 
     private DataDomainResourceNotFoundException(final ServiceCode code, final Throwable cause,
-                                                final String detailBase, final String detailKey,
-                                                final Object[] params) {
-        super(code.isRetryable(),code, cause, detailBase, detailKey, params);
+            final String detailBase, final String detailKey,
+            final Object[] params) {
+        super(code.isRetryable(), code, cause, detailBase, detailKey, params);
     }
 }

@@ -14,7 +14,6 @@
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +35,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  * The HDS storage system implementation for the block full copy API.
  */
 public class HDSBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
-    
+
     /**
      * Constructor
      * 
@@ -45,7 +44,7 @@ public class HDSBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      * @param scheduler A reference to a scheduler.
      */
     public HDSBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator,
-        Scheduler scheduler) {
+            Scheduler scheduler) {
         super(dbClient, coordinator, scheduler);
     }
 
@@ -64,17 +63,17 @@ public class HDSBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      * {@inheritDoc}
      */
     @Override
-    public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {        
-        if (fcSourceObjList.size() > 0) {
+    public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
+        if (!fcSourceObjList.isEmpty()) {
             URI fcSourceObjURI = fcSourceObjList.get(0).getId();
             if (URIUtil.isType(fcSourceObjURI, BlockSnapshot.class)) {
                 // Not supported for snapshots.
                 throw APIException.badRequests.fullCopyNotSupportedFromSnapshot(
-                    DiscoveredDataObject.Type.hds.name(), fcSourceObjURI);
+                        DiscoveredDataObject.Type.hds.name(), fcSourceObjURI);
             } else {
                 // Call super first.
                 super.validateFullCopyCreateRequest(fcSourceObjList, count);
-        
+
                 // Now platform specific checks.
                 for (BlockObject fcSourceObj : fcSourceObjList) {
                     // Verify the volume is exported.
@@ -86,16 +85,16 @@ public class HDSBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
             }
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-        String name, boolean createInactive, int count, String taskId) {
+            String name, boolean createInactive, int count, String taskId) {
         return super.create(fcSourceObjList, varray, name, createInactive, count, taskId);
-    }    
-   
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -110,7 +109,7 @@ public class HDSBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     @Override
     public TaskList detach(BlockObject fcSourceObj, Volume fullCopyVolume) {
         return super.detach(fcSourceObj, fullCopyVolume);
-    }    
+    }
 
     /**
      * {@inheritDoc}
@@ -135,7 +134,7 @@ public class HDSBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     public VolumeRestRep checkProgress(URI sourceURI, Volume fullCopyVolume) {
         return super.checkProgress(sourceURI, fullCopyVolume);
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -143,7 +142,7 @@ public class HDSBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     protected void verifyFullCopyRequestCount(BlockObject fcSourceObj, int count) {
         // Verify the requested copy count. For HDS
         // we must account for continuous copies as
-        // well as full copies as they both count 
+        // well as full copies as they both count
         // against the shadow image pair limit for a
         // volume.
         Volume fcSourceVolume = (Volume) fcSourceObj;
@@ -152,6 +151,6 @@ public class HDSBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
             currentMirrorCount = fcSourceVolume.getMirrors().size();
         }
         BlockFullCopyUtils.validateActiveFullCopyCount(fcSourceObj, count,
-            currentMirrorCount, _dbClient);
-    }    
+                currentMirrorCount, _dbClient);
+    }
 }

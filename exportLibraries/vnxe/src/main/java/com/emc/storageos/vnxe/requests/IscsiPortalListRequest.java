@@ -25,9 +25,10 @@ import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.models.VNXeIscsiNode;
 import com.emc.storageos.vnxe.models.VNXeIscsiPortal;
 
-public class IscsiPortalListRequest extends KHRequests<VNXeIscsiPortal>{
+public class IscsiPortalListRequest extends KHRequests<VNXeIscsiPortal> {
     private static final Logger _logger = LoggerFactory.getLogger(IscsiPortalListRequest.class);
     private static final String URL = "/api/types/iscsiPortal/instances";
+
     public IscsiPortalListRequest(KHClient client) {
         super(client);
         _url = URL;
@@ -35,24 +36,26 @@ public class IscsiPortalListRequest extends KHRequests<VNXeIscsiPortal>{
 
     /**
      * Get iscsiPortals, without detailed iscsiNode, e.g. no iqn name
+     * 
      * @return
      */
-    public List<VNXeIscsiPortal> get(){
+    public List<VNXeIscsiPortal> get() {
         return getDataForObjects(VNXeIscsiPortal.class);
-       
+
     }
-    
+
     /**
      * Get all iscsiPortals, with detailed iscsiNode.
+     * 
      * @return
      */
     public List<VNXeIscsiPortal> getDetails() {
         List<VNXeIscsiPortal> result = new ArrayList<VNXeIscsiPortal>();
         List<VNXeIscsiPortal> portals = get();
-        
-        if (portals != null && portals.size()>0) {
+
+        if (portals != null && !portals.isEmpty()) {
             for (VNXeIscsiPortal portal : portals) {
-                //get iscsiNode, so that we could get iqn name for each iscsi port
+                // get iscsiNode, so that we could get iqn name for each iscsi port
                 VNXeIscsiNode node = portal.getIscsiNode();
                 if (node != null) {
                     String nodeId = node.getId();
@@ -65,9 +68,10 @@ public class IscsiPortalListRequest extends KHRequests<VNXeIscsiPortal>{
         }
         return result;
     }
-    
+
     /**
      * Get iscsiPort based on the IscsiNode Id
+     * 
      * @param nodeId iscsiNode id
      * @return
      */
@@ -77,16 +81,16 @@ public class IscsiPortalListRequest extends KHRequests<VNXeIscsiPortal>{
         builder.append(nodeId);
         builder.append("\"");
         setFilter(builder.toString());
-        
+
         VNXeIscsiPortal result = null;
         List<VNXeIscsiPortal> portalList = get();
-        //it should just return 1
-        if (portalList!= null && portalList.size()>0) {
-            result =portalList.get(0);
+        // it should just return 1
+        if (portalList != null && !portalList.isEmpty()) {
+            result = portalList.get(0);
         } else {
             _logger.info("No iscsiPortal found using the iscsiNode Id: {}", nodeId);
         }
         return result;
     }
-    
+
 }

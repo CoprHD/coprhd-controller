@@ -23,19 +23,20 @@ import javax.xml.bind.annotation.XmlRootElement;
 /**
  * This is a list of the SAN zones returned from the NetworkSystem.
  */
-@XmlRootElement(name="san_zones_update")
+@XmlRootElement(name = "san_zones_update")
 public class SanZoneUpdateParams {
 
     private List<SanZoneUpdateParam> updateZones;
 
-    public SanZoneUpdateParams() {}
-    
+    public SanZoneUpdateParams() {
+    }
 
     /**
      * A list of updating San Zones. Each zone has a name and a list of zone members.
+     * 
      * @valid none
      */
-    @XmlElement(name="san_zone_update")
+    @XmlElement(name = "san_zone_update")
     public List<SanZoneUpdateParam> getUpdateZones() {
         if (updateZones == null) {
             updateZones = new ArrayList<SanZoneUpdateParam>();
@@ -46,5 +47,5 @@ public class SanZoneUpdateParams {
     public void setUpdateZones(List<SanZoneUpdateParam> updateZones) {
         this.updateZones = updateZones;
     }
-    
+
 }

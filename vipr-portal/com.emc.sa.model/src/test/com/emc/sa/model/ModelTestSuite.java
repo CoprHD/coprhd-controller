@@ -25,18 +25,18 @@ import com.emc.storageos.db.server.DbsvcTestBase;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    ApprovalRequestTest.class,
-    CatalogCategoryTest.class,
-    CatalogServiceFieldTest.class,
-    CatalogServiceTest.class,
-    ExecutionLogTest.class,
-    ExecutionStateTest.class,
-    ExecutionTaskLogTest.class,
-    ExecutionWindowTest.class,
-    OrderParameterTest.class,
-    OrderTest.class,
-    SortedIndexTest.class,
-    VirtualMachineTest.class
+        ApprovalRequestTest.class,
+        CatalogCategoryTest.class,
+        CatalogServiceFieldTest.class,
+        CatalogServiceTest.class,
+        ExecutionLogTest.class,
+        ExecutionStateTest.class,
+        ExecutionTaskLogTest.class,
+        ExecutionWindowTest.class,
+        OrderParameterTest.class,
+        OrderTest.class,
+        SortedIndexTest.class,
+        VirtualMachineTest.class
 })
 public class ModelTestSuite extends DbsvcTestBase {
     public static CoordinatorClient getCoordinator() {

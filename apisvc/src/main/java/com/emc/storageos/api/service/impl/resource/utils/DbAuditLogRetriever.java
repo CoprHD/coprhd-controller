@@ -16,11 +16,6 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.io.Writer;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.Locale;
-import java.util.ResourceBundle;
-
 import javax.ws.rs.core.MediaType;
 
 import org.joda.time.DateTime;
@@ -33,13 +28,11 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.api.service.impl.resource.utils.JSONAuditLogMarshaller;
 import com.emc.storageos.api.service.impl.resource.utils.XMLAuditLogMarshaller;
 import com.emc.storageos.api.service.impl.resource.utils.AuditLogQueryResult;
-import com.emc.storageos.services.util.NamedThreadPoolExecutor;
-
 
 /**
  * 
  * An implementation of auditlog retriever from a dbClient
- *
+ * 
  */
 public class DbAuditLogRetriever extends AbstractDbRetriever implements AuditLogRetriever {
 
@@ -73,7 +66,7 @@ public class DbAuditLogRetriever extends AbstractDbRetriever implements AuditLog
         marshaller.header(writer);
 
         log.info("Query time bucket {}", time.toString());
-            
+
         dbClient.queryTimeSeries(AuditLogTimeSeries.class, time, bucket, result,
                 getThreadPool());
 

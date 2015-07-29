@@ -14,7 +14,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.metering.plugins.vnxfile;
 
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,14 +47,14 @@ public class VNXFileCommunicationInterfaceTest {
     private DbClient _dbClient = null;
     private String serialNumber = EnvConfig.get("sanity", "vnx.serial");
 
-    public VNXFileCommunicationInterfaceTest () {
+    public VNXFileCommunicationInterfaceTest() {
     }
 
     @Before
     public void setup() {
         _context = new ClassPathXmlApplicationContext("metering-vnxfile-context.xml");
-        try { 
-        	ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext(
+        try {
+            ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext(
                     "/dbutils-conf.xml");
             _dbClient = (DbClientImpl) ctx.getBean("dbclient");
             _dbClient = Cassandraforplugin.returnDBClient();
@@ -76,15 +75,15 @@ public class VNXFileCommunicationInterfaceTest {
             final FileShare fileShare = new FileShare();
             fileShare.setId(URIUtil.createId(FileShare.class));
             fileShare.setLabel("some fileshare");
-            fileShare.setNativeGuid("CELERRA+"+serialNumber);
+            fileShare.setNativeGuid("CELERRA+" + serialNumber);
             fileShare.setVirtualPool(URIUtil.createId(VirtualPool.class));
             fileShare.setProject(new NamedURI(proj.getId(), fileShare.getLabel()));
             fileShare.setCapacity(12500L);
             _dbClient.persistObject(fileShare);
         } catch (final Exception ioEx) {
-            ioEx.printStackTrace();
             _logger.error("Exception occurred while persisting objects in db {}",
                     ioEx.getMessage());
+            _logger.error(ioEx.getMessage(), ioEx);
         }
     }
 
@@ -104,8 +103,7 @@ public class VNXFileCommunicationInterfaceTest {
             Assert.assertTrue("Processed 0 record", latchcount == 0);
             plugin.cleanup();
         } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            _logger.error(e.getMessage(), e);
         }
         _logger.debug("Executing testVNXFileDataCollection() test case completed.");
     }

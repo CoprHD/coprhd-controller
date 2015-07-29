@@ -51,7 +51,7 @@ import com.emc.vipr.model.sys.healthmonitor.StatsRestRep;
 import com.google.common.collect.Sets;
 
 public class SupportPackageCreator {
-    private static final SimpleDateFormat TIMESTAMP = new SimpleDateFormat("ddMMyy-HHmm");
+    private static final String TIMESTAMP = "ddMMyy-HHmm";
 
     private static final String VIPR_LOG_DATE_FORMAT = "yyyy-MM-dd_HH:mm:ss";
     private static final Integer LOG_MINTUES_PREVIOUSLY = 60;
@@ -59,7 +59,7 @@ public class SupportPackageCreator {
     public enum OrderTypes {
         NONE, ERROR, ALL
     }
-    
+
     // Logging Info
     private List<String> logNames;
     private List<String> nodeIds;
@@ -68,12 +68,12 @@ public class SupportPackageCreator {
     private String msgRegex = null;
     private Integer logSeverity = 5; // WARN
     private OrderTypes orderTypes = OrderTypes.NONE;
-    
+
     private Http.Request request;
     private ViPRSystemClient client;
     private String tenantId;
     private ViPRCatalogClient2 catalogClient;
-    
+
     public SupportPackageCreator(Http.Request request, ViPRSystemClient client, String tenantId, ViPRCatalogClient2 catalogClient) {
         this.request = request;
         this.client = Objects.requireNonNull(client);
@@ -104,7 +104,7 @@ public class SupportPackageCreator {
     public void setStartTime(String startTime) {
         this.startTime = startTime;
     }
-    
+
     public void setOrderTypes(OrderTypes orderTypes) {
         this.orderTypes = orderTypes;
     }
@@ -117,13 +117,14 @@ public class SupportPackageCreator {
     }
 
     public static String formatTimestamp(Calendar cal) {
-        return cal != null ? TIMESTAMP.format(cal.getTime()) : "UNKNOWN";
+        final SimpleDateFormat TIME = new SimpleDateFormat(TIMESTAMP);
+        return cal != null ? TIME.format(cal.getTime()) : "UNKNOWN";
     }
 
     private ViPRSystemClient api() {
         return client;
     }
-    
+
     private ViPRCatalogClient2 catalogApi() {
         return catalogClient;
     }
@@ -150,12 +151,11 @@ public class SupportPackageCreator {
             JAXBContext context = JAXBContext.newInstance(obj.getClass());
             context.createMarshaller().marshal(obj, writer);
             return writer.toString();
-        }
-        catch (JAXBException e) {
+        } catch (JAXBException e) {
             throw new UnhandledException(e);
         }
     }
-    
+
     private String getBrowserInfo() {
         StrBuilder sb = new StrBuilder();
 
@@ -182,12 +182,12 @@ public class SupportPackageCreator {
             return Collections.emptyList();
         }
     }
-    
+
     private Set<String> getSelectedNodeIds() {
         Set<String> activeNodeIds = Sets.newTreeSet();
 
         for (NodeHealth activeNode : MonitorUtils.getNodeHealth(api())) {
-            if (!StringUtils.containsIgnoreCase(activeNode.getStatus() , "unavailable") || Play.mode.isDev()) {
+            if (!StringUtils.containsIgnoreCase(activeNode.getStatus(), "unavailable") || Play.mode.isDev()) {
                 activeNodeIds.add(activeNode.getNodeId());
             }
         }
@@ -215,8 +215,7 @@ public class SupportPackageCreator {
             writeOrders(zip);
             writeLogs(zip);
             zip.flush();
-        }
-        finally {
+        } finally {
             zip.close();
         }
     }
@@ -291,8 +290,7 @@ public class SupportPackageCreator {
         InputStream in = api().logs().getAsText(nodeIds, logNames, logSeverity, startTime, endTime, msgRegex, null);
         try {
             IOUtils.copy(in, stream);
-        }
-        finally {
+        } finally {
             in.close();
             stream.close();
         }
@@ -307,7 +305,7 @@ public class SupportPackageCreator {
             return StringUtils.equals(OrderStatus.ERROR.name(), item.getOrderStatus());
         }
     }
-    
+
     /**
      * Job that runs to generate a support package.
      * 

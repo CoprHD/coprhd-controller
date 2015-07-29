@@ -112,9 +112,9 @@ public class EndPointLocator {
      */
     public URI getAnEndpoint() {
         List<URI> endpoints = getServiceEndpointList();
-        if (endpoints == null || endpoints.size() < 1) {
-            throw SecurityException.retryables.requiredServiceUnvailable(_svcInfo
-                    .getServiceName());
+        if (endpoints.isEmpty()) {
+            _log.error("Service endpoint list is empty");
+            throw SecurityException.retryables.requiredServiceUnvailable(_svcInfo.getServiceName());
         }
 
         // extract an end point

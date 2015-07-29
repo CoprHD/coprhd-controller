@@ -31,7 +31,7 @@ public class FileReadUtil {
     /**
      * Read a file by it's full filePath. Log the exceptions if encountered and return
      * an empty string. Let the caller check for null/empty return.
-     *
+     * 
      * @return String
      */
     public static String[] readLines(final String filePath) throws IOException,
@@ -44,7 +44,7 @@ public class FileReadUtil {
             while ((line = reader.readLine()) != null) {
                 lines.add(line);
             }
-            if (lines.size() == 0) {
+            if (lines.isEmpty()) {
                 throw SyssvcException.syssvcExceptions.syssvcInternalError("File " + filePath + " is empty.");
             }
             return lines.toArray(new String[lines.size()]);

@@ -15,7 +15,6 @@
 
 package com.emc.storageos.db.server.impl;
 
-
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.*;
@@ -82,16 +81,16 @@ public class SchemaUtil {
 
     private static final int DEFAULT_REPLICATION_FACTOR = 1;
     private static final int MAX_REPLICATION_FACTOR = 5;
-    public  static final long MAX_SCHEMA_WAIT_MS = 60 * 1000 * 10;
+    public static final long MAX_SCHEMA_WAIT_MS = 60 * 1000 * 10;
     private static final int DBINIT_RETRY_INTERVAL = 2;
     private static final int DBINIT_RETRY_MAX = 5;
-    
+
     private String _clusterName = DbClientContext.LOCAL_CLUSTER_NAME;
     private String _keyspaceName = DbClientContext.LOCAL_KEYSPACE_NAME;
 
     private static final String KEYSPACE_SIMPLE_STRATEGY = "SimpleStrategy";
     private static final String KEYSPACE_NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
-	private static final String DEFAULT_VDC_DB_VERSION = "2.2";
+    private static final String DEFAULT_VDC_DB_VERSION = "2.2";
 
     private CoordinatorClient _coordinator;
     private Service _service;
@@ -101,7 +100,7 @@ public class SchemaUtil {
     private StringMap _vdcHosts;
     private String _vdcEndpoint;
     private List<String> _vdcList; // List of all joined vdc
-    private Properties  _dbCommonInfo;
+    private Properties _dbCommonInfo;
     private PasswordUtils _passwordUtils;
     private DbClientContext clientContext;
 
@@ -111,7 +110,7 @@ public class SchemaUtil {
 
     /**
      * Set service info
-     *
+     * 
      * @param service
      */
     public void setService(Service service) {
@@ -120,7 +119,7 @@ public class SchemaUtil {
 
     /**
      * Set coordinator client
-     *
+     * 
      * @param coordinator
      */
     public void setCoordinator(CoordinatorClient coordinator) {
@@ -129,6 +128,7 @@ public class SchemaUtil {
 
     /**
      * Set DataObjectScanner
+     * 
      * @param scanner
      */
     public void setDataObjectScanner(DataObjectScanner scanner) {
@@ -142,7 +142,7 @@ public class SchemaUtil {
 
     /**
      * Set keyspace name
-     *
+     * 
      * @param keyspaceName
      */
     public void setKeyspaceName(String keyspaceName) {
@@ -155,7 +155,7 @@ public class SchemaUtil {
 
     /**
      * Set cluster name
-     *
+     * 
      * @param clusterName
      */
     public void setClusterName(String clusterName) {
@@ -164,7 +164,7 @@ public class SchemaUtil {
 
     /**
      * Set the vdc id of current site. Must have for geodbsvc
-     *
+     * 
      * @param vdcId the vdc id of current site
      */
     public void setVdcShortId(String vdcId) {
@@ -173,13 +173,12 @@ public class SchemaUtil {
 
     /**
      * Set the endpoint of current vdc, for example, vip
-     *
+     * 
      * @param vdcEndpoint vdc end point
      */
     public void setVdcEndpoint(String vdcEndpoint) {
         _vdcEndpoint = vdcEndpoint;
     }
-
 
     public void setDbCommonInfo(Properties dbCommonInfo) {
         _dbCommonInfo = dbCommonInfo;
@@ -191,7 +190,7 @@ public class SchemaUtil {
 
     /**
      * Set node list in current vdc.
-     *
+     * 
      * @param nodelist vdc host list
      */
     public void setVdcNodeList(List<String> nodelist) {
@@ -210,7 +209,7 @@ public class SchemaUtil {
 
     /**
      * Set all vdc id list.
-     *
+     * 
      * @param vdcList vdc id list
      */
     public void setVdcList(List<String> vdcList) {
@@ -226,20 +225,20 @@ public class SchemaUtil {
     }
 
     /**
-     * Check if it is geodbsvc 
+     * Check if it is geodbsvc
      * 
      * @return
      */
     protected boolean isGeoDbsvc() {
-    	return _service.getName().equalsIgnoreCase(Constants.GEODBSVC_NAME);
+        return _service.getName().equalsIgnoreCase(Constants.GEODBSVC_NAME);
     }
-    
+
     /**
-     * Initializes database.   Assumes that caller is serializing this call
+     * Initializes database. Assumes that caller is serializing this call
      * across cluster.
      * 
-     * @param  waitForSchema - indicate we should wait from schema from other site. 
-     *                         false to create keyspace by our own
+     * @param waitForSchema - indicate we should wait from schema from other site.
+     *            false to create keyspace by our own
      */
     public void scanAndSetupDb(boolean waitForSchema) {
         int retryIntervalSecs = DBINIT_RETRY_INTERVAL;
@@ -247,38 +246,38 @@ public class SchemaUtil {
         while (true) {
             AstyanaxContext<Cluster> clusterContext = null;
             _log.info("try scan and setup db ...");
-            retryTimes ++;
+            retryTimes++;
             try {
                 int replicationFactor = getReplicationFactor();
                 clusterContext = connectCluster();
                 Cluster cluster = clusterContext.getClient();
-                KeyspaceDefinition kd  = cluster.describeKeyspace(_keyspaceName);
+                KeyspaceDefinition kd = cluster.describeKeyspace(_keyspaceName);
                 if (kd == null) {
                     _log.info("keyspace not exist yet");
-                    
+
                     if (waitForSchema) {
                         _log.info("wait for schema from other site");
                     } else {
                         // fresh install
                         _log.info("setting current version to {} in zk for fresh install", _service.getVersion());
                         setCurrentVersion(_service.getVersion());
-    
+
                         // this must be a new cluster - no schema is present so we create keyspace first
                         kd = cluster.makeKeyspaceDefinition();
                         setStrategyOptions(kd, replicationFactor);
                         waitForSchemaChange(cluster.addKeyspace(kd).getResult().getSchemaId(), cluster);
                     }
-               } else {
+                } else {
                     // this is an existing cluster
                     checkStrategyOptions(kd, cluster, replicationFactor);
-               }
+                }
 
-               // create CF's
-               if (kd != null) {
-                   checkCf(kd, clusterContext);
-                   _log.info("scan and setup db schema succeed");
-                   return;
-               }
+                // create CF's
+                if (kd != null) {
+                    checkCf(kd, clusterContext);
+                    _log.info("scan and setup db schema succeed");
+                    return;
+                }
             } catch (ConnectionException e) {
                 _log.warn("Unable to verify DB keyspace, will retry in {} secs", retryIntervalSecs, e);
             } catch (InterruptedException e) {
@@ -291,19 +290,22 @@ public class SchemaUtil {
                     clusterContext.shutdown();
                 }
             }
-           
-            if (retryTimes > DBINIT_RETRY_MAX)
+
+            if (retryTimes > DBINIT_RETRY_MAX) {
                 throw new IllegalStateException("Unable to setup schema");
-            
+            }
+
             try {
                 Thread.sleep(retryIntervalSecs * 1000);
-            } catch (InterruptedException ex) { }    
+            } catch (InterruptedException ex) {
+                _log.warn("Thread is interrupted during wait for retry", ex);
+            }
         }
     }
-    
+
     /**
      * Set keyspace strategy class and options for a keyspace whose name specified by
-     * _keyspaceName. New keyspace is created if it does exist. 
+     * _keyspaceName. New keyspace is created if it does exist.
      * 
      * @param keyspace
      * @param replicas
@@ -314,8 +316,8 @@ public class SchemaUtil {
         keyspace.setName(_keyspaceName);
 
         // Get existing strategy options if the keyspace exists
-        Map<String,String> stratOptions = keyspace.getStrategyOptions();
-        if(isGeoDbsvc()) {
+        Map<String, String> stratOptions = keyspace.getStrategyOptions();
+        if (isGeoDbsvc()) {
             Map<String, String> strategyOptions = keyspace.getStrategyOptions();
 
             _log.info("vdcList={} strategyOptions={}", _vdcList, strategyOptions);
@@ -355,9 +357,9 @@ public class SchemaUtil {
      * @param cluster
      * @param replicationFactor
      */
-    private void checkStrategyOptions(KeyspaceDefinition kd, Cluster cluster, int replicationFactor) 
-    		throws ConnectionException, InterruptedException{
-    	_log.info("keyspace exist already");
+    private void checkStrategyOptions(KeyspaceDefinition kd, Cluster cluster, int replicationFactor)
+            throws ConnectionException, InterruptedException {
+        _log.info("keyspace exist already");
 
         String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
         if (currentDbSchemaVersion == null) {
@@ -377,8 +379,9 @@ public class SchemaUtil {
 
                 boolean changed = setStrategyOptions(update, getReplicationFactor());
 
-                if (changed)
+                if (changed) {
                     waitForSchemaChange(cluster.updateKeyspace(update).getResult().getSchemaId(), cluster);
+                }
             }
 
             return;
@@ -388,7 +391,7 @@ public class SchemaUtil {
         if (currentFactor < replicationFactor) {
             // there must have been a new node addition since replication factor
             // of our keyspace is less than configured replication factor.
-            // we update our keyspace to new replication factor.  Note that we do not
+            // we update our keyspace to new replication factor. Note that we do not
             // currently support shrinking db cluster
             KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
             setStrategyOptions(update, replicationFactor);
@@ -396,7 +399,7 @@ public class SchemaUtil {
             waitForSchemaChange(cluster.updateKeyspace(update).getResult().getSchemaId(), cluster);
         }
     }
-    
+
     private Integer getIntProperty(String key, Integer defValue) {
         String strVal = _dbCommonInfo == null ? null : _dbCommonInfo.getProperty(key);
         if (strVal == null) {
@@ -407,9 +410,9 @@ public class SchemaUtil {
     }
 
     /**
-     * Checks all required CF's against keyspace definition.  Any missing
+     * Checks all required CF's against keyspace definition. Any missing
      * CF's are created on the fly.
-     *
+     * 
      * @param kd
      * @param clusterContext
      */
@@ -448,11 +451,11 @@ public class SchemaUtil {
                         .setComparatorType(comparator)
                         .setKeyValidationClass(cf.getKeySerializer().getComparatorType().getTypeName());
                 TimeSeriesType tsType = TypeMap.getTimeSeriesType(cf.getName());
-                if ( tsType != null &&
-                     tsType.getCompactOptimized() &&
-                     _dbCommonInfo != null &&
-                     Boolean.TRUE.toString().equalsIgnoreCase(
-                             _dbCommonInfo.getProperty(DbClientImpl.DB_STAT_OPTIMIZE_DISK_SPACE, "false"))){
+                if (tsType != null &&
+                        tsType.getCompactOptimized() &&
+                        _dbCommonInfo != null &&
+                        Boolean.TRUE.toString().equalsIgnoreCase(
+                                _dbCommonInfo.getProperty(DbClientImpl.DB_STAT_OPTIMIZE_DISK_SPACE, "false"))) {
                     String compactionStrategy = _dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_OPTIMIZED_COMPACTION_STRATEGY,
                             "SizeTieredCompactionStrategy");
                     _log.info("Setting DB compaction strategy to {}", compactionStrategy);
@@ -469,15 +472,15 @@ public class SchemaUtil {
             } else {
                 boolean modified = false;
                 String existingComparator = cfd.getComparatorType();
-                if (! matchComparator(existingComparator, comparator)) {
+                if (!matchComparator(existingComparator, comparator)) {
                     _log.info("Comparator mismatch: db {} / schema {}", existingComparator, comparator);
                     cfd.setComparatorType(comparator);
                     modified = true;
                 }
                 TimeSeriesType tsType = TypeMap.getTimeSeriesType(cf.getName());
-                if( tsType != null &&
-                    tsType.getCompactOptimized() &&
-                    _dbCommonInfo != null) {
+                if (tsType != null &&
+                        tsType.getCompactOptimized() &&
+                        _dbCommonInfo != null) {
                     String compactionStrategy = _dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_OPTIMIZED_COMPACTION_STRATEGY,
                             "SizeTieredCompactionStrategy");
                     String existingStrategy = cfd.getCompactionStrategy();
@@ -499,14 +502,15 @@ public class SchemaUtil {
                     cfd.setGcGraceSeconds(cfGcGrace.intValue());
                     modified = true;
                 }
-                if( modified ) {
+                if (modified) {
                     latestSchemaVersion = updateColumnFamily(cfd, clusterContext);
                 }
             }
         }
 
-        if (latestSchemaVersion != null)
+        if (latestSchemaVersion != null) {
             waitForSchemaChange(latestSchemaVersion, cluster);
+        }
     }
 
     void setCurrentVersion(String currentVersion) {
@@ -514,17 +518,17 @@ public class SchemaUtil {
         Configuration config = _coordinator.queryConfiguration(configKind, Constants.GLOBAL_ID);
         if (config != null) {
             config.setConfig(Constants.SCHEMA_VERSION, currentVersion);
-               _coordinator.persistServiceConfiguration(config);
+            _coordinator.persistServiceConfiguration(config);
         } else {
             // we are expecting this to exist, because its initialized from checkGlobalConfiguration
             throw new IllegalStateException("unexpected error, db global configuration is null");
         }
     }
-   
+
     void setMigrationStatus(MigrationStatus status) {
         Configuration config = _coordinator.queryConfiguration(getDbConfigPath(), Constants.GLOBAL_ID);
-        _log.debug("setMigrationStatus: target version \"{}\" status {}", 
-            _coordinator.getTargetDbSchemaVersion(), status.name()); 
+        _log.debug("setMigrationStatus: target version \"{}\" status {}",
+                _coordinator.getTargetDbSchemaVersion(), status.name());
         if (config == null) {
             ConfigurationImpl cfg = new ConfigurationImpl();
             cfg.setKind(getDbConfigPath());
@@ -537,13 +541,13 @@ public class SchemaUtil {
 
     /**
      * Update migration checkpoint to ZK. Assume migration lock is acquired when entering this call.
-     *   
+     * 
      * @param checkpoint
      */
     void setMigrationCheckpoint(String checkpoint) {
         Configuration config = _coordinator.queryConfiguration(getDbConfigPath(), Constants.GLOBAL_ID);
         _log.debug("setMigrationCheckpoint: target version \"{}\" checkpoint {}",
-                _coordinator.getTargetDbSchemaVersion(), checkpoint); 
+                _coordinator.getTargetDbSchemaVersion(), checkpoint);
         if (config == null) {
             ConfigurationImpl cfg = new ConfigurationImpl();
             cfg.setKind(getDbConfigPath());
@@ -553,14 +557,14 @@ public class SchemaUtil {
         config.setConfig(DbConfigConstants.MIGRATION_CHECKPOINT, checkpoint);
         _coordinator.persistServiceConfiguration(config);
     }
-    
+
     /**
      * Get migration check point from ZK. Db migration is supposed to start from this point.
-     *   
+     * 
      */
     String getMigrationCheckpoint() {
         Configuration config = _coordinator.queryConfiguration(getDbConfigPath(), Constants.GLOBAL_ID);
-        _log.debug("getMigrationCheckpoint: target version \"{}\"", 
+        _log.debug("getMigrationCheckpoint: target version \"{}\"",
                 _coordinator.getTargetDbSchemaVersion());
         if (config != null) {
             String checkpoint = config.getConfig(DbConfigConstants.MIGRATION_CHECKPOINT);
@@ -568,21 +572,21 @@ public class SchemaUtil {
         }
         return null;
     }
-    
+
     /**
      * Remove migration checkpoint from ZK. Assume migration lock is acquired when entering this call.
-     *  
+     * 
      */
     void removeMigrationCheckpoint() {
         Configuration config = _coordinator.queryConfiguration(getDbConfigPath(), Constants.GLOBAL_ID);
         _log.debug("removeMigrationCheckpoint: target version \"{}\"",
-                _coordinator.getTargetDbSchemaVersion()); 
+                _coordinator.getTargetDbSchemaVersion());
         if (config != null) {
             config.removeConfig(DbConfigConstants.MIGRATION_CHECKPOINT);
             _coordinator.persistServiceConfiguration(config);
         }
     }
-    
+
     private String getDbConfigPath() {
         return _coordinator.getVersionedDbConfigPath(_service.getName(), _coordinator.getTargetDbSchemaVersion());
     }
@@ -613,24 +617,24 @@ public class SchemaUtil {
     private boolean isVdcInfoExist(DbClient dbClient) {
         // all vdc info stored in local db
         try {
-            _log.debug("my vdcid: "+_vdcShortId);
+            _log.debug("my vdcid: " + _vdcShortId);
             URIQueryResultList list = new URIQueryResultList();
             AlternateIdConstraint constraints = AlternateIdConstraint.Factory.getVirtualDataCenterByShortIdConstraint(_vdcShortId);
             dbClient.queryByConstraint(constraints, list);
             if (list.iterator().hasNext()) {
-            	URI vdcId = list.iterator().next();
-            	VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, vdcId);
-            	if (vdc.getLocal()) {
-            	    checkIPChanged(vdc, dbClient);
-            	} else {
-            	    _log.warn("vdc {} is not local vdc. ignore ip check", vdc.getId().toString());
-            	}
+                URI vdcId = list.iterator().next();
+                VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, vdcId);
+                if (vdc.getLocal()) {
+                    checkIPChanged(vdc, dbClient);
+                } else {
+                    _log.warn("vdc {} is not local vdc. ignore ip check", vdc.getId().toString());
+                }
                 return true;
             } else {
-            	_log.info("vdc resource query returned no results");
+                _log.info("vdc resource query returned no results");
                 return false;
             }
-            
+
         } catch (DatabaseException ex) {
             _log.error("failed querying for vdc resource", ex);
             throw ex; // Throw an DatabaseException and retry
@@ -642,7 +646,7 @@ public class SchemaUtil {
     }
 
     /**
-     * Check if node ip or vip is changed. VirtualDataCenter object should be updated 
+     * Check if node ip or vip is changed. VirtualDataCenter object should be updated
      * to reflect this change.
      * 
      * @param vdc
@@ -671,7 +675,7 @@ public class SchemaUtil {
                 if (!newInet4Addr.equals(inet4Addr)) {
                     changed = true;
                     ipv4Addrs.put(nodeId, newInet4Addr);
-                    _log.info(String.format("Node %s inet4 address changed from %s to %s", nodeId, inet4Addr,  newInet4Addr));
+                    _log.info(String.format("Node %s inet4 address changed from %s to %s", nodeId, inet4Addr, newInet4Addr));
                 }
             } else if (inet4Addr != null) {
                 changed = true;
@@ -680,12 +684,12 @@ public class SchemaUtil {
             }
 
             String inet6Addr = ipv6Addrs.get(nodeId);
-            if (addr.hasInet6())  {
+            if (addr.hasInet6()) {
                 String newInet6Addr = addr.getInet6();
                 if (!newInet6Addr.equals(inet6Addr)) {
                     changed = true;
                     ipv6Addrs.put(nodeId, newInet6Addr);
-                    _log.info(String.format("Node %s inet6 address changed from %s to %s", nodeId, inet6Addr,  newInet6Addr));
+                    _log.info(String.format("Node %s inet6 address changed from %s to %s", nodeId, inet6Addr, newInet6Addr));
                 }
             } else if (inet6Addr != null) {
                 changed = true;
@@ -707,21 +711,21 @@ public class SchemaUtil {
             vdc.setHostCount(_vdcHosts.size());
             _log.info("Vdc host count changed from {} to {}", vdc.getHostCount(), _vdcHosts.size());
         }
-        
+
         // Check VIP
         if (_vdcEndpoint != null && !_vdcEndpoint.equals(vdc.getApiEndpoint())) {
             changed = true;
             vdc.setApiEndpoint(_vdcEndpoint);
             _log.info("Vdc vip changed to {}", _vdcEndpoint);
         }
-        
+
         if (changed) {
             vdc.setVersion(new Date().getTime()); // timestamp
             dbClient.updateAndReindexObject(vdc);
             _log.info("vdc ip change detected, updated vdc resource ok");
-        } 
+        }
     }
-    
+
     /**
      * Insert default root tenant
      */
@@ -752,9 +756,8 @@ public class SchemaUtil {
     }
 
     private String getBootstrapLockName() {
-        return isGeoDbsvc()? GEODB_BOOTSTRAP_LOCK : DB_BOOTSTRAP_LOCK;
+        return isGeoDbsvc() ? GEODB_BOOTSTRAP_LOCK : DB_BOOTSTRAP_LOCK;
     }
-
 
     /**
      * Insert vdc info of current site
@@ -770,7 +773,7 @@ public class SchemaUtil {
         }
 
         _log.info("insert vdc info of current site...");
-        
+
         VirtualDataCenter vdc = new VirtualDataCenter();
         vdc.setId(URIUtil.createVirtualDataCenterId(_vdcShortId));
         vdc.setShortId(_vdcShortId);
@@ -783,8 +786,8 @@ public class SchemaUtil {
 
         CoordinatorClientInetAddressMap nodeMap = _coordinator.getInetAddessLookupMap();
         Map<String, DualInetAddress> controlNodes = nodeMap.getControllerNodeIPLookupMap();
-        StringMap IPv4Addresses =  new StringMap();
-        StringMap IPv6Addresses =  new StringMap();
+        StringMap ipv4Addresses = new StringMap();
+        StringMap ipv6Addresses = new StringMap();
 
         String nodeId;
         int nodeIndex = 0;
@@ -792,27 +795,28 @@ public class SchemaUtil {
             nodeIndex++;
             nodeId = VDC_NODE_PREFIX + nodeIndex;
             DualInetAddress addr = cnode.getValue();
-            if (addr.hasInet4())
-                IPv4Addresses.put(nodeId, addr.getInet4());
-            if (addr.hasInet6())
-                IPv6Addresses.put(nodeId, addr.getInet6());
+            if (addr.hasInet4()) {
+                ipv4Addresses.put(nodeId, addr.getInet4());
+            }
+            if (addr.hasInet6()) {
+                ipv6Addresses.put(nodeId, addr.getInet6());
+            }
         }
 
-        vdc.setHostIPv4AddressesMap(IPv4Addresses);
-        vdc.setHostIPv6AddressesMap(IPv6Addresses);
+        vdc.setHostIPv4AddressesMap(ipv4Addresses);
+        vdc.setHostIPv6AddressesMap(ipv6Addresses);
 
         vdc.setLocal(true);
         dbClient.createObject(vdc);
     }
 
-
     /**
      * initialize PasswordHistory CF
-     *
+     * 
      * @param dbClient
      */
     private void insertPasswordHistory(DbClient dbClient) {
-        String[] localUsers = {"root", "sysmonitor", "svcuser", "proxyuser"};
+        String[] localUsers = { "root", "sysmonitor", "svcuser", "proxyuser" };
 
         for (String user : localUsers) {
             PasswordHistory passwordHistory = _passwordUtils.getPasswordHistory(user);
@@ -835,10 +839,9 @@ public class SchemaUtil {
         }
     }
 
-
     /**
      * Init the bootstrap info, including:
-     *     check and setup root tenant or my vdc info, if it doesn't exist
+     * check and setup root tenant or my vdc info, if it doesn't exist
      */
     public void checkAndSetupBootStrapInfo(DbClient dbClient) {
         // Only the first VDC need check root tenant
@@ -848,7 +851,7 @@ public class SchemaUtil {
                 return;
             }
         }
-        
+
         int retryIntervalSecs = DBINIT_RETRY_INTERVAL;
         boolean done = false;
         boolean wait;
@@ -859,46 +862,49 @@ public class SchemaUtil {
                 lock = _coordinator.getLock(getBootstrapLockName());
                 _log.info("bootstrap info check - waiting for bootstrap lock");
                 lock.acquire();
-                
-                if (isGeoDbsvc()) { 
+
+                if (isGeoDbsvc()) {
                     // insert root tenant if not exist for geodb
                     insertDefaultRootTenant(dbClient);
                 } else {
                     // insert default vdc info if not exist for local db
                     insertMyVdcInfo(dbClient);
                     // insert VdcVersion if not exist for geo db, don't insert in geo db to avoid race condition.
-                	insertVdcVersion(dbClient);
-                    // insert local user's password history if not exist for local db		    
+                    insertVdcVersion(dbClient);
+                    // insert local user's password history if not exist for local db
                     insertPasswordHistory(dbClient);
                 }
 
                 done = true;
             } catch (Exception e) {
-                 if (e instanceof IllegalStateException) {
-                     throw (IllegalStateException)e;
-                 } else {
-                     _log.warn("Exception while checking for bootstrap info, will retry in {} secs", retryIntervalSecs, e);
-                     wait = true;
-                 }
+                if (e instanceof IllegalStateException) {
+                    throw (IllegalStateException) e;
+                } else {
+                    _log.warn("Exception while checking for bootstrap info, will retry in {} secs", retryIntervalSecs, e);
+                    wait = true;
+                }
             } finally {
                 if (lock != null) {
                     try {
                         lock.release();
-                    } catch (Exception ignore) {
+                    } catch (Exception e) {
+                        _log.error("Fail to release lock", e);
                     }
                 }
             }
             if (wait) {
                 try {
                     Thread.sleep(retryIntervalSecs * 1000);
-                } catch (InterruptedException ex) { }
+                } catch (InterruptedException ex) {
+                    _log.warn("Thread is interrupted during wait for retry", ex);
+                }
             }
         }
     }
 
     /**
      * Matches comparator names from db against code schema
-     *
+     * 
      * @param dbschema
      * @param codeschema
      * @return
@@ -914,7 +920,7 @@ public class SchemaUtil {
 
     /**
      * Adds CF to keyspace
-     *
+     * 
      * @param def
      * @param context
      * @return
@@ -922,7 +928,7 @@ public class SchemaUtil {
     @SuppressWarnings("unchecked")
     public String addColumnFamily(final ColumnFamilyDefinition def, AstyanaxContext<Cluster> context) {
         final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
-        ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>)context.getConnectionPool();
+        ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
         _log.info("Adding CF: {}", def.getName());
         try {
             return pool.executeWithFailover(
@@ -936,15 +942,15 @@ public class SchemaUtil {
                         }
                     }, context.getAstyanaxConfiguration().getRetryPolicy().duplicate()).getResult();
         } catch (final OperationException e) {
-        	throw DatabaseException.retryables.operationFailed(e);
+            throw DatabaseException.retryables.operationFailed(e);
         } catch (final ConnectionException e) {
-        	throw DatabaseException.retryables.connectionFailed(e);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
     }
 
     /**
      * Updates CF
-     *
+     * 
      * @param def
      * @param context
      * @return
@@ -953,7 +959,7 @@ public class SchemaUtil {
     public String updateColumnFamily(final ColumnFamilyDefinition def,
             AstyanaxContext<Cluster> context) {
         final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
-        ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>)context.getConnectionPool();
+        ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
         _log.info("Updating CF: {}", def.getName());
         try {
             return pool.executeWithFailover(
@@ -967,15 +973,15 @@ public class SchemaUtil {
                         }
                     }, context.getAstyanaxConfiguration().getRetryPolicy().duplicate()).getResult();
         } catch (final OperationException e) {
-        	throw DatabaseException.retryables.operationFailed(e);
+            throw DatabaseException.retryables.operationFailed(e);
         } catch (final ConnectionException e) {
-        	throw DatabaseException.retryables.connectionFailed(e);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
     }
 
     /**
      * Drop CF
-     *
+     * 
      * @param cfName column family name
      * @param context
      * @return
@@ -984,7 +990,7 @@ public class SchemaUtil {
     public String dropColumnFamily(final String cfName,
             AstyanaxContext<Cluster> context) {
         final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
-        ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>)context.getConnectionPool();
+        ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
         _log.info("Dropping CF: {}", cfName);
         try {
             return pool.executeWithFailover(
@@ -1005,6 +1011,7 @@ public class SchemaUtil {
 
     /**
      * Waits for schema change to propagate through cluster
+     * 
      * @param schemaVersion version we are waiting for
      * @param cluster
      * @throws InterruptedException
@@ -1022,7 +1029,7 @@ public class SchemaUtil {
             _log.info("schema version to sync to: {}", schemaVersion);
             _log.info("schema versions found: {}", versions);
 
-            if (versions.size()==1 && versions.containsKey(schemaVersion)) {
+            if (versions.size() == 1 && versions.containsKey(schemaVersion)) {
                 _log.info("schema version sync to: {} done", schemaVersion);
                 return;
             }
@@ -1030,20 +1037,20 @@ public class SchemaUtil {
             _log.info("waiting for schema change ...");
             Thread.sleep(1000);
         }
-        _log.warn("Unable to sync schema version {}",schemaVersion);
+        _log.warn("Unable to sync schema version {}", schemaVersion);
     }
 
     public void removeVdcFromStrageOption(String shortVdcId) throws Exception {
         AstyanaxContext<Cluster> clusterContext = null;
         clusterContext = connectCluster();
         Cluster cluster = clusterContext.getClient();
-        KeyspaceDefinition kd  = cluster.describeKeyspace(_keyspaceName);
-        Map<String,String> strategyOptions = kd.getStrategyOptions();
+        KeyspaceDefinition kd = cluster.describeKeyspace(_keyspaceName);
+        Map<String, String> strategyOptions = kd.getStrategyOptions();
         strategyOptions.remove(shortVdcId);
         Map<String, Object> options = new HashMap(strategyOptions.size());
         Set<Map.Entry<String, String>> strategyOpts = strategyOptions.entrySet();
         for (Map.Entry<String, String> opt : strategyOpts) {
-            options.put(opt.getKey(),opt.getValue());
+            options.put(opt.getKey(), opt.getValue());
         }
 
         waitForSchemaChange(cluster.updateKeyspace(options).getResult().getSchemaId(), cluster);
@@ -1065,8 +1072,8 @@ public class SchemaUtil {
                         _log.info("The strategy option has been changed");
                         return;
                     }
-                }else {
-                   // this is reconnect operation
+                } else {
+                    // this is reconnect operation
                     if (options.containsKey(shortVdcId)) {
                         _log.info("The strategy option has been changed");
                         return;
@@ -1075,8 +1082,9 @@ public class SchemaUtil {
             } catch (final ConnectionException e) {
                 throw DatabaseException.retryables.connectionFailed(e);
             } finally {
-                if (clusterContext != null)
+                if (clusterContext != null) {
                     clusterContext.shutdown();
+                }
             }
 
             _log.info("waiting for strategy option change: {}", options);
@@ -1086,7 +1094,7 @@ public class SchemaUtil {
 
     /**
      * Connects to local dbsvc
-     *
+     * 
      * @return
      */
     private AstyanaxContext<Cluster> connectCluster() {
@@ -1094,7 +1102,7 @@ public class SchemaUtil {
         _log.info("host: " + host);
         CoordinatorClientInetAddressMap nodeMap = _coordinator.getInetAddessLookupMap();
         _log.info("nodeMap: " + nodeMap);
-        URI uri =  nodeMap.expandURI(_service.getEndpoint());
+        URI uri = nodeMap.expandURI(_service.getEndpoint());
         _log.info("uri: " + uri);
 
         ConnectionPoolConfigurationImpl cfg = new ConnectionPoolConfigurationImpl(_clusterName)
@@ -1119,10 +1127,10 @@ public class SchemaUtil {
     }
 
     /**
-     * Get replication factor.  By default, 5 is the maximum replication factor we will use.
+     * Get replication factor. By default, 5 is the maximum replication factor we will use.
      * If there are less than 5 nodes (where N is the number of nodes), we set replication
      * factor to N
-     *
+     * 
      * @return
      */
     private int getReplicationFactor() {
@@ -1133,63 +1141,64 @@ public class SchemaUtil {
         return (clustersize > MAX_REPLICATION_FACTOR) ? MAX_REPLICATION_FACTOR : clustersize;
     }
 
-	public void insertVdcVersion(final DbClient dbClient){
-		
-    	String dbFullVersion = this._service.getVersion();
-    	String[] parts = StringUtils.split(dbFullVersion, VdcUtil.VERSION_PART_SEPERATOR);
-    	String version = parts[0] + "." + parts[1];
-    	URI vdcId = VdcUtil.getLocalVdc().getId();
-    	
-		List<URI> vdcVersionIds = dbClient.queryByType(VdcVersion.class, true);
-		List<VdcVersion> vdcVersions = dbClient.queryObject(VdcVersion.class, vdcVersionIds);
-		_log.info("insert Vdc db version vdcId={}, dbVersion={}", vdcId, version);
-		
-		if(isVdcVersionExist(vdcVersions, vdcId, version)){
-			 _log.info("Vdc db version exists already, skip insert");
-			 return;
-		}
-		
-		VdcVersion vdcCersion = getVdcVersion(vdcVersions, vdcId);
-		
-		if(vdcCersion == null){
-			_log.info("insert new Vdc db version vdc={}, dbVersion={}", vdcId, version);
-			vdcCersion = new VdcVersion();
-			vdcCersion.setId(URIUtil.createId(VdcVersion.class));
-			vdcCersion.setVdcId(vdcId);
-			vdcCersion.setVersion(version);;
-			dbClient.createObject(vdcCersion);			
-		}
-		
-		if(!vdcCersion.getVersion().equals(version)){
-			_log.info("update Vdc db version vdc={} to dbVersion={}", vdcId, version);
-			vdcCersion.setVersion(version);
-			dbClient.persistObject(vdcCersion);
-		}
-	}
+    public void insertVdcVersion(final DbClient dbClient) {
 
-	private static VdcVersion getVdcVersion(List<VdcVersion> vdcVersions, URI vdcId) {
-		if(vdcVersions==null || !vdcVersions.iterator().hasNext()){
-			return null;
-		}
-		
-		for(VdcVersion vdcVersion : vdcVersions){
-			if(vdcVersion.getVdcId().equals(vdcId)){
-				return vdcVersion;
-			}
-		}
-		return null;
-	}
-	
-	private static boolean isVdcVersionExist(final List<VdcVersion> vdcVersions, final URI vdcId, final String version) {
-		if(vdcVersions==null || !vdcVersions.iterator().hasNext()){
-			return false;
-		}
-		String origVersion = null;
-		for(VdcVersion vdcVersion : vdcVersions){
-			if(vdcVersion.getVdcId().equals(vdcId)){
-				origVersion = vdcVersion.getVersion();
-			}
-		}
-		return origVersion!=null && version.equals(origVersion);
-	}
+        String dbFullVersion = this._service.getVersion();
+        String[] parts = StringUtils.split(dbFullVersion, VdcUtil.VERSION_PART_SEPERATOR);
+        String version = parts[0] + "." + parts[1];
+        URI vdcId = VdcUtil.getLocalVdc().getId();
+
+        List<URI> vdcVersionIds = dbClient.queryByType(VdcVersion.class, true);
+        List<VdcVersion> vdcVersions = dbClient.queryObject(VdcVersion.class, vdcVersionIds);
+        _log.info("insert Vdc db version vdcId={}, dbVersion={}", vdcId, version);
+
+        if (isVdcVersionExist(vdcVersions, vdcId, version)) {
+            _log.info("Vdc db version exists already, skip insert");
+            return;
+        }
+
+        VdcVersion vdcCersion = getVdcVersion(vdcVersions, vdcId);
+
+        if (vdcCersion == null) {
+            _log.info("insert new Vdc db version vdc={}, dbVersion={}", vdcId, version);
+            vdcCersion = new VdcVersion();
+            vdcCersion.setId(URIUtil.createId(VdcVersion.class));
+            vdcCersion.setVdcId(vdcId);
+            vdcCersion.setVersion(version);
+            ;
+            dbClient.createObject(vdcCersion);
+        }
+
+        if (!vdcCersion.getVersion().equals(version)) {
+            _log.info("update Vdc db version vdc={} to dbVersion={}", vdcId, version);
+            vdcCersion.setVersion(version);
+            dbClient.persistObject(vdcCersion);
+        }
+    }
+
+    private static VdcVersion getVdcVersion(List<VdcVersion> vdcVersions, URI vdcId) {
+        if (vdcVersions == null || !vdcVersions.iterator().hasNext()) {
+            return null;
+        }
+
+        for (VdcVersion vdcVersion : vdcVersions) {
+            if (vdcVersion.getVdcId().equals(vdcId)) {
+                return vdcVersion;
+            }
+        }
+        return null;
+    }
+
+    private static boolean isVdcVersionExist(final List<VdcVersion> vdcVersions, final URI vdcId, final String version) {
+        if (vdcVersions == null || !vdcVersions.iterator().hasNext()) {
+            return false;
+        }
+        String origVersion = null;
+        for (VdcVersion vdcVersion : vdcVersions) {
+            if (vdcVersion.getVdcId().equals(vdcId)) {
+                origVersion = vdcVersion.getVersion();
+            }
+        }
+        return origVersion != null && version.equals(origVersion);
+    }
 }

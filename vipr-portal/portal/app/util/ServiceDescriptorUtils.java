@@ -25,34 +25,34 @@ public class ServiceDescriptorUtils {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.serviceDescriptors().getServiceDescriptor(baseServiceName);
     }
-    
+
     public static List<ServiceDescriptorRestRep> getDescriptors() {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.serviceDescriptors().getServiceDescriptors();
     }
-    
+
     public static ServiceFieldRestRep getField(ServiceDescriptorRestRep serviceDescriptor, String name) {
         return findField(serviceDescriptor.getItems(), name);
-    }    
-    
+    }
+
     public static List<ServiceFieldRestRep> getAssetFields(List<ServiceItemRestRep> items) {
         List<ServiceFieldRestRep> assetFields = new ArrayList<ServiceFieldRestRep>();
         for (ServiceItemRestRep item : items) {
-            if (item.isField() && ((ServiceFieldRestRep)item).isAsset()) {
-                assetFields.add(((ServiceFieldRestRep)item));
+            if (item.isField() && ((ServiceFieldRestRep) item).isAsset()) {
+                assetFields.add(((ServiceFieldRestRep) item));
             }
         }
         return assetFields;
-    }    
-    
+    }
+
     public static Set<String> getAllAssetTypes(ServiceDescriptorRestRep serviceDescriptor) {
         return AssetOptions.getAllAssetTypes(serviceDescriptor);
     }
-    
+
     public static List<ServiceFieldRestRep> getAllFieldList(List<? extends ServiceItemRestRep> items) {
         return AssetOptions.getAllFields(items);
-    }    
-    
+    }
+
     public static ServiceFieldRestRep findField(Collection<? extends ServiceItemRestRep> items, String name) {
         ServiceItemRestRep value = findItemByName(items, name);
         if (value != null && value.isField()) {
@@ -73,13 +73,13 @@ public class ServiceDescriptorUtils {
                 ServiceFieldRestRep field = findField(table.getItems(), name);
                 if (field != null) {
                     return field;
-                }                
+                }
             }
         }
         // No field found
         return null;
-    }   
-    
+    }
+
     public static ServiceItemRestRep findItemByName(Collection<? extends ServiceItemRestRep> items, String name) {
         if (items != null && name != null) {
             for (ServiceItemRestRep item : items) {
@@ -90,7 +90,5 @@ public class ServiceDescriptorUtils {
         }
         return null;
     }
-    
-    
 
 }

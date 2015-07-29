@@ -29,10 +29,10 @@ import com.emc.storageos.systemservices.impl.logsvc.merger.LogStreamMerger;
 import com.emc.vipr.model.sys.logging.LogRequest;
 
 public class LogStreamMergerTest {
-	
-    private static LogSvcPropertiesLoader propertiesLoader;
+
+    private static volatile LogSvcPropertiesLoader propertiesLoader;
     private static final Logger logger = LoggerFactory.getLogger(LogStreamMergerTest.class);
-    
+
     @BeforeClass
     public static void setup() {
         propertiesLoader = new LogSvcPropertiesLoader() {
@@ -52,10 +52,12 @@ public class LogStreamMergerTest {
     @Test
     @Ignore
     public void testMergeSortCorrectness() throws Exception {
-        List<String> svcs = new ArrayList<String>() {{
-            add("controllersvc");
-            add("coordinatorsvc");
-        }};
+        List<String> svcs = new ArrayList<String>() {
+            {
+                add("controllersvc");
+                add("coordinatorsvc");
+            }
+        };
         LogRequest req = new LogRequest.Builder().baseNames(svcs).build();
         LogStreamMerger merger = new LogStreamMerger(req, propertiesLoader);
         long prevTime = -1;

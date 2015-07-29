@@ -17,7 +17,6 @@ package com.emc.storageos.geo.vdccontroller.impl;
 
 import java.security.KeyStore;
 import java.beans.BeanInfo;
-import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.net.URI;
@@ -54,9 +53,9 @@ import com.emc.storageos.security.geo.GeoServiceJob;
 import com.emc.storageos.security.geo.exceptions.FatalGeoException;
 
 /**
- * Remove VDC from geo system 
+ * Remove VDC from geo system
  */
-public class RemoveVdcTaskOp  extends AbstractVdcTaskOp {
+public class RemoveVdcTaskOp extends AbstractVdcTaskOp {
     private final static Logger log = LoggerFactory.getLogger(ConnectVdcTaskOp.class);
 
     private boolean isOperatedVdcDisconnected = false;
@@ -66,10 +65,11 @@ public class RemoveVdcTaskOp  extends AbstractVdcTaskOp {
             String taskId, KeyStore keystore) {
         super(dbClient, geoClientCache, helper, serviceInfo, vdc, taskId, null, keystore);
 
-        if (operatedVdc.getConnectionStatus() == ConnectionStatus.DISCONNECTED)
+        if (operatedVdc.getConnectionStatus() == ConnectionStatus.DISCONNECTED) {
             isOperatedVdcDisconnected = true;
+        }
     }
-    
+
     private void preCheck() {
         log.info("Pre check for {} before removal", operatedVdc.getShortId());
         lockHelper.acquire(operatedVdc.getShortId());
@@ -80,7 +80,7 @@ public class RemoveVdcTaskOp  extends AbstractVdcTaskOp {
 
         checkVdcInUse();
         checkVdcDependency(operatedVdc.getShortId());
-        
+
         // make sure all other vdc are up and running
         log.info("Check vdc stable");
         URI unstable = checkAllVdcStable(false, !isOperatedVdcDisconnected);
@@ -91,9 +91,9 @@ public class RemoveVdcTaskOp  extends AbstractVdcTaskOp {
             throw GeoException.fatals.unstableVdcFailure(vdcName);
         }
 
-        log.info("Pre check for {} passed", operatedVdc.getShortId());    
+        log.info("Pre check for {} passed", operatedVdc.getShortId());
     }
-    
+
     /**
      * Update the vdc config to all sites for vdc removal
      */
@@ -108,25 +108,26 @@ public class RemoveVdcTaskOp  extends AbstractVdcTaskOp {
         // update config for sites that are still connected
         try {
             updateConfigForConnectedVdc();
-        } catch ( GeoException ex ) {
+        } catch (GeoException ex) {
             throw ex;
-        } catch ( Exception e) {
-            log.error("Failed to sync vdc config to all sites e=",e);
+        } catch (Exception e) {
+            log.error("Failed to sync vdc config to all sites e=", e);
             throw GeoException.fatals.removeVdcSyncConfigFail(e);
         }
 
         // update the current progress of connect vdc. the site would reboot later.
         updateOpStatus(ConnectionStatus.REMOVE_SYNCED);
-        
+
         // do not release the global lock here; lock is released during post processing
     }
-    
+
     public void postCheck() {
         failedVdcStatus = ConnectionStatus.REMOVE_FAILED;
         log.info("remove vdc post check for {}", operatedVdc.getShortId());
         try {
-            if (!isOperatedVdcDisconnected)
+            if (!isOperatedVdcDisconnected) {
                 dbClient.waitVdcRemoveDone(operatedVdc.getShortId());
+            }
             dbClient.waitAllSitesDbStable();
             dbClient.removeVdcNodesFromBlacklist(operatedVdc);
             removeVdcVersion(operatedVdc);
@@ -137,15 +138,15 @@ public class RemoveVdcTaskOp  extends AbstractVdcTaskOp {
         // lock is released in error handling code if an exception is thrown before we get here
         lockHelper.release(operatedVdc.getShortId());
     }
-    
+
     /**
-     * Update new vdc config for all sites  - exclude the site to be removed
+     * Update new vdc config for all sites - exclude the site to be removed
      */
     private void updateConfigForConnectedVdc() {
         // build new vdc config without operatedVdc
         List<VirtualDataCenter> newVdcList = new ArrayList<>();
-        for(VirtualDataCenter vdc : getAllVdc()) {
-            if(!vdc.getId().equals(operatedVdc.getId())) {
+        for (VirtualDataCenter vdc : getAllVdc()) {
+            if (!vdc.getId().equals(operatedVdc.getId())) {
                 newVdcList.add(vdc); // ignore the one to be removed
             }
         }
@@ -153,18 +154,18 @@ public class RemoveVdcTaskOp  extends AbstractVdcTaskOp {
         log.info("number of vdc {} after removal", newVdcList.size());
 
         VdcConfigSyncParam syncParam = buildConfigParam(newVdcList);
-        for(VirtualDataCenter vdc : connectedVdc) {
+        for (VirtualDataCenter vdc : connectedVdc) {
             if (vdc.getId().equals(myVdc.getId()) || vdc.getId().equals(operatedVdc.getId())) {
                 continue; // skip my current vdc and operated vdc
             }
             geoClientCache.getGeoClient(vdc.getShortId()).syncVdcConfig(syncParam, vdc.getLabel());
         }
-        
+
         dbClient.stopClusterGossiping();
 
-        //  set connection status to isolated if there is only one vdc in current geo system 
+        // set connection status to isolated if there is only one vdc in current geo system
         if (newVdcList.size() == 1) {
-            if (syncParam.getVirtualDataCenters().size() > 0) {
+            if (!syncParam.getVirtualDataCenters().isEmpty()) {
                 VdcConfig vdcConfig = syncParam.getVirtualDataCenters().get(0);
                 vdcConfig.setConnectionStatus(ConnectionStatus.ISOLATED.toString());
                 vdcConfig.setVersion(new Date().getTime());
@@ -176,9 +177,9 @@ public class RemoveVdcTaskOp  extends AbstractVdcTaskOp {
 
         helper.syncVdcConfig(syncParam.getVirtualDataCenters(), null);
     }
-    
+
     /**
-     * Update new vdc config for the site to be remove - only include itself 
+     * Update new vdc config for the site to be remove - only include itself
      */
     private void updateConfigForRemovedVdc(boolean ignoreException) {
         operatedVdc.setConnectionStatus(ConnectionStatus.ISOLATED);
@@ -192,12 +193,13 @@ public class RemoveVdcTaskOp  extends AbstractVdcTaskOp {
         log.info("send {} to removed vdc {}", syncParam, operatedVdc.getShortId());
         try {
             geoClientCache.getGeoClient(operatedVdc.getShortId()).syncVdcConfig(syncParam, operatedVdc.getLabel());
-        }catch (FatalGeoException e ) {
-            if (!ignoreException)
+        } catch (FatalGeoException e) {
+            if (!ignoreException) {
                 throw e;
+            }
         }
     }
-    
+
     @Override
     protected void process() {
         String errMsg;
@@ -236,19 +238,19 @@ public class RemoveVdcTaskOp  extends AbstractVdcTaskOp {
             throw GeoException.fatals.removeVdcPrecheckFail(operatedVdc.getLabel(), "The vdc is in use");
         }
     }
-    
+
     private void checkVdcDependency(final String vdcShortId) {
         try {
             VdcDependencyChecker checker = new VdcDependencyChecker(vdcShortId);
             checker.setPackages("com.emc.storageos.db.client.model");
             checker.scan(Cf.class);
-        } catch(IllegalStateException ex) {
+        } catch (IllegalStateException ex) {
             log.error("vdc dependency check for removal error", ex);
             throw GeoException.fatals.removeVdcPrecheckFail(operatedVdc.getLabel(), ex.toString());
         }
-    
+
     }
-    
+
     private void removeVdcVersion(VirtualDataCenter operatedVdc) {
         List<URI> vdcVersionIds = dbClient.queryByType(VdcVersion.class, true);
         List<VdcVersion> vdcVersions = dbClient.queryObject(VdcVersion.class,
@@ -262,17 +264,16 @@ public class RemoveVdcTaskOp  extends AbstractVdcTaskOp {
         }
     }
 
-
     /**
-     * Check data objects in geodb and check if it has reference to given vdc 
+     * Check data objects in geodb and check if it has reference to given vdc
      */
     class VdcDependencyChecker extends PackageScanner {
         String vdcShortId;
-        
+
         VdcDependencyChecker(String shortId) {
             vdcShortId = shortId;
         }
-        
+
         @Override
         protected void processClass(Class clazz) {
             if (!DataObject.class.isAssignableFrom(clazz)) {
@@ -298,31 +299,29 @@ public class RemoveVdcTaskOp  extends AbstractVdcTaskOp {
                 }
                 try {
                     checkVdcReferenceForClass(clazz, field);
-                }
-                catch (GeoException ex) {
+                } catch (GeoException ex) {
                     throw ex;
-                }
-                catch (Exception ex) {
+                } catch (Exception ex) {
                     throw new IllegalStateException(ex);
                 }
             }
         }
-        
-        private void checkVdcReferenceForClass(Class clazz, ColumnField field) throws Exception{
+
+        private void checkVdcReferenceForClass(Class clazz, ColumnField field) throws Exception {
             List<URI> ids = new ArrayList<URI>();
             for (Object id : dbClient.queryByType(clazz, true)) {
-                ids.add((URI)id);
+                ids.add((URI) id);
             }
-            
+
             Iterator objs = dbClient.queryIterativeObjectField(clazz, field.getName(), ids);
             while (objs.hasNext()) {
-                DataObject obj = (DataObject)objs.next();
+                DataObject obj = (DataObject) objs.next();
                 log.info("Geo data object Id {} field {}", obj.getId(), field.getName());
                 checkVdcReferenceForObjectField(obj, field);
             }
         }
-        
-        private void checkVdcReferenceForObjectField(DataObject obj, ColumnField field) throws Exception{
+
+        private void checkVdcReferenceForObjectField(DataObject obj, ColumnField field) throws Exception {
             BeanInfo bInfo = Introspector.getBeanInfo(obj.getClass());
 
             PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
@@ -332,9 +331,10 @@ public class RemoveVdcTaskOp  extends AbstractVdcTaskOp {
                     continue;
                 }
                 Object value = pd.getReadMethod().invoke(obj);
-                if (value == null)
+                if (value == null) {
                     continue;
-                if(value instanceof URI) {
+                }
+                if (value instanceof URI) {
                     URI refId = (URI) value;
                     String refVdcShortId = URIUtil.parseVdcIdFromURI(refId);
                     log.info("Vdc short id {} for uri {}", refVdcShortId, refId);
@@ -351,7 +351,7 @@ public class RemoveVdcTaskOp  extends AbstractVdcTaskOp {
     }
 
     @Override
-    public VdcConfig.ConfigChangeType changeType(){
+    public VdcConfig.ConfigChangeType changeType() {
         return VdcConfig.ConfigChangeType.REMOVE_VDC;
     }
 }

@@ -29,8 +29,8 @@ public class MetaVolumeTaskCompleter implements Serializable {
     TaskCompleter _volumeTaskCompleter;
     Job.JobStatus _lastStepStatus = Job.JobStatus.SUCCESS;
 
-    public  MetaVolumeTaskCompleter(TaskCompleter volumeTaskCompleter) {
-         _volumeTaskCompleter = volumeTaskCompleter;
+    public MetaVolumeTaskCompleter(TaskCompleter volumeTaskCompleter) {
+        _volumeTaskCompleter = volumeTaskCompleter;
     }
 
     public TaskCompleter getVolumeTaskCompleter() {

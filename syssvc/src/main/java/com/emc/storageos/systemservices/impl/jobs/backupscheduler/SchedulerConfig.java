@@ -35,8 +35,6 @@ import com.emc.storageos.services.util.Strings;
 import com.emc.vipr.model.sys.ClusterInfo.ClusterState;
 import com.emc.vipr.model.sys.recovery.RecoveryConstants;
 import com.emc.vipr.model.sys.recovery.RecoveryStatus;
-import com.google.common.collect.Lists;
-
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -122,7 +120,7 @@ public class SchedulerConfig {
         String copiesStr = propInfo.getProperty(BackupConstants.COPIES_TO_KEEP);
         String urlStr = propInfo.getProperty(BackupConstants.UPLOAD_URL);
         String usernameStr = propInfo.getProperty(BackupConstants.UPLOAD_USERNAME);
-        String passwordStr = propInfo.getProperty(BackupConstants.UPLOAD_PASSWORD);
+        String passwordStr = propInfo.getProperty(BackupConstants.UPLOAD_PASSWD);
         String enableStr = propInfo.getProperty(BackupConstants.SCHEDULER_ENABLED);
 
         this.interval = ScheduleTimeRange.ScheduleInterval.DAY;
@@ -206,8 +204,10 @@ public class SchedulerConfig {
         ConfigurationImpl cfg = new ConfigurationImpl();
         cfg.setKind(Constants.BACKUP_SCHEDULER_CONFIG);
         cfg.setId(Constants.GLOBAL_ID);
-        cfg.setConfig(BackupConstants.BACKUP_TAGS_RETAINED, Strings.join(",", this.retainedBackups.toArray(new String[this.retainedBackups.size()])));
-        cfg.setConfig(BackupConstants.BACKUP_TAGS_UPLOADED, Strings.join(",", this.uploadedBackups.toArray(new String[this.uploadedBackups.size()])));
+        cfg.setConfig(BackupConstants.BACKUP_TAGS_RETAINED,
+                Strings.join(",", this.retainedBackups.toArray(new String[this.retainedBackups.size()])));
+        cfg.setConfig(BackupConstants.BACKUP_TAGS_UPLOADED,
+                Strings.join(",", this.uploadedBackups.toArray(new String[this.uploadedBackups.size()])));
         this.coordinatorClient.persistServiceConfiguration(cfg);
     }
 
@@ -234,12 +234,12 @@ public class SchedulerConfig {
         sendEmailToRoot(subject, "UploadFailedEmail.html", params);
     }
 
-    private String getEmailSubject(String preSubject, String tags){
-        if(VdcUtil.isLocalVdcSingleSite()){
+    private String getEmailSubject(String preSubject, String tags) {
+        if (VdcUtil.isLocalVdcSingleSite()) {
             return preSubject + tags;
-        }else{
+        } else {
             String vdcId = VdcUtil.getLocalShortVdcId();
-            return String.format("%s %s in %s",preSubject, tags, vdcId);
+            return String.format("%s %s in %s", preSubject, tags, vdcId);
         }
 
     }
@@ -267,7 +267,7 @@ public class SchedulerConfig {
 
     /**
      * get user's mail address from UserPreference CF
-     *
+     * 
      * @param userName
      * @return
      */
@@ -281,9 +281,9 @@ public class SchedulerConfig {
 
         List<URI> userPrefsIds = new ArrayList<>();
         for (NamedElementQueryResultList.NamedElement namedElement : queryResults) {
-            userPrefsIds.add(namedElement.id);
+            userPrefsIds.add(namedElement.getId());
         }
-        if (userPrefsIds.size() == 0) {
+        if (userPrefsIds.isEmpty()) {
             return null;
         }
 
@@ -296,7 +296,7 @@ public class SchedulerConfig {
         if (userPrefs.size() > 1) {
             throw new IllegalStateException("There should only be 1 user preferences object for a user");
         }
-        if (userPrefs.size() == 0) {
+        if (userPrefs.isEmpty()) {
             // if there isn't a user prefs object in the DB yet then we haven't saved one for this user yet.
             return null;
         }

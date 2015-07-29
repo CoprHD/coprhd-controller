@@ -19,11 +19,9 @@ import com.emc.storageos.coordinator.service.Coordinator;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.io.IOException;
-
 
 /**
- * Use this with spring config to start a coordinator node.  Or write your own main.
+ * Use this with spring config to start a coordinator node. Or write your own main.
  */
 public class Main {
     private static final String SERVICE_BEAN = "coordinatorsvc";
@@ -33,18 +31,18 @@ public class Main {
     public static void main(String[] args) {
         try {
             FileSystemXmlApplicationContext ctx = new FileSystemXmlApplicationContext(args);
-            Coordinator coordinator = (Coordinator)ctx.getBean(SERVICE_BEAN);
+            Coordinator coordinator = (Coordinator) ctx.getBean(SERVICE_BEAN);
             addShutdownHook(coordinator);
             setZKOptions();
             coordinator.start();
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.error("Failed to start {}:", SERVICE_BEAN, e);
             System.exit(1);
         }
     }
 
     private static void addShutdownHook(final Coordinator coordinator) {
-        Runtime.getRuntime().addShutdownHook(new Thread(){
+        Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
                 _log.info("Shutting down {}", SERVICE_BEAN);

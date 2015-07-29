@@ -21,14 +21,16 @@ import com.google.gson.annotations.SerializedName;
 
 public class XtremIOVolumeResponse {
     @SerializedName("links")
-    @JsonProperty(value="links")
+    @JsonProperty(value = "links")
     private XtremIOResponseContent[] volumes;
 
     public XtremIOResponseContent[] getVolumes() {
-        return volumes;
+        return volumes != null ? volumes.clone() : volumes;
     }
 
     public void setVolumes(XtremIOResponseContent[] volumes) {
-        this.volumes = volumes;
+        if (volumes != null) {
+            this.volumes = volumes.clone();
+        }
     }
 }

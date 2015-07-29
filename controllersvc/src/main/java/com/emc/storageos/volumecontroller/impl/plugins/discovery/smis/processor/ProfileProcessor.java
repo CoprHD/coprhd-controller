@@ -41,6 +41,7 @@ public class ProfileProcessor extends Processor {
     String highestVersion = "";
     private static final Pattern VERSION_PATTERN = Pattern
             .compile("^(?:(\\d+))?(?:\\.(\\d+))?(?:\\.(\\d+))?$");// "([0-9]+)\\.([0-9]+)\\.([0-9]+)");
+
     /**
      * {@inheritDoc}
      */
@@ -53,7 +54,7 @@ public class ProfileProcessor extends Processor {
         CIMInstance profileInstance = isRegisteredProfileValid(it);
         if (null != profileInstance) {
             _logger.info("RegisteredProfile : {}", profileInstance.getObjectPath());
-            addPath(keyMap, operation.get_result(), profileInstance.getObjectPath());
+            addPath(keyMap, operation.getResult(), profileInstance.getObjectPath());
         } else {
             throw new SMIPluginException(
                     "Provider Version not supported,hence skipping scanning",

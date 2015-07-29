@@ -19,13 +19,13 @@ import java.util.List;
 
 public class ScaleIOQueryAllSDCCommand extends AbstractScaleIOQueryCommand<ScaleIOQueryAllSDCResult> {
 
-//Query all SDC returned 3 SDC nodes.
-//SDC ID: 5509377100000000 IP: 10.247.78.47 State: Connected GUID: 2BCC6A51-C001-4F97-A721-0E10C69A82E7
-//SDC ID: 5509377200000001 IP: 10.247.78.48 State: Connected GUID: 9CDD874D-CE99-4C0D-9560-6219E017A0C1
-//SDC ID: 5509377300000002 IP: 10.247.78.49 State: Connected GUID: 6E58E38F-9CC8-4CA8-BAD8-0B99107B98F1
+    // Query all SDC returned 3 SDC nodes.
+    // SDC ID: 5509377100000000 IP: 10.247.78.47 State: Connected GUID: 2BCC6A51-C001-4F97-A721-0E10C69A82E7
+    // SDC ID: 5509377200000001 IP: 10.247.78.48 State: Connected GUID: 9CDD874D-CE99-4C0D-9560-6219E017A0C1
+    // SDC ID: 5509377300000002 IP: 10.247.78.49 State: Connected GUID: 6E58E38F-9CC8-4CA8-BAD8-0B99107B98F1
 
     private static final String CLIENT = "Client";
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern("SDC ID:\\s+(\\w+).*?IP:\\s+(.*?)\\s+State:\\s+(\\w+)\\s+GUID:\\s+(.*)", CLIENT)
     };
 
@@ -35,7 +35,7 @@ public class ScaleIOQueryAllSDCCommand extends AbstractScaleIOQueryCommand<Scale
 
     @Override
     ParsePattern[] getOutputPatternSpecification() {
-        return PARSING_CONFIG;
+        return PARSING_CONFIG.clone(); // No need to check not null condition here
     }
 
     @Override

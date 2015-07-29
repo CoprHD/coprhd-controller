@@ -17,7 +17,7 @@ import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.model.property.PropertiesMetadata;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 
-@ContextConfiguration(locations = {"/sys-metadata-var.xml"})
+@ContextConfiguration(locations = { "/sys-metadata-var.xml" })
 public class PropertiesConfigurationValidatorTest extends
         AbstractJUnit4SpringContextTests {
 
@@ -42,48 +42,47 @@ public class PropertiesConfigurationValidatorTest extends
                     "10.247.96.256", false);
             Assert.fail();
         } catch (BadRequestException e) {
-
-        }        
+            Assert.assertTrue(true);
+        }
         try {
             validator.getValidPropValue("network_gateway",
                     "xxx", false);
             Assert.fail();
         } catch (BadRequestException e) {
-
+            Assert.assertTrue(true);
         }
         try {
             validator.getValidPropValue("network_gateway",
                     "2620:0:170:2842::1", false);
             Assert.fail();
         } catch (BadRequestException e) {
-
+            Assert.assertTrue(true);
+        }
     }
-    }
-    
 
     @Test
     public void testIpv6Addr() {
-        validator.getValidPropValue("network_gateway6", "2620:0:170:2842::1", false);        
+        validator.getValidPropValue("network_gateway6", "2620:0:170:2842::1", false);
         try {
-            validator.getValidPropValue("network_gateway6", "G620:0:170:2842::1", false);  
+            validator.getValidPropValue("network_gateway6", "G620:0:170:2842::1", false);
             Assert.fail();
         } catch (BadRequestException e) {
-            
+            Assert.assertTrue(true);
         }
         try {
-            validator.getValidPropValue("network_gateway6", "xxxx", false);  
+            validator.getValidPropValue("network_gateway6", "xxxx", false);
             Assert.fail();
         } catch (BadRequestException e) {
-            
+            Assert.assertTrue(true);
         }
         try {
-            validator.getValidPropValue("network_gateway6", "10.247.100.11", false);  
+            validator.getValidPropValue("network_gateway6", "10.247.100.11", false);
             Assert.fail();
         } catch (BadRequestException e) {
-            
+            Assert.assertTrue(true);
         }
     }
-    
+
     @Test
     public void testUrl() {
 
@@ -94,7 +93,7 @@ public class PropertiesConfigurationValidatorTest extends
                     "lglaf020.lss.emc.com/ovf/Bourne/", true);
             Assert.fail();
         } catch (Exception e) {
-
+            Assert.assertTrue(true);
         }
     }
 
@@ -108,7 +107,7 @@ public class PropertiesConfigurationValidatorTest extends
                     "noemail", true);
             Assert.fail();
         } catch (Exception e) {
-
+            Assert.assertTrue(true);
         }
     }
 
@@ -123,6 +122,7 @@ public class PropertiesConfigurationValidatorTest extends
                     longString, true);
             Assert.fail();
         } catch (Exception e) {
+            Assert.assertTrue(true);
         }
         Assert.assertTrue(validator.getValidPropValue("network_ntpservers",
                 validString, true) != null);
@@ -137,6 +137,7 @@ public class PropertiesConfigurationValidatorTest extends
             validator.getValidPropValue("network_ntpservers", shortString, true);
             Assert.fail();
         } catch (Exception e) {
+            Assert.assertTrue(true);
         }
 
         Assert.assertTrue(validator.getValidPropValue("network_ntpservers",
@@ -150,6 +151,7 @@ public class PropertiesConfigurationValidatorTest extends
             validator.getValidPropValue("config_version", "bad version", true);
             Assert.fail();
         } catch (Exception e) {
+            Assert.assertTrue(true);
         }
     }
 
@@ -186,14 +188,14 @@ public class PropertiesConfigurationValidatorTest extends
     public void testHostNameUsingValidIpAddress() {
         Assert.assertTrue(PropertiesConfigurationValidator.validateHostName("10.247.96.1"));
     }
-    
+
     @Test
     public void testEncryptedString() throws UnsupportedEncodingException {
         TestEncryptionProvider provider = new TestEncryptionProvider();
         String encryptedString = validator.getValidPropValue("system_update_password", "password", true);
         Assert.assertEquals(provider.getEncryptedString("ENCRYPTED"), encryptedString);
     }
-    
+
     @Test
     public void testUint16() {
         Assert.assertTrue(PropertiesConfigurationValidator.validateUint16("0"));
@@ -202,7 +204,7 @@ public class PropertiesConfigurationValidatorTest extends
         Assert.assertFalse(PropertiesConfigurationValidator.validateUint16("-1"));
         Assert.assertFalse(PropertiesConfigurationValidator.validateUint16("x"));
     }
-    
+
     @Test
     public void testUint8() {
         Assert.assertTrue(PropertiesConfigurationValidator.validateUint8("0"));
@@ -211,11 +213,12 @@ public class PropertiesConfigurationValidatorTest extends
         Assert.assertFalse(PropertiesConfigurationValidator.validateUint8("-1"));
         Assert.assertFalse(PropertiesConfigurationValidator.validateUint8("x"));
     }
-    
+
     private class TestEncryptionProvider implements EncryptionProvider {
 
         @Override
-        public void start() { }
+        public void start() {
+        }
 
         @Override
         public byte[] encrypt(String input) {
@@ -228,19 +231,19 @@ public class PropertiesConfigurationValidatorTest extends
 
         @Override
         public String getEncryptedString(String input) {
-           byte[] data = encrypt(input);
-           try {
-              return new String(Base64.encodeBase64(data), "UTF-8");
-           } catch (UnsupportedEncodingException e) {
-              // All JVMs must support UTF-8, this really can never happen
-              throw new RuntimeException(e);
-           }
+            byte[] data = encrypt(input);
+            try {
+                return new String(Base64.encodeBase64(data), "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                // All JVMs must support UTF-8, this really can never happen
+                throw new RuntimeException(e);
+            }
         }
 
         @Override
         public String decrypt(byte[] input) {
             return null;
         }
-        
+
     }
 }

@@ -39,8 +39,6 @@ import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.ViprResourceController;
 import controllers.util.FlashException;
-import controllers.util.ViprResourceController.ResourceIdOperation;
-import controllers.util.ViprResourceController.ResourceValueOperation;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
@@ -105,19 +103,19 @@ public class DataProtectionSystems extends ViprResourceController {
         }
     }
 
-    @FlashException(keep=true, referrer={"create","edit"})
+    @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(DataProtectionSystemForm dataProtectionSystem) {
         dataProtectionSystem.validate("dataProtectionSystem");
         if (Validation.hasErrors()) {
             Common.handleError();
         }
-        
+
         dataProtectionSystem.save();
         String name = dataProtectionSystem.name;
         flash.success(MessagesUtils.get(SAVED, name));
         list();
     }
-    
+
     public static void delete(@As(",") String[] ids) {
         delete(uris(ids));
     }
@@ -159,10 +157,10 @@ public class DataProtectionSystems extends ViprResourceController {
         public String userName;
 
         @MaxSize(2048)
-        public String password = "";
+        public String password = "";  // NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here")
 
         @MaxSize(2048)
-        public String passwordConfirm = "";
+        public String passwordConfirm = ""; // NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here")
 
         public DataProtectionSystemForm() {
         }
@@ -174,7 +172,7 @@ public class DataProtectionSystems extends ViprResourceController {
             this.port = dataProtectionSystem.getPortNumber();
             this.systemType = dataProtectionSystem.getSystemType();
             this.userName = dataProtectionSystem.getUsername();
-            this.password = "";
+            this.password = ""; // NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here")
         }
 
         public boolean isNew() {

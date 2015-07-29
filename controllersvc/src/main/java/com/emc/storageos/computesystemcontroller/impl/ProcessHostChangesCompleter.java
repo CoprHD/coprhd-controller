@@ -47,24 +47,24 @@ public class ProcessHostChangesCompleter extends TaskCompleter {
         this.deletedHosts = deletedHosts;
         this.deletedClusters = deletedClusters;
     }
-    
+
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         if (isNotifyWorkflow()) {
             // If there is a workflow, update the step to complete.
             updateWorkflowStatus(status, coded);
         }
-        
+
         // if export updates were successful, remove all old initiators and deleted hosts
-        if (status.equals(Status.ready)) { 
+        if (status.equals(Status.ready)) {
             for (HostStateChange hostChange : changes) {
                 for (URI initiatorId : hostChange.getOldInitiators()) {
                     Initiator initiator = dbClient.queryObject(Initiator.class, initiatorId);
                     dbClient.markForDeletion(initiator);
-                    _logger.info("Initiator marked for deletion: " + this.getId());   
+                    _logger.info("Initiator marked for deletion: " + this.getId());
                 }
             }
-            
+
             for (URI hostId : deletedHosts) {
                 Host host = dbClient.queryObject(Host.class, hostId);
                 // don't delete host if it was provisioned by Vipr
@@ -77,12 +77,12 @@ public class ProcessHostChangesCompleter extends TaskCompleter {
                     _logger.info("Deactivating Host: " + host.getId());
                 }
             }
-            
+
             for (URI clusterId : deletedClusters) {
                 Cluster cluster = dbClient.queryObject(Cluster.class, clusterId);
                 List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(dbClient, clusterId, Host.class, "cluster");
                 // don't delete cluster if all hosts weren't deleted (ex: hosts provisioned by ViPR)
-                if (clusterHosts.size() > 0) {
+                if (!clusterHosts.isEmpty()) {
                     _logger.info("do not delete cluster {} - it still has hosts - disassociate it from vcenter", cluster.getLabel());
                     cluster.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
                     cluster.setExternalId(NullColumnValueGetter.getNullStr());

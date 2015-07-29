@@ -15,7 +15,6 @@
 
 package com.emc.storageos.systemservices;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -47,34 +46,30 @@ public class UpgradeCoordinatorClientTest {
     private static final String SERVICE_BEAN = "syssvcserver";
     private static final String COORDINATOR_BEAN = "coordinatorclientext";
     private static final String SERVICEINFO = "serviceinfo";
-    private static SysSvcImpl sysservice;
-    private static CoordinatorClientExt _coordinator;
-    private static ServiceImpl _serviceinfo;
+    private static volatile SysSvcImpl sysservice;
+    private static volatile CoordinatorClientExt _coordinator;
+    private static volatile ServiceImpl _serviceinfo;
     private final int NUMCLIENTS = 2;
     private final int NUMRUNS = 1;
-    private static String nodeid1;
-    private static String nodeid2;
-    private static String targetVersion1;
-    private static String targetVersion2;
+    private static volatile String nodeid1;
+    private static volatile String nodeid2;
+    private static volatile String targetVersion1;
+    private static volatile String targetVersion2;
     private static final String DISTRIBUTED_CONTROL_NODE_UPGRADE_LOCK = "controlNodeUpgradeLock";
 
     @BeforeClass
-    public static void setup() throws IOException {
-        try {
-            ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext(
-                    "/sys-conf.xml");
-            sysservice = (SysSvcImpl) ctx.getBean(SERVICE_BEAN);
-            sysservice.start();
-            _coordinator = (CoordinatorClientExt) ctx.getBean(COORDINATOR_BEAN);
-            _serviceinfo = (ServiceImpl) ctx.getBean(SERVICEINFO);
+    public static void setup() throws Exception {
+        ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext(
+                "/sys-conf.xml");
+        sysservice = (SysSvcImpl) ctx.getBean(SERVICE_BEAN);
+        sysservice.start();
+        _coordinator = (CoordinatorClientExt) ctx.getBean(COORDINATOR_BEAN);
+        _serviceinfo = (ServiceImpl) ctx.getBean(SERVICEINFO);
 
-            nodeid1 = "node1";
-            nodeid2 = "node2";
-            targetVersion1 = "storageos-1.0.0.0.r500";
-            targetVersion2 = "storageos-1.0.0.0.6666";
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        nodeid1 = "node1";
+        nodeid2 = "node2";
+        targetVersion1 = "storageos-1.0.0.0.r500";
+        targetVersion2 = "storageos-1.0.0.0.6666";
     }
 
     @Test
@@ -173,26 +168,27 @@ public class UpgradeCoordinatorClientTest {
          */
         _coordinator.releaseRemoteDownloadLock(nodeid1);
     }
-/*
-    @Test
-    public void testSyssvcBeacon() throws Exception {
-        _logger.info("Testing system service beacon persistent service");
-        RepositoryInfo target = null;
-        target = _coordinator.getTargetRepositoryInfo();
-        Assert.assertNull(target);
-        Assert.assertTrue(_coordinator.setTargetRepositoryInfo(new RepositoryInfo(targetVersion1)));
-        target = _coordinator.getTargetRepositoryInfo();
-        Assert.assertNotNull(target);
-        Assert.assertEquals(targetVersion1, target.toString());
-        Assert.assertTrue(_coordinator.setTargetRepositoryInfo(new RepositoryInfo(targetVersion2)));
-        target = _coordinator.getTargetRepositoryInfo();
-        Assert.assertNotNull(target);
-        Assert.assertEquals(targetVersion2, target.toString());
-        Assert.assertTrue(_coordinator.setTargetRepositoryInfo(null));
-        target = _coordinator.getTargetRepositoryInfo();
-        Assert.assertNotNull(target);
-    }
-*/
+
+    /*
+     * @Test
+     * public void testSyssvcBeacon() throws Exception {
+     * _logger.info("Testing system service beacon persistent service");
+     * RepositoryInfo target = null;
+     * target = _coordinator.getTargetRepositoryInfo();
+     * Assert.assertNull(target);
+     * Assert.assertTrue(_coordinator.setTargetRepositoryInfo(new RepositoryInfo(targetVersion1)));
+     * target = _coordinator.getTargetRepositoryInfo();
+     * Assert.assertNotNull(target);
+     * Assert.assertEquals(targetVersion1, target.toString());
+     * Assert.assertTrue(_coordinator.setTargetRepositoryInfo(new RepositoryInfo(targetVersion2)));
+     * target = _coordinator.getTargetRepositoryInfo();
+     * Assert.assertNotNull(target);
+     * Assert.assertEquals(targetVersion2, target.toString());
+     * Assert.assertTrue(_coordinator.setTargetRepositoryInfo(null));
+     * target = _coordinator.getTargetRepositoryInfo();
+     * Assert.assertNotNull(target);
+     * }
+     */
     @Test
     public void multipleClientTestForUpgradeLock() throws Exception {
         _logger.info("*** multipleClientTestForUpgradeLock start");
@@ -202,7 +198,7 @@ public class UpgradeCoordinatorClientTest {
             clients.submit(new Runnable() {
                 @Override
                 public void run() {
-                    String nodeName = Thread.currentThread().getName() +":9998";
+                    String nodeName = Thread.currentThread().getName() + ":9998";
                     _logger.info("Node {} Initialised lock", nodeName);
                     for (int i = 0; i < NUMRUNS; i++) {
                         try {
@@ -246,7 +242,7 @@ public class UpgradeCoordinatorClientTest {
             clients.submit(new Runnable() {
                 @Override
                 public void run() {
-                    String nodeName = Thread.currentThread().getName() +":9998";
+                    String nodeName = Thread.currentThread().getName() + ":9998";
                     _logger.info("Node {} Initialised lock", nodeName);
                     for (int i = 0; i < NUMRUNS; i++) {
                         try {
@@ -297,7 +293,7 @@ public class UpgradeCoordinatorClientTest {
     }
 
     @Test
-    public void testSerialize() throws CoordinatorClientException {
+    public void testSerialize() throws Exception {
         _logger.info("Testing coordinator serialization");
 
         _coordinator.getRemoteDownloadLock(nodeid1);
@@ -324,7 +320,6 @@ public class UpgradeCoordinatorClientTest {
                 Assert.assertTrue("value2".equals(props.getProperty("property2")));
             }
         } catch (Exception e) {
-            e.printStackTrace();
             Assert.assertTrue(false);
         }
 

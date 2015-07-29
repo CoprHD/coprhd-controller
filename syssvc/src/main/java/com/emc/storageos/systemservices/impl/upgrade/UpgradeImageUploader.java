@@ -18,8 +18,6 @@ package com.emc.storageos.systemservices.impl.upgrade;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.model.SoftwareVersion;
-
 import java.io.*;
 import java.text.MessageFormat;
 
@@ -30,7 +28,9 @@ public class UpgradeImageUploader {
     private static UpgradeImageUploader _instance = null;
     private static UpgradeManager _upgradeManager = null;
     private String _version;
-    private UpgradeImageUploader() {}
+
+    private UpgradeImageUploader() {
+    }
 
     public static UpgradeImageUploader getInstance(UpgradeManager manager) {
         synchronized (UpgradeImageUploader.class) {
@@ -123,23 +123,26 @@ public class UpgradeImageUploader {
         }
     }
 
-
     private static File getTmpFile(File file) {
         return new File(file + ".uploading");
     }
 
     private static void tryClose(final InputStream in) {
         try {
-            if (in != null) in.close();
-        } catch(Exception e) {
+            if (in != null) {
+                in.close();
+            }
+        } catch (Exception e) {
             ;
         }
     }
 
     private static void tryClose(final OutputStream out) {
         try {
-            if (out != null) out.close();
-        } catch(Exception e) {
+            if (out != null) {
+                out.close();
+            }
+        } catch (Exception e) {
             ;
         }
     }

@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.db.client.constraint.impl;
 
-import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.IndexColumnName;
@@ -22,7 +21,7 @@ import java.net.URI;
  * A containment constraint that returns only those elements from the index that were added between startTime and endTime
  */
 public class TimedContainmentConstraintImpl extends ConstraintImpl {
-    private static final long MILLIS_TO_MICROS = 1000l;
+    private static final long MILLIS_TO_MICROS = 1000L;
 
     private final long startTimeMicros;
     private final long endTimeMicros;
@@ -32,7 +31,8 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
     private final ColumnField field;
     private Keyspace keyspace;
 
-    public TimedContainmentConstraintImpl(URI indexKey, long startTimeMicros, long endTimeMicros, Class<? extends DataObject> entryType, ColumnField field) {
+    public TimedContainmentConstraintImpl(URI indexKey, long startTimeMicros, long endTimeMicros, Class<? extends DataObject> entryType,
+            ColumnField field) {
         super(indexKey, entryType, field);
         this.startTimeMicros = startTimeMicros * MILLIS_TO_MICROS;
         this.endTimeMicros = endTimeMicros * MILLIS_TO_MICROS;
@@ -49,12 +49,12 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
     }
 
     protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
-        RowQuery<String, IndexColumnName> query =  keyspace.prepareQuery(field.getIndexCF())
-                                                           .getKey(indexKey.toString())
-                                                           .withColumnRange(
-                                                               CompositeColumnNameSerializer.get().buildRange()
-                                                                   .greaterThanEquals(entryType.getSimpleName())
-                                                                   .lessThanEquals(entryType.getSimpleName()));
+        RowQuery<String, IndexColumnName> query = keyspace.prepareQuery(field.getIndexCF())
+                .getKey(indexKey.toString())
+                .withColumnRange(
+                        CompositeColumnNameSerializer.get().buildRange()
+                                .greaterThanEquals(entryType.getSimpleName())
+                                .lessThanEquals(entryType.getSimpleName()));
 
         QueryHitIterator<T> it = createQueryHitIterator(query, result);
         query.autoPaginate(true);
@@ -78,10 +78,10 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
 
     protected <T> QueryHitIterator<T> createQueryHitIterator(RowQuery<String, IndexColumnName> query, final QueryResult<T> result) {
 
-        return  new FilteredQueryHitIterator<T>(query) {
+        return new FilteredQueryHitIterator<T>(query) {
             @Override
             protected T createQueryHit(Column<IndexColumnName> column) {
-                return result.createQueryHit(getURI(column), column.getName().getThree(),column.getName().getTimeUUID());
+                return result.createQueryHit(getURI(column), column.getName().getThree(), column.getName().getTimeUUID());
             }
 
             @Override
@@ -95,7 +95,6 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
                 if (endTimeMicros > 0 && columnTime > endTimeMicros) {
                     return false;
                 }
-
                 return true;
             }
         };
@@ -111,12 +110,12 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
         URI ret;
         if (field.getIndex() instanceof RelationDbIndex) {
             ret = URI.create(col.getName().getTwo());
-        }else
+        } else {
             ret = URI.create(col.getName().getFour());
+        }
 
         return ret;
     }
-
 
     @Override
     public Class<? extends DataObject> getDataObjectType() {

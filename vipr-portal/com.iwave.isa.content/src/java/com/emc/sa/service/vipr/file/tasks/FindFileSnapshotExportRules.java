@@ -31,7 +31,7 @@ public class FindFileSnapshotExportRules extends ViPRExecutionTask<List<ExportRu
     public URI getfileSnapshotId() {
         return fileSnapshotId;
     }
-    
+
     @Override
     public List<ExportRule> executeTask() throws Exception {
         // Don't pass a blank sub-directory to getExport

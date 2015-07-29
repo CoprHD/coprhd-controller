@@ -25,6 +25,7 @@ import javax.net.SocketFactory;
 import javax.net.ssl.*;
 
 import com.emc.storageos.security.helpers.SecurityUtil;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,13 +52,15 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
      * @param coordinatorClient
      *            the coordinatorClient to set
      */
-    public static void setCoordinatorClient(CoordinatorClient coordinatorClient) {
+    public synchronized static void setCoordinatorClient(CoordinatorClient coordinatorClient) {
         ViPRSSLSocketFactory.coordinatorClient = coordinatorClient;
     }
 
     public ViPRSSLSocketFactory(CoordinatorClient coordinator) {
-        coordinatorClient = coordinator;
-        init();
+        synchronized (this) {
+            coordinatorClient = coordinator;
+            init();
+        }
     }
 
     private void init() {
@@ -78,7 +81,9 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
         }
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.ssl.SSLSocketFactory#createSocket(java.net.Socket, java.lang.String, int, boolean)
      */
     @Override
@@ -107,7 +112,9 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
         return false;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.ssl.SSLSocketFactory#getDefaultCipherSuites()
      */
     @Override
@@ -118,7 +125,9 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
         return defaultCipherSuites;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.ssl.SSLSocketFactory#getSupportedCipherSuites()
      */
     @Override
@@ -129,17 +138,21 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
         return supportedCipherSuites;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.SocketFactory#createSocket(java.lang.String, int)
      */
     @Override
     public Socket createSocket(String host, int port) throws IOException,
-    UnknownHostException {
+            UnknownHostException {
         log.debug("createSocket(String host:" + host + ", int port:" + port + ")");
         return socketFactory.createSocket(host, port);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.SocketFactory#createSocket(java.net.InetAddress, int)
      */
     @Override
@@ -148,7 +161,9 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
         return socketFactory.createSocket(host, port);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.SocketFactory#createSocket(java.lang.String, int, java.net.InetAddress, int)
      */
     @Override
@@ -160,7 +175,9 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
         return socketFactory.createSocket(host, port, localHost, localPort);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.SocketFactory#createSocket(java.net.InetAddress, int, java.net.InetAddress, int)
      */
     @Override

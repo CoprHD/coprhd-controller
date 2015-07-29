@@ -62,45 +62,45 @@ public class ParserTest {
         String logLine4 = "        at org.apache.curator.framework.imps.CuratorFrameworkImpl.getChildren(CuratorFrameworkImpl.java:356)";
 
         File path = new File(PATH);
-        if(!path.exists()){
+        if (!path.exists()) {
             path.mkdirs();
         }
         nginxAccessLogPath = PATH + File.separator + "nginx_access.log";
         nginxErrorLogPath = PATH + File.separator + "nginx_error.log";
         particularLogPath = PATH + File.separator + "particular.log";
 
-        //Initialize log file.
-        try(
-            FileOutputStream fos = new FileOutputStream(nginxAccessLogPath);
-            OutputStreamWriter osw = new OutputStreamWriter(fos,"UTF-8");
-            BufferedWriter out = new BufferedWriter(osw)) {
-           
+        // Initialize log file.
+        try (
+                FileOutputStream fos = new FileOutputStream(nginxAccessLogPath);
+                OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+                BufferedWriter out = new BufferedWriter(osw)) {
+
             out.write(nginxAccessLog1);
             out.newLine();
             out.write(nginxAccessLog2);
             out.flush();
-        } catch(Exception e){
+        } catch (Exception e) {
             log.error("Exception in writing nginx access log file for syssvc test", e);
-        } 
+        }
 
-        try(
-            FileOutputStream fos = new FileOutputStream(nginxErrorLogPath);
-            OutputStreamWriter osw = new OutputStreamWriter(fos,"UTF-8");
-            BufferedWriter out = new BufferedWriter(osw)) {
-           
+        try (
+                FileOutputStream fos = new FileOutputStream(nginxErrorLogPath);
+                OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+                BufferedWriter out = new BufferedWriter(osw)) {
+
             out.write(nginxErrorLog1);
             out.newLine();
             out.write(nginxErrorLog2);
             out.flush();
-        } catch(Exception e){
+        } catch (Exception e) {
             log.error("Exception in writing nginx error log file for syssvc test", e);
-        } 
+        }
 
-        try(
-            FileOutputStream fos = new FileOutputStream(particularLogPath);
-            OutputStreamWriter osw = new OutputStreamWriter(fos,"UTF-8");
-            BufferedWriter out = new BufferedWriter(osw)) {
-           
+        try (
+                FileOutputStream fos = new FileOutputStream(particularLogPath);
+                OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+                BufferedWriter out = new BufferedWriter(osw)) {
+
             out.write(logLine1);
             out.newLine();
             out.write(logLine2);
@@ -110,42 +110,39 @@ public class ParserTest {
             out.write(logLine4);
             out.newLine();
             out.flush();
-        } catch(Exception e){
+        } catch (Exception e) {
             log.error("Exception in writing log file for syssvc test", e);
-        } 
+        }
     }
 
     @Test
-    public void testNginxErrorLog(){
+    public void testNginxErrorLog() throws Exception {
         LogReader reader = null;
 
         String regexStr = ".*server: localhost, request:.*";
         Calendar calendar = Calendar.getInstance();
-        calendar.set(2014, 1, 20, 16, 38,16);
+        calendar.set(2014, 1, 20, 16, 38, 16);
         Date startTimeFilter = calendar.getTime();
-        calendar.set(2014, 6, 16, 16, 38,0);
+        calendar.set(2014, 6, 16, 16, 38, 0);
         Date endTimeFilter = calendar.getTime();
 
         LogRequest request = new LogRequest.Builder().regex(regexStr).startTime(startTimeFilter).endTime(endTimeFilter).build();
 
         LogStatusInfo status = new LogStatusInfo();
 
-        String filePath = nginxErrorLogPath;//"/opt/storageos/logs/nginx_error.log";
+        String filePath = nginxErrorLogPath;// "/opt/storageos/logs/nginx_error.log";
         String baseName = "nginx";
 
-        try{
-            reader = new LogReader(filePath, request, status, baseName);
-        } catch(Exception e){
-            e.printStackTrace();
-        }
+        reader = new LogReader(filePath, request, status, baseName);
         final LogMessage log = reader.readNextLogMessage();
 
         assertTrue("log is null", log != null);
-        assertTrue("log message is null", ! new String(log.getLogContent()).equals("null"));
+        assertTrue("log message is null", !new String(log.getLogContent()).equals("null"));
         assertTrue("log message does not match regex", Pattern.compile(regexStr,
-                Pattern.DOTALL|Pattern.MULTILINE).matcher(LogUtil.bytesToString(
+                Pattern.DOTALL | Pattern.MULTILINE).matcher(LogUtil.bytesToString(
                 log.getLogContent())).matches());
-        assertTrue("log time does not fit time filter", log.getTime() >= startTimeFilter.getTime() && log.getTime() <= endTimeFilter.getTime());
+        assertTrue("log time does not fit time filter",
+                log.getTime() >= startTimeFilter.getTime() && log.getTime() <= endTimeFilter.getTime());
 
         assertTrue("log file name is not null", new String(log.getFileName()).equals("null"));
         assertTrue("log thread name not is null", new String(log.getThreadName()).equals("null"));
@@ -154,36 +151,33 @@ public class ParserTest {
     }
 
     @Test
-    public void testNginxAccessLog(){
+    public void testNginxAccessLog() throws Exception {
         LogReader reader = null;
 
         String regexStr = ".*login HTTP.*";
         Calendar calendar = Calendar.getInstance();
-        calendar.set(2014, 1, 20, 16, 38,16);
+        calendar.set(2014, 1, 20, 16, 38, 16);
         Date startTimeFilter = calendar.getTime();
-        calendar.set(2014, 6, 16, 16, 38,0);
+        calendar.set(2014, 6, 16, 16, 38, 0);
         Date endTimeFilter = calendar.getTime();
 
         LogRequest request = new LogRequest.Builder().regex(regexStr).startTime(startTimeFilter).endTime(endTimeFilter).build();
 
         LogStatusInfo status = new LogStatusInfo();
 
-        String filePath = nginxAccessLogPath; //"/opt/storageos/logs/nginx_access.log";
+        String filePath = nginxAccessLogPath; // "/opt/storageos/logs/nginx_access.log";
         String baseName = "nginx";
 
-        try{
-            reader = new LogReader(filePath, request, status, baseName);
-        } catch(Exception e){
-            e.printStackTrace();
-        }
+        reader = new LogReader(filePath, request, status, baseName);
         final LogMessage log = reader.readNextLogMessage();
 
         assertTrue("log is null", log != null);
-        assertTrue("log message is null", ! new String(log.getLogContent()).equals("null"));
-        assertTrue("log message does not match regex", Pattern.compile(regexStr, 
-                Pattern.DOTALL|Pattern.MULTILINE).matcher(LogUtil.bytesToString(
+        assertTrue("log message is null", !new String(log.getLogContent()).equals("null"));
+        assertTrue("log message does not match regex", Pattern.compile(regexStr,
+                Pattern.DOTALL | Pattern.MULTILINE).matcher(LogUtil.bytesToString(
                 log.getLogContent())).matches());
-        assertTrue("log time does not fit time filter", log.getTime() >= startTimeFilter.getTime() && log.getTime() <= endTimeFilter.getTime());
+        assertTrue("log time does not fit time filter",
+                log.getTime() >= startTimeFilter.getTime() && log.getTime() <= endTimeFilter.getTime());
 
         assertTrue("log file name is not null", new String(log.getFileName()).equals("null"));
         assertTrue("log thread name not is null", new String(log.getThreadName()).equals("null"));
@@ -193,7 +187,7 @@ public class ParserTest {
     }
 
     @Test
-    public void testParticularLog(){
+    public void testParticularLog() throws Exception {
         LogReader reader = null;
 
         LogRequest request = new LogRequest.Builder().build();
@@ -203,15 +197,11 @@ public class ParserTest {
         String filePath = particularLogPath;
         String baseName = "log";
 
-        try{
-            reader = new LogReader(filePath, request, status, baseName);
-        } catch(Exception e){
-            e.printStackTrace();
-        }
+        reader = new LogReader(filePath, request, status, baseName);
         final LogMessage log = reader.readNextLogMessage();
 
         assertTrue("log is null", log != null);
-        //assertTrue("log message is null", log.getLogContent() != null);
+        // assertTrue("log message is null", log.getLogContent() != null);
         assertTrue("log message is null", log.getLogContent() != null);
 
         assertTrue("log file name is null", log.getFileName() != null);
@@ -227,15 +217,15 @@ public class ParserTest {
         File nginxErrorFile = new File(nginxErrorLogPath);
         File particularFile = new File(particularLogPath);
 
-        if(nginxAccessFile.exists()){
+        if (nginxAccessFile.exists()) {
             nginxAccessFile.delete();
         }
 
-        if(nginxErrorFile.exists()){
+        if (nginxErrorFile.exists()) {
             nginxErrorFile.delete();
         }
 
-        if(particularFile.exists()){
+        if (particularFile.exists()) {
             particularFile.delete();
         }
     }

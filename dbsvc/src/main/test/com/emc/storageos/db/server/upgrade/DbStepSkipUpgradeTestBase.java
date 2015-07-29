@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.server.DbsvcTestBase;
 import com.emc.storageos.db.server.upgrade.util.BaseTestCustomMigrationCallback;
+
 /**
  * base class for upgrade tests using test models
  */
@@ -41,7 +42,7 @@ public abstract class DbStepSkipUpgradeTestBase extends DbsvcTestBase {
     private Map<String, List<URI>> expectedAltIndexLists = new HashMap<String, List<URI>>();
     private Map<URI, List<URI>> expectedRelIndexLists = new HashMap<URI, List<URI>>();
     private Map<URI, List<NamedURI>> expectedNamedRelIndexLists = new HashMap<URI, List<NamedURI>>();
-    
+
     protected static final String initalVersion = "1.2";
     protected static final String firstUpgradeVersion = "1.3";
     protected static final String secondUpgradeVersion = "1.4";
@@ -54,15 +55,15 @@ public abstract class DbStepSkipUpgradeTestBase extends DbsvcTestBase {
         firstUpgradeCallbacks.add(new com.emc.storageos.db.server.upgrade.util.callbacks.Resource3FlagsInitializer());
         firstUpgradeCallbacks.add(new com.emc.storageos.db.server.upgrade.util.callbacks.Resource3Resource4RefInitializer());
         firstUpgradeCallbacks.add(new com.emc.storageos.db.server.upgrade.util.callbacks.Resource4KeyInitializer());
-        
-        //callbacks2.add(new com.emc.storageos.db.server.upgrade.util.callbacks2.Resource3RefPopulator());
-        //callbacks2.add(new com.emc.storageos.db.server.upgrade.util.callbacks2.Resource3FlagsInitializer());
-        secondUpgradeCallbacks.add(new com.emc.storageos.db.server.upgrade.util.callbacks2.Resource5Initializer());        
+
+        // callbacks2.add(new com.emc.storageos.db.server.upgrade.util.callbacks2.Resource3RefPopulator());
+        // callbacks2.add(new com.emc.storageos.db.server.upgrade.util.callbacks2.Resource3FlagsInitializer());
+        secondUpgradeCallbacks.add(new com.emc.storageos.db.server.upgrade.util.callbacks2.Resource5Initializer());
         secondUpgradeCallbacks.add(new com.emc.storageos.db.server.upgrade.util.callbacks2.Resource3NewFlagsInitializer());
-        //callbacks2.add(new com.emc.storageos.db.server.upgrade.util.callbacks2.Resource3Resource4RefInitializer());
-        //callbacks2.add(new com.emc.storageos.db.server.upgrade.util.callbacks2.Resource4KeyInitializer());
+        // callbacks2.add(new com.emc.storageos.db.server.upgrade.util.callbacks2.Resource3Resource4RefInitializer());
+        // callbacks2.add(new com.emc.storageos.db.server.upgrade.util.callbacks2.Resource4KeyInitializer());
     }
-    
+
     private void addToExpectedRelIndexLists(URI key, URI value) {
         if (!expectedRelIndexLists.containsKey(key)) {
             expectedRelIndexLists.put(key, new ArrayList<URI>());
@@ -104,7 +105,7 @@ public abstract class DbStepSkipUpgradeTestBase extends DbsvcTestBase {
             dbClient.createObject(r3second);
             r3List.add(r3.getId());
             r3List.add(r3second.getId());
-            
+
             // add Resource6 objects
             com.emc.storageos.db.server.upgrade.util.models.old.Resource6 r6 = new com.emc.storageos.db.server.upgrade.util.models.old.Resource6();
             r6.setId(URIUtil.createId(com.emc.storageos.db.server.upgrade.util.models.old.Resource6.class));
@@ -112,7 +113,7 @@ public abstract class DbStepSkipUpgradeTestBase extends DbsvcTestBase {
             com.emc.storageos.db.server.upgrade.util.models.old.Resource6 r6second = new com.emc.storageos.db.server.upgrade.util.models.old.Resource6();
             r6second.setId(URIUtil.createId(com.emc.storageos.db.server.upgrade.util.models.old.Resource6.class));
             dbClient.createObject(r6second);
-            
+
             for (int j = 0; j < iterNum2; j++) {
                 com.emc.storageos.db.server.upgrade.util.models.old.Resource1 r1 = new com.emc.storageos.db.server.upgrade.util.models.old.Resource1();
                 r1.setId(URIUtil.createId(com.emc.storageos.db.server.upgrade.util.models.old.Resource1.class));
@@ -151,7 +152,7 @@ public abstract class DbStepSkipUpgradeTestBase extends DbsvcTestBase {
         }
 
     }
-    
+
     protected void verifyAll() throws Exception {
         firstUpgradeVerifyResults();
         secondUpgradeVerifyResults();
@@ -175,6 +176,7 @@ public abstract class DbStepSkipUpgradeTestBase extends DbsvcTestBase {
     protected void setupDB(String targetVersion, String targetModels) throws Exception {
         startDb(targetVersion, targetModels);
     }
+
     protected void setupDB(String targetVersion, String targetModels, List<BaseCustomMigrationCallback> callbacks) throws Exception {
         customMigrationCallbacks.put(_coordinator.getCurrentDbSchemaVersion(), callbacks);
         startDb(targetVersion, targetModels);

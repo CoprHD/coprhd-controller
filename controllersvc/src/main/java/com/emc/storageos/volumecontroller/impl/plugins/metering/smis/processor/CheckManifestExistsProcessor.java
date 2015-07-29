@@ -29,7 +29,7 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
  * 
  * Check if ManifestCollection already exists in the provider or not.
  * If doesn't exist then we will create a new manifestCollection.
- *
+ * 
  */
 public class CheckManifestExistsProcessor extends Processor {
     private Logger _logger = LoggerFactory.getLogger(CheckManifestExistsProcessor.class);
@@ -48,15 +48,15 @@ public class CheckManifestExistsProcessor extends Processor {
                     String manifestName = getCIMPropertyValue(manifestInstance, Constants.ELEMENTNAME);
                     if (null != manifestName && Constants.MANIFEST_COLLECTION_NAME.equalsIgnoreCase(manifestName)) {
                         _logger.info("Found manifest in provider {}", manifestName);
-                        addPath(keyMap, operation.get_result(), manifestInstance.getObjectPath());
+                        addPath(keyMap, operation.getResult(), manifestInstance.getObjectPath());
                         List<String> manifestCollectionList = (List<String>) keyMap.get(Constants.MANIFEST_EXISTS);
                         manifestCollectionList.remove(Constants.MANIFEST_COLLECTION_NAME);
                         break;
-                    } 
-                    
+                    }
+
                 } catch (Exception e) {
                     _logger.warn("ManifestCollection call failed for {}",
-                            getCIMPropertyValue(manifestInstance, Constants.INSTANCEID),e);
+                            getCIMPropertyValue(manifestInstance, Constants.INSTANCEID), e);
                 }
             }
         } catch (Exception e) {

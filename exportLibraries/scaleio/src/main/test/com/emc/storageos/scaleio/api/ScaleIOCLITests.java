@@ -37,7 +37,7 @@ import static org.junit.Assert.assertTrue;
 
 public class ScaleIOCLITests {
 
-    public static final String TEST_VOLUME_PREFIX = String.format("Test%s-", (int)(Math.random()*100));
+    public static final String TEST_VOLUME_PREFIX = String.format("Test%s-", (int) (Math.random() * 100));
     public static final String TEST_VOLUME_NAME = generateUUID();
     public static final String TEST_POOL = "Primary";
     public static final String TEST_PROTECTION_DOMAIN = "PD-1";
@@ -49,13 +49,12 @@ public class ScaleIOCLITests {
     private static final String sioHostMDMUser = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.mdm.user");
     private static final String sioHostMDMPwd = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.mdm.password");
 
-    static ScaleIOCLI scaleIOCLI;
-    static String scaleIOVersionUnderTest;
+    static volatile ScaleIOCLI scaleIOCLI;
+    static volatile String scaleIOVersionUnderTest;
 
     @BeforeClass
     static public void setUp() {
-        
-        
+
         scaleIOCLI = new ScaleIOCLI(sioHostIpAddress, sioHostCLIUsername, sioHostCLIPwd);
         scaleIOVersionUnderTest = scaleIOCLI.getVersion();
         if (scaleIOVersionUnderTest.matches(SIO_V1_3X_REGEX)) {
@@ -78,9 +77,9 @@ public class ScaleIOCLITests {
             ScaleIOAttributes attributes = queryAllVolumesResult.getScaleIOAttributesOfVolume(id);
             String name = attributes.get(ScaleIOQueryAllVolumesResult.VOLUME_NAME);
             if (name.startsWith(TEST_VOLUME_PREFIX)) {
-                System.out.printf("Going to remove left over volume %s (%s)\n", name, id);
+                System.out.printf("Going to remove left over volume %s (%s)%n", name, id);
                 ScaleIORemoveVolumeResult removeVolumeResult = scaleIOCLI.removeVolume(id);
-                System.out.printf("Remove %s result success = %s\n", name, removeVolumeResult.isSuccess());
+                System.out.printf("Remove %s result success = %s%n", name, removeVolumeResult.isSuccess());
                 anyVolumesDeleted = true;
             }
         }
@@ -89,7 +88,7 @@ public class ScaleIOCLITests {
             queryAllVolumesResult = scaleIOCLI.queryAllVolumes();
             volumeIds = queryAllVolumesResult.getAllVolumeIds();
             int newVolumeCount = volumeIds.size();
-            System.out.printf("There are now %d volumes. Started with %d\n", newVolumeCount, volumeCount);
+            System.out.printf("There are now %d volumes. Started with %d%n", newVolumeCount, volumeCount);
         }
     }
 
@@ -101,7 +100,7 @@ public class ScaleIOCLITests {
         System.out.printf("SIO Version is %s", version);
     }
 
-    @Test (expected = ScaleIOException.class)
+    @Test(expected = ScaleIOException.class)
     public void testThrowsExceptionIfNotInit() {
         ScaleIOCLI cli = new ScaleIOCLI(sioHostIpAddress, sioHostCLIUsername, sioHostCLIPwd);
         cli.queryAll();
@@ -112,9 +111,10 @@ public class ScaleIOCLITests {
         ScaleIOQueryAllResult results = scaleIOCLI.queryAll();
         System.out.println("PD names " + Joiner.on(',').join(results.getProtectionDomainNames()));
         for (String pdName : results.getProtectionDomainNames()) {
-            System.out.printf("PD %s\n  SP names %s", pdName, Joiner.on(',').join(results.getStoragePoolsForProtectionDomain(pdName)));
+            System.out.printf("PD %s%n  SP names %s", pdName,
+                    Joiner.on(',').join(results.getStoragePoolsForProtectionDomain(pdName)));
             for (String spName : results.getStoragePoolsForProtectionDomain(pdName)) {
-                System.out.printf("\n     %s - %s", spName, results.getStoragePoolProperties(pdName, spName));
+                System.out.printf("%n     %s - %s", spName, results.getStoragePoolProperties(pdName, spName));
             }
             System.out.println("");
         }
@@ -124,30 +124,33 @@ public class ScaleIOCLITests {
     @Test
     public void testAddVolume() {
         ScaleIOAddVolumeResult addVolumeResult = scaleIOCLI.addVolume(TEST_PROTECTION_DOMAIN, TEST_POOL, TEST_VOLUME_NAME, "1");
-        if (addVolumeResult.isSuccess())
+        if (addVolumeResult.isSuccess()) {
             System.out.println(String.format("Volume %s (%s) size %s", addVolumeResult.getName(), addVolumeResult.getId(),
                     addVolumeResult.getActualSize()));
-        else
+        } else {
             System.out.println(String.format("FAILED! %s", addVolumeResult.errorString()));
-        assertTrue(String.format("Add volume failed %s\n", addVolumeResult.errorString()), addVolumeResult.isSuccess());
+        }
+        assertTrue(String.format("Add volume failed %s%n", addVolumeResult.errorString()), addVolumeResult.isSuccess());
 
         ScaleIORemoveVolumeResult removeVolumeResult = scaleIOCLI.removeVolume(addVolumeResult.getId());
-        assertTrue(String.format("Remove volume failed %s\n", removeVolumeResult.errorString()),
+        assertTrue(String.format("Remove volume failed %s%n", removeVolumeResult.errorString()),
                 removeVolumeResult.isSuccess());
 
         if (scaleIOVersionUnderTest.matches(SIO_V1_3X_REGEX)) {
             // Thin volume provisioning (SIO 1.30+)
             addVolumeResult = scaleIOCLI.addVolume(TEST_PROTECTION_DOMAIN, TEST_POOL, TEST_VOLUME_NAME, "1", true);
-            if (addVolumeResult.isSuccess())
+            if (addVolumeResult.isSuccess()) {
                 System.out.println(String.format("Volume %s (%s) size %s", addVolumeResult.getName(), addVolumeResult.getId(),
                         addVolumeResult.getActualSize()));
-            else
+            } else {
                 System.out.println(String.format("FAILED! %s", addVolumeResult.errorString()));
-            assertTrue(String.format("Add volume failed %s\n", addVolumeResult.errorString()), addVolumeResult.isSuccess());
+            }
+            assertTrue(String.format("Add volume failed %s%n", addVolumeResult.errorString()),
+                    addVolumeResult.isSuccess());
             assertTrue(addVolumeResult.isThinlyProvisioned());
 
             removeVolumeResult = scaleIOCLI.removeVolume(addVolumeResult.getId());
-            assertTrue(String.format("Remove volume failed %s\n", removeVolumeResult.errorString()),
+            assertTrue(String.format("Remove volume failed %s%n", removeVolumeResult.errorString()),
                     removeVolumeResult.isSuccess());
         }
     }
@@ -155,12 +158,13 @@ public class ScaleIOCLITests {
     @Test
     public void testModifyVolumeCapacity() {
         ScaleIOAddVolumeResult addVolumeResult = scaleIOCLI.addVolume(TEST_PROTECTION_DOMAIN, TEST_POOL, TEST_VOLUME_NAME, "1");
-        if (addVolumeResult.isSuccess())
+        if (addVolumeResult.isSuccess()) {
             System.out.println(String.format("Volume %s (%s) size %s", addVolumeResult.getName(), addVolumeResult.getId(),
                     addVolumeResult.getActualSize()));
-        else
+        } else {
             System.out.println(String.format("FAILED! %s", addVolumeResult.errorString()));
-        assertTrue(String.format("Add volume failed %s\n", addVolumeResult.errorString()), addVolumeResult.isSuccess());
+        }
+        assertTrue(String.format("Add volume failed %s%n", addVolumeResult.errorString()), addVolumeResult.isSuccess());
 
         String newSize = "50";
         ScaleIOModifyVolumeCapacityResult modifyVolumeCapacityResult =
@@ -175,37 +179,38 @@ public class ScaleIOCLITests {
                 modifyVolumeCapacityResult.getNewCapacity()), reqSize == size || (reqSize < size && isModulo8));
 
         ScaleIORemoveVolumeResult removeVolumeResult = scaleIOCLI.removeVolume(addVolumeResult.getId());
-        assertTrue(String.format("Remove volume failed %s\n", removeVolumeResult.errorString()),
+        assertTrue(String.format("Remove volume failed %s%n", removeVolumeResult.errorString()),
                 removeVolumeResult.isSuccess());
     }
 
     @Test
     public void testSnapshotVolume() {
         ScaleIOAddVolumeResult addVolumeResult = scaleIOCLI.addVolume(TEST_PROTECTION_DOMAIN, TEST_POOL, TEST_VOLUME_NAME, "1");
-        if (addVolumeResult.isSuccess())
+        if (addVolumeResult.isSuccess()) {
             System.out.println(String.format("Volume %s (%s) size %s", addVolumeResult.getName(), addVolumeResult.getId(),
                     addVolumeResult.getActualSize()));
-        else
+        } else {
             System.out.println(String.format("FAILED! %s", addVolumeResult.errorString()));
-        assertTrue(String.format("Add volume failed %s\n", addVolumeResult.errorString()), addVolumeResult.isSuccess());
+        }
+        assertTrue(String.format("Add volume failed %s%n", addVolumeResult.errorString()), addVolumeResult.isSuccess());
 
         final String snapshotName = generateUUID();
 
         ScaleIOSnapshotVolumeResult snapshotVolumeResult =
                 scaleIOCLI.snapshotVolume(addVolumeResult.getId(), snapshotName);
-        System.out.printf("Snapshot volume success is %s\n", snapshotVolumeResult.isSuccess());
-        assertTrue(String.format("Snapshot volume failed %s\n", snapshotVolumeResult.getErrorString()),
+        System.out.printf("Snapshot volume success is %s%n", snapshotVolumeResult.isSuccess());
+        assertTrue(String.format("Snapshot volume failed %s%n", snapshotVolumeResult.getErrorString()),
                 snapshotVolumeResult.isSuccess());
-        System.out.printf("Snapshot id %s, source id is %s\n", snapshotVolumeResult.getId(),
+        System.out.printf("Snapshot id %s, source id is %s%n", snapshotVolumeResult.getId(),
                 snapshotVolumeResult.getSourceId());
         assertEquals(snapshotName, snapshotVolumeResult.getName());
 
         ScaleIORemoveVolumeResult removeVolumeResult = scaleIOCLI.removeVolume(addVolumeResult.getId());
-        assertTrue(String.format("Remove volume failed for source volume %s\n", removeVolumeResult.errorString()),
+        assertTrue(String.format("Remove volume failed for source volume %s%n", removeVolumeResult.errorString()),
                 removeVolumeResult.isSuccess());
 
         removeVolumeResult = scaleIOCLI.removeVolume(snapshotVolumeResult.getId());
-        assertTrue(String.format("Remove volume failed for snapshot %s\n", removeVolumeResult.errorString()),
+        assertTrue(String.format("Remove volume failed for snapshot %s%n", removeVolumeResult.errorString()),
                 removeVolumeResult.isSuccess());
     }
 
@@ -213,7 +218,7 @@ public class ScaleIOCLITests {
     public void testSnapshotConsistencyGroupVolumes() {
         List<ScaleIOAddVolumeResult> volumes = createVolumes(3);
 
-        Map<String,String> id2snap = new HashMap<>();
+        Map<String, String> id2snap = new HashMap<>();
         for (ScaleIOAddVolumeResult volume : volumes) {
             id2snap.put(volume.getId(), generateUUID());
         }
@@ -257,7 +262,7 @@ public class ScaleIOCLITests {
     @Test
     public void testQueryAllSDSs() {
         ScaleIOQueryAllSDSResult queryAllSDSResult = scaleIOCLI.queryAllSDS();
-        assertTrue("Expected 1 or more SDSs", queryAllSDSResult.getProtectionDomainIds().size() > 0);
+        assertTrue("Expected 1 or more SDSs", !queryAllSDSResult.getProtectionDomainIds().isEmpty());
         for (String id : queryAllSDSResult.getProtectionDomainIds()) {
             assertTrue(String.format("Protection domain ID does not look like an ID -- '%s'", id), id.length() == 16);
             String pdName = queryAllSDSResult.getProtectionDomainName(id);
@@ -283,12 +288,13 @@ public class ScaleIOCLITests {
         for (int index = 0; index < thisMany; index++) {
             ScaleIOAddVolumeResult addVolumeResult =
                     scaleIOCLI.addVolume(TEST_PROTECTION_DOMAIN, TEST_POOL, String.format("%s-%d", TEST_VOLUME_NAME, index), "1");
-            if (addVolumeResult.isSuccess())
+            if (addVolumeResult.isSuccess()) {
                 System.out.println(String.format("Volume %s (%s) size %s", addVolumeResult.getName(), addVolumeResult.getId(),
                         addVolumeResult.getActualSize()));
-            else
+            } else {
                 System.out.println(String.format("FAILED! %s", addVolumeResult.errorString()));
-            assertTrue(String.format("Add volume failed %s\n", addVolumeResult.errorString()), addVolumeResult.isSuccess());
+            }
+            assertTrue(String.format("Add volume failed %s%n", addVolumeResult.errorString()), addVolumeResult.isSuccess());
         }
 
         ScaleIOQueryAllVolumesResult queryAllVolumesResult =
@@ -299,7 +305,7 @@ public class ScaleIOCLITests {
         int volumeCount = volumeIds.size();
 
         Collection<String> protectionDomainIds = queryAllVolumesResult.getProtectionDomainIds();
-        assertTrue("Failed to get any ProtectionDomain ids", protectionDomainIds.size() > 0);
+        assertTrue("Failed to get any ProtectionDomain ids", !protectionDomainIds.isEmpty());
 
         for (String id : volumeIds) {
             ScaleIOAttributes attributes = queryAllVolumesResult.getScaleIOAttributesOfVolume(id);
@@ -310,7 +316,7 @@ public class ScaleIOCLITests {
 
             if (name.contains(TEST_VOLUME_NAME)) {
                 ScaleIORemoveVolumeResult removeVolumeResult = scaleIOCLI.removeVolume(id);
-                assertTrue(String.format("Remove volume failed for volume %s\n", removeVolumeResult.errorString()),
+                assertTrue(String.format("Remove volume failed for volume %s%n", removeVolumeResult.errorString()),
                         removeVolumeResult.isSuccess());
             }
         }
@@ -328,12 +334,13 @@ public class ScaleIOCLITests {
         for (int index = 0; index < thisMany; index++) {
             ScaleIOAddVolumeResult addVolumeResult =
                     scaleIOCLI.addVolume(TEST_PROTECTION_DOMAIN, TEST_POOL, String.format("%s-%d", TEST_VOLUME_NAME, index), "1");
-            if (addVolumeResult.isSuccess())
+            if (addVolumeResult.isSuccess()) {
                 System.out.println(String.format("Volume %s (%s) size %s", addVolumeResult.getName(), addVolumeResult.getId(),
                         addVolumeResult.getActualSize()));
-            else
+            } else {
                 System.out.println(String.format("FAILED! %s", addVolumeResult.errorString()));
-            assertTrue(String.format("Add volume failed %s\n", addVolumeResult.errorString()), addVolumeResult.isSuccess());
+            }
+            assertTrue(String.format("Add volume failed %s%n", addVolumeResult.errorString()), addVolumeResult.isSuccess());
             addedVolumes.add(addVolumeResult.getId());
         }
 
@@ -345,7 +352,7 @@ public class ScaleIOCLITests {
                 assertTrue(String.format("Failed to map %s to %s. %s", volumeId, sdcId,
                         mapVolumeToSDCResult.getErrorString()),
                         mapVolumeToSDCResult.isSuccess());
-                System.out.printf("Mapped volume %s to SDC %s.\n", volumeId, sdcId);
+                System.out.printf("Mapped volume %s to SDC %s.%n", volumeId, sdcId);
             }
         }
 
@@ -356,7 +363,7 @@ public class ScaleIOCLITests {
                 assertTrue(String.format("Failed to unmap %s to %s. %s", volumeId, sdcId,
                         unMapVolumeToSDCResult.getErrorString()),
                         unMapVolumeToSDCResult.isSuccess());
-                System.out.printf("Unmapped volume %s to SDC %s.\n", volumeId, sdcId);
+                System.out.printf("Unmapped volume %s to SDC %s.%n", volumeId, sdcId);
             }
         }
 
@@ -376,7 +383,7 @@ public class ScaleIOCLITests {
 
             if (name.contains(TEST_VOLUME_NAME)) {
                 ScaleIORemoveVolumeResult removeVolumeResult = scaleIOCLI.removeVolume(id);
-                assertTrue(String.format("Remove volume failed for volume %s\n", removeVolumeResult.errorString()),
+                assertTrue(String.format("Remove volume failed for volume %s%n", removeVolumeResult.errorString()),
                         removeVolumeResult.isSuccess());
             }
         }
@@ -409,7 +416,7 @@ public class ScaleIOCLITests {
         dumpSCSIInitiator(initiatorsResult);
 
         assertTrue(initiatorsResult.isVolumeMappedToInitiator(addVolumeResult.getId(), pickOneInitiator));
-        System.out.printf("Successfully mapped volume %s to %s\n", addVolumeResult.getId(), pickOneInitiator);
+        System.out.printf("Successfully mapped volume %s to %s%n", addVolumeResult.getId(), pickOneInitiator);
 
         mapResult =
                 scaleIOCLI.mapVolumeToSCSIInitiator(addVolumeResult.getId(), pickOneInitiator);
@@ -422,7 +429,7 @@ public class ScaleIOCLITests {
         dumpSCSIInitiator(initiatorsResult);
 
         assertFalse(initiatorsResult.isVolumeMappedToInitiator(addVolumeResult.getId(), pickOneInitiator));
-        System.out.printf("Successfully unmapped volume %s from %s\n", addVolumeResult.getId(), pickOneInitiator);
+        System.out.printf("Successfully unmapped volume %s from %s%n", addVolumeResult.getId(), pickOneInitiator);
 
         unmapResult =
                 scaleIOCLI.unMapVolumeFromSCSIInitiator(addVolumeResult.getId(), pickOneInitiator);
@@ -441,8 +448,7 @@ public class ScaleIOCLITests {
                     initiatorAttrs.get(ScaleIOQueryAllSCSIInitiatorsResult.INITIATOR_ID)));
             if (result.hasMappedVolumes(iqn)) {
                 System.out.println(" Has mapped volumes");
-                for (Map.Entry<String, ScaleIOAttributes> entry :
-                        result.getMappedVolumes(iqn).entrySet()) {
+                for (Map.Entry<String, ScaleIOAttributes> entry : result.getMappedVolumes(iqn).entrySet()) {
                     ScaleIOAttributes volAttrs = entry.getValue();
                     System.out.println(String.format("Mapped volume: %s %s %s",
                             entry.getKey(),
@@ -465,7 +471,7 @@ public class ScaleIOCLITests {
             } else {
                 System.out.println(String.format("FAILED! %s", addVolumeResult.errorString()));
             }
-            assertTrue(String.format("Add volume failed %s\n", addVolumeResult.errorString()), addVolumeResult.isSuccess());
+            assertTrue(String.format("Add volume failed %s%n", addVolumeResult.errorString()), addVolumeResult.isSuccess());
             results.add(addVolumeResult);
         }
         return results;
@@ -475,7 +481,7 @@ public class ScaleIOCLITests {
         for (ScaleIOAddVolumeResult result : results) {
             if (result.isSuccess()) {
                 ScaleIORemoveVolumeResult removeVolumeResult = scaleIOCLI.removeVolume(result.getId());
-                assertTrue(String.format("Remove volume failed for source volume %s\n", removeVolumeResult.errorString()),
+                assertTrue(String.format("Remove volume failed for source volume %s%n", removeVolumeResult.errorString()),
                         removeVolumeResult.isSuccess());
             }
         }

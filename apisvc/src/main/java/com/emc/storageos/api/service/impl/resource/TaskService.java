@@ -55,8 +55,8 @@ import java.util.Objects;
 import java.util.Set;
 
 @Path("/vdc/tasks")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.TENANT_ADMIN})
+@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
+        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.TENANT_ADMIN })
 public class TaskService extends TaggedResource {
     private static final String DATE_TIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
 
@@ -72,7 +72,7 @@ public class TaskService extends TaggedResource {
 
     /**
      * Returns information about the specified task.
-     *
+     * 
      * @param id the URN of a ViPR task
      * @brief Show Task
      * @return The specified task details
@@ -96,18 +96,18 @@ public class TaskService extends TaggedResource {
 
     /**
      * Retrieve resource representations based on input ids.
-     *
+     * 
      * @prereq none
-     *
+     * 
      * @param param POST data containing the id list.
-     *
+     * 
      * @brief List data of volume resources
      * @return list of representations.
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public TaskBulkRep getBulkResources(BulkIdParam param) {
         return (TaskBulkRep) super.getBulkResources(param);
@@ -115,10 +115,10 @@ public class TaskService extends TaggedResource {
 
     /**
      * Returns task status count information for the specified Tenant.
-     *
+     * 
      * @brief Task Status count
-     * @param tenantId Tenant URI of the tenant the count is required for.  If not supplied, the logged in users tenant will be used.
-     *                 A value of 'system' will return system tasks
+     * @param tenantId Tenant URI of the tenant the count is required for. If not supplied, the logged in users tenant will be used.
+     *            A value of 'system' will return system tasks
      * @return Count of tasks in different statuses
      */
     @GET
@@ -132,17 +132,18 @@ public class TaskService extends TaggedResource {
         int error = 0;
         int pending = 0;
         for (URI normalizedTenantId : tenantIds) {
-            Constraint constraint = AggregatedConstraint.Factory.getAggregationConstraint(Task.class, "tenant", normalizedTenantId.toString(),"taskStatus");
+            Constraint constraint = AggregatedConstraint.Factory.getAggregationConstraint(Task.class, "tenant",
+                    normalizedTenantId.toString(), "taskStatus");
             AggregationQueryResultList queryResults = new AggregationQueryResultList();
 
             _dbClient.queryByConstraint(constraint, queryResults);
 
             Iterator<AggregationQueryResultList.AggregatedEntry> it = queryResults.iterator();
-            while(it.hasNext()) {
+            while (it.hasNext()) {
                 AggregationQueryResultList.AggregatedEntry entry = it.next();
-                if (entry.value.equals(Task.Status.ready.name())) {
+                if (entry.getValue().equals(Task.Status.ready.name())) {
                     ready++;
-                } else if(entry.value.equals(Task.Status.error.name())) {
+                } else if (entry.getValue().equals(Task.Status.error.name())) {
                     error++;
                 } else {
                     pending++;
@@ -155,33 +156,33 @@ public class TaskService extends TaggedResource {
 
     /**
      * Returns a list of tasks for the specified tenant
-     *
+     * 
      * @brief Return a list of tasks for a tenant
-     * @param tenantId Tenant URI of the tenant the count is required for.  If not supplied, the logged in users tenant will be used.
-     *                 A value of 'system' will provide a list of all the system tasks
+     * @param tenantId Tenant URI of the tenant the count is required for. If not supplied, the logged in users tenant will be used.
+     *            A value of 'system' will provide a list of all the system tasks
      * @return A list of tasks for the tenant
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public TasksList getTasks(@QueryParam(TENANT_QUERY_PARAM) URI tenantId,
-                              @QueryParam(START_TIME) String startTime,
-                              @QueryParam(END_TIME) String endTime,
-                              @QueryParam(MAX_COUNT_PARAM) Integer max_count) {
-
+            @QueryParam(START_TIME) String startTime,
+            @QueryParam(END_TIME) String endTime,
+            @QueryParam(MAX_COUNT_PARAM) Integer max_count) {
 
         Set<URI> tenantIds = getTenantsFromRequest(tenantId);
         verifyUserHasAccessToTenants(tenantIds);
 
         // Entries from the index, sorted with most recent first
-        Set<TimestampedURIQueryResult.TimestampedURI> sortedIndexEntries = Sets.newTreeSet(new Comparator<TimestampedURIQueryResult.TimestampedURI>() {
-            public int compare(TimestampedURIQueryResult.TimestampedURI obj1, TimestampedURIQueryResult.TimestampedURI obj2) {
-                if (Objects.equals(obj1.getTimestamp(), obj2.getTimestamp())) {
-                    return 1; // If timestampe are equal don't return 0 or TreeSet will remove one of them
-                } else {
-                    return obj2.getTimestamp().compareTo(obj1.getTimestamp());
-                }
-            }
-        });
+        Set<TimestampedURIQueryResult.TimestampedURI> sortedIndexEntries = Sets
+                .newTreeSet(new Comparator<TimestampedURIQueryResult.TimestampedURI>() {
+                    public int compare(TimestampedURIQueryResult.TimestampedURI obj1, TimestampedURIQueryResult.TimestampedURI obj2) {
+                        if (Objects.equals(obj1.getTimestamp(), obj2.getTimestamp())) {
+                            return 1; // If timestampe are equal don't return 0 or TreeSet will remove one of them
+                        } else {
+                            return obj2.getTimestamp().compareTo(obj1.getTimestamp());
+                        }
+                    }
+                });
 
         Date startWindowDate = getDateFromString(startTime);
         Date endWindowDate = getDateFromString(endTime);
@@ -190,7 +191,9 @@ public class TaskService extends TaggedResource {
         List<NamedRelatedResourceRep> resourceReps = Lists.newArrayList();
         for (URI normalizedTenantId : tenantIds) {
             TimestampedURIQueryResult taskIds = new TimestampedURIQueryResult();
-            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getTimedTenantOrgTaskConstraint(normalizedTenantId, startWindowDate, endWindowDate), taskIds);
+            _dbClient.queryByConstraint(
+                    ContainmentConstraint.Factory.getTimedTenantOrgTaskConstraint(normalizedTenantId, startWindowDate, endWindowDate),
+                    taskIds);
 
             Iterator<TimestampedURIQueryResult.TimestampedURI> it = taskIds.iterator();
             while (it.hasNext()) {
@@ -209,7 +212,7 @@ public class TaskService extends TaggedResource {
         // Produce the requested number of results
         Iterator<TimestampedURIQueryResult.TimestampedURI> it = sortedIndexEntries.iterator();
         int pos = 0;
-        while (it.hasNext() && (max_count == FETCH_ALL ||  pos < max_count)) {
+        while (it.hasNext() && (max_count == FETCH_ALL || pos < max_count)) {
             TimestampedURIQueryResult.TimestampedURI uri = it.next();
 
             RestLinkRep link = new RestLinkRep("self", RestLinkFactory.newLink(ResourceTypeEnum.TASK, uri.getUri()));
@@ -222,15 +225,15 @@ public class TaskService extends TaggedResource {
     }
 
     /**
-     * Deletes the specified task.  After this operation has been called, the task will no longer be accessible.
-     *
+     * Deletes the specified task. After this operation has been called, the task will no longer be accessible.
+     * 
      * @brief Deletes a task
      * @param taskId ID of the task to be deleted
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{taskId}/delete")
-    @CheckPermission( roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN}, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, acls = { ACL.OWN })
     public Response deleteTask(@PathParam("taskId") URI taskId) {
         Task task = queryResource(taskId);
 
@@ -242,7 +245,6 @@ public class TaskService extends TaggedResource {
             verifyUserHasAccessToTenants(Lists.newArrayList(task.getTenant()));
         }
 
-
         _dbClient.removeObject(task);
         auditOp(OperationTypeEnum.DELETE_TASK, true, null, task.getId().toString(), task.getLabel());
 
@@ -251,10 +253,10 @@ public class TaskService extends TaggedResource {
 
     /**
      * @brief Assign tags to resource
-     * Assign tags
-     *
+     *        Assign tags
+     * 
      * @prereq none
-     *
+     * 
      * @param id the URN of a ViPR resource
      * @param assignment tag assignments
      * @return No data returned in response body
@@ -272,10 +274,10 @@ public class TaskService extends TaggedResource {
 
     /**
      * @brief List tags assigned to resource
-     * Returns assigned tags
-     *
+     *        Returns assigned tags
+     * 
      * @prereq none
-     *
+     * 
      * @param id the URN of a ViPR Resource
      * @return Tags information
      */
@@ -357,10 +359,9 @@ public class TaskService extends TaggedResource {
 
     @Override
     protected ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
-                                                                             PermissionsHelper permissionsHelper) {
+            PermissionsHelper permissionsHelper) {
         return new TaskResRepFilter(user, permissionsHelper);
     }
-
 
     private Set<URI> getTenantIdsFromParams(Map<String, List<String>> parameters) {
         if (!parameters.containsKey(TENANT_QUERY_PARAM) ||
@@ -415,18 +416,18 @@ public class TaskService extends TaggedResource {
     private void verifyUserHasAccessToTenants(Collection<URI> tenants) {
         StorageOSUser user = getUserFromContext();
         if (_permissionsHelper.userHasGivenRole(user, URI.create(user.getTenantId()), Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
-                                                                                      Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
+                Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
             return;
         }
 
-        Set<String> subtenants =  _permissionsHelper.getSubtenantRolesForUser(user).keySet();
+        Set<String> subtenants = _permissionsHelper.getSubtenantRolesForUser(user).keySet();
 
         for (URI tenantId : tenants) {
             if (tenantId.equals(TenantOrg.SYSTEM_TENANT)) {
                 verifySystemAdmin();
             }
             else if (!tenantId.toString().equals(user.getTenantId()) &&
-                     !subtenants.contains(tenantId.toString())) {
+                    !subtenants.contains(tenantId.toString())) {
                 throw APIException.forbidden
                         .insufficientPermissionsForUser(user.getName());
             }
@@ -448,13 +449,13 @@ public class TaskService extends TaggedResource {
         List<SearchResultResourceRep> results = Lists.newArrayList();
 
         Iterator<NamedElementQueryResultList.NamedElement> it = items.iterator();
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             NamedElementQueryResultList.NamedElement item = it.next();
 
-            Task task = _dbClient.queryObject(Task.class, item.id);
+            Task task = _dbClient.queryObject(Task.class, item.getId());
             if (task.getTenant() != null && tenantIds.contains(task.getTenant())) {
-                RestLinkRep selfLink = new RestLinkRep("self", RestLinkFactory.newLink(getResourceType(), item.id));
-                results.add(new SearchResultResourceRep(item.id, selfLink, null));
+                RestLinkRep selfLink = new RestLinkRep("self", RestLinkFactory.newLink(getResourceType(), item.getId()));
+                results.add(new SearchResultResourceRep(item.getId(), selfLink, null));
             }
         }
 
@@ -497,12 +498,10 @@ public class TaskService extends TaggedResource {
         try {
             SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT);
             return dateFormat.parse(timestampStr);
-        }
-        catch (ParseException pe) {
+        } catch (ParseException pe) {
             try {
                 return new Date(Long.parseLong(timestampStr));
-            }
-            catch (NumberFormatException n) {
+            } catch (NumberFormatException n) {
                 throw APIException.badRequests.invalidDate(timestampStr);
             }
         }
@@ -510,7 +509,7 @@ public class TaskService extends TaggedResource {
 
     /**
      * Retrieve task representations based on input ids.
-     *
+     * 
      * @return list of task representations.
      */
     @Override

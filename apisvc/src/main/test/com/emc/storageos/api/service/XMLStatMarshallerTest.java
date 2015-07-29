@@ -79,7 +79,7 @@ public class XMLStatMarshallerTest {
         deleteIfExists(XmlTestOutputFile);
 
     }
-    
+
     @Test
     public void testXmlStatMarshallingForNullEvent() throws URISyntaxException, IOException,
             MarshallingExcetion, JAXBException {
@@ -87,7 +87,7 @@ public class XMLStatMarshallerTest {
         deleteIfExists(XmlTestOutputFile);
         XMLEventMarshaller jm = new XMLEventMarshaller();
         Event evt = null;
-        
+
         OutputStream output = new OutputStream() {
             private StringBuilder string = new StringBuilder();
 
@@ -114,20 +114,17 @@ public class XMLStatMarshallerTest {
         unmarshaller = context.createUnmarshaller();
 
         File f = new File(XmlTestOutputFile);
-        try{
+        try {
             @SuppressWarnings("unused")
             Event event = (Event) unmarshaller.unmarshal(f);
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             Assert.assertTrue(e.toString().contains("java.io.FileNotFoundException"));
         }
-       
+
         deleteIfExists(XmlTestOutputFile);
 
     }
-    
-    
-    
+
     @Test
     public void testXmlStatMarshallingForError() throws URISyntaxException, IOException,
             MarshallingExcetion {
@@ -135,10 +132,10 @@ public class XMLStatMarshallerTest {
         deleteIfExists(XmlTestOutputFile);
         XMLStatMarshaller xm = new XMLStatMarshaller();
         Stat stat = new Stat();
-        
+
         stat.setTenant(new URI("http://tenant.1"));
         stat.setTenant(new URI("http://project.1"));
-        
+
         OutputStream output = new OutputStream() {
             private StringBuilder string = new StringBuilder();
 
@@ -151,17 +148,15 @@ public class XMLStatMarshallerTest {
                 return this.string.toString();
             }
         };
-       
+
         PrintWriter writer = new PrintWriter(output);
         String error = "someerror";
-        xm.error(writer, error); 
+        xm.error(writer, error);
         writer.close();
         Assert.assertTrue(output.toString().contains("<stats>" + "someerror" + "</stats>"));
         deleteIfExists(XmlTestOutputFile);
 
     }
-    
-    
 
     private void deleteIfExists(String fname) {
         File f = new File(fname);

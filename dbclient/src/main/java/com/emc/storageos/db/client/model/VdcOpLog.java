@@ -16,7 +16,6 @@
 package com.emc.storageos.db.client.model;
 
 import java.net.URI;
-import com.emc.storageos.model.valid.EnumType;
 
 /**
  * Representation for the detail of each vdc management operation
@@ -40,11 +39,11 @@ public class VdcOpLog extends DataObject {
      */
     private byte[] operationParam;
 
-     /**
+    /**
      * Current stable vdc config info, used when recovery
      */
     private byte[] vdcConfigInfo;
-   
+
     @Name("type")
     public String getOperationType() {
         return operationType;
@@ -54,7 +53,7 @@ public class VdcOpLog extends DataObject {
         this.operationType = operationType;
         setChanged("type");
     }
-    
+
     @Name("opVdcId")
     public URI getOperatedVdc() {
         return operatedVdc;
@@ -67,23 +66,22 @@ public class VdcOpLog extends DataObject {
 
     @Name("opParam")
     public byte[] getOperationParam() {
-        return operationParam;
+        return operationParam.clone();
     }
 
     public void setOperationParam(byte[] operationParam) {
-        this.operationParam = operationParam;
+        this.operationParam = operationParam.clone();
         setChanged("opParam");
     }
 
     @Name("vdcConfig")
     public byte[] getVdcConfigInfo() {
-        return vdcConfigInfo;
+        return vdcConfigInfo.clone();
     }
 
     public void setVdcConfigInfo(byte[] vdcConfigInfo) {
-        this.vdcConfigInfo = vdcConfigInfo;
+        this.vdcConfigInfo = vdcConfigInfo.clone();
         setChanged("vdcConfig");
     }
 
 }
-

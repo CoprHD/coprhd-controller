@@ -10,18 +10,18 @@ import java.util.Map;
 import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
-import com.iwave.ext.netapp.IGroupInfo;
 
 @XmlRootElement()
 public class NetAppDevice implements Serializable {
     private static final long serialVersionUID = 1L;
     public static final String DEVICE_TYPE = "NetAppDevice";
-    
+
     public static final String IP_KEY = "device.ip";
     public static final String PORT_KEY = "device.port";
     public static final String USR_KEY = "device.usr";
     public static final String PWD_KEY = "device.pwd";
     public static final String SECURE_KEY = "device.secure";
+    public static final String PASS_WD = "***";
 
     private String label;
     private String host;
@@ -53,7 +53,7 @@ public class NetAppDevice implements Serializable {
     public void setPort(int port) {
         this.port = port;
     }
-    
+
     public boolean isSecure() {
         return secure;
     }
@@ -86,7 +86,7 @@ public class NetAppDevice implements Serializable {
         builder.append("port", port);
         builder.append("secure", secure);
         builder.append("username", username);
-        builder.append("password", "***");
+        builder.append("password", PASS_WD);
         return builder.toString();
     }
 
@@ -99,5 +99,5 @@ public class NetAppDevice implements Serializable {
         info.put(SECURE_KEY, secure + "");
         return info;
     }
-    
+
 }

@@ -25,8 +25,8 @@ public class ExtendDriveHelper {
     private Collection<? extends BlockObjectRestRep> volumes;
     private Map<? extends BlockObjectRestRep, DiskDrive> volume2disk;
     private Map<BlockObjectRestRep, String> volume2mountPoint;
-    
-    private long volumeSizeInBytes; 
+
+    private long volumeSizeInBytes;
 
     private boolean foundClusteredVolume = false;
 
@@ -53,7 +53,7 @@ public class ExtendDriveHelper {
 
     public void precheck() {
         windows.verifyWinRM();
-        
+
         volume2disk = windows.findDisks(volumes);
 
         // Get the actual mount points for the volumes from the system
@@ -74,7 +74,7 @@ public class ExtendDriveHelper {
             }
 
             windows.checkPartitionRestriction(disk, volumeSizeInBytes);
-            
+
             String mountPoint = getMountPoint(disk, detail);
 
             logInfo("extendDrive.volumeMountPoint", volume.getName(), mountPoint);
@@ -84,13 +84,14 @@ public class ExtendDriveHelper {
 
     /**
      * Helper function to determine if the volumes is on host when shared export to cluster
+     * 
      * @return true or false if the volume found on the host
      */
     public boolean isDiskVolumeOnHost(Disk detail) {
         if (detail == null) {
             return false;
         }
-        if ((detail.getVolumes() == null) || (detail.getVolumes().size() == 0)) {
+        if ((detail.getVolumes() == null) || (detail.getVolumes().isEmpty())) {
             return false;
         }
         if (detail.getVolumes().size() > 1) {
@@ -101,9 +102,9 @@ public class ExtendDriveHelper {
     }
 
     /**
-     * Clustered volume only appear on one host. After precheck is done, this can be called to 
+     * Clustered volume only appear on one host. After precheck is done, this can be called to
      * see if the volume was found on the host.
-     *
+     * 
      * @return true or false if the volume was found on the host
      */
     public boolean foundClusteredVolume() {
@@ -115,7 +116,7 @@ public class ExtendDriveHelper {
      * a non-empty mount point.
      * 
      * @param disk
-     *        the disk drive.
+     *            the disk drive.
      * @param detail the detail of the disk
      * @return the mount point for the disk.
      */
@@ -123,7 +124,7 @@ public class ExtendDriveHelper {
         if (detail == null) {
             ExecutionUtils.fail("failTask.ExtendDriveHelper.couldNotDetailDisk", disk.getNumber(), disk.getNumber());
         }
-        if ((detail.getVolumes() == null) || (detail.getVolumes().size() == 0)) {
+        if ((detail.getVolumes() == null) || (detail.getVolumes().isEmpty())) {
             ExecutionUtils.fail("failTask.ExtendDriveHelper.noVolumes", disk.getNumber(), disk.getNumber());
         }
         if (detail.getVolumes().size() > 1) {
@@ -132,7 +133,8 @@ public class ExtendDriveHelper {
         Volume volume = detail.getVolumes().get(0);
         String mountPoint = volume.getMountPoint();
         if (StringUtils.isBlank(mountPoint)) {
-            ExecutionUtils.fail("failTask.ExtendDriveHelper.volumeHasNoMountPoint", disk.getNumber(), volume.getNumber(), volume.getLabel());
+            ExecutionUtils
+                    .fail("failTask.ExtendDriveHelper.volumeHasNoMountPoint", disk.getNumber(), volume.getNumber(), volume.getLabel());
         }
         return mountPoint;
     }

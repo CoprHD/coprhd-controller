@@ -19,18 +19,20 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="xtremio_initiators_info")
+@JsonRootName(value = "xtremio_initiators_info")
 public class XtremIOInitiatorsInfo {
     @SerializedName("initiators")
-    @JsonProperty(value="initiators")
+    @JsonProperty(value = "initiators")
     private XtremIOInitiatorInfo[] initiators;
 
     public XtremIOInitiatorInfo[] getInitiators() {
-        return initiators;
+        return initiators != null ? initiators.clone() : initiators;
     }
 
     public void setInitiators(XtremIOInitiatorInfo[] initiators) {
-        this.initiators = initiators;
+        if (initiators != null) {
+            this.initiators = initiators.clone();
+        }
     }
 
 }

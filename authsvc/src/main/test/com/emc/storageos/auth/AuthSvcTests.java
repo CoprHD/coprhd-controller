@@ -43,8 +43,8 @@ import com.emc.storageos.services.util.EnvConfig;
  */
 public class AuthSvcTests extends ApiTestBase {
     private static final String PASSWORD = EnvConfig.get("sanity", "authsvc.AuthSvcTests.password");
-	private static final String USER_NAME = EnvConfig.get("sanity", "authsvc.AuthSvcTests.username");
-	public static String LOCATION_HEADER = "Location";
+    private static final String USER_NAME = EnvConfig.get("sanity", "authsvc.AuthSvcTests.username");
+    public static String LOCATION_HEADER = "Location";
     protected static String baseApiServiceURL;
     protected static String baseAuthServiceURL;
     protected static boolean runLongTests = false;
@@ -54,11 +54,12 @@ public class AuthSvcTests extends ApiTestBase {
 
     /**
      * Conveninence method to create a Client, and add authentication info
-     * if desired.  If addAuthFilter is set to true, credentials will be added
+     * if desired. If addAuthFilter is set to true, credentials will be added
      * to a Basic Auth filter, and 302 will be followed manually, adding the auth token
-     * on the final redirect to the service location.   If addAuthFilter is set to
+     * on the final redirect to the service location. If addAuthFilter is set to
      * false, a regular 302 follow up will be done, no headers or basic auth will be
      * added.
+     * 
      * @throws NoSuchAlgorithmException
      */
     protected Client createHttpsClient(final String username, final String password,
@@ -120,6 +121,7 @@ public class AuthSvcTests extends ApiTestBase {
         c.addFilter(new HTTPBasicAuthFilter(username, password));
         c.addFilter(new ClientFilter() {
             private ArrayList<Object> cookies;
+
             private ArrayList<Object> getCookiesToSet() {
                 if (cookies != null && !cookies.isEmpty()) {
                     ArrayList<Object> cookiesToSet = new ArrayList<Object>();
@@ -167,7 +169,7 @@ public class AuthSvcTests extends ApiTestBase {
     }
 
     @Before
-    public void setup() throws Exception {
+    public synchronized void setup() throws Exception {
         initLoadBalancer(true);
         baseAuthServiceURL = baseUrls.get(0);
         baseApiServiceURL = baseUrls.get(0);
@@ -184,7 +186,7 @@ public class AuthSvcTests extends ApiTestBase {
         runLongTests = (runLongTestsStr != null && runLongTestsStr.equalsIgnoreCase("true")) ? true : false;
         String runProxyTokenTestsStr = System.getenv("RUN_PROXY_TOKEN_EXPIRY_TESTS");
         runProxyTokenTests = (runProxyTokenTestsStr != null && runProxyTokenTestsStr.equalsIgnoreCase("true")) ? true : false;
-        
+
         // TOKEN TESTS
         WebResource rRoot = createHttpsClient(USER_NAME, PASSWORD, true).resource(baseAuthServiceURL);
         WebResource rSysmonitor = createHttpsClient("sysmonitor", PASSWORD, true).resource(baseAuthServiceURL);
@@ -192,7 +194,7 @@ public class AuthSvcTests extends ApiTestBase {
         ClientResponse resp = rRoot.path("/login").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
         Assert.assertNotNull(_savedTokens.get(USER_NAME));
-        String token1 = (String)_savedTokens.get(USER_NAME);
+        String token1 = (String) _savedTokens.get(USER_NAME);
         WebResource rRootNoHandler = createHttpsClient(USER_NAME, PASSWORD, false).resource(baseAuthServiceURL);
         resp = rRootNoHandler.path("/login").get(ClientResponse.class);
         Assert.assertEquals(401, resp.getStatus());
@@ -205,33 +207,32 @@ public class AuthSvcTests extends ApiTestBase {
         _savedTokens.remove(USER_NAME);
         resp = rRoot.path("/login").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
-        String token2 = (String)_savedTokens.get(USER_NAME);
+        String token2 = (String) _savedTokens.get(USER_NAME);
         Assert.assertFalse(token1.equals(token2));
 
-        //bad token and no credentials
+        // bad token and no credentials
         resp = rRootNoHandler.path("/login").header(AUTH_TOKEN_HEADER, "bad-token").get(ClientResponse.class);
         Assert.assertEquals(401, resp.getStatus());
         // no credentials and expired token
         resp = rRootNoHandler.path("/login").header(AUTH_TOKEN_HEADER, expiredToken).get(ClientResponse.class);
         Assert.assertEquals(401, resp.getStatus());
 
-
-        // Authenticate three times, save distinct tokens.  Then call logout with the force flag.
+        // Authenticate three times, save distinct tokens. Then call logout with the force flag.
         // After that, none of the tokens should work.
         resp = rRoot.path("/login").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
         Assert.assertNotNull(_savedTokens.get(USER_NAME));
-        String multiTokenTestToken1 = (String)_savedTokens.get(USER_NAME);
+        String multiTokenTestToken1 = (String) _savedTokens.get(USER_NAME);
         _savedTokens.remove(USER_NAME);
         resp = rRoot.path("/login").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
         Assert.assertNotNull(_savedTokens.get(USER_NAME));
-        String multiTokenTestToken2 = (String)_savedTokens.get(USER_NAME);
+        String multiTokenTestToken2 = (String) _savedTokens.get(USER_NAME);
         _savedTokens.remove(USER_NAME);
         resp = rRoot.path("/login").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
         Assert.assertNotNull(_savedTokens.get(USER_NAME));
-        String multiTokenTestToken3 = (String)_savedTokens.get(USER_NAME);
+        String multiTokenTestToken3 = (String) _savedTokens.get(USER_NAME);
         _savedTokens.remove(USER_NAME);
 
         // verify we have 3 distinct tokens. Three logins with the same user,
@@ -262,7 +263,7 @@ public class AuthSvcTests extends ApiTestBase {
         resp = rRootNoHandler.path("/login").header(AUTH_TOKEN_HEADER, multiTokenTestToken3).get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
 
-        // Now call force logout using one of the remaining tokens.  This should invalidate
+        // Now call force logout using one of the remaining tokens. This should invalidate
         // itself and the other remaining one.
         resp = rRootNoHandler.path("/logout").queryParam("force", "true").
                 header(AUTH_TOKEN_HEADER, multiTokenTestToken2).get(ClientResponse.class);
@@ -277,21 +278,21 @@ public class AuthSvcTests extends ApiTestBase {
         resp = rSysmonitor.path("/login").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
         Assert.assertNotNull(_savedTokens.get("sysmonitor"));
-        String secadminLogoutTestToken1 = (String)_savedTokens.get("sysmonitor");
+        String secadminLogoutTestToken1 = (String) _savedTokens.get("sysmonitor");
         _savedTokens.remove("sysmonitor");
         resp = rSysmonitor.path("/login").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
         Assert.assertNotNull(_savedTokens.get("sysmonitor"));
-        String secadminLogoutTestToken2 = (String)_savedTokens.get("sysmonitor");
+        String secadminLogoutTestToken2 = (String) _savedTokens.get("sysmonitor");
         _savedTokens.remove("sysmonitor");
         resp = rSysmonitor.path("/login").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
         Assert.assertNotNull(_savedTokens.get("sysmonitor"));
-        String secadminLogoutTestToken3 = (String)_savedTokens.get("sysmonitor");
+        String secadminLogoutTestToken3 = (String) _savedTokens.get("sysmonitor");
 
         resp = rRoot.path("/login").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
-        String rootToken = (String)_savedTokens.get(USER_NAME);
+        String rootToken = (String) _savedTokens.get(USER_NAME);
         resp = rRoot.path("/logout").queryParam("username", "sysmonitor").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
         // root token should still be valid
@@ -341,24 +342,25 @@ public class AuthSvcTests extends ApiTestBase {
         // formlogin tests
         // Making sure it can filter the cross site scripting attack by not appending source string if source string contains script tag
         WebResource rRootNoRedirect = createHttpsClient("", "", false).resource(baseAuthServiceURL);
-        resp = rRootNoRedirect.path("/formlogin").queryParam("service", "someService").queryParam("source", "\"><sCrIpT>alert(14035908.687)</ScRiPt><form \"").get(ClientResponse.class);
+        resp = rRootNoRedirect.path("/formlogin").queryParam("service", "someService")
+                .queryParam("source", "\"><sCrIpT>alert(14035908.687)</ScRiPt><form \"").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
         String entity = resp.getEntity(String.class);
         Assert.assertTrue(entity.contains("action="));
         Assert.assertFalse(entity.contains("\"><sCrIpT>alert(14035908.687)</ScRiPt><form \""));
 
         // get formlogin page from apisvc by using ?using-formlogin
-        // TODO: fix this test once  apisvc/login?using-formlogin is working again
+        // TODO: fix this test once apisvc/login?using-formlogin is working again
         // (it is currently broken)
         /*
-        WebResource formRes = createHttpsClient("", "", false).resource(baseApiServiceURL);
-        resp = formRes.path("/login").queryParam("using-cookies", "true")
-                   .queryParam("using-formlogin", "true")
-                   .queryParam("service", "someService")
-                   .get(ClientResponse.class);
-        Assert.assertEquals(200, resp.getStatus());
-        String entity = resp.getEntity(String.class);
-        Assert.assertTrue(entity.contains("form action="));
+         * WebResource formRes = createHttpsClient("", "", false).resource(baseApiServiceURL);
+         * resp = formRes.path("/login").queryParam("using-cookies", "true")
+         * .queryParam("using-formlogin", "true")
+         * .queryParam("service", "someService")
+         * .get(ClientResponse.class);
+         * Assert.assertEquals(200, resp.getStatus());
+         * String entity = resp.getEntity(String.class);
+         * Assert.assertTrue(entity.contains("form action="));
          */
 
         rRoot = createCookieHttpsClient(USER_NAME, PASSWORD).resource(baseAuthServiceURL);
@@ -385,7 +387,6 @@ public class AuthSvcTests extends ApiTestBase {
         resp = rRoot.path("/tenant").get(ClientResponse.class);
         Assert.assertEquals(401, resp.getStatus());
 
-
         rRoot = createCookieHttpsClient(USER_NAME, PASSWORD).resource(baseApiServiceURL);
         resp = rRoot.path("/tenant").get(ClientResponse.class);
         Assert.assertEquals(401, resp.getStatus());
@@ -407,9 +408,9 @@ public class AuthSvcTests extends ApiTestBase {
             resp = rRoot.path("/login").get(ClientResponse.class);
             Assert.assertEquals(200, resp.getStatus());
             Assert.assertNotNull(_savedTokens.get(USER_NAME));
-            rootToken = (String)_savedTokens.get(USER_NAME);
+            rootToken = (String) _savedTokens.get(USER_NAME);
 
-            for (int i = 0; i < 99 ; i++) {
+            for (int i = 0; i < 99; i++) {
                 rRoot = createCookieHttpsClient(USER_NAME, PASSWORD).resource(baseApiServiceURL);
                 resp = rRoot.path("/tenant").queryParam("using-cookies", "true").get(ClientResponse.class);
                 Assert.assertEquals(200, resp.getStatus());
@@ -431,8 +432,7 @@ public class AuthSvcTests extends ApiTestBase {
             resp = rRoot.path("/tenant").queryParam("using-cookies", "true").get(ClientResponse.class);
             Assert.assertEquals(200, resp.getStatus());
 
-
-            // test limit, same as above, but for proxyuser.  proxyuser can have 1000 tokens.
+            // test limit, same as above, but for proxyuser. proxyuser can have 1000 tokens.
             // test limits on number of tokens per user
             // delete all tokens for root first
             WebResource rProxyUser = createCookieHttpsClient("proxyuser", PASSWORD).resource(baseApiServiceURL);
@@ -446,9 +446,9 @@ public class AuthSvcTests extends ApiTestBase {
             resp = rProxyUser.path("/login").get(ClientResponse.class);
             Assert.assertEquals(200, resp.getStatus());
             Assert.assertNotNull(_savedTokens.get("proxyuser"));
-            String proxyUserToken = (String)_savedTokens.get("proxyuser");
+            String proxyUserToken = (String) _savedTokens.get("proxyuser");
 
-            for (int i = 0; i < 999 ; i++) {
+            for (int i = 0; i < 999; i++) {
                 rProxyUser = createCookieHttpsClient("proxyuser", PASSWORD).resource(baseApiServiceURL);
                 resp = rProxyUser.path("/tenant").queryParam("using-cookies", "true").get(ClientResponse.class);
                 Assert.assertEquals(200, resp.getStatus());
@@ -480,7 +480,7 @@ public class AuthSvcTests extends ApiTestBase {
         }
 
         WebResource rRoot =
-                createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, true).resource(baseAuthServiceURL);
+                createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, true).resource(baseAuthServiceURL);
         rRoot.path("/login").get(ClientResponse.class);
 
         // post authProvider
@@ -488,12 +488,12 @@ public class AuthSvcTests extends ApiTestBase {
 
         // login with a user from ldap
         WebResource rSanityUser =
-                createHttpsClient(ROOTUSER, AD_PASSWORD, true).resource(
+                createHttpsClient(ROOTUSER, AD_PASS_WORD, true).resource(
                         baseAuthServiceURL);
         rSanityUser.path("/login").get(ClientResponse.class);
         TenantResponse tenant = rSanityUser.path("/tenant").get(TenantResponse.class);
-        
-        //make the user a tenant_admin
+
+        // make the user a tenant_admin
         RoleAssignmentChanges changes = new RoleAssignmentChanges();
         RoleAssignmentEntry addTenantAdmin = new RoleAssignmentEntry();
         addTenantAdmin.setSubjectId(ROOTUSER);
@@ -501,7 +501,7 @@ public class AuthSvcTests extends ApiTestBase {
         changes.setAdd(new ArrayList<RoleAssignmentEntry>());
         changes.getAdd().add(addTenantAdmin);
         rRoot.path("/tenants/" + tenant.getTenant() + "/role-assignments").put(changes);
-        
+
         // create a proxy token for that user
         ClientResponse resp = rSanityUser.path("/proxytoken").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
@@ -518,7 +518,7 @@ public class AuthSvcTests extends ApiTestBase {
         // should get a 200
         resp =
                 rProxy.path("/tenants/" + tenant.getTenant()).header(AUTH_PROXY_TOKEN_HEADER, proxyToken)
-                .get(ClientResponse.class);
+                        .get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
 
         // wait x amount of time for token to expire
@@ -528,7 +528,7 @@ public class AuthSvcTests extends ApiTestBase {
         // should get a 200 again
         resp =
                 rProxy.path("/tenants/" + tenant.getTenant()).header(AUTH_PROXY_TOKEN_HEADER, proxyToken)
-                .get(ClientResponse.class);
+                        .get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
 
         // do a put on the authprovider so it is disabled
@@ -540,10 +540,10 @@ public class AuthSvcTests extends ApiTestBase {
         Thread.sleep(timeToWaitInMinutes * 60 * 1000);
 
         // try to get the tenant with proxy user using the proxy token
-        // should fail with a 401 
+        // should fail with a 401
         resp =
                 rProxy.path("/tenants/" + tenant.getTenant()).header(AUTH_PROXY_TOKEN_HEADER, proxyToken)
-                .get(ClientResponse.class);
+                        .get(ClientResponse.class);
         Assert.assertEquals(401, resp.getStatus());
 
     }
@@ -552,7 +552,7 @@ public class AuthSvcTests extends ApiTestBase {
     public void passwordManipulationTests() throws Exception {
         // TEST 1: change root's password with the logout option.
         // 1. login with root, get 3 tokens.
-        // 2. change root's password with logout option.  Make sure all 3 tokens are gone
+        // 2. change root's password with logout option. Make sure all 3 tokens are gone
         WebResource rRoot = createHttpsClient(USER_NAME, PASSWORD, true).resource(baseAuthServiceURL);
         _savedTokens.remove(USER_NAME);
         ClientResponse resp = rRoot.path("/login").get(ClientResponse.class);
@@ -578,7 +578,7 @@ public class AuthSvcTests extends ApiTestBase {
         // reset root's password to the original
         resetPassword(USER_NAME, PASSWORD, "newp", true);
 
-        // TEST 2: change proxy user's password.  Make sure root's token is not wiped out.
+        // TEST 2: change proxy user's password. Make sure root's token is not wiped out.
         // Only proxyuser's.
         // 1. Login with proxyuser, 3 times.
         // 2. have root logout proxyuser
@@ -609,7 +609,7 @@ public class AuthSvcTests extends ApiTestBase {
         // reset proxyuser password to the original
         resetPassword("proxyuser", PASSWORD, null, true);
 
-        // TEST 3: Login root three times.  Change its password but with logout=false. None of the
+        // TEST 3: Login root three times. Change its password but with logout=false. None of the
         // tokens should have been killed.
         rRoot = createHttpsClient(USER_NAME, PASSWORD, true).resource(baseAuthServiceURL);
         _savedTokens.remove(USER_NAME);
@@ -640,10 +640,11 @@ public class AuthSvcTests extends ApiTestBase {
     /**
      * Routine to reset a user's password, with various parameters to account for different
      * scenarios
+     * 
      * @param user user for which to change the password
      * @param newPassword new password for the user
      * @param rootAltPasswd if the password change is happening after root's password was already changed,
-     * provide the current password for the root user, otherwise ChangeMe is assumed.
+     *            provide the current password for the root user, otherwise ChangeMe is assumed.
      * @param logout true if the sessions of the user need to be terminated as part of the password reset
      * @return the auth token of the root user's connection that did the reset
      * @throws NoSuchAlgorithmException
@@ -676,11 +677,13 @@ public class AuthSvcTests extends ApiTestBase {
 
         String info = "";
         Boolean notStable = true;
-        while(notStable) {
+        while (notStable) {
             try {
                 Thread.sleep(2000);
                 System.out.println("Waiting for stable cluster state.");
-            } catch (InterruptedException e) { }
+            } catch (InterruptedException e) {
+                // Empty on purpose
+            }
             resp = rRoot.path("/upgrade/cluster-state").get(ClientResponse.class);
             info = resp.getEntity(String.class);
             if (info.contains("<cluster_state>STABLE</cluster_state>")) {
@@ -691,4 +694,3 @@ public class AuthSvcTests extends ApiTestBase {
         return rootResetToken;
     }
 }
-

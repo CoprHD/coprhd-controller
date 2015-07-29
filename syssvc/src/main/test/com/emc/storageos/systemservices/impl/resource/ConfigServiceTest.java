@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.systemservices.impl.resource;
 
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -52,12 +51,8 @@ public class ConfigServiceTest {
         email.setNotifyEmailAddress("joe.customer@customer.com");
         email.setPrimaryEmailAddress("emailalertesg@emc.com");
         email.setSafeEncryption("no");
-        try {
-            email.setStartTls("no");
-        } catch (Exception e) {
-           
-        }
-     
+        email.setStartTls("no");
+
         PropertyInfoUpdate propInfo = ConfigService.ConfigureConnectEmc.configureEmail(email);
         Assert.assertEquals(propInfo.getProperty("system_connectemc_smtp_server"), email.getEmailServer());
         Assert.assertEquals(propInfo.getProperty("system_connectemc_smtp_emcto"), email.getPrimaryEmailAddress());
@@ -79,22 +74,14 @@ public class ConfigServiceTest {
         email.setNotifyEmailAddress("joe.customer@customer.com");
         email.setPrimaryEmailAddress("emailalertesg@emc.com");
         email.setSafeEncryption("no");
-    
-        try {
-            email.setSmtpAuthType("login");
-        } catch(Exception e) {
-            
-        }
+        email.setSmtpAuthType("login");
 
         PropertyInfoUpdate propInfo = null;
-        try {
-            propInfo = ConfigService.ConfigureConnectEmc.configureEmail(email);
-        } catch (APIException ise) {
-            
-        }
-        
+        propInfo = ConfigService.ConfigureConnectEmc.configureEmail(email);
+
         Assert.assertNull(propInfo);
     }
+
     @Test
     public void testEmailUsingAuthAndCerts() {
 
@@ -106,7 +93,7 @@ public class ConfigServiceTest {
         email.setSafeEncryption("no");
         email.setUserName("root");
         email.setPassword("ChangeMe");
-        
+
         try {
             email.setStartTls("yes");
             email.setSmtpAuthType("login");
@@ -119,14 +106,13 @@ public class ConfigServiceTest {
         Assert.assertEquals(propInfo.getProperty("system_connectemc_smtp_emcto"), email.getPrimaryEmailAddress());
         Assert.assertEquals(propInfo.getProperty("system_connectemc_smtp_from"), email.getEmailSender());
         Assert.assertEquals(propInfo.getProperty("system_connectemc_smtp_to"), email.getNotifyEmailAddress());
-        Assert.assertEquals(propInfo.getProperty("system_connectemc_smtp_enabletls"),  email.getStartTls());
+        Assert.assertEquals(propInfo.getProperty("system_connectemc_smtp_enabletls"), email.getStartTls());
         Assert.assertEquals(propInfo.getProperty("system_connectemc_encrypt"), email.getSafeEncryption());
         Assert.assertEquals(propInfo.getProperty("system_connectemc_smtp_authtype"), email.getSmtpAuthType());
         Assert.assertEquals(propInfo.getProperty("system_connectemc_smtp_username"), email.getUserName());
         Assert.assertEquals(propInfo.getProperty("system_connectemc_smtp_password"), email.getPassword());
     }
 
-    
     @Test
     public void testInvalidAuthType() {
 
@@ -140,7 +126,7 @@ public class ConfigServiceTest {
         email.setPassword("ChangeMe");
         email.setSmtpAuthType("Null");
     }
-    
+
     @Test
     public void testInvalidTlsValue() {
 
@@ -154,7 +140,7 @@ public class ConfigServiceTest {
         email.setPassword("ChangeMe");
         email.setStartTls("Maybe");
     }
-   
+
     @Test
     public void testFtps() {
 
@@ -162,13 +148,13 @@ public class ConfigServiceTest {
         ftps.setSafeEncryption("no");
         ftps.setEmailServer("mailhub.lss.emc.com");
         ftps.setNotifyEmailAddress("joe.customer@customer.com");
-        
+
         try {
             ftps.setHostName("corpusfep3.emc.com");
         } catch (Exception e) {
             Assert.fail();
         }
-       
+
         PropertyInfoUpdate propInfo = ConfigService.ConfigureConnectEmc.configureFtps(ftps);
         Assert.assertEquals(propInfo.getProperty("system_connectemc_encrypt"), ftps.getSafeEncryption());
         Assert.assertEquals(propInfo.getProperty("system_connectemc_ftps_hostname"), ftps.getHostName());

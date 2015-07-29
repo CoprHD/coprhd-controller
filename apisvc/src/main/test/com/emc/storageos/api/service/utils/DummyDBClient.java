@@ -27,6 +27,8 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.utils.MarshallingExcetion;
 import com.emc.storageos.db.client.DbAggregatorItf;
@@ -54,13 +56,14 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
 /**
  * Implemation of StatRetriever to retrieve stats locally instead of getting
  * from Cassandra database.
- *
+ * 
  * @author rvobugar
- *
+ * 
  */
 public class DummyDBClient implements DbClient {
 
     HashMap<URI, DataObject> _idToObjectMap;
+    final private Logger _logger = LoggerFactory.getLogger(DummyDBClient.class);
 
     @Override
     public DataObject queryObject(URI id) throws DatabaseException {
@@ -123,7 +126,7 @@ public class DummyDBClient implements DbClient {
         // TODO Auto-generated method stub
         return null;
     }
- 
+
     @Override
     public <T extends DataObject> List<T> queryObjectFields(Class<T> clazz, Collection<String> fieldNames,
             Collection<URI> ids) throws DatabaseException {
@@ -141,8 +144,8 @@ public class DummyDBClient implements DbClient {
     }
 
     @Override
-    public <T extends DataObject> void aggregateObjectField(Class<T> clazz, Iterator<URI> ids, DbAggregatorItf aggregator){
-        //do nothing
+    public <T extends DataObject> void aggregateObjectField(Class<T> clazz, Iterator<URI> ids, DbAggregatorItf aggregator) {
+        // do nothing
     }
 
     @Override
@@ -166,7 +169,8 @@ public class DummyDBClient implements DbClient {
     }
 
     @Override
-    public <T extends DataObject> List<URI> queryByType(Class<T> clazz, boolean activeOnly, URI startID, int count) throws DatabaseException {
+    public <T extends DataObject> List<URI> queryByType(Class<T> clazz, boolean activeOnly, URI startID, int count)
+            throws DatabaseException {
         return null;
     }
 
@@ -243,15 +247,15 @@ public class DummyDBClient implements DbClient {
 
     @Deprecated
     public void setStatus(Class<? extends DataObject> clazz,
-                          URI id, String opId, String status)
-            throws DatabaseException{
+            URI id, String opId, String status)
+            throws DatabaseException {
         checkStarted();
     }
 
     @Deprecated
     public void setStatus(Class<? extends DataObject> clazz,
-                          URI id, String opId, String status, String message)
-        throws DatabaseException{
+            URI id, String opId, String status, String message)
+            throws DatabaseException {
         checkStarted();
     }
 
@@ -298,7 +302,7 @@ public class DummyDBClient implements DbClient {
         // TODO Auto-generated method stub
         return null;
     }
-    
+
     @Override
     public <T extends DataPoint> void queryTimeSeries(Class<? extends TimeSeries> tsType,
             DateTime timeBucket, TimeSeriesQueryResult<T> callback, ExecutorService workerThreads)
@@ -335,8 +339,7 @@ public class DummyDBClient implements DbClient {
                                 TimeUUIDUtils.getTimeFromUUID(uuid));
                     }
                 } catch (URISyntaxException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    _logger.error(e.getMessage(), e);
                 }
 
                 callback.done();
@@ -359,8 +362,7 @@ public class DummyDBClient implements DbClient {
                                 TimeUUIDUtils.getTimeFromUUID(uuid));
                     }
                 } catch (URISyntaxException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    _logger.error(e.getMessage(), e);
                 }
 
                 callback.done();
@@ -368,8 +370,7 @@ public class DummyDBClient implements DbClient {
                 try {
                     throw new MarshallingExcetion("marshalling Exception", null);
                 } catch (MarshallingExcetion e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    _logger.error(e.getMessage(), e);
                 }
             } else if (timeBucket.toString().contains("2012-01-06T00:00")) {
                 callback.error(null);
@@ -388,8 +389,7 @@ public class DummyDBClient implements DbClient {
                                 TimeUUIDUtils.getTimeFromUUID(uuid));
                     }
                 } catch (URISyntaxException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    _logger.error(e.getMessage(), e);
                 }
 
                 callback.done();
@@ -398,8 +398,7 @@ public class DummyDBClient implements DbClient {
                 try {
                     throw new MarshallingExcetion("marshalling Exception", null);
                 } catch (MarshallingExcetion e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    _logger.error(e.getMessage(), e);
                 }
             }
         }
@@ -441,23 +440,23 @@ public class DummyDBClient implements DbClient {
         return null;
     }
 
-	@Override
-	public Operation createTaskOpStatus(Class<? extends DataObject> clazz, URI id, 
-										String opId, ResourceOperationTypeEnum type)
-			throws DatabaseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public Operation createTaskOpStatus(Class<? extends DataObject> clazz, URI id,
+            String opId, ResourceOperationTypeEnum type)
+            throws DatabaseException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	@Override
-	public Operation createTaskOpStatus(Class<? extends DataObject> clazz,
-			URI id, String opId, ResourceOperationTypeEnum type,
-			String associatedResources) throws DatabaseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public Operation createTaskOpStatus(Class<? extends DataObject> clazz,
+            URI id, String opId, ResourceOperationTypeEnum type,
+            String associatedResources) throws DatabaseException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	@Override
+    @Override
     public Operation updateTaskOpStatus(Class<? extends DataObject> clazz, URI id, String opId,
             Operation updateOperation) throws DatabaseException {
         // TODO Auto-generated method stub
@@ -472,24 +471,24 @@ public class DummyDBClient implements DbClient {
 
     @Override
     public Operation ready(Class<? extends DataObject> clazz, URI id, String opId, String message) throws DatabaseException {
-        return ready(clazz,id,opId);
-    }
-
-        @Override
-    public Operation error(Class<? extends DataObject> clazz, URI id, String opId, ServiceCoded serviceCoded) throws DatabaseException{
-       checkStarted();
-       return null;
+        return ready(clazz, id, opId);
     }
 
     @Override
-    public Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message) throws DatabaseException{
+    public Operation error(Class<? extends DataObject> clazz, URI id, String opId, ServiceCoded serviceCoded) throws DatabaseException {
+        checkStarted();
+        return null;
+    }
+
+    @Override
+    public Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message) throws DatabaseException {
         checkStarted();
         return null;
     }
 
     @Override
     public Integer countObjects(Class<? extends DataObject> type, String columnField, URI uri)
-            throws DatabaseException{
+            throws DatabaseException {
         return 0;
     }
 
@@ -514,7 +513,7 @@ public class DummyDBClient implements DbClient {
     @Override
     public <T extends DataObject> Iterator<T> queryIterativeObjects(
             Class<T> clazz, Collection<URI> ids, boolean activeOnly)
-                    throws DatabaseException {
+            throws DatabaseException {
         // TODO Auto-generated method stub
         return null;
     }

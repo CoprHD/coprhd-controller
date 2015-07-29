@@ -15,29 +15,18 @@
 package com.emc.storageos.volumecontroller.impl.smis.vmax;
 
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL;
 import static java.text.MessageFormat.format;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-
 import javax.cim.CIMArgument;
 import javax.cim.CIMObjectPath;
-import javax.wbem.WBEMException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
@@ -50,104 +39,101 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.AbstractCloneOperations;
-import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
-import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
-import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
-import com.emc.storageos.volumecontroller.impl.smis.SmisException;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateCGSnapshotJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCloneRestoreJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCloneResyncJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateCGCloneJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
 
 public class VmaxCloneOperations extends AbstractCloneOperations {
     private static final Logger _log = LoggerFactory.getLogger(VmaxCloneOperations.class);
-    
-    
+
     /**
      * Should implement create of a clone from a source volume that is part of a
      * consistency group.
-     *
+     * 
      * Implementation note: In this method we will kick of the asynchronous creation
      * of the target devices required for the CG clones. Upon the successful
      * device creation, the post operations will take place, which will include the
      * creation of the target group and the group clone operation.
-     *
-     * @param storage       [required] - StorageSystem object representing the array
-     * @param cloneList    [required] - clone URI list
-     * @param createInactive  whether the clone needs to to be created with sync_active=true/false                      
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param cloneList [required] - clone URI list
+     * @param createInactive whether the clone needs to to be created with sync_active=true/false
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
-     * @throws DeviceControllerException 
+     * @throws DeviceControllerException
      */
     @Override
     public void createGroupClone(StorageSystem storage, List<URI> cloneList,
-                                     Boolean createInactive, TaskCompleter taskCompleter) {
+            Boolean createInactive, TaskCompleter taskCompleter) {
         _log.info("START create group clone operation");
         // Target group CIM Path
         CIMObjectPath targetGroupPath = null;
-        
+
         // List of target device ids
         List<String> targetDeviceIds = null;
-        
+
         // The source consistency group name
         String sourceGroupName = null;
-        
+
         try {
             final Volume first = _dbClient.queryObject(Volume.class, cloneList.get(0));
             Volume sourceVolume = _dbClient.queryObject(Volume.class, first.getAssociatedSourceVolume());
             sourceGroupName = _helper.getConsistencyGroupName(sourceVolume, storage);
-            URI tenant=sourceVolume.getTenant().getURI();
+            URI tenant = sourceVolume.getTenant().getURI();
             TenantOrg tenantOrg = _dbClient.queryObject(TenantOrg.class, tenant);
-            String targetGroupLabel = generateLabel(tenantOrg, sourceVolume);           
+            String targetGroupLabel = generateLabel(tenantOrg, sourceVolume);
             // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.
             ReplicationUtils.checkReplicationGroupAccessibleOrFail(storage, sourceVolume, _dbClient, _helper, _cimPath);
-                  
-            final Map<String,List<Volume>> clonesBySizeMap = new HashMap<String,List<Volume>>();
-            
+
+            final Map<String, List<Volume>> clonesBySizeMap = new HashMap<String, List<Volume>>();
+
             List<Volume> clones = _dbClient.queryObject(Volume.class, cloneList);
-            
+
             // For 8.0 providers, no need to create target devices and
             // target group separately for volumes in CG.
             // They will be created as part of 'CreateGroupReplica' call.
-            // For 4.6 providers, target devices and target group will be
+            // For 4.6 providers and VMAX3 arrays, target devices and target group will be
             // created separately before 'CreateGroupReplica' call.
-            if (!storage.getUsingSmis80()) {
-	            targetDeviceIds = new ArrayList<String>();
-	            for (Volume clone : clones) {
-	                
-	                final URI poolId = clone.getPool();
-	                Volume source = _dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
-	                // Create target devices
-	                final List<String> newDeviceIds = ReplicationUtils.createTargetDevices(storage, sourceGroupName, clone.getLabel(), createInactive, 
-	                        1, poolId, clone.getCapacity(), source.getThinlyProvisioned(), source, taskCompleter, _dbClient, _helper, _cimPath);
-	                
-	                targetDeviceIds.addAll(newDeviceIds);
-	            }
-	            
-	            // Create target device group
-	            targetGroupPath = ReplicationUtils.createTargetDeviceGroup(storage, sourceGroupName, targetDeviceIds, taskCompleter, _dbClient, _helper, _cimPath,
-	                                                                            SYNC_TYPE.CLONE);
+            if (storage.checkIfVmax3() || !storage.getUsingSmis80()) {
+                targetDeviceIds = new ArrayList<String>();
+                for (Volume clone : clones) {
+
+                    final URI poolId = clone.getPool();
+                    Volume source = _dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
+                    // Create target devices
+                    final List<String> newDeviceIds = ReplicationUtils.createTargetDevices(storage, sourceGroupName, clone.getLabel(),
+                            createInactive,
+                            1, poolId, clone.getCapacity(), source.getThinlyProvisioned(), source, taskCompleter, _dbClient, _helper,
+                            _cimPath);
+
+                    targetDeviceIds.addAll(newDeviceIds);
+                }
+
+                // Create target device group
+                targetGroupPath = ReplicationUtils.createTargetDeviceGroup(storage, sourceGroupName, targetDeviceIds, taskCompleter,
+                        _dbClient, _helper, _cimPath,
+                        SYNC_TYPE.CLONE);
             }
             // Create CG clone
-            CIMObjectPath job = VmaxGroupOperationsUtils.internalCreateGroupReplica(storage, sourceGroupName, targetGroupLabel, targetGroupPath, createInactive, taskCompleter,
-                                            SYNC_TYPE.CLONE, _dbClient, _helper, _cimPath);
-            
+            CIMObjectPath job = VmaxGroupOperationsUtils.internalCreateGroupReplica(storage, sourceGroupName, targetGroupLabel,
+                    targetGroupPath, createInactive, taskCompleter,
+                    SYNC_TYPE.CLONE, _dbClient, _helper, _cimPath);
+
             if (job != null) {
                 ControllerServiceImpl.enqueueJob(
                         new QueueJob(new SmisCreateCGCloneJob(job,
                                 storage.getId(), !createInactive, taskCompleter)));
             }
-            
+
         } catch (Exception e) {
-            final String errMsg = format("An exception occurred when trying to create clones for consistency group {0} on storage system {1}",
+            final String errMsg = format(
+                    "An exception occurred when trying to create clones for consistency group {0} on storage system {1}",
                     sourceGroupName, storage.getId());
             _log.error(errMsg, e);
-            
+
             // Roll back changes
-            ReplicationUtils.rollbackCreateReplica(storage, targetGroupPath, targetDeviceIds, taskCompleter,_dbClient, _helper, _cimPath);
+            ReplicationUtils.rollbackCreateReplica(storage, targetGroupPath, targetDeviceIds, taskCompleter, _dbClient, _helper, _cimPath);
             List<Volume> clones = _dbClient.queryObject(Volume.class, cloneList);
             for (Volume clone : clones) {
                 clone.setInactive(true);
@@ -156,13 +142,14 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             ServiceError error = DeviceControllerErrors.smis.methodFailed("createGroupClones", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
-        
+
     }
-    
+
     /**
-     * This interface is for the clone activate in CG. 
-     * @param storage       [required] - StorageSystem object representing the array
-     * @param clones        [required] - clone URIs
+     * This interface is for the clone activate in CG.
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param clones [required] - clone URIs
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      */
     @Override
@@ -176,8 +163,8 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
                 return;
             }
             Volume sourceVolume = _dbClient.queryObject(Volume.class, cloneObj.getAssociatedSourceVolume());
-            boolean isSuccess = VmaxGroupOperationsUtils.activateGroupReplicas(storage, sourceVolume, cloneObj, 
-                            SYNC_TYPE.CLONE, taskCompleter, _dbClient, _helper, _cimPath);
+            boolean isSuccess = VmaxGroupOperationsUtils.activateGroupReplicas(storage, sourceVolume, cloneObj,
+                    SYNC_TYPE.CLONE, taskCompleter, _dbClient, _helper, _cimPath);
             if (isSuccess) {
                 List<Volume> cloneList = new ArrayList<Volume>();
                 for (URI clone : clones) {
@@ -194,16 +181,16 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             _log.info("Problem making SMI-S call: ", e);
             ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
             taskCompleter.error(_dbClient, error);
-        }  finally {
+        } finally {
             _log.info("activateGroupClones operation END");
         }
     }
-    
+
     /**
-     * Implementation for restoring of clones in CG. 
-     *
-     * @param storage       [required] - StorageSystem object representing the array
-     * @param clones        [required] - URIs representing the previously created clones
+     * Implementation for restoring of clones in CG.
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param clones [required] - URIs representing the previously created clones
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      */
     @Override
@@ -221,7 +208,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
                 CIMObjectPath cimJob = null;
                 CIMArgument[] restoreCGSnapInput = _helper.getRestoreFromReplicaInputArgumentsWithForce(groupSynchronized);
                 cimJob = _helper.callModifyReplica(storage, restoreCGSnapInput);
-                
+
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisCloneRestoreJob(cimJob, storage.getId(), taskCompleter)));
             } else {
                 ServiceError error = DeviceControllerErrors.smis.unableToFindSynchPath(consistencyGroupName);
@@ -236,12 +223,12 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             taskCompleter.error(_dbClient, error);
         }
     }
-    
+
     /**
-     * Implementation for resync clones in CG. 
-     *
-     * @param storage       [required] - StorageSystem object representing the array
-     * @param clones        [required] - URIs representing the previously created clones
+     * Implementation for resync clones in CG.
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param clones [required] - URIs representing the previously created clones
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      */
     @Override
@@ -259,7 +246,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
                 CIMObjectPath cimJob = null;
                 CIMArgument[] resyncCGCloneInput = _helper.getResyncReplicaInputArguments(groupSynchronized);
                 cimJob = _helper.callModifyReplica(storage, resyncCGCloneInput);
-                
+
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisCloneResyncJob(cimJob, storage.getId(), taskCompleter)));
             } else {
                 ServiceError error = DeviceControllerErrors.smis.unableToFindSynchPath(consistencyGroupName);
@@ -273,7 +260,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions.resynchronizeFullCopyFailed(e));
         }
     }
-    
+
     @Override
     @SuppressWarnings("rawtypes")
     public void fractureGroupClones(StorageSystem storage, List<URI> clones, TaskCompleter completer) {
@@ -281,7 +268,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
         try {
             callEMCRefreshIfRequired(_dbClient, _helper, storage, clones);
             CIMObjectPath groupSynchronized = ReplicationUtils.getCloneGroupSynchronizedPath(storage, clones.get(0),
-                                                _dbClient, _helper, _cimPath);
+                    _dbClient, _helper, _cimPath);
             if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
                 CIMObjectPath cimJob = null;
                 CIMArgument[] fractureCGCloneInput = _helper.getFractureMirrorInputArguments(groupSynchronized, null);
@@ -290,7 +277,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
                 for (Volume theClone : cloneVolumes) {
                     theClone.setReplicaState(ReplicationState.SYNCHRONIZED.name());
                 }
-                _dbClient.persistObject(cloneVolumes); 
+                _dbClient.persistObject(cloneVolumes);
                 completer.ready(_dbClient);
             } else {
                 Volume clone = _dbClient.queryObject(Volume.class, clones.get(0));
@@ -304,17 +291,17 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             _log.error(message, e);
             completer.error(_dbClient, DeviceControllerException.exceptions.fractureFullCopyFailed(e));
         }
-        
+
     }
-    
+
     @SuppressWarnings("rawtypes")
     @Override
-    public void detachGroupClones(StorageSystem storage, List<URI> clones,TaskCompleter completer) {
+    public void detachGroupClones(StorageSystem storage, List<URI> clones, TaskCompleter completer) {
         _log.info("START detach group clone operation");
         try {
             callEMCRefreshIfRequired(_dbClient, _helper, storage, clones);
-            CIMObjectPath groupSynchronized = ReplicationUtils.getCloneGroupSynchronizedPath(storage, clones.get(0), _dbClient, 
-                                                    _helper, _cimPath);
+            CIMObjectPath groupSynchronized = ReplicationUtils.getCloneGroupSynchronizedPath(storage, clones.get(0), _dbClient,
+                    _helper, _cimPath);
             if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
                 CIMArgument[] detachCGCloneInput = _helper.getDetachCloneSynchronizationInputArguments(groupSynchronized);
                 _helper.callModifyReplica(storage, detachCGCloneInput);
@@ -340,7 +327,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
                             storage.getSerialNumber());
             _log.error(message, e);
             completer.error(_dbClient, DeviceControllerException.exceptions.detachVolumeFullCopyFailed(e));
-        }    
-        
+        }
+
     }
 }

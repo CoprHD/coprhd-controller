@@ -35,15 +35,15 @@ public interface TimeSeriesMetadata {
 
     /**
      * Name of this time series data type
-     *
+     * 
      * @return
      */
-    public String getName();
+    String getName();
 
     /**
      * Supported query granularity
-     *
+     * 
      * @return bucket granularities at which you can query this time series data type
      */
-    public List<TimeBucket> getSupportedQueryGranularity();
+    List<TimeBucket> getSupportedQueryGranularity();
 }

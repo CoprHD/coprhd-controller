@@ -43,7 +43,7 @@ import com.emc.storageos.systemservices.impl.logsvc.LogConstants;
 public class LogUtil {
     // Logger reference.
     private static final Logger logger = LoggerFactory.getLogger(LogUtil.class);
-    
+
     // suppress default constructor for noninstantiability
     private LogUtil() {
         throw new AssertionError("This class should not be instantiated");
@@ -63,10 +63,10 @@ public class LogUtil {
             Date end) throws IOException {
         List<String> nameList = new ArrayList<>();
 
-        for(File f : files) {
-        	logger.debug("file path: " + f.getAbsolutePath());
+        for (File f : files) {
+            logger.debug("file path: " + f.getAbsolutePath());
         }
-        if (files.size() > 0) {
+        if (!files.isEmpty()) {
             Collections.sort(files, new LogFileComparator());
             for (File file : files) {
                 if (fileInTimeRange(file, start, end) < 0) {
@@ -134,10 +134,10 @@ public class LogUtil {
      * we shouldn't stop even if max count limit has been exceeded.
      * The upper layer component will decide if the last batch of logs should be discarded
      * as a whole.
-     *
+     * 
      * This method is used by classes that read one log each time, e.g. LogFileStream,
      * LogStreamMerger
-     *
+     * 
      * @param maxCount
      * @param logCount logCount INCLUDING the current log
      * @param currentLogTime
@@ -145,7 +145,7 @@ public class LogUtil {
      * @return whether the current log should be returned to the upper layer.
      */
     public static boolean permitCurrentLog(long maxCount, long logCount, long currentLogTime,
-                                     long prevLogTime) {
+            long prevLogTime) {
         if (maxCount == 0) {
             return true;
         } else if (currentLogTime == prevLogTime) {
@@ -159,7 +159,7 @@ public class LogUtil {
     /**
      * Whether next batch of logs should be accepted according to maxCount and MAXCOUNT_OVERFLOW.
      * A batch of logs have the same timestamp.
-     *
+     * 
      * @param maxCount
      * @param currentLogSize logCount EXCLUDING the size of the next log batch
      * @param nextBatchSize
@@ -167,16 +167,17 @@ public class LogUtil {
      */
 
     public static boolean permitNextLogBatch(long maxCount, long currentLogSize, int nextBatchSize) {
-        if (maxCount == 0)
+        if (maxCount == 0) {
             // no maxCount limit
             return true;
-        else if (nextBatchSize == 1)
+        } else if (nextBatchSize == 1) {
             // next timestamp is unique, strictly follow the maxCount limit
             return currentLogSize < maxCount;
-        else
+        } else {
             // either within MAXCOUNT_OVERFLOW, or there's only one timestamp
             return (currentLogSize + nextBatchSize <= maxCount + LogConstants.MAXCOUNT_OVERFLOW) ||
                     (currentLogSize == 0);
+        }
     }
 
     // Earlier than start date reutrn -1;
@@ -229,14 +230,16 @@ public class LogUtil {
     }
 
     public static byte[] stringToBytes(String str) {
-        if (str == null)
+        if (str == null) {
             return null;
+        }
         return str.getBytes();
     }
 
     public static String bytesToString(byte[] bytes) {
-        if (bytes == null)
+        if (bytes == null) {
             return null;
+        }
         return new String(bytes);
     }
 

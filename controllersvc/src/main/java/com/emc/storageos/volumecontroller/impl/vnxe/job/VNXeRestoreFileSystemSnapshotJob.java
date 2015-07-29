@@ -43,17 +43,18 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 
-public class VNXeRestoreFileSystemSnapshotJob extends VNXeJob{
+public class VNXeRestoreFileSystemSnapshotJob extends VNXeJob {
 
     private static final long serialVersionUID = 154563020105138725L;
     private static final Logger _logger = LoggerFactory.getLogger(VNXeCreateFileSystemSnapshotJob.class);
+
     public VNXeRestoreFileSystemSnapshotJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter) {
         super(jobId, storageSystemUri, taskCompleter, "restoreFileSystemSnapshot");
     }
-    
+
     /**
      * Called to update the job status when the file system snapshot restore job completes.
-     *
+     * 
      * @param jobContext The job context.
      */
     @Override
@@ -84,7 +85,7 @@ public class VNXeRestoreFileSystemSnapshotJob extends VNXeJob{
                 logMsgBuilder.append(event);
 
             } else {
-                logMsgBuilder.append(String.format("Could not find the snapshot:", snapId));
+                logMsgBuilder.append(String.format("Could not find the snapshot:%s", snapId.toString()));
             }
             _logger.info(logMsgBuilder.toString());
             FileDeviceController.recordFileDeviceOperation(dbClient, OperationTypeEnum.RESTORE_FILE_SNAPSHOT, _isSuccess,
@@ -96,22 +97,22 @@ public class VNXeRestoreFileSystemSnapshotJob extends VNXeJob{
             super.updateStatus(jobContext);
         }
     }
-    
-    private void syncSnapshots(DbClient dbClient, FileShare fsObj, 
-                VNXeApiClient vnxeApiClient) {
-     // Retrieve all snapshots from DB that belong to this file system
+
+    private void syncSnapshots(DbClient dbClient, FileShare fsObj,
+            VNXeApiClient vnxeApiClient) {
+        // Retrieve all snapshots from DB that belong to this file system
         URIQueryResultList results = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.
-              Factory.getFileshareSnapshotConstraint(fsObj.getId()), results);
-        
-        // Setup snapshot name-object map 
+                Factory.getFileshareSnapshotConstraint(fsObj.getId()), results);
+
+        // Setup snapshot name-object map
         Map<String, Snapshot> snapshotsInDB = new ConcurrentHashMap<String, Snapshot>();
         while (results.iterator().hasNext()) {
             URI uri = results.iterator().next();
             Snapshot snap = dbClient.queryObject(Snapshot.class, uri);
             String nativeId = snap.getNativeId();
             if (nativeId == null || nativeId.isEmpty()) {
-                //no nativeId set in the snap, remove it from db.
+                // no nativeId set in the snap, remove it from db.
                 snap.setInactive(true);
                 dbClient.persistObject(snap);
                 _logger.info("No nativeId, removing the snapshot: {}", snap.getId());
@@ -120,31 +121,31 @@ public class VNXeRestoreFileSystemSnapshotJob extends VNXeJob{
                 snapshotsInDB.put(nativeId, snap);
             }
         }
-       
+
         // Retrieve list of valid snapshot names from the device
         List<VNXeFileSystemSnap> snapshots = vnxeApiClient.getFileSystemSnaps(fsObj.getNativeId());
         List<String> snapIdsOnDevice = new ArrayList<String>();
         for (VNXeFileSystemSnap snap : snapshots) {
             snapIdsOnDevice.add(snap.getId());
         }
-        
-        // Iterate through the snapshots in the DB and if name not found in 
+
+        // Iterate through the snapshots in the DB and if name not found in
         // the list returned by the device, mark snapshot in DB as inactive
         Set<String> snapshotNativeIds = snapshotsInDB.keySet();
-        for (String snapshotId: snapshotNativeIds) {
+        for (String snapshotId : snapshotNativeIds) {
             if (!snapIdsOnDevice.contains(snapshotId)) {
                 _logger.info("Removing the snapshot: {}", snapshotId);
                 snapshotsInDB.get(snapshotId).setInactive(true);
                 dbClient.persistObject(snapshotsInDB.get(snapshotId));
             }
         }
-            
-        // Iterate through the snapshot list from device and if a 
-        // snapshot is found on the device but not in the DB, add the 
+
+        // Iterate through the snapshot list from device and if a
+        // snapshot is found on the device but not in the DB, add the
         // newly discovered snapshot to the DB.
         for (VNXeFileSystemSnap snap : snapshots) {
             if (!snapshotNativeIds.contains(snap.getId())) {
-                _logger.info("adding the snapshot: {}", snap.getId() );
+                _logger.info("adding the snapshot: {}", snap.getId());
                 Snapshot newSnap = new Snapshot();
                 newSnap.setCreationTime(Calendar.getInstance());
                 newSnap.setId(URIUtil.createId(Snapshot.class));
@@ -161,5 +162,5 @@ public class VNXeRestoreFileSystemSnapshotJob extends VNXeJob{
             }
         }
     }
-    
+
 }

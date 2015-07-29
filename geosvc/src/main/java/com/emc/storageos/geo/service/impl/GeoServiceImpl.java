@@ -39,7 +39,7 @@ public class GeoServiceImpl extends AbstractSecuredWebServer implements GeoServi
 
     @Autowired
     private ServiceBeacon _svcBeacon;
-    
+
     @Autowired
     private GeoBackgroundTasks _tasks;
 
@@ -56,7 +56,7 @@ public class GeoServiceImpl extends AbstractSecuredWebServer implements GeoServi
         _tasks.start();
         _log.info("Starting geo service done");
     }
-    
+
     private void initValidator() {
         Validator.setCoordinator(_coordinator);
     }

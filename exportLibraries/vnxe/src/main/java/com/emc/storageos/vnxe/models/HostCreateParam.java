@@ -20,29 +20,25 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 @XmlRootElement
-@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
-public class HostCreateParam extends ParamBase{
-	private int type;
-	private String description;
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+public class HostCreateParam extends ParamBase {
+    private int type;
+    private String description;
 
-	
-	public int getType() {
-		return type;
-	}
+    public int getType() {
+        return type;
+    }
 
+    public void setType(int type) {
+        this.type = type;
+    }
 
-	public void setType(int type) {
-		this.type = type;
-	}
+    public String getDescription() {
+        return description;
+    }
 
-
-	public String getDescription() {
-		return description;
-	}
-
-
-	public void setDescription(String description) {
-		this.description = description;
-	}
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
 }

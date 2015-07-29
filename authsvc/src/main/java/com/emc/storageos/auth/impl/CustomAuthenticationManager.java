@@ -45,7 +45,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- *  Default Authentication manager implementation
+ * Default Authentication manager implementation
  */
 public class CustomAuthenticationManager implements AuthenticationManager {
     private final Logger _log = LoggerFactory.getLogger(CustomAuthenticationManager.class);
@@ -62,7 +62,8 @@ public class CustomAuthenticationManager implements AuthenticationManager {
     @Autowired
     protected TokenManager _tokenManager;
 
-    public  CustomAuthenticationManager() {    }
+    public CustomAuthenticationManager() {
+    }
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
@@ -85,7 +86,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
         boolean found = false;
         String handlerName;
 
-        for (AuthenticationProvider provider : getAuthenticationProviders() ) {
+        for (AuthenticationProvider provider : getAuthenticationProviders()) {
             StorageOSAuthenticationHandler authenticationHandler = provider.getHandler();
             StorageOSPersonAttributeDao attributeRepository = provider.getAttributeRepository();
             if (!authenticationHandler.supports(credentials)) {
@@ -122,10 +123,10 @@ public class CustomAuthenticationManager implements AuthenticationManager {
     public boolean isGroupValid(final String groupId,
             ValidationFailureReason[] failureReason) {
         boolean providerFound = false;
-        if(isUserGroup(groupId)){
-            //If the domain component is empty consider this group
-            //as a local userGroup. So, avoid the validation
-            //of the group from the authnProvider.
+        if (isUserGroup(groupId)) {
+            // If the domain component is empty consider this group
+            // as a local userGroup. So, avoid the validation
+            // of the group from the authnProvider.
             return isValidUserGroup(failureReason, groupId);
         } else {
             UsernamePasswordCredentials groupCreds = new UsernamePasswordCredentials(groupId, "");
@@ -157,7 +158,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
     public void validateUser(final String userId, final String tenantId, final String altTenantId) {
         UsernamePasswordCredentials creds = new UsernamePasswordCredentials(userId, "");
         boolean providerFound = false;
-        for (AuthenticationProvider provider : getAuthenticationProviders() ) {
+        for (AuthenticationProvider provider : getAuthenticationProviders()) {
             if (!provider.getHandler().supports(creds)) {
                 continue;
             }
@@ -171,7 +172,6 @@ public class CustomAuthenticationManager implements AuthenticationManager {
             throw APIException.badRequests.NoAuthnProviderFound(userId);
         }
     }
-
 
     @Override
     public UserDetails getUserDetails(final String username) {
@@ -195,14 +195,14 @@ public class CustomAuthenticationManager implements AuthenticationManager {
                 switch (reason[0]) {
                     case LDAP_CONNECTION_FAILED:
                         throw SecurityException.fatals
-                        .communicationToLDAPResourceFailed();
+                                .communicationToLDAPResourceFailed();
                     case LDAP_MANAGER_AUTH_FAILED:
                         throw SecurityException.fatals.ldapManagerAuthenticationFailed();
                     default:
                     case USER_OR_GROUP_NOT_FOUND_FOR_TENANT:
                         throw APIException.badRequests.principalSearchFailed(username);
-                    //LDAP_CANNOT_SEARCH_GROUP_IN_LDAP_MODE case is not needed here as 
-                    //this is only user search.
+                        // LDAP_CANNOT_SEARCH_GROUP_IN_LDAP_MODE case is not needed here as
+                        // this is only user search.
                 }
             }
         }
@@ -213,7 +213,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
     public void refreshUser(String username) throws SecurityException, BadRequestException {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(username, "");
 
-        for (AuthenticationProvider provider : getAuthenticationProviders() ) {
+        for (AuthenticationProvider provider : getAuthenticationProviders()) {
             StorageOSAuthenticationHandler authenticationHandler = provider.getHandler();
             if (!authenticationHandler.supports(credentials)) {
                 continue;
@@ -238,7 +238,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
             } else if (userDAO == null
                     && failureReason[0] == ValidationFailureReason.LDAP_MANAGER_AUTH_FAILED) {
                 throw SecurityException.fatals.ldapManagerAuthenticationFailed();
-            } else if(userDAO == null) {
+            } else if (userDAO == null) {
                 // we coudln't find the user, which means it's no longer valid, so we need
                 // to logout the user
                 _tokenManager.deleteAllTokensForUser(username, true);
@@ -260,7 +260,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
         return _authNProviders.getAuthenticationProviders();
     }
 
-    public void setLocalAuthenticationProvider(AuthenticationProvider localAuthenticationProvider ) {
+    public void setLocalAuthenticationProvider(AuthenticationProvider localAuthenticationProvider) {
         _localAuthenticationProvider = localAuthenticationProvider;
     }
 
@@ -270,7 +270,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
     @Override
     public Map<URI, UserMapping> getUserTenants(String username) {
         UsernamePasswordCredentials creds = new UsernamePasswordCredentials(username, "");
-        for (AuthenticationProvider provider : getAuthenticationProviders() ) {
+        for (AuthenticationProvider provider : getAuthenticationProviders()) {
             if (!provider.getHandler().supports(creds)) {
                 continue;
             }
@@ -280,13 +280,12 @@ public class CustomAuthenticationManager implements AuthenticationManager {
         return null;
     }
 
-
     @Override
     public Map<URI, UserMapping> peekUserTenants(String username,
-                                                 URI tenantUri,
-                                                 List<UserMapping> userMappings) {
+            URI tenantUri,
+            List<UserMapping> userMappings) {
         UsernamePasswordCredentials creds = new UsernamePasswordCredentials(username, "");
-        for (AuthenticationProvider provider : getAuthenticationProviders() ) {
+        for (AuthenticationProvider provider : getAuthenticationProviders()) {
             if (!provider.getHandler().supports(creds)) {
                 continue;
             }
@@ -299,12 +298,13 @@ public class CustomAuthenticationManager implements AuthenticationManager {
      * Return something useful to log from the credentials object
      * We don't want to just log credentials because it may contain
      * sensisitive information such as a password
+     * 
      * @param credentials the credentials that will be logged
      * @return the object to identify the credentials in log
      */
     private Object logFormat(final Credentials credentials) {
-        if( UsernamePasswordCredentials.class.isAssignableFrom(credentials.getClass() )) {
-            return ((UsernamePasswordCredentials)credentials).getUserName();
+        if (UsernamePasswordCredentials.class.isAssignableFrom(credentials.getClass())) {
+            return ((UsernamePasswordCredentials) credentials).getUserName();
         } else {
             return credentials.getClass();
         }
@@ -320,7 +320,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
                 ImmutableAuthenticationProviders.getInstance(_dbClient, _coordinator,
                         _localAuthenticationProvider, null);
         // start the async reload thread
-        Thread thread =  new Thread(_updaterRunnable);
+        Thread thread = new Thread(_updaterRunnable);
         thread.setName("ProviderConfigUpdater");
         _updaterRunnable.wakeup();
         thread.start();
@@ -349,6 +349,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
 
         private class Waiter {
             private long _t = 0;
+
             public synchronized void sleep(long milliSeconds) {
                 _t = System.currentTimeMillis() + milliSeconds;
                 while (true) {
@@ -377,11 +378,11 @@ public class CustomAuthenticationManager implements AuthenticationManager {
 
         private final Waiter _waiter = new Waiter();
 
-        private void sleep (final long ms) {
+        private void sleep(final long ms) {
             _waiter.sleep(ms);
         }
 
-        public void wakeup () {
+        public void wakeup() {
             _lastNotificationTime = System.currentTimeMillis();
             _log.info("received notification to reload {}", _lastNotificationTime);
             _waiter.wakeup();
@@ -400,6 +401,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
 
         /**
          * checks to see if any of the provider configuration is updated from when we have seen it last
+         * 
          * @return true if it is updated, false otherwise
          * @throws DatabaseException
          */
@@ -412,18 +414,18 @@ public class CustomAuthenticationManager implements AuthenticationManager {
                     return true;
                 }
                 // check they all match
-                for (AuthnProvider provider: providers) {
+                for (AuthnProvider provider : providers) {
                     // we have seen this before
                     if (!_lastKnownConfiguration.containsKey(provider.getId())) {
                         return true;
                     }
                     // we have the same lastmodified timestamp
-                    if (!_lastKnownConfiguration.get(provider.getId()).equals(provider.getLast_modified())) {
+                    if (!_lastKnownConfiguration.get(provider.getId()).equals(provider.getLastModified())) {
                         return true;
                     }
                 }
             } else {
-                if (providers.size() > 0) {
+                if (!providers.isEmpty()) {
                     return true;
                 }
             }
@@ -433,18 +435,19 @@ public class CustomAuthenticationManager implements AuthenticationManager {
 
         /**
          * update out last known provider config information
+         * 
          * @param knownProviders
          */
         private void updateLastKnown(List<AuthnProvider> knownProviders) {
             _lastKnownConfiguration = new HashMap<URI, Long>();
-            for (AuthnProvider provider: knownProviders) {
-                _lastKnownConfiguration.put(provider.getId(), provider.getLast_modified());
+            for (AuthnProvider provider : knownProviders) {
+                _lastKnownConfiguration.put(provider.getId(), provider.getLastModified());
             }
         }
 
         @Override
         public void run() {
-            while(_doRun) {
+            while (_doRun) {
                 boolean bForceReload = (_lastNotificationTime > _lastReloadTime);
                 _log.info("Starting authn provider config reload, lastNotificationTime = {}, lastReloadTime = {}",
                         _lastNotificationTime, _lastReloadTime);
@@ -477,9 +480,9 @@ public class CustomAuthenticationManager implements AuthenticationManager {
                     _log.error("Exception loading authentication provider configuration from db"
                             + ", will a retry in {} secs", _providerUpdateRetrySeconds, e);
                     // schedule a retry
-                    try{
+                    try {
                         Thread.sleep(_providerUpdateRetrySeconds * 1000);
-                    }catch(Exception ignore){
+                    } catch (Exception ignore) {
                         _log.error("Got Exception in thread.sleep()", e);
                     }
                 }
@@ -493,13 +496,13 @@ public class CustomAuthenticationManager implements AuthenticationManager {
      * not. This is done by checking if the groupId contains "@domain"
      * suffix or not. If it contains the "@domain" suffix that is considered
      * to be group in the authnprovider.
-     *
+     * 
      * @param groupId to be checked if it is local user group or not.
      * @return true if it is local user group otherwise false.
      */
     private boolean isUserGroup(String groupId) {
         boolean isUserGroup = false;
-        if( StringUtils.isNotBlank(groupId)) {
+        if (StringUtils.isNotBlank(groupId)) {
             String[] groupParts = groupId.split("@");
             isUserGroup = (groupParts.length == 1);
         }
@@ -509,17 +512,17 @@ public class CustomAuthenticationManager implements AuthenticationManager {
     /**
      * Check the given group name matches the label of the active
      * user group in the db or not.
-     *
+     * 
      * @param failureReason to be returned.
      * @param group to be checked if there is a valid user group
-     *              available in the system that matches this label or not.
+     *            available in the system that matches this label or not.
      * @return true if it is local user group found in the system
-     *              otherwise false.
+     *         otherwise false.
      */
     private boolean isValidUserGroup(ValidationFailureReason[] failureReason, String group) {
         List<UserGroup> objectList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, UserGroup.class,
                 PrefixConstraint.Factory.getFullMatchConstraint(UserGroup.class, "label", group));
-        if(CollectionUtils.isEmpty(objectList)) {
+        if (CollectionUtils.isEmpty(objectList)) {
             // null means Exception has been thrown and error logged already, empty means no group found in LDAP/AD
             _log.error("UserGroup {} is not present in DB", group);
             failureReason[0] = ValidationFailureReason.USER_OR_GROUP_NOT_FOUND_FOR_TENANT;

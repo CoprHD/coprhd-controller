@@ -97,8 +97,7 @@ public class CharStreamConsumer {
             current.interrupt();
             try {
                 current.join();
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 // Ignore
             }
         }
@@ -120,8 +119,8 @@ public class CharStreamConsumer {
                     break;
                 }
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
         }
         trace("Finished");
     }

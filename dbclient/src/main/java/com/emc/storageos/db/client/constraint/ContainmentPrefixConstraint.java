@@ -15,7 +15,6 @@
 
 package com.emc.storageos.db.client.constraint;
 
-
 import com.emc.storageos.db.client.constraint.impl.ContainmentLabelConstraintImpl;
 import com.emc.storageos.db.client.constraint.impl.ContainmentPrefixConstraintImpl;
 import com.emc.storageos.db.client.impl.ColumnField;
@@ -24,17 +23,18 @@ import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.*;
 
 import java.net.URI;
-import java.util.List;
 
 /**
- * ContainmentPrefix constraint.  For example, find volumes with its name starting
+ * ContainmentPrefix constraint. For example, find volumes with its name starting
  * with 'foo' under project X
  */
 public interface ContainmentPrefixConstraint extends Constraint {
     /**
      * Factory for creating containment prefix constraint for various object types
      */
-    public static class Factory {
+    class Factory {
+        private static final String PROJECT = "project";
+
         public static ContainmentPrefixConstraint getProjectUnderTenantConstraint(
                 URI tenant, String projectPrefix) {
             DataObjectType doType = TypeMap.getDoType(Project.class);
@@ -45,7 +45,7 @@ public interface ContainmentPrefixConstraint extends Constraint {
         public static ContainmentPrefixConstraint getFileshareUnderProjectConstraint(
                 URI project, String fileSharePrefix) {
             DataObjectType doType = TypeMap.getDoType(FileShare.class);
-            ColumnField field = doType.getColumnField("project");
+            ColumnField field = doType.getColumnField(PROJECT);
             return new ContainmentPrefixConstraintImpl(project, fileSharePrefix, field);
         }
 
@@ -59,7 +59,7 @@ public interface ContainmentPrefixConstraint extends Constraint {
         public static ContainmentPrefixConstraint getVolumeUnderProjectConstraint(
                 URI project, String volumePrefix) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
-            ColumnField field = doType.getColumnField("project");
+            ColumnField field = doType.getColumnField(PROJECT);
             return new ContainmentPrefixConstraintImpl(project, volumePrefix, field);
         }
 
@@ -73,21 +73,21 @@ public interface ContainmentPrefixConstraint extends Constraint {
         public static ContainmentPrefixConstraint getExportGroupUnderProjectConstraint(
                 URI project, String exportGroupPrefix) {
             DataObjectType doType = TypeMap.getDoType(ExportGroup.class);
-            ColumnField field = doType.getColumnField("project");
+            ColumnField field = doType.getColumnField(PROJECT);
             return new ContainmentPrefixConstraintImpl(project, exportGroupPrefix, field);
         }
 
         public static ContainmentPrefixConstraint getSnapshotUnderProjectConstraint(
                 URI project, String snapshotPrefix) {
             DataObjectType doType = TypeMap.getDoType(Snapshot.class);
-            ColumnField field = doType.getColumnField("project");
+            ColumnField field = doType.getColumnField(PROJECT);
             return new ContainmentPrefixConstraintImpl(project, snapshotPrefix, field);
         }
 
         public static ContainmentPrefixConstraint getBlockSnapshotUnderProjectConstraint(
                 URI project, String blockSnapshotPrefix) {
             DataObjectType doType = TypeMap.getDoType(BlockSnapshot.class);
-            ColumnField field = doType.getColumnField("project");
+            ColumnField field = doType.getColumnField(PROJECT);
             return new ContainmentPrefixConstraintImpl(project, blockSnapshotPrefix, field);
         }
 
@@ -101,15 +101,15 @@ public interface ContainmentPrefixConstraint extends Constraint {
         public static ContainmentPrefixConstraint getConsistencyGroupUnderProjectConstraint(
                 URI project, String consistencyGroupPrefix) {
             DataObjectType doType = TypeMap.getDoType(BlockConsistencyGroup.class);
-            ColumnField field = doType.getColumnField("project");
+            ColumnField field = doType.getColumnField(PROJECT);
             return new ContainmentPrefixConstraintImpl(project, consistencyGroupPrefix, field);
         }
-        
+
         public static ContainmentPrefixConstraint getConstraint(
-                                                      Class<? extends DataObject> type,
-                                                      String columeField,
-                                                      URI resourceUri,
-                                                      String prefix) {
+                Class<? extends DataObject> type,
+                String columeField,
+                URI resourceUri,
+                String prefix) {
             DataObjectType doType = TypeMap.getDoType(type);
             ColumnField field = doType.getColumnField(columeField);
             return new ContainmentPrefixConstraintImpl(resourceUri, prefix, field);

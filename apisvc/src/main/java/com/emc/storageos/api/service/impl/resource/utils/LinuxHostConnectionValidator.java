@@ -17,7 +17,7 @@ import com.iwave.ext.linux.LinuxSystemCLI;
 public class LinuxHostConnectionValidator extends HostConnectionValidator {
 
     protected final static Logger log = LoggerFactory.getLogger(LinuxHostConnectionValidator.class);
-    
+
     @PostConstruct
     public void init() {
         addValidator(this);
@@ -33,21 +33,20 @@ public class LinuxHostConnectionValidator extends HostConnectionValidator {
         HostType hostType = HostType.valueOf(hostParam.getType());
         if (getType().equals(hostType) == false) {
             throw new IllegalStateException(String.format("Invalid HostType [%s]", hostParam.getType()));
-        }        
-        
+        }
+
         String password = hostParam.getPassword();
         if (password == null && existingHost != null) {
             password = existingHost.getPassword();
         }
-        
+
         LinuxSystemCLI cli = new LinuxSystemCLI(hostParam.getHostName(), hostParam.getPortNumber(), hostParam.getUserName(),
                 password);
         try {
             cli.listMountPoints();
             return true;
-        }
-        catch (Throwable e) {
-            log.info(String.format("Error Validating Host %s", hostParam.getName()),e);
+        } catch (Exception e) {
+            log.error(String.format("Error Validating Host %s", hostParam.getName()), e);
         }
         return false;
     }

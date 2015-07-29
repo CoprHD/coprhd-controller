@@ -420,6 +420,10 @@ ext {
         "javax.jmdns:jmdns:3.4.1"
     ]
 
+    json_sanitizer = [
+        "com.mikesamuel:json-sanitizer:1.0"
+    ]
+
     jsoup = [
         "org.jsoup:jsoup:1.8.2"
     ]

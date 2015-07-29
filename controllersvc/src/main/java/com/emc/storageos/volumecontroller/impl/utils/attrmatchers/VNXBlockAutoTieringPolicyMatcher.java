@@ -31,7 +31,6 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.google.common.base.Joiner;
 
-
 /**
  * VNXBlockAutoTieringPolicyMatcher is responsible to match all the pools matching FAST policy name
  * given CoS. This is applicable only to VNX.
@@ -42,18 +41,19 @@ public class VNXBlockAutoTieringPolicyMatcher extends AttributeMatcher {
     private static final Logger _logger = LoggerFactory
             .getLogger(VNXBlockAutoTieringPolicyMatcher.class);
 
-
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
         if (null != attributeMap
                 && attributeMap.containsKey(Attributes.auto_tiering_policy_name.toString())
-                && checkVNXBlockPolicyNames(attributeMap))
+                && checkVNXBlockPolicyNames(attributeMap)) {
             return true;
+        }
         return false;
     }
-    
+
     /**
      * Return true if the policy is matching with the default VNX policy names.
+     * 
      * @return
      */
     private boolean checkVNXBlockPolicyNames(Map<String, Object> attributeMap) {
@@ -66,9 +66,9 @@ public class VNXBlockAutoTieringPolicyMatcher extends AttributeMatcher {
                 || AutoTieringPolicy.VnxFastPolicy.DEFAULT_AUTOTIER.toString().equalsIgnoreCase(autoTierPolicyName)
                 || AutoTieringPolicy.VnxFastPolicy.DEFAULT_HIGHEST_AVAILABLE.toString().equalsIgnoreCase(autoTierPolicyName)
                 || AutoTieringPolicy.VnxFastPolicy.DEFAULT_LOWEST_AVAILABLE.toString().equalsIgnoreCase(autoTierPolicyName)
-                || AutoTieringPolicy.VnxFastPolicy.DEFAULT_START_HIGH_THEN_AUTOTIER.toString().equalsIgnoreCase(autoTierPolicyName)
-                        )
+                || AutoTieringPolicy.VnxFastPolicy.DEFAULT_START_HIGH_THEN_AUTOTIER.toString().equalsIgnoreCase(autoTierPolicyName)) {
             return true;
+        }
         return false;
     }
 
@@ -91,11 +91,12 @@ public class VNXBlockAutoTieringPolicyMatcher extends AttributeMatcher {
         /** Run Ranking Algorithm to get matched Pools on VNX */
         return returnMatchedVNXPoolsForGivenAutoTieringPolicy(pools, autoTieringPolicyName);
     }
+
     /**
      * Ranking Algorithm to find matched Pools
      * 
      * NO_DATA_MOVEMENT : return all the Pools
-     * AUTO_TIER : 
+     * AUTO_TIER :
      * Find Pools which contains more than one tier, if not found return all the Pools
      * HIGHEST_TIER:
      * Find Pools which contains max tierPercentage looping through each Derive Type starting from
@@ -105,45 +106,45 @@ public class VNXBlockAutoTieringPolicyMatcher extends AttributeMatcher {
      * matched Pool or the processing of all drive Types is done.
      * LOWEST_TIER:
      * The same logic works , by passing drive Types in reverse order.
-     *  
+     * 
      * @param pools
      * @param auto_tier_policy_name
      * @return
      */
     private List<StoragePool> returnMatchedVNXPoolsForGivenAutoTieringPolicy(
-            List<StoragePool> pools, String auto_tier_policy_name ) {
-        
+            List<StoragePool> pools, String auto_tier_policy_name) {
+
         if (AutoTieringPolicy.VnxFastPolicy.DEFAULT_NO_MOVEMENT.toString()
                 .equalsIgnoreCase(auto_tier_policy_name)) {
             _logger.info("Auto Tiering {} Matcher Ended  {} :",
                     auto_tier_policy_name,
                     Joiner.on("\t").join(getNativeGuidFromPools(pools)));
             return pools;
-        } 
-        
+        }
+
         if (AutoTieringPolicy.VnxFastPolicy.DEFAULT_AUTOTIER.toString().equalsIgnoreCase(auto_tier_policy_name) ||
-            AutoTieringPolicy.VnxFastPolicy.DEFAULT_START_HIGH_THEN_AUTOTIER.toString().equalsIgnoreCase(auto_tier_policy_name)) {
+                AutoTieringPolicy.VnxFastPolicy.DEFAULT_START_HIGH_THEN_AUTOTIER.toString().equalsIgnoreCase(auto_tier_policy_name)) {
             return getMatchingPoolsForVNXAutoTier(pools, auto_tier_policy_name);
         }
-        
+
         return runRankingAlgorithmToGetMatchedPoolsForHighAndLowTiers(
                 auto_tier_policy_name, pools);
     }
-
 
     private List<StoragePool> runRankingAlgorithmToGetMatchedPoolsForHighAndLowTiers(
             String fastPolicyName, List<StoragePool> initialPools) {
         List<StoragePool> percentageFilteredPool = new ArrayList<StoragePool>(
                 initialPools);
         List<SupportedTiers> tierTypes = getTierTypeOrderBasedOnPolicy(fastPolicyName);
-        
+
         // Pools got based on ordered drive Type
         for (SupportedTiers tierType : tierTypes) {
             // max percentage logic
             percentageFilteredPool = getAvailablePoolWithMaxUtilizationPercentage(
                     percentageFilteredPool, tierType.toString());
-            if (percentageFilteredPool.size() == 1)
+            if (percentageFilteredPool.size() == 1) {
                 break;
+            }
         }
         _logger.info("Auto Tiering {} Matcher Ended  {} :", fastPolicyName,
                 Joiner.on("\t").join(getNativeGuidFromPools(percentageFilteredPool)));
@@ -164,7 +165,7 @@ public class VNXBlockAutoTieringPolicyMatcher extends AttributeMatcher {
                     StorageTier.SupportedTiers.SAS,
                     StorageTier.SupportedTiers.FC,
                     StorageTier.SupportedTiers.SSD);
-        } 
+        }
         return Collections.EMPTY_LIST;
     }
 
@@ -177,8 +178,9 @@ public class VNXBlockAutoTieringPolicyMatcher extends AttributeMatcher {
         List<StoragePool> filteredPoolList = new ArrayList<StoragePool>();
         for (StoragePool pool : initialPools) {
             StringMap tierUtilizationPercentage = pool.getTierUtilizationPercentage();
-            if (null == tierUtilizationPercentage.get(driveType))
+            if (null == tierUtilizationPercentage.get(driveType)) {
                 continue;
+            }
             if (Integer.parseInt(tierUtilizationPercentage.get(driveType)) > maxPercentage) {
                 maxPercentage = Integer
                         .parseInt(tierUtilizationPercentage.get(driveType));
@@ -188,7 +190,7 @@ public class VNXBlockAutoTieringPolicyMatcher extends AttributeMatcher {
                 filteredPoolList.add(pool);
             }
         }
-        if (filteredPoolList.size() == 0) {
+        if (filteredPoolList.isEmpty()) {
             _logger.info(
                     " None of the Pools matching the Drive Type {}-->returning all Pools{}:",
                     driveType, Joiner.on("\t").join(getNativeGuidFromPools(initialPools)));
@@ -204,11 +206,11 @@ public class VNXBlockAutoTieringPolicyMatcher extends AttributeMatcher {
         List<StoragePool> filteredPoolList = new ArrayList<StoragePool>();
         for (StoragePool pool : initialPools) {
             if (null != pool.getSupportedDriveTypes()
-                    && pool.getSupportedDriveTypes().size() > 0) {
+                    && !pool.getSupportedDriveTypes().isEmpty()) {
                 filteredPoolList.add(pool);
             }
         }
-        if (filteredPoolList.size() == 0) {
+        if (filteredPoolList.isEmpty()) {
             _logger.info(
                     "Auto Tiering Policy Matcher Ended : None of the Pools have more than 1 Tier, returning all Pools: {}-->{}",
                     autoTierPolicyName, Joiner.on("\t").join(getNativeGuidFromPools(initialPools)));

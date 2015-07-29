@@ -23,4 +23,3 @@ public class AuditLogDataTable extends DataTable {
         this.setServerSide(true);
     }
 }
-

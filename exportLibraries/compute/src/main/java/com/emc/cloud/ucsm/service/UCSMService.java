@@ -35,7 +35,7 @@ public interface UCSMService {
 
     public Map<String, LsServer> getAllAssociatedLsServers(String ucsmURL, String username, String password)
             throws ClientGeneralException;
-    
+
     public LsServer getLsServer(String ucsmURL, String username, String password, String uuid)
             throws ClientGeneralException;
 
@@ -44,13 +44,13 @@ public interface UCSMService {
 
     public List<LsbootPolicy> getBootPolicies(String ucsmURL, String username, String password)
             throws ClientGeneralException;
-    
+
     public List<VnicLanConnTempl> getVnicTemplates(String ucsmURL, String username, String password)
             throws ClientGeneralException;
-    
+
     public List<VnicSanConnTempl> getVhbaTemplates(String ucsmURL, String username, String password)
             throws ClientGeneralException;
-    
+
     public List<LsServer> getServiceProfileTemplates(String ucsmURL, String username, String password)
             throws ClientGeneralException;
 
@@ -62,7 +62,7 @@ public interface UCSMService {
 
     public LsServer unbindServiceProfile(String ucsmURL, String username, String password, String spDn)
             throws ClientGeneralException;
-    
+
     public LsServer bindSPToTemplate(String ucsmURL, String username, String password, String serviceProfileDn,
             String sptDn) throws ClientGeneralException;
 
@@ -93,8 +93,8 @@ public interface UCSMService {
     public List<SwVsan> getUcsSwitchVSans(String ucsmURL, String username, String password)
             throws ClientGeneralException;
 
-	public List<FabricVlan> getUcsVlans(String ucsmURL, String username, String password)
-			throws ClientGeneralException;
+    public List<FabricVlan> getUcsVlans(String ucsmURL, String username, String password)
+            throws ClientGeneralException;
 
     public List<FabricVsan> getUcsFabricVsans(String ucsmURL, String username, String password)
             throws ClientGeneralException;
@@ -111,14 +111,11 @@ public interface UCSMService {
 
     public void deleteServiceProfile(String ucsmURL, String username, String password, String spDn)
             throws ClientGeneralException;
-    
+
     LsServer setServiceProfileToNoBoot(String ucsmURL, String username, String password, String spDn)
             throws ClientGeneralException;
 
-
-
     <T> T getManagedObject(String ucsmURL, String username, String password, String dn, boolean hierarchical,
             Class<T> returnType) throws ClientGeneralException;
-
 
 }

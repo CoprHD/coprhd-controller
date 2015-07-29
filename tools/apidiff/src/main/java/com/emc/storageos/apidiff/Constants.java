@@ -20,7 +20,8 @@ package com.emc.storageos.apidiff;
  */
 public class Constants {
 
-    private Constants() {}
+    private Constants() {
+    }
 
     // Root element node of rest api xml document
     public static final String ROOT_NODE = "api-docs";
@@ -56,7 +57,7 @@ public class Constants {
     public static final String URL_PATH_SEPARATOR = "/";
 
     public static final String NAME_STRING_SEPARATOR = "-";
-    //XML file suffix
+    // XML file suffix
     public static final String XML_FILE_SUFFIX = "xml";
 
     // internal apis

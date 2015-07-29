@@ -24,140 +24,141 @@ import com.emc.storageos.services.OperationTypeEnum;
 @Component("CIMVolumeRecordableDeviceEvent")
 @Scope("prototype")
 public class CIMVolumeRecordableDeviceEvent extends
-		CIMInstanceRecordableDeviceEvent {
-	/**
-	 * Logger to log the debug statements
-	 */
-	private static final Logger _logger = LoggerFactory
-			.getLogger(CIMVolumeRecordableDeviceEvent.class);
+        CIMInstanceRecordableDeviceEvent {
+    /**
+     * Logger to log the debug statements
+     */
+    private static final Logger _logger = LoggerFactory
+            .getLogger(CIMVolumeRecordableDeviceEvent.class);
 
-	/**
-	 * Overloaded constructor
-	 * 
-	 * @param dbClient
-	 */
-	@Autowired
-	public CIMVolumeRecordableDeviceEvent(DbClient dbClient) {
-		super(dbClient);
-	}
+    /**
+     * Overloaded constructor
+     * 
+     * @param dbClient
+     */
+    @Autowired
+    public CIMVolumeRecordableDeviceEvent(DbClient dbClient) {
+        super(dbClient);
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	protected Class<? extends DataObject> getResourceClass() {
-		return Volume.class;
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected Class<? extends DataObject> getResourceClass() {
+        return Volume.class;
+    }
 
-	@Override
-	public String getNativeGuid() {
+    @Override
+    public String getNativeGuid() {
 
-		if (_nativeGuid != null) {
-			_logger.debug("Using already computed NativeGuid : {}", _nativeGuid);
-			return _nativeGuid;
-		}
-		try
-		{
-		    _nativeGuid = NativeGUIDGenerator.generateNativeGuid(_indication);
-		    logMessage(
-	                "NativeGuid for block Computed as  : [{}]",
-	                new Object[] { _nativeGuid });
-		}catch (Throwable e) {
-		    _logger.error("Unable to compute NativeGuid :", e);
+        if (_nativeGuid != null) {
+            _logger.debug("Using already computed NativeGuid : {}", _nativeGuid);
+            return _nativeGuid;
         }
-		
-		return _nativeGuid;
+        try
+        {
+            _nativeGuid = NativeGUIDGenerator.generateNativeGuid(_indication);
+            logMessage(
+                    "NativeGuid for block Computed as  : [{}]",
+                    new Object[] { _nativeGuid });
+        } catch (Exception e) {
+            _logger.error("Unable to compute NativeGuid :", e);
+        }
 
-	}
+        return _nativeGuid;
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public String getType() {
-		if (_eventType == null) {
-			_eventType = determineBourneVolumeEventType();
-		}
-		if (_eventType != null)
-			return _eventType;
-		else
-			return null;
-	}
+    }
 
-	/**
-	 * RAW event mapped with the Bourne defined Block related events. Creation
-	 * and Deletion Event Types were processed here. Volume Active and InActive
-	 * and File Share Active and InActive type determination had been done
-	 * inside OperationalStausDeterminer Component
-	 * 
-	 * @param notification
-	 * @return
-	 */
-	private String determineBourneVolumeEventType() {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getType() {
+        if (_eventType == null) {
+            _eventType = determineBourneVolumeEventType();
+        }
+        if (_eventType != null) {
+            return _eventType;
+        } else {
+            return null;
+        }
+    }
 
-		String eventType = "";
-		eventType = _indication.get(CIMConstants.INDICATION_CLASS_TAG);
-		String eventEnum = null;
+    /**
+     * RAW event mapped with the Bourne defined Block related events. Creation
+     * and Deletion Event Types were processed here. Volume Active and InActive
+     * and File Share Active and InActive type determination had been done
+     * inside OperationalStausDeterminer Component
+     * 
+     * @param notification
+     * @return
+     */
+    private String determineBourneVolumeEventType() {
 
-		logMessage("Raw indication of Type found {}",
-				new Object[] { eventType });
+        String eventType = "";
+        eventType = _indication.get(CIMConstants.INDICATION_CLASS_TAG);
+        String eventEnum = null;
 
-		if (eventType != null && eventType.length() > 0) {
-			if (eventType.contains(CIMConstants.INST_CREATION_EVENT)) {
-				eventEnum = OperationTypeEnum.CREATE_BLOCK_VOLUME.getEvType(true);
-			} else if (eventType.contains(CIMConstants.INST_DELETION_EVENT)) {
-				eventEnum = OperationTypeEnum.DELETE_BLOCK_VOLUME.getEvType(true);
-			} else {
+        logMessage("Raw indication of Type found {}",
+                new Object[] { eventType });
 
-				String[] osDescs = new String[0];
-				String[] osCodes = new String[0];
-				// Common Functionality.
-				osDescs = MonitoringPropertiesLoader
-						.splitStringIntoArray(getOperationalStatusDescriptions());
-				osCodes = MonitoringPropertiesLoader
-						.splitStringIntoArray(getOperationalStatusCodes());
+        if (eventType != null && eventType.length() > 0) {
+            if (eventType.contains(CIMConstants.INST_CREATION_EVENT)) {
+                eventEnum = OperationTypeEnum.CREATE_BLOCK_VOLUME.getEvType(true);
+            } else if (eventType.contains(CIMConstants.INST_DELETION_EVENT)) {
+                eventEnum = OperationTypeEnum.DELETE_BLOCK_VOLUME.getEvType(true);
+            } else {
 
-				eventEnum = _evtDeterminer
-						.determineEventTypeBasedOnOperationStatusValues(
-								_indication, Boolean.TRUE, osDescs, osCodes);
-			}
-		}
+                String[] osDescs = new String[0];
+                String[] osCodes = new String[0];
+                // Common Functionality.
+                osDescs = MonitoringPropertiesLoader
+                        .splitStringIntoArray(getOperationalStatusDescriptions());
+                osCodes = MonitoringPropertiesLoader
+                        .splitStringIntoArray(getOperationalStatusCodes());
 
-		return eventEnum;
-	}
+                eventEnum = _evtDeterminer
+                        .determineEventTypeBasedOnOperationStatusValues(
+                                _indication, Boolean.TRUE, osDescs, osCodes);
+            }
+        }
 
-	@Override
-	public String getExtensions() {
-		return null;
-	}
+        return eventEnum;
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void setApplicationContext(ApplicationContext applicationContext)
-			throws BeansException {
-		_applicationContext = applicationContext;
-	}
+    @Override
+    public String getExtensions() {
+        return null;
+    }
 
-	/**
-	 * Log the messages. This method eliminates the logging condition check
-	 * every time when we need to log a message.
-	 * 
-	 * @param msg
-	 * @param obj
-	 */
-	private void logMessage(String msg, Object[] obj) {
-		if (_monitoringPropertiesLoader.isToLogIndications()) {
-			_logger.debug("[Monitoring] -> " + msg, obj);
-		}
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext)
+            throws BeansException {
+        _applicationContext = applicationContext;
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public String getRecordType() {
-		return RecordType.Event.name();
-	}
+    /**
+     * Log the messages. This method eliminates the logging condition check
+     * every time when we need to log a message.
+     * 
+     * @param msg
+     * @param obj
+     */
+    private void logMessage(String msg, Object[] obj) {
+        if (_monitoringPropertiesLoader.isToLogIndications()) {
+            _logger.debug("[Monitoring] -> " + msg, obj);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getRecordType() {
+        return RecordType.Event.name();
+    }
 }

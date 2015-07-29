@@ -52,8 +52,8 @@ public class XIVStorageIPProtocolEndPointProcessor extends StorageEndPointProces
                 StoragePort port = null;
                 try {
                     ipPointInstance = it.next();
-                    String portInstanceID = getObjectPathfromCIMArgument(args).toString();   
-                    port = _dbClient.queryObject(StoragePort.class, (URI)keyMap.get(portInstanceID));
+                    String portInstanceID = getObjectPathfromCIMArgument(args).toString();
+                    port = _dbClient.queryObject(StoragePort.class, (URI) keyMap.get(portInstanceID));
                     keyMap.put(ipPointInstance.getObjectPath().toString(), port.getId());
                     updateIPEndPointDetails(port, ipPointInstance);
                 } catch (Exception e) {
@@ -63,7 +63,6 @@ public class XIVStorageIPProtocolEndPointProcessor extends StorageEndPointProces
             }
         } catch (Exception e) {
             _logger.error("Port IP End Point Discovery failed -->{}", getMessage(e));
-        } finally {
         }
     }
 

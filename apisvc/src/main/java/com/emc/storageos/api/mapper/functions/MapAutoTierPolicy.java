@@ -13,7 +13,6 @@
  * it is provided by or on behalf of EMC.
  */
 
-
 package com.emc.storageos.api.mapper.functions;
 
 import com.emc.storageos.api.mapper.BlockMapper;

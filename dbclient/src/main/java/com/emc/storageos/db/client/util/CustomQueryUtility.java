@@ -21,113 +21,106 @@ import com.emc.storageos.db.client.DbAggregatorItf;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.Row;
-import com.netflix.astyanax.model.Rows;
-
 import java.net.URI;
 import java.util.*;
 
 /**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
+ * 
  * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
+ * or is licensed to EMC Corporation from third parties. Use of this
  * software and the intellectual property contained therein is expressly
  * limited to the terms and conditions of the License Agreement under which
  * it is provided by or on behalf of EMC.
  */
 
 public class CustomQueryUtility {
-	
-	public static List<SMISProvider> getActiveSMISProvidersByProviderId(DbClient dbClient, String providerId) {
-        return  queryActiveResourcesByConstraint(dbClient,
-                                                 SMISProvider.class,
-                                                 AlternateIdConstraint.Factory.getSMISProviderByProviderIDConstraint(providerId));
+
+    public static List<SMISProvider> getActiveSMISProvidersByProviderId(DbClient dbClient, String providerId) {
+        return queryActiveResourcesByConstraint(dbClient,
+                SMISProvider.class,
+                AlternateIdConstraint.Factory.getSMISProviderByProviderIDConstraint(providerId));
     }
 
     public static List<StorageProvider> getActiveStorageProvidersByProviderId(DbClient dbClient, String providerId) {
-        return  queryActiveResourcesByConstraint(dbClient,
-                                                 StorageProvider.class,
-                                                 AlternateIdConstraint.Factory.getStorageProviderByProviderIDConstraint(providerId));
+        return queryActiveResourcesByConstraint(dbClient,
+                StorageProvider.class,
+                AlternateIdConstraint.Factory.getStorageProviderByProviderIDConstraint(providerId));
     }
-    
+
     public static List<StorageProvider> getActiveStorageProvidersByInterfaceType(DbClient dbClient, String interfaceType) {
-        return  queryActiveResourcesByConstraint(dbClient,
-                                                 StorageProvider.class,
-                                                 AlternateIdConstraint.Factory.getProviderByInterfaceTypeConstraint(interfaceType));
+        return queryActiveResourcesByConstraint(dbClient,
+                StorageProvider.class,
+                AlternateIdConstraint.Factory.getProviderByInterfaceTypeConstraint(interfaceType));
     }
 
-
-    public static List<StorageSystem> getActiveStorageSystemByMgmAccessId(DbClient dbClient, String mgmId ) {
+    public static List<StorageSystem> getActiveStorageSystemByMgmAccessId(DbClient dbClient, String mgmId) {
         return queryActiveResourcesByConstraint(dbClient,
-                                                StorageSystem.class,
-                                                AlternateIdConstraint.Factory.getStorageSystemByMgmtAccessPointConstraint(mgmId));
+                StorageSystem.class,
+                AlternateIdConstraint.Factory.getStorageSystemByMgmtAccessPointConstraint(mgmId));
     }
 
+    public static List<StorageSystem> getActiveStorageSystemByNativeGuid(DbClient dbClient, String nativeGuid) {
+        return queryActiveResourcesByConstraint(dbClient,
+                StorageSystem.class,
+                AlternateIdConstraint.Factory.getStorageSystemByNativeGuidConstraint(nativeGuid));
+    }
 
-    public static List<StorageSystem> getActiveStorageSystemByNativeGuid( DbClient dbClient, String nativeGuid ) {
+    public static List<StoragePool> getActiveStoragePoolByNativeGuid(DbClient dbClient, String nativeGuid) {
         return queryActiveResourcesByConstraint(dbClient,
-                                                StorageSystem.class,
-                                                AlternateIdConstraint.Factory.getStorageSystemByNativeGuidConstraint(nativeGuid));
+                StoragePool.class,
+                AlternateIdConstraint.Factory.getStoragePoolByNativeGuidConstraint(nativeGuid));
     }
-    
-    public static List<StoragePool> getActiveStoragePoolByNativeGuid( DbClient dbClient, String nativeGuid ) {
+
+    public static List<StoragePort> getActiveStoragePortByNativeGuid(DbClient dbClient, String nativeGuid) {
         return queryActiveResourcesByConstraint(dbClient,
-                                                StoragePool.class,
-                                                AlternateIdConstraint.Factory.getStoragePoolByNativeGuidConstraint(nativeGuid));
+                StoragePort.class,
+                AlternateIdConstraint.Factory.getStoragePortByNativeGuidConstraint(nativeGuid));
     }
-    
-    public static List<StoragePort> getActiveStoragePortByNativeGuid( DbClient dbClient, String nativeGuid ) {
+
+    public static List<StorageHADomain> getActiveStorageHADomainByNativeGuid(DbClient dbClient, String nativeGuid) {
         return queryActiveResourcesByConstraint(dbClient,
-                                                StoragePort.class,
-                                                AlternateIdConstraint.Factory.getStoragePortByNativeGuidConstraint(nativeGuid));
+                StorageHADomain.class,
+                AlternateIdConstraint.Factory.getStorageHADomainByNativeGuidConstraint(nativeGuid));
     }
-    
-    public static List<StorageHADomain> getActiveStorageHADomainByNativeGuid( DbClient dbClient, String nativeGuid ) {
+
+    public static List<Volume> getActiveVolumeByNativeGuid(DbClient dbClient, String nativeGuid) {
         return queryActiveResourcesByConstraint(dbClient,
-        										StorageHADomain.class,
-                                                AlternateIdConstraint.Factory.getStorageHADomainByNativeGuidConstraint(nativeGuid));
+                Volume.class,
+                AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(nativeGuid));
     }
-    
-    public static List<Volume> getActiveVolumeByNativeGuid( DbClient dbClient, String nativeGuid ) {
+
+    public static List<BlockSnapshot> getActiveBlockSnapshotByNativeGuid(DbClient dbClient, String nativeGuid) {
         return queryActiveResourcesByConstraint(dbClient,
-                                                Volume.class,
-                                                AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(nativeGuid));
+                BlockSnapshot.class,
+                AlternateIdConstraint.Factory.getBlockSnapshotsByNativeGuid(nativeGuid));
     }
-    
-    public static List<BlockSnapshot> getActiveBlockSnapshotByNativeGuid( DbClient dbClient, String nativeGuid ) {
-        return queryActiveResourcesByConstraint(dbClient,
-                                                BlockSnapshot.class,
-                                                AlternateIdConstraint.Factory.getBlockSnapshotsByNativeGuid(nativeGuid));
-    }
-    
+
     public static List<BlockMirror> getActiveBlockMirrorByNativeGuid(DbClient dbClient, String nativeGuid) {
-        return queryActiveResourcesByConstraint(dbClient, 
-                                                BlockMirror.class,
-                                                AlternateIdConstraint.Factory.getMirrorByNativeGuid(nativeGuid));
+        return queryActiveResourcesByConstraint(dbClient,
+                BlockMirror.class,
+                AlternateIdConstraint.Factory.getMirrorByNativeGuid(nativeGuid));
     }
-
 
     public static <T extends DataObject> List<T> queryActiveResourcesByAltId(DbClient dbClient,
-                                                                             Class<T> clazz,
-                                                                             String columnField,
-                                                                             String altId) {
+            Class<T> clazz,
+            String columnField,
+            String altId) {
         return queryActiveResourcesByConstraint(dbClient,
-                                                clazz,
-                                                AlternateIdConstraint.Factory.getConstraint(clazz, columnField, altId));
+                clazz,
+                AlternateIdConstraint.Factory.getConstraint(clazz, columnField, altId));
     }
 
-
-
     public static <T extends DataObject> List<T> queryActiveResourcesByRelation(DbClient dbClient,
-                                                                                URI parentID,
-                                                                                Class<T> childType,
-                                                                                String childField) {
+            URI parentID,
+            Class<T> childType,
+            String childField) {
 
-        return queryActiveResourcesByConstraint(dbClient,childType,
-                                                ContainmentConstraint.Factory.getContainedObjectsConstraint(parentID,
-                                                                                  childType,
-                                                                                  childField));
+        return queryActiveResourcesByConstraint(dbClient, childType,
+                ContainmentConstraint.Factory.getContainedObjectsConstraint(parentID,
+                        childType,
+                        childField));
 
     }
 
@@ -136,9 +129,9 @@ public class CustomQueryUtility {
         dbClient.queryByConstraint(constraint, list);
         Iterator<T> resultsIt = dbClient.queryIterativeObjects(clazz, list);
         List<T> objects = new ArrayList<T>();
-        while( resultsIt.hasNext() ) {
+        while (resultsIt.hasNext()) {
             T obj = resultsIt.next();
-            if( !obj.getInactive() ) {
+            if (!obj.getInactive()) {
                 objects.add(obj);
             }
         }
@@ -146,67 +139,65 @@ public class CustomQueryUtility {
     }
 
     public static <T extends DataObject> SumPrimitiveFieldAggregator aggregateActiveObject(
-                DbClient dbClient, Class<T> clazz,
-                String[] fields, Iterator<URI> ids){
+            DbClient dbClient, Class<T> clazz,
+            String[] fields, Iterator<URI> ids) {
 
         Iterator<URI> activeIds;
         if (ids != null) {
             activeIds = queryIterativeActiveObjects(dbClient, clazz, ids);
         }
         else {
-            activeIds = dbClient.queryByType(clazz,true).iterator();
+            activeIds = dbClient.queryByType(clazz, true).iterator();
         }
-        SumPrimitiveFieldAggregator aggregator = new SumPrimitiveFieldAggregator(clazz,fields);
-        dbClient.aggregateObjectField( clazz, activeIds, aggregator);
+        SumPrimitiveFieldAggregator aggregator = new SumPrimitiveFieldAggregator(clazz, fields);
+        dbClient.aggregateObjectField(clazz, activeIds, aggregator);
         return aggregator;
     }
 
     public static <T extends DataObject> AggregatedValue aggregatedPrimitiveField(DbClient dbClient,
-                                                                                  Class<T> clazz,
-                                                                                  String groupField,
-                                                                                  String groupValue,
-                                                                                  String aggregatedField) {
+            Class<T> clazz,
+            String groupField,
+            String groupValue,
+            String aggregatedField) {
         AggregationQueryResultList queryResults = new AggregationQueryResultList();
-        dbClient.queryByConstraint(AggregatedConstraint.Factory.getAggregationConstraint(clazz,groupField,groupValue,aggregatedField),
+        dbClient.queryByConstraint(AggregatedConstraint.Factory.getAggregationConstraint(clazz, groupField, groupValue, aggregatedField),
                 queryResults);
         Iterator<AggregationQueryResultList.AggregatedEntry> it = queryResults.iterator();
         return getAggregatedValue(it);
     }
 
     public static <T extends DataObject> AggregatedValue aggregatedPrimitiveField(DbClient dbClient,
-                                                                                  Class<T> clazz,
-                                                                                  String aggregatedField) {
+            Class<T> clazz,
+            String aggregatedField) {
 
         AggregationQueryResultList queryResults = new AggregationQueryResultList();
-        dbClient.queryByConstraint(AggregatedConstraint.Factory.getAggregationConstraint(clazz,aggregatedField),
+        dbClient.queryByConstraint(AggregatedConstraint.Factory.getAggregationConstraint(clazz, aggregatedField),
                 queryResults);
         Iterator<AggregationQueryResultList.AggregatedEntry> it = queryResults.iterator();
         return getAggregatedValue(it);
     }
 
-
-    public static <T extends DataObject> AggregatedValue getAggregatedValue( Iterator<AggregationQueryResultList.AggregatedEntry> it ){
+    public static <T extends DataObject> AggregatedValue getAggregatedValue(Iterator<AggregationQueryResultList.AggregatedEntry> it) {
         AggregatedValue agg = new AggregatedValue();
-        while( it.hasNext()){
+        while (it.hasNext()) {
             AggregationQueryResultList.AggregatedEntry entry = it.next();
-            agg.value += agg.getDouble(entry.value);
+            agg.value += agg.getDouble(entry.getValue());
             agg.count++;
         }
         return agg;
     }
 
     public static <T extends DataObject> SumPrimitiveFieldAggregator aggregateActiveObject(
-            DbClient dbClient, Class<T> clazz, String[] fields){
-       return aggregateActiveObject(dbClient,clazz,fields,null);
+            DbClient dbClient, Class<T> clazz, String[] fields) {
+        return aggregateActiveObject(dbClient, clazz, fields, null);
     }
-
 
     private static <T extends DataObject> List<URI> queryActiveObjects(DbClient dbClient, Class<T> clazz, List<URI> ids)
             throws DatabaseException {
 
-        class SelectActiveObjects  implements DbAggregatorItf{
+        class SelectActiveObjects implements DbAggregatorItf {
             private List<URI> _activeObjects;
-            private DataObjectType  _doType;
+            private DataObjectType _doType;
             private String _field;
             private ColumnField _columnField;
 
@@ -215,78 +206,38 @@ public class CustomQueryUtility {
             }
 
             public String[] getAggregatedFields() {
-                return new String[] {_field};
+                return new String[] { _field };
             }
 
-            public SelectActiveObjects(Class<? extends DataObject> clazz){
-                _activeObjects= new ArrayList<URI>();
+            public SelectActiveObjects(Class<? extends DataObject> clazz) {
+                _activeObjects = new ArrayList<URI>();
                 _doType = TypeMap.getDoType(clazz);
                 _field = "inactive";
-                _columnField =_doType.getColumnField(_field);
+                _columnField = _doType.getColumnField(_field);
 
             }
 
             @Override
-            public void aggregate(Row<String, CompositeColumnName> row){
+            public void aggregate(Row<String, CompositeColumnName> row) {
 
-                if(row.getColumns().size() == 0) {
+                if (row.getColumns().size() == 0) {
                     return;
                 }
                 Column<CompositeColumnName> column = row.getColumns().iterator().next();
-                Boolean value = (Boolean)ColumnValue.getPrimitiveColumnValue(column,_columnField.getPropertyDescriptor());
-                if(!value.booleanValue()) {
+                Boolean value = (Boolean) ColumnValue.getPrimitiveColumnValue(column, _columnField.getPropertyDescriptor());
+                if (!value.booleanValue()) {
                     _activeObjects.add(URI.create(row.getKey()));
                 }
             }
         }
 
         SelectActiveObjects selector = new SelectActiveObjects(clazz);
-        dbClient.aggregateObjectField( clazz, ids.iterator(), selector);
+        dbClient.aggregateObjectField(clazz, ids.iterator(), selector);
         return selector.getActive();
     }
 
-
-    public static <T extends DataObject> Iterator<URI> queryIterativeActiveObjects(final DbClient dbClient, final Class<T> clazz, final Iterator<URI> ids)
-            throws DatabaseException {
-
-        if (!(ids.hasNext())) {
-            // nothing to do, just an empty list
-            return new ArrayList<URI>().iterator();
-        }
-
-        BulkDataObjQueryResultIterator<URI> bulkQueryIterator = new
-            BulkDataObjQueryResultIterator<URI>(ids) {
-
-                @Override
-                protected void run() throws DatabaseException {
-                    currentIt = null;
-                    getNextBatch();
-                    while (nextBatch.size() > 0) {
-                        List<URI> currBatchResults = queryActiveObjects(dbClient, clazz, nextBatch);
-                        if (currBatchResults.size() > 0) {
-                            currentIt = currBatchResults.iterator();
-                            break;
-                        }
-                        getNextBatch();
-                    }
-                }
-            };
-
-        return bulkQueryIterator;
-    }
-
-    private static List<URI>  filterDataObjects (DbClient dbClient, Class<? extends DataObject> clazz, String field, List<URI> ids, Set<String> values) {
-        FieldInSetAggregator aggr = new FieldInSetAggregator(clazz,values, field);
-        dbClient.aggregateObjectField(clazz,ids.iterator(),aggr );
-        return aggr.getAggregate();
-    }
-
-
-    public static Iterator<URI> filterDataObjectsFieldValueInSet(final DbClient dbClient,
-                                                                 final Class<? extends DataObject> clazz,
-                                                                 final String field,
-                                                                 final Iterator<URI> ids,
-                                                                 final Set<String> values)
+    public static <T extends DataObject> Iterator<URI> queryIterativeActiveObjects(final DbClient dbClient, final Class<T> clazz,
+            final Iterator<URI> ids)
             throws DatabaseException {
 
         if (!(ids.hasNext())) {
@@ -301,9 +252,49 @@ public class CustomQueryUtility {
                     protected void run() throws DatabaseException {
                         currentIt = null;
                         getNextBatch();
-                        while (nextBatch.size() > 0) {
+                        while (!nextBatch.isEmpty()) {
+                            List<URI> currBatchResults = queryActiveObjects(dbClient, clazz, nextBatch);
+                            if (!currBatchResults.isEmpty()) {
+                                currentIt = currBatchResults.iterator();
+                                break;
+                            }
+                            getNextBatch();
+                        }
+                    }
+                };
+
+        return bulkQueryIterator;
+    }
+
+    private static List<URI> filterDataObjects(DbClient dbClient, Class<? extends DataObject> clazz, String field, List<URI> ids,
+            Set<String> values) {
+        FieldInSetAggregator aggr = new FieldInSetAggregator(clazz, values, field);
+        dbClient.aggregateObjectField(clazz, ids.iterator(), aggr);
+        return aggr.getAggregate();
+    }
+
+    public static Iterator<URI> filterDataObjectsFieldValueInSet(final DbClient dbClient,
+            final Class<? extends DataObject> clazz,
+            final String field,
+            final Iterator<URI> ids,
+            final Set<String> values)
+            throws DatabaseException {
+
+        if (!(ids.hasNext())) {
+            // nothing to do, just an empty list
+            return new ArrayList<URI>().iterator();
+        }
+
+        BulkDataObjQueryResultIterator<URI> bulkQueryIterator = new
+                BulkDataObjQueryResultIterator<URI>(ids) {
+
+                    @Override
+                    protected void run() throws DatabaseException {
+                        currentIt = null;
+                        getNextBatch();
+                        while (!nextBatch.isEmpty()) {
                             List<URI> currBatchResults = filterDataObjects(dbClient, clazz, field, nextBatch, values);
-                            if (currBatchResults.size() > 0) {
+                            if (!currBatchResults.isEmpty()) {
                                 currentIt = currBatchResults.iterator();
                                 break;
                             }
@@ -317,9 +308,9 @@ public class CustomQueryUtility {
 
     static public class AggregatedValue {
         double value = 0.0;
-        long   count = 0;
+        long count = 0;
 
-        public long getCount(){
+        public long getCount() {
             return count;
         }
 
@@ -327,21 +318,21 @@ public class CustomQueryUtility {
             return value;
         }
 
-        double getDouble(Object value){
-            double  val = 0;
-            if( value instanceof Integer )  {
-                val = (double)((Integer) value).intValue();
-            } else if (value instanceof Long ) {
-                val = (double)((Long) value).longValue();
-            }else if (value instanceof Byte ) {
-                val = (double) ((Byte)value).byteValue();
-            } else if (value instanceof Short ) {
-                val = (double)((Short)value).shortValue();
-            } else if (value instanceof Float ) {
-                val = (double)((Float) value).floatValue();
-            } else if (value instanceof Double ) {
+        double getDouble(Object value) {
+            double val = 0;
+            if (value instanceof Integer) {
+                val = (double) ((Integer) value).intValue();
+            } else if (value instanceof Long) {
+                val = (double) ((Long) value).longValue();
+            } else if (value instanceof Byte) {
+                val = (double) ((Byte) value).byteValue();
+            } else if (value instanceof Short) {
+                val = (double) ((Short) value).shortValue();
+            } else if (value instanceof Float) {
+                val = (double) ((Float) value).floatValue();
+            } else if (value instanceof Double) {
                 val = (Double) value;
-            }  else {
+            } else {
                 throw new UnsupportedOperationException();
             }
             return val;
@@ -351,6 +342,7 @@ public class CustomQueryUtility {
     /**
      * Returns a list from an iterator
      * SHOULD ONLY BE USED ON ITERATORS KNOWN TO HAVE FEW ITEMS ONLY!!!!!
+     * 
      * @param itr the iterator
      * @return a list of the iterator items. Empty list if the iterator is empty.
      */

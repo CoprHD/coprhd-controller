@@ -15,13 +15,7 @@
 
 package com.emc.storageos.db.server.upgrade;
 
-import java.beans.*;
-import java.io.*;
-import java.lang.reflect.Method;
-import java.net.URL;
 import java.util.*;
-import java.util.concurrent.*;
-
 import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
 import javassist.*;
 import javassist.util.*;
@@ -30,16 +24,13 @@ import javassist.bytecode.annotation.*;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.log4j.PropertyConfigurator;
-
-import com.emc.storageos.db.server.DbsvcTestBase;
 
 /**
- *  The DB migration test base class 
+ * The DB migration test base class
  */
 public abstract class DbMigrationTestBase extends DbSimpleMigrationTestBase {
     private static final Logger _log = LoggerFactory.getLogger(DbMigrationTestBase.class);
-    protected static HotSwapper hs = null;
+    protected static volatile HotSwapper hs = null;
 
     /**
      * @return the DB version upgraded from
@@ -57,7 +48,7 @@ public abstract class DbMigrationTestBase extends DbSimpleMigrationTestBase {
      * @throws Exception
      */
     protected abstract void prepareData() throws Exception;
-    
+
     /**
      * Implement this method to verify that your test data was properly migrated
      * 
@@ -74,8 +65,9 @@ public abstract class DbMigrationTestBase extends DbSimpleMigrationTestBase {
      * 
      * @throws Exception
      */
-    protected void changeSchema() throws Exception {}
-    
+    protected void changeSchema() throws Exception {
+    }
+
     @Test
     @Override
     public void runTest() throws Exception {
@@ -89,23 +81,24 @@ public abstract class DbMigrationTestBase extends DbSimpleMigrationTestBase {
 
     protected void setupDB() throws Exception {
         if (hs == null) {
-            hs = new HotSwapper(8000);
+            // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+            // Junit test will be called in single thread by default, it's safe to ignore this violation
+            hs = new HotSwapper(8000); // NOSONAR ("squid:S2444")
         }
         super.setupDB();
     }
 
     // Note: the className and annotationName should be full package names
     protected static void addAnnotation(String className, String methodName,
-                   String annotationName, Map<String, Object> values) throws Exception {
-        //pool creation 
+            String annotationName, Map<String, Object> values) throws Exception {
+        // pool creation
         ClassPool pool = ClassPool.getDefault();
 
-
-        //extracting the class
+        // extracting the class
         CtClass cc = pool.getCtClass(className);
         cc.defrost();
 
-        //looking for the method to apply the annotation on
+        // looking for the method to apply the annotation on
         CtMethod methodDescriptor = cc.getDeclaredMethod(methodName);
 
         // create the annotation
@@ -116,7 +109,7 @@ public abstract class DbMigrationTestBase extends DbSimpleMigrationTestBase {
 
         MethodInfo minfo = methodDescriptor.getMethodInfo();
 
-        AnnotationsAttribute attr = (AnnotationsAttribute)minfo.getAttribute(AnnotationsAttribute.visibleTag);
+        AnnotationsAttribute attr = (AnnotationsAttribute) minfo.getAttribute(AnnotationsAttribute.visibleTag);
         Annotation annot = new Annotation(annotationName, constpool);
 
         Set<Map.Entry<String, Object>> entries = values.entrySet();
@@ -125,11 +118,12 @@ public abstract class DbMigrationTestBase extends DbSimpleMigrationTestBase {
             Object attrValue = entry.getValue();
 
             if (attrValue instanceof String) {
-                annot.addMemberValue(attrName, new StringMemberValue((String)attrValue, ccFile.getConstPool()));
-            }else
-                throw new RuntimeException(String.format("Unsupported attribute type %s of %s", attrName, attrValue)); 
+                annot.addMemberValue(attrName, new StringMemberValue((String) attrValue, ccFile.getConstPool()));
+            } else {
+                throw new RuntimeException(String.format("Unsupported attribute type %s of %s", attrName, attrValue));
+            }
         }
-            
+
         attr.addAnnotation(annot);
 
         // add the annotation to the method descriptor
@@ -144,14 +138,14 @@ public abstract class DbMigrationTestBase extends DbSimpleMigrationTestBase {
     }
 
     protected static void removeAnnotation(String className, String methodName, String annotationName) throws Exception {
-        //pool creation 
+        // pool creation
         ClassPool pool = ClassPool.getDefault();
 
-        //extracting the class
+        // extracting the class
         CtClass cc = pool.getCtClass(className);
         cc.defrost();
 
-        //looking for the method to apply the annotation on
+        // looking for the method to apply the annotation on
         CtMethod methodDescriptor = cc.getDeclaredMethod(methodName);
 
         // create the annotation
@@ -162,13 +156,14 @@ public abstract class DbMigrationTestBase extends DbSimpleMigrationTestBase {
 
         MethodInfo minfo = methodDescriptor.getMethodInfo();
 
-        AnnotationsAttribute attr = (AnnotationsAttribute)minfo.getAttribute(AnnotationsAttribute.visibleTag);
+        AnnotationsAttribute attr = (AnnotationsAttribute) minfo.getAttribute(AnnotationsAttribute.visibleTag);
         Annotation[] annotations = attr.getAnnotations();
         List<Annotation> list = new ArrayList();
 
         for (Annotation annotation : annotations) {
-            if (!annotation.getTypeName().equals(annotationName))
+            if (!annotation.getTypeName().equals(annotationName)) {
                 list.add(annotation);
+            }
         }
 
         Annotation[] newAnnotations = list.toArray(new Annotation[0]);

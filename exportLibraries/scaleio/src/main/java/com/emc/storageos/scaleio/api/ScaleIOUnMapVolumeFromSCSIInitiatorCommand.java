@@ -24,7 +24,7 @@ public class ScaleIOUnMapVolumeFromSCSIInitiatorCommand extends AbstractScaleIOQ
 
     private static final String UNMAPPED_SUCCESSFULLY = "UnmappedSuccessfully";
     // Successfully unmapped volume with ID e9e51f7c00000002 from SCSI Initiator with ID 19be524400000000
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern("Successfully unmapped volume with ID \\w+ from SCSI Initiator with IQN .*", UNMAPPED_SUCCESSFULLY)
     };
 
@@ -42,7 +42,7 @@ public class ScaleIOUnMapVolumeFromSCSIInitiatorCommand extends AbstractScaleIOQ
 
     @Override
     ParsePattern[] getOutputPatternSpecification() {
-        return PARSING_CONFIG;
+        return PARSING_CONFIG.clone(); // No need to check not null condition here
     }
 
     @Override

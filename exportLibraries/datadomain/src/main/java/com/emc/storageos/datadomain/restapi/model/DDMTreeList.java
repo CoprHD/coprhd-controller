@@ -21,7 +21,7 @@ import java.util.List;
 /**
  * Created by zeldib on 2/10/14.
  */
-@JsonRootName(value="mtrees")
+@JsonRootName(value = "mtrees")
 public class DDMTreeList {
 
     public List<DDMTreeInfo> mtree;

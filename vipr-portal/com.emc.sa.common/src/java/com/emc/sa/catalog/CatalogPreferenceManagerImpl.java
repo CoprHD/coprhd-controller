@@ -18,32 +18,32 @@ import com.emc.sa.model.dao.ModelClient;
 public class CatalogPreferenceManagerImpl implements CatalogPreferenceManager {
 
     private static final Logger log = Logger.getLogger(CatalogPreferenceManagerImpl.class);
-    
+
     @Autowired
     private ModelClient client;
 
     public TenantPreferences getPreferencesByTenant(String tenantId) {
         List<TenantPreferences> list = client.tenantPreferences().findAll(tenantId);
-        if (list != null && list.size() > 0) {
+        if (list != null && !list.isEmpty()) {
             return list.get(0);
         }
 
         return createNewPreferences(tenantId.toString());
     }
-    
+
     private TenantPreferences createNewPreferences(String tenantId) {
         TenantPreferences newTenantPreferences = new TenantPreferences();
         newTenantPreferences.setTenant(tenantId.toString());
         client.save(newTenantPreferences);
         return newTenantPreferences;
     }
-    
+
     public TenantPreferences getPreferences(URI id) {
         return client.tenantPreferences().findById(id);
     }
-    
+
     public void updatePreferences(TenantPreferences tenantPreferences) {
         client.save(tenantPreferences);
     }
-    
+
 }

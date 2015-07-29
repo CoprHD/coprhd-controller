@@ -30,7 +30,7 @@ public class ProtectionMapper {
         to.setProtectionSystem(toRelatedResource(ResourceTypeEnum.PROTECTION_SYSTEM, from.getProtectionSystem()));
         to.setProtectionId(from.getProtectionId());
         if (from.getVolumes() != null) {
-            for (String volume: from.getVolumes()) {
+            for (String volume : from.getVolumes()) {
                 to.getVolumes().add(toRelatedResource(ResourceTypeEnum.VOLUME, URI.create(volume)));
             }
         }
@@ -49,24 +49,24 @@ public class ProtectionMapper {
         to.setInstallationId(from.getInstallationId());
         to.setMajorVersion(from.getMajorVersion());
         to.setMinorVersion(from.getMinorVersion());
-        to.setIpAddress(from.getIpAddress());        
+        to.setIpAddress(from.getIpAddress());
         to.setPortNumber(from.getPortNumber());
         to.setReachableStatus(from.getReachableStatus());
         to.setUsername(from.getUsername());
         if (from.getRpSiteNames() != null) {
-        	List<ProtectionSystemRPClusterRestRep> clusterReps = new ArrayList<>();
-        	for (Map.Entry<String, String> clusterEntry : from.getRpSiteNames().entrySet()) {
-        		ProtectionSystemRPClusterRestRep clusterRep = new ProtectionSystemRPClusterRestRep();
-        		clusterRep.setClusterId(clusterEntry.getKey());
-        		clusterRep.setClusterName(clusterEntry.getValue());
-        		// See if there are assigned virtual arrays for clusters
-        		if (from.getSiteAssignedVirtualArrays() != null && from.getSiteAssignedVirtualArrays().get(clusterEntry.getKey()) != null) {
-        			List<String> assignedVarrays = new ArrayList<>();
-        			assignedVarrays.addAll(from.getSiteAssignedVirtualArrays().get(clusterEntry.getKey()));
-        			clusterRep.setAssignedVarrays(assignedVarrays);
-        		}
-        		clusterReps.add(clusterRep);
-        	}
+            List<ProtectionSystemRPClusterRestRep> clusterReps = new ArrayList<>();
+            for (Map.Entry<String, String> clusterEntry : from.getRpSiteNames().entrySet()) {
+                ProtectionSystemRPClusterRestRep clusterRep = new ProtectionSystemRPClusterRestRep();
+                clusterRep.setClusterId(clusterEntry.getKey());
+                clusterRep.setClusterName(clusterEntry.getValue());
+                // See if there are assigned virtual arrays for clusters
+                if (from.getSiteAssignedVirtualArrays() != null && from.getSiteAssignedVirtualArrays().get(clusterEntry.getKey()) != null) {
+                    List<String> assignedVarrays = new ArrayList<>();
+                    assignedVarrays.addAll(from.getSiteAssignedVirtualArrays().get(clusterEntry.getKey()));
+                    clusterRep.setAssignedVarrays(assignedVarrays);
+                }
+                clusterReps.add(clusterRep);
+            }
             to.setRpClusters(clusterReps);
         }
         return to;

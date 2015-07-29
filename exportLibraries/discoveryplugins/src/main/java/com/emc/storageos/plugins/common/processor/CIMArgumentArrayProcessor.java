@@ -24,7 +24,6 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Processor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 
-
 /**
  * Responsible for handling CIMArgument[] outputs, get CIMPath and update it in
  * Map.
@@ -40,7 +39,7 @@ public class CIMArgumentArrayProcessor extends Processor {
             if (resultObj instanceof CIMArgument<?>[]) {
                 CIMArgument<?>[] _outputArguments = (CIMArgument<?>[]) resultObj;
                 CIMObjectPath _path = (CIMObjectPath) _outputArguments[0].getValue();
-                keyMap.put(operation.get_result(), _path);
+                keyMap.put(operation.getResult(), _path);
             }
         } catch (Exception e) {
             _logger.error("Failed while processing Result", e);

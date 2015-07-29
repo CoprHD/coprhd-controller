@@ -6,9 +6,9 @@ package com.iwave.ext.linux.command.powerpath;
 
 public class PowermtRestoreCommand extends PowermtCommand {
 
-	public PowermtRestoreCommand() {
-		super();
-		addArgument("restore");
-	}
+    public PowermtRestoreCommand() {
+        super();
+        addArgument("restore");
+    }
 
 }

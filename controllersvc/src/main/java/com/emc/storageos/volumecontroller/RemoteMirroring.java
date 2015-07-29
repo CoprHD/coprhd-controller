@@ -15,7 +15,7 @@ import java.util.Set;
 
 /**
  * An interface for storage devices that support remote mirrors.
- *
+ * 
  * Created by bibbyi1 on 5/15/2015.
  */
 public interface RemoteMirroring {
@@ -23,7 +23,7 @@ public interface RemoteMirroring {
     /**
      * Adds created source/target Volume pairs to a previously established remotely mirrored
      * consistency group.
-     *
+     * 
      * @param system
      * @param sources
      * @param remoteDirectorGroup
@@ -33,7 +33,7 @@ public interface RemoteMirroring {
 
     /**
      * Create and establish a replication link between the given source and target volume.
-     *
+     * 
      * @param system
      * @param source
      * @param target
@@ -43,7 +43,7 @@ public interface RemoteMirroring {
 
     /**
      * Detach a source and target from their replication link.
-     *
+     * 
      * @param system
      * @param source
      * @param target
@@ -53,7 +53,7 @@ public interface RemoteMirroring {
 
     /**
      * Removes the source and target from their device groups, which should in turn remove them.
-     *
+     * 
      * @param system
      * @param source
      * @param target
@@ -63,7 +63,7 @@ public interface RemoteMirroring {
 
     /**
      * Rollback replication links.
-     *
+     * 
      * @param system
      * @param sources
      * @param targets
@@ -74,7 +74,7 @@ public interface RemoteMirroring {
 
     /**
      * Split replication links.
-     *
+     * 
      * @param system
      * @param target
      * @param rollback
@@ -84,7 +84,7 @@ public interface RemoteMirroring {
 
     /**
      * Suspend replication links.
-     *
+     * 
      * @param system
      * @param target
      * @param consExempt
@@ -94,7 +94,7 @@ public interface RemoteMirroring {
 
     /**
      * Resume replication links.
-     *
+     * 
      * @param system
      * @param target
      * @param completer
@@ -103,7 +103,7 @@ public interface RemoteMirroring {
 
     /**
      * Failover replication links.
-     *
+     * 
      * @param system
      * @param target
      * @param completer
@@ -112,7 +112,7 @@ public interface RemoteMirroring {
 
     /**
      * Perform a failover-cancel on the replication links.
-     *
+     * 
      * @param system
      * @param target
      * @param completer
@@ -121,7 +121,7 @@ public interface RemoteMirroring {
 
     /**
      * Resynchronize replication links.
-     *
+     * 
      * @param system
      * @param source
      * @param target
@@ -131,7 +131,7 @@ public interface RemoteMirroring {
 
     /**
      * Remove a source and target pair from a remote group.
-     *
+     * 
      * @param system
      * @param source
      * @param target
@@ -142,7 +142,7 @@ public interface RemoteMirroring {
 
     /**
      * Starts a replication link.
-     *
+     * 
      * @param system
      * @param target
      * @param completer
@@ -151,7 +151,7 @@ public interface RemoteMirroring {
 
     /**
      * Stops a replication link.
-     *
+     * 
      * @param system
      * @param target
      * @param completer
@@ -161,7 +161,7 @@ public interface RemoteMirroring {
     /**
      * Creates consistency groups from the given sources/targets and establishes
      * replication.
-     *
+     * 
      * @param system
      * @param sources
      * @param targets
@@ -171,7 +171,7 @@ public interface RemoteMirroring {
 
     /**
      * Finds and returns the volumes that are part of a remote group.
-     *
+     * 
      * @param system
      * @param rdfGroup
      * @return
@@ -180,10 +180,10 @@ public interface RemoteMirroring {
 
     /**
      * Swaps the personality of the existing source and target pair.
-     *
+     * 
      * - The source volume becomes the target.
      * - The target volume becomes the source.
-     *
+     * 
      * @param system
      * @param target
      * @param completer
@@ -192,7 +192,7 @@ public interface RemoteMirroring {
 
     /**
      * Synchronizes replication link.
-     *
+     * 
      * @param system
      * @param target
      * @param completer
@@ -204,11 +204,17 @@ public interface RemoteMirroring {
      * Called after replication links have been established.
      * Implementations of this method should ensure that the ViPR source/target pairings
      * reflect the pairings on the storage system.
-     *
+     * 
      * @param sourceURIs
      * @param targetURIs
      */
     void doUpdateSourceAndTargetPairings(List<URI> sourceURIs, List<URI> targetURIs);
 
+    /**
+     * Refresh the storage system.
+     * 
+     * @param targetURIs
+     */
+    void refreshStorageSystem(URI systemURI);
 
 }

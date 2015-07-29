@@ -24,15 +24,16 @@ import com.emc.storageos.model.valid.Length;
  */
 @XmlRootElement(name = "varray_create")
 public class VirtualArrayCreateParam extends VirtualArrayParam {
-    
+
     private String label;
 
-    public VirtualArrayCreateParam() {}
-    
+    public VirtualArrayCreateParam() {
+    }
+
     public VirtualArrayCreateParam(String label) {
         this.label = label;
     }
-    
+
     /**
      * The name of the virtual array.
      * 
@@ -47,5 +48,5 @@ public class VirtualArrayCreateParam extends VirtualArrayParam {
     public void setLabel(String label) {
         this.label = label;
     }
-     
+
 }

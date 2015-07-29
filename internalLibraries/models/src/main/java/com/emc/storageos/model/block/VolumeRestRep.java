@@ -47,7 +47,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
     private String accessState;
     private String linkStatus;
     private RelatedResourceRep pool;
-    
+
     // Fields in a Volume that are specific to RecoverPoint
     public static class RecoverPointRestRep {
         private List<VirtualArrayRelatedResourceRep> rpTargets;
@@ -60,7 +60,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
         /**
          * This volume's RecoverPoint (RP) target copies
-         *
+         * 
          * @valid none
          */
         @XmlElementWrapper(name = "targets")
@@ -83,7 +83,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
         /**
          * This volume's RecoverPoint (RP) consistency group
-         *
+         * 
          * @valid none
          */
         @XmlElement(name = "protection_set")
@@ -97,7 +97,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
         /**
          * This volume's RecoverPoint appliance (RPA)
-         *
+         * 
          * @valid none
          */
         @XmlElement(name = "protection_system")
@@ -111,7 +111,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
         /**
          * A label that can be used to denote the physical location of the volume
-         *
+         * 
          * @valid none
          */
         @XmlElement(name = "site_name")
@@ -125,9 +125,9 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
         /**
          * The volume's RecoverPoint (RP) copy name. In this context, a
-         * production volume is a  copy  that is used as a  source  for
+         * production volume is a copy that is used as a source for
          * replication.
-         *
+         * 
          * @valid none
          */
         @XmlElement(name = "copy_name")
@@ -140,10 +140,10 @@ public class VolumeRestRep extends BlockObjectRestRep {
         }
 
         /**
-         * The name of this volume's  RecoverPoint  (RP)  replication set. A
+         * The name of this volume's RecoverPoint (RP) replication set. A
          * replication set consists of a production volume and that volume's
          * target copies.
-         *
+         * 
          * @valid none
          */
         @XmlElement(name = "replicationset_name")
@@ -157,9 +157,9 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
         /**
          * How this volume is used with respect to replication
-         *
-         * @valid SOURCE   = A production volume
-         * @valid TARGET   = A copy of a production volume
+         * 
+         * @valid SOURCE = A production volume
+         * @valid TARGET = A copy of a production volume
          * @valid METADATA = A volume that stores meta-data for replication. Example: A RecoverPoint journal volume
          */
         @XmlElement(name = "personality")
@@ -177,7 +177,6 @@ public class VolumeRestRep extends BlockObjectRestRep {
         private List<VirtualArrayRelatedResourceRep> mirrors;
 
         @XmlElementWrapper(name = "native_mirrors")
-        
         /**
          * List of mirrors - VMAX BCVs or VNX SnapView Clones.
          * @valid none
@@ -242,7 +241,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
         public void setPercentSynced(Integer percentSynced) {
             this.percentSynced = percentSynced;
         }
-        
+
         @XmlElement(name = "replicaState")
         public String getReplicaState() {
             return replicaState;
@@ -283,18 +282,18 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
         /**
          * How this volume is used with respect to replication
-         *
-         * @valid SOURCE   = A production volume
-         * @valid TARGET   = A copy of a production volume
+         * 
+         * @valid SOURCE = A production volume
+         * @valid TARGET = A copy of a production volume
          * @valid METADATA = A volume that stores meta-data for replication. Example: A RecoverPoint journal volume
          */
         @XmlElement(name = "personality")
         public String getPersonality() {
-        	return personality;
+            return personality;
         }
 
         public void setPersonality(String personality) {
-        	this.personality = personality;
+            this.personality = personality;
         }
     }
 
@@ -307,7 +306,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
         /**
          * Information related to native mirroring
-         *
+         * 
          * @valid none
          */
         @XmlElement(name = "mirrors")
@@ -318,12 +317,12 @@ public class VolumeRestRep extends BlockObjectRestRep {
         public void setMirrorRep(MirrorRestRep mirrorRep) {
             this.mirrorRep = mirrorRep;
         }
-    
+
         /**
          * Information related to RecoverPoint (RP) replication
-         *
+         * 
          * @valid none
-         */    
+         */
         @XmlElement(name = "recoverpoint")
         public RecoverPointRestRep getRpRep() {
             return rpRep;
@@ -335,37 +334,37 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
         /**
          * Information related to clone replication
-         *
+         * 
          * @valid none
-         */    
+         */
         @XmlElement(name = "full_copies")
         public FullCopyRestRep getFullCopyRep() {
             return fullCopyRep;
         }
 
-		public void setFullCopyRep(FullCopyRestRep fullCopyRestRep) {
+        public void setFullCopyRep(FullCopyRestRep fullCopyRestRep) {
             this.fullCopyRep = fullCopyRestRep;
         }
 
         /**
          * Information related to SRDF replication
-         *
+         * 
          * @valid none
-         */    
+         */
         @XmlElement(name = "srdf")
         public SRDFRestRep getSrdfRep() {
-			return srdfRep;
-		}
+            return srdfRep;
+        }
 
-		public void setSrdfRep(SRDFRestRep srdfRep) {
-			this.srdfRep = srdfRep;
-		}
+        public void setSrdfRep(SRDFRestRep srdfRep) {
+            this.srdfRep = srdfRep;
+        }
 
     }
-    
+
     /**
      * The total amount of space allocated from the volume's storage pool (GB)
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "allocated_capacity_gb")
@@ -376,10 +375,10 @@ public class VolumeRestRep extends BlockObjectRestRep {
     public void setAllocatedCapacity(String allocatedCapacity) {
         this.allocatedCapacity = allocatedCapacity;
     }
-    
+
     /**
      * The amount of space that was initially allocated when the volume was created (GB)
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "pre_allocation_size_gb")
@@ -394,11 +393,11 @@ public class VolumeRestRep extends BlockObjectRestRep {
     /**
      * The policy used to distribute data across the disks of
      * the volume's storage pool
-     *
-     * @valid DEFAULT_NO_MOVEMENT       = Data is never relocated from the disks it is originally written to
-     * @valid DEFAULT_AUTOTIER          = Data is relocated based on its activity level
+     * 
+     * @valid DEFAULT_NO_MOVEMENT = Data is never relocated from the disks it is originally written to
+     * @valid DEFAULT_AUTOTIER = Data is relocated based on its activity level
      * @valid DEFAULT_HIGHEST_AVAILABLE = Data is kept on the fastest disks available
-     * @valid DEFAULT_LOWEST_AVAILABLE  = Data is kept on the slowest disks available
+     * @valid DEFAULT_LOWEST_AVAILABLE = Data is kept on the slowest disks available
      */
     @XmlElement(name = "auto_tier_policy")
     public RelatedResourceRep getAutoTierPolicyUri() {
@@ -406,11 +405,12 @@ public class VolumeRestRep extends BlockObjectRestRep {
     }
 
     public void setAutoTierPolicyUri(RelatedResourceRep autoTierPolicy) {
-        this.autoTierPolicyUri= autoTierPolicy;
+        this.autoTierPolicyUri = autoTierPolicy;
     }
 
     /**
      * This volume's total capacity in Gb (Gigabytes).
+     * 
      * @valid none
      */
     @XmlElement(name = "requested_capacity_gb")
@@ -424,7 +424,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
     /**
      * This volume's virtual pool
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "vpool")
@@ -438,7 +438,8 @@ public class VolumeRestRep extends BlockObjectRestRep {
     }
 
     /**
-     * Specifies whether this is a composite (meta) volume. 
+     * Specifies whether this is a composite (meta) volume.
+     * 
      * @valid true
      * @valid false
      */
@@ -453,7 +454,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
     /**
      * This volume's project
-     *
+     * 
      * @valid none
      */
     @XmlElement
@@ -467,6 +468,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
     /**
      * This volume's logical capacity in Gb (Gigabytes).
+     * 
      * @valid none
      */
     @XmlElement(name = "provisioned_capacity_gb")
@@ -480,7 +482,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
     /**
      * This volume's tenant
-     *
+     * 
      * @valid none
      */
     @XmlElement
@@ -494,9 +496,9 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
     /**
      * Whether or not this volume is thinly provisioned. A thin
-     * volume  initially  allocates  a  portion of its assigned
+     * volume initially allocates a portion of its assigned
      * capacity when it is created and then grows as needed.
-     *
+     * 
      * @valid true
      * @valid false
      */
@@ -526,21 +528,22 @@ public class VolumeRestRep extends BlockObjectRestRep {
         this.haVolumes = haVolumes;
     }
 
-        /**
-         * Information on how this volume is protected
-         *
-         * @valid none
-         */
+    /**
+     * Information on how this volume is protected
+     * 
+     * @valid none
+     */
     public ProtectionRestRep getProtection() {
         return protection;
     }
 
     public void setProtection(ProtectionRestRep protection) {
         this.protection = protection;
-    }    
+    }
 
     /**
      * The volume's access state
+     * 
      * @valid none
      */
     @XmlElement(name = "access_state")
@@ -554,6 +557,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
     /**
      * The volume's link status
+     * 
      * @valid none
      */
     @XmlElement(name = "link_status")
@@ -567,7 +571,8 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
     /**
      * URI for the storage pool containing storage allocated for the volume.
-     * @valid none 
+     * 
+     * @valid none
      */
     @XmlElement(name = "storage_pool")
     public RelatedResourceRep getPool() {

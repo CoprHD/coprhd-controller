@@ -47,7 +47,7 @@ import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.services.util.Strings;
 
 public class LocalRepository {
-    private static final Logger    _log = LoggerFactory.getLogger(LocalRepository.class);
+    private static final Logger _log = LoggerFactory.getLogger(LocalRepository.class);
 
     private static LocalRepository _instance;
 
@@ -60,32 +60,32 @@ public class LocalRepository {
         return _instance;
     }
 
-    private static final long   _SYSTOOL_TIMEOUT     = 120000;             // 2 min
-    private static final int    _SYSTOOL_DEVKIT_ERROR = 66;
-    private static final int    _SYSTOOL_SUCCESS      = 0;
+    private static final long _SYSTOOL_TIMEOUT = 120000;             // 2 min
+    private static final int _SYSTOOL_DEVKIT_ERROR = 66;
+    private static final int _SYSTOOL_SUCCESS = 0;
 
-    private static final String _SYSTOOL_CMD         = "/etc/systool";
-    private static final String _SYSTOOL_LIST        = "--list";
+    private static final String _SYSTOOL_CMD = "/etc/systool";
+    private static final String _SYSTOOL_LIST = "--list";
     private static final String _SYSTOOL_GET_DEFAULT = "--get-default";
     private static final String _SYSTOOL_SET_DEFAULT = "--set-default";
-    private static final String _SYSTOOL_GET_IMAGE   = "--get-image";
-    private static final String _SYSTOOL_INSTALL     = "--install";
-    private static final String _SYSTOOL_REMOVE      = "--remove";
-    private static final String _SYSTOOL_SET_OPROPS  = "--setoverrides";
-    private static final String _SYSTOOL_GET_OPROPS  = "--getoverrides";
-    private static final String _SYSTOOL_SET_CONTROLLEROVFPROPS  = "--set-controller-ovfprops";
-    private static final String _SYSTOOL_GET_CONTROLLEROVFPROPS  = "--get-controller-ovfprops";
+    private static final String _SYSTOOL_GET_IMAGE = "--get-image";
+    private static final String _SYSTOOL_INSTALL = "--install";
+    private static final String _SYSTOOL_REMOVE = "--remove";
+    private static final String _SYSTOOL_SET_OPROPS = "--setoverrides";
+    private static final String _SYSTOOL_GET_OPROPS = "--getoverrides";
+    private static final String _SYSTOOL_SET_CONTROLLEROVFPROPS = "--set-controller-ovfprops";
+    private static final String _SYSTOOL_GET_CONTROLLEROVFPROPS = "--get-controller-ovfprops";
     private static final String _SYSTOOL_GET_VDC_PROPS = "--getvdcprops";
     private static final String _SYSTOOL_SET_VDC_PROPS = "--setvdcprops";
     private static final String _SYSTOOL_GET_SSL_PROPS = "--getsslprops";
     private static final String _SYSTOOL_SET_SSL_PROPS = "--setsslprops";
 
-    private static final String _SYSTOOL_REBOOT      = "--reboot";
-    private static final String _SYSTOOL_POWEROFF    = "--poweroff";
-    private static final String _SYSTOOL_RECONFIG    = "--reconfig";
+    private static final String _SYSTOOL_REBOOT = "--reboot";
+    private static final String _SYSTOOL_POWEROFF = "--poweroff";
+    private static final String _SYSTOOL_RECONFIG = "--reconfig";
     private static final String _SYSTOOL_RECONFIG_PROPS = "--reconfig-props";
-    private static final String _SYSTOOL_RESTART     = "--restart";
-    private static final String _SYSTOOL_RELOAD      = "--reload";
+    private static final String _SYSTOOL_RESTART = "--restart";
+    private static final String _SYSTOOL_RELOAD = "--reload";
     private static final String _SYSTOOL_IS_APPLIANCE = "--is-appliance";
 
     // inject value from spring config.
@@ -98,25 +98,24 @@ public class LocalRepository {
     /***
      * 
      * @return RepositoryState
-     * @throws InvalidRepositoryInfoException 
+     * @throws InvalidRepositoryInfoException
      * 
      */
     public RepositoryInfo getRepositoryInfo() throws LocalRepositoryException, InvalidRepositoryInfoException {
         final String prefix = "getRepositoryState(): ";
         _log.debug(prefix);
-        
+
         final String[] cmd1 = { _SYSTOOL_CMD, _SYSTOOL_LIST };
         List<SoftwareVersion> versions =
-            toSoftwareVersionList(prefix + _SYSTOOL_LIST, exec(prefix, cmd1));
+                toSoftwareVersionList(prefix + _SYSTOOL_LIST, exec(prefix, cmd1));
 
         final String[] cmd2 = { _SYSTOOL_CMD, _SYSTOOL_GET_DEFAULT };
         final SoftwareVersion current =
                 toSoftwareVersionList(prefix + _SYSTOOL_GET_DEFAULT, exec(prefix, cmd2)).get(0);
-        
+
         _log.debug(prefix + "current={} versions={}", current, Strings.repr(versions));
         return new RepositoryInfo(current, versions);
     }
-
 
     /**
      * Change the bootloader default to the new version and reboot.
@@ -130,11 +129,11 @@ public class LocalRepository {
         exec(prefix, cmd);
         _log.info(prefix + "Success");
     }
-        
+
     /**
      * Install an image file into the local repository
      * 
-     * @param  file to image
+     * @param file to image
      * @return installed image name
      */
     public String installImage(final File file) throws LocalRepositoryException {
@@ -152,11 +151,11 @@ public class LocalRepository {
         _log.info(prefix + "Success!");
         return images[0];
     }
-    
+
     /**
      * Remove a version from the local repository
      * 
-     * @param  version to remove
+     * @param version to remove
      */
     public void removeVersion(final SoftwareVersion version) throws LocalRepositoryException {
         final String prefix = "removeVersion=" + version + ": ";
@@ -165,7 +164,7 @@ public class LocalRepository {
         exec(prefix, cmd);
         _log.info(prefix + "Success!");
     }
-    
+
     /***
      * Open an InputStream to a local image
      * 
@@ -173,12 +172,12 @@ public class LocalRepository {
      * 
      * @return an opened InputStream (FileInputStream)
      */
-    public InputStream getImageInputStream(SoftwareVersion version) throws LocalRepositoryException  {
+    public InputStream getImageInputStream(SoftwareVersion version) throws LocalRepositoryException {
         final String prefix = "getImageInputStream(): version=" + version + ": ";
         final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_GET_IMAGE, version.toString() };
         final String[] images = exec(prefix, cmd);
         _log.debug(prefix + "images=" + Strings.repr(images));
-        
+
         if (images == null) {
             throw SyssvcException.syssvcExceptions.localRepoError(prefix + "Internal error. Null output");
         } else if (images.length == 0) {
@@ -187,15 +186,15 @@ public class LocalRepository {
 
         try {
             return new FileInputStream(images[0]);
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw SyssvcException.syssvcExceptions.localRepoError(prefix + e);
         }
     }
- 
+
     /***
-    *
-    * @return PropertyInfo
-    */
+     * 
+     * @return PropertyInfo
+     */
     public PropertyInfoExt getOverrideProperties() throws LocalRepositoryException {
         final String prefix = "getOverrideProperties(): ";
         _log.debug(prefix);
@@ -204,10 +203,10 @@ public class LocalRepository {
         _log.debug(prefix + "properties={}", Strings.repr(overrides));
         return overrides;
     }
-   
-     /***
+
+    /***
      * Update property
-     *
+     * 
      * @param state
      * @throws LocalRepositoryException
      */
@@ -219,17 +218,17 @@ public class LocalRepository {
         createTmpFile(tmpFilePath, state.toString(false), prefix);
 
         try {
-            final String[] cmd = {_SYSTOOL_CMD, _SYSTOOL_SET_OPROPS, TMP_CONFIG_USER_CHANGED_PROPS_PATH};
+            final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_SET_OPROPS, TMP_CONFIG_USER_CHANGED_PROPS_PATH };
             exec(prefix, cmd);
             _log.info(prefix + "Success");
         } finally {
             cleanupTmpFile(tmpFilePath);
         }
     }
-    
+
     /***
      * Update property
-     *
+     * 
      * @param state
      * @throws LocalRepositoryException
      */
@@ -241,7 +240,7 @@ public class LocalRepository {
         createTmpFile(tmpFilePath, state.toString(false), prefix);
 
         try {
-            final String[] cmd = {_SYSTOOL_CMD, _SYSTOOL_SET_VDC_PROPS, VDC_PROPERTY_DIR};
+            final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_SET_VDC_PROPS, VDC_PROPERTY_DIR };
             exec(prefix, cmd);
             _log.info(prefix + "Success");
         } finally {
@@ -250,23 +249,23 @@ public class LocalRepository {
     }
 
     /***
-    *
-    * @return PropertyInfo
-    */
-   public PropertyInfoExt getVdcPropertyInfo() throws LocalRepositoryException {
-       final String prefix = "getVdcPropertyInfo(): ";
-       _log.debug(prefix);
+     * 
+     * @return PropertyInfo
+     */
+    public PropertyInfoExt getVdcPropertyInfo() throws LocalRepositoryException {
+        final String prefix = "getVdcPropertyInfo(): ";
+        _log.debug(prefix);
 
-       final String[] cmd1 = { _SYSTOOL_CMD, _SYSTOOL_GET_VDC_PROPS };
-       String[] props = exec(prefix, cmd1);
+        final String[] cmd1 = { _SYSTOOL_CMD, _SYSTOOL_GET_VDC_PROPS };
+        String[] props = exec(prefix, cmd1);
 
-       _log.debug(prefix + "properties={}", Strings.repr(props));
-       return new PropertyInfoExt(props);
-   }
+        _log.debug(prefix + "properties={}", Strings.repr(props));
+        return new PropertyInfoExt(props);
+    }
 
     /***
      * Update SSL property
-     *
+     * 
      * @param state
      * @throws LocalRepositoryException
      */
@@ -278,7 +277,7 @@ public class LocalRepository {
         createTmpFile(tmpFilePath, state.toString(false), prefix);
 
         try {
-            final String[] cmd = {_SYSTOOL_CMD, _SYSTOOL_SET_SSL_PROPS, SSL_PROPERTY_TMP};
+            final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_SET_SSL_PROPS, SSL_PROPERTY_TMP };
             exec(prefix, cmd);
             _log.info(prefix + "Success");
         } finally {
@@ -287,7 +286,7 @@ public class LocalRepository {
     }
 
     /***
-     *
+     * 
      * @return PropertyInfo
      */
     public PropertyInfoExt getSslPropertyInfo() throws LocalRepositoryException {
@@ -303,6 +302,7 @@ public class LocalRepository {
 
     /**
      * Get controller ovf properties
+     * 
      * @return PropertyInfo controller ovf properties
      */
     public PropertyInfoExt getControllerOvfProperties() throws LocalRepositoryException {
@@ -313,10 +313,10 @@ public class LocalRepository {
         _log.debug(prefix + "properties={}", Strings.repr(overrides));
         return overrides;
     }
-   
-     /***
+
+    /***
      * Update controller ovf properties
-     *
+     * 
      * @param state controller ovf properties to update
      * @throws LocalRepositoryException
      */
@@ -328,18 +328,19 @@ public class LocalRepository {
         createTmpFile(tmpFilePath, state.toString(false), prefix);
 
         try {
-            final String[] cmd = {_SYSTOOL_CMD, _SYSTOOL_SET_CONTROLLEROVFPROPS, TMP_CONFIG_CONTROLLER_OVF_PROPS_PATH};
+            final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_SET_CONTROLLEROVFPROPS, TMP_CONFIG_CONTROLLER_OVF_PROPS_PATH };
             exec(prefix, cmd);
             _log.info(prefix + "Success");
         } finally {
             cleanupTmpFile(tmpFilePath);
         }
     }
-        
+
     /**
      * Reboot
-     *  throw LocalRepositoryException if exit value = 66 or exit value != 0
-     *  also throw LocalRepositoryException if not exited normally
+     * throw LocalRepositoryException if exit value = 66 or exit value != 0
+     * also throw LocalRepositoryException if not exited normally
+     * 
      * @throws LocalRepositoryException
      */
     public void reboot() throws LocalRepositoryException {
@@ -352,8 +353,9 @@ public class LocalRepository {
 
     /**
      * Poweroff
-     *  throw LocalRepositoryException if exit value = 66 or exit value != 0
-     *  also throw LocalRepositoryException if not exited normally
+     * throw LocalRepositoryException if exit value = 66 or exit value != 0
+     * also throw LocalRepositoryException if not exited normally
+     * 
      * @throws LocalRepositoryException
      */
     public void poweroff() throws LocalRepositoryException {
@@ -366,8 +368,9 @@ public class LocalRepository {
 
     /**
      * Reconfig
-     *  throw LocalRepositoryException if exit value = 66 or exit value != 0
-     *  also throw LocalRepositoryException if not exited normally
+     * throw LocalRepositoryException if exit value = 66 or exit value != 0
+     * also throw LocalRepositoryException if not exited normally
+     * 
      * @throws LocalRepositoryException
      */
     public void reconfig() throws LocalRepositoryException {
@@ -380,6 +383,7 @@ public class LocalRepository {
 
     /**
      * Reconfig properties associated with a list of tags
+     * 
      * @param propertyTags space separated list of property tags
      * @throws LocalRepositoryException
      */
@@ -393,7 +397,8 @@ public class LocalRepository {
 
     /**
      * Restart a service
-     * @param  serviceName service name
+     * 
+     * @param serviceName service name
      * @throws LocalRepositoryException
      */
     public void restart(final String serviceName) throws LocalRepositoryException {
@@ -408,6 +413,7 @@ public class LocalRepository {
     /**
      * Notify a service to reload configs after /etc/genconfig regenerates them.
      * The notification is done via systool since the service is not owned by storageos.
+     * 
      * @throws LocalRepositoryException
      */
     public void reload(final String svcName) throws LocalRepositoryException {
@@ -421,7 +427,7 @@ public class LocalRepository {
 
     /**
      * Check if the current deployment is an appliance
-     *
+     * 
      * @return true or false
      */
     public boolean isValidRepository() throws LocalRepositoryException {
@@ -441,11 +447,12 @@ public class LocalRepository {
     }
 
     /**
-    * Common method checking exec execution failure
-    * @param result    Exec execution result
-    * @param prefix    prefix string
-    * @throws LocalRepositoryException
-    */
+     * Common method checking exec execution failure
+     * 
+     * @param result Exec execution result
+     * @param prefix prefix string
+     * @throws LocalRepositoryException
+     */
     private void checkFailure(Exec.Result result, String prefix) throws LocalRepositoryException {
         if (!result.exitedNormally() || result.getExitValue() != _SYSTOOL_SUCCESS) {
             _log.info(prefix + " failed. Result exit value: " + result.getExitValue());
@@ -465,10 +472,10 @@ public class LocalRepository {
             _log.info(prefix + "Command failed. Result exit value: " + result.getExitValue());
             throw SyssvcException.syssvcExceptions.localRepoError(prefix + "Command failed: " + result);
         }
-        
+
         return result.getStdOutput().split(LINE_DELIMITER);
     }
-    
+
     private static List<SoftwareVersion> toSoftwareVersionList(final String prefix, String[] strings) throws LocalRepositoryException {
         if (strings == null) {
             throw SyssvcException.syssvcExceptions.localRepoError(prefix + "Internal error. Null list.");
@@ -484,11 +491,11 @@ public class LocalRepository {
                 _log.error("{}. Skipping", e);
             }
         }
-        
+
         if (versions.isEmpty()) {
             throw SyssvcException.syssvcExceptions.localRepoError(prefix + "No valid versions found.");
         }
-        
+
         return versions;
     }
 
@@ -499,7 +506,7 @@ public class LocalRepository {
             permissions.add(PosixFilePermission.OWNER_WRITE);
             Files.setPosixFilePermissions(filePath, permissions);
             out.write(content);
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw SyssvcException.syssvcExceptions.localRepoError(exceptionPrefix + e);
         }
     }
@@ -507,7 +514,7 @@ public class LocalRepository {
     private void cleanupTmpFile(Path filePath) {
         try {
             Files.delete(filePath);
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.warn("Failed to delete tmp file");
         }
     }

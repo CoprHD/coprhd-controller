@@ -33,11 +33,11 @@ public class Main {
         try {
             SLF4JBridgeHandler.install();
             FileSystemXmlApplicationContext ctx = new FileSystemXmlApplicationContext(args);
-            GeoService geoService = (GeoService)ctx.getBean(SERVICE_BEAN);
+            GeoService geoService = (GeoService) ctx.getBean(SERVICE_BEAN);
             geoService.start();
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.error("failed to start {}:", SERVICE_BEAN, e);
-            System.exit(1);            
+            System.exit(1);
         }
     }
 }

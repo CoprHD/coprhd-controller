@@ -30,8 +30,9 @@ public class ClusterRestRep extends TenantResourceRestRep {
     private RelatedResourceRep project;
     private RelatedResourceRep VcenterDataCenter;
 
-    public ClusterRestRep() {}
-    
+    public ClusterRestRep() {
+    }
+
     public ClusterRestRep(RelatedResourceRep project,
             RelatedResourceRep vcenterDataCenter) {
         this.project = project;
@@ -40,10 +41,11 @@ public class ClusterRestRep extends TenantResourceRestRep {
 
     /**
      * The project to which the cluster is assigned.
+     * 
      * @valid none
      * @return the project to which the cluster is assigned.
      */
-    @XmlElement(name="project")
+    @XmlElement(name = "project")
     public RelatedResourceRep getProject() {
         return project;
     }
@@ -54,10 +56,11 @@ public class ClusterRestRep extends TenantResourceRestRep {
 
     /**
      * The name of the data center in vCenter where this cluster resides
+     * 
      * @valid none
      * @return the name of the data center in vCenter where this cluster resides
      */
-    @XmlElement(name="vcenter_data_center")
+    @XmlElement(name = "vcenter_data_center")
     public RelatedResourceRep getVcenterDataCenter() {
         return VcenterDataCenter;
     }
@@ -66,4 +69,3 @@ public class ClusterRestRep extends TenantResourceRestRep {
         VcenterDataCenter = vcenterDataCenter;
     }
 }
-

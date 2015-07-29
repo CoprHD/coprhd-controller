@@ -37,8 +37,8 @@ public class LogStreamPerfTest {
      */
     @Test
     @Ignore
-    public void testPerformance_NoFilter() throws Exception {
-        System.out.println("starting testPerformance_NoFilter");
+    public void testPerformanceNoFilter() throws Exception {
+        System.out.println("starting testPerformanceNoFilter");
         String svcName = "bigFile-dbsvc";
         LogRequest req = new LogRequest.Builder().build();
         LogStatusInfo status = new LogStatusInfo();
@@ -68,7 +68,7 @@ public class LogStreamPerfTest {
         System.out.println("Speed of LogStream without Filter is: " + 4286.8
                 / elapsedTime + " MB/sec and " + stream.getTotalLogCount()
                 / elapsedTime + " logs/sec");
-        System.out.println("done testPerformance_NoFilter");
+        System.out.println("done testPerformanceNoFilter");
     }
 
     /**
@@ -124,8 +124,8 @@ public class LogStreamPerfTest {
      */
     @Test
     @Ignore
-    public void testPerformance_TimeFilter() throws Exception {
-        System.out.println("starting testPerformance_TimeFilter");
+    public void testPerformanceTimeFilter() throws Exception {
+        System.out.println("starting testPerformanceTimeFilter");
         String svcName = "bigFile-dbsvc";
         Calendar calendar = Calendar.getInstance();
         calendar.set(2013, 10, 20, 16, 38, 16);
@@ -159,7 +159,7 @@ public class LogStreamPerfTest {
                         + stream.getTotalLogCount());
         System.out.println("Speed of LogStream with time filter is: " + 3436.7
                 / elapsedTime + " MB/sec");
-        System.out.println("done testPerformance_TimeFilter");
+        System.out.println("done testPerformanceTimeFilter");
     }
 
     /**
@@ -168,8 +168,8 @@ public class LogStreamPerfTest {
      */
     @Test
     @Ignore
-    public void testPerformance_MultipleFilters() throws Exception {
-        System.out.println("starting testPerformance_MultipleFilters");
+    public void testPerformanceMultipleFilters() throws Exception {
+        System.out.println("starting testPerformanceMultipleFilters");
         String svcName = "bigFile-dbsvc";
         String pattern = "Memory";
         Calendar calendar = Calendar.getInstance();
@@ -204,7 +204,7 @@ public class LogStreamPerfTest {
                         + stream.getTotalLogCount());
         System.out.println("Speed of LogStream with multiple Filters is: "
                 + 3436.7 / elapsedTime + " MB/sec");
-        System.out.println("done testPerformance_MultipleFilters");
+        System.out.println("done testPerformanceMultipleFilters");
     }
 
     @Test
@@ -214,7 +214,7 @@ public class LogStreamPerfTest {
         files.add(new File("/opt/storageos/logs/testData/controllersvc.log.20131120-163817.gz"));
         LogRequest req = new LogRequest.Builder().build();
         LogStatusInfo status = new LogStatusInfo();
-        LogFileStream stream = new LogFileStream("",files, req, status);
+        LogFileStream stream = new LogFileStream("", files, req, status);
         long startTime = 0;
         long endTime = 0;
         startTime = System.nanoTime();

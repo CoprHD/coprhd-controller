@@ -16,21 +16,22 @@
 package com.emc.storageos.volumecontroller.impl.smis;
 
 import com.emc.storageos.db.client.model.Volume;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MetaVolumeRecommendation {
     private static final Logger _log = LoggerFactory.getLogger(MetaVolumeRecommendation.class);
 
-    private static final int BYTESCONVERTER= 1024;
+    private static final int BYTESCONVERTER = 1024;
 
     private boolean _createMetaVolumes = false;
     private long _metaMemberSize = 0;
     private long _metaMemberCount = 0;
     private Volume.CompositionType _metaVolumeType = Volume.CompositionType.STRIPED;
 
-
-    public  MetaVolumeRecommendation() {}
+    public MetaVolumeRecommendation() {
+    }
 
     public boolean isCreateMetaVolumes() {
         return _createMetaVolumes;
@@ -64,16 +65,19 @@ public class MetaVolumeRecommendation {
         this._metaVolumeType = _metaVolumeType;
     }
 
-    public boolean equals(MetaVolumeRecommendation recommendation) {
-        if (this == recommendation) {
-            return true;
-        } else if (recommendation != null) {
-            return (isCreateMetaVolumes() == recommendation.isCreateMetaVolumes() &&
-                    getMetaMemberSize() == recommendation.getMetaMemberSize() &&
-                    getMetaMemberCount() == recommendation.getMetaMemberCount() &&
-                    getMetaVolumeType().equals(recommendation.getMetaVolumeType()));
-        } else {
+    /**
+     * Created COP-37 to track hashCode() implemenatation in this class.
+     */
+    @SuppressWarnings({ "squid:S1206" })
+    public boolean equals(Object o) {
+        if (o == null || !(o instanceof MetaVolumeRecommendation)) {
             return false;
         }
+
+        MetaVolumeRecommendation other = (MetaVolumeRecommendation) o;
+
+        return (isCreateMetaVolumes() == other.isCreateMetaVolumes() &&
+                getMetaMemberSize() == other.getMetaMemberSize() &&
+                getMetaMemberCount() == other.getMetaMemberCount() && getMetaVolumeType().equals(other.getMetaVolumeType()));
     }
 }

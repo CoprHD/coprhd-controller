@@ -76,18 +76,18 @@ public class DiagnosticsScheduler implements Runnable, JobConstants {
                 .VERBOSE);
         DiagTestMetadata diagTestMetadata;
         for (DiagTest test : diagTests) {
-            if( (diagTestMetadata=DiagTestsMetadata.getMetadata().get(test.getName()))!=null ) {
+            if ((diagTestMetadata = DiagTestsMetadata.getMetadata().get(test.getName())) != null) {
                 String[] statusArr = test.getStatus().split(",");
                 for (String status : statusArr) {
                     status = status.trim();
-                    if(!diagTestMetadata.getOk().contains(status)){
-                        if(diagTestMetadata.getWarn().contains(status)){
+                    if (!diagTestMetadata.getOk().contains(status)) {
+                        if (diagTestMetadata.getWarn().contains(status)) {
                             _alertsLog.warn(test);
                         }
-                        else if(diagTestMetadata.getError().contains(status)){
+                        else if (diagTestMetadata.getError().contains(status)) {
                             _alertsLog.error(test);
                         }
-                        else if(diagTestMetadata.getCrit().contains(status)){
+                        else if (diagTestMetadata.getCrit().contains(status)) {
                             _alertsLog.fatal(test);
                         }
                     }
@@ -95,7 +95,7 @@ public class DiagnosticsScheduler implements Runnable, JobConstants {
             }
         }
 
-        //Analysis db and zk logs, if the errors match pre-define patterns, alter it in SystemEvents.
+        // Analysis db and zk logs, if the errors match pre-define patterns, alter it in SystemEvents.
         _dbLogAnalyser.analysisLogs();
         _zkLogAnalyser.analysisLogs();
         _controllerSvcLogAnalyser.analysisLogs();

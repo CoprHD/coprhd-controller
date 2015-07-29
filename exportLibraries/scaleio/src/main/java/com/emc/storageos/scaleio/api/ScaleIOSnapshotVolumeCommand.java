@@ -22,14 +22,14 @@ import java.util.List;
 
 public class ScaleIOSnapshotVolumeCommand extends AbstractScaleIOQueryCommand<ScaleIOSnapshotVolumeResult> {
 
-//    Snapshot created successfully
-//    Source volume with ID e9e5158e00000000 => e9e5158f00000001
+    // Snapshot created successfully
+    // Source volume with ID e9e5158e00000000 => e9e5158f00000001
 
     private static final String SNAPSHOT_VOLUME_SUCCESS = "SnapshotVolumeSuccess";
 
     private static final String SNAPSHOT_ID = "SnapshotId";
 
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern("Snapshot created successfully", SNAPSHOT_VOLUME_SUCCESS),
             new ParsePattern("\\s+Source volume with ID (\\w+)\\s+=>\\s+(\\w+)\\s+(\\S+)", SNAPSHOT_ID)
     };
@@ -45,7 +45,7 @@ public class ScaleIOSnapshotVolumeCommand extends AbstractScaleIOQueryCommand<Sc
 
     @Override
     ParsePattern[] getOutputPatternSpecification() {
-        return PARSING_CONFIG;
+        return PARSING_CONFIG.clone(); // No need to check not null condition here
     }
 
     @Override

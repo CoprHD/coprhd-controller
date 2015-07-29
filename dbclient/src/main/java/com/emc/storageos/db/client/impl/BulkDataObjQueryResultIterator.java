@@ -20,8 +20,6 @@ import java.net.URI;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import com.emc.storageos.db.exceptions.DatabaseException;
-
 /**
  * Data object Query result hit iterator
  */
@@ -37,7 +35,7 @@ public abstract class BulkDataObjQueryResultIterator<T> extends BulkDataObjItera
     public boolean hasNext() {
         if (currentIt != null && currentIt.hasNext()) {
             return true;
-}
+        }
 
         run();
         return currentIt != null;

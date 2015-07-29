@@ -36,32 +36,32 @@ import com.emc.nas.vnxfile.xmlapi.RequestPacket;
 import com.emc.nas.vnxfile.xmlapi.Task;
 import com.emc.nas.vnxfile.xmlapi.APIVersion;
 
-
 public class VNXFileInputRequestBuilder {
-    
+
     private static final Logger _logger = LoggerFactory
             .getLogger(VNXFileInputRequestBuilder.class);
 
-	private Marshaller _marshaller = null;
-	
-	private String _timeout;
-	
-	public void setTimeout(final String timeoutStr){
-		_timeout = timeoutStr;
-	}
-	
-	public String getTimeout(){
-		return _timeout;
-	}
+    private Marshaller _marshaller = null;
 
-	/**
-	 * Marshal the RequestPacket java object for the given QueryStats
-	 * argument. This will be used when client wants to use QueryStats to retrieve information.
-	 * @param stats : QueryStats
-	 * @return : Stream of Input XML generated.
-	 * @throws JAXBException
-	 */
-	public InputStream getSingleQueryStatsPacket(QueryStats stats)
+    private String _timeout;
+
+    public void setTimeout(final String timeoutStr) {
+        _timeout = timeoutStr;
+    }
+
+    public String getTimeout() {
+        return _timeout;
+    }
+
+    /**
+     * Marshal the RequestPacket java object for the given QueryStats
+     * argument. This will be used when client wants to use QueryStats to retrieve information.
+     * 
+     * @param stats : QueryStats
+     * @return : Stream of Input XML generated.
+     * @throws JAXBException
+     */
+    public InputStream getSingleQueryStatsPacket(QueryStats stats)
             throws JAXBException {
         InputStream inputStream = null;
         List<Request> requests = new ArrayList<Request>(1);
@@ -78,19 +78,20 @@ public class VNXFileInputRequestBuilder {
             try {
                 outputStream.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                _logger.error("Exception occurred while closing the stream due to ", e);
             }
         }
         return inputStream;
     }
 
-	/**
-	 * This method responsible to generate a multiple request packets
-	 * for the given list of QueryStats.
-	 * @param stats : list of QueryStats.
-	 * @return      : stream
-	 */
-	public InputStream getMultiRequestQueryStatsPacket(List<QueryStats> stats)
+    /**
+     * This method responsible to generate a multiple request packets
+     * for the given list of QueryStats.
+     * 
+     * @param stats : list of QueryStats.
+     * @return : stream
+     */
+    public InputStream getMultiRequestQueryStatsPacket(List<QueryStats> stats)
             throws JAXBException {
         InputStream inputStream = null;
         List<Request> requests = new ArrayList<Request>(stats.size());
@@ -116,12 +117,13 @@ public class VNXFileInputRequestBuilder {
         return inputStream;
     }
 
-	/**
-	 * Marshal the generated XML for a given QueryParam.
-	 * @param queryParam : queryParam object.
-	 * @return
-	 */
-	public InputStream getQueryParamPacket(Object queryParam, boolean is_1_2_VerionToSet)
+    /**
+     * Marshal the generated XML for a given QueryParam.
+     * 
+     * @param queryParam : queryParam object.
+     * @return
+     */
+    public InputStream getQueryParamPacket(Object queryParam, boolean is_1_2_VerionToSet)
             throws JAXBException {
         InputStream inputStream = null;
         List<Request> requests = new ArrayList<Request>(1);
@@ -134,7 +136,7 @@ public class VNXFileInputRequestBuilder {
             request.setQuery(query);
             requests.add(request);
             _logger.info("API Version to set {}", is_1_2_VerionToSet);
-            if(is_1_2_VerionToSet){
+            if (is_1_2_VerionToSet) {
                 _logger.info("Setting the API Version on Request Packet");
                 APIVersion apiVer = APIVersion.V_1_2;
                 requestPacket.setApiVersion(apiVer);
@@ -152,8 +154,8 @@ public class VNXFileInputRequestBuilder {
         return inputStream;
     }
 
-    public InputStream getQueryExParamPacket( Object queryParam) throws JAXBException {
-		InputStream inputStream = null;
+    public InputStream getQueryExParamPacket(Object queryParam) throws JAXBException {
+        InputStream inputStream = null;
         List<RequestEx> requests = new ArrayList<RequestEx>(1);
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         RequestPacket requestPacket = new RequestPacket();
@@ -178,31 +180,30 @@ public class VNXFileInputRequestBuilder {
         return inputStream;
     }
 
-    public InputStream getTaskParamPacket( Object taskParam ) throws JAXBException {
+    public InputStream getTaskParamPacket(Object taskParam) throws JAXBException {
         return getTaskParamPacket(taskParam, false);
     }
-    
-    public InputStream getTaskParamPacket( Object taskParam, boolean setApiVersion ) throws JAXBException {
+
+    public InputStream getTaskParamPacket(Object taskParam, boolean setApiVersion) throws JAXBException {
         InputStream inputStream = null;
         List<Request> requests = new ArrayList<Request>(1);
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         RequestPacket reqPacket = new RequestPacket();
 
         try {
-            Task task = (Task)taskParam;
+            Task task = (Task) taskParam;
             Long timeout = 3000L;
             String timeoutStr = getTimeout();
             _logger.info("Time out value " + timeoutStr);
-            if(timeoutStr != null && !timeoutStr.isEmpty()){
-            	timeout = Long.parseLong(timeoutStr);
+            if (timeoutStr != null && !timeoutStr.isEmpty()) {
+                timeout = Long.parseLong(timeoutStr);
             }
             task.setTimeout(timeout);
-            
 
             Request request = new Request();
             request.setStartTask(task);
             requests.add(request);
-            
+
             if (setApiVersion) {
                 APIVersion apiVer = APIVersion.V_1_1;
                 reqPacket.setApiVersion(apiVer);
@@ -221,11 +222,12 @@ public class VNXFileInputRequestBuilder {
         return inputStream;
     }
 
-	/**
-	 * Set the marshaller instance.
-	 * @param marshaller
-	 */
-	public void setMarshaller(Marshaller marshaller) {
-		_marshaller = marshaller;
-	}
+    /**
+     * Set the marshaller instance.
+     * 
+     * @param marshaller
+     */
+    public void setMarshaller(Marshaller marshaller) {
+        _marshaller = marshaller;
+    }
 }

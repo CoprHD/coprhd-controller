@@ -81,12 +81,12 @@ public class Services extends Controller {
         }
 
         Map<String, Object> fieldOptions = new HashMap<String, Object>();
-        
+
         // add the breadcrumb
         addBreadCrumbToRenderArgs(service);
-        
+
         // Mark the service as recently used
-//        RecentUtils.usedService(service);
+        // RecentUtils.usedService(service);
 
         Map<String, AssetFieldDescriptor> assetFieldDescriptors = ServiceFormUtils
                 .createAssetFieldDescriptors(serviceDescriptor);
@@ -127,9 +127,9 @@ public class Services extends Controller {
 
         boolean showForm = true;
         // Display an error message and don't display the form if an execution window is required but none are defined
-        if (Boolean.TRUE.equals(service.isExecutionWindowRequired()) && !hasExecutionWindows()) {            
+        if (Boolean.TRUE.equals(service.isExecutionWindowRequired()) && !hasExecutionWindows()) {
             flash.error(MessagesUtils.get("service.noExecutionWindows"));
-            showForm = false;                
+            showForm = false;
         }
 
         renderArgs.data.putAll(new ImmutableMap.Builder<String, Object>()
@@ -151,7 +151,7 @@ public class Services extends Controller {
                 "assetFieldDescriptors", assetFieldDescriptors,
                 "defaultValues", defaultValues,
                 "overriddenValues", overriddenValues
-        ));
+                ));
 
         render();
     }
@@ -170,7 +170,7 @@ public class Services extends Controller {
      * Gets the default field values for the given service.
      * 
      * @param descriptor
-     *        the service descriptor.
+     *            the service descriptor.
      * @return the default field values.
      */
     private static Map<String, String> getDefaultValues(ServiceDescriptorRestRep descriptor) {
@@ -191,7 +191,7 @@ public class Services extends Controller {
      * Gets the overridden (locked) values for the catalog service.
      * 
      * @param service
-     *        the service.
+     *            the service.
      * @return the overridden values.
      */
     private static Map<String, String> getOverriddenValues(CatalogServiceRestRep service) {
@@ -212,9 +212,9 @@ public class Services extends Controller {
      * overridden values are).
      * 
      * @param descriptors
-     *        the asset field descriptors.
+     *            the asset field descriptors.
      * @param overriddenValues
-     *        the overridden values.
+     *            the overridden values.
      * @return the available assets mapped by type.
      */
     private static Map<String, String> getAvailableAssets(Map<String, AssetFieldDescriptor> descriptors,
@@ -241,9 +241,9 @@ public class Services extends Controller {
      * fields which have all dependencies satisfied.
      * 
      * @param field
-     *        the field.
+     *            the field.
      * @param availableAssets
-     *        the available assets.
+     *            the available assets.
      * @return the list of asset options.
      */
     private static List<AssetOption> getAssetOptions(ServiceFieldRestRep field, Map<String, String> availableAssets) {
@@ -251,8 +251,7 @@ public class Services extends Controller {
         try {
             List<AssetOption> options = AssetOptionUtils.getAssetOptions(field.getAssetType(), availableAssets);
             allOptions.addAll(options);
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             addAssetError(field, availableAssets, e);
         }
 
@@ -279,6 +278,6 @@ public class Services extends Controller {
      */
     private static boolean hasExecutionWindows() {
         List<ExecutionWindowRestRep> executionWindows = ExecutionWindowUtils.getExecutionWindows();
-        return (executionWindows != null && executionWindows.size() > 0);
+        return (executionWindows != null && !executionWindows.isEmpty());
     }
 }

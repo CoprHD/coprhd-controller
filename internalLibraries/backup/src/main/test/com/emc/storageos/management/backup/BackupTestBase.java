@@ -18,10 +18,14 @@ package com.emc.storageos.management.backup;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.services.util.LoggingUtils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 public abstract class BackupTestBase {
+
+    private static final Logger log = LoggerFactory.getLogger(BackupTestBase.class);
 
     protected static ApplicationContext context;
     protected static BackupManager backupManager;
@@ -46,24 +50,27 @@ public abstract class BackupTestBase {
             backupManager.setCoordinatorClient(coordinatorClient);
 
             // Initializes geodb simulator and backupHandler
-            //context = new ClassPathXmlApplicationContext("backup-test-geodb-conf.xml");
-            //geoDbBackupHandler = context.getBean("geoDbBackupHandler", DbBackupHandler.class);
+            // context = new ClassPathXmlApplicationContext("backup-test-geodb-conf.xml");
+            // geoDbBackupHandler = context.getBean("geoDbBackupHandler", DbBackupHandler.class);
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            System.err.println(ex);
+            log.error("Caught Exception when initializing BackupTestBase: ", ex);
         }
     }
 
     /**
      * General method to help create backup of specified Handler
+     * 
      * @param backupTag
-     *          The tag of backup
+     *            The tag of backup
      * @param newBackupHandler
-     *          New backup handler
+     *            New backup handler
      */
     public static void createBackup(String backupTag, BackupHandler newBackupHandler) {
-        if (backupTag == null || newBackupHandler == null)
+        if (backupTag == null || newBackupHandler == null) {
             return;
+        }
         BackupHandler backupHandler = backupManager.getBackupHandler();
         try {
             backupManager.setBackupHandler(newBackupHandler);

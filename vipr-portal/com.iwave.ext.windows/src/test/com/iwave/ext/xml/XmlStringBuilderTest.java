@@ -5,9 +5,13 @@
 package com.iwave.ext.xml;
 
 import static org.junit.Assert.*;
+
+import org.apache.log4j.Logger;
 import org.junit.Test;
 
 public class XmlStringBuilderTest {
+    private static Logger log = Logger.getLogger(XmlStringBuilderTest.class);
+
     @Test
     public void testSingleNode() {
         XmlStringBuilder sb = new XmlStringBuilder();
@@ -61,8 +65,8 @@ public class XmlStringBuilderTest {
         try {
             sb.attr("a", "A");
             fail("Attributes should not be allowed before a start element");
-        }
-        catch (IllegalStateException e) {
+        } catch (IllegalStateException e) {
+            log.error(e.getMessage(), e);
         }
 
         sb.start("node");
@@ -70,16 +74,16 @@ public class XmlStringBuilderTest {
         try {
             sb.attr("a", "A");
             fail("Attributes should not be allowed after outputting text");
-        }
-        catch (IllegalStateException e) {
+        } catch (IllegalStateException e) {
+            log.error(e.getMessage(), e);
         }
 
         sb.end();
         try {
             sb.attr("a", "A");
             fail("Attributes should not be allowed after closing an element");
-        }
-        catch (IllegalStateException e) {
+        } catch (IllegalStateException e) {
+            log.error(e.getMessage(), e);
         }
     }
 
@@ -89,8 +93,8 @@ public class XmlStringBuilderTest {
         try {
             sb.end();
             fail("Should not be able to end an element when none was started");
-        }
-        catch (IllegalStateException e) {
+        } catch (IllegalStateException e) {
+            log.error(e.getMessage(), e);
         }
 
         sb.start("node");
@@ -98,8 +102,8 @@ public class XmlStringBuilderTest {
         try {
             sb.end();
             fail("Should not be able to end an element when none remain");
-        }
-        catch (IllegalStateException e) {
+        } catch (IllegalStateException e) {
+            log.error(e.getMessage(), e);
         }
     }
 

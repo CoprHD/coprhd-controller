@@ -11,11 +11,11 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
-
 
 public class XmlUtil {
 
@@ -25,11 +25,11 @@ public class XmlUtil {
         throw new AssertionError("Don't create any instance of class XmlUtils");
     }
 
-
     /**
      * General method to parse XML content
+     * 
      * @param t
-     *          The Class instance which will be marshaled
+     *            The Class instance which will be marshaled
      * @return string of content
      */
     public synchronized static <T> String marshal(T t) {
@@ -44,7 +44,6 @@ public class XmlUtil {
             str = stringWriter.toString();
         } catch (JAXBException je) {
             _log.error("Unable to construct XML content.", je);
-            je.printStackTrace();
         }
 
         return str;
@@ -52,10 +51,11 @@ public class XmlUtil {
 
     /**
      * General method to parse XML content
+     * 
      * @param content
-     *          The string content which need to be parsed
+     *            The string content which need to be parsed
      * @param tClass
-     *          Class identifier of desired type
+     *            Class identifier of desired type
      * @return instance of desired type
      */
     public synchronized static <T> T unmarshal(String content, Class<T> tClass) {
@@ -68,17 +68,17 @@ public class XmlUtil {
             return tClass.cast(unMarshaller.unmarshal(stringReader));
         } catch (JAXBException je) {
             _log.error("Unable to parse XML content.", je);
-            je.printStackTrace();
         }
         return null;
     }
 
     /**
      * General method to parse XML content
+     * 
      * @param inputStream
-     *          The content which need to be parsed
+     *            The content which need to be parsed
      * @param tClass
-     *          Class identifier of desired type
+     *            Class identifier of desired type
      * @return instance of desired type
      */
     public synchronized static <T> T unmarshal(InputStream inputStream, Class<T> tClass) {
@@ -88,15 +88,13 @@ public class XmlUtil {
             return tClass.cast(jaxbUnmarshaller.unmarshal(inputStream));
         } catch (JAXBException je) {
             _log.error("Unable to parse XML content.", je);
-            je.printStackTrace();
         } finally {
             try {
-                if(inputStream != null) {
+                if (inputStream != null) {
                     inputStream.close();
                 }
             } catch (IOException ioe) {
-                _log.error("Unable to close input stream "+ioe.getMessage(), ioe);
-                ioe.printStackTrace();
+                _log.error("Unable to close input stream " + ioe.getMessage(), ioe);
             }
         }
         return null;

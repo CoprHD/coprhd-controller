@@ -27,7 +27,6 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 
-
 public class DbObjectMapper {
     private static final Logger _log = LoggerFactory.getLogger(DbObjectMapper.class);
 
@@ -37,8 +36,8 @@ public class DbObjectMapper {
 
         try {
             resourceType = ResourceTypeMapping.getResourceType(URIUtil.getModelClass(resource.getURI()));
-        } catch(Exception e) {
-            _log.error("Resource Type not found for "+resource.getURI(), e);
+        } catch (Exception e) {
+            _log.error("Resource Type not found for " + resource.getURI(), e);
         }
 
         return new NamedRelatedResourceRep(resource.getURI(), toLink(resourceType, resource.getURI()), resource.getName());
@@ -64,7 +63,7 @@ public class DbObjectMapper {
 
     public static TypedRelatedResourceRep toTypedRelatedResource(DataObject resource) {
         return new TypedRelatedResourceRep(resource.getId(), toLink(resource),
-            resource.getLabel(), ResourceTypeMapping.getResourceType(resource));
+                resource.getLabel(), ResourceTypeMapping.getResourceType(resource));
     }
 
     // Links
@@ -99,16 +98,17 @@ public class DbObjectMapper {
 
     public static List<NamedRelatedResourceRep> map(ResourceTypeEnum type, List<NamedElementQueryResultList.NamedElement> from) {
         List<NamedRelatedResourceRep> to = Lists.newArrayList();
-        for(NamedElementQueryResultList.NamedElement el : from){
-            to.add(new NamedRelatedResourceRep(el.id, toLink(type, el.id), el.name));
+        for (NamedElementQueryResultList.NamedElement el : from) {
+            to.add(new NamedRelatedResourceRep(el.getId(), toLink(type, el.getId()), el.getName()));
         }
         return to;
     }
 
-    public static List<NamedRelatedResourceRep> map(ResourceTypeEnum type, URI parentId, List<NamedElementQueryResultList.NamedElement> from) {
+    public static List<NamedRelatedResourceRep>
+            map(ResourceTypeEnum type, URI parentId, List<NamedElementQueryResultList.NamedElement> from) {
         List<NamedRelatedResourceRep> to = Lists.newArrayList();
-        for(NamedElementQueryResultList.NamedElement el : from){
-            to.add(new NamedRelatedResourceRep(el.id, toLink(type, el.id, parentId), el.name));
+        for (NamedElementQueryResultList.NamedElement el : from) {
+            to.add(new NamedRelatedResourceRep(el.getId(), toLink(type, el.getId(), parentId), el.getName()));
         }
         return to;
     }
@@ -126,7 +126,7 @@ public class DbObjectMapper {
         to.setGlobal(from.isGlobal());
         to.setRemote(to.getGlobal() ? null : VdcUtil.isRemoteObject(from));
         if (from.getTag() != null) {
-            for (ScopedLabel tag: from.getTag()) {
+            for (ScopedLabel tag : from.getTag()) {
                 to.getTags().add(tag.getLabel());
             }
         }
@@ -185,15 +185,15 @@ public class DbObjectMapper {
             }
         }
         to.setDescription(from.getDescription());
-        if(from.getUserMappings() != null) {
-            for(AbstractChangeTrackingSet<String> userMappingSet: from.getUserMappings().values()) {
-                for(String existingMapping : userMappingSet ) {
+        if (from.getUserMappings() != null) {
+            for (AbstractChangeTrackingSet<String> userMappingSet : from.getUserMappings().values()) {
+                for (String existingMapping : userMappingSet) {
                     to.getUserMappings().add(BasePermissionsHelper.UserMapping.toParam(
-                    		BasePermissionsHelper.UserMapping.fromString(existingMapping)));
+                            BasePermissionsHelper.UserMapping.fromString(existingMapping)));
                 }
             }
         }
-        if(from.getNamespace() != null) {
+        if (from.getNamespace() != null) {
             to.setNamespace(from.getNamespace());
         }
         return to;
@@ -203,15 +203,15 @@ public class DbObjectMapper {
         mapDataObjectFields(from.findDataObject(), to);
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
     }
-    
+
     public static CustomConfigRestRep map(CustomConfig from) {
         if (from == null) {
             return null;
         }
         CustomConfigRestRep to = new CustomConfigRestRep();
-        
+
         to.setLink(new RestLinkRep("self", RestLinkFactory.newLink(from)));
-        //build the config type Link
+        // build the config type Link
         String service = ResourceTypeEnum.CONFIG_TYPE.getService();
         StringBuilder build = (new StringBuilder(service)).
                 append('/').append(from.getConfigType());
@@ -221,7 +221,7 @@ public class DbObjectMapper {
             type.setSelfLink(new RestLinkRep("self", new URI(build.toString())));
             to.setConfigType(type);
         } catch (URISyntaxException e) {
-            //it should not happen
+            // it should not happen
         }
         to.setId(from.getId());
         to.setName(from.getLabel());
@@ -237,5 +237,5 @@ public class DbObjectMapper {
         to.setSystemDefault(from.getSystemDefault());
         return to;
     }
-    
+
 }

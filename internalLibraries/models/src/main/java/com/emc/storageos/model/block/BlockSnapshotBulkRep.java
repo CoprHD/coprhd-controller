@@ -16,6 +16,7 @@ public class BlockSnapshotBulkRep extends BulkRestRep {
 
     /**
      * List of Block Snapshots.
+     * 
      * @valid none
      */
     @SuppressWarnings("unchecked")

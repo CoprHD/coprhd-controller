@@ -20,23 +20,23 @@ import java.util.Stack;
 
 public class ScaleIOQueryAllSDSCommand extends AbstractScaleIOQueryCommand<ScaleIOQueryAllSDSResult> {
 
-//Query-all-SDS returned 6 SDS nodes.
-//
-//Protection Domain: Name: PD-1 ID: b1a5a2ef00000000
-//SDS ID: f415b57100000002 Name: lglbg040 IP: 10.247.78.40 Port: 7072
-//SDS ID: f415b57200000003 Name: lglbg041 IP: 10.247.78.41 Port: 7072
-//SDS ID: f415b57300000004 Name: lglbg042 IP: 10.247.78.42 Port: 7072
-//
-//Protection Domain: Name: PD-2 ID: b1a5a35300000001
-//SDS ID: f415b57500000005 Name: unnamed IP: 10.247.78.43 Port: 7072
-//SDS ID: f415b57600000006 Name: unnamed IP: 10.247.78.44 Port: 7072
-//SDS ID: f415b57700000007 Name: unnamed IP: 10.247.78.47 Port: 7072
+    // Query-all-SDS returned 6 SDS nodes.
+    //
+    // Protection Domain: Name: PD-1 ID: b1a5a2ef00000000
+    // SDS ID: f415b57100000002 Name: lglbg040 IP: 10.247.78.40 Port: 7072
+    // SDS ID: f415b57200000003 Name: lglbg041 IP: 10.247.78.41 Port: 7072
+    // SDS ID: f415b57300000004 Name: lglbg042 IP: 10.247.78.42 Port: 7072
+    //
+    // Protection Domain: Name: PD-2 ID: b1a5a35300000001
+    // SDS ID: f415b57500000005 Name: unnamed IP: 10.247.78.43 Port: 7072
+    // SDS ID: f415b57600000006 Name: unnamed IP: 10.247.78.44 Port: 7072
+    // SDS ID: f415b57700000007 Name: unnamed IP: 10.247.78.47 Port: 7072
 
     private static final String PROTECTION_DOMAIN = "ProtectionDomain";
     private static final String PROTECTION_DOMAIN_1_30 = "ProtectionDomain_1_30";
     private static final String SDS = "SDS";
 
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern("Protection Domain:\\s+Name:\\s+(\\S+)\\s+ID:\\s+(\\w+)", PROTECTION_DOMAIN),
             new ParsePattern("Protection Domain\\s+(\\w+)\\s+Name:\\s+(\\S+)", PROTECTION_DOMAIN_1_30),
             new ParsePattern("SDS ID:\\s+(\\w+)\\s+Name:\\s+(\\S+)\\s+IP:\\s+(\\S+)\\s+Port:\\s+(\\d+)", SDS),
@@ -51,7 +51,7 @@ public class ScaleIOQueryAllSDSCommand extends AbstractScaleIOQueryCommand<Scale
 
     @Override
     ParsePattern[] getOutputPatternSpecification() {
-        return PARSING_CONFIG;
+        return PARSING_CONFIG.clone(); // No need to check not null condition here
     }
 
     @Override

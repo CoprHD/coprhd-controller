@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
-import static com.emc.storageos.api.mapper.BlockMapper.toVirtualPoolResource;
 import static com.emc.storageos.api.mapper.ComputeMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 
@@ -33,7 +32,6 @@ import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -53,18 +51,18 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 import com.google.common.base.Function;
 
 @Path("/vdc/compute-elements")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, 
-	write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class ComputeElementService extends TaskResourceService {
-	private static final String EVENT_SERVICE_TYPE = "ComputeElement";
-	private static final String EVENT_SERVICE_SOURCE = "ComputeElementService";
+    private static final String EVENT_SERVICE_TYPE = "ComputeElement";
+    private static final String EVENT_SERVICE_SOURCE = "ComputeElementService";
 
     @Autowired
     private RecordableEventManager _evtMgr;
 
     @Autowired
     private ComputeVirtualPoolService computeVirtualPoolService;
-	
+
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
@@ -86,17 +84,17 @@ public class ComputeElementService extends TaskResourceService {
     }
 
     @Override
-    protected ResourceTypeEnum getResourceType(){
+    protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.COMPUTE_ELEMENT;
     }
 
     /**
      * Gets the compute element with the passed id from the database.
-     *
+     * 
      * @param id the URN of a ViPR compute element.
-     *
+     * 
      * @return A reference to the registered compute element.
-     *
+     * 
      * @throws BadRequestException When the compute element is not registered.
      */
     protected ComputeElement queryRegisteredResource(URI id) {
@@ -105,15 +103,15 @@ public class ComputeElementService extends TaskResourceService {
         ArgValidator.checkEntityNotNull(ce, id, isIdEmbeddedInURL(id));
 
         if (!RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(ce.getRegistrationStatus())) {
-        	throw APIException.badRequests.resourceNotRegistered(ComputeElement.class.getSimpleName(), id);
+            throw APIException.badRequests.resourceNotRegistered(ComputeElement.class.getSimpleName(), id);
         }
 
         return ce;
     }
 
-    /**     
+    /**
      * Gets the ids and self links for all compute elements.
-     *
+     * 
      * @brief List compute elements
      * @return A ComputeElementList reference specifying the ids and self links for
      *         the compute elements.
@@ -122,24 +120,24 @@ public class ComputeElementService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public ComputeElementList getComputeElements() {
-    	ComputeElementList computeElements = new ComputeElementList();
+        ComputeElementList computeElements = new ComputeElementList();
         List<URI> ids = _dbClient.queryByType(ComputeElement.class, true);
-        
+
         for (URI id : ids) {
-        	ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, id);
+            ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, id);
             if (computeElement != null && !computeElement.getInactive()) {
-            	computeElements.getComputeElements().add(toNamedRelatedResource(computeElement));
+                computeElements.getComputeElements().add(toNamedRelatedResource(computeElement));
             }
         }
-        
+
         return computeElements;
     }
 
-    /**     
+    /**
      * Gets the data for a compute element.
-     *
+     * 
      * @param id the URN of a ViPR compute element.
-     *
+     * 
      * @brief Show compute element
      * @return A ComputeElementRestRep reference specifying the data for the
      *         compute element with the passed id.
@@ -157,13 +155,13 @@ public class ComputeElementService extends TaskResourceService {
         return ComputeMapper.map(ce);
     }
 
-    /**     
+    /**
      * Allows the user to deregister a registered compute element so that it is no
      * longer used by the system. This simply sets the registration_status of
      * the compute element to UNREGISTERED.
-     *
+     * 
      * @param id the URN of a ViPR compute element to deregister.
-     *
+     * 
      * @brief Unregister compute element
      * @return Status indicating success or failure.
      */
@@ -174,19 +172,19 @@ public class ComputeElementService extends TaskResourceService {
     public ComputeElementRestRep deregisterComputeElement(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, ComputeElement.class, "id");
         ComputeElement ce = queryResource(id);
-        
+
         URIQueryResultList uris = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getHostComputeElementConstraint(ce.getId()), uris);
-		List<Host> hosts = _dbClient.queryObject(Host.class,uris,true);
-    	if (!hosts.isEmpty()) {
-    		throw APIException.badRequests.unableToDeregisterProvisionedComputeElement(ce.getLabel(),hosts.get(0).getHostName());
-    	}
+        List<Host> hosts = _dbClient.queryObject(Host.class, uris, true);
+        if (!hosts.isEmpty()) {
+            throw APIException.badRequests.unableToDeregisterProvisionedComputeElement(ce.getLabel(), hosts.get(0).getHostName());
+        }
 
         if (RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(ce.getRegistrationStatus())) {
             ce.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
             _dbClient.persistObject(ce);
-            //Remove the element being deregistered from all CVPs it is part of.
+            // Remove the element being deregistered from all CVPs it is part of.
             URIQueryResultList cvpList = new URIQueryResultList();
             _log.debug("Looking for CVPs this blade is in");
             _dbClient.queryByConstraint(ContainmentConstraint.Factory
@@ -194,9 +192,9 @@ public class ComputeElementService extends TaskResourceService {
             Iterator<URI> cvpListItr = cvpList.iterator();
             while (cvpListItr.hasNext()) {
                 ComputeVirtualPool cvp = _dbClient.queryObject(ComputeVirtualPool.class, cvpListItr.next());
-                _log.debug("Found cvp:"+cvp.getLabel()+"containing compute element being deregistered");
+                _log.debug("Found cvp:" + cvp.getLabel() + "containing compute element being deregistered");
                 StringSet currentElements = new StringSet();
-                if(cvp.getMatchedComputeElements() != null) {
+                if (cvp.getMatchedComputeElements() != null) {
                     currentElements.addAll(cvp.getMatchedComputeElements());
                     currentElements.remove(ce.getId().toString());
                 }
@@ -205,8 +203,8 @@ public class ComputeElementService extends TaskResourceService {
                 _log.debug("Removed ce from cvp");
             }
             // Record the compute element deregister event.
-//            recordComputeElementEvent(OperationTypeEnum.DEREGISTER_COMPUTE_ELEMENT,
-//            		COMPUTE_ELEMENT_DEREGISTERED_DESCRIPTION, ce.getId());
+            // recordComputeElementEvent(OperationTypeEnum.DEREGISTER_COMPUTE_ELEMENT,
+            // COMPUTE_ELEMENT_DEREGISTERED_DESCRIPTION, ce.getId());
 
             recordAndAudit(ce, OperationTypeEnum.DEREGISTER_COMPUTE_ELEMENT, true, null);
         }
@@ -214,12 +212,12 @@ public class ComputeElementService extends TaskResourceService {
         return ComputeMapper.map(ce);
     }
 
-    /**     
+    /**
      * Manually register the discovered compute element with the passed id on the
      * registered compute system with the passed id.
-     *
+     * 
      * @param computeElementId The id of the compute element.
-     *
+     * 
      * @brief Register compute system compute element
      * @return A reference to a ComputeElementRestRep specifying the data for the
      *         registered compute element.
@@ -234,26 +232,25 @@ public class ComputeElementService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, ComputeElement.class, "id");
         ComputeElement ce = _dbClient.queryObject(ComputeElement.class, id);
         ArgValidator.checkEntity(ce, id, isIdEmbeddedInURL(id));
-        
-        
-        if(ce == null){
-        	throw APIException.badRequests.computeElementNotFound(id);
+
+        if (ce == null) {
+            throw APIException.badRequests.computeElementNotFound(id);
         }
-        
-        if (ce.getComputeSystem() == null){
-        	throw APIException.badRequests.computeElementNotBelongingToSystem(id,null);
-        }else{
-        	ComputeSystemUtils.queryRegisteredSystem(ce.getComputeSystem(), _dbClient, isIdEmbeddedInURL(ce.getComputeSystem()));
+
+        if (ce.getComputeSystem() == null) {
+            throw APIException.badRequests.computeElementNotBelongingToSystem(id, null);
+        } else {
+            ComputeSystemUtils.queryRegisteredSystem(ce.getComputeSystem(), _dbClient, isIdEmbeddedInURL(ce.getComputeSystem()));
         }
-       
-        // if not registered, registered it.  Otherwise, dont do anything
+
+        // if not registered, registered it. Otherwise, dont do anything
         if (RegistrationStatus.UNREGISTERED.toString().equalsIgnoreCase(ce.getRegistrationStatus())) {
             registerComputeElement(ce);
             List<URI> cvpIds = _dbClient.queryByType(ComputeVirtualPool.class, true);
-            Iterator<ComputeVirtualPool> iter = _dbClient.queryIterativeObjects(ComputeVirtualPool.class,cvpIds);
-            while(iter.hasNext())  {
+            Iterator<ComputeVirtualPool> iter = _dbClient.queryIterativeObjects(ComputeVirtualPool.class, cvpIds);
+            while (iter.hasNext()) {
                 ComputeVirtualPool cvp = iter.next();
-                 if(cvp.getUseMatchedElements()) {
+                if (cvp.getUseMatchedElements()) {
                     _log.debug("Compute pool " + cvp.getLabel() + " configured to use dynamic matching -- refresh matched elements");
                     computeVirtualPoolService.getMatchingCEsforCVPAttributes(cvp);
                     _dbClient.updateAndReindexObject(cvp);
@@ -261,30 +258,30 @@ public class ComputeElementService extends TaskResourceService {
             }
 
         }
-        
+
         return map(ce);
     }
-    
+
     private void registerComputeElement(ComputeElement ce) {
-    	ce.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
+        ce.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
         _dbClient.updateAndReindexObject(ce);
-        
+
         recordAndAudit(ce, OperationTypeEnum.REGISTER_COMPUTE_ELEMENT, true, null);
     }
 
-    /**     
+    /**
      * Retrieves resource representations based on input ids.
-     *
+     * 
      * @param param POST data containing the id list.
      * @brief List data of compute element resources
      * @return list of representations.
-     *
+     * 
      * @throws DatabaseException When an error occurs querying the database.
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public ComputeElementBulkRep getBulkResources(BulkIdParam param) {
         return (ComputeElementBulkRep) super.getBulkResources(param);
@@ -294,11 +291,11 @@ public class ComputeElementService extends TaskResourceService {
     public ComputeElementBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<ComputeElement> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new ComputeElementBulkRep(BulkList.wrapping(_dbIterator, new Function<ComputeElement, ComputeElementRestRep>() {
             @Override
             public ComputeElementRestRep apply(ComputeElement ce) {
-            	ComputeElementRestRep restRep = ComputeMapper.map(ce);
+                ComputeElementRestRep restRep = ComputeMapper.map(ce);
                 return restRep;
             }
         }));
@@ -312,13 +309,14 @@ public class ComputeElementService extends TaskResourceService {
 
     /**
      * Record ViPR Event for the completed operations
+     * 
      * @param computeElement
      * @param type
      * @param description
      */
-    private void recordComputeEvent(ComputeElement computeElement, OperationTypeEnum typeEnum,boolean status) {
+    private void recordComputeEvent(ComputeElement computeElement, OperationTypeEnum typeEnum, boolean status) {
         RecordableBourneEvent event = new RecordableBourneEvent(
-               /* String */typeEnum.getEvType(status),
+                /* String */typeEnum.getEvType(status),
                 /* tenant id */null,
                 /* user id ?? */URI.create("ViPR-User"),
                 /* project ID */null,
@@ -330,23 +328,23 @@ public class ComputeElementService extends TaskResourceService {
                 /* extensions */null,
                 /* native guid */computeElement.getNativeGuid(),
                 /* record type */RecordType.Event.name(),
-                /* Event Source*/EVENT_SERVICE_SOURCE,
-                /* Operational Status codes*/"",
-                /* Operational Status Descriptions*/"");
+                /* Event Source */EVENT_SERVICE_SOURCE,
+                /* Operational Status codes */"",
+                /* Operational Status Descriptions */"");
         try {
-        	_evtMgr.recordEvents(event);
-        } catch (Throwable th) {
+            _evtMgr.recordEvents(event);
+        } catch (Exception ex) {
             _log.error("Failed to record event. Event description: {}. Error: {}.",
-            		typeEnum.getDescription(), th);
+                    typeEnum.getDescription(), ex);
         }
     }
 
-    private void recordAndAudit(ComputeElement ce, OperationTypeEnum typeEnum,boolean status,String operationalStage){
-    	
-    	recordComputeEvent(ce,typeEnum,status);
-    	
+    private void recordAndAudit(ComputeElement ce, OperationTypeEnum typeEnum, boolean status, String operationalStage) {
+
+        recordComputeEvent(ce, typeEnum, status);
+
         auditOp(typeEnum, status, operationalStage,
                 ce.getId().toString(), ce.getLabel(), ce.getNativeGuid(), ce.getUuid(), ce.getOriginalUuid());
-    	
+
     }
 }

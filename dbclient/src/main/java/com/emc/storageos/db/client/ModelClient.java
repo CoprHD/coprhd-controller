@@ -26,8 +26,8 @@ import com.emc.storageos.db.exceptions.DatabaseException;
  */
 public abstract class ModelClient {
 
-	 // JM -- Don't attempt to instantiate the DAO fields directly, this will be called before the client field
-    //       is initialized in the constructor causing NPEs
+    // JM -- Don't attempt to instantiate the DAO fields directly, this will be called before the client field
+    // is initialized in the constructor causing NPEs
     private DatacenterFinder datacenterDAO;
     private ESXHostFinder esxHostDAO;
     private VCenterFinder vcenterDAO;
@@ -35,31 +35,39 @@ public abstract class ModelClient {
     private InitiatorFinder initiatorDAO;
     private IpInterfaceFinder ipInterfaceDAO;
     private ClusterFinder clusterDAO;
-    
-    public abstract <T extends DataObject> List<URI> findAllIds(Class<T> clazz, boolean activeOnly) throws DatabaseException;
-    public abstract <T extends DataObject> T findById(Class<T> clazz, URI id) throws DatabaseException;
-    public abstract <T extends DataObject> Iterable<T> findByIds(Class<T> clazz, List<URI> ids, boolean activeOnly) throws DatabaseException;
-    
-    public abstract <T extends DataObject> List<NamedElement> findBy(Class<T> clazz, String columnField, URI id) throws DatabaseException;
-    public abstract <T extends DataObject> List<NamedElement> findByPrefix(Class<T> clazz, String columnField, String prefix) throws DatabaseException;
-    public abstract <T extends DataObject> List<NamedElement> findByContainmentAndPrefix(Class<T> clazz, String columnField, URI id, String labelPrefix) throws DatabaseException;
-    public abstract <T extends DataObject> List<NamedElement> findByAlternateId(Class<T> clazz, String columnField, String value) throws DatabaseException;
 
-    public abstract <T extends DataObject> void create(T model) throws DatabaseException;
-    public abstract <T extends DataObject> void update(T model) throws DatabaseException;
+    public abstract <T extends DataObject> List<URI> findAllIds(Class<T> clazz, boolean activeOnly);
 
-    public abstract <T extends DataObject> void delete(T model) throws DatabaseException;
-    public abstract <T extends DataObject> void delete(List<T> models) throws DatabaseException;
-    
+    public abstract <T extends DataObject> T findById(Class<T> clazz, URI id);
+
+    public abstract <T extends DataObject> Iterable<T> findByIds(Class<T> clazz, List<URI> ids, boolean activeOnly);
+
+    public abstract <T extends DataObject> List<NamedElement> findBy(Class<T> clazz, String columnField, URI id);
+
+    public abstract <T extends DataObject> List<NamedElement> findByPrefix(Class<T> clazz, String columnField, String prefix);
+
+    public abstract <T extends DataObject> List<NamedElement> findByContainmentAndPrefix(Class<T> clazz, String columnField, URI id,
+            String labelPrefix);
+
+    public abstract <T extends DataObject> List<NamedElement> findByAlternateId(Class<T> clazz, String columnField, String value);
+
+    public abstract <T extends DataObject> void create(T model);
+
+    public abstract <T extends DataObject> void update(T model);
+
+    public abstract <T extends DataObject> void delete(T model);
+
+    public abstract <T extends DataObject> void delete(List<T> models);
+
     public <T extends DataObject> ModelFinder<T> of(final Class<T> clazz) {
         return new ModelFinder<T>(clazz, this);
     }
-    
+
     /**
      * Finds an object by ID.
      * 
      * @param id
-     *        the ID of the object.
+     *            the ID of the object.
      * @return the object.
      */
     public <T extends DataObject> T findById(URI id) {
@@ -74,17 +82,17 @@ public abstract class ModelClient {
             return null;
         }
     }
-    
+
     public <T extends DataObject> List<URI> findByType(Class<T> clazz) {
         return this.findAllIds(clazz, true);
     }
-    
+
     public static String getTypeName(URI id) {
         return getTypeName(id.toString());
     }
 
     public static String getTypeName(String id) {
-    	return URIUtil.getTypeName(id);
+        return URIUtil.getTypeName(id);
     }
 
     public DatacenterFinder datacenters() {
@@ -107,35 +115,35 @@ public abstract class ModelClient {
         }
         return vcenterDAO;
     }
-    
+
     public HostFinder hosts() {
         if (hostDAO == null) {
             hostDAO = new HostFinder(this);
         }
         return hostDAO;
     }
-    
+
     public InitiatorFinder initiators() {
         if (initiatorDAO == null) {
             initiatorDAO = new InitiatorFinder(this);
         }
         return initiatorDAO;
     }
-    
+
     public IpInterfaceFinder ipInterfaces() {
         if (ipInterfaceDAO == null) {
             ipInterfaceDAO = new IpInterfaceFinder(this);
         }
         return ipInterfaceDAO;
     }
-    
+
     public ClusterFinder clusters() {
         if (clusterDAO == null) {
             clusterDAO = new ClusterFinder(this);
         }
         return clusterDAO;
     }
-    
+
     private <T extends DataObject> boolean generateIdIfNew(T model) {
         if (model != null && model.getId() == null) {
             model.setId(URIUtil.createId(model.getClass()));
@@ -155,14 +163,14 @@ public abstract class ModelClient {
         String typeName = URIUtil.getTypeName(id);
         Class<T> clazz = null;
         try {
-			clazz = (Class<T>) Class.forName(String.format("com.emc.storageos.db.client.model.%1$s",typeName));
-		} catch (ClassNotFoundException e) {
-			DatabaseException.fatals.unableToFindClass(typeName);
-		}
+            clazz = (Class<T>) Class.forName(String.format("com.emc.storageos.db.client.model.%1$s", typeName));
+        } catch (ClassNotFoundException e) {
+            DatabaseException.fatals.unableToFindClass(typeName);
+        }
         return clazz;
     }
 
-    public <T extends DataObject> void save(T model) throws DatabaseException {
+    public <T extends DataObject> void save(T model) {
         boolean isNew = generateIdIfNew(model);
         setCreationTimeIfRequired(model);
 
@@ -172,6 +180,5 @@ public abstract class ModelClient {
         else {
             update(model);
         }
-    }    
+    }
 }
-

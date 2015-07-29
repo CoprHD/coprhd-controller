@@ -30,8 +30,8 @@ import com.emc.storageos.db.common.VdcUtil;
 
 public class GeoClientCacheManager {
 
-    private static final int CLIENT_CONNECT_TIMEOUT = 30*1000;
-    private static final int CLIENT_READ_TIMEOUT = 30*1000;
+    private static final int CLIENT_CONNECT_TIMEOUT = 30 * 1000;
+    private static final int CLIENT_READ_TIMEOUT = 30 * 1000;
 
     private int _clientConnTimeout = CLIENT_CONNECT_TIMEOUT;
     private int _clientReadTimeout = CLIENT_READ_TIMEOUT;
@@ -39,7 +39,7 @@ public class GeoClientCacheManager {
     private static final Logger log = LoggerFactory.getLogger(GeoClientCacheManager.class);
     private CoordinatorClient coordinatorClient;
     private DbClient dbClient;
-    //TODO: ultimately we'll need a strategy for cache refresh
+    // TODO: ultimately we'll need a strategy for cache refresh
     private ConcurrentHashMap<String, GeoServiceClient> clientCache = new ConcurrentHashMap<String, GeoServiceClient>();
 
     public void setClientConnTimeout(int clientConnTimeout) {
@@ -52,7 +52,7 @@ public class GeoClientCacheManager {
 
     public void setCoordinatorClient(CoordinatorClient coordinatorClient) {
         this.coordinatorClient = coordinatorClient;
-    }    
+    }
 
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
@@ -65,7 +65,7 @@ public class GeoClientCacheManager {
         VdcUtil.invalidateVdcUrnCache();
         clientCache.clear();
     }
-    
+
     public GeoServiceClient getGeoClient(String shortVdcId) {
         GeoServiceClient client = null;
         if (clientCache.containsKey(shortVdcId)) {
@@ -106,22 +106,22 @@ public class GeoClientCacheManager {
         GeoServiceClient client = createClient(lookupVdc(shortVdcId));
         log.info("returning non-shared client for {}", shortVdcId);
         return client;
-    }  
-    
+    }
+
     private VirtualDataCenter lookupVdc(String shortVdcId) {
         URI vdcURN = dbClient.getVdcUrn(shortVdcId);
-        //TODO: convert to the appropriate ViPR exception
+        // TODO: convert to the appropriate ViPR exception
         if (vdcURN == null) {
             throw new IllegalArgumentException("unknown vdc id " + shortVdcId);
         }
         VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, vdcURN);
-        //TODO: convert to the proper ViPR exception
+        // TODO: convert to the proper ViPR exception
         if (vdc == null) {
             throw new IllegalArgumentException("vdc does not exist: " + vdcURN);
         }
         return vdc;
     }
-    
+
     private GeoServiceClient createClient(VirtualDataCenter vdc) {
         GeoServiceClient client = new GeoServiceClient();
         client.setCoordinatorClient(coordinatorClient);

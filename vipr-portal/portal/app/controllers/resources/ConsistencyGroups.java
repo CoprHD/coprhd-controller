@@ -51,14 +51,14 @@ public class ConsistencyGroups extends Controller {
         BlockConsistencyGroupDataTable dataTable = new BlockConsistencyGroupDataTable();
 
         List<ProjectRestRep> projects = ProjectUtils.getProjects(Models.currentAdminTenant());
-        Collections.sort(projects, new Comparator<ProjectRestRep>(){
-        	public int compare(ProjectRestRep proj1,ProjectRestRep proj2)
-        	{
-        		return proj1.getName().compareTo(proj2.getName());
-        	}
+        Collections.sort(projects, new Comparator<ProjectRestRep>() {
+            public int compare(ProjectRestRep proj1, ProjectRestRep proj2)
+            {
+                return proj1.getName().compareTo(proj2.getName());
+            }
         });
         String activeProjectId = flash.get(ACTIVE_PROJECT_ID);
-        if (activeProjectId == null && projects.size() > 0) {
+        if (activeProjectId == null && !projects.isEmpty()) {
             activeProjectId = projects.get(0).getId().toString();
         }
 
@@ -85,16 +85,16 @@ public class ConsistencyGroups extends Controller {
         list();
     }
 
-    @FlashException(referrer={"create","edit"})
+    @FlashException(referrer = { "create", "edit" })
     public static void save(ConsistencyGroupForm consistencyGroup) {
-    	
-    	flash.put(ACTIVE_PROJECT_ID, consistencyGroup.projectId);
-    	
+
+        flash.put(ACTIVE_PROJECT_ID, consistencyGroup.projectId);
+
         consistencyGroup.validate("consistencyGroup");
         if (Validation.hasErrors()) {
-        	Common.handleError();
+            Common.handleError();
         }
-        
+
         // NOTE : Only Create is supported at this time
         if (consistencyGroup.isNew()) {
             BlockConsistencyGroupCreate createParam = new BlockConsistencyGroupCreate();
@@ -123,7 +123,7 @@ public class ConsistencyGroups extends Controller {
     }
 
     private static void delete(List<URI> ids) {
-        if (ids.size() > 0) {
+        if (!ids.isEmpty()) {
             BlockConsistencyGroupRestRep cg = BlockConsistencyGroupUtils.getBlockConsistencyGroup(ids.get(0));
             if (cg != null) {
                 flash.put(ACTIVE_PROJECT_ID, cg.getProject().getId().toString());
@@ -170,7 +170,7 @@ public class ConsistencyGroups extends Controller {
                 Validation.addError(formName + ".name", "consistencyGroups.invalid.name.error");
             }
         }
-        
+
         private static boolean validateCGName(String cgName) {
             return CommonFormValidator.isAlphaNumericOrUnderscoreUnordered(cgName);
         }

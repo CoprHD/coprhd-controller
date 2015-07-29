@@ -66,10 +66,8 @@ public class DummyEventRetriever implements EventRetriever {
             events = getDummyEvents();
         } catch (URISyntaxException e) {
             _logger.error("Error getting events", e);
-            e.printStackTrace();
         }
 
-       
         for (Event event : events) {
             if (type == MediaType.APPLICATION_XML_TYPE) {
                 marshaller.marshal(event, writer);

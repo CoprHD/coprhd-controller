@@ -51,10 +51,11 @@ public class SmisStorageDevicePreProcessor {
      * Here are the steps to create a new PoolSetting.
      * 1. First find the storagePoolCapability for a given storagepool.
      * 2. Use the capability to create a new StoragePool Setting.
-     * 3. Update instance to set the 
+     * 3. Update instance to set the
      * 
      * 
      * creating a volume.
+     * 
      * @param storageSystem
      * @param storagePool
      * @param thinVolumePreAllocateSize
@@ -64,7 +65,7 @@ public class SmisStorageDevicePreProcessor {
             long thinVolumePreAllocateSize) throws Exception {
 
         _log.info(String.format(
-                "Create StoragePool Setting Start - Array: %s, Pool: %s, \n   thinVolumePreAllocateSize: %s",
+                "Create StoragePool Setting Start - Array: %s, Pool: %s, %n   thinVolumePreAllocateSize: %s",
                 storageSystem.getSerialNumber(), storagePool.getNativeId(), thinVolumePreAllocateSize));
         CIMObjectPath poolSvcPath = _cimPath.getStoragePoolPath(storageSystem, storagePool);
         CimConnection connection = _cimConnection.getConnection(storageSystem);

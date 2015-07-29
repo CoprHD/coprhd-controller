@@ -15,25 +15,21 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
-
-import com.netflix.astyanax.util.TimeUUIDUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.query.RowQuery;
-
 import com.emc.storageos.db.client.constraint.ContainmentPermissionsConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 
 /**
- * ContainmentPermissions constraint.  For example:
- *  - find all permissions on a tenant
- *  - find all tenants a user has permissions on
+ * ContainmentPermissions constraint. For example:
+ * - find all permissions on a tenant
+ * - find all tenants a user has permissions on
  */
 public class ContainmentPermissionsConstraintImpl extends ConstraintImpl implements ContainmentPermissionsConstraint {
     private static final Logger log = LoggerFactory.getLogger(ContainmentPermissionsConstraintImpl.class);
@@ -44,7 +40,7 @@ public class ContainmentPermissionsConstraintImpl extends ConstraintImpl impleme
     private ColumnField _field;
 
     public ContainmentPermissionsConstraintImpl(String indexKey, ColumnField field,
-                                                Class<? extends DataObject> clazz) {
+            Class<? extends DataObject> clazz) {
         super(indexKey, field, clazz);
 
         _indexKey = indexKey;

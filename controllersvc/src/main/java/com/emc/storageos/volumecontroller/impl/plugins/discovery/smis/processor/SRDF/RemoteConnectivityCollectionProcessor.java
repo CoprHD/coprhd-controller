@@ -42,11 +42,12 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
     private static final String SYMMETRIX = "SYMMETRIX";
     private static final String TWO = "2";
     private static final String ELEMENT_NAME = "ElementName";
-    
+
     private DbClient _dbClient;
     private Set<String> raGroupIds = new HashSet<String>();
     private List<RemoteDirectorGroup> newlyAddedGroups = new ArrayList<RemoteDirectorGroup>();
     private List<RemoteDirectorGroup> modifiedGroups = new ArrayList<RemoteDirectorGroup>();
+
     @Override
     public void processResult(Operation operation, Object resultObj,
             Map<String, Object> keyMap) throws BaseCollectionException {
@@ -65,22 +66,22 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
                 RemoteDirectorGroup remoteRAGroup = checkRAGroupExistsInDB(_dbClient, instance);
                 remoteRAGroup = createRAGroup(instance, remoteRAGroup, device);
                 raGroupIds.add(remoteRAGroup.getNativeGuid());
-                addRemoteConnectedStorageSystems(instance, device, remoteConnectedStorageSystems) ;
-                addPath(keyMap, operation.get_result(), instance.getObjectPath());
+                addRemoteConnectedStorageSystems(instance, device, remoteConnectedStorageSystems);
+                addPath(keyMap, operation.getResult(), instance.getObjectPath());
             }
-            
+
             updateSupportedCopyModes(srdfSupported, device);
             updateRemoteConnectedStorageSystems(device, remoteConnectedStorageSystems);
             _dbClient.persistObject(device);
-            
-            if (newlyAddedGroups.size() > 0) {
+
+            if (!newlyAddedGroups.isEmpty()) {
                 _dbClient.createObject(newlyAddedGroups);
             }
-            
-            if (modifiedGroups.size() > 0) {
+
+            if (!modifiedGroups.isEmpty()) {
                 _dbClient.persistObject(modifiedGroups);
             }
-            
+
             performRAGroupsBookKeeping(raGroupIds, device.getId());
 
         } catch (Exception e) {
@@ -93,8 +94,7 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
         }
 
     }
-    
-    
+
     private void updateSupportedCopyModes(boolean srdfSupported, StorageSystem device) {
         if (srdfSupported) {
             StringSet replicationModes = new StringSet();
@@ -106,9 +106,9 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
 
     private void updateRemoteConnectedStorageSystems(StorageSystem device,
             Set<String> remoteConnectedStorageSystems) {
-      
+
         if (null == device.getRemotelyConnectedTo()
-                || device.getRemotelyConnectedTo().size() == 0) {
+                || device.getRemotelyConnectedTo().isEmpty()) {
             device.setRemotelyConnectedTo(new StringSet(remoteConnectedStorageSystems));
         } else {
             device.getRemotelyConnectedTo().replace(remoteConnectedStorageSystems);
@@ -118,6 +118,7 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
 
     /**
      * if the RAGroup had been deleted from the Array, the rediscovery cycle should set the RAGroup to inactive.
+     * 
      * @param policyNames
      * @param storageSystemURI
      * @throws IOException
@@ -131,44 +132,45 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
         for (URI raGroupUri : raGroupsInDB) {
             RemoteDirectorGroup raGroup = _dbClient.queryObject(
                     RemoteDirectorGroup.class, raGroupUri);
-            if (null == raGroup || raGroup.getInactive())
+            if (null == raGroup || raGroup.getInactive()) {
                 continue;
+            }
             if (!raGroupIds.contains(raGroup.getNativeGuid())) {
-                _log.info("RA Group set to inactive",raGroup);
+                _log.info("RA Group set to inactive", raGroup);
                 raGroup.setSourceStorageSystemUri(NullColumnValueGetter.getNullURI());
                 raGroup.setInactive(true);
                 _dbClient.updateAndReindexObject(raGroup);
             }
-          
+
         }
     }
 
     private RemoteDirectorGroup createRAGroup(CIMInstance instance, RemoteDirectorGroup raGroup, StorageSystem system) {
-      boolean newRAGroup = false;  
-		if (null == raGroup) {
-			newRAGroup = true;
-			raGroup = new RemoteDirectorGroup();
-			raGroup.setId(URIUtil.createId(RemoteDirectorGroup.class));
-			raGroup.setNativeGuid(NativeGUIDGenerator
-					.generateRAGroupNativeGuid(instance));
-			raGroup.setSourceGroupId(getSourceGroupId(system, instance));
-			raGroup.setRemoteGroupId(getRemoteGroupId(system, instance));
+        boolean newRAGroup = false;
+        if (null == raGroup) {
+            newRAGroup = true;
+            raGroup = new RemoteDirectorGroup();
+            raGroup.setId(URIUtil.createId(RemoteDirectorGroup.class));
+            raGroup.setNativeGuid(NativeGUIDGenerator
+                    .generateRAGroupNativeGuid(instance));
+            raGroup.setSourceGroupId(getSourceGroupId(system, instance));
+            raGroup.setRemoteGroupId(getRemoteGroupId(system, instance));
 
-		}
-		//moved outside, as during 1st time discovery, if the remote system was not detected,
+        }
+        // moved outside, as during 1st time discovery, if the remote system was not detected,
         // we could end up in not updating this field during re-discovery, even though the remote system had been detected in ViPR later.
-		raGroup.setSourceStorageSystemUri(system.getId());
-		raGroup.setRemoteStorageSystemUri(getRemoteConnectedSystemURI(system,instance));
-		raGroup.setLabel(getCIMPropertyValue(instance, ELEMENT_NAME));
-		raGroup.setActive(Boolean.parseBoolean(getCIMPropertyValue(instance,ACTIVE)));
-		raGroup.setConnectivityStatus(ConnectivityStatus
-				.getConnectivityStatus(getCIMPropertyValue(instance,CONNECTIVITY_STATUS)));
+        raGroup.setSourceStorageSystemUri(system.getId());
+        raGroup.setRemoteStorageSystemUri(getRemoteConnectedSystemURI(system, instance));
+        raGroup.setLabel(getCIMPropertyValue(instance, ELEMENT_NAME));
+        raGroup.setActive(Boolean.parseBoolean(getCIMPropertyValue(instance, ACTIVE)));
+        raGroup.setConnectivityStatus(ConnectivityStatus
+                .getConnectivityStatus(getCIMPropertyValue(instance, CONNECTIVITY_STATUS)));
         if (newRAGroup) {
-			newlyAddedGroups.add(raGroup);
-		} else {
-			modifiedGroups.add(raGroup);
-		}
-		return raGroup;  
+            newlyAddedGroups.add(raGroup);
+        } else {
+            modifiedGroups.add(raGroup);
+        }
+        return raGroup;
     }
 
     private String getSourceGroupId(StorageSystem system, CIMInstance instance) {
@@ -177,21 +179,21 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
         String sourceGroupId = null;
         if (system.getUsingSmis80()) {
             if (system.getNativeGuid().contains(idArray[1])) {
-                sourceGroupId =  idArray[2];
+                sourceGroupId = idArray[2];
             } else {
-                sourceGroupId =  idArray[4];
+                sourceGroupId = idArray[4];
             }
         } else {
             if (system.getNativeGuid().contains(idArray[3])) {
-                sourceGroupId =  idArray[4];
+                sourceGroupId = idArray[4];
             } else {
-                sourceGroupId =  idArray[6];
+                sourceGroupId = idArray[6];
             }
         }
         _log.info("Generated Source Group Id {} from Instance ID {}", sourceGroupId, instanceId);
         return sourceGroupId;
     }
-    
+
     private String getRemoteGroupId(StorageSystem system, CIMInstance instance) {
         String instanceId = (String) instance.getPropertyValue(Constants.INSTANCEID);
         String[] idArray = instanceId.split(Constants.PATH_DELIMITER_REGEX);
@@ -212,34 +214,33 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
         _log.info("Generated Remote Group Id {} from Instance ID {}", remoteGroupId, instanceId);
         return remoteGroupId;
     }
-    
+
     private URI getRemoteConnectedSystemURI(StorageSystem system, CIMInstance instance) {
         String instanceId = (String) instance.getPropertyValue(Constants.INSTANCEID);
         String[] idArray = instanceId.split(Constants.PATH_DELIMITER_REGEX);
-            String remoteArrayNativeGuid = null;
-            if (system.getUsingSmis80()) {
-                if (system.getNativeGuid().contains(idArray[1]) ) {
-                    remoteArrayNativeGuid = SYMMETRIX + Constants.PLUS + idArray[3];
-                } else {
-                    remoteArrayNativeGuid = SYMMETRIX + Constants.PLUS + idArray[1];
-                }
+        String remoteArrayNativeGuid = null;
+        if (system.getUsingSmis80()) {
+            if (system.getNativeGuid().contains(idArray[1])) {
+                remoteArrayNativeGuid = SYMMETRIX + Constants.PLUS + idArray[3];
             } else {
-                if (system.getNativeGuid().contains(idArray[3]) ) {
-                    remoteArrayNativeGuid = SYMMETRIX + Constants.PLUS + idArray[5];
-                } else {
-                    remoteArrayNativeGuid = SYMMETRIX + Constants.PLUS + idArray[3];
-                }
+                remoteArrayNativeGuid = SYMMETRIX + Constants.PLUS + idArray[1];
             }
-            _log.debug("Remote Array Native Guid {}", remoteArrayNativeGuid);
-            List<URI> remoteSystemuris =  _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageSystemByNativeGuidConstraint(remoteArrayNativeGuid));
-            if (remoteSystemuris.size() > 0) {
-                return remoteSystemuris.get(0);
+        } else {
+            if (system.getNativeGuid().contains(idArray[3])) {
+                remoteArrayNativeGuid = SYMMETRIX + Constants.PLUS + idArray[5];
+            } else {
+                remoteArrayNativeGuid = SYMMETRIX + Constants.PLUS + idArray[3];
             }
-            return NullColumnValueGetter.getNullURI();
-        
-    }
+        }
+        _log.debug("Remote Array Native Guid {}", remoteArrayNativeGuid);
+        List<URI> remoteSystemuris = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getStorageSystemByNativeGuidConstraint(remoteArrayNativeGuid));
+        if (!remoteSystemuris.isEmpty()) {
+            return remoteSystemuris.get(0);
+        }
+        return NullColumnValueGetter.getNullURI();
 
-   
+    }
 
     private void addRemoteConnectedStorageSystems(CIMInstance instance,
             StorageSystem system, Set<String> remoteConnectedStorageSystems) {
@@ -248,7 +249,7 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
         // Format : SYMMETRIX+000195701573+NAME+000195701505+27+000195701573+27
         boolean isActive = Boolean.parseBoolean(instance.getPropertyValue(ACTIVE).toString());
         String connectivityStatus = instance.getPropertyValue(CONNECTIVITY_STATUS).toString();
-        
+
         if (isActive && TWO.equalsIgnoreCase(connectivityStatus)) {
             URI remoteSystemUri = getRemoteConnectedSystemURI(system, instance);
             if (null != remoteSystemUri) {

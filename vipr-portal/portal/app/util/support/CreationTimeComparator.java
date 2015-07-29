@@ -13,26 +13,26 @@ import org.apache.commons.collections.comparators.NullComparator;
 import com.emc.storageos.model.DataObjectRestRep;
 
 public class CreationTimeComparator implements Comparator<DataObjectRestRep> {
-    
+
     private static final String CREATION_TIME = "creationTime";
-    
-    private ComparatorChain COMPARATOR;
-    
+
+    private ComparatorChain COMPARATOR;// NOSONAR ("Suppressing Sonar violation of Field name should comply with naming convention")
+
     private boolean reverseOrder = false;
-    
+
     public CreationTimeComparator() {
-        
+
     }
-    
+
     public CreationTimeComparator(boolean reverseOrder) {
         this.reverseOrder = reverseOrder;
     }
-    
+
     @Override
     public int compare(DataObjectRestRep o1, DataObjectRestRep o2) {
         return getComparator().compare(o1, o2);
     }
-    
+
     private ComparatorChain getComparator() {
         if (COMPARATOR == null) {
             COMPARATOR = new ComparatorChain();

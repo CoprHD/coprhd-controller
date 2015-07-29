@@ -87,8 +87,8 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
     private Logger _log = LoggerFactory.getLogger(RPCommunicationInterface.class);
 
-    private NamespaceList _namespaces;
-    private Executor _executor;
+    private NamespaceList namespaces;
+    private Executor executor;
 
     private RPStatisticsHelper _rpStatsHelper;
 
@@ -101,19 +101,19 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
     }
 
     public void setExecutor(Executor executor) {
-        _executor = executor;
+        this.executor = executor;
     }
 
     public Executor getExecutor() {
-        return _executor;
+        return executor;
     }
 
-    public void set_namespaces(NamespaceList namespaces) {
-        _namespaces = namespaces;
+    public void setNamespaces(NamespaceList namespaces) {
+        this.namespaces = namespaces;
     }
 
-    public NamespaceList get_namespaces() {
-        return _namespaces;
+    public NamespaceList getNamespaces() {
+        return namespaces;
     }
 
     @Override
@@ -127,7 +127,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
      */
     private void releaseResources() {
         _keyMap.clear();
-        _namespaces = null;
+        namespaces = null;
     }
 
     @Override
@@ -141,7 +141,8 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
         boolean isNewlyCreated = false;
 
         try {
-            _log.info("Access Profile Details :  IpAddress : {}, PortNumber : {}", accessProfile.getIpAddress(), accessProfile.getPortNumber());
+            _log.info("Access Profile Details :  IpAddress : {}, PortNumber : {}", accessProfile.getIpAddress(),
+                    accessProfile.getPortNumber());
             storageSystemId = accessProfile.getSystemId();
             protectionSystem = _dbClient.queryObject(ProtectionSystem.class, storageSystemId);
             if (protectionSystem.getDiscoveryStatus().equals(DiscoveredDataObject.DataCollectionJobStatus.CREATED.toString())) {
@@ -220,9 +221,9 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                 String msg = "Storage system discovery failed. Protection system: " + storageSystemId;
                 buildErrMsg(errMsgBuilder, rpe, msg);
             }
-            
+
             // Discover the protection sets
-            discoverProtectionSets(protectionSystem);            
+            discoverProtectionSets(protectionSystem);
 
             // Discover the protection system cluster connectivity topology information
             try {
@@ -233,8 +234,8 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                 discoverySuccess = false;
                 String msg = "Discovery of topology failed. Protection system: " + storageSystemId;
                 buildErrMsg(errMsgBuilder, rpe, msg);
-            }                        
-                                                
+            }
+
             if (!discoverySuccess) {
                 throw DeviceControllerExceptions.recoverpoint.discoveryFailure(errMsgBuilder.toString());
             }
@@ -261,27 +262,27 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
         }
     }
 
-	/**
-	 * Convenience method for building the error messages during discover.
-	 * 
-	 * @param errMsgBuilder string buffer
-	 * @param re exception to add in
-	 * @param msg message to add in
-	 */
-	private void buildErrMsg(StringBuffer errMsgBuilder, Exception re, String msg) {
-		if (errMsgBuilder.length() != 0) {
-		    errMsgBuilder.append(", ");
-		}
-		errMsgBuilder.append(msg);
-		errMsgBuilder.append(", ");
-		errMsgBuilder.append(re.getMessage());
-		_log.error(msg, re);
-	}
+    /**
+     * Convenience method for building the error messages during discover.
+     * 
+     * @param errMsgBuilder string buffer
+     * @param re exception to add in
+     * @param msg message to add in
+     */
+    private void buildErrMsg(StringBuffer errMsgBuilder, Exception re, String msg) {
+        if (errMsgBuilder.length() != 0) {
+            errMsgBuilder.append(", ");
+        }
+        errMsgBuilder.append(msg);
+        errMsgBuilder.append(", ");
+        errMsgBuilder.append(re.getMessage());
+        _log.error(msg, re);
+    }
 
     /**
      * Recalculate all virtual pools matching storage pools that have RP protection as creation
      * of a protection system creates new relationships and constraints on the matching pools
-     * of an RP system. 
+     * of an RP system.
      */
     private void matchVPools(URI rpSystemId) {
         List<URI> storagePoolIds = ConnectivityUtil.getRPSystemStoragePools(_dbClient, rpSystemId);
@@ -315,12 +316,12 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
      * @throws RecoverPointException
      */
     private void discoverTopology(ProtectionSystem protectionSystem) throws RecoverPointException {
-    	RecoverPointClient rp = RPHelper.getRecoverPointClient(protectionSystem);
-    	StringSet topologySet = new StringSet();
-    	topologySet.addAll(rp.getClusterTopology());
-    	protectionSystem.setClusterTopology(topologySet);
+        RecoverPointClient rp = RPHelper.getRecoverPointClient(protectionSystem);
+        StringSet topologySet = new StringSet();
+        topologySet.addAll(rp.getClusterTopology());
+        protectionSystem.setClusterTopology(topologySet);
     }
-    
+
     /**
      * Discover a single protection set.
      * 
@@ -329,76 +330,78 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
      * @throws RecoverPointException
      */
     private void discoverProtectionSet(ProtectionSystem protectionSystem, URI protectionSetId) throws RecoverPointException {
-    	ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, protectionSetId);
-    	if (protectionSet == null || protectionSet.getInactive()) {
-    		return;
-    	}
+        ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, protectionSetId);
+        if (protectionSet == null || protectionSet.getInactive()) {
+            return;
+        }
 
-    	StringSet protectionVolumes = protectionSet.getVolumes();
-    	RecoverPointVolumeProtectionInfo protectionVolume = null;
-    	RecoverPointClient rp = RPHelper.getRecoverPointClient(protectionSystem);
-    	boolean changed = false;
-    	_log.info("ProtectionSet discover in the RPDeviceController called for protection set: " + protectionSet.getLabel());
-    	for (String volume : protectionVolumes) {
-    		Volume protectionVolumeWWN = _dbClient.queryObject(Volume.class, URI.create(volume));
+        StringSet protectionVolumes = protectionSet.getVolumes();
+        RecoverPointVolumeProtectionInfo protectionVolume = null;
+        RecoverPointClient rp = RPHelper.getRecoverPointClient(protectionSystem);
+        boolean changed = false;
+        _log.info("ProtectionSet discover in the RPDeviceController called for protection set: " + protectionSet.getLabel());
+        for (String volume : protectionVolumes) {
+            Volume protectionVolumeWWN = _dbClient.queryObject(Volume.class, URI.create(volume));
 
-    		if (protectionVolumeWWN == null || protectionVolumeWWN.getInactive()) {
-    			continue;
-    		}
-    		
-    		try {
-    			protectionVolume = rp.getProtectionInfoForVolume(protectionVolumeWWN.getWWN());    			
-    		} catch (RecoverPointException re) {                
-    			StringBuffer errMsgBuilder = new StringBuffer();
-    			String msg = "Discovery of protection set failed. Protection system: " + protectionSystem.getId() + ", ";    			              
+            if (protectionVolumeWWN == null || protectionVolumeWWN.getInactive()) {
+                continue;
+            }
+
+            try {
+                protectionVolume = rp.getProtectionInfoForVolume(protectionVolumeWWN.getWWN());
+            } catch (RecoverPointException re) {
+                StringBuffer errMsgBuilder = new StringBuffer();
+                String msg = "Discovery of protection set failed. Protection system: " + protectionSystem.getId() + ", ";
                 errMsgBuilder.append(msg);
-                errMsgBuilder.append(re.getMessage());                
+                errMsgBuilder.append(re.getMessage());
                 _log.warn(errMsgBuilder.toString());
-            }    		
-    		
-    		if (protectionVolume == null) {
-    			continue;
-    		}
-    		
-    		// If the volume is a source volume, let's check to see if the personality changed.
-    		if ((!changed) &&
-    			(((protectionVolume.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE) &&
-    			 (protectionVolumeWWN.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.TARGET.toString())))) ||
-    	    	((protectionVolume.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_TARGET) &&
-    	    	 (protectionVolumeWWN.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.toString())))) {
-    			_log.info("Changing personality of volume {} due to RP condition on consistency group", protectionVolumeWWN.getLabel());
-    			updatePostFailoverPersonalities(protectionVolumeWWN);
-    			changed = true;
-    		}
+            }
 
-    		if (protectionVolume.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE) {
-    			switch (rp.getCGState(protectionVolume)) {
-    			case GONE:
-    				protectionSet.setProtectionStatus(ProtectionStatus.DELETED.toString());
-    				break;
-    			case STOPPED:
-    				protectionSet.setProtectionStatus(ProtectionStatus.DISABLED.toString());
-    				break;
-    			case PAUSED:
-    				protectionSet.setProtectionStatus(ProtectionStatus.PAUSED.toString());
-    				break;
-    			case MIXED:
-    				protectionSet.setProtectionStatus(ProtectionStatus.MIXED.toString());
-    				break;
-    			case READY:
-    				protectionSet.setProtectionStatus(ProtectionStatus.ENABLED.toString());
-    				break;
-    			}
-    			_dbClient.persistObject(protectionSet);
-    			break;
-    		}
-    	}
+            if (protectionVolume == null) {
+                continue;
+            }
+
+            // If the volume is a source volume, let's check to see if the personality changed.
+            if ((!changed)
+                    &&
+                    (((protectionVolume.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE) &&
+                    (protectionVolumeWWN.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.TARGET.toString()))))
+                    ||
+                    ((protectionVolume.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_TARGET) &&
+                    (protectionVolumeWWN.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.toString())))) {
+                _log.info("Changing personality of volume {} due to RP condition on consistency group", protectionVolumeWWN.getLabel());
+                updatePostFailoverPersonalities(protectionVolumeWWN);
+                changed = true;
+            }
+
+            if (protectionVolume.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE) {
+                switch (rp.getCGState(protectionVolume)) {
+                    case GONE:
+                        protectionSet.setProtectionStatus(ProtectionStatus.DELETED.toString());
+                        break;
+                    case STOPPED:
+                        protectionSet.setProtectionStatus(ProtectionStatus.DISABLED.toString());
+                        break;
+                    case PAUSED:
+                        protectionSet.setProtectionStatus(ProtectionStatus.PAUSED.toString());
+                        break;
+                    case MIXED:
+                        protectionSet.setProtectionStatus(ProtectionStatus.MIXED.toString());
+                        break;
+                    case READY:
+                        protectionSet.setProtectionStatus(ProtectionStatus.ENABLED.toString());
+                        break;
+                }
+                _dbClient.persistObject(protectionSet);
+                break;
+            }
+        }
     }
 
     /**
      * After a failover, we need to swap personalities of source and target volumes,
      * and reset the target lists in each volume.
-     *
+     * 
      * @param volume any volume in a protection set
      * @throws InternalException
      */
@@ -415,30 +418,30 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                 _log.error("URI syntax incorrect: ", e);
             }
         }
-        
+
         // Changing personalities means that the source was on "Copy Name A" and it's now on "Copy Name B":
         // 1. a. Any previous TARGET volume that matches the copy name of the incoming volume is now a SOURCE volume
-        //    b. That voume needs its RP Targets volumes list filled-in as well; it's all of the devices that are 
-        //       the same replication set name that aren't the new SOURCE volume itself.
+        // b. That voume needs its RP Targets volumes list filled-in as well; it's all of the devices that are
+        // the same replication set name that aren't the new SOURCE volume itself.
         // 2. All SOURCE volumes are now TARGET volumes and their RP Target lists need to be null'd out
         //
         for (URI protectionVolumeID : volumeIDs) {
             Volume protectionVolume = _dbClient.queryObject(Volume.class, protectionVolumeID);
             if ((protectionVolume.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) &&
-                (protectionVolume.getRpCopyName().equals(volume.getRpCopyName()))) {
-                // This is a TARGET we failed over to.  We need to build up all of its targets
+                    (protectionVolume.getRpCopyName().equals(volume.getRpCopyName()))) {
+                // This is a TARGET we failed over to. We need to build up all of its targets
                 for (URI potentialTargetVolumeID : volumeIDs) {
                     Volume potentialTargetVolume = _dbClient.queryObject(Volume.class, potentialTargetVolumeID);
-                    if (potentialTargetVolume.getRSetName()!=null && 
-                    	potentialTargetVolume.getRSetName().equals(protectionVolume.getRSetName()) && 
-                    	!potentialTargetVolumeID.equals(protectionVolume.getId())) {
-                    	if (protectionVolume.getRpTargets() == null) {
-                    		protectionVolume.setRpTargets(new StringSet());
-                    	}
-                    	protectionVolume.getRpTargets().add(String.valueOf(potentialTargetVolume.getId()));
+                    if (potentialTargetVolume.getRSetName() != null &&
+                            potentialTargetVolume.getRSetName().equals(protectionVolume.getRSetName()) &&
+                            !potentialTargetVolumeID.equals(protectionVolume.getId())) {
+                        if (protectionVolume.getRpTargets() == null) {
+                            protectionVolume.setRpTargets(new StringSet());
+                        }
+                        protectionVolume.getRpTargets().add(String.valueOf(potentialTargetVolume.getId()));
                     }
                 }
-                
+
                 _log.info("Change personality of failover target " + protectionVolume.getWWN() + " to source");
                 protectionVolume.setPersonality(Volume.PersonalityTypes.SOURCE.toString());
                 volume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
@@ -451,18 +454,18 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                 _dbClient.persistObject(protectionVolume);
             } else if (!protectionVolume.getPersonality().equals(Volume.PersonalityTypes.METADATA.toString())) {
                 _log.info("Target " + protectionVolume.getWWN() + " is a target that remains a target");
-                // TODO: Handle failover to CRR.  Need to remove the CDP volumes (including journals)
+                // TODO: Handle failover to CRR. Need to remove the CDP volumes (including journals)
             }
         }
     }
-    
+
     /**
-     * Validate Block snapshots that correspond to RP bookmarks.  Some may no longer exist in the RP system, and we
+     * Validate Block snapshots that correspond to RP bookmarks. Some may no longer exist in the RP system, and we
      * need to mark them as invalid.
      * 
      * The strategy is as follows:
      * 1. Get all of the protection sets associated with the protection system
-     * 2. Are there any Block Snapshots of type RP?  (if not, don't bother cleaning up)
+     * 2. Are there any Block Snapshots of type RP? (if not, don't bother cleaning up)
      * 3. Query the RP Appliance for all bookmarks for that CG (protection set)
      * 4. Find each block snapshot of type RP for each site
      * 5. If you can't find the bookmark in the RP list, move the block snapshot to inactive
@@ -485,7 +488,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
             Constraint pconstraint = ContainmentConstraint.Factory.getProtectionSetBlockSnapshotConstraint(protectionSetId);
             _dbClient.queryByConstraint(pconstraint, plist);
             if (plist.iterator().hasNext()) {
-                // OK, we know there are snapshots for this protection set/CG.  
+                // OK, we know there are snapshots for this protection set/CG.
                 // Retrieve all of the bookmarks associated with this protection set/CG later on by adding to the list now
                 ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, protectionSetId);
                 if (protectionSet != null && !protectionSet.getInactive()) {
@@ -497,13 +500,14 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
         // 2. No reason to bother the RPAs if there are no protection sets for this protection system.
         if (protectionSetIDs.isEmpty()) {
-            _log.info("Block Snapshot of RP Bookmarks cleanup not run for this protection system. No Protections or RP Block Snapshots found on protection system: " + protectionSystem.getLabel());
+            _log.info("Block Snapshot of RP Bookmarks cleanup not run for this protection system. No Protections or RP Block Snapshots found on protection system: "
+                    + protectionSystem.getLabel());
             return;
         }
 
         // 3. Query the RP appliance for all of the bookmarks for these CGs in one call
         BiosCommandResult result = getRPBookmarks(protectionSystem, cgIDs);
-        GetBookmarksResponse bookmarkMap = (GetBookmarksResponse)result.getObjectList().get(0);
+        GetBookmarksResponse bookmarkMap = (GetBookmarksResponse) result.getObjectList().get(0);
 
         // 4. Go through each protection set's snapshots and see if they're there.
         it = protectionSetIDs.iterator();
@@ -512,7 +516,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
             ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, protectionSetId);
 
             // Now find this snapshot in the returned list of snapshots
-            // The map should have an entry for that CG with an empty list if it looked and couldn't find any.  (a successful empty set)
+            // The map should have an entry for that CG with an empty list if it looked and couldn't find any. (a successful empty set)
             if (protectionSet.getProtectionId() != null &&
                     bookmarkMap.getCgBookmarkMap() != null &&
                     bookmarkMap.getCgBookmarkMap().get(Integer.valueOf(protectionSet.getProtectionId())) != null) {
@@ -531,44 +535,53 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                         // Don't bother deleting or processing if the snapshot is already on its way out.
                         deleteSnapshot = false;
                     } else if (snapshot.getEmCGGroupCopyId() == null) {
-                        // If something bad happened and we weren't able to get the site information off of the snapshot                            
-                        _log.info("Found that ViPR Snapshot corresponding to RP Bookmark is missing Site information, thus not analyzing for automated deletion. " + snapshot.getId() + 
+                        // If something bad happened and we weren't able to get the site information off of the snapshot
+                        _log.info("Found that ViPR Snapshot corresponding to RP Bookmark is missing Site information, thus not analyzing for automated deletion. "
+                                + snapshot.getId() +
                                 " - " + protectionSet.getLabel() + ":" + snapshot.getEmInternalSiteName() + ":" + snapshot.getEmName());
                         deleteSnapshot = false;
                     } else if (!bookmarkMap.getCgBookmarkMap().get(Integer.valueOf(protectionSet.getProtectionId())).isEmpty()) {
                         for (RPBookmark bookmark : bookmarkMap.getCgBookmarkMap().get(Integer.valueOf(protectionSet.getProtectionId()))) {
                             // bookmark (from RP) vs. snapshot (from ViPR)
                             if (snapshot.getEmName().equalsIgnoreCase(bookmark.getBookmarkName()) &&
-                            		snapshot.getEmCGGroupCopyId().equals(bookmark.getCGGroupCopyUID().getGlobalCopyUID().getCopyUID())) {
+                                    snapshot.getEmCGGroupCopyId().equals(bookmark.getCGGroupCopyUID().getGlobalCopyUID().getCopyUID())) {
                                 deleteSnapshot = false;
-                                _log.info("Found that ViPR Snapshot corresponding to RP Bookmark still exists, thus saving in ViPR: " + snapshot.getId() + 
-                                        " - " + protectionSet.getLabel() + ":" + snapshot.getEmInternalSiteName() + ":" + snapshot.getEmCGGroupCopyId() + ":" + snapshot.getEmName());
+                                _log.info("Found that ViPR Snapshot corresponding to RP Bookmark still exists, thus saving in ViPR: "
+                                        + snapshot.getId() +
+                                        " - " + protectionSet.getLabel() + ":" + snapshot.getEmInternalSiteName() + ":"
+                                        + snapshot.getEmCGGroupCopyId() + ":" + snapshot.getEmName());
                             }
                         }
                     } else {
                         // Just for debugging, otherwise useless
-                        _log.debug("Found that ViPR Snapshot corresponding to RP Bookmark doesn't exist, thus going to delete from ViPR: " + snapshot.getId() + 
-                                " - " + protectionSet.getLabel() + ":" + snapshot.getEmInternalSiteName() + ":" + snapshot.getEmCGGroupCopyId() + ":" + snapshot.getEmName());
+                        _log.debug("Found that ViPR Snapshot corresponding to RP Bookmark doesn't exist, thus going to delete from ViPR: "
+                                + snapshot.getId() +
+                                " - " + protectionSet.getLabel() + ":" + snapshot.getEmInternalSiteName() + ":"
+                                + snapshot.getEmCGGroupCopyId() + ":" + snapshot.getEmName());
                     }
 
                     if (deleteSnapshot) {
                         // 5. We couldn't find the bookmark, and the query for it was successful, so it's time to mark it as gone
-                        _log.info("Found that ViPR Snapshot corresponding to RP Bookmark no longer exists, thus deleting in ViPR: " + snapshot.getId() + 
-                                " - " + protectionSet.getLabel() + ":" + snapshot.getEmInternalSiteName() + ":" + snapshot.getEmCGGroupCopyId() + ":" + snapshot.getEmName());
+                        _log.info("Found that ViPR Snapshot corresponding to RP Bookmark no longer exists, thus deleting in ViPR: "
+                                + snapshot.getId() +
+                                " - " + protectionSet.getLabel() + ":" + snapshot.getEmInternalSiteName() + ":"
+                                + snapshot.getEmCGGroupCopyId() + ":" + snapshot.getEmName());
                         _dbClient.markForDeletion(snapshot);
                     }
                 }
             } else if (protectionSet.getProtectionId() == null) {
-                _log.error("Can not determine the consistency group ID of protection set: " + protectionSet.getLabel() + ", can not perform any cleanup of snapshots.");
+                _log.error("Can not determine the consistency group ID of protection set: " + protectionSet.getLabel()
+                        + ", can not perform any cleanup of snapshots.");
             } else {
-                _log.info("No consistency groups were found associated with protection system: " + protectionSystem.getLabel() + ", can not perform cleanup of snapshots.");
+                _log.info("No consistency groups were found associated with protection system: " + protectionSystem.getLabel()
+                        + ", can not perform cleanup of snapshots.");
             }
         }
     }
 
     /**
      * For an RP configuration, determine the arrays that each site can see.
-     *
+     * 
      * @param system RP system
      * @return command result object, object list [0] has List<SiteArrays>
      * @throws RecoverPointException
@@ -579,77 +592,82 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
         Set<RPSite> sites = rp.getAssociatedRPSites();
 
-        // For determining which storage system to use with the RPA, we will look at the Network created as a result of 
-        // a NetworkSystem (aka switch or Fabric Manager) discovery. We look at each NetworkSystem to check if the RPA WWN(aka RP Initiator) is in one of the 
-        // Networks/VSANs and if we do find a match then we look at the arrays in that Network/VSAN and determine which one to use. 
-        // For now, this code assumes there are Networks/VSANs created on the switch, might need to tweak this if there are no Networks/VSANs. 
+        // For determining which storage system to use with the RPA, we will look at the Network created as a result of
+        // a NetworkSystem (aka switch or Fabric Manager) discovery. We look at each NetworkSystem to check if the RPA WWN(aka RP Initiator)
+        // is in one of the
+        // Networks/VSANs and if we do find a match then we look at the arrays in that Network/VSAN and determine which one to use.
+        // For now, this code assumes there are Networks/VSANs created on the switch, might need to tweak this if there are no
+        // Networks/VSANs.
 
-        // One more important note : Networks/VSANs have be configured on the switch in order for zoning to work and NetworkSystem to discover.
+        // One more important note : Networks/VSANs have be configured on the switch in order for zoning to work and NetworkSystem to
+        // discover.
         // No Networks/VSANs on the switch means, none of this will work and zoning has to be done by the end-user prior to using StorageOS.
 
-        //Get all the NetworkSystems already in the system (if there are any NetworkSystems configured). 
+        // Get all the NetworkSystems already in the system (if there are any NetworkSystems configured).
         // Possible zoning candidates can be identified only if there is a NetworkSystem configured.
         List<SiteArrays> rpSiteArrays = new ArrayList<SiteArrays>();
         List<URI> networkSystemList = _dbClient.queryByType(NetworkSystem.class, true);
         boolean isNetworkSystemConfigured = false;
-        if (networkSystemList.iterator().hasNext()) {    	   
+        if (networkSystemList.iterator().hasNext()) {
             List<URI> allNetwroks = _dbClient.queryByType(Network.class, true);
-            
+
             // Transfer to a reset-able list
             List<URI> networks = new ArrayList<>();
-            for (URI networkURI : allNetwroks) {        			
-            	networks.add(networkURI);
+            for (URI networkURI : allNetwroks) {
+                networks.add(networkURI);
             }
 
-            for(RPSite site : sites) {        	
-                //Get the initiators for this site.
+            for (RPSite site : sites) {
+                // Get the initiators for this site.
                 Map<String, String> sitesInitiatorWWNS = rp.getInitiatorWWNs(site.getInternalSiteName());
-                SiteArrays siteArrays = new SiteArrays(); 
+                SiteArrays siteArrays = new SiteArrays();
                 siteArrays.setArrays(new HashSet<String>());
-                siteArrays.setSite(site);	
-                
+                siteArrays.setSite(site);
+
                 // Add an RP site -> initiators entry to the protection system
                 StringSet siteInitiators = new StringSet(sitesInitiatorWWNS.keySet());
                 system.putSiteIntitiatorsEntry(site.getInternalSiteName(), siteInitiators);
-                
-                // Check to see if the RP initiator is in any Network - Based on which Network the RP initiator is in, 
-                // we can look for the arrays in that Network that are potential candidates for connectivity.         
-                for (String wwn : sitesInitiatorWWNS.keySet()) {        		
-                    for (URI networkURI : networks) {        			
+
+                // Check to see if the RP initiator is in any Network - Based on which Network the RP initiator is in,
+                // we can look for the arrays in that Network that are potential candidates for connectivity.
+                for (String wwn : sitesInitiatorWWNS.keySet()) {
+                    for (URI networkURI : networks) {
                         Network network = _dbClient.queryObject(Network.class, networkURI);
                         StringMap discoveredEndpoints = network.getEndpointsMap();
 
                         if (discoveredEndpoints.containsKey(wwn.toUpperCase())) {
                             _log.info("WWN " + wwn + " is in Network : " + network.getLabel());
-                            isNetworkSystemConfigured = true; // Set this to true as we found the RP initiators in a Network on the Network System
-                            for (String discoveredEndpoint : discoveredEndpoints.keySet()) {	        				 
-                                // Ignore the RP endpoints - RP WWNs have a unique prefix. We want to only return back non RP initiators in that NetworkVSAN. 
+                            isNetworkSystemConfigured = true; // Set this to true as we found the RP initiators in a Network on the Network
+                                                              // System
+                            for (String discoveredEndpoint : discoveredEndpoints.keySet()) {
+                                // Ignore the RP endpoints - RP WWNs have a unique prefix. We want to only return back non RP initiators in
+                                // that NetworkVSAN.
                                 if (discoveredEndpoint.startsWith(RP_INITIATOR_PREFIX)) {
                                     continue;
                                 }
 
                                 // Add the found endpoints to the list
-                                siteArrays.getArrays().add(discoveredEndpoint);                     
-                            }	        			
+                                siteArrays.getArrays().add(discoveredEndpoint);
+                            }
                         }
-                    }    
+                    }
                 }
-                //add to the list 
+                // add to the list
                 rpSiteArrays.add(siteArrays);
             }
         }
 
         // It is possible that the RP is already zoned to an array, try to get the list of available targets by querying the RPA.
         // If the RPA is 4.0+, then the operation is not supported, thrown an error.
-        // Ideal way to use for an RP4.0 system is to come via the switch configuration.  
+        // Ideal way to use for an RP4.0 system is to come via the switch configuration.
         // If its a non RP4.0 system, then query the normal way and find out the targets/arrays from the RPAs.
         if (!rp.getAssociatedRPSites().isEmpty()) {
-        	_log.info("site1 version: " + rp.getAssociatedRPSites().iterator().next().getSiteVersion());
+            _log.info("site1 version: " + rp.getAssociatedRPSites().iterator().next().getSiteVersion());
         }
-        
+
         if (!isNetworkSystemConfigured) {
-        	// This is not an error to the end-user. When they add a network system, everything will rediscover correctly.
-        	_log.warn("Network systems are required when configuring RecoverPoint.");
+            // This is not an error to the end-user. When they add a network system, everything will rediscover correctly.
+            _log.warn("Network systems are required when configuring RecoverPoint.");
         }
 
         _log.info("getRPArrayMappings {} - complete", system.getId());
@@ -664,7 +682,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
     /**
      * For an RP configuration, get all RP bookmarks for the CGs provided
-     *
+     * 
      * @param system RP system
      * @param cgIDs IDs of the consistency groups to get the bookmarks
      * @return command result object, object list [0] has GetBookmarksResponse
@@ -686,7 +704,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
     /**
      * For an RP configuration, get some basic discovery information
-     *
+     * 
      * @param protectionSystem RP system
      * @return command result object, object list [0] has List<SiteArrays>
      * @throws RecoverPointException
@@ -701,10 +719,10 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
             throw DeviceControllerExceptions.recoverpoint.noAssociatedRPSitesFound(protectionSystem
                     .getIpAddress());
         }
-     
+
         RPSite firstRpSite = rpSites.iterator().next();
 
-        // Update the protection system metrics 
+        // Update the protection system metrics
         RecoverPointStatisticsResponse response = rp.getRPSystemStatistics();
         _rpStatsHelper.updateProtectionSystemMetrics(protectionSystem, rpSites, response, _dbClient);
 
@@ -718,15 +736,15 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
         protectionSystem.setInstallationId(serialNumber.substring(0, serialNumber.lastIndexOf(":")));
         protectionSystem.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(
                 ProtectionSystem._RP, protectionSystem.getInstallationId()));
-        
+
         // Clear out the existing cluster management IPs so they can
         // be re-populated below.
         _log.info("Clear out existing management IPs. The list will be repopulated...");
         protectionSystem.getClusterManagementIPs().clear();
 
         // Keep a map of the site names
-        StringMap rpSiteNamesMap = new StringMap();  
-        
+        StringMap rpSiteNamesMap = new StringMap();
+
         for (RPSite rpSite : rpSites) {
             if (!rpSite.getSiteManagementIPv4().equals(protectionSystem.getIpAddress())
                     && !protectionSystem.getClusterManagementIPs().contains(rpSite.getSiteManagementIPv4())) {
@@ -734,12 +752,12 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                 // we register is stored in ProtectionSystem.getIpAddress() and is the default
                 // ip to use.
                 _log.info(String.format("Adding management ip [%s] for cluster [%s] " +
-                		"to valid cluster management ip addresses.", rpSite.getSiteManagementIPv4(), rpSite.getSiteName()));
+                        "to valid cluster management ip addresses.", rpSite.getSiteManagementIPv4(), rpSite.getSiteName()));
                 protectionSystem.getClusterManagementIPs().add(rpSite.getSiteManagementIPv4());
             }
             rpSiteNamesMap.put(rpSite.getInternalSiteName(), rpSite.getSiteName());
         }
-        
+
         protectionSystem.setRpSiteNames(rpSiteNamesMap);
 
         // Set the version, but verify that it is supported. If it's not an exception will be
@@ -754,171 +772,176 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
     @SuppressWarnings("unchecked")
     private void discoverRPSiteArrays(ProtectionSystem rpSystem) throws RecoverPointCollectionException {
-    	_log.info("BEGIN RecoverPointProtection.discoveryProtectionSystem()");
-    	// Retrieve the storage device info from the database.
-    	ProtectionSystem storageObj = rpSystem;
+        _log.info("BEGIN RecoverPointProtection.discoveryProtectionSystem()");
+        // Retrieve the storage device info from the database.
+        ProtectionSystem storageObj = rpSystem;
 
-    	// Wait for any storage system discovery to complete
-    	waitForStorageSystemDiscovery();
-    	
-    	// Get the rp system's array mappings from the RP client
-    	BiosCommandResult result = getRPArrayMappings(storageObj);
-    	_log.info("discoverProtectionSystem(): after rpa array mappings with result" + result.getCommandStatus());
+        // Wait for any storage system discovery to complete
+        waitForStorageSystemDiscovery();
 
-    	RPSiteArray rpSiteArray = null;
-    	if (result.getCommandSuccess()) {
-    		// Current implementation:
-    		// 1. Clear out any of its entries regarding associations
-    		// 2. For each RPSite object, there is an associated RP storage system
-    		// 3. Find the storage system in the database
-    		// 4. Fill in associations
-    		List<URI> ids = _dbClient.queryByType(RPSiteArray.class, true);
-    		for (URI id : ids) {
-    			_log.info("discoverProtectionSystem(): reading rpsitearray: " + id.toASCIIString());
-    			rpSiteArray = _dbClient.queryObject(RPSiteArray.class, id);
-    			if (rpSiteArray == null) {
-    				continue;
-    			}
+        // Get the rp system's array mappings from the RP client
+        BiosCommandResult result = getRPArrayMappings(storageObj);
+        _log.info("discoverProtectionSystem(): after rpa array mappings with result" + result.getCommandStatus());
 
-    			if ((rpSiteArray.getRpProtectionSystem() != null) && (rpSiteArray.getRpProtectionSystem().equals(storageObj.getId()))) {
-    				_log.info("discoverProtectionSystem(): removing rpsitearray: " + id.toASCIIString() + " : " + rpSiteArray.toString());
-    				_dbClient.markForDeletion(rpSiteArray);
-    			} else if (rpSiteArray.getRpProtectionSystem() == null) {
-    				_log.error("RPSiteArray " + id.toASCIIString() + " does not have a parent assigned, therefore it is an orphan.");
-    			}
-    		}
+        RPSiteArray rpSiteArray = null;
+        if (result.getCommandSuccess()) {
+            // Current implementation:
+            // 1. Clear out any of its entries regarding associations
+            // 2. For each RPSite object, there is an associated RP storage system
+            // 3. Find the storage system in the database
+            // 4. Fill in associations
+            List<URI> ids = _dbClient.queryByType(RPSiteArray.class, true);
+            for (URI id : ids) {
+                _log.info("discoverProtectionSystem(): reading rpsitearray: " + id.toASCIIString());
+                rpSiteArray = _dbClient.queryObject(RPSiteArray.class, id);
+                if (rpSiteArray == null) {
+                    continue;
+                }
 
-    		// Map the information from the RP client to information in our database
-    		for (SiteArrays siteArray : (List<SiteArrays>) result.getObjectList().get(0)) {
-    			for (String arrayWWN : siteArray.getArrays()) {
-    				// Find the array that corresponds to the wwn endpoint we found
-    				URIQueryResultList storagePortList = new URIQueryResultList();
-    				StoragePort storagePort = null;
-    				_dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePortEndpointConstraint(WwnUtils.convertWWN(arrayWWN, WwnUtils.FORMAT.COLON)),
-    						storagePortList);
-    				List<URI> storagePortURIs = new ArrayList<URI>();
-    				for (URI uri : storagePortList) {
-    					storagePort = _dbClient.queryObject(StoragePort.class, uri);
-    					if (storagePort != null && !storagePort.getInactive() && storagePort.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.name())) {
-    					    // ignore cinder managed storage system's port
-    					    StorageSystem system = _dbClient.queryObject(StorageSystem.class, storagePort.getStorageDevice());
-    					    if (!DiscoveredDataObject.Type.openstack.name().equals(system.getSystemType())) {
-    					        storagePortURIs.add(uri);
-    					    }
-    					}
-    				}
-    				if (storagePortURIs.size() > 0) {
-    					storagePort = _dbClient.queryObject(StoragePort.class, storagePortURIs).get(0);
-    					rpSiteArray = new RPSiteArray();
-    					rpSiteArray.setInactive(false);
-    					rpSiteArray.setLabel(siteArray.getSite().getSiteName() + ":" + arrayWWN);
-    					rpSiteArray.setRpProtectionSystem(storageObj.getId());
-    					rpSiteArray.setStorageSystem(storagePort.getStorageDevice());
-    					rpSiteArray.setArraySerialNumber(_dbClient.queryObject(StorageSystem.class, storagePort.getStorageDevice()).getSerialNumber());
-    					rpSiteArray.setRpInternalSiteName(siteArray.getSite().getInternalSiteName());
-    					rpSiteArray.setRpSiteName(siteArray.getSite().getSiteName());
-    					rpSiteArray.setId(URIUtil.createId(RPSiteArray.class));
-    					_log.info("discoverProtectionSystem(): adding rpsitearray: " + rpSiteArray.getId().toASCIIString() + " : " + rpSiteArray.toString());
-    					_dbClient.createObject(rpSiteArray);
-    				} else {
-    					_log.warn("RecoverPoint found array endpoint " + arrayWWN + " however the endpoint could " +
-    							"not be found in existing configured arrays.  Register arrays before registering RecoverPoint " +
-    							"or rerun RecoverPoint discover after registering arrays.");
-    				}
-    			}
-    		}
+                if ((rpSiteArray.getRpProtectionSystem() != null) && (rpSiteArray.getRpProtectionSystem().equals(storageObj.getId()))) {
+                    _log.info("discoverProtectionSystem(): removing rpsitearray: " + id.toASCIIString() + " : " + rpSiteArray.toString());
+                    _dbClient.markForDeletion(rpSiteArray);
+                } else if (rpSiteArray.getRpProtectionSystem() == null) {
+                    _log.error("RPSiteArray " + id.toASCIIString() + " does not have a parent assigned, therefore it is an orphan.");
+                }
+            }
 
-    	}
-    	_log.info("END RecoverPointProtection.discoveryProtectionSystem()");
+            // Map the information from the RP client to information in our database
+            for (SiteArrays siteArray : (List<SiteArrays>) result.getObjectList().get(0)) {
+                for (String arrayWWN : siteArray.getArrays()) {
+                    // Find the array that corresponds to the wwn endpoint we found
+                    URIQueryResultList storagePortList = new URIQueryResultList();
+                    StoragePort storagePort = null;
+                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePortEndpointConstraint(WwnUtils.convertWWN(
+                            arrayWWN, WwnUtils.FORMAT.COLON)),
+                            storagePortList);
+                    List<URI> storagePortURIs = new ArrayList<URI>();
+                    for (URI uri : storagePortList) {
+                        storagePort = _dbClient.queryObject(StoragePort.class, uri);
+                        if (storagePort != null && !storagePort.getInactive()
+                                && storagePort.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.name())) {
+                            // ignore cinder managed storage system's port
+                            StorageSystem system = _dbClient.queryObject(StorageSystem.class, storagePort.getStorageDevice());
+                            if (!DiscoveredDataObject.Type.openstack.name().equals(system.getSystemType())) {
+                                storagePortURIs.add(uri);
+                            }
+                        }
+                    }
+                    if (!storagePortURIs.isEmpty()) {
+                        storagePort = _dbClient.queryObject(StoragePort.class, storagePortURIs).get(0);
+                        rpSiteArray = new RPSiteArray();
+                        rpSiteArray.setInactive(false);
+                        rpSiteArray.setLabel(siteArray.getSite().getSiteName() + ":" + arrayWWN);
+                        rpSiteArray.setRpProtectionSystem(storageObj.getId());
+                        rpSiteArray.setStorageSystem(storagePort.getStorageDevice());
+                        rpSiteArray.setArraySerialNumber(_dbClient.queryObject(StorageSystem.class, storagePort.getStorageDevice())
+                                .getSerialNumber());
+                        rpSiteArray.setRpInternalSiteName(siteArray.getSite().getInternalSiteName());
+                        rpSiteArray.setRpSiteName(siteArray.getSite().getSiteName());
+                        rpSiteArray.setId(URIUtil.createId(RPSiteArray.class));
+                        _log.info("discoverProtectionSystem(): adding rpsitearray: " + rpSiteArray.getId().toASCIIString() + " : "
+                                + rpSiteArray.toString());
+                        _dbClient.createObject(rpSiteArray);
+                    } else {
+                        _log.warn("RecoverPoint found array endpoint " + arrayWWN + " however the endpoint could " +
+                                "not be found in existing configured arrays.  Register arrays before registering RecoverPoint " +
+                                "or rerun RecoverPoint discover after registering arrays.");
+                    }
+                }
+            }
+
+        }
+        _log.info("END RecoverPointProtection.discoveryProtectionSystem()");
     }
 
     /**
      * Wait for any RP-supported storage system discovery to complete.
-     * This helps us maintain good connectivity data and makes pool matching 
+     * This helps us maintain good connectivity data and makes pool matching
      * work better.
      */
     private void waitForStorageSystemDiscovery() {
-    	final int maxWaitTimeSeconds = 30 * 60; // 30 minutes
-    	final int sleepIntervalSeconds = 15;
-    	int totalSleep = 0;
-		List<URI> storageSystemIds = _dbClient.queryByType(StorageSystem.class, true);
-		if (!storageSystemIds.iterator().hasNext())
-			return;
+        final int maxWaitTimeSeconds = 30 * 60; // 30 minutes
+        final int sleepIntervalSeconds = 15;
+        int totalSleep = 0;
+        List<URI> storageSystemIds = _dbClient.queryByType(StorageSystem.class, true);
+        if (!storageSystemIds.iterator().hasNext()) {
+            return;
+        }
 
-		// Copy the IDs to a real list so we can reset/reuse
-		List<URI> allStorageSystemIds = new ArrayList<>();
-		for (URI storageSystemId : storageSystemIds) {
-			allStorageSystemIds.add(storageSystemId);
-		}
-		
-		while (totalSleep < maxWaitTimeSeconds) {
-			List<StorageSystem> storageSystems = _dbClient.queryObject(StorageSystem.class, allStorageSystemIds);
-			boolean slept = false;
-			for (StorageSystem storageSystem : storageSystems) {
-				if (storageSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.IN_PROGRESS.name())) {
-					_log.info("Sleeping due to discovery running on storage system: " + 
-							(storageSystem.getSerialNumber() != null ? storageSystem.getSerialNumber() : storageSystem.getId()));
-					try {
-						slept = true;
-						totalSleep += sleepIntervalSeconds;
-						Thread.sleep(sleepIntervalSeconds * 1000);
-						// No reason to query for other storage systems.  By the time we're done with this sleep,
-						// those others may already be done.  So just start from the beginning again.
-						break;
-					} catch (InterruptedException e) {
-						// Ignore
-					}
-				}
-			}
-			
-			// We didn't get tripped up by discovers running in the system, return.
-			if (!slept) {
-				_log.info("Found no Storage Systems that are currently in progress with discovery");
-				return;
-			}
-		}
-		
-		_log.info("RP discovery is going to proceed even though storage systems seem to still be in discovery mode");
-	}
+        // Copy the IDs to a real list so we can reset/reuse
+        List<URI> allStorageSystemIds = new ArrayList<>();
+        for (URI storageSystemId : storageSystemIds) {
+            allStorageSystemIds.add(storageSystemId);
+        }
 
-	private void discoverCluster(ProtectionSystem protectionSystem) {
+        while (totalSleep < maxWaitTimeSeconds) {
+            List<StorageSystem> storageSystems = _dbClient.queryObject(StorageSystem.class, allStorageSystemIds);
+            boolean slept = false;
+            for (StorageSystem storageSystem : storageSystems) {
+                if (storageSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.IN_PROGRESS.name())) {
+                    _log.info("Sleeping due to discovery running on storage system: " +
+                            (storageSystem.getSerialNumber() != null ? storageSystem.getSerialNumber() : storageSystem.getId()));
+                    try {
+                        slept = true;
+                        totalSleep += sleepIntervalSeconds;
+                        Thread.sleep(sleepIntervalSeconds * 1000);
+                        // No reason to query for other storage systems. By the time we're done with this sleep,
+                        // those others may already be done. So just start from the beginning again.
+                        break;
+                    } catch (InterruptedException e) {
+                        // Ignore
+                    }
+                }
+            }
 
-    	URI protectionSystemURI = protectionSystem.getId();
+            // We didn't get tripped up by discovers running in the system, return.
+            if (!slept) {
+                _log.info("Found no Storage Systems that are currently in progress with discovery");
+                return;
+            }
+        }
 
-    	_log.info("discoverCluster information for protection system {} - start", protectionSystemURI);
+        _log.info("RP discovery is going to proceed even though storage systems seem to still be in discovery mode");
+    }
 
-    	// Get the rp system's array mappings from the RP client
-    	// TODO: Other methods do their BL in here.  This one seems to do all of its BL up in the bios method.
-    	BiosCommandResult result = discoverRPSystem(protectionSystem);
-    	if (result.getCommandSuccess()) {
-    		_log.info("discoverCluster information for protection system {} - successful", protectionSystemURI);
-    		ProtectionSystem system = (ProtectionSystem)result.getObjectList().get(0);
+    private void discoverCluster(ProtectionSystem protectionSystem) {
 
-    		// Look to see if it's a duplicate of another entry.
-    		URIQueryResultList list = new URIQueryResultList();
-    		// check for duplicate ProtectionSystem.
-    		_dbClient.queryByConstraint(AlternateIdConstraint.Factory
-    				.getProtectionSystemByNativeGuidConstraint(system.getNativeGuid()), list);
-    		for (URI systemID : list) {
-    			if (!systemID.equals(system.getId())) {
-    				ProtectionSystem persistedSystem = _dbClient.queryObject(ProtectionSystem.class, systemID);
-    				if ((persistedSystem != null) && (!persistedSystem.getInactive())) {
-    					// The new system violates constraints that it can not contain IP addresses of other protection systems.
-    					// This is usually caught much much higher, however in the case where discover catches it, we need to
-    					// mark this object for deletion.
-    					_dbClient.persistObject(system); // not sure if its necessary to mark it as unregistered
-    					_dbClient.markForDeletion(system);
-    					throw DeviceControllerExceptions.recoverpoint
-    					.duplicateProtectionSystem(system.getLabel(), system.getId());
-    				}
-    			}
-    		}
+        URI protectionSystemURI = protectionSystem.getId();
 
-    		// Persist the fields that you got during discovery
-    		_dbClient.persistObject(system);
-    	}
+        _log.info("discoverCluster information for protection system {} - start", protectionSystemURI);
 
-    	_log.info("discoverCluster information for protection system {} - complete", protectionSystemURI);
+        // Get the rp system's array mappings from the RP client
+        // TODO: Other methods do their BL in here. This one seems to do all of its BL up in the bios method.
+        BiosCommandResult result = discoverRPSystem(protectionSystem);
+        if (result.getCommandSuccess()) {
+            _log.info("discoverCluster information for protection system {} - successful", protectionSystemURI);
+            ProtectionSystem system = (ProtectionSystem) result.getObjectList().get(0);
+
+            // Look to see if it's a duplicate of another entry.
+            URIQueryResultList list = new URIQueryResultList();
+            // check for duplicate ProtectionSystem.
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getProtectionSystemByNativeGuidConstraint(system.getNativeGuid()), list);
+            for (URI systemID : list) {
+                if (!systemID.equals(system.getId())) {
+                    ProtectionSystem persistedSystem = _dbClient.queryObject(ProtectionSystem.class, systemID);
+                    if ((persistedSystem != null) && (!persistedSystem.getInactive())) {
+                        // The new system violates constraints that it can not contain IP addresses of other protection systems.
+                        // This is usually caught much much higher, however in the case where discover catches it, we need to
+                        // mark this object for deletion.
+                        _dbClient.persistObject(system); // not sure if its necessary to mark it as unregistered
+                        _dbClient.markForDeletion(system);
+                        throw DeviceControllerExceptions.recoverpoint
+                                .duplicateProtectionSystem(system.getLabel(), system.getId());
+                    }
+                }
+            }
+
+            // Persist the fields that you got during discovery
+            _dbClient.persistObject(system);
+        }
+
+        _log.info("discoverCluster information for protection system {} - complete", protectionSystemURI);
     }
 
     /**
@@ -928,7 +951,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
      */
     private void discoverConnectivity(ProtectionSystem protectionSystem) {
         // Retrieve the Virtual Arrays for this Protection System
-    	ConnectivityUtil.updateRpSystemConnectivity(protectionSystem, _dbClient);
+        ConnectivityUtil.updateRpSystemConnectivity(protectionSystem, _dbClient);
     }
 
     /**
@@ -939,37 +962,39 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
     private void discoverAssociatedStorageSystems(ProtectionSystem protectionSystem) {
         // Find all the RPSiteArrays that are associated to this protection system
         List<RPSiteArray> siteArrays = CustomQueryUtility
-                .queryActiveResourcesByConstraint(_dbClient, RPSiteArray.class, 
-                        AlternateIdConstraint.Factory.getConstraint(RPSiteArray.class, 
-                                "rpProtectionSystem", 
+                .queryActiveResourcesByConstraint(_dbClient, RPSiteArray.class,
+                        AlternateIdConstraint.Factory.getConstraint(RPSiteArray.class,
+                                "rpProtectionSystem",
                                 protectionSystem.getId().toString()));
 
         // For each RPSiteArray, if there is a Storage System, add it to the list of
         // associated Storage Systems for this Protection System
 
         // TODO: May not be the most efficient way to do this; suggested that we have a way to determine
-        // which objects in the StringSet are new, modified, or old and go from there.  It could be that 
+        // which objects in the StringSet are new, modified, or old and go from there. It could be that
         // nothing really changed.
 
-        // But for now, force the associatedStorageSystems StringSet to be cleared and 
+        // But for now, force the associatedStorageSystems StringSet to be cleared and
         // use the setter so that setChanged(true) is invoked for Cassandra.
         StringSet associatedStorageSystems = protectionSystem.getAssociatedStorageSystems();
         associatedStorageSystems.clear();
         protectionSystem.setAssociatedStorageSystems(associatedStorageSystems);
-        
+
         for (RPSiteArray siteArray : siteArrays) {
             if (siteArray != null && siteArray.getStorageSystem() != null) {
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, siteArray.getStorageSystem());
                 String serialNumber = storageSystem.getSerialNumber();
-                
+
                 // The visible storage arrays map has more precise serial number info, leverage it if we can, otherwise just use the
                 // serial number from the storage system.
-                if (protectionSystem.getSiteVisibleStorageArrays() != null) {                    
-                    for (Map.Entry<String, AbstractChangeTrackingSet<String>> clusterStorageSystemSerialNumberEntry : protectionSystem.getSiteVisibleStorageArrays().entrySet()) {
+                if (protectionSystem.getSiteVisibleStorageArrays() != null) {
+                    for (Map.Entry<String, AbstractChangeTrackingSet<String>> clusterStorageSystemSerialNumberEntry : protectionSystem
+                            .getSiteVisibleStorageArrays().entrySet()) {
                         if (siteArray.getRpInternalSiteName().equals(clusterStorageSystemSerialNumberEntry.getKey())) {
                             for (String clusterSerialNumber : clusterStorageSystemSerialNumberEntry.getValue()) {
                                 // Helper method to load the storage system by serial number
-                                URI foundStorageSystemURI = ConnectivityUtil.findStorageSystemBySerialNumber(clusterSerialNumber, _dbClient, StorageSystemType.BLOCK);
+                                URI foundStorageSystemURI = ConnectivityUtil.findStorageSystemBySerialNumber(clusterSerialNumber,
+                                        _dbClient, StorageSystemType.BLOCK);
                                 if (storageSystem.getId().equals(foundStorageSystemURI)) {
                                     serialNumber = clusterSerialNumber;
                                     break;
@@ -978,27 +1003,28 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                         }
                     }
                 }
-                
+
                 // One last check, maybe we were not able to leverage the visible storage arrays, if that's the case and we have visible
-                // VPLEXs with the serial number concatenated together, we will artificially create 2 separate entries. One for each leg of the VPLEX.
+                // VPLEXs with the serial number concatenated together, we will artificially create 2 separate entries. One for each leg of
+                // the VPLEX.
                 if (ConnectivityUtil.isAVPlex(storageSystem) && serialNumber.contains(":")) {
                     String[] splitSerialNumber = serialNumber.split(":");
-                    
+
                     String firstHalf = splitSerialNumber[0];
                     String secondHalf = splitSerialNumber[1];
-                    
+
                     // Add first half
                     protectionSystem.getAssociatedStorageSystems()
-                    .add(ProtectionSystem.generateAssociatedStorageSystem(siteArray.getRpInternalSiteName(), 
-                            String.valueOf(firstHalf)));
-                    
+                            .add(ProtectionSystem.generateAssociatedStorageSystem(siteArray.getRpInternalSiteName(),
+                                    String.valueOf(firstHalf)));
+
                     // Second half to be added next
                     serialNumber = secondHalf;
                 }
-                                
+
                 protectionSystem.getAssociatedStorageSystems()
-                .add(ProtectionSystem.generateAssociatedStorageSystem(siteArray.getRpInternalSiteName(), 
-                		String.valueOf(serialNumber)));
+                        .add(ProtectionSystem.generateAssociatedStorageSystem(siteArray.getRpInternalSiteName(),
+                                String.valueOf(serialNumber)));
             }
         }
 
@@ -1015,57 +1041,66 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
         Map<String, Set<String>> siteStorageSystems = rp.getArraysForClusters();
         if (protectionSystem.getSiteVisibleStorageArrays() != null) {
-        	protectionSystem.getSiteVisibleStorageArrays().clear();
+            protectionSystem.getSiteVisibleStorageArrays().clear();
         } else {
-        	protectionSystem.setSiteVisibleStorageArrays(new StringSetMap());
+            protectionSystem.setSiteVisibleStorageArrays(new StringSetMap());
         }
-        
-		List<URI> storageSystemIDs = _dbClient.queryByType(StorageSystem.class, true);
-		if (storageSystemIDs == null)
-			return;
-		
-		List<StorageSystem> storageSystems = _dbClient.queryObject(StorageSystem.class, storageSystemIDs);
-		if (storageSystems == null)
-			return;
 
-		// Assemble the storage systems map for the protection systems object.  The RP client only
+        List<URI> storageSystemIDs = _dbClient.queryByType(StorageSystem.class, true);
+        if (storageSystemIDs == null) {
+            return;
+        }
+
+        List<StorageSystem> storageSystems = _dbClient.queryObject(StorageSystem.class, storageSystemIDs);
+        if (storageSystems == null) {
+            return;
+        }
+
+        // Assemble the storage systems map for the protection systems object. The RP client only
         // knows the storage system serial number, so we need to translate them to storage system IDs
         // (for the arrays ViPR knows about)
         if (siteStorageSystems != null) {
-        	for (Map.Entry<String, Set<String>> clusterEntry : siteStorageSystems.entrySet()) {
-        		if (clusterEntry.getValue() == null || clusterEntry.getValue().isEmpty())
-        			continue;
-        		
-        		for (String serialNumber : clusterEntry.getValue()) {
-        			if (serialNumber == null || serialNumber.isEmpty())
-        				continue;
-        			
-        			// Find the storage system ID associated with this serial number
-        			
-        			// We have a serial number from the RP appliances, and for the most part, that works
-        			// with a Constraint Query, but in the case of VPLEX, the serial number object for distributed
-        			// VPLEX clusters will contain two serial numbers, not just one.  So we need a long-form
-        			// way of finding those VPLEXs as well.         
-        			Iterator<StorageSystem> activeSystemListItr = storageSystems.iterator();
-        			StorageSystem foundStorageSystem = null;
-        			while (activeSystemListItr.hasNext() && foundStorageSystem == null) {
-        				StorageSystem system = activeSystemListItr.next();
-        				if (NullColumnValueGetter.isNotNullValue(system.getSerialNumber()) && system.getSerialNumber().contains(serialNumber)) {
-        					foundStorageSystem = system;
-        				}
-        			}
-        			
-        			if (foundStorageSystem != null) {
-        				protectionSystem.addSiteVisibleStorageArrayEntry(clusterEntry.getKey(), serialNumber);
-            			_log.info(String.format("RP Discovery found RP cluster %s is configured to use a registered storage system: %s, %s", clusterEntry.getKey(), serialNumber, foundStorageSystem.getNativeGuid()));
-        			} else {
-            			_log.info(String.format("RP Discovery found RP cluster %s is configured to use a storage system: %s, but it is not configured for use in ViPR", clusterEntry.getKey(), serialNumber));
-        			}
-        		}
-        	}
+            for (Map.Entry<String, Set<String>> clusterEntry : siteStorageSystems.entrySet()) {
+                if (clusterEntry.getValue() == null || clusterEntry.getValue().isEmpty()) {
+                    continue;
+                }
+
+                for (String serialNumber : clusterEntry.getValue()) {
+                    if (serialNumber == null || serialNumber.isEmpty()) {
+                        continue;
+                    }
+
+                    // Find the storage system ID associated with this serial number
+
+                    // We have a serial number from the RP appliances, and for the most part, that works
+                    // with a Constraint Query, but in the case of VPLEX, the serial number object for distributed
+                    // VPLEX clusters will contain two serial numbers, not just one. So we need a long-form
+                    // way of finding those VPLEXs as well.
+                    Iterator<StorageSystem> activeSystemListItr = storageSystems.iterator();
+                    StorageSystem foundStorageSystem = null;
+                    while (activeSystemListItr.hasNext() && foundStorageSystem == null) {
+                        StorageSystem system = activeSystemListItr.next();
+                        if (NullColumnValueGetter.isNotNullValue(system.getSerialNumber())
+                                && system.getSerialNumber().contains(serialNumber)) {
+                            foundStorageSystem = system;
+                        }
+                    }
+
+                    if (foundStorageSystem != null) {
+                        protectionSystem.addSiteVisibleStorageArrayEntry(clusterEntry.getKey(), serialNumber);
+                        _log.info(String.format(
+                                "RP Discovery found RP cluster %s is configured to use a registered storage system: %s, %s",
+                                clusterEntry.getKey(), serialNumber, foundStorageSystem.getNativeGuid()));
+                    } else {
+                        _log.info(String
+                                .format("RP Discovery found RP cluster %s is configured to use a storage system: %s, but it is not configured for use in ViPR",
+                                        clusterEntry.getKey(), serialNumber));
+                    }
+                }
+            }
         }
-    	
-    	_dbClient.persistObject(protectionSystem);
+
+        _dbClient.persistObject(protectionSystem);
     }
 
     /**
@@ -1089,7 +1124,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
             } else {
                 system.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
             }
-        } catch (Exception ex)  {
+        } catch (Exception ex) {
             throw DeviceControllerExceptions.recoverpoint.verifyVersionFailed(ex.getMessage(), ex);
         }
     }

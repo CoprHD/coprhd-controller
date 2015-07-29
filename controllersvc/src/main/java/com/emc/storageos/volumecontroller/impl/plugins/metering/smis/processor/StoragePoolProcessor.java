@@ -21,7 +21,6 @@ import javax.cim.CIMObjectPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.emc.storageos.plugins.BaseCollectionException;
-import com.emc.storageos.plugins.metering.smis.SMIPluginException;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.Processor;
@@ -44,12 +43,13 @@ public class StoragePoolProcessor extends Processor {
                 final CIMObjectPath path = (CIMObjectPath) it.next();
                 // Validate whether this storagePool is created by Bourne
                 if (validateStoragePool(path, keyMap)) {
-                    addPath(keyMap, operation.get_result(), path);
+                    addPath(keyMap, operation.getResult(), path);
                 }
             }
         } catch (Exception ex) {
-            if (!(ex instanceof BaseCollectionException))
+            if (!(ex instanceof BaseCollectionException)) {
                 _logger.error(" Allocated Capacity : ", ex);
+            }
         }
         resultObj = null;
     }
@@ -81,8 +81,9 @@ public class StoragePoolProcessor extends Processor {
         // To-Do: replaced by Associators , so that this check can be
         // eliminated.
         String serialID = (String) keyMap.get(Constants._serialID);
-        if (path.getKey("InstanceID").getValue().toString().contains(serialID))
+        if (path.getKey("InstanceID").getValue().toString().contains(serialID)) {
             return true;
+        }
         return false;
     }
 

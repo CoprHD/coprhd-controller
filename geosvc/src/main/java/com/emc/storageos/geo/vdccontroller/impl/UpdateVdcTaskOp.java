@@ -23,7 +23,6 @@ import java.util.List;
 import java.net.URI;
 import java.util.Properties;
 
-import com.emc.storageos.geo.service.GeoService;
 import com.emc.storageos.security.geo.GeoServiceJob;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -59,7 +58,7 @@ public class UpdateVdcTaskOp extends AbstractVdcTaskOp {
             String taskId, List<Object> taskParams, InternalApiSignatureKeyGenerator generator, KeyStore keystore) {
         super(dbClient, geoClientCache, helper, serviceInfo, vdc, taskId, null, keystore);
         params = taskParams;
-        updateInfo = (Properties)taskParams.get(0);
+        updateInfo = (Properties) taskParams.get(0);
         apiSignatureKeyGenerator = generator;
     }
 
@@ -72,9 +71,9 @@ public class UpdateVdcTaskOp extends AbstractVdcTaskOp {
 
         geoClientCache.clearCache();
         loadVdcInfo();
-        
-        if( StringUtils.isNotEmpty(updateInfo.getProperty(GeoServiceJob.VDC_CERTIFICATE_CHAIN))&&
-            (operatedVdc.getId().compareTo(myVdc.getId()) !=0)) {
+
+        if (StringUtils.isNotEmpty(updateInfo.getProperty(GeoServiceJob.VDC_CERTIFICATE_CHAIN)) &&
+                (operatedVdc.getId().compareTo(myVdc.getId()) != 0)) {
             String errMsg = "could not update key certchain from remote VDC.";
             log.error(errMsg);
             throw GeoException.fatals.updateVdcPrecheckFail(errMsg);
@@ -97,7 +96,7 @@ public class UpdateVdcTaskOp extends AbstractVdcTaskOp {
 
         try {
             syncConfig(mergedVdcInfo);
-        } catch ( GeoException ex ) {
+        } catch (GeoException ex) {
             throw ex;
         } catch (Exception e) {
             log.error("Failed to sync vdc config to all sites : {}", e);
@@ -105,17 +104,17 @@ public class UpdateVdcTaskOp extends AbstractVdcTaskOp {
         }
 
         String cert = updateInfo.getProperty(GeoServiceJob.VDC_CERTIFICATE_CHAIN);
-        if ( StringUtils.isNotEmpty(cert)) {
+        if (StringUtils.isNotEmpty(cert)) {
             VdcCertListParam certListParam = genCertOperationParam(VdcCertListParam.CMD_UPDATE_CERT);
             syncCerts(VdcCertListParam.CMD_UPDATE_CERT, certListParam);
 
             // set key and cert in local keystore
-            Boolean selfsigned = (Boolean)params.get(1);
-            byte[] key = (byte[])params.get(2);
-            Certificate[] certchain = (Certificate[])params.get(3);
+            Boolean selfsigned = (Boolean) params.get(1);
+            byte[] key = (byte[]) params.get(2);
+            Certificate[] certchain = (Certificate[]) params.get(3);
             helper.setKeyCertchain(selfsigned, key, certchain);
         }
-        
+
         // lock is released in error handling code if an exception is thrown before we get
         // here. note that since there is no post processing for update, there is no way
         // to know if the sync operation is complete; lock must be released here before
@@ -126,27 +125,27 @@ public class UpdateVdcTaskOp extends AbstractVdcTaskOp {
     private VdcPreCheckResponse preCheck() {
         log.info("Starting precheck on vdc update ...");
 
-        //Step 0: Get remote vdc version before send preCheck, since we modify the preCheckParam
+        // Step 0: Get remote vdc version before send preCheck, since we modify the preCheckParam
         // avoid to send preCheck from v2.3 or higher to v2.2 v2.1, v2.0
         if (!isRemoteVdcVersionCompatible(vdcInfo)) {
             throw GeoException.fatals.updateVdcPrecheckFail("Software version from remote vdc is lower than v2.3.");
         }
 
-        //BZ:
-        // TODO  It appears that this code assumes that update node is a remote node.
+        // BZ:
+        // TODO It appears that this code assumes that update node is a remote node.
         // we need to modify it to make it simpler when updated node is local.
         log.info("Send vdc precheck to remote vdc");
         VdcPreCheckResponse vdcResp =
                 sendVdcPrecheckRequest(vdcInfo, false);
 
         log.info("Check vdc stable");
-        //check if the cluster is stable
-        URI unstable =  checkAllVdcStable(false, true);
+        // check if the cluster is stable
+        URI unstable = checkAllVdcStable(false, true);
         if (unstable != null) {
             VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, unstable);
             String vdcName = (vdc != null) ? vdc.getLabel() : "";
             throw GeoException.fatals.unstableVdcFailure(vdcName);
-        }        
+        }
 
         log.info("vdc config retrieved: {}, {} {}",
                 new Object[] { vdcResp.getApiEndpoint(), vdcResp.getHostIPv4AddressesMap(), vdcResp.getHostIPv6AddressesMap() });
@@ -168,14 +167,14 @@ public class UpdateVdcTaskOp extends AbstractVdcTaskOp {
         return vdcConfigList;
     }
 
-    private void syncConfig(VdcConfigSyncParam mergedVdcInfo)  {
+    private void syncConfig(VdcConfigSyncParam mergedVdcInfo) {
         // step 3: sync merged vdc config info to all sites in which property change triggered
         // all conf files updated after reboot.
         // the vdc to be connected will reset the db and update the network strategy when
         // startup.
 
-        //  loop all current connected VDCs with latest vdc config info, shall be moved into geoclient
-        //  geoclient shall responsible to retry all retryable errors, we have no need retry here
+        // loop all current connected VDCs with latest vdc config info, shall be moved into geoclient
+        // geoclient shall responsible to retry all retryable errors, we have no need retry here
         log.info("sync vdc config to all sites, total vdc entries {}", mergedVdcInfo.getVirtualDataCenters().size());
         List<VirtualDataCenter> vdcList = getToBeSyncedVdc();
         for (VirtualDataCenter vdc : vdcList) {
@@ -183,7 +182,7 @@ public class UpdateVdcTaskOp extends AbstractVdcTaskOp {
             if (vdc.getApiEndpoint() != null) {
                 mergedVdcInfo.setAssignedVdcId(null);
                 mergedVdcInfo.setConfigChangeType(changeType().toString());
-                geoClientCache.getGeoClient(vdc.getShortId()).syncVdcConfig(mergedVdcInfo,vdc.getLabel());
+                geoClientCache.getGeoClient(vdc.getShortId()).syncVdcConfig(mergedVdcInfo, vdc.getLabel());
                 log.info("Sync vdc info succeed");
             } else {
                 log.error("Fatal error: try to sync with a vdc without endpoint");
@@ -199,9 +198,9 @@ public class UpdateVdcTaskOp extends AbstractVdcTaskOp {
         Iterator<VdcConfig> it = list.iterator();
         while (it.hasNext()) {
             VdcConfig vdcSyncParam = it.next();
-            if(vdcSyncParam.getId().compareTo(vdc.getId()) == 0) {
+            if (vdcSyncParam.getId().compareTo(vdc.getId()) == 0) {
                 // update vdc
-                
+
                 // if this is a local,isolated vdc, update local vdc only, no other sites
                 boolean isolated = isLocalIsolatedVdc();
                 log.info("Checking if this is a local isolated vdc->{}", isolated);
@@ -213,14 +212,18 @@ public class UpdateVdcTaskOp extends AbstractVdcTaskOp {
 
                 Date updateDate = new Date();
                 vdcSyncParam.setVersion(updateDate.getTime());
-                if ((vdc.getLabel() != null) && (!vdc.getLabel().isEmpty()))
+                if ((vdc.getLabel() != null) && (!vdc.getLabel().isEmpty())) {
                     vdcSyncParam.setName(vdc.getLabel());
-                if ((vdc.getDescription() != null) && (!vdc.getDescription().isEmpty()))
+                }
+                if ((vdc.getDescription() != null) && (!vdc.getDescription().isEmpty())) {
                     vdcSyncParam.setDescription(vdc.getDescription());
-                if ((vdc.getGeoCommandEndpoint() != null) && (!vdc.getGeoCommandEndpoint().isEmpty()))
+                }
+                if ((vdc.getGeoCommandEndpoint() != null) && (!vdc.getGeoCommandEndpoint().isEmpty())) {
                     vdcSyncParam.setGeoCommandEndpoint(vdc.getGeoCommandEndpoint());
-                if ((vdc.getGeoDataEndpoint() != null) && (!vdc.getGeoDataEndpoint().isEmpty()))
+                }
+                if ((vdc.getGeoDataEndpoint() != null) && (!vdc.getGeoDataEndpoint().isEmpty())) {
                     vdcSyncParam.setGeoDataEndpoint(vdc.getGeoDataEndpoint());
+                }
                 // TODO: set apiendpoint and seckey
                 return;
             }
@@ -246,20 +249,22 @@ public class UpdateVdcTaskOp extends AbstractVdcTaskOp {
                 throw GeoException.fatals.updateVdcInvalidStatus(errMsg);
         }
     }
-    
+
     /**
      * Verify if this is a local and isolated vdc
+     * 
      * @return true if status is isolated
      */
     private boolean isLocalIsolatedVdc() {
-        log.info("Checking if local vdc and operated vdc ids are the same ->{}.", operatedVdc.getId().equals( myVdc.getId()));
-        return ( operatedVdc.getId().equals(myVdc.getId() ) && ((myVdc.getConnectionStatus() == VirtualDataCenter.ConnectionStatus.ISOLATED) || (myVdc.getRepStatus()==VirtualDataCenter.GeoReplicationStatus.REP_NONE) ) );
+        log.info("Checking if local vdc and operated vdc ids are the same ->{}.", operatedVdc.getId().equals(myVdc.getId()));
+        return (operatedVdc.getId().equals(myVdc.getId()) && ((myVdc.getConnectionStatus() == VirtualDataCenter.ConnectionStatus.ISOLATED) || (myVdc
+                .getRepStatus() == VirtualDataCenter.GeoReplicationStatus.REP_NONE)));
     }
 
     private void updateOperatedVdc() {
 
         String name = updateInfo.getProperty(GeoServiceJob.VDC_NAME);
-        if( StringUtils.isNotEmpty(name)){
+        if (StringUtils.isNotEmpty(name)) {
             operatedVdc.setLabel(name);
         }
         String description = updateInfo.getProperty(GeoServiceJob.VDC_DESCRIPTION);
@@ -267,21 +272,21 @@ public class UpdateVdcTaskOp extends AbstractVdcTaskOp {
             operatedVdc.setDescription(description);
         }
         String geocommand = updateInfo.getProperty(GeoServiceJob.VDC_GEOCOMMAND_ENDPOINT);
-        if( StringUtils.isNotEmpty(geocommand)){
+        if (StringUtils.isNotEmpty(geocommand)) {
             operatedVdc.setGeoCommandEndpoint(geocommand);
         }
         String geodata = updateInfo.getProperty(GeoServiceJob.VDC_GEODATA_ENDPOINT);
-        if( StringUtils.isNotEmpty(geodata)){
+        if (StringUtils.isNotEmpty(geodata)) {
             operatedVdc.setGeoDataEndpoint(geodata);
         }
         String certchain = updateInfo.getProperty(GeoServiceJob.VDC_CERTIFICATE_CHAIN);
-        if( StringUtils.isNotEmpty(certchain)){
+        if (StringUtils.isNotEmpty(certchain)) {
             operatedVdc.setCertificateChain(certchain);
         }
     }
 
     @Override
-    public VdcConfig.ConfigChangeType changeType(){
+    public VdcConfig.ConfigChangeType changeType() {
         return VdcConfig.ConfigChangeType.UPDATE_VDC;
     }
 

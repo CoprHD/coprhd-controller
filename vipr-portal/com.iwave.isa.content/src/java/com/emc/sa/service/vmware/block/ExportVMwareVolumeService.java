@@ -13,6 +13,7 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.machinetags.vmware.VMwareDatastoreTagger;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.ExportBlockVolumeHelper;
+import com.emc.sa.service.vipr.block.ExportVMwareBlockVolumeHelper;
 import com.emc.sa.service.vmware.VMwareHostService;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 
@@ -20,30 +21,30 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 public class ExportVMwareVolumeService extends VMwareHostService {
 
     @Bindable
-    protected ExportBlockVolumeHelper helper = new ExportBlockVolumeHelper();
-		
-	@Override
-	public void precheck() throws Exception {
-	    vmware.disconnect();
+    protected ExportBlockVolumeHelper helper = new ExportVMwareBlockVolumeHelper();
+
+    @Override
+    public void precheck() throws Exception {
+        vmware.disconnect();
         helper.precheck();
     }
-	
-	@Override
-	public void execute() throws Exception {
-		helper.exportVolumes();
-		setVmfsDatastoreTag(helper.getVolumeIds(), helper.getHostId());
-		this.connectAndInitializeHost();
-		vmware.refreshStorage(host, cluster);
-	}
-	
-	private void setVmfsDatastoreTag(List<String> volumeIds, URI hostId) {
-	    for (String volumeId : volumeIds) {
-	        BlockObjectRestRep volume = BlockStorageUtils.getVolume(uri(volumeId));
-	        Set<String> datastoreNames = VMwareDatastoreTagger.getDatastoreNames(volume);
-	        
-	        for (String datastoreName : datastoreNames) {
-               vmware.addVmfsDatastoreTag(volume, hostId, datastoreName);
-	        }
-	    }
-	}
+
+    @Override
+    public void execute() throws Exception {
+        helper.exportVolumes();
+        setVmfsDatastoreTag(helper.getVolumeIds(), helper.getHostId());
+        this.connectAndInitializeHost();
+        vmware.refreshStorage(host, cluster);
+    }
+
+    private void setVmfsDatastoreTag(List<String> volumeIds, URI hostId) {
+        for (String volumeId : volumeIds) {
+            BlockObjectRestRep volume = BlockStorageUtils.getVolume(uri(volumeId));
+            Set<String> datastoreNames = VMwareDatastoreTagger.getDatastoreNames(volume);
+
+            for (String datastoreName : datastoreNames) {
+                vmware.addVmfsDatastoreTag(volume, hostId, datastoreName);
+            }
+        }
+    }
 }

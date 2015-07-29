@@ -32,37 +32,40 @@ public interface CustomConfigControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_CUSTOMCONFIG_ERROR)
     public CustomConfigControllerException customConfigNotFound(final String name);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_CUSTOMCONFIG_ERROR)
     public CustomConfigControllerException customConfigAlreadyExists(final String name);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_CUSTOMCONFIG_ERROR)
-    public CustomConfigControllerException maxLengthConstraintViolated(final String name, final String systemType, final Integer length, final Integer max, final String subString);
-    
+    public CustomConfigControllerException maxLengthConstraintViolated(final String name, final String systemType, final Integer length,
+            final Integer max, final String subString);
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_CUSTOMCONFIG_ERROR)
     public CustomConfigControllerException illegalCharsConstraintViolated(final String name, final String systemType);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_CUSTOMCONFIG_ERROR)
-    public CustomConfigControllerException illegalFirstCharConstraintViolated(final String name, final String systemType, final String star);
-    
+    public CustomConfigControllerException
+            illegalFirstCharConstraintViolated(final String name, final String systemType, final String star);
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_CUSTOMCONFIG_ERROR)
     public CustomConfigControllerException maxConstraintViolated(final Double val, final Double max);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_CUSTOMCONFIG_ERROR)
     public CustomConfigControllerException minConstraintViolated(final String systemType, final Double val, final Double min);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_CUSTOMCONFIG_ERROR)
     public CustomConfigControllerException illegalDatasourceProperty(final String configValue, final String property);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_CUSTOMCONFIG_ERROR)
     public CustomConfigControllerException illegalStringFunction(final String configValue, final String functionName);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_CUSTOMCONFIG_ERROR)
-    public CustomConfigControllerException customConfigScopeWithNoDefault(final String customConfigName, String scopeType, String scopeValue);
-    
+    public CustomConfigControllerException
+            customConfigScopeWithNoDefault(final String customConfigName, String scopeType, String scopeValue);
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_CUSTOMCONFIG_ERROR)
     public CustomConfigControllerException resolvedCustomNameEmpty(final String config);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_CUSTOMCONFIG_ERROR)
     public CustomConfigControllerException invalidValueType(final String type, final String value, final String configName);
     

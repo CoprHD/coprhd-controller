@@ -42,7 +42,7 @@ import com.sun.jersey.api.client.ClientResponse;
 /**
  * This class is responsible to perform the Batch API operations using REST
  * calls like POST to HiCommand DM server.
- *
+ * 
  */
 public class HDSBatchApiExportManager {
 
@@ -127,7 +127,7 @@ public class HDSBatchApiExportManager {
      * This method makes a HTTP POST call to HiCommand with a payload of muliple
      * HSD's and each with a set of WWNs. This method can only be used for FC
      * HSD's.
-     *
+     * 
      * @param systemId
      *            - represents Storage System ObjectID.
      * @param hsdList
@@ -182,7 +182,7 @@ public class HDSBatchApiExportManager {
      * This method makes a HTTP POST call to HiCommand with a payload of muliple
      * HSD's and each with a set of ISCSINames. This method can only be used for
      * ISCSI HSD's.
-     *
+     * 
      * @param systemId
      *            - represents Storage System ObjectID.
      * @param hsdList

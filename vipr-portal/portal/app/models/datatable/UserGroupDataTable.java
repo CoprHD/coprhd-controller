@@ -52,13 +52,13 @@ public class UserGroupDataTable extends DataTable {
         /**
          * Build the stringBuilder in the format of attribute1 = [values]; attribute2 = [values]
          * for the set of attributes returned.
-         *
+         * 
          * @param userGroupRestRep
          * @return string builder in the above format.
          */
         private StringBuilder getAttributesStringBuilder(UserGroupRestRep userGroupRestRep) {
             StringBuilder ss = new StringBuilder();
-            for(UserAttributeParam param : userGroupRestRep.getAttributes()) {
+            for (UserAttributeParam param : userGroupRestRep.getAttributes()) {
                 ss.append(param.getKey());
                 ss.append(" = ");
                 ss.append(param.getValues().toString());

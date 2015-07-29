@@ -62,7 +62,7 @@ public class WorkPoolTest extends CoordinatorTestBase {
                 _logger.info("Removed assignment {}", next.getId());
                 _assignmentCount.countDown();
 
-            }            
+            }
             _assigned = work;
         }
 
@@ -71,7 +71,7 @@ public class WorkPoolTest extends CoordinatorTestBase {
         }
 
     }
-    
+
     @Test
     public void testWorkPool() throws Exception {
         final int totalWorkItemCount = 100;
@@ -93,9 +93,9 @@ public class WorkPoolTest extends CoordinatorTestBase {
         assignmentLatch = new CountDownLatch(totalWorkItemCount);
         for (int index = 0; index < totalWorkerCount; index++) {
             listeners.get(index).setAssignmentLatch(assignmentLatch);
-        } 
+        }
         for (int index = 0; index < totalWorkItemCount; index++) {
-            workerList.get(index % totalWorkerCount).removeWork(Integer.toString(index));       
+            workerList.get(index % totalWorkerCount).removeWork(Integer.toString(index));
         }
 
         Assert.assertTrue(assignmentLatch.await(30, TimeUnit.SECONDS));

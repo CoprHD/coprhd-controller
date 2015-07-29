@@ -33,7 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *  internal resource to validate group and subject principals
+ * internal resource to validate group and subject principals
  */
 @Path("/internal")
 public class PrincipalValidatorResource {
@@ -53,12 +53,12 @@ public class PrincipalValidatorResource {
             @QueryParam("group") String groupId) {
         String principal = null;
         ValidationFailureReason[] reason = { ValidationFailureReason.USER_OR_GROUP_NOT_FOUND_FOR_TENANT };
-        if( null != subjectId && null != tenantId ) {
+        if (null != subjectId && null != tenantId) {
             _authManager.validateUser(subjectId, tenantId, altTenantId);
             return Response.ok().build();
-        } else if( null != groupId ) {
+        } else if (null != groupId) {
             principal = groupId;
-            if( _authManager.isGroupValid(groupId, reason)) {
+            if (_authManager.isGroupValid(groupId, reason)) {
                 return Response.ok().build();
             }
         }
@@ -69,7 +69,7 @@ public class PrincipalValidatorResource {
             case LDAP_CONNECTION_FAILED:
                 throw SecurityException.fatals.communicationToLDAPResourceFailed();
             case LDAP_CANNOT_SEARCH_GROUP_IN_LDAP_MODE:
-            	throw APIException.badRequests.
+                throw APIException.badRequests.
                         authnProviderGroupObjectClassesAndMemberAttributesIsEmpty(groupId);
             default:
             case USER_OR_GROUP_NOT_FOUND_FOR_TENANT:

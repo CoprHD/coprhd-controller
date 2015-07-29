@@ -17,13 +17,10 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.file.FileStorageUtils;
-import com.emc.sa.service.vipr.tasks.GetVirtualArray;
 import com.emc.sa.service.vmware.VMwareHostService;
 import com.emc.sa.service.vmware.file.tasks.AddNfsExportEndpoints;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
-import com.emc.storageos.model.varray.VirtualArrayRestRep;
-import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 import com.vmware.vim25.mo.Datastore;
 
@@ -35,7 +32,7 @@ public class CreateNfsDatastoreService extends VMwareHostService {
     protected String mountPoint;
     @Param(DATASTORE_NAME)
     protected String datastoreName;
-    @Param(value=STORAGE_IO_CONTROL, required=false)
+    @Param(value = STORAGE_IO_CONTROL, required = false)
     protected Boolean storageIOControl;
 
     private FileShareRestRep fileSystem;
@@ -60,13 +57,13 @@ public class CreateNfsDatastoreService extends VMwareHostService {
         else {
             datastores.add(vmware.createNfsDatastore(host, fileSystem, export, datacenterId, datastoreName));
         }
-        
+
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());
         }
-        
+
         for (Datastore datastore : datastores) {
-            vmware.setStorageIOControl(datastore,  storageIOControl);
+            vmware.setStorageIOControl(datastore, storageIOControl);
         }
     }
 
@@ -77,7 +74,7 @@ public class CreateNfsDatastoreService extends VMwareHostService {
         }
 
         // Add any missing IPs to the export list
-        if (ipAddresses.size() > 0) {
+        if (!ipAddresses.isEmpty()) {
             execute(new AddNfsExportEndpoints(fileSystemId, export, ipAddresses));
         }
     }

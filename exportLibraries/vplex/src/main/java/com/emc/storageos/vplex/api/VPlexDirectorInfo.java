@@ -23,21 +23,21 @@ import com.emc.storageos.vplex.api.VPlexPortInfo.PortRole;
  * Info for a VPlex director.
  */
 public class VPlexDirectorInfo extends VPlexResourceInfo {
-    
+
     // Used to assign a unique slot number for each director.
     // Accounts for the maximum number of directors in a
     // VPlex Metro/Geo configuration, which is two clusters
     // with 4 engines containing 2 directors each. Directors
-    // are named like #-#-A/B (e.g., 1-1-A), where the first 
+    // are named like #-#-A/B (e.g., 1-1-A), where the first
     // number is the cluster and the second is the engine in
     // that cluster. This name is turned into indices to
     // access the map such that 1-1-A, would be [0][0][0] or
     // slot 0 and 1-1-B would be [0][0][1] or slot 1.
     private static final int[][][] DIRECTOR_SLOT_MAP = {
-        { { 0, 1 }, { 2, 3 }, { 4, 5 }, { 5, 7 } },
-        { { 8, 9 }, { 10, 11 }, { 12, 13 }, { 14, 15 } }
+            { { 0, 1 }, { 2, 3 }, { 4, 5 }, { 5, 7 } },
+            { { 8, 9 }, { 10, 11 }, { 12, 13 }, { 14, 15 } }
     };
-    
+
     // Enumerates the director attributes we are interested in and
     // parse from the VPlex director response. There must be a setter
     // method for each attribute specified. The format of the setter
@@ -49,10 +49,10 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
         SERIAL_NUMBER("serial-number"),
         SP_ID("sp-id"),
         HOST_NAME("hostname");
-        
+
         // The VPlex name for the attribute.
         private String _name;
-        
+
         /**
          * Constructor.
          * 
@@ -61,16 +61,16 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
         DirectorAttribute(String name) {
             _name = name;
         }
-        
+
         /**
          * Getter for the VPlex name for the attribute.
          * 
          * @return The VPlex name for the attribute.
          */
         public String getAttributeName() {
-             return _name;
+            return _name;
         }
-        
+
         /**
          * Returns the enum whose name matches the passed name, else null when
          * not found.
@@ -90,10 +90,10 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
             return null;
         }
     };
-    
+
     // The director id.
     private String directorId;
-    
+
     // The engine id.
     private String engineId;
 
@@ -105,7 +105,7 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
 
     // The hostname.
     private String hostName;
-    
+
     // The port information for the director
     List<VPlexPortInfo> portInfoList = new ArrayList<VPlexPortInfo>();
 
@@ -117,7 +117,7 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
     public String getDirectorId() {
         return directorId;
     }
-    
+
     /**
      * Setter for the director id.
      * 
@@ -126,7 +126,7 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
     public void setDirectorId(String strVal) {
         directorId = strVal;
     }
-    
+
     /**
      * Getter for the engine id.
      * 
@@ -135,7 +135,7 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
     public String getEngineId() {
         return engineId;
     }
-    
+
     /**
      * Setter for the engine id.
      * 
@@ -153,7 +153,7 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
     public String getSerialNumber() {
         return serialNumber;
     }
-    
+
     /**
      * Setter for the serial number.
      * 
@@ -171,7 +171,7 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
     public String getSpId() {
         return spId;
     }
-    
+
     /**
      * Setter for the SP id.
      * 
@@ -189,7 +189,7 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
     public String getHostname() {
         return hostName;
     }
-    
+
     /**
      * Setter for the hostname.
      * 
@@ -198,7 +198,7 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
     public void setHostname(String strVal) {
         hostName = strVal;
     }
-    
+
     /**
      * Getter for the port info for the director.
      * 
@@ -207,7 +207,7 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
     public List<VPlexPortInfo> getPortInfo() {
         return portInfoList;
     }
-    
+
     /**
      * Setter for the port info for the director.
      * 
@@ -216,7 +216,7 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
     public void setPortInfo(List<VPlexPortInfo> infoList) {
         portInfoList = infoList;
     }
-    
+
     /**
      * Return the number of director ports whose role is one of the passed
      * roles.
@@ -237,7 +237,7 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
 
         return count;
     }
-    
+
     /**
      * Returns a unique slot number for each director in the VPlex.
      * 
@@ -250,7 +250,7 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
         int z = (spId.equals("A") ? 0 : 1);
         return DIRECTOR_SLOT_MAP[x][y][z];
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -262,7 +262,7 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
         }
         return attFilters;
     }
-    
+
     /**
      * {@inheritDoc}
      */

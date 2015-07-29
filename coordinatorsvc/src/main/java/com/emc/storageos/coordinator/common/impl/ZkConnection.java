@@ -46,7 +46,6 @@ public class ZkConnection {
     // 3 times of connection timeout value, which means will retry 3 times.
     private static final int DEFAULT_TIMEOUT_MS = 3 * DEFAULT_CONN_TIMEOUT;
 
-
     // zk cluster connection
     private CuratorFramework _zkConnection;
 
@@ -61,7 +60,7 @@ public class ZkConnection {
      * Node URI should be specified as
      * <p/>
      * coordinator://<node ip>:<port>
-     *
+     * 
      * @param server server URI list
      */
     public void setServer(List<URI> server) throws IOException {
@@ -73,30 +72,27 @@ public class ZkConnection {
         _connectString = connectString.substring(0, connectString.length() - 1);
     }
 
-
     /**
      * Set zk session timeout in ms
-     *
+     * 
      * @param timeoutMs timeout in ms
      */
     public void setTimeoutMs(int timeoutMs) {
         _timeoutMs = timeoutMs;
     }
 
-
     /**
-     * Builds zk connector.  Note that this method does not initiate a connection.
-     * {@link ZkConnection#connect()} must be called to connect to cluster.
+     * Builds zk connector. Note that this method does not initiate a connection. {@link ZkConnection#connect()} must be called to connect
+     * to cluster.
      * <p/>
-     * This separation is provided so that callbacks can be setup separately prior to
-     * connection to cluster.
+     * This separation is provided so that callbacks can be setup separately prior to connection to cluster.
      */
     public void build() {
         try {
             _zkConnection = CuratorFrameworkFactory.builder().connectString(_connectString)
                     .connectionTimeoutMs(DEFAULT_CONN_TIMEOUT)
                     .sessionTimeoutMs(_timeoutMs).retryPolicy(
-                    new RetryUntilElapsed(_timeoutMs, RETRY_INTERVAL_MS)).build();
+                            new RetryUntilElapsed(_timeoutMs, RETRY_INTERVAL_MS)).build();
             _zkConnection.getUnhandledErrorListenable().addListener(new UnhandledErrorListener() {
                 @Override
                 public void unhandledError(String message, Throwable e) {
@@ -115,8 +111,8 @@ public class ZkConnection {
     }
 
     /**
-     * Connect to ZK cluster.  As long quorum of nodes are available,
-     * client can talk to a cluster.  If connection drop, this implementation will
+     * Connect to ZK cluster. As long quorum of nodes are available,
+     * client can talk to a cluster. If connection drop, this implementation will
      * continuously retry sleeping 5 seconds in between.
      */
     public synchronized void connect() {
@@ -124,7 +120,6 @@ public class ZkConnection {
             _zkConnection.start();
         }
     }
-
 
     /**
      * Disconnect from ZK cluster
@@ -137,7 +132,7 @@ public class ZkConnection {
 
     /**
      * Get ZK connection
-     *
+     * 
      * @return zk connection
      */
     public CuratorFramework curator() {

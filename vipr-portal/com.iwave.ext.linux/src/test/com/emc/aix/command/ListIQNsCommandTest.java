@@ -19,17 +19,17 @@ import com.iwave.ext.command.CommandOutput;
 public class ListIQNsCommandTest {
 
     static String output = "initiator_name = \"iqn.com.abc.hostid.XYZ\"";
-    
+
     static ListIQNsCommand iqnCommand = null;
-    
+
     @BeforeClass
-    public static void setup() {
+    public synchronized static void setup() {
         CommandOutput commandOutput = new CommandOutput(output, null, 0);
         iqnCommand = createMockBuilder(ListIQNsCommand.class).withConstructor().addMockedMethod("getOutput").createMock();
         EasyMock.expect(iqnCommand.getOutput()).andReturn(commandOutput).anyTimes();
         EasyMock.replay(iqnCommand);
     }
-    
+
     @Test
     public void testCommand() {
         iqnCommand.parseOutput();

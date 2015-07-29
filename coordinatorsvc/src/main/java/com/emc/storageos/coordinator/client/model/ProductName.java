@@ -18,18 +18,20 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
  * Product name class
- *
- *  Product name is initialized by bean file. It is used
- *  SoftwareVersion and the whole upgrade machinery depends on this name
- *   e.g. "vipr"
+ * 
+ * Product name is initialized by bean file. It is used
+ * SoftwareVersion and the whole upgrade machinery depends on this name
+ * e.g. "vipr"
  */
 public class ProductName {
     private static String _name;
 
-    protected ProductName() {}
+    protected ProductName() {
+    }
 
     public void setName(String name) {
-        _name = name;
+        // This method is only called in test cases and when Spring initialization, safe to suppress
+        _name = name; // NOSONAR("findbugs:ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
     }
 
     public static String getName() {

@@ -50,10 +50,10 @@ import static junit.framework.Assert.assertTrue;
 public class ScaleIOPoolAndStorageSystemMigrationTest extends DbSimpleMigrationTestBase {
     private static final Logger log = LoggerFactory.getLogger(ScaleIOPoolAndStorageSystemMigrationTest.class);
 
-    private static StorageSystem sioStorageSystem;
-    private static StorageSystem otherStorageSystem;
-    private static VirtualPool sioVP;
-    private static VirtualPool otherVP;
+    private static volatile StorageSystem sioStorageSystem;
+    private static volatile StorageSystem otherStorageSystem;
+    private static volatile VirtualPool sioVP;
+    private static volatile VirtualPool otherVP;
     private static List<URI> storagePoolURIs = new ArrayList<>();
 
     @BeforeClass
@@ -110,7 +110,7 @@ public class ScaleIOPoolAndStorageSystemMigrationTest extends DbSimpleMigrationT
             if (pool.getStorageDevice().equals(sioStorageSystem.getId())) {
                 // Validate that migration was applied for the objects
                 assertTrue(String.format("StoragePool nativeGuid is %s different from expected %s",
-                                pool.getNativeGuid(), pool.getNativeId()),
+                        pool.getNativeGuid(), pool.getNativeId()),
                         pool.getNativeGuid().equals(pool.getNativeId()));
                 assertTrue(String.format("StoragePool %s should be THICK", pool.getNativeId()),
                         pool.getSupportedResourceTypes().equals(StoragePool.SupportedResourceTypes.THICK_ONLY.name()));
@@ -127,7 +127,7 @@ public class ScaleIOPoolAndStorageSystemMigrationTest extends DbSimpleMigrationT
 
     private void assertStoragePoolValue(String name, Object expected, Object actual) {
         assertTrue(String.format("StoragePool parameter %s should be %s, but is %s", name,
-                        expected.toString(), actual.toString()),
+                expected.toString(), actual.toString()),
                 actual.toString().equals(expected.toString()));
     }
 

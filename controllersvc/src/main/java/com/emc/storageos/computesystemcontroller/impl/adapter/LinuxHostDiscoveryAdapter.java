@@ -17,7 +17,6 @@ import org.springframework.stereotype.Component;
 
 import com.emc.storageos.computesystemcontroller.exceptions.CompatibilityException;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
-import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.Host;
@@ -75,14 +74,15 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             host.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
             save(host);
             throw ComputeSystemControllerException.exceptions.incompatibleLinuxHostVersion(
-            		getSupportedType(), version.toString(), getVersionValidator().getSuSELinuxMinimumVersion(false).toString(),
-                    getVersionValidator().getRedhatLinuxMinimumVersion(false).toString()); 
+                    getSupportedType(), version.toString(), getVersionValidator().getSuSELinuxMinimumVersion(false).toString(),
+                    getVersionValidator().getRedhatLinuxMinimumVersion(false).toString());
         }
     }
 
     /**
      * Returns the first valid version from list of versions.
      * If no valid version is found, returns the first version or unknown version if list is empty.
+     * 
      * @param versions list of versions
      * @return valid version or first version if no valid version found
      */
@@ -92,7 +92,7 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 return version;
             }
         }
-        return versions.size() > 0 ? versions.get(0) : new LinuxVersion(LinuxDistribution.UNKNOWN, "");
+        return !versions.isEmpty() ? versions.get(0) : new LinuxVersion(LinuxDistribution.UNKNOWN, "");
     }
 
     private void checkMultipathSoftwareCompatibility(Host host) {
@@ -105,8 +105,7 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             // powerpath is installed
             LOG.info("PowerPath is installed");
             return;
-        }
-        catch (PowerPathException e) {
+        } catch (PowerPathException e) {
             powerpathMessage = e.getMessage();
             LOG.info("PowerPath is unavailable: " + powerpathMessage);
         }
@@ -118,8 +117,7 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             // multipath is installed
             LOG.info("Multipath is installed");
             return;
-        }
-        catch (MultipathException e) {
+        } catch (MultipathException e) {
             multipathMessage = e.getMessage();
             LOG.info("Multipath is unavailable: " + multipathMessage);
         }
@@ -157,8 +155,7 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 if (version != null) {
                     versions.add(version);
                 }
-            }
-            catch (CommandException e) {
+            } catch (CommandException e) {
                 warn("Could not retrieve linux version", e);
             }
         }
@@ -175,47 +172,46 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
     protected void discoverInitiators(Host host, List<Initiator> oldInitiators, HostStateChange changes) {
         LinuxSystemCLI linux = createLinuxCLI(host);
         List<Initiator> addedInitiators = Lists.newArrayList();
-        
+
         try {
             for (HBAInfo hba : linux.listHBAs()) {
                 Initiator initiator;
                 String wwpn = SanUtils.normalizeWWN(hba.getWwpn());
                 if (findInitiatorByPort(oldInitiators, wwpn) == null) {
-                	initiator = getOrCreateInitiator(oldInitiators, wwpn);
-                	addedInitiators.add(initiator);
+                    initiator = getOrCreateInitiator(oldInitiators, wwpn);
+                    addedInitiators.add(initiator);
                 } else {
-                	initiator = getOrCreateInitiator(oldInitiators, wwpn);
+                    initiator = getOrCreateInitiator(oldInitiators, wwpn);
                 }
                 discoverFCInitiator(host, initiator, hba);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             LOG.error("Failed to list FC Ports, skipping");
         }
 
         try {
             for (String iqn : linux.listIQNs()) {
-            	Initiator initiator;
-            	if (findInitiatorByPort(oldInitiators, iqn) == null) {
-                	initiator = getOrCreateInitiator(oldInitiators, iqn);
-                	addedInitiators.add(initiator);
-            	} else {
-            		initiator = getOrCreateInitiator(oldInitiators, iqn);
-            	}
+                Initiator initiator;
+                if (findInitiatorByPort(oldInitiators, iqn) == null) {
+                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                    addedInitiators.add(initiator);
+                } else {
+                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                }
                 discoverISCSIInitiator(host, initiator, iqn);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             LOG.error("Failed to list iSCSI Ports, skipping");
         }
-        
+
         // update export groups with new initiators if host is in use.
         if (!addedInitiators.isEmpty()) {
-            Collection<URI> addedInitiatorIds = Lists.newArrayList(Collections2.transform(addedInitiators, CommonTransformerFunctions.fctnDataObjectToID()));
+            Collection<URI> addedInitiatorIds = Lists.newArrayList(Collections2.transform(addedInitiators,
+                    CommonTransformerFunctions.fctnDataObjectToID()));
             changes.setNewInitiators(addedInitiatorIds);
         }
     }
-    
+
     private void discoverFCInitiator(Host host, Initiator initiator, HBAInfo hba) {
         setInitiator(initiator, host);
         initiator.setProtocol(Protocol.FC.name());
@@ -245,7 +241,7 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             }
             if (StringUtils.isNotBlank(nic.getIP6Address())) {
                 IpInterface ipInterface = getOrCreateIpInterface(oldIpInterfaces,
-                		StringUtils.substringBefore(nic.getIP6Address(), "/"));
+                        StringUtils.substringBefore(nic.getIP6Address(), "/"));
                 discoverIp6Interface(host, ipInterface, nic);
             }
         }
@@ -264,7 +260,7 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
     private void discoverIp6Interface(Host host, IpInterface ipInterface, IPInterface nic) {
         String ipAddress = StringUtils.substringBefore(nic.getIP6Address(), "/");
         String prefixLength = StringUtils.substringAfter(nic.getIP6Address(), "/");
-        
+
         ipInterface.setHost(host.getId());
         ipInterface.setProtocol(Protocol.IPV6.name());
         ipInterface.setIpAddress(ipAddress);
@@ -282,20 +278,20 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             return new LinuxSystemCLI(host.getHostName(), host.getUsername(), host.getPassword());
         }
     }
-    
-	public void setDbCLient(DbClient dbClient) {
-		super.setDbClient(dbClient);
-	}
+
+    public void setDbCLient(DbClient dbClient) {
+        super.setDbClient(dbClient);
+    }
 
     @Override
     protected void setNativeGuid(Host host) {
         LinuxSystemCLI linux = createLinuxCLI(host);
         for (IPInterface nic : linux.listIPInterfaces()) {
             if (nic.getInterfaceName().equalsIgnoreCase(ETH0)) {
-                if (!host.getNativeGuid().equalsIgnoreCase(nic.getMACAddress())) {
-                    checkDuplicateHost(host, nic.getMACAddress());
-                    info("Setting nativeGuid for " + host.getId() + " as " + nic.getMACAddress());
-                    host.setNativeGuid(nic.getMACAddress());
+                if (!host.getNativeGuid().equalsIgnoreCase(nic.getMacAddress())) {
+                    checkDuplicateHost(host, nic.getMacAddress());
+                    info("Setting nativeGuid for " + host.getId() + " as " + nic.getMacAddress());
+                    host.setNativeGuid(nic.getMacAddress());
                     save(host);
                 }
                 break;

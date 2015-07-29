@@ -58,20 +58,20 @@ public class VPlexApiFactory {
 
     // The connection timeout in milliseconds.
     private int _connTimeoutMs = DEFAULT_CONN_TIMEOUT;
-    
+
     // The connection timeout in milliseconds.
     private int _socketTimeoutMs = DEFAULT_SOCKET_TIMEOUT;
-    
+
     // A map of client connections to VPlex Management Stations keyed
     // by the URI of the Management Station.
     private ConcurrentMap<String, VPlexApiClient> _clientMap;
-    
+
     // The root HTTP client handler.
     private ApacheHttpClientHandler _clientHandler;
-    
+
     // The singleton VPLEX client factory.
     private static VPlexApiFactory _instance = null;
-    
+
     // Logger reference.
     private static Logger s_logger = LoggerFactory.getLogger(VPlexApiFactory.class);
 
@@ -80,20 +80,20 @@ public class VPlexApiFactory {
      */
     private VPlexApiFactory() {
     }
-    
+
     /**
      * Public static member to create or get a reference to the
      * singleton client factory.
      * 
      * @return The VPLEX client factory.
      */
-    public static VPlexApiFactory getInstance() {
+    public static synchronized VPlexApiFactory getInstance() {
         if (_instance == null) {
             s_logger.info("Creating VPLEX client factory.");
             _instance = new VPlexApiFactory();
             _instance.init();
         }
-        
+
         return _instance;
     }
 
@@ -146,31 +146,31 @@ public class VPlexApiFactory {
         MultiThreadedHttpConnectionManager mgr = new MultiThreadedHttpConnectionManager();
         mgr.setParams(params);
         mgr.closeIdleConnections(0);
-        
+
         // Create the HTTP client and set the handler for determining if an
         // HttpMethod should be retried after a recoverable exception during
         // execution.
         HttpClient client = new HttpClient(mgr);
         client.getParams().setParameter(HttpMethodParams.RETRY_HANDLER,
-            new HttpMethodRetryHandler() {
-                @Override
-                public boolean retryMethod(HttpMethod httpMethod, IOException e, int i) {
-                    return false;
-                }
-            });
-        
+                new HttpMethodRetryHandler() {
+                    @Override
+                    public boolean retryMethod(HttpMethod httpMethod, IOException e, int i) {
+                        return false;
+                    }
+                });
+
         // Create the client handler.
         _clientHandler = new ApacheHttpClientHandler(client);
 
         // Register the specific for the HTTPS protocol.
         Protocol.registerProtocol("https", new Protocol("https",
-            new NonValidatingSocketFactory(), 443));
+                new NonValidatingSocketFactory(), 443));
     }
 
     /**
      * Get the VPlex API client for the VPlex Management Station identified
      * by the passed endpoint suing the passed username and password.
-     *
+     * 
      * @param endpoint VPlex Management Station endpoint URI.
      * @param username The user name to authenticate.
      * @param password The password to authenticate.
@@ -178,7 +178,7 @@ public class VPlexApiFactory {
      * @return Reference to a VPlexApiClient.
      */
     public synchronized VPlexApiClient getClient(URI endpoint, String username, String password) {
-        
+
         // Make the key dependent on user and password in case they
         // change for a client endpoint.
         StringBuilder clientKeyBuilder = new StringBuilder();

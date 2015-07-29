@@ -26,6 +26,7 @@ import org.apache.http.auth.Credentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.impl.auth.SPNegoScheme;
 import org.apache.http.protocol.HttpContext;
+import org.apache.log4j.Logger;
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
@@ -40,6 +41,8 @@ public class CustomSPNegoScheme extends SPNegoScheme {
 
     private LoginContext loginContext;
     private GSSCredential credential;
+
+    private static Logger log = Logger.getLogger(CustomSPNegoScheme.class);
 
     public CustomSPNegoScheme() {
         super(true);
@@ -58,8 +61,7 @@ public class CustomSPNegoScheme extends SPNegoScheme {
 
             loginContext = new LoginContext("spnego", subject, callback, configuration);
             loginContext.login();
-        }
-        catch (LoginException e) {
+        } catch (LoginException e) {
             loginContext = null;
             // Log message only shows anthentication exception message, so use the message of the LoginException
             String message = (e.getMessage() != null) ? e.getMessage() : "Login failed";
@@ -68,12 +70,10 @@ public class CustomSPNegoScheme extends SPNegoScheme {
 
         try {
             credential = createCredential(loginContext.getSubject());
-        }
-        catch (PrivilegedActionException e) {
+        } catch (PrivilegedActionException e) {
             logout();
             throw new AuthenticationException("Failed to create credential", e);
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             logout();
             throw new AuthenticationException("Failed to create credential", e);
         }
@@ -94,16 +94,16 @@ public class CustomSPNegoScheme extends SPNegoScheme {
         if (credential != null) {
             try {
                 credential.dispose();
-            }
-            catch (GSSException e) {
+            } catch (GSSException e) {
+                log.error(e.getMessage(), e);
             }
             credential = null;
         }
         if (loginContext != null) {
             try {
                 loginContext.logout();
-            }
-            catch (LoginException e) {
+            } catch (LoginException e) {
+                log.error(e.getMessage(), e);
             }
             loginContext = null;
         }
@@ -119,8 +119,7 @@ public class CustomSPNegoScheme extends SPNegoScheme {
         login(credentials);
         try {
             return super.authenticate(credentials, request, context);
-        }
-        finally {
+        } finally {
             logout();
         }
     }
@@ -141,8 +140,7 @@ public class CustomSPNegoScheme extends SPNegoScheme {
             gssContext.requestMutualAuth(true);
             gssContext.requestCredDeleg(true);
             return gssContext.initSecContext(token, 0, token.length);
-        }
-        finally {
+        } finally {
             gssContext.dispose();
         }
     }

@@ -19,18 +19,20 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="xtremio_ports_info")
+@JsonRootName(value = "xtremio_ports_info")
 public class XtremIOPortsInfo {
-    
+
     @SerializedName("targets")
-    @JsonProperty(value="targets")
+    @JsonProperty(value = "targets")
     private XtremIOPortInfo[] portInfo;
 
     public XtremIOPortInfo[] getPortInfo() {
-        return portInfo;
+        return portInfo != null ? portInfo.clone() : portInfo;
     }
 
     public void setPortInfo(XtremIOPortInfo[] portInfo) {
-        this.portInfo = portInfo;
+        if (portInfo != null) {
+            this.portInfo = portInfo.clone();
+        }
     }
 }

@@ -20,26 +20,10 @@ import com.emc.storageos.systemservices.impl.logsvc.LogSvcConstants;
 import com.emc.storageos.systemservices.impl.logsvc.LogSvcPropertiesLoader;
 import com.emc.vipr.model.sys.logging.LogSeverity;
 
-import java.io.StringReader;
-
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.stream.XMLStreamWriter;
-
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonGenerator;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonToken;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.ws.rs.core.*;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -54,20 +38,22 @@ public abstract class BaseLogSvcResource {
     public static final String DATE_TIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
 
     // non-service logs
-    private final static List<String> nonServiceLogFileNames = new ArrayList<String>() {{
-        add("systemevents");
-        add("messages");
-        add("nginx_access");
-        add("nginx_error");
-        add("bkutils");
-    }};
-        
+    private final static List<String> nonServiceLogFileNames = new ArrayList<String>() {
+        {
+            add("systemevents");
+            add("messages");
+            add("nginx_access");
+            add("nginx_error");
+            add("bkutils");
+        }
+    };
+
     // used when no media type is specified
     public final static MediaType DEFAULT_MEDIA_TYPE = MediaType.APPLICATION_XML_TYPE;
-    
-    // used as xml tag or json attribute name for error message 
+
+    // used as xml tag or json attribute name for error message
     public final static String ERROR_MESSAGE_TAG = "error_message";
-    
+
     // A reference to the log service configurable properties loader.
     @Autowired
     protected LogSvcPropertiesLoader _logSvcPropertiesLoader;
@@ -77,7 +63,7 @@ public abstract class BaseLogSvcResource {
 
     protected MediaType getMediaType() {
         MediaType mediaType = DEFAULT_MEDIA_TYPE;
-        if(header != null) {
+        if (header != null) {
             List<MediaType> mTypes = header.getAcceptableMediaTypes();
             if (mTypes != null) {
                 for (MediaType media : mTypes) {
@@ -94,7 +80,7 @@ public abstract class BaseLogSvcResource {
     /**
      * Converts the passed timestamp to a Date reference, thereby validating the
      * request timestamp is a valid formatted date/time string.
-     *
+     * 
      * @param timestampStr The request timestamp as a string.
      * @return The passed timestamp as a Date reference. A null is returned if
      *         the passed timestamp string is null or blank.
@@ -133,11 +119,11 @@ public abstract class BaseLogSvcResource {
      * Validates that the specified end time comes after the specified start
      * time. Note that it is OK for the start/end times to be null. It just
      * means they were not specified in the request.
-     *
+     * 
      * @param startTime The requested start time or null.
-     * @param endTime   The requested end time or null.
+     * @param endTime The requested end time or null.
      * @throws APIException When the passed end time comes before the
-     *                                  passed start time.
+     *             passed start time.
      */
     protected void validateTimestamps(Date startTime, Date endTime) {
         if ((startTime != null) && (endTime != null)) {
@@ -150,7 +136,7 @@ public abstract class BaseLogSvcResource {
     /**
      * Verifies a valid severity level is passed in the request and returns the
      * appropriate LogSeverity enumeration.
-     *
+     * 
      * @param severity The severity passed in the request.
      * @return The corresponding LogSeverity.
      * @throws APIException for an invalid severity.
@@ -180,7 +166,7 @@ public abstract class BaseLogSvcResource {
      * with their actual names.
      */
     protected List<String> getLogNamesFromAlias(List<String> logNames) {
-        if (logNames == null || logNames.size() == 0) {
+        if (logNames == null || logNames.isEmpty()) {
             return logNames;
         }
 
@@ -194,15 +180,15 @@ public abstract class BaseLogSvcResource {
         }
         return validLogNames;
     }
-         
-     /**
-      * Get set of log names supported by vipr
-      */
-     protected Set<String> getValidLogNames() {
-         Set<String> logNames = new HashSet<String>();        
-         logNames.addAll(ServicesMetadata.getControlNodeServiceNames());
-         logNames.addAll(ServicesMetadata.getExtraNodeServiceNames());
-         logNames.addAll(nonServiceLogFileNames);
-         return logNames;
-     }     
+
+    /**
+     * Get set of log names supported by vipr
+     */
+    protected Set<String> getValidLogNames() {
+        Set<String> logNames = new HashSet<String>();
+        logNames.addAll(ServicesMetadata.getControlNodeServiceNames());
+        logNames.addAll(ServicesMetadata.getExtraNodeServiceNames());
+        logNames.addAll(nonServiceLogFileNames);
+        return logNames;
+    }
 }

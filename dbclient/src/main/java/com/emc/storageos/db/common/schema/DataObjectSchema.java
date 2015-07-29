@@ -15,6 +15,8 @@
 
 package com.emc.storageos.db.common.schema;
 
+import java.util.Objects;
+
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.common.DbSchemaScannerInterceptor;
 
@@ -32,9 +34,15 @@ public class DataObjectSchema extends DbSchema {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof DataObjectSchema)) 
+        if (!(o instanceof DataObjectSchema)) {
             return false;
+        }
 
         return super.equals(o);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(this);
     }
 }

@@ -21,11 +21,9 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.file.Files;
@@ -52,8 +50,9 @@ public class ZkBackupHandler extends BackupHandler {
 
     /**
      * Sets zk file location
+     * 
      * @param zkDir
-     *          The path of ZK location
+     *            The path of ZK location
      */
     public void setZkDir(File zkDir) {
         this.zkDir = zkDir;
@@ -61,8 +60,9 @@ public class ZkBackupHandler extends BackupHandler {
 
     /**
      * Gets zk file location
-     * @return  zkDir
-     *          The path of ZK location
+     * 
+     * @return zkDir
+     *         The path of ZK location
      */
     public File getZkDir() {
         return zkDir;
@@ -70,8 +70,9 @@ public class ZkBackupHandler extends BackupHandler {
 
     /**
      * Sets file type list that need to be backuped
+     * 
      * @param fileTypeList
-     *      The list of zk file type
+     *            The list of zk file type
      */
     public void setFileTypeList(List<String> fileTypeList) {
         this.fileTypeList = fileTypeList;
@@ -79,8 +80,9 @@ public class ZkBackupHandler extends BackupHandler {
 
     /**
      * Gets file type list that need to be backuped
+     * 
      * @return fileTypeList
-     *      The list of zk file type
+     *         The list of zk file type
      */
     public List<String> getFileTypeList() {
         return fileTypeList;
@@ -92,8 +94,9 @@ public class ZkBackupHandler extends BackupHandler {
     public void validateQuorumStatus() {
         String result = readZkInfo("ruok", "imok");
         log.info("Validate Zookeeper status result = {}", result);
-        if (result == null)
-            throw BackupException.retryables.quorumServiceNotReady(); 
+        if (result == null) {
+            throw BackupException.retryables.quorumServiceNotReady();
+        }
     }
 
     /**
@@ -101,10 +104,11 @@ public class ZkBackupHandler extends BackupHandler {
      */
     public boolean isLeader() {
         String result = readZkInfo("stat", "Mode");
-        if (result == null || !result.contains(": "))
+        if (result == null || !result.contains(": ")) {
             throw BackupException.fatals.failedToParseLeaderStatus(result);
-        String mode = (result.split(": "))[1]; 
-        if (mode.equals("leader") || mode.equals("standalone")) { 
+        }
+        String mode = (result.split(": "))[1];
+        if (mode.equals("leader") || mode.equals("standalone")) {
             return true;
         } else {
             log.info("Status mode is: {}", mode);
@@ -123,19 +127,20 @@ public class ZkBackupHandler extends BackupHandler {
 
         log.debug("cmd={}, match={}", cmd, matchPattern);
         try {
-            socket = new Socket(CONNECT_ZK_HOST, CONNECT_ZK_PORT);  
+            socket = new Socket(CONNECT_ZK_HOST, CONNECT_ZK_PORT);
             in = new BufferedReader(new InputStreamReader(
-                         socket.getInputStream()));
+                    socket.getInputStream()));
             out = new PrintWriter(new BufferedWriter(
-                         new OutputStreamWriter(socket.getOutputStream())), true);
+                    new OutputStreamWriter(socket.getOutputStream())), true);
             out.println(cmd);
 
-            String line = null; 
+            String line = null;
             while ((line = in.readLine()) != null) {
                 log.debug(line);
-                if (line.contains(matchPattern))
+                if (line.contains(matchPattern)) {
                     result = line;
-            } 
+                }
+            }
         } catch (IOException e) {
             throw BackupException.fatals.failedToReadZkInfo(e);
         } finally {
@@ -167,10 +172,10 @@ public class ZkBackupHandler extends BackupHandler {
 
     /**
      * Make sure the accepted epoch is equal to current epoch
-     */  
+     */
     public boolean checkEpochEqual() {
         int acceptedEpoch = readEpoch(new File(zkDir, ZK_ACCEPTED_EPOCH));
-        int currentEpoch = readEpoch(new File(zkDir, ZK_CURRENT_EPOCH)); 
+        int currentEpoch = readEpoch(new File(zkDir, ZK_CURRENT_EPOCH));
         return (acceptedEpoch == currentEpoch);
     }
 
@@ -179,15 +184,16 @@ public class ZkBackupHandler extends BackupHandler {
      */
     private int readEpoch(File epochFile) {
         int epoch = -1;
-        if (!epochFile.exists())
+        if (!epochFile.exists()) {
             return epoch;
+        }
 
         try {
             Scanner scanner = new Scanner(epochFile);
             epoch = scanner.nextInt();
             log.debug("Got epoch {} from file {}", epoch, epochFile.getName());
         } catch (IOException e) {
-            //TODO: error handling
+            // TODO: error handling
             log.error("read epoch from file({}) failed. e=", epochFile.getName(), e);
         }
         return epoch;
@@ -219,10 +225,10 @@ public class ZkBackupHandler extends BackupHandler {
     }
 
     /**
-     * Backup files with specific type in a folder: 
+     * Backup files with specific type in a folder:
      * copy the latest file and create hard link for the rest
      */
-    private void backupFolderByType(File targetDir, File sourceDir, final String type) 
+    private void backupFolderByType(File targetDir, File sourceDir, final String type)
             throws IOException {
         File[] sourceFileList = sourceDir.listFiles(new FilenameFilter() {
             @Override
@@ -235,7 +241,7 @@ public class ZkBackupHandler extends BackupHandler {
             log.debug("No file with type equals to {} in directory({})", type, sourceDir);
             return;
         }
-        Arrays.sort(sourceFileList, new Comparator<File>(){
+        Arrays.sort(sourceFileList, new Comparator<File>() {
             public int compare(File f1, File f2) {
                 return Long.valueOf(f2.lastModified()).compareTo(f1.lastModified());
             }
@@ -243,8 +249,9 @@ public class ZkBackupHandler extends BackupHandler {
         boolean latest = true;
         for (File zkFile : sourceFileList) {
             log.debug("file name={}, time={}", zkFile.getName(), zkFile.lastModified());
-            if (zkFile.isDirectory())
+            if (zkFile.isDirectory()) {
                 continue;
+            }
             File targetFile = new File(targetDir, zkFile.getName());
             if (latest) {
                 FileUtils.copyFile(zkFile, targetFile);
@@ -256,16 +263,16 @@ public class ZkBackupHandler extends BackupHandler {
     }
 
     /**
-     * Create file hard link 
+     * Create file hard link
      */
     private void createFileLink(Path targetDir, Path sourceFile) {
         try {
             Files.createLink(targetDir, sourceFile);
             log.debug("The link({} to {}) was successfully created!",
-                sourceFile.toString(), targetDir.toString());
+                    sourceFile.toString(), targetDir.toString());
         } catch (IOException | UnsupportedOperationException | SecurityException e) {
             throw BackupException.fatals.failedToCreateFileLink(
-                sourceFile.toString(), targetDir.toString(), e);
+                    sourceFile.toString(), targetDir.toString(), e);
         }
     }
 
@@ -273,8 +280,9 @@ public class ZkBackupHandler extends BackupHandler {
     public boolean isNeed() {
         validateQuorumStatus();
         boolean ret = isLeader();
-        if(!ret)
+        if (!ret) {
             log.info("Skip follower instance during backup");
+        }
         return ret;
     }
 
@@ -288,7 +296,7 @@ public class ZkBackupHandler extends BackupHandler {
 
     @Override
     public File dumpBackup(final String backupTag, final String fullBackupTag) {
-        File targetDir = new File(BackupManager.backupDir, backupTag);
+        File targetDir = new File(backupContext.getBackupDir(), backupTag);
         File targetFolder = new File(targetDir, fullBackupTag);
         try {
             ValidationUtil.validateFile(zkDir, FileType.Dir,
@@ -301,10 +309,10 @@ public class ZkBackupHandler extends BackupHandler {
         } catch (IOException ex) {
             throw BackupException.fatals.failedToDumpZkData(fullBackupTag, ex);
         }
-        if (!checkZkConditionAfterBackup())
+        if (!checkZkConditionAfterBackup()) {
             throw BackupException.retryables.leaderHasBeenChanged();
+        }
         log.info("ZK backup files have been moved to ({}) successfully", targetFolder.getAbsolutePath());
         return targetFolder;
     }
 }
-

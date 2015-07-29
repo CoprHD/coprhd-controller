@@ -26,10 +26,10 @@ import java.util.Map;
 
 public class ProcStatsTest implements StatConstants {
     private static final String INVALID_PID = "0";
-    private static String validPID = null;
+    private static volatile String validPID = null;
 
     @BeforeClass
-    public static void getValidPID() {
+    public static void getValidPID() throws Exception {
         File procDir = new File(PROC_DIR);
         File[] procFiles = procDir.listFiles();
         String sname;
@@ -38,12 +38,9 @@ public class ProcStatsTest implements StatConstants {
             if (validPID.equalsIgnoreCase(SELF_DIR)) {
                 continue;
             }
-            try {
-                sname = ProcStats.getServiceName(validPID);
-                if (sname != null && !sname.isEmpty() && !"monitor".equals(sname)) {
-                    break;
-                }
-            } catch (Exception e) {
+            sname = ProcStats.getServiceName(validPID);
+            if (sname != null && !sname.isEmpty() && !"monitor".equals(sname)) {
+                break;
             }
         }
         Assert.assertNotNull(validPID);
@@ -75,6 +72,7 @@ public class ProcStatsTest implements StatConstants {
             ProcStats.getServiceName(INVALID_PID);
             Assert.fail();
         } catch (Exception e) {
+            Assert.assertTrue(true);
         }
     }
 

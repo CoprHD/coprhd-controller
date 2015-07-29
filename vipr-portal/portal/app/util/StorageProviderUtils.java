@@ -34,8 +34,7 @@ public class StorageProviderUtils {
     public static StorageProviderRestRep getStorageProvider(URI id) {
         try {
             return getViprClient().storageProviders().get(id);
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
@@ -56,7 +55,7 @@ public class StorageProviderUtils {
 
     public static boolean hasStorageSystems(URI id) {
         List<StorageSystemRestRep> storageSystems = getViprClient().storageSystems().getBySmisProvider(id);
-        return storageSystems.size() > 0;
+        return !storageSystems.isEmpty();
     }
 
     public static boolean hasStorageSystems(List<URI> ids) {

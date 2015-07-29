@@ -16,17 +16,10 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor
 
 import java.util.List;
 import java.util.Map;
-import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
-import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.PoolProcessor;
 
@@ -51,7 +44,7 @@ public class ModifySettingsInstanceProcessor extends PoolProcessor {
             throws BaseCollectionException {
         try {
             CIMInstance modifiedInstance = (CIMInstance) resultObj;
-            addInstance(keyMap, operation.get_result(), modifiedInstance);
+            addInstance(keyMap, operation.getResult(), modifiedInstance);
         } catch (Exception e) {
             _logger.error("Error while modifying Pool Setting", e);
         }

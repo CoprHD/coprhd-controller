@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.StorageHADomain.HADomainType;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -74,7 +73,7 @@ public class StorageAdapterProcessor extends Processor {
                     adapterInstance = it.next();
                     StorageHADomain adapter = checkStorageAdapterExistsInDB(adapterInstance, device);
                     createStorageAdapter(adapter, adapterInstance, profile);
-                    addPath(keyMap, operation.get_result(), adapterInstance.getObjectPath());
+                    addPath(keyMap, operation.getResult(), adapterInstance.getObjectPath());
                 } catch (Exception e) {
                     _logger.warn("Adapter Discovery failed for {}-->{}", "",
                             getMessage(e));
@@ -94,7 +93,7 @@ public class StorageAdapterProcessor extends Processor {
      * @param adapter
      * @param adapterInstance
      * @throws URISyntaxException
-     * @throws IOException 
+     * @throws IOException
      */
     private void createStorageAdapter(
             StorageHADomain adapter, CIMInstance adapterInstance, AccessProfile profile)
@@ -113,11 +112,9 @@ public class StorageAdapterProcessor extends Processor {
         adapter.setSlotNumber(getCIMPropertyValue(adapterInstance, EMCSLOTNUMBER));
         String[] roles = (String[]) adapterInstance.getPropertyValue(ROLES);
         adapter.setAdapterType(HADomainType.getHADomainTypeName(roles[0]));
-        
+
         _storageAdapterList.add(adapter);
     }
-    
-    
 
     /**
      * Check if Adapter exists in DB.
@@ -136,9 +133,10 @@ public class StorageAdapterProcessor extends Processor {
         List<URI> adapterURIs = _dbClient
                 .queryByConstraint(AlternateIdConstraint.Factory
                         .getStorageHADomainByNativeGuidConstraint(adapterNativeGuid));
-        if (adapterURIs.size() > 0)
+        if (!adapterURIs.isEmpty()) {
             adapter = _dbClient.queryObject(StorageHADomain.class,
                     adapterURIs.get(0));
+        }
         return adapter;
     }
 

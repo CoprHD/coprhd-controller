@@ -16,7 +16,7 @@
 package com.emc.storageos.vnxe.models;
 
 public enum AccessEnum {
-	READ,
+    READ,
     READWRITE,
     ROOT;
 }

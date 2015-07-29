@@ -1,0 +1,184 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import time
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# mirror cli functions
+#----------------------------------------------------------------------
+
+def mirror_pause(args):
+    bourne.connect(args.ip)
+    volume_uri = bourne.volume_query(args.name)
+    start = time.time()
+    (o, s, m) = bourne.block_mirror_pause_all(volume_uri)
+    total = time.time() - start
+    if (s == 'ready'):
+        print "Mirror pause was successful in", "{0:.2f}".format(total), "seconds"
+        print "     " + o['task'][0]['resource']['id'] + ' ' + o['task'][0]['op_id']
+    else:
+        print 'Volume blockmirror pause failed. ' + s + "\n" + m
+
+def mirror_resume(args):
+    bourne.connect(args.ip)
+    volume_uri = bourne.volume_query(args.name)
+    start = time.time()
+    (o, s, m) = bourne.block_mirror_resume_all(volume_uri)
+    total = time.time() - start
+    if (s == 'ready'):
+        print "Mirror resume was successful in", "{0:.2f}".format(total), "seconds"
+        print "     " + o['task'][0]['resource']['id'] + ' ' + o['task'][0]['op_id']
+    else:
+        print 'Volume blockmirror resume failed. ' + s + "\n" + m
+
+def mirror_attach(args):
+    bourne.connect(args.ip)
+    volume_uri = bourne.volume_query(args.name)
+    start = time.time()
+    tr_list = bourne.block_mirror_attach(volume_uri, args.label, args.count)
+    total = time.time() - start
+    print "Mirror attach took", "{0:.2f}".format(total), "seconds to complete"
+    for tr in tr_list:
+        if (tr['state'] == 'ready'):
+            print 'Mirror attached to volume with id ' + tr['resource']['id']
+            for mirror in tr['associated_resources']:
+                print 'Attached mirror ', mirror['id']
+        else:
+            print 'Mirror attach failed'
+
+def mirror_detach(args):
+    bourne.connect(args.ip)
+    volume_uri = bourne.volume_query(args.name)
+    start = time.time()
+    tr_list = bourne.block_mirror_detach_all(volume_uri)
+    total = time.time() - start
+    print "Mirrors detach took", "{0:.2f}".format(total), "seconds to complete"
+    for tr in tr_list:
+        if (tr['state'] == 'ready'):
+            print 'Mirrors detach finished with id ' + tr['resource']['id']
+        else:
+            print 'Mirrors detach failed'
+
+def mirror_deactivate(args):
+    bourne.connect(args.ip)
+    volume_uri = bourne.volume_query(args.volumename)
+    mirror_uri = bourne.block_mirror_get_id_by_name(args.volumename, args.mirrorname)
+    #mirror_uri = bourne.block_mirror_query(args.mirrorname)
+    start = time.time()
+    tr_list = bourne.block_mirror_deactivate(volume_uri, mirror_uri)
+    total = time.time() - start
+    print "Mirror deactivate took", "{0:.2f}".format(total), "seconds to complete"
+    for tr in tr_list:
+        if (tr['state'] == 'ready'):
+            print 'Mirror deactivate finished with id ' + tr['resource']['id']
+        else:
+            print 'Mirror deactivate failed'
+
+def mirror_list(args):
+    bourne.connect(args.ip)
+    volume_uri = bourne.volume_query(args.name)
+    uris = bourne.block_mirror_list(volume_uri)
+    for uri in uris:
+        mirror = bourne.block_mirror_show(volume_uri, uri)
+        bourne.pretty_print_json(mirror)
+
+def mirror_show(args):
+    bourne.connect(args.ip)
+    volume_uri = bourne.volume_query(args.volumename)
+    mirror_uri = bourne.block_mirror_get_id_by_name(args.volumename, args.mirrorname)
+   # uri = bourne.block_mirror_query(args.name)
+    mirror = bourne.block_mirror_show(volume_uri, mirror_uri)
+    bourne.pretty_print_json(mirror)
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# mirror cmd cmd_args [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne blockmirror cli usage.')
+parser.add_argument('cmd', help = 'cmd = (list | show | pause | attach | detach | deactivate)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# mirror list   fsuri [--ip ipaddr]
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('name', help = 'name of volume for blockmirror lists')
+
+# mirror show   uri [--ip ipaddr]
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('volumename', help = 'name of volume holding the mirror')
+show.add_argument('mirrorname', help = 'name of the mirror')
+
+# mirror pause   uri [--ip ipaddr]
+pause = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+pause.add_argument('name', help = 'name of volume')
+
+# mirror resume   uri [--ip ipaddr]
+resume = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+resume.add_argument('name', help = 'name of volume')
+
+# mirror attach uri [--ip ipaddr]
+attach = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+attach.add_argument('name', help = 'name of volume to attach a blockmirror')
+attach.add_argument('label', help = 'label for the attached mirror(s)')
+attach.add_argument('count', help = 'number of mirrors to attach')
+
+# mirror detach uri [--ip ipaddr]
+detach = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+detach.add_argument('name', help = 'name of volume holding the mirror')
+
+# mirror deactivate uri [--ip ipaddr]
+deactivate = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+deactivate.add_argument('volumename', help = 'name of volume holding the mirror')
+deactivate.add_argument('mirrorname', help = 'name of the mirror that needs to be deactivated')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd =="list"):
+        args = list.parse_args()
+        mirror_list(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        mirror_show(args)
+    elif (cmd == "pause"):
+        args = pause.parse_args()
+        mirror_pause(args)
+    elif (cmd == "resume"):
+        args = resume.parse_args()
+        mirror_resume(args)
+    elif (cmd == "attach"):
+        args = attach.parse_args()
+        mirror_attach(args)
+    elif (cmd == "detach"):
+        args = detach.parse_args()
+        mirror_detach(args)
+    elif (cmd == "deactivate"):
+        args = deactivate.parse_args()
+        mirror_deactivate(args)
+    else:
+        parser.print_help()
+
+except:
+    raise
+

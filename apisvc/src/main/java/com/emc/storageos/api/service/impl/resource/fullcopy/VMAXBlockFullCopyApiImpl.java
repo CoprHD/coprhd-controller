@@ -14,7 +14,6 @@
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
-
 import java.net.URI;
 import java.util.List;
 
@@ -31,12 +30,11 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
-
 /**
  * The VMAX storage system implementation for the block full copy API.
  */
 public class VMAXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
-    
+
     /**
      * Constructor
      * 
@@ -45,7 +43,7 @@ public class VMAXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      * @param scheduler A reference to a scheduler.
      */
     public VMAXBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator,
-        Scheduler scheduler) {
+            Scheduler scheduler) {
         super(dbClient, coordinator, scheduler);
     }
 
@@ -62,27 +60,27 @@ public class VMAXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
-        if (fcSourceObjList.size() > 0) {
+        if (!fcSourceObjList.isEmpty()) {
             URI fcSourceObjURI = fcSourceObjList.get(0).getId();
             if (URIUtil.isType(fcSourceObjURI, BlockSnapshot.class)) {
                 // Not supported for snapshots.
                 throw APIException.badRequests.fullCopyNotSupportedFromSnapshot(
-                    DiscoveredDataObject.Type.vmax.name(), fcSourceObjURI);
+                        DiscoveredDataObject.Type.vmax.name(), fcSourceObjURI);
             } else {
                 super.validateFullCopyCreateRequest(fcSourceObjList, count);
             }
         }
     }
-  
+
     /**
      * {@inheritDoc}
      */
     @Override
     public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-        String name, boolean createInactive, int count, String taskId) {
+            String name, boolean createInactive, int count, String taskId) {
         return super.create(fcSourceObjList, varray, name, createInactive, count, taskId);
-    }    
-   
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -97,7 +95,7 @@ public class VMAXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     @Override
     public TaskList detach(BlockObject fcSourceObj, Volume fullCopyVolume) {
         return super.detach(fcSourceObj, fullCopyVolume);
-    }    
+    }
 
     /**
      * {@inheritDoc}
@@ -121,5 +119,5 @@ public class VMAXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     @Override
     public VolumeRestRep checkProgress(URI sourceURI, Volume fullCopyVolume) {
         return super.checkProgress(sourceURI, fullCopyVolume);
-    }    
+    }
 }

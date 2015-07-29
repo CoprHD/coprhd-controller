@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.lang.builder.HashCodeBuilder;
+
 import com.emc.storageos.services.util.Strings;
 
 import com.emc.storageos.coordinator.exceptions.DecodingException;
@@ -26,7 +28,7 @@ import com.emc.storageos.coordinator.exceptions.InvalidRepositoryInfoException;
 import com.emc.storageos.coordinator.exceptions.InvalidSoftwareVersionException;
 
 public class RepositoryInfo implements CoordinatorSerializable {
-    private static final String ENCODING_INVALID   = "";
+    private static final String ENCODING_INVALID = "";
     private static final String ENCODING_SEPARATOR = "\0";
 
     private final SoftwareVersion _current;
@@ -38,9 +40,10 @@ public class RepositoryInfo implements CoordinatorSerializable {
     }
 
     public RepositoryInfo(final SoftwareVersion current, final List<SoftwareVersion> available)
-               throws InvalidRepositoryInfoException {
+            throws InvalidRepositoryInfoException {
         if (current == null || available == null || !available.contains(current)) {
-            throw CoordinatorException.fatals.invalidRepoInfoError("current=" + Strings.repr(current) + " versions=" + Strings.repr(available));
+            throw CoordinatorException.fatals.invalidRepoInfoError("current=" + Strings.repr(current) + " versions="
+                    + Strings.repr(available));
 
         }
 
@@ -73,9 +76,15 @@ public class RepositoryInfo implements CoordinatorSerializable {
             return false;
         }
 
-        final RepositoryInfo state = (RepositoryInfo)object;
+        final RepositoryInfo state = (RepositoryInfo) object;
         return (_current == null ? state._current == null : _current.equals(state._current)) &&
-            hasSameVersions(state);
+                hasSameVersions(state);
+    }
+
+    @Override
+    public int hashCode() {
+        HashCodeBuilder builder = new HashCodeBuilder();
+        return builder.append(this._current).append(this._versions).toHashCode();
     }
 
     @Override

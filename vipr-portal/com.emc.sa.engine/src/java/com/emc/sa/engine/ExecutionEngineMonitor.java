@@ -28,10 +28,10 @@ import com.emc.storageos.coordinator.client.service.DistributedDataManager;
 /**
  * This class handles both sending the heartbeat for the current engine instance, and monitoring for engine failures.
  * Only a single node will ever be operating as the monitor for engine failures.
- *
+ * 
  * Data is stored as /config/sa/engine/{ENGINE_ID}/heartbeat
- *                   /config/sa/engine/{ENGINE_ID}/orders/{ORDER_ID}.... (replicated for each order)
- *
+ * /config/sa/engine/{ENGINE_ID}/orders/{ORDER_ID}.... (replicated for each order)
+ * 
  * @author jonnymiller
  */
 @Component
@@ -61,14 +61,14 @@ public class ExecutionEngineMonitor extends SingletonService {
         keepAliveThread.setDaemon(true);
         keepAliveThread.start();
 
-        log.info("Created SA Engine Monitor with ID "+uniqueId);
+        log.info("Created SA Engine Monitor with ID " + uniqueId);
     }
 
     /**
      * Adds the order to the engine state.
-     *
+     * 
      * @param order
-     *        the order.
+     *            the order.
      */
     public void addOrder(Order order) {
         try {
@@ -77,24 +77,22 @@ public class ExecutionEngineMonitor extends SingletonService {
             if (log.isDebugEnabled()) {
                 log.debug("Tracking order: " + order.getId());
             }
-        }
-        catch (Exception e) {
-            log.error("Error adding order "+order.getId()+" to EngineState", e);
+        } catch (Exception e) {
+            log.error("Error adding order " + order.getId() + " to EngineState", e);
         }
     }
 
     /**
      * Removes the order from the engine state.
-     *
+     * 
      * @param order
-     *        the order.
+     *            the order.
      */
     public void removeOrder(Order order) {
         try {
             dataManager.removeNode(getOrderPath(uniqueId, order));
-        }
-        catch (Exception e) {
-            log.error("Error removing order "+order.getId()+" from EngineState",e);
+        } catch (Exception e) {
+            log.error("Error removing order " + order.getId() + " from EngineState", e);
         }
     }
 
@@ -109,8 +107,7 @@ public class ExecutionEngineMonitor extends SingletonService {
 
                 checkEngineStates();
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }
@@ -130,9 +127,8 @@ public class ExecutionEngineMonitor extends SingletonService {
                     }
                 }
             }
-        }
-        catch (Exception e) {
-            log.error("Error checking Engine States",e);
+        } catch (Exception e) {
+            log.error("Error checking Engine States", e);
         }
     }
 
@@ -165,8 +161,7 @@ public class ExecutionEngineMonitor extends SingletonService {
 
                 dataManager.removeNode(getEnginePath(engineId));
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Error whilst removing " + engineId + " engine state", e);
         }
     }
@@ -175,7 +170,7 @@ public class ExecutionEngineMonitor extends SingletonService {
      * Kills an order that was running within a dead engine.
      * 
      * @param orderId
-     *        the order ID.
+     *            the order ID.
      */
     private void killOrder(URI orderId) {
         try {
@@ -208,8 +203,7 @@ public class ExecutionEngineMonitor extends SingletonService {
                     addTerminationTaskLog(execState);
                 }
             }
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             log.error("Failed to terminate order: " + orderId, e);
         }
     }
@@ -225,14 +219,14 @@ public class ExecutionEngineMonitor extends SingletonService {
         log.setLevel(LogLevel.ERROR.toString());
         log.setMessage("Order Terminated");
         log.setDetail("Order processing terminated during execution, order was not completed. " +
-        		"Check with your administrator. Reboot may have occurred.");
+                "Check with your administrator. Reboot may have occurred.");
         log.setPhase(ExecutionPhase.EXECUTE.name());
         modelClient.save(log);
-        
+
         state.addExecutionTaskLog(log);
         modelClient.save(state);
     }
-    
+
     /**
      * Sends a heartbeat every minute, keeping the engine alive.
      */
@@ -244,8 +238,7 @@ public class ExecutionEngineMonitor extends SingletonService {
                 Thread.sleep(HEART_BEAT);
                 heartBeat();
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.warn("Heartbeat interrupted", e);
         }
     }
@@ -257,24 +250,22 @@ public class ExecutionEngineMonitor extends SingletonService {
         try {
             Long newHeartBeat = System.currentTimeMillis();
             dataManager.putData(getHeartBeatPath(uniqueId), newHeartBeat);
-        }
-        catch (Exception e) {
-            log.error("Error updating Engine "+uniqueId+" HeartBeat",e);
+        } catch (Exception e) {
+            log.error("Error updating Engine " + uniqueId + " HeartBeat", e);
         }
     }
 
     private Long getHeartBeat(String engineId) {
         try {
-            return (Long)dataManager.getData(getHeartBeatPath(engineId), false);
-        }
-        catch (Exception e) {
-            log.error("Error getting Engine "+engineId+" Heartbeat",e);
+            return (Long) dataManager.getData(getHeartBeatPath(engineId), false);
+        } catch (Exception e) {
+            log.error("Error getting Engine " + engineId + " Heartbeat", e);
             return null;
         }
     }
 
     private String getEnginePath(String engineId) {
-        return String.format("%s/%s",BASE_PATH, engineId);
+        return String.format("%s/%s", BASE_PATH, engineId);
     }
 
     private String getHeartBeatPath(String engineId) {
@@ -282,7 +273,7 @@ public class ExecutionEngineMonitor extends SingletonService {
     }
 
     private String getOrdersPath(String engineId) {
-        return String.format("%s/orders", getEnginePath(engineId), "orders");
+        return String.format("%s/%s", getEnginePath(engineId), "orders");
     }
 
     private String getOrderPath(String engineId, Order order) {

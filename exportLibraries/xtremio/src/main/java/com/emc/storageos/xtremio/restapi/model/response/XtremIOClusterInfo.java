@@ -19,13 +19,12 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
 
-
-@JsonRootName(value="xtremio_cluster_info")
+@JsonRootName(value = "xtremio_cluster_info")
 public class XtremIOClusterInfo {
-    
+
     @SerializedName("content")
-    @JsonProperty(value="content")
-	private XtremIOSystem content;
+    @JsonProperty(value = "content")
+    private XtremIOSystem content;
 
     public XtremIOSystem getContent() {
         return content;

@@ -23,16 +23,15 @@ import java.net.URI;
 @Cf("ObjectMeteringInfo")
 public class ObjectMeteringInfo extends DataObject {
 
-
     private Long _collectorVersion;
 
     private Long _aggregatorVersion;
 
     private URI _deviceId;
 
-
     /**
      * return collector id
+     * 
      * @return
      */
 
@@ -48,6 +47,7 @@ public class ObjectMeteringInfo extends DataObject {
 
     /**
      * return aggregator id
+     * 
      * @return
      */
 
@@ -63,6 +63,7 @@ public class ObjectMeteringInfo extends DataObject {
 
     /**
      * return device id for the journal
+     * 
      * @return
      */
 

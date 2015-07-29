@@ -36,23 +36,20 @@ public class MailSettingsValidator {
         SimpleEmail email = new SimpleEmail();
         try {
             email.setFrom(settings.fromAddress);
-        }
-        catch (Throwable e) {
+        } catch (Exception e) {
             Logger.error(e, "Failed to parse From email address [%s]", settings.fromAddress);
             Validation.addError(null, "MailSettings.failedToParseAddress", settings.fromAddress);
         }
         try {
             email.addTo(toEmail);
-        }
-        catch (EmailException e) {
+        } catch (EmailException e) {
             Logger.error(e, "Failed to parse To email address [%s]", toEmail);
             Validation.addError(null, "MailSettings.failedToParseAddress", toEmail);
         }
         email.setSubject(MessagesUtils.get("MailSettings.testSubject"));
         try {
             email.setMsg(MessagesUtils.get("MailSettings.testMessage"));
-        }
-        catch (EmailException e) {
+        } catch (EmailException e) {
             Logger.error(e, "Failed to set email message");
             Validation.addError(null, "MailSettings.failedToSetMessage");
         }
@@ -60,12 +57,10 @@ public class MailSettingsValidator {
         if (!Validation.hasErrors()) {
             try {
                 send(email, settings);
-            }
-            catch (EmailException e) {
+            } catch (EmailException e) {
                 Logger.error(e, "Failed to send email");
                 addExceptionError(e);
-            }
-            catch (RuntimeException e) {
+            } catch (RuntimeException e) {
                 Logger.error(e, "Failed to send email");
                 addExceptionError(e);
             }
@@ -148,8 +143,7 @@ public class MailSettingsValidator {
             try {
                 session = Session.getInstance(props, (Authenticator) Play.classloader.loadClass(authenticator)
                         .newInstance());
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 Logger.error(e, "Cannot instantiate custom SMTP authenticator (%s)", authenticator);
                 addExceptionError(e);
             }
@@ -173,7 +167,7 @@ public class MailSettingsValidator {
      * Send a JavaMail message
      * 
      * @param message
-     *        the email message
+     *            the email message
      */
     public static boolean sendMessage(Email message) throws EmailException {
         message.setSentDate(new Date());

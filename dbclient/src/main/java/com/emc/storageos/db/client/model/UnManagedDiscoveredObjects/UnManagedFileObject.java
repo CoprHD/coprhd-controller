@@ -4,11 +4,9 @@
  */
 package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
 
-
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject;
-
 
 /**
  * Base data object for file shares and snapshots
@@ -18,25 +16,23 @@ public abstract class UnManagedFileObject extends UnManagedDiscoveredObject {
     // mount path used by hosts for this file share
     protected String _mountPath;
 
-    //path of the file object
+    // path of the file object
     protected String _path;
 
-    //FSExports
+    // FSExports
     protected UnManagedFSExportMap fsUnManagedExportMap;
 
-
-	//SMB Shares. SMB share name should be unique across SMB server
+    // SMB Shares. SMB share name should be unique across SMB server
     protected UnManagedSMBShareMap unManagedSmbShareMap;
 
-    
-
-	// these will include things like
+    // these will include things like
     // thinProvisioned->Y/N, ALU->1,2,3, and raidLevel->RAID-1,RAID-6+2
     // may include volumeGroup->name for mapping multiple volumes
     protected StringMap _extensions;
 
     /**
      * Get mount path
+     * 
      * @return
      */
     @Name("mountPath")
@@ -46,6 +42,7 @@ public abstract class UnManagedFileObject extends UnManagedDiscoveredObject {
 
     /**
      * Set mount path
+     * 
      * @param mountPath
      */
     public void setMountPath(String mountPath) {
@@ -55,6 +52,7 @@ public abstract class UnManagedFileObject extends UnManagedDiscoveredObject {
 
     /**
      * Get path
+     * 
      * @return
      */
     @Name("path")
@@ -64,6 +62,7 @@ public abstract class UnManagedFileObject extends UnManagedDiscoveredObject {
 
     /**
      * Set path
+     * 
      * @param path
      */
     public void setPath(String path) {
@@ -73,39 +72,40 @@ public abstract class UnManagedFileObject extends UnManagedDiscoveredObject {
 
     @Name("export")
     public UnManagedFSExportMap getFsUnManagedExportMap() {
-		return fsUnManagedExportMap;
-	}
+        return fsUnManagedExportMap;
+    }
 
-	public void setFsUnManagedExportMap(UnManagedFSExportMap fsUnManagedExportMap) {
-		this.fsUnManagedExportMap = fsUnManagedExportMap;
-	}
+    public void setFsUnManagedExportMap(UnManagedFSExportMap fsUnManagedExportMap) {
+        this.fsUnManagedExportMap = fsUnManagedExportMap;
+    }
 
     @Name("smbShare")
     public UnManagedSMBShareMap getUnManagedSmbShareMap() {
-		return unManagedSmbShareMap;
-	}
+        return unManagedSmbShareMap;
+    }
 
-	public void setUnManagedSmbShareMap(UnManagedSMBShareMap unManagedSmbShareMap) {
-		this.unManagedSmbShareMap = unManagedSmbShareMap;
-	}
+    public void setUnManagedSmbShareMap(UnManagedSMBShareMap unManagedSmbShareMap) {
+        this.unManagedSmbShareMap = unManagedSmbShareMap;
+    }
 
     /**
      * Get extensions map
+     * 
      * @return
      */
-    @Name ("extensions")
+    @Name("extensions")
     public StringMap getExtensions() {
         return _extensions;
     }
 
     /**
      * Set extensions map - overwrites existing one
-     * @param map        StringMap of extensions to set
+     * 
+     * @param map StringMap of extensions to set
      */
     public void setExtensions(StringMap map) {
         _extensions = map;
     }
-
 
     @Override
     public String canBeDeleted() {

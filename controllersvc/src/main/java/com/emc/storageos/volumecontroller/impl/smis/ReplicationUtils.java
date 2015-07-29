@@ -76,7 +76,7 @@ public class ReplicationUtils {
 
             CIMInstance modifiedInstance = (CIMInstance) cimPath.getFromOutputArgs(repSettingOutArgs, DEFAULT_INSTANCE);
 
-            return modifiedInstance.deriveInstance(properties.toArray(new CIMProperty[]{}));
+            return modifiedInstance.deriveInstance(properties.toArray(new CIMProperty[] {}));
         }
 
         public ReplicationSettingBuilder addVPSnap() {
@@ -115,16 +115,16 @@ public class ReplicationUtils {
      * (storage) method to update the SMI-S database. The routine will check if any of
      * the passed in BlockObjects referenced by the URI list have their
      * emcRefreshRequired flag set. If so, the call will be made.
-     *
+     * 
      * @param dbClient - DbClient for accessing the ViPR db
      * @param helper - SmisCommandHelper reference
      * @param storage - StorageSystem object that this refresh would be called against
      * @param blockObjectURIs - list of BlockObject URIs to check
      */
     public static void callEMCRefreshIfRequired(DbClient dbClient,
-                                                SmisCommandHelper helper,
-                                                StorageSystem storage,
-                                                List<URI> blockObjectURIs) {
+            SmisCommandHelper helper,
+            StorageSystem storage,
+            List<URI> blockObjectURIs) {
         try {
             if (blockObjectURIs != null) {
                 List<URI> blockObjectsRequiringRefresh = new ArrayList<URI>();
@@ -153,30 +153,46 @@ public class ReplicationUtils {
             _log.error("Exception callEMCRefreshIfRequired", e);
         }
     }
-    
+
+    /**
+     * Refresh the given storagesystem.
+     * 
+     * @param dbClient
+     * @param helper
+     * @param storage
+     */
+    public static void callEMCRefresh(SmisCommandHelper helper, StorageSystem storage) {
+        try {
+            _log.info("Refreshing storagesystem: {}", storage.getId());
+            helper.callRefreshSystem(storage, null);
+        } catch (Exception e) {
+            _log.error("Exception callEMCRefresh", e);
+        }
+    }
+
     /**
      * Gets the default ReplicationSettingData object from the system and updates
      * the ConsistentPointInTime property to true.
-     *
+     * 
      * @param storage
      * @param thinProvisioning
      * @return CIMInstance - the instance of ReplicaSettingData
      * @throws WBEMException
      */
     public static CIMInstance getReplicationSettingForGroupSnapshots(StorageSystem storage, SmisCommandHelper helper,
-                                                                     CIMObjectPathFactory cimPath,
-                                                                     boolean thinProvisioning) throws WBEMException {
+            CIMObjectPathFactory cimPath,
+            boolean thinProvisioning) throws WBEMException {
         ReplicationSettingBuilder builder = new ReplicationSettingBuilder(storage, helper, cimPath);
 
         builder.addConsistentPointInTime();
-        
-        // For 4.6 provider, we are creating target devices and target group before 
+
+        // For 4.6 providers and VMAX3 arrays, we are creating target devices and target group before
         // calling 'CreateGroupReplica'. We need to create new target devices while
         // creating group replica only for 8.0 provider.
-        if (storage.getUsingSmis80()) {
-        	builder.addCreateNewTarget();
+        if (storage.getUsingSmis80() && !storage.checkIfVmax3()) {
+            builder.addCreateNewTarget();
         }
-        
+
         if (thinProvisioning) {
             builder.addVPSnap();
         }
@@ -187,14 +203,14 @@ public class ReplicationUtils {
     /**
      * Gets the default ReplicationSettingData object from the system and updates
      * the ConsistentPointInTime property to true in addition to clone-specific settings.
-     *
+     * 
      * @param storage
      * @return CIMInstance - the instance of ReplicaSettingData
      * @throws WBEMException
      */
     public static CIMInstance getReplicationSettingForGroupClones(StorageSystem storage, SmisCommandHelper helper,
-                                                                  CIMObjectPathFactory cimPath,
-                                                                  boolean createInactive) throws WBEMException {
+            CIMObjectPathFactory cimPath,
+            boolean createInactive) throws WBEMException {
         ReplicationSettingBuilder builder = new ReplicationSettingBuilder(storage, helper, cimPath);
 
         builder.addConsistentPointInTime();
@@ -208,27 +224,27 @@ public class ReplicationUtils {
 
     /**
      * Enables VPSnaps by modifying the default ReplicationSettingData instance.
-     *
-     * @param storage   The StorageSystem.
-     * @return          A modified ReplicationSettingData instance.
+     * 
+     * @param storage The StorageSystem.
+     * @return A modified ReplicationSettingData instance.
      * @throws WBEMException
      */
     public static CIMInstance getVPSnapReplicationSetting(StorageSystem storage, SmisCommandHelper helper,
-                                                          CIMObjectPathFactory cimPath) throws WBEMException {
+            CIMObjectPathFactory cimPath) throws WBEMException {
         ReplicationSettingBuilder builder = new ReplicationSettingBuilder(storage, helper, cimPath);
         return builder.addVPSnap().addCreateNewTarget().build();
     }
-    
+
     /**
      * Checks that the replication group is accessible from this storage system, using its currently active
      * storage provider.
-     *
+     * 
      * @param storage StorageSystem
      * @param replica BlockObject
      * @throws com.emc.storageos.exceptions.DeviceControllerException When the replication group isn't found.
      */
     public static void checkReplicationGroupAccessibleOrFail(StorageSystem storage, BlockObject replica,
-                        DbClient dbClient, SmisCommandHelper helper, CIMObjectPathFactory cimPath) throws Exception {
+            DbClient dbClient, SmisCommandHelper helper, CIMObjectPathFactory cimPath) throws Exception {
         BlockConsistencyGroup blockConsistencyGroup = dbClient.queryObject(
                 BlockConsistencyGroup.class, replica.getConsistencyGroup());
         String deviceName = blockConsistencyGroup.fetchArrayCgName(storage.getId());
@@ -238,214 +254,221 @@ public class ReplicationUtils {
 
         if (instance == null) {
             String msg = String.format("ReplicationGroup %s was not found on provider %s.  " +
-                            "Check SMI-S providers for connection issues or failover.",
+                    "Check SMI-S providers for connection issues or failover.",
                     deviceName, storage.getActiveProviderURI());
             _log.warn(msg);
             throw DeviceControllerException.exceptions.consistencyGroupNotFoundForProvider(deviceName, label,
                     storage.getSmisProviderIP());
         }
     }
-    
+
     public static CIMObjectPath getCloneGroupSynchronizedPath(StorageSystem storage, URI cloneUri,
-                        DbClient dbClient, SmisCommandHelper helper, CIMObjectPathFactory cimPath) {
+            DbClient dbClient, SmisCommandHelper helper, CIMObjectPathFactory cimPath) {
         Volume clone = dbClient.queryObject(Volume.class, cloneUri);
         Volume sourceVol = dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
         String consistencyGroupName = helper.getConsistencyGroupName(sourceVol, storage);
         String replicationGroupName = clone.getReplicationGroupInstance();
         return cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, replicationGroupName);
     }
-    
+
     /**
-     * Deletes a target group represented by the given target group path 
+     * Deletes a target group represented by the given target group path
      * 
-     * @param storage            - StorageSystem where the target group is
-     * @param targetGroupPath    - Path representing target group to be deleted
+     * @param storage - StorageSystem where the target group is
+     * @param targetGroupPath - Path representing target group to be deleted
      * 
      * @throws DeviceControllerException
      */
     public static void deleteTargetDeviceGroup(final StorageSystem storage, final CIMObjectPath targetGroupPath,
-                                final DbClient dbClient, final SmisCommandHelper helper, final CIMObjectPathFactory cimPath) {
-        
+            final DbClient dbClient, final SmisCommandHelper helper, final CIMObjectPathFactory cimPath) {
+
         _log.info(format("Removing target device group {0} from storage system {1}", targetGroupPath, storage.getId()));
-        
+
         try {
             CIMObjectPath replicationSvc = cimPath.getControllerReplicationSvcPath(storage);
             CIMArgument[] outArgs = new CIMArgument[5];
             CIMArgument[] inArgs = helper.getDeleteReplicationGroupInputArguments(storage, targetGroupPath, true);
-            
+
             helper.invokeMethod(storage, replicationSvc, DELETE_GROUP, inArgs, outArgs);
         } catch (Exception e) {
-            _log.error(format("An error occurred when removing target device group {0} from storage system {1}", targetGroupPath, storage.getId()), e);
+            _log.error(
+                    format("An error occurred when removing target device group {0} from storage system {1}", targetGroupPath,
+                            storage.getId()), e);
         }
     }
-    
+
     /**
      * Method will invoke the SMI-S operation to create the target volumes
      * 
-     * @param storageSystem       - StorageSystem where the pool and snapshot exist
+     * @param storageSystem - StorageSystem where the pool and snapshot exist
      * @param sourceGroupName - Name of source group
      * @param label - Name to be applied to each snapshot volume
-     * @param createInactive - whether the snapshot needs to to be created with sync_active=true/false   
-     * @param count         - Number of target Volumes to create
+     * @param createInactive - whether the snapshot needs to to be created with sync_active=true/false
+     * @param count - Number of target Volumes to create
      * @param storagePoolUri - Storage Pool to use for creation of target volumes.
-     * @param capacity      - Size of the Volumes to create
-     * @param isThinlyProvisioned 
+     * @param capacity - Size of the Volumes to create
+     * @param isThinlyProvisioned
      * @param taskCompleter - Completer object used for task status update
      * @param dbClient
-     * @param helper        - smisCommandHelper
-     * @param cimPath       - CIMObjectPathFactory
+     * @param helper - smisCommandHelper
+     * @param cimPath - CIMObjectPathFactory
      * 
      * @throws DeviceControllerException
      * 
-     *  @returns - List of native Ids
+     * @returns - List of native Ids
      */
-     public static List<String> createTargetDevices(StorageSystem storageSystem, String sourceGroupName,
-                                                     String label, Boolean createInactive, int count,
-                                                     URI storagePoolUri, long capacity, boolean isThinlyProvisioned,
-                                                     Volume sourceVolume, TaskCompleter taskCompleter,
-                                                     DbClient dbClient, SmisCommandHelper helper, CIMObjectPathFactory cimPath)
-                                                     throws DeviceControllerException {
-         
-         _log.info(format("Creating target devices for: Storage System: {0}, Consistency Group: {1}, Pool: {2}, Count: {3}",
-                 storageSystem.getId(), sourceGroupName, storagePoolUri, count));
-         
-         try {
-             StoragePool storagePool = dbClient.queryObject(StoragePool.class, storagePoolUri);
-             CIMObjectPath configSvcPath = cimPath.getConfigSvcPath(storageSystem);
-             CIMArgument[] inArgs = null;
-             if (storageSystem.checkIfVmax3()) {
-                 CIMObjectPath volumeGroupPath = helper.getVolumeGroupPath(storageSystem, sourceVolume, storagePool);
-                 CIMObjectPath poolPath = helper.getPoolPath(storageSystem, storagePool);
-                 inArgs = helper.getCreateVolumesBasedOnVolumeGroupInputArguments(storageSystem, poolPath, volumeGroupPath, label, count, capacity);
-             } else {
-                 inArgs = helper.getCreateVolumesInputArguments(storageSystem, storagePool, label, capacity, count, isThinlyProvisioned, null, true);
-             }
-             CIMArgument[] outArgs = new CIMArgument[5];
+    public static List<String> createTargetDevices(StorageSystem storageSystem, String sourceGroupName,
+            String label, Boolean createInactive, int count,
+            URI storagePoolUri, long capacity, boolean isThinlyProvisioned,
+            Volume sourceVolume, TaskCompleter taskCompleter,
+            DbClient dbClient, SmisCommandHelper helper, CIMObjectPathFactory cimPath)
+            throws DeviceControllerException {
 
-             SmisCreateVmaxCGTargetVolumesJob job = new SmisCreateVmaxCGTargetVolumesJob(null,storageSystem.getId(), sourceGroupName, 
-                     label, createInactive, taskCompleter);
-             
-             helper.invokeMethodSynchronously(storageSystem, configSvcPath, CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, inArgs, outArgs, job);
-             
-             return job.getTargetDeviceIds();
-         } catch (Exception e) {
-             final String errMsg = format("An error occurred when creating target devices VMAX system {0}", storageSystem.getId());
-             _log.error(errMsg, e);
-             taskCompleter.error(dbClient, SmisException.errors.methodFailed(CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, e.getMessage()));
-             throw new SmisException(errMsg, e);
-         }
-     }
-     
-     /**
-      * Creates a target group that will contain the devices in 'deviceIds'.
-      *
-      * @param storage            - StorageSystem where target device will be created
-      * @param sourceGroupName    - The name of the source volumes group
-      * @param deviceIds          - Device native IDs of the target VDEVs
-      * @param taskCompleter      - Completer object used for task status update
-      * @return CIMObjectPath     - null => Error. Otherwise, it represents the
-      *                             TargetDeviceGroup object created 
-      * 
-      * @throws DeviceControllerException 
-      */
-     public static CIMObjectPath createTargetDeviceGroup(StorageSystem storage,
-                                                   String sourceGroupName,
-                                                   List<String> deviceIds,
-                                                   TaskCompleter taskCompleter,
-                                                   DbClient dbClient, 
-                                                   SmisCommandHelper helper, 
-                                                   CIMObjectPathFactory cimPath,
-                                                   SYNC_TYPE syncType) throws DeviceControllerException {
-         try {
-             CIMObjectPath replicationSvc = cimPath.getControllerReplicationSvcPath(storage);
-             CIMArgument[] outArgs = new CIMArgument[5];
-             CIMObjectPath[] volumePaths = cimPath.getVolumePaths(storage, deviceIds.toArray(new String[deviceIds.size()]));
-             CIMArgument[] inArgs = null;
-             if (syncType == SYNC_TYPE.SNAPSHOT) {
-                 inArgs = helper.getCreateReplicationGroupCreateInputArguments(storage, null, volumePaths);
-             } else {
-                 inArgs = helper.getCreateReplicationGroupWithMembersInputArguments(storage, null, volumePaths);
-             }
-             helper.invokeMethod(storage, replicationSvc, CREATE_GROUP, inArgs, outArgs);
-             CIMObjectPath path = cimPath.getCimObjectPathFromOutputArgs(outArgs, CP_REPLICATION_GROUP);
-             return path;
-         } catch (Exception e) {
-             taskCompleter.error(dbClient, SmisException.errors.methodFailed(CREATE_GROUP, e.getMessage()));
-             throw new SmisException("Error when creating target device group", e);
-         }
-     }
-     
-     public static void rollbackCreateReplica(final StorageSystem storage,
-             final CIMObjectPath targetGroupPath,
-             final List<String> targetDeviceIds,
-             final TaskCompleter taskCompleter,
-             final DbClient dbClient,
-             final SmisCommandHelper helper, 
-             final CIMObjectPathFactory cimPath) throws DeviceControllerException {
+        _log.info(format("Creating target devices for: Storage System: {0}, Consistency Group: {1}, Pool: {2}, Count: {3}",
+                storageSystem.getId(), sourceGroupName, storagePoolUri, count));
 
-        _log.info(format( "Rolling back snapshot creation on storage system {0}", storage.getId()));
-        
+        try {
+            StoragePool storagePool = dbClient.queryObject(StoragePool.class, storagePoolUri);
+            CIMObjectPath configSvcPath = cimPath.getConfigSvcPath(storageSystem);
+            CIMArgument[] inArgs = null;
+            if (storageSystem.checkIfVmax3()) {
+                CIMObjectPath volumeGroupPath = helper.getVolumeGroupPath(storageSystem, sourceVolume, storagePool);
+                CIMObjectPath poolPath = helper.getPoolPath(storageSystem, storagePool);
+                inArgs = helper.getCreateVolumesBasedOnVolumeGroupInputArguments(storageSystem, poolPath, volumeGroupPath, label, count,
+                        capacity);
+            } else {
+                inArgs = helper.getCreateVolumesInputArguments(storageSystem, storagePool, label, capacity, count, isThinlyProvisioned,
+                        null, true);
+            }
+            CIMArgument[] outArgs = new CIMArgument[5];
+
+            SmisCreateVmaxCGTargetVolumesJob job = new SmisCreateVmaxCGTargetVolumesJob(null, storageSystem.getId(), sourceGroupName,
+                    label, createInactive, taskCompleter);
+
+            helper.invokeMethodSynchronously(storageSystem, configSvcPath, CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, inArgs, outArgs, job);
+
+            return job.getTargetDeviceIds();
+        } catch (Exception e) {
+            final String errMsg = format("An error occurred when creating target devices VMAX system {0}", storageSystem.getId());
+            _log.error(errMsg, e);
+            taskCompleter.error(dbClient, SmisException.errors.methodFailed(CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, e.getMessage()));
+            throw new SmisException(errMsg, e);
+        }
+    }
+
+    /**
+     * Creates a target group that will contain the devices in 'deviceIds'.
+     * 
+     * @param storage - StorageSystem where target device will be created
+     * @param sourceGroupName - The name of the source volumes group
+     * @param deviceIds - Device native IDs of the target VDEVs
+     * @param taskCompleter - Completer object used for task status update
+     * @return CIMObjectPath - null => Error. Otherwise, it represents the
+     *         TargetDeviceGroup object created
+     * 
+     * @throws DeviceControllerException
+     */
+    public static CIMObjectPath createTargetDeviceGroup(StorageSystem storage,
+            String sourceGroupName,
+            List<String> deviceIds,
+            TaskCompleter taskCompleter,
+            DbClient dbClient,
+            SmisCommandHelper helper,
+            CIMObjectPathFactory cimPath,
+            SYNC_TYPE syncType) throws DeviceControllerException {
+        try {
+            CIMObjectPath replicationSvc = cimPath.getControllerReplicationSvcPath(storage);
+            CIMArgument[] outArgs = new CIMArgument[5];
+            CIMObjectPath[] volumePaths = cimPath.getVolumePaths(storage, deviceIds.toArray(new String[deviceIds.size()]));
+            CIMArgument[] inArgs = null;
+            if (syncType == SYNC_TYPE.SNAPSHOT) {
+                inArgs = helper.getCreateReplicationGroupCreateInputArguments(storage, null, volumePaths);
+            } else {
+                inArgs = helper.getCreateReplicationGroupWithMembersInputArguments(storage, null, volumePaths);
+            }
+            helper.invokeMethod(storage, replicationSvc, CREATE_GROUP, inArgs, outArgs);
+            CIMObjectPath path = cimPath.getCimObjectPathFromOutputArgs(outArgs, CP_REPLICATION_GROUP);
+            return path;
+        } catch (Exception e) {
+            taskCompleter.error(dbClient, SmisException.errors.methodFailed(CREATE_GROUP, e.getMessage()));
+            throw new SmisException("Error when creating target device group", e);
+        }
+    }
+
+    public static void rollbackCreateReplica(final StorageSystem storage,
+            final CIMObjectPath targetGroupPath,
+            final List<String> targetDeviceIds,
+            final TaskCompleter taskCompleter,
+            final DbClient dbClient,
+            final SmisCommandHelper helper,
+            final CIMObjectPathFactory cimPath) throws DeviceControllerException {
+
+        _log.info(format("Rolling back snapshot creation on storage system {0}", storage.getId()));
+
         try {
             // Remove target group
-            if(targetGroupPath != null){
+            if (targetGroupPath != null) {
                 deleteTargetDeviceGroup(storage, targetGroupPath, dbClient, helper, cimPath);
             }
-        
+
             // Remove target devices
-            if(targetDeviceIds != null && !targetDeviceIds.isEmpty()){
-                deleteTargetDevices(storage, targetDeviceIds.toArray(new String[targetDeviceIds.size()]), taskCompleter, dbClient, helper, cimPath);               
+            if (targetDeviceIds != null && !targetDeviceIds.isEmpty()) {
+                deleteTargetDevices(storage, targetDeviceIds.toArray(new String[targetDeviceIds.size()]), taskCompleter, dbClient, helper,
+                        cimPath);
             }
-        
+
         } catch (DeviceControllerException e) {
             final String errMsg = format("Unable to rollback snapshot creation on storage system {0}", storage.getId());
             _log.error(errMsg, e);
             throw new SmisException(errMsg, e);
         }
-     }
-     
-     /**
-      * Method will invoke the SMI-S operation to return the Volumes represented by the native ids to the storage pool  
-      * 
-      * @param storageSystem  - StorageSystem where the pool and volume exist
-      * @param deviceIds      - List of native Ids representing the elements to be returned to the pool
-      * @param taskCompleter  - Completer object used for task status update
-      * 
-      * @throws DeviceControllerException
-      */
-     public static void deleteTargetDevices(final StorageSystem storageSystem, final String[] deviceIds, final TaskCompleter taskCompleter,
-                                       final DbClient dbClient, final SmisCommandHelper helper, final CIMObjectPathFactory cimPath) {
-         
-         _log.info(format("Removing target devices {0} from storage system {1}", deviceIds, storageSystem.getId()));
-         
-         try {
-             if (storageSystem.checkIfVmax3()) {
-                 for (String deviceId : deviceIds) {
-                     helper.removeVolumeFromParkingSLOStorageGroup(storageSystem, deviceId, false);
-                     _log.info("Done invoking remove volume {} from parking SLO storage group", deviceId);
-                 }
-             }
+    }
 
-             CIMArgument[] outArgs = new CIMArgument[5];
-             CIMArgument[] inArgs = null;
-             String method = null;
-             CIMObjectPath configSvcPath = cimPath.getConfigSvcPath(storageSystem);
-             if (storageSystem.deviceIsType(Type.vmax)) {
-             
-                 final CIMObjectPath[] theElements = cimPath.getVolumePaths(storageSystem, deviceIds);
-                 inArgs = helper.getReturnElementsToStoragePoolArguments(storageSystem, theElements, 2);
-                 method = RETURN_ELEMENTS_TO_STORAGE_POOL;
-             } else {
-                 inArgs = helper.getDeleteVolumesInputArguments(storageSystem, deviceIds);
-                 method = EMC_RETURN_TO_STORAGE_POOL;
-             }
-             final SmisDeleteVmaxCGTargetVolumesJob job = new SmisDeleteVmaxCGTargetVolumesJob(
-                     null, storageSystem.getId(), deviceIds, taskCompleter);
+    /**
+     * Method will invoke the SMI-S operation to return the Volumes represented by the native ids to the storage pool
+     * 
+     * @param storageSystem - StorageSystem where the pool and volume exist
+     * @param deviceIds - List of native Ids representing the elements to be returned to the pool
+     * @param taskCompleter - Completer object used for task status update
+     * 
+     * @throws DeviceControllerException
+     */
+    public static void deleteTargetDevices(final StorageSystem storageSystem, final String[] deviceIds, final TaskCompleter taskCompleter,
+            final DbClient dbClient, final SmisCommandHelper helper, final CIMObjectPathFactory cimPath) {
 
-             helper.invokeMethodSynchronously(storageSystem, configSvcPath, method, inArgs, outArgs, job);
+        _log.info(format("Removing target devices {0} from storage system {1}", deviceIds, storageSystem.getId()));
 
-         } catch (Exception e) {
-             _log.error(format("An error occurred when removing target devices {0} from storage system {1}", deviceIds, storageSystem.getId()), e);
-         }
-     }
+        try {
+            if (storageSystem.checkIfVmax3()) {
+                for (String deviceId : deviceIds) {
+                    helper.removeVolumeFromParkingSLOStorageGroup(storageSystem, deviceId, false);
+                    _log.info("Done invoking remove volume {} from parking SLO storage group", deviceId);
+                }
+            }
+
+            CIMArgument[] outArgs = new CIMArgument[5];
+            CIMArgument[] inArgs = null;
+            String method = null;
+            CIMObjectPath configSvcPath = cimPath.getConfigSvcPath(storageSystem);
+            if (storageSystem.deviceIsType(Type.vmax)) {
+
+                final CIMObjectPath[] theElements = cimPath.getVolumePaths(storageSystem, deviceIds);
+                inArgs = helper.getReturnElementsToStoragePoolArguments(storageSystem, theElements, 2);
+                method = RETURN_ELEMENTS_TO_STORAGE_POOL;
+            } else {
+                inArgs = helper.getDeleteVolumesInputArguments(storageSystem, deviceIds);
+                method = EMC_RETURN_TO_STORAGE_POOL;
+            }
+            final SmisDeleteVmaxCGTargetVolumesJob job = new SmisDeleteVmaxCGTargetVolumesJob(
+                    null, storageSystem.getId(), deviceIds, taskCompleter);
+
+            helper.invokeMethodSynchronously(storageSystem, configSvcPath, method, inArgs, outArgs, job);
+
+        } catch (Exception e) {
+            _log.error(
+                    format("An error occurred when removing target devices {0} from storage system {1}", deviceIds, storageSystem.getId()),
+                    e);
+        }
+    }
 
 }

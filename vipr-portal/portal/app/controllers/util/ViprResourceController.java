@@ -131,8 +131,7 @@ public class ViprResourceController extends Controller {
     protected static <T extends DataObjectRestRep> void addDataObjectOptions(String name, Promise<List<T>> promise) {
         try {
             renderArgs.put(name, dataObjectOptions(promise.get()));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Throwable cause = Common.unwrap(e);
             Logger.error(cause, "Failed to load '%s'", name);
             flash.now("error", MessagesUtils.get("ViprResourceController.failedToLoad", name, Common.getUserMessage(cause)));
@@ -143,8 +142,7 @@ public class ViprResourceController extends Controller {
     protected static void addStringOptions(String name, Promise<List<String>> promise) {
         try {
             renderArgs.put(name, StringOption.options(promise.get()));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Throwable cause = Common.unwrap(e);
             Logger.error(cause, "Failed to load '%s'", name);
             flash.now("error", MessagesUtils.get("ViprResourceController.failedToLoad", name, Common.getUserMessage(cause)));
@@ -241,8 +239,7 @@ public class ViprResourceController extends Controller {
         try {
             T result = operation.performOperation(arg);
             return new OperationResult<T, V>(arg, result);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.error(e, Common.getUserMessage(e));
             return new OperationResult<T, V>(arg, e);
         }
@@ -285,17 +282,17 @@ public class ViprResourceController extends Controller {
      * Performs an operation on a list of values and logs successes.
      * 
      * @param values
-     *        the values for the operation.
+     *            the values for the operation.
      * @param operation
-     *        the operation to run.
+     *            the operation to run.
      * @param successKey
-     *        the success message key.
+     *            the success message key.
      */
     protected static <T, V> void performSuccess(List<V> values, ResourceOperation<T, V> operation, String successKey) {
         List<OperationResult<T, V>> results = perform(values, operation);
         List<OperationResult<T, V>> success = getSuccessResults(results);
 
-        if (success.size() > 0) {
+        if (!success.isEmpty()) {
             flash.success(MessagesUtils.get(successKey, success.size(), results.size()));
         }
     }
@@ -304,13 +301,13 @@ public class ViprResourceController extends Controller {
      * Performs an operation on a list of values and logs success/failures.
      * 
      * @param values
-     *        the values for the operation.
+     *            the values for the operation.
      * @param operation
-     *        the operation to run.
+     *            the operation to run.
      * @param successKey
-     *        the success message key.
+     *            the success message key.
      * @param failedKey
-     *        the failed message key.
+     *            the failed message key.
      */
     protected static <T, V> void performSuccessFail(List<V> values, ResourceOperation<T, V> operation,
             String successKey, String failedKey) {
@@ -336,7 +333,7 @@ public class ViprResourceController extends Controller {
      * Operation on a resource by ID.
      * 
      * @param <T>
-     *        the result type.
+     *            the result type.
      */
     public static interface ResourceIdOperation<T> extends ResourceOperation<T, URI> {
     }
@@ -345,9 +342,9 @@ public class ViprResourceController extends Controller {
      * Operation on a resource by value.
      * 
      * @param <T>
-     *        the result type
+     *            the result type
      * @param <V>
-     *        the value type.
+     *            the value type.
      */
     public static interface ResourceValueOperation<T, V extends DataObjectRestRep> extends ResourceOperation<T, V> {
     }

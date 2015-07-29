@@ -18,7 +18,7 @@ package com.emc.storageos.vplex.api;
  * Info for a VPlex target port.
  */
 public class VPlexTargetInfo extends VPlexResourceInfo {
-    
+
     // Defines the valid values for the target export status.
     public static enum ExportStatus {
         ok
@@ -29,10 +29,10 @@ public class VPlexTargetInfo extends VPlexResourceInfo {
 
     // The node WWN id.
     private String nodeWwn;
-    
+
     // The target export status
     private String exportStatus;
-    
+
     /**
      * Getter for the port WWN.
      * 
@@ -41,7 +41,7 @@ public class VPlexTargetInfo extends VPlexResourceInfo {
     public String getPortWwn() {
         return VPlexApiUtils.formatWWN(portWwn);
     }
-    
+
     /**
      * Setter for the port WWN.
      * 
@@ -50,7 +50,7 @@ public class VPlexTargetInfo extends VPlexResourceInfo {
     public void setPortWwn(String strVal) {
         portWwn = strVal;
     }
-    
+
     /**
      * Getter for the node WWN.
      * 
@@ -59,7 +59,7 @@ public class VPlexTargetInfo extends VPlexResourceInfo {
     public String getNodeWwn() {
         return VPlexApiUtils.formatWWN(nodeWwn);
     }
-    
+
     /**
      * Setter for the node WWN.
      * 
@@ -68,7 +68,7 @@ public class VPlexTargetInfo extends VPlexResourceInfo {
     public void setNodeWwn(String strVal) {
         nodeWwn = strVal;
     }
-    
+
     /**
      * Getter for the export status for the target.
      * 
@@ -77,7 +77,7 @@ public class VPlexTargetInfo extends VPlexResourceInfo {
     public String getExportStatus() {
         return exportStatus;
     }
-    
+
     /**
      * Setter for the export status for the target.
      * 
@@ -86,7 +86,7 @@ public class VPlexTargetInfo extends VPlexResourceInfo {
     public void setExportStatus(String status) {
         exportStatus = status;
     }
-    
+
     /**
      * {@inheritDoc}
      */

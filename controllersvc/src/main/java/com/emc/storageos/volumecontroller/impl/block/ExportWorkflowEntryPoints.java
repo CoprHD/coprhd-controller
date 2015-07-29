@@ -33,7 +33,7 @@ import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 public class ExportWorkflowEntryPoints implements Controller {
     private static final Logger _log = LoggerFactory.getLogger(ExportWorkflowEntryPoints.class);
-    private static String _beanName;
+    private static volatile String _beanName;
     private Map<String, MaskingOrchestrator> _orchestratorMap;
     private DbClient _dbClient;
 
@@ -71,8 +71,8 @@ public class ExportWorkflowEntryPoints implements Controller {
     }
 
     public static Workflow.Method exportGroupUpdateMethod(URI storageURI,
-                                                          URI exportGroupURI,
-                                                          Workflow storageWorkflow) {
+            URI exportGroupURI,
+            Workflow storageWorkflow) {
         return new Workflow.Method("exportGroupUpdate", storageURI, exportGroupURI,
                 storageWorkflow);
     }
@@ -101,24 +101,25 @@ public class ExportWorkflowEntryPoints implements Controller {
         return new Workflow.Method("exportRemoveInitiators", storageURI, exportGroupURI,
                 initiatorURIs);
     }
-    
-    public static Workflow.Method exportGroupChangePathParamsMethod(URI storageURI, 
+
+    public static Workflow.Method exportGroupChangePathParamsMethod(URI storageURI,
             URI exportGroupURI, URI volumeURI) {
-        return new Workflow.Method("exportGroupChangePathParams", 
+        return new Workflow.Method("exportGroupChangePathParams",
                 storageURI, exportGroupURI, volumeURI);
     }
-    
-    public static Workflow.Method exportChangePolicyAndLimitsMethod(URI storageURI, 
+
+    public static Workflow.Method exportChangePolicyAndLimitsMethod(URI storageURI,
             URI exportMaskURI, URI exportGroupURI, List<URI> volumeURIs, URI newVpoolURI, boolean rollback) {
-        return new Workflow.Method("exportChangePolicyAndLimits", 
+        return new Workflow.Method("exportChangePolicyAndLimits",
                 storageURI, exportMaskURI, exportGroupURI, volumeURIs, newVpoolURI, rollback);
     }
-    
-    public static Workflow.Method changeAutoTieringPolicyMethod(URI storageURI, 
+
+    public static Workflow.Method changeAutoTieringPolicyMethod(URI storageURI,
             List<URI> volumeURIs, URI newVpoolURI, boolean rollback) {
-        return new Workflow.Method("changeAutoTieringPolicy", 
+        return new Workflow.Method("changeAutoTieringPolicy",
                 storageURI, volumeURIs, newVpoolURI, rollback);
     }
+
     // ====================== Methods to call Masking Orchestrator
     // ======================
 
@@ -139,9 +140,10 @@ public class ExportWorkflowEntryPoints implements Controller {
     }
 
     /**
-     * This function is called from a main workflow that performs updated to an export 
-     * group on may storage arrays. This step performs the updates for one array. It 
+     * This function is called from a main workflow that performs updated to an export
+     * group on may storage arrays. This step performs the updates for one array. It
      * simply invokes the workflow that was pre-created that will do the needed adds/removes,
+     * 
      * @param storageURI the storage array of the masks to be updated
      * @param exportGroupURI the export group URI
      * @param storageWorkflow the pre-created workflow for this storage array.
@@ -149,8 +151,8 @@ public class ExportWorkflowEntryPoints implements Controller {
      * @throws ControllerException when an exception is encountered in the workflow execution.
      */
     public void exportGroupUpdate(URI storageURI, URI exportGroupURI,
-                            Workflow storageWorkflow,
-                            String token)
+            Workflow storageWorkflow,
+            String token)
             throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
@@ -246,19 +248,20 @@ public class ExportWorkflowEntryPoints implements Controller {
             throw exception;
         }
     }
-    
+
     /**
      * Changes the PathParams (e.g. maxPaths, pathsPerInitiator) for a volume in all the
      * ExportMasks containing that volume in an Export Group.
+     * 
      * @param storageURI -- URI of storage system containing the volume.
      * @param exportGroupURI -- URI of Export Group to be processed.
      * @param volumeURI -- URI of volume that is chaning VPool parameters for PathParams
      * @param token -- String for completers.
      * @throws ControllerException
      */
-    public void exportGroupChangePathParams(URI storageURI, URI exportGroupURI, 
+    public void exportGroupChangePathParams(URI storageURI, URI exportGroupURI,
             URI volumeURI, String token)
-        throws ControllerException {
+            throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
             DiscoveredSystemObject storage =
@@ -290,7 +293,7 @@ public class ExportWorkflowEntryPoints implements Controller {
             throw exception;
         }
     }
-    
+
     public void changeAutoTieringPolicy(URI storageURI, List<URI> volumeURIs, URI newVpoolURI,
             boolean rollback, String token) throws ControllerException {
         try {

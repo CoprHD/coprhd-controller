@@ -1,0 +1,162 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# network system cli functions
+#----------------------------------------------------------------------
+
+def zone_create(args):
+    bourne.connect(args.ip)
+    uri = bourne.networksystem_query(args.ns)
+    s = bourne.zone_create(uri, args.fabricid, args.zones)
+    print s
+    if (s['state'] == 'ready'):
+        print 'zones are created'
+    else:
+        print 'zones failed to create.'
+
+def zone_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.networksystem_query(args.ns)
+    s = bourne.zone_delete(uri, args.fabricid, args.zones)
+    print s
+    if (s['state'] == 'ready'):
+        print 'zones are delete'
+    else:
+        print 'zones failed to delete.'
+        
+def zone_update(args):
+    bourne.connect(args.ip)
+    uri = bourne.networksystem_query(args.ns)
+    s = bourne.zone_update(uri, args.fabricid, args.zones_update)
+    print s
+    if (s['state'] == 'ready'):
+        print 'zones are updated'
+    else:
+        print 'zones failed to update.'
+        
+
+def zone_list(args):
+    bourne.connect(args.ip)
+    uri = bourne.networksystem_query(args.ns)
+    zones_list = bourne.zone_list(uri, args.fabricid, args.zone_name, args.exclude_members)
+    zones = zones_list['san_zone']
+    zone_display_fmt='{0:40s} {1:40s} {2:s}'
+    print zone_display_fmt.format('Zone Name','Member Address (WWN)', 'Alias')
+    print zone_display_fmt.format('---------','-------------------', '-------------------')
+    for zone in zones:
+        name = zone['name']
+        print zone_display_fmt.format(name,'', '');
+        
+        members = zone['members']
+        if ( members ):
+            for member in members:
+                try:
+                    alias = member['alias']
+                except:
+                    alias = '---'
+
+                try:
+                    address = member['wwn']
+                except:
+                    address = '---'
+
+                print zone_display_fmt.format('',address, alias);
+
+def zone_activate(args):
+    bourne.connect(args.ip)
+    uri = bourne.networksystem_query(args.ns)
+    s = bourne.zone_activate(uri, args.fabricid)
+    print s
+    if (s['state'] == 'ready'):
+        print 'zones are activated'
+    else:
+        print 'zones failed to activate.'
+                
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# network <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne CoS cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | update | delete | list)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# create port zones
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('ns',           help = 'Name of network system ')
+create.add_argument('--fabricid',   help = 'Name of fabric.  Only needed if specified network system is a Brocade')
+create.add_argument('--zones',    help = 'list of zones tuples of <name, members>.  Members is list of of wwn addresses, which each separates by plus sign (+).  And, each tuple is separated by a number sign (#) e.g., zone_1,address_11+address_12#zone_2,address21+address22')
+
+# update port zones
+update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+update.add_argument('ns',           help = 'Name of network system ')
+update.add_argument('--fabricid',   help = 'Name of fabric.  Only needed if specified network system is a Brocade')
+update.add_argument('--zones_update',    help = 'list of zones tuples of <name, add_members, remove_members>.  Members is list of of wwn addresses, which each separates by plus sign (+).  And, each tuple is separated by a number sign (#) e.g., zone_1,address_11+address_12#zone_2,address21+address22.  NOTE: "add_members" and "remove_members" are optional')
+
+
+# delete port zones
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('ns',           help = 'Name of network system ')
+delete.add_argument('--fabricid',   help = 'Name of fabric.  Only needed if specified network system is a Brocade')
+delete.add_argument('--zones',    help = 'list of zones tuples of <name, members>.  Members is list of of wwn addresses, which each separates by plus sign (+).  And, each tuple is separated by a number sign (#) e.g., zone_1,address_11+address_12#zone_2,address21+address22.  NOTE: "members" is optional')
+
+
+# list of port zones for a network system
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('ns',         help = 'Name of network system')
+list.add_argument('--fabricid', help = 'Name of fabric or vsan')
+list.add_argument('--zone_name', help = 'search only for zone with given name')
+list.add_argument('--exclude_members', help = 'true - to not include zone members, otherwise include zone members in listing')
+
+# list of port zones for a network system
+activate = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+activate.add_argument('ns',         help = 'Name of network system')
+activate.add_argument('--fabricid', help = 'Name of fabric or vsan')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        zone_create(args)
+    elif (cmd == "update"):
+        args = update.parse_args()
+        zone_update(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        zone_delete(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        zone_list(args)
+    elif (cmd == "activate"):
+        args = activate.parse_args()
+        zone_activate(args)
+    else:
+        parser.print_help()
+except:
+    raise
+

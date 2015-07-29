@@ -34,7 +34,6 @@ public class UnexportHostService extends ViPRService {
     protected List<? extends BlockObjectRestRep> volumes;
     protected List<ExportGroupRestRep> exports;
 
-
     @Override
     public void precheck() {
         host = BlockStorageUtils.getHost(hostId);
@@ -70,14 +69,14 @@ public class UnexportHostService extends ViPRService {
                 }
             }
 
-            if (exportedVolumeIds.size() > 0) {
+            if (!exportedVolumeIds.isEmpty()) {
                 logInfo("unexport.host.service.volume.remove", exportedVolumeIds.size(), exportName);
                 BlockStorageUtils.removeBlockResourcesFromExport(exportedVolumeIds, exportId);
             }
             else {
                 logDebug("unexport.host.service.volume.skip", exportName);
             }
-            
+
             String hostOrClusterId = BlockStorageUtils.getHostOrClusterId(hostId);
             if (hostOrClusterId != null) {
                 ExecutionUtils.addAffectedResource(hostOrClusterId.toString());

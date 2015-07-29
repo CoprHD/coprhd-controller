@@ -35,12 +35,12 @@ import com.emc.storageos.db.common.DependencyTracker;
 import com.emc.storageos.db.server.DbsvcTestBase;
 
 /**
- *  garbage collector tests
+ * garbage collector tests
  */
 public class GarbageCollectorTests extends DbsvcTestBase {
     private static final Logger _log = LoggerFactory.getLogger(GarbageCollectorTests.class);
     private GarbageCollectionExecutor _gcExecutor;
-    private DbClientImpl _dbClient = (DbClientImpl)getDbClient();
+    private DbClientImpl _dbClient = (DbClientImpl) getDbClient();
     private DataObjectScanner _scanner;
 
     private void initGCExecutor() {
@@ -50,16 +50,16 @@ public class GarbageCollectorTests extends DbsvcTestBase {
 
         _gcExecutor = new GarbageCollectionExecutor();
         _gcExecutor.setDataObjectScanner(_scanner);
-   
+
         GarbageCollectionExecutorLoop gcExecutorLoop = new LocalGCExecutorLoop();
         gcExecutorLoop.setDbClient(_dbClient);
         gcExecutorLoop.setCoordinator(_dbClient.getCoordinatorClient());
         gcExecutorLoop.setGcDelayMins(0);
-        
+
         _gcExecutor.setGcExecutor(gcExecutorLoop);
-      
+
     }
-    
+
     private void setFieldValue(DependencyTracker.Dependency dependency, DataObject obj, URI ref) throws Exception {
         PropertyDescriptor pd = dependency.getColumnField().getPropertyDescriptor();
         Assert.assertNotNull(pd);
@@ -82,18 +82,19 @@ public class GarbageCollectorTests extends DbsvcTestBase {
         }
         pd.getWriteMethod().invoke(obj, value);
     }
-    
+
     public class TypeURI {
         Class<? extends DataObject> _type;
         URI _uri;
-        public  TypeURI(Class<? extends DataObject> t, URI u) {
+
+        public TypeURI(Class<? extends DataObject> t, URI u) {
             _type = t;
             _uri = u;
         }
     }
-    
-    private void createChildren(Class<? extends DataObject> clazz, DataObject obj, 
-                                int level, Map<Integer, List<TypeURI>> childrenMap)
+
+    private void createChildren(Class<? extends DataObject> clazz, DataObject obj,
+            int level, Map<Integer, List<TypeURI>> childrenMap)
             throws Exception {
         if (level < 0) {
             return;
@@ -105,9 +106,9 @@ public class GarbageCollectorTests extends DbsvcTestBase {
         List<TypeURI> children = new ArrayList<TypeURI>();
         List<DependencyTracker.Dependency> dependencies =
                 _scanner.getDependencyTracker().getDependencies(clazz);
-        for (DependencyTracker.Dependency dependency: dependencies) {
+        for (DependencyTracker.Dependency dependency : dependencies) {
             if (_scanner.getDependencyTracker().getExcludedTypes().contains(dependency.getType())) {
-                   continue;
+                continue;
             }
             if (dependency.getType().isAnnotationPresent(DbKeyspace.class)
                     && dependency.getType().getAnnotation(DbKeyspace.class).value()
@@ -118,11 +119,11 @@ public class GarbageCollectorTests extends DbsvcTestBase {
             depObj.setId(URIUtil.createId(dependency.getType()));
             depObj.setLabel(String.format("%s:%s", dependency.getType().getSimpleName(), labelSuffix));
             setFieldValue(dependency, depObj, obj.getId());
-            createChildren(dependency.getType(), depObj, level-1, childrenMap);
+            createChildren(dependency.getType(), depObj, level - 1, childrenMap);
             _dbClient.createObject(depObj);
             children.add(new TypeURI(dependency.getType(), depObj.getId()));
         }
-        if (children.size() > 0) {
+        if (!children.isEmpty()) {
             childrenMap.get(level).addAll(children);
         }
     }
@@ -133,7 +134,7 @@ public class GarbageCollectorTests extends DbsvcTestBase {
         DataObject obj = clazz.newInstance();
         obj.setId(URIUtil.createId(clazz));
         obj.setLabel(String.format("%s:%s", clazz.getSimpleName(), levelSuffix));
-        
+
         if (level > 0) {
             // first, create a full chain, all the way to the root
             Map<Integer, List<TypeURI>> allChildren = new HashMap<Integer, List<TypeURI>>();
@@ -146,20 +147,20 @@ public class GarbageCollectorTests extends DbsvcTestBase {
             Assert.assertTrue(read.getInactive());
             // start with deleting lowest first
             for (int i = 0; i <= level; i++) {
-                List<TypeURI> children =  allChildren.get(i);
-                if (children.size() > 0) {
-                    for (TypeURI child: children) {
+                List<TypeURI> children = allChildren.get(i);
+                if (!children.isEmpty()) {
+                    for (TypeURI child : children) {
                         read = _dbClient.queryObject(child._type, child._uri);
                         read.setInactive(true);
                         _dbClient.updateAndReindexObject(read);
                         _log.info("marking inactive : {}", child._uri);
-                    }                  
+                    }
                     _gcExecutor.runNow();
-                    for (TypeURI child: children) {
+                    for (TypeURI child : children) {
                         read = _dbClient.queryObject(child._type, child._uri);
                         Assert.assertNull(read);
                     }
-                    if ( i != level) {
+                    if (i != level) {
                         read = _dbClient.queryObject(clazz, obj.getId());
                         Assert.assertNotNull(read);
                     }
@@ -173,12 +174,13 @@ public class GarbageCollectorTests extends DbsvcTestBase {
             DataObject read = _dbClient.queryObject(clazz, obj.getId());
             read.setInactive(true);
             _dbClient.updateAndReindexObject(read);
-             _gcExecutor.runNow();
+            _gcExecutor.runNow();
         }
-        
+
         DataObject read = _dbClient.queryObject(clazz, obj.getId());
         if (read != null) {
-            String dep = new DependencyChecker(_dbClient, _scanner.getDependencyTracker()).checkDependencies(read.getId(), read.getClass(), false);
+            String dep = new DependencyChecker(_dbClient, _scanner.getDependencyTracker()).checkDependencies(read.getId(), read.getClass(),
+                    false);
             Assert.fail(String.format("Object with id %s is not recycled because of dependency: %s", read.getId().toString(), dep));
         }
 
@@ -188,10 +190,10 @@ public class GarbageCollectorTests extends DbsvcTestBase {
     public void testAllLevels() throws Exception {
         initGCExecutor();
         int all = _scanner.getDependencyTracker().getLevels();
-        for (int i = 0; i < all; i++) {         
+        for (int i = 0; i < all; i++) {
             _log.info("testing level {}", i);
             List<Class<? extends DataObject>> types = _scanner.getDependencyTracker().getTypesInLevel(i);
-            for (Class<? extends DataObject> type :  types) {
+            for (Class<? extends DataObject> type : types) {
                 if (!type.isAnnotationPresent(DbKeyspace.class)
                         || type.getAnnotation(DbKeyspace.class).value()
                                 .equals(Keyspaces.LOCAL)) {
@@ -205,17 +207,17 @@ public class GarbageCollectorTests extends DbsvcTestBase {
                 DecommissionedConstraint.Factory.getDecommissionedObjectsConstraint(
                         TenantOrg.class, 0), list);
         List<URI> gotUris = new ArrayList<URI>();
-        for(Iterator<URI> iterator = list.iterator(); iterator.hasNext(); ) {
+        for (Iterator<URI> iterator = list.iterator(); iterator.hasNext();) {
             gotUris.add(iterator.next());
         }
-        Assert.assertTrue(gotUris.size() == 0);
+        Assert.assertTrue(gotUris.isEmpty());
     }
 
     @Test
     public void testDependencyChecker() throws Exception {
-        int num_projects  = 10;
+        int num_projects = 10;
         int num_fs = 110;
-        
+
         initGCExecutor();
         DependencyChecker checker = new DependencyChecker(_dbClient, _scanner);
         VirtualPool vpool = new VirtualPool();
@@ -226,7 +228,7 @@ public class GarbageCollectorTests extends DbsvcTestBase {
         _dbClient.createObject(vpool);
 
         List<URI> activeProjects = new ArrayList<URI>();
-        for(int i =0; i < num_projects; i++) {
+        for (int i = 0; i < num_projects; i++) {
             Project p = new Project();
             p.setId(URIUtil.createId(Project.class));
             p.setLabel("dependency test project");
@@ -252,26 +254,26 @@ public class GarbageCollectorTests extends DbsvcTestBase {
             fs.setProject(new NamedURI(proj, label));
             _dbClient.createObject(fs);
             if (!activeFileSystems.containsKey(proj)) {
-                activeFileSystems.put(proj, new ArrayList<URI>());    
+                activeFileSystems.put(proj, new ArrayList<URI>());
             }
             activeFileSystems.get(fs.getProject().getURI()).add(fs.getId());
         }
 
-        Assert.assertNotNull(checker.checkDependencies(vpool.getId(), VirtualPool.class, true));     
-        for (int i =0; i < num_projects; i++) {
+        Assert.assertNotNull(checker.checkDependencies(vpool.getId(), VirtualPool.class, true));
+        for (int i = 0; i < num_projects; i++) {
             if (activeFileSystems.containsKey(activeProjects.get(i))) {
                 Assert.assertNotNull(checker.checkDependencies(activeProjects.get(i), Project.class, true));
             } else {
                 Assert.assertNull(checker.checkDependencies(activeProjects.get(i), Project.class, true));
             }
         }
-        
+
         List<URI> inactiveRefProjects = new ArrayList<URI>();
         List<URI> lastRefProjects = new ArrayList<URI>();
-        for (Map.Entry<URI, List<URI>> entry: activeFileSystems.entrySet()) {
+        for (Map.Entry<URI, List<URI>> entry : activeFileSystems.entrySet()) {
             if (entry.getValue().size() % 3 == 0) {
-                // inactive all refs   
-                for (URI uri: entry.getValue()) {
+                // inactive all refs
+                for (URI uri : entry.getValue()) {
                     FileShare fs = new FileShare();
                     fs.setId(uri);
                     fs.setInactive(true);
@@ -280,44 +282,44 @@ public class GarbageCollectorTests extends DbsvcTestBase {
                 inactiveRefProjects.add(entry.getKey());
             } else if (entry.getValue().size() % 3 == 2) {
                 // inactive all but last ref
-                for (int i = 0; i < entry.getValue().size()-1; i++) {
+                for (int i = 0; i < entry.getValue().size() - 1; i++) {
                     FileShare fs = new FileShare();
                     fs.setId(entry.getValue().get(i));
                     fs.setInactive(true);
                     _dbClient.updateAndReindexObject(fs);
                 }
                 lastRefProjects.add(entry.getKey());
-            }  else {
+            } else {
                 continue;
             }
         }
 
         Assert.assertNotNull(checker.checkDependencies(vpool.getId(), VirtualPool.class, true));
-        for (int i =0; i < num_projects; i++) {
+        for (int i = 0; i < num_projects; i++) {
             URI p = activeProjects.get(i);
             if (inactiveRefProjects.contains(p)) {
                 Assert.assertNull(checker.checkDependencies(p, Project.class, true));
             } else {
                 Assert.assertNotNull(checker.checkDependencies(p, Project.class, true));
                 if (lastRefProjects.contains(p)) {
-                    URI lastFs = activeFileSystems.get(p).get(activeFileSystems.get(p).size()-1);
+                    URI lastFs = activeFileSystems.get(p).get(activeFileSystems.get(p).size() - 1);
                     FileShare fs = new FileShare();
                     fs.setId(lastFs);
                     fs.setInactive(true);
                     _dbClient.updateAndReindexObject(fs);
                 } else {
-                    for (URI uri: activeFileSystems.get(p)) {
+                    for (URI uri : activeFileSystems.get(p)) {
                         FileShare fs = new FileShare();
                         fs.setId(uri);
                         fs.setInactive(true);
                         _dbClient.updateAndReindexObject(fs);
                     }
                 }
-            } 
+            }
         }
 
-        Assert.assertNull(checker.checkDependencies(vpool.getId(), VirtualPool.class, true));        
-        for (int i =0; i < num_projects; i++) {
+        Assert.assertNull(checker.checkDependencies(vpool.getId(), VirtualPool.class, true));
+        for (int i = 0; i < num_projects; i++) {
             Assert.assertNull(checker.checkDependencies(activeProjects.get(i), Project.class, true));
             Project p = new Project();
             p.setId(activeProjects.get(i));
@@ -333,5 +335,5 @@ public class GarbageCollectorTests extends DbsvcTestBase {
         _gcExecutor.runNow();
         Assert.assertNull(_dbClient.queryObject(VirtualPool.class, vpool.getId()));
     }
-    
+
 }

@@ -89,10 +89,10 @@ public class VirtualPoolUpdateBuilder {
         Set<String> remove = Sets.newHashSet(CollectionUtils.subtract(oldVirtualArrays, virtualArrays));
 
         VirtualArrayAssignmentChanges changes = new VirtualArrayAssignmentChanges();
-        if (add.size() > 0) {
+        if (!add.isEmpty()) {
             changes.setAdd(new VirtualArrayAssignments(add));
         }
-        if (remove.size() > 0) {
+        if (!remove.isEmpty()) {
             changes.setRemove(new VirtualArrayAssignments(remove));
         }
         virtualPool.setVarrayChanges(changes);
@@ -106,16 +106,16 @@ public class VirtualPoolUpdateBuilder {
         Set<String> remove = Sets.newHashSet(CollectionUtils.subtract(oldProtocols, protocols));
 
         ProtocolChanges changes = new ProtocolChanges();
-        if (add.size() > 0) {
+        if (!add.isEmpty()) {
             changes.setAdd(new ProtocolAssignments(add));
         }
-        if (remove.size() > 0) {
+        if (!remove.isEmpty()) {
             changes.setRemove(new ProtocolAssignments(remove));
         }
         virtualPool.setProtocolChanges(changes);
         return this;
     }
-    
+
     protected URI defaultURI(URI uri) {
         if (uri != null) {
             return uri;

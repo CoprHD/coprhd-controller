@@ -51,7 +51,7 @@ public class ServiceFieldTable extends ServiceItem implements ServiceItemContain
     public Set<String> getAssetTypes() {
         return ServiceField.getAssetTypes(this);
     }
-    
+
     @Override
     public String toString() {
         ToStringBuilder builder = new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE);

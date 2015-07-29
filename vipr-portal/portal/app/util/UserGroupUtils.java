@@ -32,8 +32,7 @@ public class UserGroupUtils {
     public static UserGroupRestRep getUserGroup(String id) {
         try {
             return getViprClient().getUserGroup().get(uri(id));
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
@@ -54,11 +53,11 @@ public class UserGroupUtils {
         if (StringUtils.isNotBlank(domain)) {
             List<UserGroupRestRep> userGroupRestReps = UserGroupUtils.getUserGroups();
             for (UserGroupRestRep userGroupRestRep : userGroupRestReps) {
-                   if (StringUtils.equalsIgnoreCase(userGroupRestRep.getDomain(), domain)) {
-                        results.add(userGroupRestRep);
-                   }
+                if (StringUtils.equalsIgnoreCase(userGroupRestRep.getDomain(), domain)) {
+                    results.add(userGroupRestRep);
                 }
             }
+        }
 
         return results;
     }

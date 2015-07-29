@@ -46,8 +46,7 @@ import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.systemservices.impl.licensing.LicenseInfoExt;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 
-import static com.emc.storageos.systemservices.impl.eventhandler.connectemc
-        .CallHomeConstants.*;
+import static com.emc.storageos.systemservices.impl.eventhandler.connectemc.CallHomeConstants.*;
 
 public abstract class SendEvent {
 
@@ -59,12 +58,12 @@ public abstract class SendEvent {
     protected MediaType mediaType;
     protected LogSvcPropertiesLoader logSvcPropertiesLoader;
     protected CoordinatorClientExt coordinator;
-    
+
     private boolean forceAttachLogs = false;
-    
+
     public SendEvent(ServiceImpl service, LogSvcPropertiesLoader logSvcPropertiesLoader,
-                     MediaType mediaType, LicenseInfoExt licenseInfo,
-                     CoordinatorClientExt coordinator) {
+            MediaType mediaType, LicenseInfoExt licenseInfo,
+            CoordinatorClientExt coordinator) {
         URI endpointUri = coordinator.getNodeEndpoint(service.getEndpoint().getHost());
         _networkIpAddress = (endpointUri != null) ? coordinator.getIPAddrFromUri(endpointUri)
                 : service.getEndpoint().getHost();
@@ -134,7 +133,7 @@ public abstract class SendEvent {
 
     /**
      * Builds the Connection element of ConnectHome
-     *
+     * 
      * @param alertFile
      */
     private void buildConnectionSection(EmaApiConnectHome alertFile) throws EmaException {
@@ -147,7 +146,7 @@ public abstract class SendEvent {
 
     /**
      * Get file name from full path
-     *
+     * 
      * @param fileName
      * @return file name
      */
@@ -157,7 +156,7 @@ public abstract class SendEvent {
 
     /**
      * Get attach files' list
-     *
+     * 
      * @return list of file names
      */
     protected abstract ArrayList<String> genAttachFiles() throws Exception;
@@ -167,7 +166,7 @@ public abstract class SendEvent {
      * attachments and sends to ConnectEMC
      */
     protected void buildAlertFile(EmaApiConnectHome alertFile,
-                                  EmaApiLogType log) throws Exception {
+            EmaApiLogType log) throws Exception {
         _log.info("Start SendEvent::buildEventType");
         alertFile.eventAdd(getEventType(), log);
 
@@ -177,13 +176,13 @@ public abstract class SendEvent {
         _log.info("Event filename: {}", eventFilename);
         ArrayList<String> fileList = genAttachFiles();
         BadRequestException badRequestException = null;
-        
-        if (fileList != null && fileList.size() > 0) {                        
+
+        if (fileList != null && !fileList.isEmpty()) {
             boolean attachLogs = true;
             try {
                 validateAttachmentSize(fileList);
-            } catch(BadRequestException e) {
-                if(forceAttachLogs) {
+            } catch (BadRequestException e) {
+                if (forceAttachLogs) {
                     throw e;
                 }
                 badRequestException = e;
@@ -192,8 +191,8 @@ public abstract class SendEvent {
 
             ArrayList<EmaApiFilenameType> attachFiles = new
                     ArrayList<EmaApiFilenameType>();
-            
-            if(attachLogs) {                                       
+
+            if (attachLogs) {
                 for (String file : fileList) {
                     EmaApiFilenameType filename = new EmaApiFilenameType();
                     filename.setQualifiedFileName(file);
@@ -201,8 +200,8 @@ public abstract class SendEvent {
                     attachFiles.add(filename);
                 }
             }
-            else { // log size too big, not to attach logs                
-                for (String file : fileList) {                    
+            else { // log size too big, not to attach logs
+                for (String file : fileList) {
                     if (file.equals(SYSTEM_LOGS_FILE_PATH) || file.equals
                             (SYSTEM_EVENT_FILE_PATH)) {
                         continue;
@@ -214,14 +213,14 @@ public abstract class SendEvent {
                 }
                 AlertsLogger.getAlertsLogger().warn(
                         "ConnectEMC alert will be sent without logs attached due to logs have exceeded max allowed size ("
-                        + this.getAttachmentsMaxSizeMB() + " MB)");
+                                + this.getAttachmentsMaxSizeMB() + " MB)");
             }
             alertFile.addFileRawData(eventFilename, attachFiles, log);
         }
         alertFile.write(eventFilename, log);
         alertFile.emaCreateDotEndFile(eventFilename, log);
         _log.info("Finish SendEvent::buildEventType");
-        if(badRequestException != null){
+        if (badRequestException != null) {
             throw badRequestException;
         }
     }
@@ -234,7 +233,7 @@ public abstract class SendEvent {
     /**
      * Constructs ArrayList of query parameters used
      */
-    protected ArrayList<String> collectQueryParameters(){
+    protected ArrayList<String> collectQueryParameters() {
         return new ArrayList<String>();
     }
 
@@ -244,7 +243,6 @@ public abstract class SendEvent {
      */
     protected abstract void overrideIdentifierData(EmaApiIdentifierType identifier)
             throws EmaException;
-
 
     /**
      * Generates configuration file with name taken from variable CONFIG_FILE_NAME
@@ -260,7 +258,7 @@ public abstract class SendEvent {
             ZipEntry ze = new ZipEntry(CONFIG_FILE_NAME + getFileExtension());
             zos.putNextEntry(ze);
 
-            if (MediaType.APPLICATION_JSON_TYPE.equals(mediaType)) {                
+            if (MediaType.APPLICATION_JSON_TYPE.equals(mediaType)) {
                 (new ObjectMapper()).writeValue(zos, properties); // gson should not be used any more
             } else {
                 JAXBContext jaxbContext = JAXBContext.newInstance(PropertyInfo.class);
@@ -296,7 +294,7 @@ public abstract class SendEvent {
     public void validateAttachmentSize(List<String> filePathNames) {
         int attachmentsMaxMB = getAttachmentsMaxSizeMB();
         if (attachmentsMaxMB == 0 || filePathNames == null ||
-                filePathNames.size() == 0) {
+                filePathNames.isEmpty()) {
             return;
         }
 
@@ -325,12 +323,12 @@ public abstract class SendEvent {
                     _log.info("Logs attachment size is {} MB ", totalLogsSize);
                     throw APIException.badRequests.attachmentLogsSizeError
                             (attachmentSizeMB,
-                            (long) totalLogsSize, attachmentsMaxMB,
+                                    (long) totalLogsSize, attachmentsMaxMB,
                                     collectQueryParameters().toString());
                 }
                 throw APIException.internalServerErrors.attachmentSizeError
                         (attachmentSizeMB,
-                        attachmentsMaxMB);
+                                attachmentsMaxMB);
             }
         }
     }

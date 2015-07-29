@@ -16,8 +16,6 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
-
-import com.netflix.astyanax.util.TimeUUIDUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +46,6 @@ public class PrefixConstraintImpl extends ConstraintImpl implements PrefixConstr
         _label = new ScopedLabel(null, label.toLowerCase());
         _field = field;
     }
-
 
     public PrefixConstraintImpl(URI scope, String label, ColumnField field) {
         super(scope, label, field);

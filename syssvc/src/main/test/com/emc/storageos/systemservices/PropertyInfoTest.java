@@ -24,7 +24,6 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-
 public class PropertyInfoTest {
     @Test
     public void testDiff() {
@@ -81,19 +80,20 @@ public class PropertyInfoTest {
             Assert.assertTrue(props.getAllProperties().get("twoEquals").equals("abc==abc==abc"));
         } catch (DecodingException e) {
             Assert.assertTrue(false);
-            e.printStackTrace();
         } catch (Exception e) {
             Assert.assertTrue(false);
         }
 
-        PropertyInfoExt propertyInfo1 = new PropertyInfoExt(new String[]{"", "node_id=node2", "system_connectemc_username=username", "multiEquals=a=b=c"});
+        PropertyInfoExt propertyInfo1 = new PropertyInfoExt(new String[] { "", "node_id=node2", "system_connectemc_username=username",
+                "multiEquals=a=b=c" });
         String encodeStr1 = propertyInfo1.encodeAsString();
         char[] chars = encodeStr1.toCharArray();
         int len = chars.length;
         int count = 0;
         for (int i = 0; i < len; i++) {
-            if (chars[i] == '=')
+            if (chars[i] == '=') {
                 count++;
+            }
         }
         Assert.assertTrue(count == 5);
 

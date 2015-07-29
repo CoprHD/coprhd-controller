@@ -294,14 +294,14 @@ public class ExecutionWindowService extends CatalogTaggedResourceService {
     @Override
     public ExecutionWindowBulkRep queryBulkResourceReps(List<URI> ids) {
         Iterator<ExecutionWindow> _dbIterator =
-    			_dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new ExecutionWindowBulkRep(BulkList.wrapping(_dbIterator, ExecutionWindowMapper.getInstance()));
     }
 
     @Override
     public ExecutionWindowBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
         Iterator<ExecutionWindow> _dbIterator =
-    			_dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         BulkList.ResourceFilter filter = new ExecutionWindowFilter(getUserFromContext(), _permissionsHelper);
         return new ExecutionWindowBulkRep(BulkList.wrapping(_dbIterator, ExecutionWindowMapper.getInstance(), filter));
     }

@@ -97,7 +97,7 @@ public class DependencyTracker {
             for (Class<? extends DataObject> entry : all) {
 
                 if (visited.contains(entry))
-                 {
+                {
                     continue; // already handled
                 }
 

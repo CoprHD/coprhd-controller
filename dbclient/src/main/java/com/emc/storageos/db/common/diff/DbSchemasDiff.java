@@ -71,7 +71,7 @@ public class DbSchemasDiff extends Diff {
             }
 
             if (found)
-             {
+            {
                 iterator.remove(); // remove the schema that should not be checked
             }
         }

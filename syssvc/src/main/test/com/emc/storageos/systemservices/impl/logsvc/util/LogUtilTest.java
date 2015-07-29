@@ -39,11 +39,11 @@ public class LogUtilTest {
         Assert.assertFalse(LogUtil.permitCurrentLog(maxCount, logCount, currentLogTime,
                 prevLogTime));
 
-        logCount--; //100
+        logCount--; // 100
         Assert.assertTrue(LogUtil.permitCurrentLog(maxCount, logCount, currentLogTime,
                 prevLogTime));
 
-        logCount--; //99
+        logCount--; // 99
         Assert.assertTrue(LogUtil.permitCurrentLog(maxCount, logCount, currentLogTime,
                 prevLogTime));
     }
@@ -75,7 +75,7 @@ public class LogUtilTest {
         Assert.assertFalse(LogUtil.permitNextLogBatch(maxCount, logCount, logBatchSize));
 
         logCount = 0;
-        logBatchSize = (int)maxCount + LogConstants.MAXCOUNT_OVERFLOW + 1;
+        logBatchSize = (int) maxCount + LogConstants.MAXCOUNT_OVERFLOW + 1;
         Assert.assertTrue(LogUtil.permitNextLogBatch(maxCount, logCount, logBatchSize));
     }
 }

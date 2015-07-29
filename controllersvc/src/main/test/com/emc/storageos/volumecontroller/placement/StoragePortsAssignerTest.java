@@ -481,7 +481,7 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
                     existingAssignments.get(initiator);
                 }
                 if (portAssignments == null)
-                 {
+                {
                     continue;  // if unassigned
                 }
                 Integer nports = portAssignments.size();

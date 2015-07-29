@@ -25,7 +25,5 @@ public class LunAddParam {
     public void setLun(VNXeBase lun) {
         this.lun = lun;
     }
-    
-    
 
 }

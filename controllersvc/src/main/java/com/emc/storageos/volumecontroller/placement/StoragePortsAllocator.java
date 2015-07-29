@@ -994,7 +994,7 @@ public class StoragePortsAllocator {
             Set<StoragePort> previouslyAllocatedPorts, boolean allowFewerPorts) throws PlacementException {
 
         if (numPorts == null || numPorts <= 0)
-         {
+        {
             numPorts = 2; // Default value if too low
         }
         // Determine if we should check connectivity from the Network's varray.auto_san_zoning

@@ -17,8 +17,8 @@ package com.emc.storageos.vnxe.models;
 
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
-@JsonIgnoreProperties(ignoreUnknown=true)
-public class NameId extends VNXeBase{
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class NameId extends VNXeBase {
     private String name;
 
     public String getName() {
@@ -28,5 +28,5 @@ public class NameId extends VNXeBase{
     public void setName(String name) {
         this.name = name;
     }
-    
+
 }

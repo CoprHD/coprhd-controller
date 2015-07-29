@@ -33,12 +33,13 @@ public class Waiter {
 
     /**
      * Sleep for a specific amount of time, or until the wakeup method is called, whichever comes first
+     * 
      * @param milliSeconds the amount of time to sleep, in milliseconds.
      */
     public void sleep(long milliSeconds) {
         lock.lock();
         try {
-            // if someone tried to wake it up before it goes to sleep 
+            // if someone tried to wake it up before it goes to sleep
             // just reset t and restart the loop
             if (t != 0) {
                 t = System.currentTimeMillis() + milliSeconds;

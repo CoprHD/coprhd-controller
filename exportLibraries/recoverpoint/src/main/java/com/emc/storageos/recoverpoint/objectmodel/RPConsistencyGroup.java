@@ -78,7 +78,7 @@ public class RPConsistencyGroup {
         RPConsistencyGroup that = (RPConsistencyGroup) o;
 
         if (_cgUID == null || that.getCGUID() == null)
-         {
+        {
             return false; // null != everything (including null)
         }
         return _cgUID.getId() == that.getCGUID().getId();

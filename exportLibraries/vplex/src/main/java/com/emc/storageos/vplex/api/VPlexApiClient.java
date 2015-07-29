@@ -1520,22 +1520,14 @@ public class VPlexApiClient {
             }
         }
     }
-    
-    
-    
-    
-    
-    
-    
+
     public Map<String, String> getStorageVolumeInfoForDevice(String deviceName, String locality) throws VPlexApiException {
-        
         if (null == deviceName || null == locality) {
             String reason = "deviceName was " + deviceName + " and locality was " + locality;
             throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(reason);
         }
         
-        s_logger
-        .info("Request to find storage volume wwns for {} on VPLEX at {}",
+        s_logger.info("Request to find storage volume wwns for {} on VPLEX at {}",
                 deviceName, _baseURI);
         
         List<VPlexStorageVolumeInfo> storageVolumes = getDiscoveryManager()

@@ -3191,18 +3191,7 @@ public class VPlexApiDiscoveryManager {
             }
         }
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
     public List<VPlexStorageVolumeInfo> getStorageVolumesForDevice(String deviceName, String locality) {
         
         long timer = new Date().getTime();

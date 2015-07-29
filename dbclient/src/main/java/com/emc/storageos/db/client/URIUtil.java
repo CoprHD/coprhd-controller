@@ -87,9 +87,8 @@ public class URIUtil {
 
         for (String modelPackage : MODEL_PACKAGES) {
             try {
-                return Thread.currentThread().getContextClassLoader().loadClass(modelPackage+"."+typeName);
-            }
-            catch (ClassNotFoundException ignore) {
+                return Thread.currentThread().getContextClassLoader().loadClass(modelPackage + "." + typeName);
+            } catch (ClassNotFoundException ignore) {
                 log.debug("load class failed: ", ignore);
             }
         }

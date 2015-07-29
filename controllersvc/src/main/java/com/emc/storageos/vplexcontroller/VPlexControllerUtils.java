@@ -7,7 +7,6 @@ package com.emc.storageos.vplexcontroller;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -27,7 +26,6 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
-import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 
 public class VPlexControllerUtils {
@@ -224,20 +222,7 @@ public class VPlexControllerUtils {
         log.info("VPLEX cluster name for cluster id {} is {}", clusterId, clusterName);
         return clusterName;
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
     public static Map<String, String> getStorageVolumeInfoForDevice(String deviceName, String locality, URI vplexUri, DbClient dbClient) {
 
         Map<String, String> storageVolumeInfo = null;

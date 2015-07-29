@@ -25,8 +25,9 @@ public class VolumeCreate {
     private URI project;
     private URI consistencyGroup;
 
-    public VolumeCreate() {}
-    
+    public VolumeCreate() {
+    }
+
     public VolumeCreate(String name, String size, Integer count, URI vpool,
             URI varray, URI project, URI consistencyGroup) {
         this.name = name;
@@ -47,13 +48,14 @@ public class VolumeCreate {
         this.vpool = vpool;
         this.varray = varray;
         this.project = project;
-    }    
-    
+    }
+
     /**
-     * This parameter will allow for the creation of a source 
-     * consistency group. Once the source consistency group is 
-     * established, the snapshot operations for any volume in 
+     * This parameter will allow for the creation of a source
+     * consistency group. Once the source consistency group is
+     * established, the snapshot operations for any volume in
      * the group would apply to all volumes in the group.
+     * 
      * @valid example: Currently not supported for VMAX volumes.
      */
     @XmlElement(name = "consistency_group")
@@ -67,8 +69,9 @@ public class VolumeCreate {
 
     /**
      * Number of volumes to be created.
+     * 
      * @valid none
-     */     
+     */
     @XmlElement(name = "count")
     public Integer getCount() {
         return count;
@@ -80,9 +83,10 @@ public class VolumeCreate {
 
     /**
      * Name with which the volume is to be created.
+     * 
      * @valid minimum of 2 characters
      * @valid maximum of 128 characters
-     */     
+     */
     @XmlElement(required = true)
     @Length(min = 2, max = 128)
     public String getName() {
@@ -95,8 +99,9 @@ public class VolumeCreate {
 
     /**
      * The ViPR project to which the volume will belong.
-     * @valid example:  a valid URI of a ViPR project
-     */     
+     * 
+     * @valid example: a valid URI of a ViPR project
+     */
     @XmlElement(required = true)
     public URI getProject() {
         return project;
@@ -108,8 +113,9 @@ public class VolumeCreate {
 
     /**
      * Size of the volume (in GB) to be created.
+     * 
      * @valid none
-     */     
+     */
     @XmlElement(required = true)
     public String getSize() {
         return size;
@@ -121,8 +127,9 @@ public class VolumeCreate {
 
     /**
      * The virtual array to which the volume will belong.
-     * @valid example:  a valid URI of a varray
-     */     
+     * 
+     * @valid example: a valid URI of a varray
+     */
     @XmlElement(required = true)
     public URI getVarray() {
         return varray;
@@ -134,8 +141,9 @@ public class VolumeCreate {
 
     /**
      * The virtual pool to which the volume will belong.
-     * @valid example:  a valid URI of a vpool
-     */     
+     * 
+     * @valid example: a valid URI of a vpool
+     */
     @XmlElement(required = true)
     public URI getVpool() {
         return vpool;

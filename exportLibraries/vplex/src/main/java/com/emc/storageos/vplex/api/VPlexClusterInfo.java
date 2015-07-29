@@ -23,21 +23,21 @@ import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
  * Info for a VPlex cluster
  */
 public class VPlexClusterInfo extends VPlexResourceInfo {
-    
+
     // The top level assembly identifier.
     private String topLevelAssembly;
-    
+
     // The cluster id (1 or 2)
     private String clusterId;
 
     // Information about the storage systems accessible to the cluster.
     List<VPlexStorageSystemInfo> storageSystemInfoList = new ArrayList<VPlexStorageSystemInfo>();
-    
+
     // Information about the storage volumes accessible to the cluster.
     List<VPlexStorageVolumeInfo> storageVolumeInfoList = new ArrayList<VPlexStorageVolumeInfo>();
-    
+
     // Information about the system volumes accessible to the cluster.
-    List<VPlexSystemVolumeInfo> systemVolumeInfoList = new ArrayList<VPlexSystemVolumeInfo>();    
+    List<VPlexSystemVolumeInfo> systemVolumeInfoList = new ArrayList<VPlexSystemVolumeInfo>();
 
     /**
      * Getter for the assembly id.
@@ -56,7 +56,7 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
     public void setTopLevelAssembly(String id) {
         topLevelAssembly = id;
     }
-    
+
     /**
      * Getter for the cluster id (1 or 2).
      * 
@@ -65,6 +65,7 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
     public String getClusterId() {
         return clusterId;
     }
+
     /**
      * Setter for the cluster id.
      * 
@@ -73,7 +74,7 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
     public void setClusterId(String id) {
         clusterId = id;
     }
-    
+
     /**
      * Getter for the storage system info for the cluster.
      * 
@@ -82,7 +83,7 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
     public List<VPlexStorageSystemInfo> getStorageSystemInfo() {
         return storageSystemInfoList;
     }
-    
+
     /**
      * Setter for the storage system info for the cluster.
      * 
@@ -91,7 +92,7 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
     public void setStorageSystemInfo(List<VPlexStorageSystemInfo> systemInfoList) {
         storageSystemInfoList = systemInfoList;
     }
-    
+
     /**
      * Determines if the cluster is managing a storage system with the passed
      * name.
@@ -111,7 +112,7 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
         }
         return contains;
     }
-    
+
     /**
      * Getter for the storage volume info for the cluster.
      * 
@@ -120,7 +121,7 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
     public List<VPlexStorageVolumeInfo> getStorageVolumeInfo() {
         return storageVolumeInfoList;
     }
-    
+
     /**
      * Setter for the storage volume info for the cluster.
      * 
@@ -129,7 +130,7 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
     public void setStorageVolumeInfo(List<VPlexStorageVolumeInfo> volumeInfoList) {
         storageVolumeInfoList = volumeInfoList;
     }
-    
+
     /**
      * Gets the storage volume with the passed name.
      * 
@@ -149,7 +150,8 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
             if (startIndex != -1) {
                 clusterVolumeName = clusterVolumeName.substring(startIndex);
                 s_logger.info("Trimmed cluster volume name is {}", clusterVolumeName);
-                if (storageSystemNativeGuid.contains(VPlexApiConstants.HDS_SYSTEM) && clusterVolumeName.toLowerCase().endsWith(storageVolumeWWN.toLowerCase())) {
+                if (storageSystemNativeGuid.contains(VPlexApiConstants.HDS_SYSTEM)
+                        && clusterVolumeName.toLowerCase().endsWith(storageVolumeWWN.toLowerCase())) {
                     s_logger.info("Found HDS volume {}", storageVolumeName);
                     return storageVolumeInfo;
                 } else if (storageVolumeName.equals(clusterVolumeName)) {
@@ -163,7 +165,7 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
         }
         return null;
     }
-    
+
     /**
      * Getter for the system volume info for the cluster.
      * 
@@ -172,7 +174,7 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
     public List<VPlexSystemVolumeInfo> getSystemVolumeInfo() {
         return systemVolumeInfoList;
     }
-    
+
     /**
      * Setter for the system volume info for the cluster.
      * 
@@ -181,7 +183,7 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
     public void setSystemVolumeInfo(List<VPlexSystemVolumeInfo> volumeInfoList) {
         systemVolumeInfoList = volumeInfoList;
     }
-    
+
     /**
      * Determines whether or not the cluster has a system volume that is a
      * logging volume.
@@ -223,7 +225,7 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
             str.append(systemVolumeInfo.toString());
         }
         str.append(" )");
-        
+
         return str.toString();
     }
 }

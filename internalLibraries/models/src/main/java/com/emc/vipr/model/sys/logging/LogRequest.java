@@ -19,7 +19,7 @@ public class LogRequest {
     private Date startTime;
     private Date endTime;
     private int logLevel;
-    private  long maxCount; // Maximum number of log messages
+    private long maxCount; // Maximum number of log messages
     private long maxBytes;// maximum byte size of log messages
     // The list of ids for the Bourne nodes from which to collect log data.
     private List<String> nodeIds = new ArrayList<>();
@@ -27,33 +27,32 @@ public class LogRequest {
     private List<String> baseNames = new ArrayList<>();
     // Log pattern match
     private String regex;
-    
+
     private boolean dryRun;
 
     public LogRequest() {
-    	
+
     }
-    
+
     /**
      * Constructor for log level requests.
-     *
-     * @param nodeIds   The list of Bourne node ids.
-     * @param logNames  The list of log file names.
-     * @param severity  The severity level to set.
+     * 
+     * @param nodeIds The list of Bourne node ids.
+     * @param logNames The list of log file names.
+     * @param severity The severity level to set.
      */
-    public LogRequest(List<String> nodeIds, List<String> logNames, 
+    public LogRequest(List<String> nodeIds, List<String> logNames,
             int severity) {
-    	 if (nodeIds != null) {
-             this.nodeIds = nodeIds;
-         }
+        if (nodeIds != null) {
+            this.nodeIds = nodeIds;
+        }
 
-         if (logNames != null) {
-             this.baseNames = logNames;
-         }
-         this.logLevel = severity;
+        if (logNames != null) {
+            this.baseNames = logNames;
+        }
+        this.logLevel = severity;
     }
-    
-    
+
     public static class Builder {
         private Date startTime = null;
         private Date endTime = null;
@@ -108,7 +107,7 @@ public class LogRequest {
         }
 
         public LogRequest build() {
-        	return new LogRequest(this);
+            return new LogRequest(this);
         }
 
     }
@@ -123,7 +122,7 @@ public class LogRequest {
         this.baseNames = builder.baseNames;
         this.regex = builder.regex;
     }
-    
+
     @XmlElement(name = "severity")
     public int getLogLevel() {
         return logLevel;
@@ -141,9 +140,9 @@ public class LogRequest {
 
     @XmlElement(name = "logNames")
     public List<String> getBaseNames() {
-    	 if (baseNames== null) {
-             baseNames = new ArrayList<>();
-         }
+        if (baseNames == null) {
+            baseNames = new ArrayList<>();
+        }
         return baseNames;
     }
 
@@ -159,7 +158,7 @@ public class LogRequest {
 
     @XmlElement(name = "nodeIds")
     public List<String> getNodeIds() {
-    	if (nodeIds == null) {
+        if (nodeIds == null) {
             nodeIds = new ArrayList<>();
         }
         return nodeIds;
@@ -186,56 +185,55 @@ public class LogRequest {
     public String getRegex() {
         return regex;
     }
-    
+
     public void setNodeIds(List<String> nids) {
-    	this.nodeIds = nids;
+        this.nodeIds = nids;
     }
-    
+
     public void setMaxBytes(long maxBytes) {
-    	this.maxBytes = maxBytes;
+        this.maxBytes = maxBytes;
     }
-    
+
     public void setStartTime(Date startTime) {
-		this.startTime = startTime;
-	}
-
-	public void setEndTime(Date endTime) {
-		this.endTime = endTime;
-	}
-
-	public void setLogLevel(int logLevel) {
-		this.logLevel = logLevel;
-	}
-
-	public void setMaxCount(long maxCount) {
-		this.maxCount = maxCount;
-	}
-
-	public void setBaseNames(List<String> baseNames) {
-		this.baseNames = baseNames;
-	}
-	
-	public void setRegex(String regex) {
-		this.regex = regex;
-	}
-	
-	public boolean isDryRun(){
-		return this.dryRun;
-	}
-	
-	public void setDryRun(boolean dryRun) {
-		this.dryRun = dryRun;
-	}
-
-	@Override
-    public String toString() {
-    	StringBuilder sb = new StringBuilder();
-    	sb.append("nodes ids=" + this.nodeIds).append(" startTime=" + this.startTime).
-    	append(" EndTime=" + this.endTime).append(" Logging level=" + this.logLevel)
-    	.append(" maxCount=" + this.maxCount).append(" maxByte=" + this.maxBytes)
-    	.append(" Regex=" + this.regex).append(" baseName=" + this.baseNames);
-    	return sb.toString();
+        this.startTime = startTime;
     }
-	
-    
+
+    public void setEndTime(Date endTime) {
+        this.endTime = endTime;
+    }
+
+    public void setLogLevel(int logLevel) {
+        this.logLevel = logLevel;
+    }
+
+    public void setMaxCount(long maxCount) {
+        this.maxCount = maxCount;
+    }
+
+    public void setBaseNames(List<String> baseNames) {
+        this.baseNames = baseNames;
+    }
+
+    public void setRegex(String regex) {
+        this.regex = regex;
+    }
+
+    public boolean isDryRun() {
+        return this.dryRun;
+    }
+
+    public void setDryRun(boolean dryRun) {
+        this.dryRun = dryRun;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("nodes ids=" + this.nodeIds).append(" startTime=" + this.startTime).
+                append(" EndTime=" + this.endTime).append(" Logging level=" + this.logLevel)
+                .append(" maxCount=" + this.maxCount).append(" maxByte=" + this.maxBytes)
+                .append(" Regex=" + this.regex).append(" baseName=" + this.baseNames);
+        return sb.toString();
+    }
+
 }

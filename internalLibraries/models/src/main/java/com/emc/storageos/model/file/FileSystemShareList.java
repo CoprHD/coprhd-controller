@@ -14,14 +14,16 @@ public class FileSystemShareList {
 
     private List<SmbShareResponse> shareList;
 
-    public FileSystemShareList() {}
-    
+    public FileSystemShareList() {
+    }
+
     public FileSystemShareList(List<SmbShareResponse> shareList) {
         this.shareList = shareList;
     }
 
-    /** 
+    /**
      * List of file shares for a file system.
+     * 
      * @valid none
      */
     @XmlElement(name = "smb_share")
@@ -35,5 +37,5 @@ public class FileSystemShareList {
     public void setShareList(List<SmbShareResponse> shareList) {
         this.shareList = shareList;
     }
-    
+
 }

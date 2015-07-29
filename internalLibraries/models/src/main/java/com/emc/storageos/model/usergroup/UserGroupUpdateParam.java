@@ -20,11 +20,11 @@ import java.util.Set;
 public class UserGroupUpdateParam extends UserGroupBaseParam {
     private Set<UserAttributeParam> _addAttributes;
 
-    @XmlElementWrapper(name="add_attributes")
-    @XmlElement(required=true, name="attribute")
+    @XmlElementWrapper(name = "add_attributes")
+    @XmlElement(required = true, name = "attribute")
     @JsonProperty("add_attributes")
     public Set<UserAttributeParam> getAddAttributes() {
-        if(_addAttributes == null){
+        if (_addAttributes == null) {
             _addAttributes = new HashSet<>();
         }
         return _addAttributes;
@@ -36,11 +36,11 @@ public class UserGroupUpdateParam extends UserGroupBaseParam {
 
     private Set<String> _removeAttributes;
 
-    @XmlElementWrapper(name="remove_attributes")
-    @XmlElement(required=true, name="key")
+    @XmlElementWrapper(name = "remove_attributes")
+    @XmlElement(required = true, name = "key")
     @JsonProperty("remove_attributes")
     public Set<String> getRemoveAttributes() {
-        if(_removeAttributes == null){
+        if (_removeAttributes == null) {
             _removeAttributes = new HashSet<>();
         }
         return _removeAttributes;

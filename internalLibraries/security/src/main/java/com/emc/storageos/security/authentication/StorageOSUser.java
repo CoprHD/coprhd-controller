@@ -27,7 +27,7 @@ public class StorageOSUser extends StorageOSUserDAO implements Principal {
     public StorageOSUser(String username, String tenantId) {
         _userName = username;
         _tenantId = tenantId;
-        
+
         _isProxied = false;
     }
 
@@ -45,7 +45,7 @@ public class StorageOSUser extends StorageOSUserDAO implements Principal {
     public String getName() {
         return _userName;
     }
-    
+
     public void setToken(final String token) {
         _token = token;
     }
@@ -53,7 +53,7 @@ public class StorageOSUser extends StorageOSUserDAO implements Principal {
     public String getToken() {
         return _token;
     }
-    
+
     public void setProxyToken(final String ptoken) {
         _proxyToken = ptoken;
     }
@@ -63,9 +63,9 @@ public class StorageOSUser extends StorageOSUserDAO implements Principal {
     }
 
     public Set<String> getRoles() {
-        return (_roles == null)? new HashSet<String>(): Collections.unmodifiableSet(_roles);
+        return (_roles == null) ? new HashSet<String>() : Collections.unmodifiableSet(_roles);
     }
-    
+
     public void setRoles(Set<String> roles) {
         _roles = roles;
     }
@@ -80,11 +80,11 @@ public class StorageOSUser extends StorageOSUserDAO implements Principal {
     public boolean isLocal() {
         return _local;
     }
-    
+
     public boolean isProxied() {
         return _isProxied;
     }
-    
+
     public void setIsProxied(boolean proxied) {
         _isProxied = proxied;
     }
@@ -110,7 +110,7 @@ public class StorageOSUser extends StorageOSUserDAO implements Principal {
 
     /**
      * return the string representation of a string set.
-     *
+     * 
      * @param stringSet
      * @return
      */
@@ -122,7 +122,7 @@ public class StorageOSUser extends StorageOSUserDAO implements Principal {
         StringBuilder sb = new StringBuilder();
         sb.append("[");
         for (Object item : stringSet) {
-            sb.append((String)item + ",");
+            sb.append((String) item + ",");
         }
         sb.append("]");
         return sb.toString();
@@ -130,7 +130,7 @@ public class StorageOSUser extends StorageOSUserDAO implements Principal {
 
     /**
      * clone StorageOSUser
-     *
+     * 
      * @return
      */
     public StorageOSUser clone() {

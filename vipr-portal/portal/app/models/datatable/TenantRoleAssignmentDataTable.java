@@ -23,7 +23,7 @@ import controllers.security.Security;
 import controllers.tenant.Tenants.TenantRoleAssignmentForm;
 
 @With(Common.class)
-@Restrictions({@Restrict("SECURITY_ADMIN"), @Restrict("TENANT_ADMIN")})
+@Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("TENANT_ADMIN") })
 public class TenantRoleAssignmentDataTable extends DataTable {
 
     public TenantRoleAssignmentDataTable(URI tenantId) {
@@ -60,15 +60,15 @@ public class TenantRoleAssignmentDataTable extends DataTable {
                 localizedType = RoleAssignmentType.GROUP.getDisplayName();
             }
             id = TenantRoleAssignmentForm.createId(tenantId, name, type);
-            
+
             tenantRoles = "";
             if (roleAssignment.getRoles() != null) {
                 for (String role : roleAssignment.getRoles()) {
-                        tenantRoles = addRole(role, tenantRoles);
+                    tenantRoles = addRole(role, tenantRoles);
                 }
             }
         }
-        
+
         private String addRole(String role, String value) {
             if (value.length() > 0) {
                 value += ", ";

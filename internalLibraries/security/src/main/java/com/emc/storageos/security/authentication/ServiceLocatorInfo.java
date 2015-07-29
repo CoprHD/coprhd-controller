@@ -8,7 +8,7 @@ package com.emc.storageos.security.authentication;
  * 
  */
 public enum ServiceLocatorInfo {
-    AUTH_SVC("authsvc", "1"), 
+    AUTH_SVC("authsvc", "1"),
     SYS_SVC("syssvc", "1");
 
     private final String serviceName;

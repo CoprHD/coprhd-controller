@@ -15,17 +15,19 @@ public class UserMappingChanges {
     private List<UserMappingParam> add;
     private List<UserMappingParam> remove;
 
-    public UserMappingChanges() {}
-    
+    public UserMappingChanges() {
+    }
+
     public UserMappingChanges(List<UserMappingParam> add,
             List<UserMappingParam> remove) {
         this.add = add;
         this.remove = remove;
     }
 
-    @XmlElementWrapper(name="add")
+    @XmlElementWrapper(name = "add")
     /*
      * User mapping to add in this change
+     * 
      * @valid none
      */
     @XmlElement(name = "user_mapping")
@@ -40,7 +42,7 @@ public class UserMappingChanges {
         this.add = add;
     }
 
-    @XmlElementWrapper(name="remove")
+    @XmlElementWrapper(name = "remove")
     /**
      * User mapping to remove in this change
      * @valid none
@@ -56,5 +58,5 @@ public class UserMappingChanges {
     public void setRemove(List<UserMappingParam> remove) {
         this.remove = remove;
     }
-    
+
 }

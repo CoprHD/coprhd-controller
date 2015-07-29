@@ -12,15 +12,16 @@ import com.emc.storageos.model.varray.VirtualArrayResourceUpdateParam;
 import com.emc.storageos.model.valid.Range;
 
 @XmlRootElement(name = "storage_pool_update")
-public class StoragePoolUpdate extends  VirtualArrayResourceUpdateParam {
-     
+public class StoragePoolUpdate extends VirtualArrayResourceUpdateParam {
+
     private Integer maxPoolUtilizationPercentage;
     private Integer maxThinPoolSubscriptionPercentage;
-    private Integer maxResources;    
+    private Integer maxResources;
     private Boolean isUnlimitedResourcesSet;
 
-    public StoragePoolUpdate() {}
-    
+    public StoragePoolUpdate() {
+    }
+
     public StoragePoolUpdate(VirtualArrayAssignmentChanges varrayChanges,
             Integer maxPoolUtilizationPercentage,
             Integer maxThinPoolSubscriptionPercentage, Integer maxResources) {
@@ -29,7 +30,7 @@ public class StoragePoolUpdate extends  VirtualArrayResourceUpdateParam {
         this.maxThinPoolSubscriptionPercentage = maxThinPoolSubscriptionPercentage;
         this.maxResources = maxResources;
     }
-        
+
     /**
      * The user-defined limit for this pool's utilization
      * 
@@ -46,7 +47,7 @@ public class StoragePoolUpdate extends  VirtualArrayResourceUpdateParam {
 
     /**
      * The maximum percentage of usable space that can be assigned to thin volumes
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "max_thin_pool_subscription_percentage")
@@ -62,11 +63,11 @@ public class StoragePoolUpdate extends  VirtualArrayResourceUpdateParam {
     /**
      * The maximum number of ViPR storage resources that
      * can exist in this pool
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "max_resources")
-    @Range(min=0, max=Integer.MAX_VALUE)
+    @Range(min = 0, max = Integer.MAX_VALUE)
     public Integer getMaxResources() {
         return maxResources;
     }
@@ -74,7 +75,7 @@ public class StoragePoolUpdate extends  VirtualArrayResourceUpdateParam {
     public void setMaxResources(Integer maxResources) {
         this.maxResources = maxResources;
     }
-    
+
     /**
      * Whether limit on number of Resources has been set
      * 
@@ -85,8 +86,8 @@ public class StoragePoolUpdate extends  VirtualArrayResourceUpdateParam {
         return isUnlimitedResourcesSet;
     }
 
-    public void setIsUnlimitedResourcesSet(Boolean isUnlimitedResourcesSet){
+    public void setIsUnlimitedResourcesSet(Boolean isUnlimitedResourcesSet) {
         this.isUnlimitedResourcesSet = isUnlimitedResourcesSet;
     }
-    
+
 }

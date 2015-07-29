@@ -96,7 +96,6 @@ public class UserInfo {
         this.homeTenantRoles = roles;
     }
 
-
     @XmlElementWrapper(name = "subtenant_roles")
     /**
      * Subtenant(s) that this user has roles in.

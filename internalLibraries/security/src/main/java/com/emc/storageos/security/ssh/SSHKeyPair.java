@@ -8,7 +8,6 @@ package com.emc.storageos.security.ssh;
 import java.io.Serializable;
 import java.security.*;
 
-
 /**
  * DSA/ECDSA Key pair holder for SSH service
  */

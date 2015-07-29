@@ -19,18 +19,20 @@ public class VcenterUpdateParam extends VcenterParam {
 
     private String ipAddress;
 
-    public VcenterUpdateParam() {}
-    
+    public VcenterUpdateParam() {
+    }
+
     public VcenterUpdateParam(String ipAddress) {
         this.ipAddress = ipAddress;
     }
 
-    /** 
-     * The IP address or host name of the vCenter. 
+    /**
+     * The IP address or host name of the vCenter.
+     * 
      * @valid none
      */
     @XmlElement(name = "ip_address")
-    @Endpoint(type= Endpoint.EndpointType.HOST)
+    @Endpoint(type = Endpoint.EndpointType.HOST)
     @JsonProperty("ip_address")
     public String getIpAddress() {
         return ipAddress;

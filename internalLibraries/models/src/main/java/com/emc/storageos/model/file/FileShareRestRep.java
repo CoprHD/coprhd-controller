@@ -29,10 +29,11 @@ public class FileShareRestRep extends FileObjectRestRep {
     private RelatedResourceRep storagePort;
     private Boolean thinlyProvisioned;
     private String nativeId;
-    
+
     /**
      * File system's actual path on the array.
-     * @valid none 
+     * 
+     * @valid none
      */
     @XmlElement(name = "native_id")
     public String getNativeId() {
@@ -42,10 +43,11 @@ public class FileShareRestRep extends FileObjectRestRep {
     public void setNativeId(String nativeId) {
         this.nativeId = nativeId;
     }
-    
+
     /**
      * Total capacity of the file system in GB
-     * @valid none 
+     * 
+     * @valid none
      */
     @XmlElement(name = "capacity_gb")
     public String getCapacity() {
@@ -58,7 +60,8 @@ public class FileShareRestRep extends FileObjectRestRep {
 
     /**
      * Used capacity of the file system in GB
-     * @valid none 
+     * 
+     * @valid none
      */
     @XmlElement(name = "used_capacity_gb")
     public String getUsedCapacity() {
@@ -71,7 +74,8 @@ public class FileShareRestRep extends FileObjectRestRep {
 
     /**
      * URI for the virtual pool the file share resides on.
-     * @valid none 
+     * 
+     * @valid none
      */
     @XmlElement(name = "vpool")
     @JsonProperty("vpool")
@@ -85,7 +89,8 @@ public class FileShareRestRep extends FileObjectRestRep {
 
     /**
      * Not currently used
-     * @valid none 
+     * 
+     * @valid none
      */
     @XmlElement(name = "data_protection")
     public String getDataProtection() {
@@ -98,7 +103,8 @@ public class FileShareRestRep extends FileObjectRestRep {
 
     /**
      * URI for the virtual array containing the virtual pool and the file share.
-     * @valid none 
+     * 
+     * @valid none
      */
     @XmlElement(name = "varray")
     @JsonProperty("varray")
@@ -112,7 +118,8 @@ public class FileShareRestRep extends FileObjectRestRep {
 
     /**
      * URI for the storage pool containing storage allocated for the file system.
-     * @valid none 
+     * 
+     * @valid none
      */
     @XmlElement(name = "storage_pool")
     public RelatedResourceRep getPool() {
@@ -125,7 +132,8 @@ public class FileShareRestRep extends FileObjectRestRep {
 
     /**
      * URI for the project containing the file system.
-     * @valid none 
+     * 
+     * @valid none
      */
     @XmlElement
     public RelatedResourceRep getProject() {
@@ -156,9 +164,10 @@ public class FileShareRestRep extends FileObjectRestRep {
 
     /**
      * URI representing the storage system supporting the file system.
-     * @valid none 
+     * 
+     * @valid none
      */
-    @XmlElement (name = "storage_system")
+    @XmlElement(name = "storage_system")
     public RelatedResourceRep getStorageSystem() {
         return storageSystem;
     }
@@ -169,7 +178,8 @@ public class FileShareRestRep extends FileObjectRestRep {
 
     /**
      * URI representing the storage port.
-     * @valid 1 - 65535 
+     * 
+     * @valid 1 - 65535
      */
     @XmlElement(name = "storage_port")
     public RelatedResourceRep getStoragePort() {
@@ -182,7 +192,8 @@ public class FileShareRestRep extends FileObjectRestRep {
 
     /**
      * The URI of the tenant to which the file system belongs.
-     * @valid none 
+     * 
+     * @valid none
      */
     @XmlElement
     public RelatedResourceRep getTenant() {
@@ -196,9 +207,10 @@ public class FileShareRestRep extends FileObjectRestRep {
     /**
      * Is the storage for the file system thinly provisioned?
      * If thinly provisioned, only a portion of the total capacity
-     * is initially allocated.  Additional storage is allocated
+     * is initially allocated. Additional storage is allocated
      * later as needed.
-     * @valid true 
+     * 
+     * @valid true
      * @valid false
      */
     @XmlElement(name = "thinly_provisioned")

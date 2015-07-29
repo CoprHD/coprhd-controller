@@ -13,6 +13,7 @@ public class RoleAssignmentEntry {
 
     /**
      * Roles to that are part of this assignment.
+     * 
      * @valid SYSTEM_ADMIN (virtual data center role)
      * @valid SECURITY_ADMIN (virtual data center role)
      * @valid SYSTEM_MONITOR (virtual data center role)
@@ -25,6 +26,7 @@ public class RoleAssignmentEntry {
 
     /**
      * Subject to whom the role is assigned or being assigned/revoked.
+     * 
      * @valid Only one of subject_id or group can be supplied.
      * @valid user@company.com
      */
@@ -32,12 +34,14 @@ public class RoleAssignmentEntry {
 
     /**
      * Group to whom the role is assigned or being assigned/revoked
+     * 
      * @valid Only one of subject_id or group can be supplied.
      * @valid group@company.com
      */
     private String group;
 
-    public RoleAssignmentEntry() {}
+    public RoleAssignmentEntry() {
+    }
 
     public RoleAssignmentEntry(List<String> roles, String subjectId, String group) {
         this.roles = roles;

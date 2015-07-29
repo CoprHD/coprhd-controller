@@ -105,7 +105,7 @@ public class ServiceErrorTest {
 
     /**
      * Marshals the given ServiceError instance into XML
-     *
+     * 
      * @param error
      * @return
      * @throws JAXBException
@@ -126,7 +126,7 @@ public class ServiceErrorTest {
 
     /**
      * Transform the given ServiceError instance into JSON
-     *
+     * 
      * @param error
      * @return
      * @throws IOException

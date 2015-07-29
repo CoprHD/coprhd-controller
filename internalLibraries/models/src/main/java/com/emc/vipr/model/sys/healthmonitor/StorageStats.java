@@ -31,7 +31,7 @@ public class StorageStats {
         }
 
         public ControllerStorageStats(double blockCapacityKB, double fileCapacityKB,
-                                      double freeManagedCapacityKB) {
+                double freeManagedCapacityKB) {
             this.blockCapacityKB = blockCapacityKB;
             this.fileCapacityKB = fileCapacityKB;
             this.freeManagedCapacityKB = freeManagedCapacityKB;
@@ -84,7 +84,7 @@ public class StorageStats {
             this.capacityKB = capacityKB;
         }
     }
-    
+
     @XmlElement(name = "controller")
     public ControllerStorageStats getControllerStorageStats() {
         return controllerStorageStats;
@@ -94,5 +94,3 @@ public class StorageStats {
         this.controllerStorageStats = controllerStorageStats;
     }
 }
-
-

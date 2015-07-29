@@ -7,9 +7,9 @@ package util;
 import org.apache.commons.lang.StringUtils;
 
 public enum LocalUser {
-    
+
     ROOT, SVCUSER, PROXYUSER, SYSMONITOR;
-    
+
     public static boolean isLocalUser(String username) {
         if (StringUtils.isNotBlank(username)) {
             for (LocalUser localUser : LocalUser.values()) {
@@ -19,6 +19,6 @@ public enum LocalUser {
             }
         }
         return false;
-    }    
-    
+    }
+
 }

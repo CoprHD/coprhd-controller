@@ -50,7 +50,7 @@ public class DiskStats {
     private long writeTicks;
     // number of ms spent doing I/Os
     private long numberOfIOInMs;
-    
+
     // Default constructor for JAXB
     public DiskStats() {
         this.diskId = HealthMonitorConstants.UNKNOWN;
@@ -58,8 +58,8 @@ public class DiskStats {
 
     // These values are calculated based on the values read from /proc/diskstats
     public DiskStats(String diskId, double readPerSec, double sectorsReadPerSec,
-                     double writePerSec, double sectorsWritePerSec, double avgWait,
-                     double avgSvcTime, double utilPerc) {
+            double writePerSec, double sectorsWritePerSec, double avgWait,
+            double avgSvcTime, double utilPerc) {
         this.diskId = diskId;
         this.readPerSec = readPerSec;
         this.sectorsReadPerSec = sectorsReadPerSec;
@@ -72,8 +72,8 @@ public class DiskStats {
 
     // These values are directly read from /proc/diskstats
     public DiskStats(String diskId, long numberOfReads, long sectorsRead,
-                     long readTicks, long numberOfWrites, long sectorsWrite,
-                     long writeTicks, long numberOfIOInMs) {
+            long readTicks, long numberOfWrites, long sectorsWrite,
+            long writeTicks, long numberOfIOInMs) {
         this.diskId = diskId;
         this.numberOfReads = numberOfReads;
         this.sectorsRead = sectorsRead;

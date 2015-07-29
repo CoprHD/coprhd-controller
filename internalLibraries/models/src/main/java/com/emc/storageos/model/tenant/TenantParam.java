@@ -16,8 +16,9 @@ public abstract class TenantParam {
     private URI webStorageDefaultProject;
     private URI webStorageDefaultVpool;
 
-    public TenantParam() {}
-    
+    public TenantParam() {
+    }
+
     public TenantParam(String description, URI webStorageDefaultProject,
             URI webStorageDefaultVpool) {
         this.description = description;
@@ -27,6 +28,7 @@ public abstract class TenantParam {
 
     /**
      * Description for the tenant.
+     * 
      * @valid any string
      */
     @XmlElement(required = false)
@@ -40,6 +42,7 @@ public abstract class TenantParam {
 
     /**
      * Default project URI for this tenant
+     * 
      * @valid any existing project URI in this tenant
      */
     @XmlElement(name = "web_storage_default_project", required = false)
@@ -54,6 +57,7 @@ public abstract class TenantParam {
 
     /**
      * Default virtual pool URI for this tenant
+     * 
      * @valid any existing virtual pool URI
      */
     @XmlElement(name = "web_storage_default_vpool", required = false)
@@ -65,5 +69,5 @@ public abstract class TenantParam {
     public void setWebStorageDefaultVpool(URI webStorageDefaultVpool) {
         this.webStorageDefaultVpool = webStorageDefaultVpool;
     }
- 
+
 }

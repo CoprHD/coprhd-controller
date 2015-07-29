@@ -5,7 +5,6 @@
 
 package com.emc.storageos.security.password.rules;
 
-
 import com.emc.storageos.security.password.Password;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 

@@ -13,30 +13,30 @@ public class CreateCopyParams implements Serializable {
     private String name;
     private List<CreateVolumeParams> journals;
 
-    public  CreateCopyParams() {
+    public CreateCopyParams() {
     }
-    
+
     public String getName() {
-		return name;
-	}
+        return name;
+    }
 
-	public void setName(String name) {
-		this.name = name;
-	}
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	public List<CreateVolumeParams> getJournals() {
-		return journals;
-	}
+    public List<CreateVolumeParams> getJournals() {
+        return journals;
+    }
 
-	public void setJournals(List<CreateVolumeParams> journals) {
-		this.journals = journals;
-	}
+    public void setJournals(List<CreateVolumeParams> journals) {
+        this.journals = journals;
+    }
 
-	@Override
+    @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append("\nCopy: " + name);
-        if (journals!=null) {
+        if (journals != null) {
             sb.append("\nJournals:");
             for (CreateVolumeParams volume : journals) {
                 sb.append(volume.toString());

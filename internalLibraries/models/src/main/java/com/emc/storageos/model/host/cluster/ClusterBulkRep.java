@@ -15,9 +15,10 @@ import com.emc.storageos.model.BulkRestRep;
 @XmlRootElement(name = "bulk_clusters")
 public class ClusterBulkRep extends BulkRestRep {
     private List<ClusterRestRep> clusters;
-    
+
     /**
      * Represents a host cluster within ViPR
+     * 
      * @valid none
      */
     @XmlElement(name = "cluster")

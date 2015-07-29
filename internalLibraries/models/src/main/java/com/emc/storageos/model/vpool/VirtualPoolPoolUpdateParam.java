@@ -7,18 +7,17 @@ package com.emc.storageos.model.vpool;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import org.codehaus.jackson.annotate.JsonProperty;
-
 /**
  * Parameter to update virtual pool
  */
 @XmlRootElement(name = "vpool_pool_update")
 public class VirtualPoolPoolUpdateParam {
-    
+
     private StoragePoolAssignmentChanges storagePoolAssignmentChanges;
 
-    public VirtualPoolPoolUpdateParam() {}
-    
+    public VirtualPoolPoolUpdateParam() {
+    }
+
     public VirtualPoolPoolUpdateParam(
             StoragePoolAssignmentChanges storagePoolAssignmentChanges) {
         this.storagePoolAssignmentChanges = storagePoolAssignmentChanges;
@@ -38,5 +37,5 @@ public class VirtualPoolPoolUpdateParam {
             StoragePoolAssignmentChanges storagePoolAssignmentChanges) {
         this.storagePoolAssignmentChanges = storagePoolAssignmentChanges;
     }
-    
+
 }

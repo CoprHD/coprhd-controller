@@ -13,9 +13,7 @@ import javax.management.remote.JMXConnectorServer;
 import javax.management.remote.JMXConnectorServerFactory;
 import javax.management.MBeanServer;
 import java.lang.management.ManagementFactory;
-import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
-
 
 public class JmxServerWrapper {
     private static Logger _log = Logger.getLogger(JmxServerWrapper.class);
@@ -26,7 +24,6 @@ public class JmxServerWrapper {
     private boolean _jmxEnabled;
     private JmxServerWrapper _jmxServer;
     private JMXConnectorServer _jmxRemoteServer;
-
 
     public JmxServerWrapper() {
     }
@@ -86,7 +83,7 @@ public class JmxServerWrapper {
         return _jmxHost;
     }
 
-    public void start()  throws Exception {
+    public void start() throws Exception {
         _log.debug("JMX server wrapper: jmx enabled = " + _jmxEnabled);
         if (_jmxEnabled) {
 
@@ -97,7 +94,7 @@ public class JmxServerWrapper {
 
                 JMXServiceURL jmxUrl = new JMXServiceURL(String.format(_jmxFmtUrl, _jmxRemoteExportPort, _jmxHost, _jmxRemotePort));
                 MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-                _jmxRemoteServer=JMXConnectorServerFactory.newJMXConnectorServer(jmxUrl, null, mbs);
+                _jmxRemoteServer = JMXConnectorServerFactory.newJMXConnectorServer(jmxUrl, null, mbs);
                 _jmxRemoteServer.start();
             } catch (Exception e) {
                 _log.error("JMX server startup failed", e);

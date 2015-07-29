@@ -11,7 +11,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "catalog_image_create")
 public class CatalogImageCreateParam extends CatalogImageCommonParam {
-    
+
     private URI tenant;
 
     @XmlElement(name = "tenant")
@@ -22,5 +22,5 @@ public class CatalogImageCreateParam extends CatalogImageCommonParam {
     public void setTenant(URI tenant) {
         this.tenant = tenant;
     }
-        
+
 }

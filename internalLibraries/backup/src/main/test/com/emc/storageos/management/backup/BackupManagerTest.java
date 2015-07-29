@@ -5,9 +5,6 @@
 
 package com.emc.storageos.management.backup;
 
-import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.management.backup.exceptions.FatalBackupException;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
@@ -27,16 +24,16 @@ public class BackupManagerTest extends BackupTestBase {
 
     private static final Logger log = LoggerFactory.getLogger(BackupManagerTest.class);
 
-    private static String invalidChars[] = new String[] {null, "", " ", "  "};
+    private static String invalidChars[] = new String[] { null, "", " ", "  " };
     private static File backupFolder;
 
     @BeforeClass
     public static void setUp() {
         Assert.assertNotNull(backupManager.getBackupHandler());
         Assert.assertNotNull(backupManager.getBackupContext().getBackupDir());
-        //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
-        //Junit test will be called in single thread by default, it's safe to ignore this violation
-        backupFolder = backupManager.getBackupContext().getBackupDir(); //NOSONAR ("squid:S2444")
+        // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+        // Junit test will be called in single thread by default, it's safe to ignore this violation
+        backupFolder = backupManager.getBackupContext().getBackupDir(); // NOSONAR ("squid:S2444")
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -52,9 +49,10 @@ public class BackupManagerTest extends BackupTestBase {
         backupManager.create(backupName);
         createBackup(backupName, zkBackupHandler);
         createBackup(backupName, geoDbBackupHandler);
-        File backupDir  = new File(backupFolder, backupName);
-        if (!backupDir.exists())
+        File backupDir = new File(backupFolder, backupName);
+        if (!backupDir.exists()) {
             Assert.assertTrue(backupDir.mkdirs());
+        }
         File[] backupFiles = backupDir.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
@@ -70,15 +68,17 @@ public class BackupManagerTest extends BackupTestBase {
 
     @Test
     public void testList() throws IOException {
-        if (!backupFolder.exists())
+        if (!backupFolder.exists()) {
             Assert.assertTrue(backupFolder.mkdirs());
+        }
         String backupName = UUID.randomUUID().toString();
         File zipFile = null;
         File randomFile = null;
         try {
             File backupDir = new File(backupFolder, backupName);
-            if (!backupDir.exists())
+            if (!backupDir.exists()) {
                 Assert.assertTrue(backupDir.mkdirs());
+            }
             zipFile = FileUtil.createRandomFile(backupDir, backupName +
                     BackupConstants.BACKUP_NAME_DELIMITER + BackupConstants.COMPRESS_SUFFIX, 1024);
             randomFile = FileUtil.createRandomFile(backupDir, backupName, 1024);
@@ -93,25 +93,29 @@ public class BackupManagerTest extends BackupTestBase {
             }
             Assert.assertTrue("Can't list all backup files", found);
         } finally {
-            if (zipFile != null && zipFile.exists())
+            if (zipFile != null && zipFile.exists()) {
                 Assert.assertTrue(zipFile.delete());
-            if (randomFile != null && randomFile.exists())
+            }
+            if (randomFile != null && randomFile.exists()) {
                 Assert.assertTrue(randomFile.delete());
+            }
         }
     }
 
     @Test
     public void testListWithEmptyDir() throws IOException {
         // Test delete method when target directory is not exist
-        if (backupFolder.exists())
+        if (backupFolder.exists()) {
             FileUtils.deleteDirectory(backupFolder);
+        }
         List<BackupSetInfo> fileList = backupManager.list();
         Assert.assertNotNull(fileList);
         Assert.assertEquals(0, fileList.size());
 
         // Test delete method when target directory is empty
-        if (!backupFolder.exists())
+        if (!backupFolder.exists()) {
             Assert.assertTrue(backupFolder.mkdirs());
+        }
         fileList = backupManager.list();
         Assert.assertNotNull(fileList);
         Assert.assertEquals(0, fileList.size());
@@ -129,19 +133,22 @@ public class BackupManagerTest extends BackupTestBase {
         String backupName = UUID.randomUUID().toString();
         File zipFile = null;
         try {
-            if (!backupFolder.exists())
+            if (!backupFolder.exists()) {
                 Assert.assertTrue(backupFolder.mkdirs());
+            }
             File backupDir = new File(backupFolder, backupName);
-            if (!backupDir.exists())
+            if (!backupDir.exists()) {
                 Assert.assertTrue(backupDir.mkdirs());
+            }
             zipFile = FileUtil.createRandomFile(backupDir, backupName +
                     BackupConstants.BACKUP_NAME_DELIMITER + BackupConstants.COMPRESS_SUFFIX, 1024);
             Assert.assertTrue(zipFile.exists());
             backupManager.delete(backupName);
             Assert.assertFalse(zipFile.exists());
         } finally {
-            if (zipFile != null && zipFile.exists())
+            if (zipFile != null && zipFile.exists()) {
                 Assert.assertTrue(zipFile.delete());
+            }
         }
     }
 
@@ -149,8 +156,9 @@ public class BackupManagerTest extends BackupTestBase {
     public void testDeleteWithEmptyDir() throws IOException {
         String backupName = UUID.randomUUID().toString();
         // Test delete method when target directory is not exist
-        if (backupFolder.exists())
+        if (backupFolder.exists()) {
             FileUtils.deleteDirectory(backupFolder);
+        }
         backupManager.delete(backupName);
 
         // Test delete method when target directory is empty
@@ -158,4 +166,3 @@ public class BackupManagerTest extends BackupTestBase {
         backupManager.delete(backupName);
     }
 }
-

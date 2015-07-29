@@ -20,15 +20,17 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 public class CustomConfigList {
     private List<NamedRelatedResourceRep> customConfigs;
 
-    public CustomConfigList() {}
-    
+    public CustomConfigList() {
+    }
+
     public CustomConfigList(List<NamedRelatedResourceRep> configs) {
         this.customConfigs = configs;
     }
 
     /**
-     * List of custom config objects that exist in ViPR. Each   
+     * List of custom config objects that exist in ViPR. Each
      * custom config contains an id, name, and link.
+     * 
      * @valid none
      */
     @XmlElement(name = "config")

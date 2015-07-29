@@ -7,10 +7,10 @@ package com.emc.sa.service.linux.tasks;
 import com.iwave.ext.linux.command.MkfsCommand;
 
 public class FormatVolume extends LinuxExecutionTask<Void> {
-    
+
     public static final String EXT3 = "ext3";
     public static final String EXT4 = "ext4";
-	
+
     private String device;
     private String fsType;
     private String blockSize;
@@ -28,5 +28,5 @@ public class FormatVolume extends LinuxExecutionTask<Void> {
         MkfsCommand command = new MkfsCommand(device, fsType, blockSize, journaling);
         executeCommand(command, LONG_TIMEOUT);
     }
-    
+
 }

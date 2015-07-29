@@ -20,7 +20,7 @@ public class DbRepairStatus implements Serializable {
     /**
      * The status of db repair
      */
-	@XmlType(name="dbRepairStatus_Status")
+    @XmlType(name = "dbRepairStatus_Status")
     public enum Status {
         NOT_STARTED,
         IN_PROGRESS,
@@ -30,9 +30,9 @@ public class DbRepairStatus implements Serializable {
 
     public DbRepairStatus() {
     }
-    
+
     public DbRepairStatus(Status status) {
-    	this.status = status;
+        this.status = status;
     }
 
     public DbRepairStatus(Status status, Date startTime, Date endTime, int progress) {

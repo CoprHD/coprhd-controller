@@ -11,12 +11,13 @@ import javax.xml.bind.annotation.XmlElement;
  * to/from the list.
  */
 public class ComputeVirtualPoolAssignmentChanges {
-    
+
     private ComputeVirtualPoolAssignments add;
     private ComputeVirtualPoolAssignments remove;
 
-    public ComputeVirtualPoolAssignmentChanges() {}
-    
+    public ComputeVirtualPoolAssignmentChanges() {
+    }
+
     public ComputeVirtualPoolAssignmentChanges(ComputeVirtualPoolAssignments add,
             ComputeVirtualPoolAssignments remove) {
         this.add = add;
@@ -50,5 +51,5 @@ public class ComputeVirtualPoolAssignmentChanges {
     public void setRemove(ComputeVirtualPoolAssignments remove) {
         this.remove = remove;
     }
-    
+
 }

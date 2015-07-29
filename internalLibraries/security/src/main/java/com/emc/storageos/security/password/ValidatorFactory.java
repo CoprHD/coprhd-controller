@@ -5,7 +5,6 @@
 
 package com.emc.storageos.security.password;
 
-
 import com.emc.storageos.security.password.rules.*;
 
 import static com.emc.storageos.security.password.Constants.*;
@@ -21,7 +20,7 @@ public class ValidatorFactory {
 
     /**
      * build validator for UpdatePassword API
-     *
+     * 
      * @param properties
      * @param passwordUtils
      * @return
@@ -32,31 +31,34 @@ public class ValidatorFactory {
         ruleList.add(new ChangedNumberRule(NumberUtils.toInt(properties.get(PASSWORD_CHANGED_NUMBER), 2)));
         ruleList.add(new ChangeIntervalRule(NumberUtils.toInt(properties.get(PASSWORD_CHANGE_INTERVAL), 60)));
         PasswordValidator validator = new PasswordValidator(ruleList);
-        return  validator;
+        return validator;
     }
-    
+
     /**
      * build validator for /password/validate API
+     * 
      * @param properties
      * @return
      */
     public static PasswordValidator buildContentValidator(Map<String, String> properties) {
         List<Rule> ruleList = buildBaseRuleList(properties);
         PasswordValidator validator = new PasswordValidator(ruleList);
-        return  validator;
+        return validator;
     }
-    
+
     /**
      * build validator for Reset Password API
+     * 
      * @param properties
      * @return
      */
     public static PasswordValidator buildResetValidator(Map<String, String> properties) {
-        return  buildContentValidator(properties);
+        return buildContentValidator(properties);
     }
 
     /**
      * build validator for Change Password API
+     * 
      * @param properties
      * @param passwordUtils
      * @return
@@ -67,10 +69,11 @@ public class ValidatorFactory {
 
     /**
      * build validator for ExpireRule, which used in login.
+     * 
      * @param properties
      * @return
      */
-    public static PasswordValidator buildExpireValidator(Map<String,String> properties) {
+    public static PasswordValidator buildExpireValidator(Map<String, String> properties) {
         List<Rule> ruleList = new ArrayList<Rule>();
         ruleList.add(new ExpireRule(NumberUtils.toInt(properties.get(PASSWORD_EXPIRE_DAYS), 0)));
         PasswordValidator validator = new PasswordValidator(ruleList);
@@ -83,7 +86,7 @@ public class ValidatorFactory {
      * @param properties
      * @return the rule list
      */
-    private static List<Rule> buildBaseRuleList(Map<String,String> properties) {
+    private static List<Rule> buildBaseRuleList(Map<String, String> properties) {
         List<Rule> ruleList = new ArrayList<Rule>();
         ruleList.add(new LengthRule(NumberUtils.toInt(properties.get(PASSWORD_MIN_LENGTH), 8)));
         ruleList.add(CharacterRuleFactory.getCharacterRule(
@@ -99,9 +102,9 @@ public class ValidatorFactory {
                 CharacterRuleFactory.CharacterRuleType.SPECIAL,
                 NumberUtils.toInt(properties.get(PASSWORD_SPECIAL_NUMBER), 1)));
         ruleList.add(new RepeatingCharacterRule(NumberUtils.toInt(properties.get(PASSWORD_REPEATING_NUMBER), 3)));
-        if (StringUtils.equalsIgnoreCase(properties.get(PASSWORD_PREVENT_DICTIONARY),"yes")) {
+        if (StringUtils.equalsIgnoreCase(properties.get(PASSWORD_PREVENT_DICTIONARY), "yes")) {
             ruleList.add(new DictionaryRule(new ListDictionary()));
-        }        
+        }
         return ruleList;
     }
 }

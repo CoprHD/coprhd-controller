@@ -26,9 +26,10 @@ public class VolumeVirtualPoolChangeParam {
     private URI virtualPool;
     private BlockVirtualPoolProtectionParam protection;
     private URI consistencyGroup;
-    
-    public VolumeVirtualPoolChangeParam() {}
-    
+
+    public VolumeVirtualPoolChangeParam() {
+    }
+
     public VolumeVirtualPoolChangeParam(List<URI> volumes, URI virtualPool,
             BlockVirtualPoolProtectionParam protection) {
         this.volumes = volumes;
@@ -40,7 +41,7 @@ public class VolumeVirtualPoolChangeParam {
     /**
      * List of Volume IDs.
      * @valid example:  list of valid URIs
-     */ 
+     */
     @XmlElement(required = true, name = "volume")
     public List<URI> getVolumes() {
         if (volumes == null) {
@@ -55,8 +56,9 @@ public class VolumeVirtualPoolChangeParam {
 
     /**
      * ID of the new virtual pool.
-     * @valid example:  a valid URI
-     */ 
+     * 
+     * @valid example: a valid URI
+     */
     @XmlElement(required = true, name = "vpool")
     @JsonProperty("vpool")
     public URI getVirtualPool() {
@@ -68,10 +70,11 @@ public class VolumeVirtualPoolChangeParam {
     }
 
     /**
-     * Virtual Pool (Mirror or RecoverPoint) protection 
+     * Virtual Pool (Mirror or RecoverPoint) protection
      * parameters.
+     * 
      * @valid none
-     */ 
+     */
     @XmlElement(required = false, name = "protection")
     public BlockVirtualPoolProtectionParam getProtection() {
         return protection;
@@ -83,7 +86,8 @@ public class VolumeVirtualPoolChangeParam {
 
     /**
      * The ViPR consistency group to associate the volume with for
-     * the creation of the RecoverPoint consistency group. 
+     * the creation of the RecoverPoint consistency group.
+     * 
      * @return
      */
     @XmlElement(name = "consistency_group")
@@ -94,5 +98,5 @@ public class VolumeVirtualPoolChangeParam {
     public void setConsistencyGroup(URI consistencyGroup) {
         this.consistencyGroup = consistencyGroup;
     }
-    
+
 }

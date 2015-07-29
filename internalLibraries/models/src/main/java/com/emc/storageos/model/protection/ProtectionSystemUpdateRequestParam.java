@@ -15,8 +15,9 @@ public class ProtectionSystemUpdateRequestParam extends RPClusterVirtualArrayRes
     private String userName;
     private String password;
 
-    public ProtectionSystemUpdateRequestParam() {}
-    
+    public ProtectionSystemUpdateRequestParam() {
+    }
+
     public ProtectionSystemUpdateRequestParam(String ipAddress,
             Integer portNumber, String userName, String password) {
         this.ipAddress = ipAddress;
@@ -27,6 +28,7 @@ public class ProtectionSystemUpdateRequestParam extends RPClusterVirtualArrayRes
 
     /**
      * Updated IP Address of the Protection System device
+     * 
      * @valid IPv4 only
      * @valid example: 10.27.100.99
      */
@@ -41,7 +43,8 @@ public class ProtectionSystemUpdateRequestParam extends RPClusterVirtualArrayRes
 
     /**
      * Updated Management Port Number of the Protection System device
-     * @valid Numerical value 1 through 65535 
+     * 
+     * @valid Numerical value 1 through 65535
      * @valid example: 7225
      */
     @XmlElement(name = "port_number")
@@ -55,6 +58,7 @@ public class ProtectionSystemUpdateRequestParam extends RPClusterVirtualArrayRes
 
     /**
      * The updated user name to connect to the Protection System device management port
+     * 
      * @valid example: user1
      */
     @XmlElement(name = "user_name", nillable = true)
@@ -68,6 +72,7 @@ public class ProtectionSystemUpdateRequestParam extends RPClusterVirtualArrayRes
 
     /**
      * The updated password to connect to the Protection System device management port
+     * 
      * @valid example: abc123
      */
     @XmlElement(name = "password", nillable = true)
@@ -78,5 +83,5 @@ public class ProtectionSystemUpdateRequestParam extends RPClusterVirtualArrayRes
     public void setPassword(String password) {
         this.password = password;
     }
-    
+
 }

@@ -27,7 +27,7 @@ public class DiagTestsMetadata {
 
     private static volatile Map<String, DiagTestMetadata> _metadata = null;
 
-    public void setMetadata(LinkedHashMap<String, DiagTestMetadata> metadata){
+    public void setMetadata(LinkedHashMap<String, DiagTestMetadata> metadata) {
         if (_metadata == null) {
             _metadata = ImmutableMap.copyOf(metadata);
         }

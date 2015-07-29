@@ -44,11 +44,12 @@ public class ServiceCodeExceptionMapperTest extends BaseServiceCodeExceptionTest
 
     @Test
     public void illegalStateExceptionWithCause() {
-		final IllegalStateException exception = new IllegalStateException(
-				"IllegalState", APIException.serviceUnavailable.dummy());
-		assertException("Dummy failure for testing with", ServiceCode.API_SERVICE_UNAVAILABLE.getCode(),
-				"Unable to connect to the service. The service is unavailable, try again later", ServiceCode.API_SERVICE_UNAVAILABLE.getHTTPStatus().getStatusCode(), exception);
-	}
+        final IllegalStateException exception = new IllegalStateException(
+                "IllegalState", APIException.serviceUnavailable.dummy());
+        assertException("Dummy failure for testing with", ServiceCode.API_SERVICE_UNAVAILABLE.getCode(),
+                "Unable to connect to the service. The service is unavailable, try again later", ServiceCode.API_SERVICE_UNAVAILABLE
+                        .getHTTPStatus().getStatusCode(), exception);
+    }
 
     // WebApplication Tests
 
@@ -74,13 +75,13 @@ public class ServiceCodeExceptionMapperTest extends BaseServiceCodeExceptionTest
                 403, exception);
     }
 
-	@Test
-	public void webApplicationExceptionNotFound() {
-		final WebApplicationException exception = new WebApplicationException(
-				Status.NOT_FOUND);
-		assertException(null, 2000,
-				"Unable to find entity in request URL", 404, exception);
-	}
+    @Test
+    public void webApplicationExceptionNotFound() {
+        final WebApplicationException exception = new WebApplicationException(
+                Status.NOT_FOUND);
+        assertException(null, 2000,
+                "Unable to find entity in request URL", 404, exception);
+    }
 
     @Test
     public void webApplicationExceptionMethodNotAllowed() {

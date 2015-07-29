@@ -12,8 +12,9 @@ public class VirtualPoolProtectionParam {
 
     private VirtualPoolProtectionSnapshotsParam snapshots;
 
-    public VirtualPoolProtectionParam() {}
-    
+    public VirtualPoolProtectionParam() {
+    }
+
     public VirtualPoolProtectionParam(
             VirtualPoolProtectionSnapshotsParam snapshots) {
         this.snapshots = snapshots;
@@ -24,7 +25,7 @@ public class VirtualPoolProtectionParam {
      * 
      * @valid none
      */
-    @XmlElement(name="snapshots")
+    @XmlElement(name = "snapshots")
     public VirtualPoolProtectionSnapshotsParam getSnapshots() {
         return snapshots;
     }
@@ -32,5 +33,5 @@ public class VirtualPoolProtectionParam {
     public void setSnapshots(VirtualPoolProtectionSnapshotsParam snapshots) {
         this.snapshots = snapshots;
     }
-    
+
 }

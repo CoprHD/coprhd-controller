@@ -11,24 +11,25 @@ import com.emc.storageos.model.pools.VirtualArrayAssignmentChanges;
 public class VirtualArrayResourceUpdateParam {
 
     private VirtualArrayAssignmentChanges varrayAssignmentChanges;
-    
-    public VirtualArrayResourceUpdateParam() {}
-    
+
+    public VirtualArrayResourceUpdateParam() {
+    }
+
     public VirtualArrayResourceUpdateParam(VirtualArrayAssignmentChanges varrayChanges) {
         varrayAssignmentChanges = varrayChanges;
     }
-    
-    /**
-    * The list of virtual arrays to be added to or removed from the resource.
-    * 
-    * @valid none
-    */
-   @XmlElement(name = "varray_assignment_changes")
-   public VirtualArrayAssignmentChanges getVarrayChanges() {
-       return varrayAssignmentChanges;
-   }
 
-   public void setVarrayChanges(VirtualArrayAssignmentChanges varrayChanges) {
-       varrayAssignmentChanges = varrayChanges;
-   }
+    /**
+     * The list of virtual arrays to be added to or removed from the resource.
+     * 
+     * @valid none
+     */
+    @XmlElement(name = "varray_assignment_changes")
+    public VirtualArrayAssignmentChanges getVarrayChanges() {
+        return varrayAssignmentChanges;
+    }
+
+    public void setVarrayChanges(VirtualArrayAssignmentChanges varrayChanges) {
+        varrayAssignmentChanges = varrayChanges;
+    }
 }

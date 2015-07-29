@@ -14,7 +14,8 @@ public class NamedRelatedResourceRep extends RelatedResourceRep {
 
     private String name;
 
-    public NamedRelatedResourceRep() {}
+    public NamedRelatedResourceRep() {
+    }
 
     public NamedRelatedResourceRep(URI id, RestLinkRep selfLink, String name) {
         super(id, selfLink);
@@ -23,12 +24,14 @@ public class NamedRelatedResourceRep extends RelatedResourceRep {
 
     /**
      * The name of the resource
+     * 
      * @valid none
      */
     @XmlElement(name = "name")
     public String getName() {
         return name;
     }
+
     public void setName(String name) {
         this.name = name;
     }
@@ -44,18 +47,23 @@ public class NamedRelatedResourceRep extends RelatedResourceRep {
     @Override
     public boolean equals(Object obj) {
         if (super.equals(obj)) {
-            if (this == obj)
+            if (this == obj) {
                 return true;
-            if (obj == null)
+            }
+            if (obj == null) {
                 return false;
-            if (getClass() != obj.getClass())
+            }
+            if (getClass() != obj.getClass()) {
                 return false;
+            }
             NamedRelatedResourceRep other = (NamedRelatedResourceRep) obj;
             if (name == null) {
-                if (other.name != null)
+                if (other.name != null) {
                     return false;
-            } else if (!name.equals(other.name))
+                }
+            } else if (!name.equals(other.name)) {
                 return false;
+            }
             return true;
         }
         else {

@@ -31,17 +31,16 @@ public class HostRestRep extends ComputeSystemRestRep {
     private RelatedResourceRep vCenterDataCenter;
     private Boolean discoverable;
     private String provisioningJobStatus;
-    
-    
-    
 
-    public HostRestRep() {}
-    
+    public HostRestRep() {
+    }
+
     /**
      * The cluster when the host is in a cluster.
+     * 
      * @valid none
      */
-    @XmlElement(name="cluster")
+    @XmlElement(name = "cluster")
     public RelatedResourceRep getCluster() {
         return cluster;
     }
@@ -52,9 +51,10 @@ public class HostRestRep extends ComputeSystemRestRep {
 
     /**
      * The host name.
+     * 
      * @valid none
      */
-    @XmlElement(name="host_name")
+    @XmlElement(name = "host_name")
     public String getHostName() {
         return hostName;
     }
@@ -65,9 +65,10 @@ public class HostRestRep extends ComputeSystemRestRep {
 
     /**
      * The operating system version of the host.
+     * 
      * @valid none
      */
-    @XmlElement(name="os_version")
+    @XmlElement(name = "os_version")
     public String getOsVersion() {
         return osVersion;
     }
@@ -78,9 +79,10 @@ public class HostRestRep extends ComputeSystemRestRep {
 
     /**
      * The host management port number.
+     * 
      * @valid none
      */
-    @XmlElement(name="port_number")
+    @XmlElement(name = "port_number")
     public Integer getPortNumber() {
         return portNumber;
     }
@@ -91,9 +93,10 @@ public class HostRestRep extends ComputeSystemRestRep {
 
     /**
      * The project to which the host is assigned.
+     * 
      * @valid none
      */
-    @XmlElement(name="project")
+    @XmlElement(name = "project")
     public RelatedResourceRep getProject() {
         return project;
     }
@@ -102,7 +105,7 @@ public class HostRestRep extends ComputeSystemRestRep {
         this.project = project;
     }
 
-    @XmlElement(name="compute_element")
+    @XmlElement(name = "compute_element")
     public RelatedResourceRep getComputeElement() {
         return computeElement;
     }
@@ -113,9 +116,10 @@ public class HostRestRep extends ComputeSystemRestRep {
 
     /**
      * The host type.
+     * 
      * @valid none
      */
-    @XmlElement(name="type")
+    @XmlElement(name = "type")
     public String getType() {
         return type;
     }
@@ -126,9 +130,10 @@ public class HostRestRep extends ComputeSystemRestRep {
 
     /**
      * The login account name.
+     * 
      * @valid none
      */
-    @XmlElement(name="user_name")
+    @XmlElement(name = "user_name")
     public String getUsername() {
         return username;
     }
@@ -139,10 +144,11 @@ public class HostRestRep extends ComputeSystemRestRep {
 
     /**
      * The boolean flag that indicates if SSL should be used when communicating with the host.
+     * 
      * @valid true = use SSL
      * @valid false = do not use SSL
      */
-    @XmlElement(name="use_ssl")
+    @XmlElement(name = "use_ssl")
     public Boolean getUseSsl() {
         return useSsl;
     }
@@ -153,9 +159,10 @@ public class HostRestRep extends ComputeSystemRestRep {
 
     /**
      * The name of the data center in vCenter where this host resides.
+     * 
      * @valid none
      */
-    @XmlElement(name="vcenter_data_center")
+    @XmlElement(name = "vcenter_data_center")
     public RelatedResourceRep getvCenterDataCenter() {
         return vCenterDataCenter;
     }
@@ -167,12 +174,12 @@ public class HostRestRep extends ComputeSystemRestRep {
     /**
      * Gets the discoverable flag. Discoverable indicates if automatic discovery should be
      * performed against this host.
-     *
+     * 
      * @return true if automatic discovery is enabled, false if automatic discovery is disabled.
      * @valid true = discovery is enabled
      * @valid false = discovery is disabled
      */
-    @XmlElement(name="discoverable")
+    @XmlElement(name = "discoverable")
     public Boolean getDiscoverable() {
         return discoverable;
     }
@@ -210,6 +217,5 @@ public class HostRestRep extends ComputeSystemRestRep {
     public void setProvisioningJobStatus(String provisioningJobStatus) {
         this.provisioningJobStatus = provisioningJobStatus;
     }
- 
-}
 
+}

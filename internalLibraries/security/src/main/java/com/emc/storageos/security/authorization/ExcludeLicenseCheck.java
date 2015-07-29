@@ -10,14 +10,15 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- *  Annotation to exclude a resource method from license check
+ * Annotation to exclude a resource method from license check
  */
-@Target({ElementType.METHOD})
+@Target({ ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ExcludeLicenseCheck {
     /**
      * If true, excludes the license check
+     * 
      * @return
      */
-    boolean value()  default true;
+    boolean value() default true;
 }

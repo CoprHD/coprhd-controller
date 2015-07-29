@@ -13,14 +13,15 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "scopes")
 public class ScopeParamList {
     private List<ConfigTypeScopeParam> scopes;
-    
-    public ScopeParamList() {}
-    
+
+    public ScopeParamList() {
+    }
+
     public ScopeParamList(List<ConfigTypeScopeParam> scopes) {
         this.scopes = scopes;
     }
-    
-    @XmlElement(name="scope")
+
+    @XmlElement(name = "scope")
     public List<ConfigTypeScopeParam> getScopes() {
         return scopes;
     }
@@ -28,5 +29,5 @@ public class ScopeParamList {
     public void setScopes(List<ConfigTypeScopeParam> scopes) {
         this.scopes = scopes;
     }
-    
+
 }

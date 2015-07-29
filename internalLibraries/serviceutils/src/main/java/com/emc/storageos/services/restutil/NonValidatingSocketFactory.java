@@ -46,7 +46,7 @@ class NonValidatingSocketFactory implements ProtocolSocketFactory {
     public NonValidatingSocketFactory() {
         try {
             _sslContext = SSLContext.getInstance("SSL");
-            _sslContext.init(null, new TrustManager[]{ new NonValidatingTrustManager() }, null);
+            _sslContext.init(null, new TrustManager[] { new NonValidatingTrustManager() }, null);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }

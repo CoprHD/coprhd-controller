@@ -36,18 +36,18 @@ public class ValidationUtilTest {
     @Test
     public void testValidation() throws IOException {
         File testFile1 = new File(DIR_NAME);
-        ValidationUtil.validateFile(testFile1, FileType.Dir, 
+        ValidationUtil.validateFile(testFile1, FileType.Dir,
                 NotExistEnum.NOT_EXSIT_ERROR);
         File testFile2 = new File(testFile1, FILE_NAME);
         ValidationUtil.validateFile(testFile2, FileType.File,
                 NotExistEnum.NOT_EXSIT_ERROR);
 
-        //test file
+        // test file
         File testFile3 = new File(testFile1, "testfile");
         boolean error = false;
         try {
-            ValidationUtil.validateFile(testFile3, FileType.File, 
-                NotExistEnum.NOT_EXSIT_ERROR);
+            ValidationUtil.validateFile(testFile3, FileType.File,
+                    NotExistEnum.NOT_EXSIT_ERROR);
         } catch (Exception e) {
             error = true;
         }
@@ -55,8 +55,8 @@ public class ValidationUtilTest {
 
         error = false;
         try {
-            ValidationUtil.validateFile(testFile3, FileType.File, 
-                NotExistEnum.NOT_EXSIT_OK);
+            ValidationUtil.validateFile(testFile3, FileType.File,
+                    NotExistEnum.NOT_EXSIT_OK);
         } catch (Exception e) {
             error = true;
         }
@@ -64,8 +64,8 @@ public class ValidationUtilTest {
 
         error = false;
         try {
-            ValidationUtil.validateFile(testFile3, FileType.File, 
-                NotExistEnum.NOT_EXSIT_CREATE);
+            ValidationUtil.validateFile(testFile3, FileType.File,
+                    NotExistEnum.NOT_EXSIT_CREATE);
         } catch (Exception e) {
             error = true;
         }
@@ -73,19 +73,19 @@ public class ValidationUtilTest {
 
         error = false;
         try {
-            ValidationUtil.validateFile(testFile3, FileType.File, 
-                NotExistEnum.NOT_EXSIT_ERROR);
+            ValidationUtil.validateFile(testFile3, FileType.File,
+                    NotExistEnum.NOT_EXSIT_ERROR);
         } catch (Exception e) {
             error = true;
         }
         Assert.assertFalse(error);
 
-        //test directory
+        // test directory
         File testFile4 = new File(testFile1, "testDir");
         error = false;
         try {
-            ValidationUtil.validateFile(testFile4, FileType.Dir, 
-                NotExistEnum.NOT_EXSIT_ERROR);
+            ValidationUtil.validateFile(testFile4, FileType.Dir,
+                    NotExistEnum.NOT_EXSIT_ERROR);
         } catch (Exception e) {
             error = true;
         }
@@ -93,8 +93,8 @@ public class ValidationUtilTest {
 
         error = false;
         try {
-            ValidationUtil.validateFile(testFile4, FileType.Dir, 
-                NotExistEnum.NOT_EXSIT_OK);
+            ValidationUtil.validateFile(testFile4, FileType.Dir,
+                    NotExistEnum.NOT_EXSIT_OK);
         } catch (Exception e) {
             error = true;
         }
@@ -102,8 +102,8 @@ public class ValidationUtilTest {
 
         error = false;
         try {
-            ValidationUtil.validateFile(testFile4, FileType.Dir, 
-                NotExistEnum.NOT_EXSIT_CREATE);
+            ValidationUtil.validateFile(testFile4, FileType.Dir,
+                    NotExistEnum.NOT_EXSIT_CREATE);
         } catch (Exception e) {
             error = true;
         }
@@ -111,18 +111,18 @@ public class ValidationUtilTest {
 
         error = false;
         try {
-            ValidationUtil.validateFile(testFile4, FileType.Dir, 
-                NotExistEnum.NOT_EXSIT_ERROR);
+            ValidationUtil.validateFile(testFile4, FileType.Dir,
+                    NotExistEnum.NOT_EXSIT_ERROR);
         } catch (Exception e) {
             error = true;
         }
         Assert.assertFalse(error);
 
-        //test wrong type
+        // test wrong type
         error = false;
         try {
-            ValidationUtil.validateFile(testFile4, FileType.File, 
-                NotExistEnum.NOT_EXSIT_OK);
+            ValidationUtil.validateFile(testFile4, FileType.File,
+                    NotExistEnum.NOT_EXSIT_OK);
         } catch (Exception e) {
             error = true;
         }

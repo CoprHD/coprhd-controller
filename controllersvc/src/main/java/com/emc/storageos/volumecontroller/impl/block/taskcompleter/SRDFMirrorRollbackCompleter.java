@@ -19,7 +19,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class SRDFMirrorRollbackCompleter extends SRDFTaskCompleter {
 
     public SRDFMirrorRollbackCompleter(List<URI> sourceURIs, String opId) {
@@ -34,7 +33,8 @@ public class SRDFMirrorRollbackCompleter extends SRDFTaskCompleter {
             List<Volume> volumesToUpdate = new ArrayList<Volume>();
             for (Volume volume : sourceVolumeList) {
                 if (null != volume.getSrdfTargets() && !volume.getSrdfTargets().isEmpty()) {
-                    List<URI> targetVolumeURIs = new ArrayList<URI>(Collections2.transform(volume.getSrdfTargets(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
+                    List<URI> targetVolumeURIs = new ArrayList<URI>(Collections2.transform(volume.getSrdfTargets(),
+                            CommonTransformerFunctions.FCTN_STRING_TO_URI));
                     List<Volume> targetVolumes = dbClient.queryObject(Volume.class, targetVolumeURIs);
                     for (Volume targetVolume : targetVolumes) {
                         targetVolume.setPersonality(NullColumnValueGetter.getNullStr());

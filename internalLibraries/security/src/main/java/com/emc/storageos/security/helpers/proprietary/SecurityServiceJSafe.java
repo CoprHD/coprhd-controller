@@ -47,7 +47,7 @@ public class SecurityServiceJSafe implements SecurityService {
                     KeyCertificateAlgorithmValuesHolder.DEFAULT_KEY_ALGORITHM,
                     KeyCertificatePairGenerator.RSA_JAVA_DEVICE_NAME);
 
-            byte[][] pemHolder = {pemKey.getBytes()};
+            byte[][] pemHolder = { pemKey.getBytes() };
             privKey.setKeyData(KeyCertificatePairGenerator.PRIVATE_RSA_KEY_PEM_FORMAT_NAME, pemHolder);
 
             // we need to clear the whole JSAFE_PrivateKey. so return the copied the key bytes.
@@ -62,6 +62,7 @@ public class SecurityServiceJSafe implements SecurityService {
 
     /**
      * clear Sensitive data
+     * 
      * @param key
      */
     @Override
@@ -71,6 +72,7 @@ public class SecurityServiceJSafe implements SecurityService {
 
     /**
      * clear Sensitive data
+     * 
      * @param key
      */
     @Override

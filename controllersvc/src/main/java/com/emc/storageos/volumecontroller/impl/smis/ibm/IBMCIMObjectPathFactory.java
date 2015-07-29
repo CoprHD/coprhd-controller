@@ -47,7 +47,7 @@ public class IBMCIMObjectPathFactory implements IBMSmisConstants {
     private final static Logger _log = LoggerFactory
             .getLogger(IBMCIMObjectPathFactory.class);
     private final static String REPLICATION_GROUP_NAME_FORMAT = "%s:%s-%s";
-    
+
     CIMArgumentFactory _cimArgument = null;
     CIMPropertyFactory _cimProperty = null;
     CIMConnectionFactory _cimConnection = null;
@@ -121,7 +121,7 @@ public class IBMCIMObjectPathFactory implements IBMSmisConstants {
 
         return configSvcPath;
     }
-    
+
     /**
      * Create object path for storage pool.
      */
@@ -226,11 +226,11 @@ public class IBMCIMObjectPathFactory implements IBMSmisConstants {
                         prefixWithParamName(STORAGE_SYSTEM)),
                 _cimProperty.string(CP_SYSTEM_NAME, systemName)
         };
-        
+
         return CimObjectPathCreator.createInstance(prefixWithParamName(CONTROLLER_CONFIGURATION_SERVICE),
                 Constants.IBM_NAMESPACE, configSvcPropKeys);
     }
-        
+
     /**
      * Get protocol controller object path.
      * 
@@ -243,7 +243,7 @@ public class IBMCIMObjectPathFactory implements IBMSmisConstants {
         if (protocolControllerId == null || protocolControllerId.isEmpty()) {
             return null;
         }
-        
+
         String creationClass = CP_SCSI_PROTOCOL_CONTROLLER;
         CIMProperty[] keys = {
                 _cimProperty.string(CP_CREATION_CLASS_NAME, creationClass),
@@ -252,8 +252,8 @@ public class IBMCIMObjectPathFactory implements IBMSmisConstants {
                 _cimProperty.string(CP_SYSTEM_NAME, storage.getSerialNumber())
         };
         return CimObjectPathCreator.createInstance(creationClass, Constants.IBM_NAMESPACE, keys);
-    } 
-    
+    }
+
     /**
      * Get protocol controllers in output argument.
      */
@@ -341,7 +341,7 @@ public class IBMCIMObjectPathFactory implements IBMSmisConstants {
         CIMObjectPath queryPath = CimObjectPathCreator.createInstance(CP_GROUP_SYNCHRONIZED,
                 Constants.IBM_NAMESPACE, null);
         return getObjectPathByName(storage, queryPath, "RelationshipName", snapGroupName);
-    }    
+    }
 
     @SuppressWarnings("rawtypes")
     public CIMObjectPath getCimObjectPathFromOutputArgs(
@@ -360,7 +360,7 @@ public class IBMCIMObjectPathFactory implements IBMSmisConstants {
 
     /**
      * Executes query
-     *
+     * 
      * @param storageSystem
      * @param query
      * @param queryLanguage
@@ -397,7 +397,7 @@ public class IBMCIMObjectPathFactory implements IBMSmisConstants {
 
     /**
      * Look up CIMObjectPath by property value. The value has to be unique on array.
-     *
+     * 
      * @param storage
      * @param path CIMObjectPath for the query (only object name, no key)
      * @param prop property (string type) that used in lookup

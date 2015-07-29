@@ -15,18 +15,25 @@ import javax.xml.bind.annotation.XmlType;
 @XmlRootElement(name = "ipreconfig_status")
 public class ClusterNetworkReconfigStatus {
     private static final long IPRECONFIG_SUCCEEDSTATUS_DISPLAY_TIMEOUT = 24 * 60 * 60 * 1000; // Keep "Succeed" status for 1 day in GUI
+
     /**
      * The status of ip reconfig
      */
-    @XmlType(name="clusterNetworkReconfigStatus_Status")
+    @XmlType(name = "clusterNetworkReconfigStatus_Status")
     public enum Status {
         STARTED("STARTED"),
         SUCCEED("SUCCEED"),
         FAILED("FAILED");
 
         private String name;
-        private Status(String name) { this.name = name; }
-        public String toString() {return name;}
+
+        private Status(String name) {
+            this.name = name;
+        }
+
+        public String toString() {
+            return name;
+        }
     }
 
     private Status status;
@@ -61,11 +68,11 @@ public class ClusterNetworkReconfigStatus {
     }
 
     public boolean isRecentlyReconfigured() {
-    	if (expiration == null) {
-    		return false;
-    	}
+        if (expiration == null) {
+            return false;
+        }
         long expiration_time = Long.valueOf(expiration);
-        if(System.currentTimeMillis() >= expiration_time + IPRECONFIG_SUCCEEDSTATUS_DISPLAY_TIMEOUT) {
+        if (System.currentTimeMillis() >= expiration_time + IPRECONFIG_SUCCEEDSTATUS_DISPLAY_TIMEOUT) {
             return false;
         }
         return true;

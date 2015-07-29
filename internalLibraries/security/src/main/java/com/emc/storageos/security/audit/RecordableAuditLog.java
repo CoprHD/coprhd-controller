@@ -8,7 +8,6 @@ import java.net.URI;
 import java.util.UUID;
 
 import com.emc.storageos.db.client.model.AuditLog;
-import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
 
 /**
@@ -16,7 +15,7 @@ import com.emc.storageos.services.OperationTypeEnum;
  */
 public class RecordableAuditLog {
 
-    // product Id 
+    // product Id
     private String _productId;
 
     // Id of the tenant associated with the auditlog.
@@ -24,7 +23,7 @@ public class RecordableAuditLog {
 
     // Id of the user associated with the auditlog.
     private URI _userId;
-    
+
     // The type of audit log.
     private OperationTypeEnum _auditType;
 
@@ -41,7 +40,7 @@ public class RecordableAuditLog {
     private String _operationalStatus;
 
     // The constant used to generate the auditlog URN used for the auditlog id.
-    private static final String AUDITLOG_URN_FORMAT_STR = "urn:storageos:%1$s:%2$s";    
+    private static final String AUDITLOG_URN_FORMAT_STR = "urn:storageos:%1$s:%2$s";
 
     /**
      * Default constructor.
@@ -84,7 +83,7 @@ public class RecordableAuditLog {
             String serviceType,
             OperationTypeEnum auditType,
             long timestamp,
-            String description, 
+            String description,
             String osStatus) {
         _productId = productId;
         _tenantId = tenantId;
@@ -106,7 +105,7 @@ public class RecordableAuditLog {
     /**
      * Setter for the product id.
      * 
-     * @param productId 
+     * @param productId
      *            The product id.
      */
     public void setProductId(String productId) {
@@ -168,10 +167,11 @@ public class RecordableAuditLog {
      * {@inheritDoc}
      */
     public String getAuditType() {
-        if (_auditType != null)
+        if (_auditType != null) {
             return _auditType.name();
-        else
+        } else {
             return null;
+        }
     }
 
     /**
@@ -201,7 +201,6 @@ public class RecordableAuditLog {
         _timestamp = timestamp;
     }
 
-
     /**
      * {@inheritDoc}
      */
@@ -230,8 +229,7 @@ public class RecordableAuditLog {
      */
     public String getAuditlogId() {
         return getUniqueAuditlogId();
-    }    
-
+    }
 
     /**
      * Creates a unique URN for an auditlog.
@@ -240,7 +238,7 @@ public class RecordableAuditLog {
      */
     public static String getUniqueAuditlogId() {
         URI auditlogURI = URI.create(String.format(AUDITLOG_URN_FORMAT_STR,
-                    AuditLog.class.getSimpleName(), UUID.randomUUID().toString()));
+                AuditLog.class.getSimpleName(), UUID.randomUUID().toString()));
 
         return auditlogURI.toASCIIString();
     }

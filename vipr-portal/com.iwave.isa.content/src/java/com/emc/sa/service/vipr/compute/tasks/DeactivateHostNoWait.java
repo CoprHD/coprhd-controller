@@ -12,7 +12,7 @@ import com.emc.storageos.model.host.HostRestRep;
 import com.emc.vipr.client.Task;
 
 public class DeactivateHostNoWait extends ViPRExecutionTask<Task<HostRestRep>> {
-	
+
     private URI hostId;
     private boolean detachStorage;
 
@@ -20,26 +20,26 @@ public class DeactivateHostNoWait extends ViPRExecutionTask<Task<HostRestRep>> {
         this.hostId = host.getId();
         provideDetailArgs(host.getHostName());
     }
-    
+
     public DeactivateHostNoWait(URI hostID) {
         this.hostId = hostID;
         provideDetailArgs(hostID);
     }
 
     public DeactivateHostNoWait(Host host, boolean detachStorage) {
-         this.hostId = host.getId();
-         this.detachStorage = detachStorage;
-         provideDetailArgs(host.getHostName());
-     }
-     
-     public DeactivateHostNoWait(URI hostID, boolean detachStorage) {
-         this.hostId = hostID;
-         this.detachStorage = detachStorage;
-         provideDetailArgs(hostID);
-     }
+        this.hostId = host.getId();
+        this.detachStorage = detachStorage;
+        provideDetailArgs(host.getHostName());
+    }
+
+    public DeactivateHostNoWait(URI hostID, boolean detachStorage) {
+        this.hostId = hostID;
+        this.detachStorage = detachStorage;
+        provideDetailArgs(hostID);
+    }
 
     @Override
-    public Task<HostRestRep> executeTask() throws Exception {   
-        return getClient().hosts().deactivate(hostId, detachStorage); 
+    public Task<HostRestRep> executeTask() throws Exception {
+        return getClient().hosts().deactivate(hostId, detachStorage);
     }
 }

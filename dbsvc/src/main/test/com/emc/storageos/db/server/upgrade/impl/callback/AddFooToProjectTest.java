@@ -51,22 +51,22 @@ public class AddFooToProjectTest extends DbMigrationTest {
     @Override
     public void changeSourceSchema() throws Exception {
         // attributes of @Prefix
-        Map<String, Object> prefixAttrs  = new HashMap<>();
+        Map<String, Object> prefixAttrs = new HashMap<>();
         prefixAttrs.put("cf", "foo1");
 
         // attributes of @Name
         String columnName = "foo";
-        Map<String, Object> nameAttrs  = new HashMap<>();
+        Map<String, Object> nameAttrs = new HashMap<>();
         nameAttrs.put("value", columnName);
 
         changer = new DbSchemaChanger("com.emc.storageos.db.client.model.Project");
         changer.beginChange()
-               .addBeanProperty("foo", String.class, columnName)
-                //add @PrefixIndex to 'getFoo()'
-               .addAnnotation("getFoo", "com.emc.storageos.db.client.model.PrefixIndex", prefixAttrs)
-                //add @Name to 'getFoo()'
-               .addAnnotation("getFoo", "com.emc.storageos.db.client.model.Name", nameAttrs)
-               .endChange();
+                .addBeanProperty("foo", String.class, columnName)
+                // add @PrefixIndex to 'getFoo()'
+                .addAnnotation("getFoo", "com.emc.storageos.db.client.model.PrefixIndex", prefixAttrs)
+                // add @Name to 'getFoo()'
+                .addAnnotation("getFoo", "com.emc.storageos.db.client.model.Name", nameAttrs)
+                .endChange();
     }
 
     @Override
@@ -75,8 +75,8 @@ public class AddFooToProjectTest extends DbMigrationTest {
 
     @Override
     public void changeTargetSchema() throws Exception {
-        changer.verifyAnnotation("getFoo", "com.emc.storageos.db.client.model.PrefixIndex"); 
-        changer.verifyAnnotation("getFoo", "com.emc.storageos.db.client.model.Name"); 
+        changer.verifyAnnotation("getFoo", "com.emc.storageos.db.client.model.PrefixIndex");
+        changer.verifyAnnotation("getFoo", "com.emc.storageos.db.client.model.Name");
 
         // test 'setter' and 'getter' methods
         Method method = Project.class.getMethod("setFoo", String.class);
@@ -85,17 +85,17 @@ public class AddFooToProjectTest extends DbMigrationTest {
 
         method = Project.class.getMethod("getFoo");
         Assert.assertEquals(method.invoke(project), "hello");
-    } 
+    }
 
     @Override
     public void verifyTargetSchema() throws Exception {
-    } 
+    }
 
     @Override
     protected void prepareData() throws Exception {
         // prepare a Project object for migration
-        Project project  = new Project();
- 
+        Project project = new Project();
+
         project.setId(URIUtil.createId(Project.class));
         project.setLabel("project1");
         project.setOwner("foo1");
@@ -108,7 +108,7 @@ public class AddFooToProjectTest extends DbMigrationTest {
 
     @Override
     protected void verifyPreparedData() throws Exception {
-        //make sure the project is saved
+        // make sure the project is saved
         List<URI> ids = dbClient.queryByType(Project.class, true);
         Assert.assertEquals(1, TestDBClientUtils.size(ids));
 
@@ -118,8 +118,8 @@ public class AddFooToProjectTest extends DbMigrationTest {
 
     @Override
     protected void verifyResults() throws Exception {
-        List<URI> ids = 
-            dbClient.queryByConstraint(PrefixConstraint.Factory.getConstraint(Project.class, "foo", "he"));
+        List<URI> ids =
+                dbClient.queryByConstraint(PrefixConstraint.Factory.getConstraint(Project.class, "foo", "he"));
 
         Assert.assertEquals(1, ids.size());
     }

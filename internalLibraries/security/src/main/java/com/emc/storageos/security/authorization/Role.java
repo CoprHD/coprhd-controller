@@ -5,7 +5,7 @@
 package com.emc.storageos.security.authorization;
 
 /**
- *  Global enums for roles
+ * Global enums for roles
  */
 public enum Role {
     // VDC roles
@@ -24,4 +24,3 @@ public enum Role {
     RESTRICTED_SYSTEM_ADMIN
 
 }
-

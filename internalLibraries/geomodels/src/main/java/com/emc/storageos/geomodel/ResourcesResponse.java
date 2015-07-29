@@ -19,9 +19,8 @@ public class ResourcesResponse<T> implements Serializable {
 
     private List<T> objects = new ArrayList();
 
-    public ResourcesResponse(){
+    public ResourcesResponse() {
     }
-
 
     public List<T> getObjects() {
         return objects;
@@ -35,8 +34,9 @@ public class ResourcesResponse<T> implements Serializable {
         out.defaultWriteObject();
 
         out.writeInt(size);
-        for( T obj : objects)
+        for (T obj : objects) {
             out.writeObject(obj);
+        }
     }
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
@@ -44,8 +44,9 @@ public class ResourcesResponse<T> implements Serializable {
 
         size = in.readInt();
         objects = new ArrayList(size);
-        for (int i =0; i < size; i++)
-            add((T)in.readObject());
+        for (int i = 0; i < size; i++) {
+            add((T) in.readObject());
+        }
     }
 
     public void setSize(int size) {

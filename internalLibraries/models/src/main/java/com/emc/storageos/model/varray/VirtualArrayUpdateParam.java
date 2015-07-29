@@ -14,11 +14,12 @@ import com.emc.storageos.model.valid.Length;
  */
 @XmlRootElement(name = "varray_update")
 public class VirtualArrayUpdateParam extends VirtualArrayParam {
-    
+
     private String label;
 
-    public VirtualArrayUpdateParam() {}
-    
+    public VirtualArrayUpdateParam() {
+    }
+
     public VirtualArrayUpdateParam(String label) {
         super();
         this.label = label;
@@ -43,5 +44,5 @@ public class VirtualArrayUpdateParam extends VirtualArrayParam {
     public void setLabel(String label) {
         this.label = label;
     }
-    
+
 }

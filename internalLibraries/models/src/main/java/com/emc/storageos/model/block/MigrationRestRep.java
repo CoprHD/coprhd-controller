@@ -46,7 +46,7 @@ public class MigrationRestRep extends DataObjectRestRep {
      * to be migrated.
      * 
      * @valid none
-     *
+     * 
      * @return The related resource representation for the migration source.
      */
     @XmlElement(name = "source")
@@ -62,7 +62,7 @@ public class MigrationRestRep extends DataObjectRestRep {
      * The start time of the migration.
      * 
      * @valid <i>EEE</i> <i>MMM</i> <i>dd</i> <i>hh</i>:<i>mm</i>:<i>ss</i> <i>z</i> <i>yyyy</i>
-     *
+     * 
      * @return The migration start time.
      */
     @XmlElement(name = "start_time")
@@ -87,7 +87,7 @@ public class MigrationRestRep extends DataObjectRestRep {
      * @valid partially-committed = The migration is in the process of being committed.
      * @valid partially-cancelled = The migration is in the process of being canceled.
      * @valid queued = The migration is queued and awaiting execution.
-     *
+     * 
      * @return The migration status.
      */
     @XmlElement(name = "status")
@@ -104,7 +104,7 @@ public class MigrationRestRep extends DataObjectRestRep {
      * the data on the source volume is migrated.
      * 
      * @valid none
-     *
+     * 
      * @return The related resource representation for the migration target.
      */
     @XmlElement(name = "target")
@@ -120,7 +120,7 @@ public class MigrationRestRep extends DataObjectRestRep {
      * The volume being migrated.
      * 
      * @valid none
-     *
+     * 
      * @return The related resource representation for the volume being migrated.
      */
     @XmlElement(name = "volume")

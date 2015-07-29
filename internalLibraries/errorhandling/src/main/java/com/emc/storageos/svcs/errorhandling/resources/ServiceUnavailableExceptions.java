@@ -14,22 +14,19 @@ import java.net.URI;
  * This interface holds all the methods used to create an error condition that
  * will be associated with an HTTP status of Service Unavailable (503)
  * <p/>
- * Remember to add the English message associated to the method in
- * ServiceUnavailableExceptions.properties and use the annotation
- * {@link DeclareServiceCode} to set the service code associated to this error
- * condition. You may need to create a new service code if there is no an
- * existing one suitable for your error condition.
+ * Remember to add the English message associated to the method in ServiceUnavailableExceptions.properties and use the annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
+ * is no an existing one suitable for your error condition.
  * <p/>
- * For more information or to see an example, check the Developers Guide section
- * in the Error Handling Wiki page:
+ * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
  * http://confluence.lab.voyence.com/display/OS/Error+Handling+Framework+and+Exceptions+in+ViPR
  */
 @MessageBundle
 public interface ServiceUnavailableExceptions {
 
-	// Dummy used for testing
-	@DeclareServiceCode(ServiceCode.API_SERVICE_UNAVAILABLE)
-	ServiceUnavailableException dummy();
+    // Dummy used for testing
+    @DeclareServiceCode(ServiceCode.API_SERVICE_UNAVAILABLE)
+    ServiceUnavailableException dummy();
 
     @DeclareServiceCode(ServiceCode.API_SERVICE_UNAVAILABLE)
     public ServiceUnavailableException cannotDeactivateStorageSystemWhileInDiscover(URI id);
@@ -42,10 +39,10 @@ public interface ServiceUnavailableExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_SERVICE_BUSY)
     public ServiceUnavailableException sendEventBusy();
-    
+
     @DeclareServiceCode(ServiceCode.API_VERSION_OF_IMAGE_UNKNOWN_SO_FAR)
-    public ServiceUnavailableException versionOfTheImageIsUnknownSoFar(); 
-    
+    public ServiceUnavailableException versionOfTheImageIsUnknownSoFar();
+
     @DeclareServiceCode(ServiceCode.SYS_SERVICE_BUSY)
     public ServiceUnavailableException postLicenseBusy();
 

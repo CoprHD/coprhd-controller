@@ -34,7 +34,7 @@ public class StorageMeteringException extends DeviceControllerException {
 
     /**
      * Constructor.
-     *
+     * 
      * @param msg The exception message.
      */
     @Deprecated
@@ -44,7 +44,7 @@ public class StorageMeteringException extends DeviceControllerException {
 
     /**
      * Constructor.
-     *
+     * 
      * @param cause The cause of the exception.
      */
     @Deprecated
@@ -54,7 +54,7 @@ public class StorageMeteringException extends DeviceControllerException {
 
     /**
      * Constructor.
-     *
+     * 
      * @param msg The exception message.
      * @param cause The cause of the exception.
      */

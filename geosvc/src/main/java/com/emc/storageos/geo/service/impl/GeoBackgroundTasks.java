@@ -37,7 +37,6 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.client.model.ProductName;
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.model.VirtualDataCenter.ConnectionStatus;
 import com.emc.storageos.db.common.DbConfigConstants;
@@ -58,24 +57,24 @@ public class GeoBackgroundTasks {
     private ScheduledExecutorService _exe = new NamedScheduledThreadPoolExecutor(POOL_NAME, 3);
 
     private static final int DEFAULT_VDC_STATUS_INTERVAL = 10;
-    
+
     // versions with no restGeoBlacklist API support
     private static final List<SoftwareVersion> incompatibleVersions = Collections.unmodifiableList(
-            Arrays.asList(new SoftwareVersion(ProductName.getName() + "-2.0.0.0.*"), 
-                          new SoftwareVersion(ProductName.getName() + "-2.0.0.1.*"),
-                          new SoftwareVersion(ProductName.getName() + "-2.1.0.0.*")));
+            Arrays.asList(new SoftwareVersion(ProductName.getName() + "-2.0.0.0.*"),
+                    new SoftwareVersion(ProductName.getName() + "-2.0.0.1.*"),
+                    new SoftwareVersion(ProductName.getName() + "-2.1.0.0.*")));
 
     private CoordinatorClient _coordinatorClient;
 
     private InternalDbClient _dbClient;
-    
+
     @Autowired
     private GeoClientCacheManager clientManager;
-    
+
     private String geodbDir;
-    
+
     private Integer nodeCount;
-    
+
     @Autowired
     private VdcConfigHelper helper;
 
@@ -93,15 +92,15 @@ public class GeoBackgroundTasks {
     public void setGeoClientCacheManager(GeoClientCacheManager clientManager) {
         this.clientManager = clientManager;
     }
-    
+
     public void setGeodbDir(String geodbDir) {
         this.geodbDir = geodbDir;
     }
-    
+
     public void setNodeCount(Integer nodeCount) {
         this.nodeCount = nodeCount;
     }
-    
+
     public void setVdcStatusInterval(int vdcStatusInterval) {
         this.vdcStatusInterval = vdcStatusInterval;
     }
@@ -147,6 +146,7 @@ public class GeoBackgroundTasks {
     private class GeodbRestoreHelper implements Runnable {
         // Restore check interval in seconds
         private static final int CHECK_INTERVAL = 30;
+
         @Override
         public void run() {
             if (!isRestoring()) {
@@ -171,7 +171,7 @@ public class GeoBackgroundTasks {
                 try {
                     Thread.sleep(1000 * CHECK_INTERVAL);
                 } catch (InterruptedException ex) {
-                	//Ignore this exception
+                    // Ignore this exception
                 }
             }
             _log.info("GeodbRestoreHelper exits");
@@ -194,16 +194,16 @@ public class GeoBackgroundTasks {
                         SoftwareVersion version = new SoftwareVersion(versionStr);
                         boolean compatible = true;
                         for (SoftwareVersion incompVer : incompatibleVersions) {
-                           if (incompVer.weakEquals(version)) {
-                              _log.info("Ignore blacklist reset for incompatible version");
-                             compatible = false;
-                             break;
-                           }
+                            if (incompVer.weakEquals(version)) {
+                                _log.info("Ignore blacklist reset for incompatible version");
+                                compatible = false;
+                                break;
+                            }
                         }
                         if (compatible) {
                             client.resetBlacklist(localVdcShortId);
-                            _log.info("Reset geo blacklist done");    
-                        }  
+                            _log.info("Reset geo blacklist done");
+                        }
                     } catch (Exception ex) {
                         _log.error("Reset blacklist error", ex);
                     }
@@ -261,8 +261,9 @@ public class GeoBackgroundTasks {
             for (int i = 0; i < configs.size(); i++) {
                 Configuration config = configs.get(i);
                 // Bypasses item of "global" and folders of "version", just check db configurations.
-                if (config.getId() == null || config.getId().equals(Constants.GLOBAL_ID))
+                if (config.getId() == null || config.getId().equals(Constants.GLOBAL_ID)) {
                     continue;
+                }
 
                 String restoreReinit = config.getConfig(Constants.STARTUPMODE_RESTORE_REINIT);
                 if (restoreReinit != null && Boolean.parseBoolean(restoreReinit)) {
@@ -273,7 +274,7 @@ public class GeoBackgroundTasks {
             return reinitCount;
         }
     }
-    
+
     public class MonitorVdcReachableTask implements Runnable {
         private static final String VDC_REACHABLE_LOCK = "vdc_reachable_background_task";
         private static final String LAST_COMPLETED_CHECK = "last_completed_check";
@@ -321,7 +322,7 @@ public class GeoBackgroundTasks {
                     VirtualDataCenter vdc = _dbClient.queryObject(VirtualDataCenter.class, vdcId);
                     long nowTime = System.currentTimeMillis();
                     if (helper.areNodesReachable(vdc.getShortId(),
-                                vdc.getHostIPv4AddressesMap(), vdc.getHostIPv6AddressesMap(), false)) {
+                            vdc.getHostIPv4AddressesMap(), vdc.getHostIPv6AddressesMap(), false)) {
                         _log.info("The vdc {} is seen at {}.", vdc.getShortId(), new Date(nowTime));
                         vdc.setLastSeenTimeInMillis(nowTime);
                         _dbClient.updateAndReindexObject(vdc);
@@ -332,7 +333,7 @@ public class GeoBackgroundTasks {
                 }
 
                 updateLastCheckTime(currentTime);
-            } catch(Exception e) {
+            } catch (Exception e) {
                 _log.warn("Unexpected exception {} ", e);
             }
         }
@@ -351,4 +352,3 @@ public class GeoBackgroundTasks {
     }
 
 }
-

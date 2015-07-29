@@ -22,12 +22,14 @@ public class VdcCertListParam {
     // all the connected VDCs' certs for adding cert to target VDC
     private List<VdcCertParam> certs;
 
-    public VdcCertListParam() {}
+    public VdcCertListParam() {
+    }
 
     @XmlElement(name = "cmd")
     public String getCmd() {
         return cmd;
     }
+
     public void setCmd(String cmd) {
         this.cmd = cmd;
     }
@@ -36,6 +38,7 @@ public class VdcCertListParam {
     public String getTargetVdcId() {
         return targetVdcId;
     }
+
     public void setTargetVdcId(String targetVdcId) {
         this.targetVdcId = targetVdcId;
     }
@@ -44,6 +47,7 @@ public class VdcCertListParam {
     public String getTargetVdcCert() {
         return targetVdcCert;
     }
+
     public void setTargetVdcCert(String targetVdcCert) {
         this.targetVdcCert = targetVdcCert;
     }
@@ -55,9 +59,9 @@ public class VdcCertListParam {
         }
         return certs;
     }
+
     public void setVdcCerts(List<VdcCertParam> certs) {
         this.certs = certs;
     }
-
 
 }

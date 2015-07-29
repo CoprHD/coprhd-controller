@@ -11,22 +11,24 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name="tasks")
+@XmlRootElement(name = "tasks")
 public class TaskList {
 
     /**
      * A list of tasks, including the details of each task.
-     * @valid none 
+     * 
+     * @valid none
      */
     private List<TaskResourceRep> taskList;
 
-    public TaskList() {}
-    
-    public TaskList(List<TaskResourceRep> taskList) {
-        this.taskList = taskList; 
+    public TaskList() {
     }
 
-    @XmlElement(name="task")
+    public TaskList(List<TaskResourceRep> taskList) {
+        this.taskList = taskList;
+    }
+
+    @XmlElement(name = "task")
     public List<TaskResourceRep> getTaskList() {
         if (taskList == null) {
             taskList = new ArrayList<TaskResourceRep>();

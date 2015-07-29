@@ -5,7 +5,6 @@
 package com.emc.storageos.security.helpers;
 
 import java.security.*;
-import java.security.interfaces.RSAPrivateKey;
 
 public interface SecurityService {
 

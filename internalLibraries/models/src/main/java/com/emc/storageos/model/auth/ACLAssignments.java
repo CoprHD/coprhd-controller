@@ -13,14 +13,16 @@ import org.codehaus.jackson.annotate.JsonProperty;
 
 @XmlRootElement(name = "acl_assignments")
 public class ACLAssignments {
-    
+
     /**
      * The returned list of ACL assignments.
+     * 
      * @valid none
      */
     private List<ACLEntry> assignments;
 
-    public ACLAssignments() {}
+    public ACLAssignments() {
+    }
 
     public ACLAssignments(List<ACLEntry> assignments) {
         this.assignments = assignments;
@@ -38,6 +40,5 @@ public class ACLAssignments {
     public void setAssignments(List<ACLEntry> assignments) {
         this.assignments = assignments;
     }
-    
-    
+
 }

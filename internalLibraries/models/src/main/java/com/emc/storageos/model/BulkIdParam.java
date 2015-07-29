@@ -15,12 +15,13 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class BulkIdParam {
     private List<URI> ids;
 
-    public BulkIdParam() {}
-    
+    public BulkIdParam() {
+    }
+
     public BulkIdParam(List<URI> ids) {
         this.ids = ids;
     }
-    
+
     @XmlElement(name = "id")
     public List<URI> getIds() {
         if (ids == null) {

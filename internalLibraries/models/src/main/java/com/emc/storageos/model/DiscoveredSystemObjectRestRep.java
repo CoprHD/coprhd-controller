@@ -28,7 +28,8 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
     private String compatibilityStatus;
     private String registrationStatus;
 
-    public DiscoveredSystemObjectRestRep() {}
+    public DiscoveredSystemObjectRestRep() {
+    }
 
     public DiscoveredSystemObjectRestRep(String systemType,
             String discoveryJobStatus, String meteringJobStatus,
@@ -50,10 +51,10 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
         this.compatibilityStatus = compatibilityStatus;
         this.registrationStatus = registrationStatus;
     }
-    
+
     /**
      * The last discovery status message for this system
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "last_discovery_status_message")
@@ -67,12 +68,12 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
 
     /**
      * A short mnemonic that indicates what kind of system is being represented
-     *
+     * 
      * @valid brocade
      * @valid isilon
      * @valid netapp
      * @valid mds = Cisco MDS series switch
-     * @valid rp  = RecoverPoint
+     * @valid rp = RecoverPoint
      * @valid vmax
      * @valid vnxblock
      * @valid vnxfile
@@ -90,7 +91,7 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
 
     /**
      * The status of the last discovery job for this system
-     *
+     * 
      * @valid CREATED
      * @valid IN_PROGRESS
      * @valid COMPLETE
@@ -107,7 +108,7 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
 
     /**
      * The timestamp for the last discovery job for this system
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "last_discovery_run_time")
@@ -121,7 +122,7 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
 
     /**
      * The timestamp for the last metric collection job for this system
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "last_metering_run_time")
@@ -135,7 +136,7 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
 
     /**
      * The status of the last metric collection job for this system
-     *
+     * 
      * @valid CREATED
      * @valid IN_PROGRESS
      * @valid COMPLETE
@@ -152,7 +153,7 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
 
     /**
      * The timestamp for the next scheduled discovery job for this system
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "next_discovery_run_time")
@@ -166,7 +167,7 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
 
     /**
      * The timestamp for the next scheduled metric collection job for this system
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "next_metering_run_time")
@@ -180,7 +181,7 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
 
     /**
      * The latest timestamp when the system run Discovery successfully
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "success_discovery_time")
@@ -194,7 +195,7 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
 
     /**
      * The latest timestamp when the system run Metering successfully
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "success_metering_time")
@@ -206,14 +207,13 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
         this.successMeteringTime = successMeteringTime;
     }
 
-
     /**
      * Whether or not the system is registered with ViPR. A system must be
      * registered before it can be managed by ViPR.
-     *
+     * 
      * @valid REGISTERED
      * @valid UNREGISTERED
-     *
+     * 
      */
     @XmlElement(name = "registration_status")
     public String getRegistrationStatus() {
@@ -223,7 +223,6 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
     public void setRegistrationStatus(String registrationStatus) {
         this.registrationStatus = registrationStatus;
     }
-
 
     /**
      * Whether or not this system is compatible with ViPR

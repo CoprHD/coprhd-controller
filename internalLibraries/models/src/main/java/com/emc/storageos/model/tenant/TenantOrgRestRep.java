@@ -19,14 +19,15 @@ import com.emc.storageos.model.RelatedResourceRep;
 @XmlRootElement(name = "tenant")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class TenantOrgRestRep extends DataObjectRestRep {
-    
+
     private RelatedResourceRep parentTenant;
     private String description;
     private List<UserMappingParam> userMappings;
     private String namespace;
-    
-    public TenantOrgRestRep() {}
-    
+
+    public TenantOrgRestRep() {
+    }
+
     public TenantOrgRestRep(RelatedResourceRep parentTenant,
             String description, List<UserMappingParam> userMappings) {
         this.parentTenant = parentTenant;
@@ -66,19 +67,19 @@ public class TenantOrgRestRep extends DataObjectRestRep {
 
     /**
      * 
-     * User mappings define how a user is mapped to a tenant.  The user can be
+     * User mappings define how a user is mapped to a tenant. The user can be
      * mapped to a tenant using parameters such as domains, LDAP attributes,
-     * and AD group membership. 
+     * and AD group membership.
      * 
      * @valid none
      */
-    @XmlElementWrapper(name="user_mappings")
+    @XmlElementWrapper(name = "user_mappings")
     /**
      * One individual mapping
      * @valid none 
      * @return 
      */
-    @XmlElement(name="user_mapping")
+    @XmlElement(name = "user_mapping")
     public List<UserMappingParam> getUserMappings() {
         if (userMappings == null) {
             userMappings = new ArrayList<UserMappingParam>();

@@ -12,28 +12,29 @@ import com.emc.storageos.model.pools.VirtualArrayAssignments;
 
 /**
  * Class captures lists of URIs for varrays to be assigned/unassigned
- * to/from the storage pool.  Special list for virtual array assignments for
+ * to/from the storage pool. Special list for virtual array assignments for
  * RP storage pools
  */
 @XmlRootElement(name = "varray_assignment_change")
 public class RPClusterVirtualArrayAssignmentChanges extends VirtualArrayAssignmentChanges {
 
-	private String clusterId;
-	
-    public RPClusterVirtualArrayAssignmentChanges() {}
-    
+    private String clusterId;
+
+    public RPClusterVirtualArrayAssignmentChanges() {
+    }
+
     public RPClusterVirtualArrayAssignmentChanges(String clusterId,
-    		VirtualArrayAssignments add,
+            VirtualArrayAssignments add,
             VirtualArrayAssignments remove) {
         super(add, remove);
     }
 
     @XmlElement(name = "cluster_id")
     public String getClusterId() {
-    	return clusterId;
+        return clusterId;
     }
-    
+
     public void setClusterId(String clusterId) {
-    	this.clusterId = clusterId;
+        this.clusterId = clusterId;
     }
 }

@@ -13,7 +13,7 @@ public class ApplicationContextUtil {
             "security-oss-conf.xml",
     };
 
-    public static void initContext(String buildType, String ... contextFiles) {
+    public static void initContext(String buildType, String... contextFiles) {
         GenericXmlApplicationContext ctx = new GenericXmlApplicationContext();
         ctx.getEnvironment().setActiveProfiles(buildType);
         ctx.load(contextFiles);

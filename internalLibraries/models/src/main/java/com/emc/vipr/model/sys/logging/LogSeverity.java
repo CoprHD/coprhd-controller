@@ -22,7 +22,7 @@ public enum LogSeverity {
     INFO,
     DEBUG,
     TRACE,
-    NA; //this indicates a get logger level request, shouldn't be used elsewhere
+    NA; // this indicates a get logger level request, shouldn't be used elsewhere
 
     private final List<String> values;
 
@@ -43,8 +43,9 @@ public enum LogSeverity {
 
     public static int toLevel(String sevName) {
         LogSeverity severity = find(sevName.toUpperCase());
-        if (severity != null)
+        if (severity != null) {
             return severity.ordinal();
+        }
         return -1;
     }
 
@@ -54,4 +55,3 @@ public enum LogSeverity {
 
     public static final int MAX_LEVEL = 10;
 }
-

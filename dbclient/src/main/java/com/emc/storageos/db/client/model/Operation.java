@@ -47,12 +47,12 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
     public enum Status {
         pending, ready, error;
 
-        public static Status toStatus(String status){
-        	try{
-        		return valueOf(status.toLowerCase());
-        	}catch (Exception e){
-        		throw new IllegalArgumentException("status: " + status + " is not a valid status");
-    }
+        public static Status toStatus(String status) {
+            try {
+                return valueOf(status.toLowerCase());
+            } catch (Exception e) {
+                throw new IllegalArgumentException("status: " + status + " is not a valid status");
+            }
         }
     }
 
@@ -73,7 +73,7 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
     private Map<URI, Task> tasks = Maps.newHashMap();
 
     public Operation() {
-    	_changedFields = new HashSet<String>();
+        _changedFields = new HashSet<String>();
         updateStatus(Status.pending.name());
     }
 
@@ -95,8 +95,9 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
     @Deprecated
     public Operation(String status, ServiceCode code, String message) {
         setStatus(status);
-        if (message != null)
+        if (message != null) {
             setMessage(message);
+        }
         if (code != null) {
             setServiceCode(code.getCode());
         }
@@ -104,17 +105,19 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
 
     /**
      * This method sets the status of the operation to "ready"
+     * 
      * @return
      */
-    public void ready(){
+    public void ready() {
         ready("Operation completed successfully");
     }
 
     /**
      * This method sets the status of the operation to "ready" and updates progress to be 100%
+     * 
      * @return
      */
-    public void ready(String message){
+    public void ready(String message) {
         setMessage(message);
         setProgress(100);
         updateStatus(Status.ready.name());
@@ -122,26 +125,27 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
 
     /**
      * This method sets the status of the operation to "error"
+     * 
      * @return
      */
-    public void error(ServiceCoded sc){
-        
-        if(sc!=null) {
+    public void error(ServiceCoded sc) {
+
+        if (sc != null) {
             setServiceCode(sc.getServiceCode().getCode());
             setMessage(sc.getMessage());
         }
         updateStatus(Status.error.name());
-        if (sc instanceof Exception){
+        if (sc instanceof Exception) {
             _log.info("Setting operation to error due to an exception {}",
                     ExceptionUtils.getExceptionMessage((Exception) sc));
             _log.debug("Caused by: {} ", (Exception) sc);
         }
     }
 
-    public ServiceError getServiceError(){
-    	ServiceCode serviceCode = ServiceCode.toServiceCode(getServiceCode());
-    	ServiceError serviceError = ServiceError.buildServiceError(serviceCode, getMessage());
-    	return serviceError;
+    public ServiceError getServiceError() {
+        ServiceCode serviceCode = ServiceCode.toServiceCode(getServiceCode());
+        ServiceError serviceError = ServiceError.buildServiceError(serviceCode, getMessage());
+        return serviceError;
     }
 
     @Override
@@ -151,7 +155,7 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
 
     /**
      * Get status
-     *
+     * 
      * @return
      */
     @XmlElement
@@ -166,33 +170,36 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
      * @param resourceType input resource type
      */
     public void setResourceType(ResourceOperationTypeEnum resourceType) {
-    	setName(resourceType.getName());
-    	setDescription(resourceType.getDescription());
+        setName(resourceType.getName());
+        setDescription(resourceType.getDescription());
     }
-    
+
     /**
      * Use methods "ready(...)" or "error(...)" to set the status instead
+     * 
      * @param status
      * @throws IllegalArgumentException
      */
     @Deprecated
     public void setStatus(String status) throws IllegalArgumentException {
-        if (isValidStatus(status) == false)
-    		throw new IllegalArgumentException("status: " + status + " is not a valid status");
+        if (isValidStatus(status) == false) {
+            throw new IllegalArgumentException("status: " + status + " is not a valid status");
+        }
         setField(STATUS_FIELD, status);
         updateChangedField(STATUS_FIELD);
     }
 
     private void updateStatus(String status) throws IllegalArgumentException {
-        if (isValidStatus(status) == false)
+        if (isValidStatus(status) == false) {
             throw new IllegalArgumentException("status: " + status + " is not a valid status");
+        }
         setField(STATUS_FIELD, status);
         updateChangedField(STATUS_FIELD);
     }
 
     /**
      * Get progress
-     *
+     * 
      * @return null if no progress information is available
      */
     @XmlElement
@@ -211,7 +218,7 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
     }
 
     public void setDescription(String description) {
-        if (getDescription() == null){
+        if (getDescription() == null) {
             setField(DESCRIPTION_FIELD, description);
             updateChangedField(DESCRIPTION_FIELD);
         }
@@ -223,7 +230,7 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
     }
 
     public void setName(String name) {
-        if (getName() == null){
+        if (getName() == null) {
             setField(NAME_FIELD, name);
             updateChangedField(NAME_FIELD);
         }
@@ -251,7 +258,7 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
 
     /**
      * Get any message for operation
-     *
+     * 
      * @return
      */
     @XmlElement
@@ -266,7 +273,7 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
 
     /**
      * Get service code
-     *
+     * 
      * @return null if no service code is available
      */
     @XmlElement
@@ -312,28 +319,29 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
     }
 
     private void updateChangedField(String fieldName) {
-        if (_changedFields == null)
+        if (_changedFields == null) {
             _changedFields = new HashSet<String>();
+        }
         _changedFields.add(fieldName);
     }
 
     /**
      * Checks to see whether the provided status is one of the defined valid
      * status(es).
-     *
+     * 
      * @param statusStr - Status String
      * @return true, if the provided status is valid. otherwise false.
      */
-	private boolean isValidStatus(String statusStr) {
-		boolean valid = false;
-		Status[] validStatus = Status.values();
+    private boolean isValidStatus(String statusStr) {
+        boolean valid = false;
+        Status[] validStatus = Status.values();
 
-		for (Status status : validStatus) {
-			if (status.name().toUpperCase().equals(statusStr.toUpperCase())) {
-				valid = true;
-				break;
-			}
-		}
-		return valid;
-	}
+        for (Status status : validStatus) {
+            if (status.name().toUpperCase().equals(statusStr.toUpperCase())) {
+                valid = true;
+                break;
+            }
+        }
+        return valid;
+    }
 }

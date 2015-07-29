@@ -12,8 +12,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class PasswordChangeParam {
 
     private String oldPassword;
-	private String password;
-	private String username;
+    private String password;
+    private String username;
 
     @XmlElement(name = "old_password")
     public String getOldPassword() {
@@ -24,22 +24,21 @@ public class PasswordChangeParam {
         this.oldPassword = oldPassword;
     }
 
-	@XmlElement(name = "password")
-	public String getPassword() {
-		return password;
-	}
-	
-	public void setPassword(String password) {
-		this.password = password;
-	}
-	
-	@XmlElement(name = "username")
-	public String getUsername() {
-		return username;
-	}
-	
-	public void setUsername(String username) {
-		this.username = username;
-	}	
-}
+    @XmlElement(name = "password")
+    public String getPassword() {
+        return password;
+    }
 
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    @XmlElement(name = "username")
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+}

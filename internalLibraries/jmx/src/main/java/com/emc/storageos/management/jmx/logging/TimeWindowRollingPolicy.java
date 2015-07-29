@@ -6,10 +6,7 @@
 package com.emc.storageos.management.jmx.logging;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
-
 import org.apache.log4j.pattern.PatternConverter;
 import org.apache.log4j.rolling.RollingPolicyBase;
 import org.apache.log4j.rolling.RolloverDescription;
@@ -41,8 +38,8 @@ public final class TimeWindowRollingPolicy extends RollingPolicyBase {
 
         if (itc == null) {
             throw new IllegalStateException(
-                "FileNamePattern [" + getFileNamePattern()
-                + "] does not contain a valid date format specifier");
+                    "FileNamePattern [" + getFileNamePattern()
+                            + "] does not contain a valid date format specifier");
         }
     }
 
@@ -51,7 +48,7 @@ public final class TimeWindowRollingPolicy extends RollingPolicyBase {
      */
     @Override
     public RolloverDescription initialize(
-        final String file, final boolean append) {
+            final String file, final boolean append) {
         String newActiveFile = file;
         boolean explicitActiveFile = false;
 
@@ -89,20 +86,20 @@ public final class TimeWindowRollingPolicy extends RollingPolicyBase {
         if (renameTo.endsWith(".gz")) {
             renameTo = renameTo.substring(0, renameTo.length() - 3);
             compressAction =
-                new GZCompressAction(
-                    new File(renameTo), new File(compressedName), true);
+                    new GZCompressAction(
+                            new File(renameTo), new File(compressedName), true);
         } else if (renameTo.endsWith(".zip")) {
             renameTo = renameTo.substring(0, renameTo.length() - 4);
             compressAction =
-                new ZipCompressAction(
-                    new File(renameTo), new File(compressedName), true);
+                    new ZipCompressAction(
+                            new File(renameTo), new File(compressedName), true);
         }
 
         FileRenameAction renameAction =
-            new FileRenameAction(
-                new File(currentFileName), new File(renameTo), false);
+                new FileRenameAction(
+                        new File(currentFileName), new File(renameTo), false);
 
         return new RolloverDescriptionImpl(
-            currentFileName, false, renameAction, compressAction);
+                currentFileName, false, renameAction, compressAction);
     }
 }

@@ -14,7 +14,7 @@ import com.sun.jersey.spi.container.ResourceFilter;
 public abstract class AbstractLicenseFilter implements ResourceFilter, ContainerRequestFilter {
 
     @Override
-    public ContainerRequestFilter  getRequestFilter() {
+    public ContainerRequestFilter getRequestFilter() {
         return this;
     }
 

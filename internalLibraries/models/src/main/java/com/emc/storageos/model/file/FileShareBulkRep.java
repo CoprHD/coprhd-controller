@@ -18,7 +18,8 @@ public class FileShareBulkRep extends BulkRestRep {
     /**
      * The list of file shares, returned as response to bulk
      * queries.
-     * @valid none 
+     * 
+     * @valid none
      */
     @XmlElement(name = "filesystem")
     public List<FileShareRestRep> getFileShares() {

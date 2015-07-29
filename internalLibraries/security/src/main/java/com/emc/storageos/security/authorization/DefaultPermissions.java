@@ -10,9 +10,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- *  Annotation to attach a permission check to a resource method
+ * Annotation to attach a permission check to a resource method
  */
-@Target({ElementType.TYPE})
+@Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DefaultPermissions {
     // Roles allowed for read access

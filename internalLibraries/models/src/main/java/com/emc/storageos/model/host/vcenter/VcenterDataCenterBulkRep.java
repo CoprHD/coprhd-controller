@@ -16,8 +16,9 @@ import com.emc.storageos.model.BulkRestRep;
 public class VcenterDataCenterBulkRep extends BulkRestRep {
     private List<VcenterDataCenterRestRep> VcenterDataCenters;
 
-    public VcenterDataCenterBulkRep() {}
-    
+    public VcenterDataCenterBulkRep() {
+    }
+
     public VcenterDataCenterBulkRep(
             List<VcenterDataCenterRestRep> VcenterDataCenters) {
         this.VcenterDataCenters = VcenterDataCenters;
@@ -25,6 +26,7 @@ public class VcenterDataCenterBulkRep extends BulkRestRep {
 
     /**
      * List of vCenter data center instances that exists in ViPR.
+     * 
      * @valid none
      */
     @XmlElement(name = "vcenter_data_center")

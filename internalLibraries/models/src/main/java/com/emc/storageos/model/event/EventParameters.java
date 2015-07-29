@@ -13,8 +13,9 @@ public class EventParameters {
     private String userStr;
     private String contact;
 
-    public EventParameters() {}
-    
+    public EventParameters() {
+    }
+
     public EventParameters(String userStr, String contact) {
         this.userStr = userStr;
         this.contact = contact;

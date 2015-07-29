@@ -28,7 +28,7 @@ public class ScheduledProcessMonitor {
         try {
             _logger.info("Process Monitor Scheduled");
             processMonitorMetrics = new ProcessMonitorMetrics();
-            processMonitorMetrics.setServiceName(_serviceName); 
+            processMonitorMetrics.setServiceName(_serviceName);
             _scheduledProcessMonitor.scheduleAtFixedRate(
                     new ProcessMonitor(processMonitorMetrics), 0, Long.parseLong(_interval),
                     TimeUnit.SECONDS);

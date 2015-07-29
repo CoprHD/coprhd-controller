@@ -18,7 +18,7 @@ public class NodeDiagnostics {
     private String nodeId;
     private String ip;
     private List<DiagTest> diagTests;
-    
+
     public NodeDiagnostics() {
         this.nodeId = HealthMonitorConstants.DIAG_UNKNOWN;
     }

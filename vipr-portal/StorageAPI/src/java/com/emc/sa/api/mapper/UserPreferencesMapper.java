@@ -19,14 +19,14 @@ public class UserPreferencesMapper {
         UserPreferencesRestRep to = new UserPreferencesRestRep();
 
         mapDataObjectFields(from, to);
-        
+
         to.setUsername(from.getUserId());
         to.setNotifyByEmail(from.getNotifyByEmail());
         to.setEmail(from.getEmail());
-        
+
         return to;
-    }    
-    
+    }
+
     public static void updateObject(UserPreferences object, UserPreferencesUpdateParam param) {
         if (param.getNotifyByEmail() != null) {
             object.setNotifyByEmail(param.getNotifyByEmail());
@@ -34,6 +34,6 @@ public class UserPreferencesMapper {
         if (param.getEmail() != null) {
             object.setEmail(param.getEmail());
         }
-    }       
+    }
 
 }

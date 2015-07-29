@@ -39,7 +39,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 /**
- *  Base class for all the filters that need to create a Bourne understandable user principal
+ * Base class for all the filters that need to create a Bourne understandable user principal
  */
 public abstract class AbstractRequestWrapperFilter implements Filter {
     private static final Logger _log = LoggerFactory.getLogger(AbstractRequestWrapperFilter.class);
@@ -61,6 +61,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
     /**
      * Creates and returns StorageOSUser from the StorageOSUserDAO given
      * also, populates roles for the user
+     * 
      * @param userDAO
      * @param token sets the auth token for the user
      * @param proxyToken sets the proxy token for the user (optional)
@@ -76,20 +77,20 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
             user.setToken(token);
             if (proxyToken != null && !proxyToken.isEmpty()) {
                 user.setProxyToken(proxyToken);
-        }
+            }
         }
         return user;
     }
 
     /**
-     *
+     * 
      * Looks at the tokens in a request. It will first look at the
      * authentication token. - If the token is valid and considerProxyToken is
      * false, return the corresponding user. - If the token is valid, and
      * considerProxyToken is true, and the corresponding user has the PROXY_USER
      * role, and there is a proxy token on the request, return the corresponding
      * proxy user. Strip it of SECURITY_ADMIN role, and mark is as a proxy user.
-     *
+     * 
      * @param servletRequest
      * @param considerProxyToken
      * @return
@@ -119,7 +120,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
             }
             _log.info("Proxy user {} running as proxied user {}",
                     authenticatingUser.getUserName(),
-                    proxiedUser.getUserName() );
+                    proxiedUser.getUserName());
             // Remove the SECURITY_ADMIN role for the proxy user.
             // Have to rebuild the role set because roles is an unmodifiable collection.
             Set<String> originalRoles = proxiedUser.getRoles();
@@ -138,9 +139,10 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
 
     /**
      * Retrieves token from the request header or cookie, and looks up StorageOSUser from it
+     * 
      * @param servletRequest
-     * @param proxyLookup: If true, will look for a proxy token.  If false, look for a auth token only.
-     * @return  StorageOSUser if a validation of the token succeeds.  Otherwise null
+     * @param proxyLookup: If true, will look for a proxy token. If false, look for a auth token only.
+     * @return StorageOSUser if a validation of the token succeeds. Otherwise null
      */
     private StorageOSUser getUserFromRequestInternal(final ServletRequest servletRequest,
             boolean proxyLookup) {
@@ -164,7 +166,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
 
         // in cookies
         if (req.getCookies() != null) {
-            for (Cookie cookie: req.getCookies()) {
+            for (Cookie cookie : req.getCookies()) {
                 if (cookie.getName().equalsIgnoreCase(RequestProcessingUtils.AUTH_TOKEN_HEADER)) {
                     authToken = cookie.getValue();
                     StorageOSUser user = getStorageOSUser(_tokenValidator.validateToken(authToken), authToken, null);
@@ -172,7 +174,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
                         return user;
                     } else {
                         // To Do - cache invalid tokens in memory,
-                        // just so we don't try to use them next time  ?
+                        // just so we don't try to use them next time ?
                     }
                 }
             }
@@ -183,6 +185,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
     /**
      * Convenience function to return if the request has a proxy token header
      * specified or not
+     * 
      * @param request
      * @return true if the proxy token header is present
      */
@@ -193,7 +196,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
 
     @Override
     public void doFilter(final ServletRequest servletRequest, final ServletResponse servletResponse,
-                         final FilterChain filterChain) throws IOException, ServletException {
+            final FilterChain filterChain) throws IOException, ServletException {
         final HttpServletResponse response = (HttpServletResponse) servletResponse;
         final HttpServletRequest request = (HttpServletRequest) servletRequest;
         try {
@@ -211,6 +214,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
 
     /**
      * Method to be overloaded to extract Principal information from request context
+     * 
      * @param servletRequest
      * @return AbstractRequestWrapper
      * @throws InternalException
@@ -239,7 +243,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
         private final Principal principal;
 
         public AbstractRequestWrapper(final HttpServletRequest request,
-                                      final Principal principal) {
+                final Principal principal) {
             super(request);
             this.principal = principal;
         }

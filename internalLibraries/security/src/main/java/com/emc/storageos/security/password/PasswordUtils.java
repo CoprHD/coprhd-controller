@@ -71,6 +71,7 @@ public class PasswordUtils {
     }
 
     private Map<String, StorageOSUser> _localUsers;
+
     public void setLocalUsers(Map<String, StorageOSUser> localUsers) {
         _localUsers = localUsers;
     }
@@ -81,7 +82,7 @@ public class PasswordUtils {
 
     /**
      * generate URI for storing user password history in Cassandra.
-     *
+     * 
      * @param username
      * @return
      */
@@ -93,6 +94,7 @@ public class PasswordUtils {
 
     /**
      * retrieve user's password history from Cassandra
+     * 
      * @param username
      * @return
      */
@@ -103,9 +105,9 @@ public class PasswordUtils {
 
     /**
      * set all local users' password expire date to the same date, if data is null, remove expire time for all users
-     *
+     * 
      * this method was used for turn on/off password expire rule
-     *
+     * 
      * @param date
      */
     public void setExpireDateToAll(Calendar date) {
@@ -116,7 +118,7 @@ public class PasswordUtils {
 
     /**
      * update user's expireTime in Cassandra
-     *
+     * 
      * @param user
      * @param expireTime
      */
@@ -126,26 +128,26 @@ public class PasswordUtils {
         ph.setExpireDate(expireTime);
         dbClient.updateAndReindexObject(ph);
         _log.info("set new expire time for user " + user + ": "
-                + (expireTime == null? "null":expireTime.getTime()));
+                + (expireTime == null ? "null" : expireTime.getTime()));
     }
 
     /*
      * design goals:
-     *   1. every password deserves a whole set of notification procedure before it expires.
-     *   2. after the first mail sent, user start aware of their password is about to expire. so after
+     * 1. every password deserves a whole set of notification procedure before it expires.
+     * 2. after the first mail sent, user start aware of their password is about to expire. so after
      * this point, the expire time shouldn't be change any more, even the expire rule changes.
-     *
+     * 
      * when change expire rule, shorten or extend expire days:
-     *   1. For users, whose old password expire time is before grace_point (the point "now + GRACE_DAYS"),
+     * 1. For users, whose old password expire time is before grace_point (the point "now + GRACE_DAYS"),
      * will be no change. this is because user has already got their first notification mail. it is
      * important to keep time in notification mails consistent and accurate, this could also
      * avoid password immediate expiration issue.
-     *
-     *   2. for old expire time is after grace day, re-calculate new expire time as:
-     *          new_expire_time = last_change_time + expire_days
-     *      what the real expire time is, depends on the following:
-     *          2.1: if new expire time before grace point, set it to grace point, to fulfill goal 1.
-     *          2.2: if new expire time after grace point, set it as its real expire time.
+     * 
+     * 2. for old expire time is after grace day, re-calculate new expire time as:
+     * new_expire_time = last_change_time + expire_days
+     * what the real expire time is, depends on the following:
+     * 2.1: if new expire time before grace point, set it to grace point, to fulfill goal 1.
+     * 2.2: if new expire time after grace point, set it as its real expire time.
      */
     public void adjustExpireTime(int newDays) {
         for (String user : _localUsers.keySet()) {
@@ -161,7 +163,7 @@ public class PasswordUtils {
         Password password = constructUserPassword(user);
         Calendar oldExpireTime = password.getPasswordHistory().getExpireDate();
 
-        if (oldExpireTime !=null && oldExpireTime.before(gracePoint)) {
+        if (oldExpireTime != null && oldExpireTime.before(gracePoint)) {
             return oldExpireTime;
         }
 
@@ -180,7 +182,7 @@ public class PasswordUtils {
 
     /**
      * check if two passwords match, one parameter is in clear text, the other is encoded.
-     *
+     * 
      * @param clearTextPassword
      * @param encpassword
      * @return
@@ -206,14 +208,14 @@ public class PasswordUtils {
 
     /**
      * get current system properties
-     *
+     * 
      * @return
      */
     public Map<String, String> getConfigProperties() {
         Map<String, String> mergedProps = new HashMap();
-        Set<Map.Entry<Object,Object>> defaults = defaultProperties.entrySet();
+        Set<Map.Entry<Object, Object>> defaults = defaultProperties.entrySet();
         for (Map.Entry<Object, Object> p : defaults) {
-            mergedProps.put((String)p.getKey(), (String)p.getValue());
+            mergedProps.put((String) p.getKey(), (String) p.getValue());
         }
 
         Map<String, String> overrides = new HashMap();
@@ -233,7 +235,7 @@ public class PasswordUtils {
 
     /**
      * get a property from System Properties
-     *
+     * 
      * @param key
      * @return
      */
@@ -244,7 +246,7 @@ public class PasswordUtils {
 
     /**
      * validate PasswordUpdateParam
-     *
+     * 
      * @param username
      * @param passwordUpdate
      */
@@ -255,7 +257,6 @@ public class PasswordUtils {
                 passwordUpdate.getEncPassword(),
                 ValidatorType.UPDATE);
     }
-
 
     public void validatePasswordParameter(PasswordResetParam passwordReset) {
         validatePasswordParameter(passwordReset.getUsername(),
@@ -274,7 +275,7 @@ public class PasswordUtils {
                 ValidatorType.VALIDATE_CONTENT);
 
     }
-    
+
     public void validatePasswordParameter(PasswordChangeParam passwordChange) {
         validatePasswordParameter(passwordChange.getUsername(),
                 passwordChange.getOldPassword(),
@@ -285,7 +286,7 @@ public class PasswordUtils {
 
     /**
      * validate password APIs input parameters.
-     *
+     * 
      * @param username
      * @param oldPassword
      * @param password
@@ -293,21 +294,21 @@ public class PasswordUtils {
      * @param type
      */
     private void validatePasswordParameter(String username,
-                                           String oldPassword,
-                                           String password,
-                                           String encpassword,
-                                           ValidatorType type) {
+            String oldPassword,
+            String password,
+            String encpassword,
+            ValidatorType type) {
 
         // one of the parameters must present, but not both
-        boolean isPresent =  (password != null && !password.isEmpty()) ^
+        boolean isPresent = (password != null && !password.isEmpty()) ^
                 (encpassword != null && !encpassword.isEmpty());
         if (!isPresent) {
             throw APIException.badRequests.parameterIsNullOrEmpty("password, encpassword");
         }
 
         // if oldPassword presents, verify it
-        if (oldPassword != null && !oldPassword.isEmpty())  {
-            if(!match(oldPassword,getUserPassword(username))) {
+        if (oldPassword != null && !oldPassword.isEmpty()) {
+            if (!match(oldPassword, getUserPassword(username))) {
                 throw BadRequestException.badRequests.passwordInvalidOldPassword();
             }
         }
@@ -315,7 +316,7 @@ public class PasswordUtils {
         if (password != null && !password.isEmpty()) {
             PasswordValidator validator = null;
             switch (type) {
-                case CHANGE :
+                case CHANGE:
                     validator = ValidatorFactory.buildChangeValidator(getConfigProperties(), this);
                     break;
                 case RESET:
@@ -331,18 +332,18 @@ public class PasswordUtils {
 
             Password pw = new Password(username, oldPassword, password);
             if (StringUtils.isNotBlank(username)) {
-                pw.setPasswordHistory(getPasswordHistory(username));                
+                pw.setPasswordHistory(getPasswordHistory(username));
             }
             validator.validate(pw);
         }
     }
 
     /**
-     * a wrapper to call change-password internal API or validate-change internal API  in PasswordService
-     *
+     * a wrapper to call change-password internal API or validate-change internal API in PasswordService
+     * 
      * bDryRun: if true, call validate-change internal API
-     *          if false, call change-password internal API
-     *
+     * if false, call change-password internal API
+     * 
      * @param passwordChange
      * @param bDryRun
      * @return
@@ -353,7 +354,7 @@ public class PasswordUtils {
 
         int attempts = 0;
         ClientResponse response = null;
-        while(attempts < MAX_CONFIG_RETRIES) {
+        while (attempts < MAX_CONFIG_RETRIES) {
             _log.debug("change password attempt {}", ++attempts);
             AuthSvcInternalApiClientIterator sysSvcClientItr =
                     new AuthSvcInternalApiClientIterator(sysSvcEndPointLocator,
@@ -372,14 +373,14 @@ public class PasswordUtils {
             } catch (Exception exception) {
                 // log the exception and retry the request
                 _log.warn(exception.getMessage());
-                if (attempts == MAX_CONFIG_RETRIES -1 ) {
+                if (attempts == MAX_CONFIG_RETRIES - 1) {
                     throw exception;
                 }
             }
         }
 
         Response.ResponseBuilder b = Response.status(response.getStatus());
-        if (! (response.getStatus() == ClientResponse.Status.NO_CONTENT.getStatusCode())) {
+        if (!(response.getStatus() == ClientResponse.Status.NO_CONTENT.getStatusCode())) {
             b.entity(response.getEntity(String.class));
         }
         return b.build();
@@ -387,7 +388,7 @@ public class PasswordUtils {
 
     /**
      * get user's encpassword from system properties
-     *
+     * 
      * @param username
      * @return
      */
@@ -405,7 +406,7 @@ public class PasswordUtils {
             return null;
         }
         String encpassword = props.getProperty(
-                "system_"+username+"_encpassword");
+                "system_" + username + "_encpassword");
 
         if (StringUtils.isBlank(encpassword)) {
             _log.error("No password set for user {} ", username);
@@ -417,13 +418,13 @@ public class PasswordUtils {
 
     /**
      * construct a Password object which only contains its password history information
-     *
+     * 
      * @param username
      * @return
      */
     public Password constructUserPassword(String username) {
         Password password = new Password(username, null, null);
-        PasswordHistory ph= getPasswordHistory(username);
+        PasswordHistory ph = getPasswordHistory(username);
         password.setPasswordHistory(ph);
         return password;
     }
@@ -431,7 +432,6 @@ public class PasswordUtils {
     public static long dayToMilliSeconds(long days) {
         return days * 24 * 60 * 60 * 1000;
     }
-
 
     private enum ValidatorType {
         UPDATE,
@@ -442,9 +442,9 @@ public class PasswordUtils {
 
     /**
      * update user's password expire date.
-     *
+     * 
      * if it is not reset by securityAdmin, also add the password in user's password history
-     *
+     * 
      * @param username
      * @param hashedPassword
      */
@@ -470,10 +470,9 @@ public class PasswordUtils {
         }
     }
 
-
     /**
      * get the days after Epoch: Jan 01, 1970
-     *
+     * 
      * @param date
      * @return
      */
@@ -488,17 +487,17 @@ public class PasswordUtils {
 
     /**
      * prompt string list for password rules which turned on.
-     *
+     * 
      * this is used to provide help infomation for UI changePassword.html.
      */
     public List<String> getPasswordChangePromptRules() {
         List<String> promptRules = new ArrayList<String>();
         Map<String, String> properties = getConfigProperties();
-        for (int i=0; i< Constants.PASSWORD_CHANGE_PROMPT.length; i++) {
+        for (int i = 0; i < Constants.PASSWORD_CHANGE_PROMPT.length; i++) {
             String key = Constants.PASSWORD_CHANGE_PROMPT[i][0];
             String value = properties.get(key);
             if (NumberUtils.toInt(value) != 0) {
-                promptRules.add(MessageFormat.format(Constants.PASSWORD_CHANGE_PROMPT[i][1],value));
+                promptRules.add(MessageFormat.format(Constants.PASSWORD_CHANGE_PROMPT[i][1], value));
             }
         }
 
@@ -507,7 +506,7 @@ public class PasswordUtils {
 
     /**
      * check if a user is a local user.
-     *
+     * 
      * @param username
      * @return
      */

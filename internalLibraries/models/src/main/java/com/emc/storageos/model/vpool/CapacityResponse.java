@@ -19,26 +19,27 @@ public class CapacityResponse {
     private String percentUsed;
     private String percentProvisioned;
     private String netFreeGb;
-    
-    public CapacityResponse() {}
+
+    public CapacityResponse() {
+    }
 
     /**
-     * The free storage capacity of the specified VirtualPool 
-     * or VirtualArray. 
+     * The free storage capacity of the specified VirtualPool
+     * or VirtualArray.
+     * 
      * @valid none
-     */     
+     */
     @XmlElement(name = "free_gb")
     public String getFreeGb() {
         return freeGb;
     }
-	
 
     public void setFreeGb(String freeGb) {
         this.freeGb = freeGb;
     }
 
     /**
-     * The net free storage capacity of the specified VirtualPool 
+     * The net free storage capacity of the specified VirtualPool
      * or VirtualArray.
      */
     @XmlElement(name = "net_free_gb")
@@ -51,10 +52,11 @@ public class CapacityResponse {
     }
 
     /**
-     * The used storage capacity of the specified VirtualPool 
-     * or VirtualArray. 
+     * The used storage capacity of the specified VirtualPool
+     * or VirtualArray.
+     * 
      * @valid none
-     */     
+     */
     @XmlElement(name = "used_gb")
     public String getUsedGb() {
         return usedGb;
@@ -65,10 +67,11 @@ public class CapacityResponse {
     }
 
     /**
-     * The subscribed storage capacity of the specified 
-     * VirtualPool or VirtualArray. 
+     * The subscribed storage capacity of the specified
+     * VirtualPool or VirtualArray.
+     * 
      * @valid none
-     */     
+     */
     @XmlElement(name = "provisioned_gb")
     public String getProvissionedGb() {
         return provissionedGb;
@@ -79,10 +82,11 @@ public class CapacityResponse {
     }
 
     /**
-     * The actual used percent of the usable capacity of the 
-     * specified VirtualPool or VirtualArray. 
+     * The actual used percent of the usable capacity of the
+     * specified VirtualPool or VirtualArray.
+     * 
      * @valid none
-     */     
+     */
     @XmlElement(name = "percent_used")
     public String getPercentUsed() {
         return percentUsed;
@@ -93,10 +97,11 @@ public class CapacityResponse {
     }
 
     /**
-     * The provisioned percent of the usable capacity of the 
-     * specified VirtualPool or VirtualArray. 
+     * The provisioned percent of the usable capacity of the
+     * specified VirtualPool or VirtualArray.
+     * 
      * @valid none
-     */     
+     */
     @XmlElement(name = "percent_provisioned")
     public String getPercentProvisioned() {
         return percentProvisioned;
@@ -105,5 +110,5 @@ public class CapacityResponse {
     public void setPercentProvisioned(String percentProvisioned) {
         this.percentProvisioned = percentProvisioned;
     }
-    
+
 }

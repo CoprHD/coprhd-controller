@@ -9,31 +9,31 @@ import java.util.Date;
 
 @XmlType
 public class ExecutionLogInfo {
-    
+
     /**
      * Date for this log message
      */
-    private Date date;              
-    
+    private Date date;
+
     /**
      * Level for this log message
      */
-    private String level;           
-    
+    private String level;
+
     /**
      * Log message
      */
     private String message;
-    
+
     /**
      * Stacktrace for error log messages
      */
-    private String stackTrace;      
-    
+    private String stackTrace;
+
     /**
      * Execution phase for this message
      */
-    private String phase;          
+    private String phase;
 
     public Date getDate() {
         return date;

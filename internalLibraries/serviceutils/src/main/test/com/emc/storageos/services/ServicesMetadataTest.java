@@ -37,20 +37,20 @@ public class ServicesMetadataTest {
         datasvc.setIsExtraNodeService(true);
         datasvc.setRoles("object");
         LinkedHashMap<String, ServiceMetadata> services = new LinkedHashMap<String,
-        ServiceMetadata>();
+                ServiceMetadata>();
         services.put(apisvc.getName(), apisvc);
         services.put(syssvc.getName(), syssvc);
         services.put(datasvc.getName(), datasvc);
-        
+
         RoleMetadata controlRole = new RoleMetadata();
         controlRole.setName("control");
         RoleMetadata dataRole = new RoleMetadata();
         dataRole.setName("object");
         LinkedHashMap<String, RoleMetadata> roles = new LinkedHashMap<String,
-        RoleMetadata>();
+                RoleMetadata>();
         roles.put(controlRole.getName(), controlRole);
         roles.put(dataRole.getName(), dataRole);
-        
+
         ServicesMetadata _servicesMetadata = new ServicesMetadata();
         _servicesMetadata.setServiceMetadataMap(services);
         _servicesMetadata.setRoleMetadataMap(roles);
@@ -58,51 +58,61 @@ public class ServicesMetadataTest {
     }
 
     @Test
-    public void testServicesOrder(){
+    public void testServicesOrder() {
         Map<String, ServiceMetadata> services = ServicesMetadata.getServiceMetadataMap();
         Assert.assertNotNull(services);
         int cntr = 0;
-        for(String key: services.keySet()){
-            switch (cntr++){
-                case 0: Assert.assertEquals(key, "apisvc");
-                        break;
-                case 1: Assert.assertEquals(key, "syssvc");
-                        break;
-                case 2: Assert.assertEquals(key, "datasvc");
-                        break;
-                default: Assert.fail();
+        for (String key : services.keySet()) {
+            switch (cntr++) {
+                case 0:
+                    Assert.assertEquals(key, "apisvc");
+                    break;
+                case 1:
+                    Assert.assertEquals(key, "syssvc");
+                    break;
+                case 2:
+                    Assert.assertEquals(key, "datasvc");
+                    break;
+                default:
+                    Assert.fail();
             }
         }
     }
 
     @Test
-    public void testControlNodeServices(){
+    public void testControlNodeServices() {
         List<String> services = ServicesMetadata.getControlNodeServiceNames();
         Assert.assertNotNull(services);
         int cntr = 0;
-        for(String key:services){
-            switch (cntr++){
-                case 0: Assert.assertEquals(key, "apisvc");
+        for (String key : services) {
+            switch (cntr++) {
+                case 0:
+                    Assert.assertEquals(key, "apisvc");
                     break;
-                case 1: Assert.assertEquals(key, "syssvc");
+                case 1:
+                    Assert.assertEquals(key, "syssvc");
                     break;
-                default: Assert.fail();
+                default:
+                    Assert.fail();
             }
         }
     }
 
     @Test
-    public void testExtraNodeServices(){
+    public void testExtraNodeServices() {
         List<String> services = ServicesMetadata.getExtraNodeServiceNames();
         Assert.assertNotNull(services);
         int cntr = 0;
-        for(String key:services){
-            switch (cntr++){
-                case 0: Assert.assertEquals(key, "syssvc");
+        for (String key : services) {
+            switch (cntr++) {
+                case 0:
+                    Assert.assertEquals(key, "syssvc");
                     break;
-                case 1: Assert.assertEquals(key, "datasvc");
+                case 1:
+                    Assert.assertEquals(key, "datasvc");
                     break;
-                default: Assert.fail();
+                default:
+                    Assert.fail();
             }
         }
     }
@@ -116,11 +126,11 @@ public class ServicesMetadataTest {
         Set<String> bothServices = Sets.newHashSet(
                 ServicesMetadata.getRoleServiceNames("control", "object"));
 
-        Assert.assertEquals(0, Sets.symmetricDifference(controlServices, 
-                Sets.newHashSet("apisvc","syssvc")).size());
-        Assert.assertEquals(0, Sets.symmetricDifference(dataServices, 
-                Sets.newHashSet("datasvc","syssvc")).size());
-        Assert.assertEquals(0, Sets.symmetricDifference(bothServices, 
-                Sets.newHashSet("datasvc","apisvc","syssvc")).size());
+        Assert.assertEquals(0, Sets.symmetricDifference(controlServices,
+                Sets.newHashSet("apisvc", "syssvc")).size());
+        Assert.assertEquals(0, Sets.symmetricDifference(dataServices,
+                Sets.newHashSet("datasvc", "syssvc")).size());
+        Assert.assertEquals(0, Sets.symmetricDifference(bothServices,
+                Sets.newHashSet("datasvc", "apisvc", "syssvc")).size());
     }
 }

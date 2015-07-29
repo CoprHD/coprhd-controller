@@ -20,13 +20,14 @@ public class StoragePoolAssignments {
     /**
      * Default Constructor.
      */
-    public StoragePoolAssignments() {}
+    public StoragePoolAssignments() {
+    }
 
     public StoragePoolAssignments(Set<String> storagePools) {
         this.storagePools = storagePools;
     }
 
-     /**
+    /**
      * The list of storage pools to be added to or removed from the virtual pool
      * 
      * @valid none
@@ -43,5 +44,5 @@ public class StoragePoolAssignments {
     public void setStoragePools(Set<String> storagePools) {
         this.storagePools = storagePools;
     }
-    
+
 }

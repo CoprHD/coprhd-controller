@@ -8,7 +8,7 @@ import javax.xml.bind.annotation.*;
 
 @XmlType(name = "modelInfo")
 public abstract class ModelInfo {
-    
+
     protected String id;
     protected Boolean inactive;
     protected Link link;

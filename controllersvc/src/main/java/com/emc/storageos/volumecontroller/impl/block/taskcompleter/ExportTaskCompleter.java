@@ -68,7 +68,7 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
      * @throws Exception
      */
     public void recordBlockExportEvent(DbClient dbClient, URI uri, String evtType,
-                                       Operation.Status status, String desc) throws Exception {
+            Operation.Status status, String desc) throws Exception {
         RecordableEventManager eventManager = new RecordableEventManager();
         eventManager.setDbClient(dbClient);
 
@@ -92,16 +92,16 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
 
     /**
      * Record block export group related event and audit
-     *
+     * 
      * @param dbClient db client
-     * @param opType   operation type
-     * @param status   operation status
-     * @param evDesc   event description
+     * @param opType operation type
+     * @param status operation status
+     * @param evDesc event description
      * @param extParam parameters array from which we could generate detail
-     *                 audit message
+     *            audit message
      */
     public void recordBlockExportOperation(DbClient dbClient, OperationTypeEnum opType,
-                                           Operation.Status status, String evDesc, Object... extParam) {
+            Operation.Status status, String evDesc, Object... extParam) {
         try {
             boolean opStatus = (Operation.Status.ready == status);
             String evType;
@@ -147,7 +147,7 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
 
     /**
      * Checks if the given ExportGroup has remaining active masks.
-     *
+     * 
      * @param dbClient
      * @param exportGroup
      * @return true if the given ExportGroup has any remaining active masks.

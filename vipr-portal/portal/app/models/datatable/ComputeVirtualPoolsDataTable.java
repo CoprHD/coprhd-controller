@@ -4,7 +4,6 @@
  */
 package models.datatable;
 
-
 import models.ComputeSystemTypes;
 import models.PoolAssignmentTypes;
 import util.ComputeVirtualPoolUtils;
@@ -49,7 +48,7 @@ public class ComputeVirtualPoolsDataTable extends DataTable {
         public Integer minNics;
         public Integer maxNics;
         public Integer minHbas;
-        public Integer maxHbas;    
+        public Integer maxHbas;
 
         public VirtualPoolInfo() {
         }
@@ -60,7 +59,7 @@ public class ComputeVirtualPoolsDataTable extends DataTable {
             this.description = vsp.getDescription();
             this.systemType = vsp.getSystemType();
             this.type = ComputeSystemTypes.getDisplayValue(vsp.getSystemType().toLowerCase());
-            this.useMatchedElements = vsp.getUseMatchedElements();            
+            this.useMatchedElements = vsp.getUseMatchedElements();
             if (this.useMatchedElements) {
                 this.matching = PoolAssignmentTypes.getDisplayValue(PoolAssignmentTypes.AUTOMATIC);
                 this.numElements = vsp.getMatchedComputeElements().size();
@@ -69,7 +68,8 @@ public class ComputeVirtualPoolsDataTable extends DataTable {
                 ComputeElementListRestRep elementList = ComputeVirtualPoolUtils.getAssignedComputeElements(vsp.getId().toString());
                 this.numElements = elementList.getList().size();
             }
-            this.numAvailElements =  String.valueOf(vsp.getAvailableMatchedComputeElements().size()) + "/" + String.valueOf(this.numElements);
+            this.numAvailElements = String.valueOf(vsp.getAvailableMatchedComputeElements().size()) + "/"
+                    + String.valueOf(this.numElements);
             this.minProcessors = vsp.getMinProcessors();
             this.maxProcessors = vsp.getMaxProcessors();
             this.minTotalCores = vsp.getMinTotalCores();

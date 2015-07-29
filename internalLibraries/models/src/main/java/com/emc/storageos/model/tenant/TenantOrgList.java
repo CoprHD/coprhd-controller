@@ -15,14 +15,16 @@ import java.util.List;
 public class TenantOrgList {
     private List<NamedRelatedResourceRep> subtenants;
 
-    public TenantOrgList() {}
-    
+    public TenantOrgList() {
+    }
+
     public TenantOrgList(List<NamedRelatedResourceRep> subtenants) {
         this.subtenants = subtenants;
     }
 
     /**
      * List of this tenant's subtenants.
+     * 
      * @valid none
      * @return List of NamedRelatedResourceRep
      */

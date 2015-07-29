@@ -50,18 +50,21 @@ public interface DistributedKeyStore {
 
     /**
      * get all root certificates who are from well known CA preinstalled with ViPR from keystore
+     * 
      * @return the map of ca certificates
      */
     public Map<String, TrustedCertificateEntry> getCACertificates();
 
     /**
      * set all root certificates to key store.
+     * 
      * @param trustedCerts
      */
     public void setCACertificates(Map<String, TrustedCertificateEntry> trustedCerts);
 
     /**
      * remove a CA certificate
+     * 
      * @param alias
      */
     public void removeCACertificate(String alias);

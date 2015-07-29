@@ -21,7 +21,8 @@ public class NodeHardwareInfoRestRep {
     private String ip;
     private Map<NodeHardwareInfoType, Float> hardwareInfos;
 
-    public NodeHardwareInfoRestRep() {}
+    public NodeHardwareInfoRestRep() {
+    }
 
     public NodeHardwareInfoRestRep(String nodeId, String ip, Map<NodeHardwareInfoType, Float> hardwareInfos) {
         this.nodeId = nodeId;

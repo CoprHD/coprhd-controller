@@ -11,7 +11,7 @@ import com.emc.storageos.model.valid.Length;
 
 @XmlRootElement(name = "storage_system_create")
 public class StorageSystemRequestParam {
-    
+
     private String name;
     private String systemType;
     private String ipAddress;
@@ -25,7 +25,8 @@ public class StorageSystemRequestParam {
     private String smisPassword;
     private Boolean smisUseSSL;
 
-    public StorageSystemRequestParam() {}
+    public StorageSystemRequestParam() {
+    }
 
     /**
      * Name of the storage system
@@ -202,8 +203,8 @@ public class StorageSystemRequestParam {
      * This field is required for storage systems of type 'vnxfile'.
      * It is ignored for other storage system types and can be null.
      * 
-     *  @valid true
-     *  @valid false
+     * @valid true
+     * @valid false
      */
     @XmlElement(name = "smis_use_ssl")
     public Boolean getSmisUseSSL() {
@@ -212,6 +213,6 @@ public class StorageSystemRequestParam {
 
     public void setSmisUseSSL(Boolean smisUseSSL) {
         this.smisUseSSL = smisUseSSL;
-    }    
+    }
 
 }

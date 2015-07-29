@@ -15,13 +15,14 @@ public class BlockConsistencyGroupList {
 
     /**
      * List of block consistency groups
-     *
+     * 
      * @valid none
      */
     private List<NamedRelatedBlockConsistencyGroupRep> consistencyGroupList;
 
-    public BlockConsistencyGroupList() {}
-    
+    public BlockConsistencyGroupList() {
+    }
+
     public BlockConsistencyGroupList(
             List<NamedRelatedBlockConsistencyGroupRep> consistencyGroupList) {
         super();

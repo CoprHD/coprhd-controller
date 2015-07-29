@@ -11,13 +11,14 @@ import javax.xml.bind.annotation.XmlRootElement;
  * Consistency Group Snapshot creation parameters
  */
 @XmlRootElement(name = "consistency_group_snapshot_create")
-public class BlockConsistencyGroupSnapshotCreate{
+public class BlockConsistencyGroupSnapshotCreate {
 
     private String name;
     private Boolean createInactive;
 
-    public BlockConsistencyGroupSnapshotCreate() {}
-    
+    public BlockConsistencyGroupSnapshotCreate() {
+    }
+
     public BlockConsistencyGroupSnapshotCreate(String name,
             Boolean createInactive) {
         this.name = name;
@@ -26,7 +27,7 @@ public class BlockConsistencyGroupSnapshotCreate{
 
     /**
      * Snapshot name
-     *
+     * 
      * @valid none
      */
     @XmlElement
@@ -45,11 +46,11 @@ public class BlockConsistencyGroupSnapshotCreate{
      * and target volumes. The activation would have
      * to be done using the block snapshot activate
      * operation.
-     *
+     * 
      * The default value for the parameter is false.
      * That is, the operation will create and activate
      * the synchronization for the snapshot.
-     *
+     * 
      * @valid true
      * @valid false
      */
@@ -61,5 +62,5 @@ public class BlockConsistencyGroupSnapshotCreate{
     public void setCreateInactive(Boolean createInactive) {
         this.createInactive = createInactive;
     }
-    
+
 }

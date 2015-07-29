@@ -23,8 +23,9 @@ public class VirtualPoolChangeList {
     // A list of VirtualPool changes.
     private List<VirtualPoolChangeRep> virtualPools;
 
-    public VirtualPoolChangeList() {}
-    
+    public VirtualPoolChangeList() {
+    }
+
     public VirtualPoolChangeList(List<VirtualPoolChangeRep> virtualPools) {
         this.virtualPools = virtualPools;
     }
@@ -49,4 +50,3 @@ public class VirtualPoolChangeList {
         this.virtualPools = virtualPools;
     }
 }
-

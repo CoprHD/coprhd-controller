@@ -11,8 +11,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import java.io.*;
 import java.security.KeyStore;
 import java.security.cert.CertificateFactory;
@@ -64,8 +62,9 @@ public class TrustStoreLoader {
 
         try {
 
-            /* the lock and version check to make sure, within one vdc only one service which uses truststore (like authsvc)
-               fill up zk truststore at same time.
+            /*
+             * the lock and version check to make sure, within one vdc only one service which uses truststore (like authsvc)
+             * fill up zk truststore at same time.
              */
             log.info("To load the trust store, trying to get the lock: {} ", CA_CERTS_LOCK);
             tsLock = coordHelper.acquireLock(CA_CERTS_LOCK);
@@ -97,7 +96,7 @@ public class TrustStoreLoader {
                     DistributedKeyStoreImpl.CA_CERTIFICATES_CONFIG_KIND,
                     DistributedKeyStoreImpl.CA_CERTIFICATES_CONFIG_ID,
                     DistributedKeyStoreImpl.CA_CERTIFICATES_CONFIG_KEY_VERSION
-            );
+                    );
             log.info("saved the new version of ca certs to ZK: {}", version);
         } catch (Exception e) {
             throw new RuntimeException(e);

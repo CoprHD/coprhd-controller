@@ -19,17 +19,20 @@ public class RoleAssignments {
 
     /**
      * Link to this resource.
+     * 
      * @valid none
      */
     private RestLinkRep selfLink;
 
     /**
      * List of role assignments that are assigned/being assigned.
+     * 
      * @valid none
      */
     private List<RoleAssignmentEntry> assignments;
 
-    public RoleAssignments() {}
+    public RoleAssignments() {
+    }
 
     @XmlElement(name = "link")
     public RestLinkRep getSelfLink() {

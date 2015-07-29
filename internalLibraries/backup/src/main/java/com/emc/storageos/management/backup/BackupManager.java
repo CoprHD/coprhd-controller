@@ -6,7 +6,6 @@ package com.emc.storageos.management.backup;
 
 import com.emc.vipr.model.sys.healthmonitor.DataDiskStats;
 import com.emc.storageos.services.util.Exec;
-import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.management.backup.util.ZipUtil;
@@ -33,14 +32,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-
 public class BackupManager implements BackupManagerMBean {
     private static final Logger log = LoggerFactory.getLogger(BackupManager.class);
     public static final String MBEAN_NAME = "org.emc.storageos.management.backup:type=BackupManager";
     private static final int DEFAULT_DISK_QUOTA_GB = 50;
     private static final String MD5_SUFFIX = ".md5";
     private static final String DF_COMMAND = "/bin/df";
-    private static final long DF_COMMAND_TIMEOUT = 120000; 
+    private static final long DF_COMMAND_TIMEOUT = 120000;
     private static final String SPACE_VALUE = "\\s+";
 
     private BackupContext backupContext;
@@ -49,6 +47,7 @@ public class BackupManager implements BackupManagerMBean {
 
     /**
      * Sets backup context
+     * 
      * @param backupContext
      */
     public void setBackupContext(BackupContext backupContext) {
@@ -63,10 +62,11 @@ public class BackupManager implements BackupManagerMBean {
     }
 
     /**
-    * Sets coordinator client
-    * @param coordinatorClient
-    *          The instance of CoordinatorClient
-    */
+     * Sets coordinator client
+     * 
+     * @param coordinatorClient
+     *            The instance of CoordinatorClient
+     */
     public void setCoordinatorClient(CoordinatorClient coordinatorClient) {
         this.coordinatorClient = coordinatorClient;
     }
@@ -87,8 +87,9 @@ public class BackupManager implements BackupManagerMBean {
 
     /**
      * Sets instance of BackupHandler
+     * 
      * @param backupHandler
-     *          The detail instance of BackupHandler
+     *            The detail instance of BackupHandler
      */
     public void setBackupHandler(BackupHandler backupHandler) {
         this.backupHandler = backupHandler;
@@ -110,7 +111,7 @@ public class BackupManager implements BackupManagerMBean {
             return DEFAULT_DISK_QUOTA_GB;
         }
         long diskTotalKB = dataDiskStats.getDataUsedKB() + dataDiskStats.getDataAvailKB();
-        int quotaGB = (int)((diskTotalKB * getBackupMaxUsedDiskPercentage()) / (100 * 1024 *1024));
+        int quotaGB = (int) ((diskTotalKB * getBackupMaxUsedDiskPercentage()) / (100 * 1024 * 1024));
         log.info("Quota is {} GB", quotaGB);
         return quotaGB;
     }
@@ -129,9 +130,10 @@ public class BackupManager implements BackupManagerMBean {
     }
 
     private void checkBackupDir() {
-        if (!backupContext.getBackupDir().exists() && !backupContext.getBackupDir().mkdirs())
+        if (!backupContext.getBackupDir().exists() && !backupContext.getBackupDir().mkdirs()) {
             throw BackupException.fatals.failedToCreateBackupFolder(
-            		backupContext.getBackupDir().getAbsolutePath());
+                    backupContext.getBackupDir().getAbsolutePath());
+        }
     }
 
     /**
@@ -152,7 +154,7 @@ public class BackupManager implements BackupManagerMBean {
 
         File[] backupFiles = backupContext.getBackupDir().listFiles();
         if (backupFiles != null && backupFiles.length != 0) {
-            for (File file : backupFiles) {                
+            for (File file : backupFiles) {
                 if (!file.isDirectory()) {
                     continue;
                 }
@@ -162,18 +164,20 @@ public class BackupManager implements BackupManagerMBean {
                         return name.endsWith(BackupConstants.COMPRESS_SUFFIX);
                     }
                 });
-                if (backupSubFiles == null || backupSubFiles.length == 0)
+                if (backupSubFiles == null || backupSubFiles.length == 0) {
                     continue;
+                }
                 for (File subfile : backupSubFiles) {
                     currentSize += subfile.length();
                 }
             }
         }
         log.debug("Quota size: {}\tCurrent backup size: {}", backupQuotaByte, currentSize);
-        if (currentSize > backupQuotaByte)
+        if (currentSize > backupQuotaByte) {
             throw BackupException.fatals.backupSizeExceedQuota(
-                    getReadableSize(backupQuotaByte), 
+                    getReadableSize(backupQuotaByte),
                     getReadableSize(currentSize - backupQuotaByte));
+        }
     }
 
     private String getReadableSize(long size) {
@@ -181,11 +185,11 @@ public class BackupManager implements BackupManagerMBean {
         if (size < BackupConstants.KILOBYTE) {
             sizeStr = String.format("%dB", size);
         } else if (size < BackupConstants.MEGABYTE) {
-            sizeStr = String.format("%dKB", size/BackupConstants.KILOBYTE); 
+            sizeStr = String.format("%dKB", size / BackupConstants.KILOBYTE);
         } else if (size < BackupConstants.GIGABYTE) {
-            sizeStr = String.format("%dMB", size/BackupConstants.MEGABYTE);
+            sizeStr = String.format("%dMB", size / BackupConstants.MEGABYTE);
         } else {
-            sizeStr = String.format("%dGB",size/BackupConstants.GIGABYTE); 
+            sizeStr = String.format("%dGB", size / BackupConstants.GIGABYTE);
         }
         return sizeStr;
     }
@@ -197,17 +201,17 @@ public class BackupManager implements BackupManagerMBean {
             return;
         }
         long dataTotalKB = dataDiskStatus.getDataUsedKB() + dataDiskStatus.getDataAvailKB();
-        int diskUsedPercentage = (int)(dataDiskStatus.getDataUsedKB() * 100 / dataTotalKB);
-        log.info("Disk used percentage limit: {}\tCurrent Disk used percentage: {}", 
+        int diskUsedPercentage = (int) (dataDiskStatus.getDataUsedKB() * 100 / dataTotalKB);
+        log.info("Disk used percentage limit: {}\tCurrent Disk used percentage: {}",
                 getBackupDisabledDiskPercentage(), diskUsedPercentage);
         if (diskUsedPercentage > getBackupDisabledDiskPercentage()) {
             throw BackupException.fatals.backupDisabledAsDiskFull(
                     diskUsedPercentage, getBackupDisabledDiskPercentage());
         }
     }
- 
+
     private DataDiskStats getDataDiskStats() {
-        final String[] cmd = {DF_COMMAND};
+        final String[] cmd = { DF_COMMAND };
         Exec.Result result = Exec.sudo(DF_COMMAND_TIMEOUT, cmd);
         if (!result.exitedNormally() || result.getExitValue() != 0) {
             log.error("getDataDiskStats() is unsuccessful. Command exit value is: {}",
@@ -233,12 +237,13 @@ public class BackupManager implements BackupManagerMBean {
     @Override
     public void create(final String backupTag) {
         Preconditions.checkArgument(backupTag != null
-                        && !backupTag.trim().isEmpty()
-                        && backupTag.length() < 256,
+                && !backupTag.trim().isEmpty()
+                && backupTag.length() < 256,
                 "Invalid backup name: %s", backupTag);
         Preconditions.checkNotNull(backupHandler);
-        if (!backupHandler.isNeed())
+        if (!backupHandler.isNeed()) {
             throw BackupException.fatals.noNeedBackup();
+        }
         checkBackupDir();
         checkQuotaAndDiskStatus();
         log.info("Start to create backup with prefix ({})...", backupTag);
@@ -259,8 +264,9 @@ public class BackupManager implements BackupManagerMBean {
     /**
      * Compresses backup folder to package and delete both backup folder and compress package if any
      * exception thrown.
+     * 
      * @param backupFolder
-     *          The folder which will be compressed
+     *            The folder which will be compressed
      */
     private File compressBackupFolder(File backupFolder) {
         File backupZip = new File(backupFolder.getParentFile(),
@@ -268,23 +274,26 @@ public class BackupManager implements BackupManagerMBean {
         try {
             ZipUtil.pack(backupFolder, backupZip);
         } catch (IOException ex) {
-            if (backupZip.exists())
+            if (backupZip.exists()) {
                 backupZip.delete();
+            }
             throw BackupException.fatals.failedToCompressBackupFolder(
                     backupFolder.getName(), backupZip.getName(), ex);
         } finally {
-            if (backupFolder != null && backupFolder.exists())
+            if (backupFolder != null && backupFolder.exists()) {
                 FileUtils.deleteQuietly(backupFolder);
+            }
         }
         return backupZip;
     }
 
     /**
      * Computes md5 of specified file and save the result to another file.
+     * 
      * @param targetFile
-     *          The file which needs to record md5
+     *            The file which needs to record md5
      * @param md5FileName
-     *          The file to save the md5 result
+     *            The file to save the md5 result
      */
     private void computeMd5(File targetFile, String md5FileName) {
         Preconditions.checkArgument(targetFile != null && targetFile.exists(), "Invalid File");
@@ -303,8 +312,9 @@ public class BackupManager implements BackupManagerMBean {
         } catch (IOException ex) {
             throw BackupException.fatals.failedToComputeMd5(targetFile.getName(), ex);
         } finally {
-            if (out != null)
+            if (out != null) {
                 out.close();
+            }
         }
     }
 
@@ -313,19 +323,22 @@ public class BackupManager implements BackupManagerMBean {
         checkBackupDir();
         List<BackupSetInfo> backupSetInfoList = new ArrayList<BackupSetInfo>();
         File[] backupDirs = backupContext.getBackupDir().listFiles();
-        if (backupDirs == null || backupDirs.length == 0)
+        if (backupDirs == null || backupDirs.length == 0) {
             return backupSetInfoList;
+        }
         for (File dir : backupDirs) {
-            if (!dir.isDirectory())
+            if (!dir.isDirectory()) {
                 continue;
+            }
             File[] backupFiles = dir.listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
                     return name.endsWith(BackupConstants.COMPRESS_SUFFIX);
                 }
             });
-            if (backupFiles == null || backupFiles.length == 0)
+            if (backupFiles == null || backupFiles.length == 0) {
                 continue;
+            }
             for (File file : backupFiles) {
                 BackupSetInfo backupSetInfo = new BackupSetInfo();
 		backupSetInfo.setName(file.getName());
@@ -352,8 +365,9 @@ public class BackupManager implements BackupManagerMBean {
                 return name.equals(backupTag) && file.isDirectory();
             }
         });
-        if (backupFiles == null || backupFiles.length == 0)
+        if (backupFiles == null || backupFiles.length == 0) {
             throw BackupException.fatals.backupFileNotFound(backupTag);
+        }
         for (File file : backupFiles) {
             try {
                 FileUtils.forceDelete(file);
@@ -367,7 +381,7 @@ public class BackupManager implements BackupManagerMBean {
     /**
      * Executes clean up operations here:
      * <p>
-     *     1. Unregister MBean from PlatformMBeanServer
+     * 1. Unregister MBean from PlatformMBeanServer
      */
     public void shutdown() {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
@@ -378,4 +392,3 @@ public class BackupManager implements BackupManagerMBean {
         }
     }
 }
-

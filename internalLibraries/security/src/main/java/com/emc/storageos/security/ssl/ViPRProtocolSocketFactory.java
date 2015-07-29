@@ -32,7 +32,9 @@ public class ViPRProtocolSocketFactory implements ProtocolSocketFactory {
         sslSocketFactory = new ViPRSSLSocketFactory(coordinator);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see org.apache.commons.httpclient.protocol.ProtocolSocketFactory#createSocket(java.lang.String, int, java.net.InetAddress, int)
      */
     @Override
@@ -41,8 +43,11 @@ public class ViPRProtocolSocketFactory implements ProtocolSocketFactory {
         return sslSocketFactory.createSocket(host, port, localAddress, localPort);
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.commons.httpclient.protocol.ProtocolSocketFactory#createSocket(java.lang.String, int, java.net.InetAddress, int, org.apache.commons.httpclient.params.HttpConnectionParams)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see org.apache.commons.httpclient.protocol.ProtocolSocketFactory#createSocket(java.lang.String, int, java.net.InetAddress, int,
+     * org.apache.commons.httpclient.params.HttpConnectionParams)
      */
     @Override
     public Socket createSocket(String host, int port, InetAddress localAddress,
@@ -65,12 +70,14 @@ public class ViPRProtocolSocketFactory implements ProtocolSocketFactory {
         }
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see org.apache.commons.httpclient.protocol.ProtocolSocketFactory#createSocket(java.lang.String, int)
      */
     @Override
     public Socket createSocket(String host, int port) throws IOException,
-    UnknownHostException {
+            UnknownHostException {
         return sslSocketFactory.createSocket(host, port);
     }
 }

@@ -17,7 +17,7 @@ public final class ViPRHeaderPatternLayout extends PatternLayout {
     @Override
     public String getHeader() {
         StringBuffer sb = new StringBuffer();
-        for (int i = 0; i < HEADER_START_LENGTH; i++ ) {
+        for (int i = 0; i < HEADER_START_LENGTH; i++) {
             sb.append(HEADER_START_INDICATOR);
         }
         sb.append(System.currentTimeMillis());

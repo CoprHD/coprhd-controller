@@ -17,8 +17,9 @@ public class VolumeSnapshotParam {
     private Boolean createInactive;
     private String type;
 
-    public VolumeSnapshotParam() {}
-            
+    public VolumeSnapshotParam() {
+    }
+
     public VolumeSnapshotParam(String name, Boolean createInactive, String type) {
         this.name = name;
         this.createInactive = createInactive;
@@ -27,6 +28,7 @@ public class VolumeSnapshotParam {
 
     /**
      * Snapshot name.
+     * 
      * @valid none
      */
     @XmlElement
@@ -39,16 +41,17 @@ public class VolumeSnapshotParam {
     }
 
     /**
-     * If create_inactive is set to true, then the 
-     * operation will create the snapshot, but not 
+     * If create_inactive is set to true, then the
+     * operation will create the snapshot, but not
      * activate the synchronization between source
-     * and target volumes. The activation would have 
-     * to be done using the block snapshot activate 
+     * and target volumes. The activation would have
+     * to be done using the block snapshot activate
      * operation.
-     *
-     * The default value for the parameter is false. 
-     * That is, the operation will create and activate 
+     * 
+     * The default value for the parameter is false.
+     * That is, the operation will create and activate
      * the synchronization for the snapshot.
+     * 
      * @valid true
      * @valid false
      */
@@ -62,8 +65,9 @@ public class VolumeSnapshotParam {
     }
 
     /**
-     * Type of replication. Unspecified implies an 
+     * Type of replication. Unspecified implies an
      * array-based snapshot.
+     * 
      * @valid none
      */
     @XmlElement(name = "type")
@@ -74,5 +78,5 @@ public class VolumeSnapshotParam {
     public void setType(String type) {
         this.type = type;
     }
-    
+
 }

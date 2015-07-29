@@ -22,11 +22,11 @@ import java.util.regex.Pattern;
 /**
  */
 public class MethodProcessor {
-    private static final Pattern DATA_SERVICE_PARAM_PATTERN = Pattern.compile("(request|response)\\s*(Header|Payload|Query)?\\s*([^0-1]*)([0-1]*)\\s*([\\-0-1]*)\\s*([^ ]*)\\s*([\\s\\S]*)");
+    private static final Pattern DATA_SERVICE_PARAM_PATTERN = Pattern
+            .compile("(request|response)\\s*(Header|Payload|Query)?\\s*([^0-1]*)([0-1]*)\\s*([\\-0-1]*)\\s*([^ ]*)\\s*([\\s\\S]*)");
 
     private static final String S3_URL_FORMAT = "Host Style: http://bucketname.ns1.emc.com";
     private static final String ATMOS_URL_FORMAT = "Host Style: http://emc.com";
-
 
     /** Create an APIMethod from a standard Method */
     public static ApiMethod processMethod(ApiService apiService, MethodDoc method, String baseURL, boolean isDataService) {
@@ -57,13 +57,14 @@ public class MethodProcessor {
             addDeprecated(method, apiMethodDesc);
 
             return apiMethodDesc;
-        } catch(Throwable e) {
-            throw new RuntimeException("Error processing "+apiService.getFqJavaClassName()+"::"+method.name(),e);
+        } catch (Throwable e) {
+            throw new RuntimeException("Error processing " + apiService.getFqJavaClassName() + "::" + method.name(), e);
         }
     }
 
     private static void addPath(MethodDoc method, ApiMethod apiMethod, String baseUrl) {
-        String methodPath = AnnotationUtils.getAnnotationValue(method, KnownAnnotations.Path_Annotation, KnownAnnotations.Value_Element, "");
+        String methodPath = AnnotationUtils
+                .getAnnotationValue(method, KnownAnnotations.Path_Annotation, KnownAnnotations.Value_Element, "");
 
         // TODO : Change this for RegEx
         apiMethod.path = Utils.mergePaths(baseUrl, methodPath.replace("{ignore: .+}", "").replace("{ignore:.*}", ""));
@@ -89,7 +90,7 @@ public class MethodProcessor {
 
     public static void addResponseDescription(MethodDoc method, ApiMethod apiMethod) {
         for (Tag tag : method.tags("@return")) {
-            apiMethod.responseDescription =  Utils.upperCaseFirstChar(tag.text());
+            apiMethod.responseDescription = Utils.upperCaseFirstChar(tag.text());
             return;
         }
 
@@ -100,7 +101,7 @@ public class MethodProcessor {
 
         String brief = "";
         for (Tag tag : method.tags("@brief")) {
-            brief =  tag.text();
+            brief = tag.text();
         }
 
         apiMethod.brief = brief;
@@ -109,7 +110,7 @@ public class MethodProcessor {
         if (brief.contains("\n")) {
             int briefEnd = brief.indexOf("\n");
             apiMethod.brief = Utils.upperCaseFirstChar(brief.substring(0, briefEnd));
-            apiMethod.description = brief.substring(briefEnd+1);
+            apiMethod.description = brief.substring(briefEnd + 1);
             DocReporter.printWarning("Fixing @brief comment in " + apiMethod.getQualifiedName() + " " + apiMethod.brief);
         }
 
@@ -121,7 +122,7 @@ public class MethodProcessor {
 
     public static void addPrerequisites(MethodDoc method, ApiMethod apiMethod) {
         for (Tag tag : method.tags("@prereq")) {
-            if (!tag.text().toLowerCase().equals("none") ) {
+            if (!tag.text().toLowerCase().equals("none")) {
                 apiMethod.addPrerequisite(tag.text());
             }
         }
@@ -129,7 +130,8 @@ public class MethodProcessor {
 
     public static void addInputs(MethodDoc method, ApiMethod apiMethod) {
         for (Parameter parameter : method.parameters()) {
-            if (!AnnotationUtils.hasAnnotation(parameter, "javax.ws.rs.PathParam") && !AnnotationUtils.hasAnnotation(parameter, "javax.ws.rs.QueryParam")) {
+            if (!AnnotationUtils.hasAnnotation(parameter, "javax.ws.rs.PathParam")
+                    && !AnnotationUtils.hasAnnotation(parameter, "javax.ws.rs.QueryParam")) {
                 apiMethod.input = JaxbClassProcessor.convertToApiClass(parameter.type().asClassDoc());
             }
         }
@@ -139,7 +141,7 @@ public class MethodProcessor {
         if (AnnotationUtils.hasAnnotation(method, KnownAnnotations.Deprecated_Annotation)) {
             apiMethod.isDeprecated = true;
 
-            Tag[] deprecatedTags =  method.tags("@deprecated");
+            Tag[] deprecatedTags = method.tags("@deprecated");
             if (deprecatedTags.length > 0) {
                 apiMethod.deprecatedMessage = deprecatedTags[0].text();
             }
@@ -156,16 +158,16 @@ public class MethodProcessor {
             if (apiMethod.urlFormat.startsWith(S3_URL_FORMAT)) {
                 // S3 services have a URL format that's more comment style, so need to extract it
                 int hostStyleEnd = apiMethod.urlFormat.indexOf("\n");
-                apiMethod.path = apiMethod.urlFormat.substring(S3_URL_FORMAT.length(),  hostStyleEnd);
+                apiMethod.path = apiMethod.urlFormat.substring(S3_URL_FORMAT.length(), hostStyleEnd);
             }
             else if (apiMethod.urlFormat.startsWith(ATMOS_URL_FORMAT)) {
                 // S3 services have a URL format that's more comment style, so need to extract it
                 int hostStyleEnd = apiMethod.urlFormat.indexOf("\n");
-                apiMethod.path = apiMethod.urlFormat.substring(ATMOS_URL_FORMAT.length(),  hostStyleEnd);
+                apiMethod.path = apiMethod.urlFormat.substring(ATMOS_URL_FORMAT.length(), hostStyleEnd);
 
             }
             else {
-                apiMethod.path = Utils.mergePaths(apiMethod.path,apiMethod.urlFormat);
+                apiMethod.path = Utils.mergePaths(apiMethod.path, apiMethod.urlFormat);
             }
         }
 
@@ -186,18 +188,18 @@ public class MethodProcessor {
 
                             // Now find out where it goes
                             if (param.group(1).equals("request")) {
-                                if (param.group(2)== null || param.group(2).equals("Header")) {
+                                if (param.group(2) == null || param.group(2).equals("Header")) {
                                     apiMethod.headerParameters.add(desc);
                                 }
                             }
                             else {
-                                if (param.group(2)== null || param.group(2).equals("Header")) {
+                                if (param.group(2) == null || param.group(2).equals("Header")) {
                                     apiMethod.responseHeaders.add(desc);
                                 }
                             }
                         }
                         else {
-                            DocReporter.printWarning("Ignoring :"+tag.text());
+                            DocReporter.printWarning("Ignoring :" + tag.text());
                         }
 
                     }
@@ -205,7 +207,7 @@ public class MethodProcessor {
                         DocReporter.printWarning("Data Services parameter did not match RegEx pattern");
                         DocReporter.printWarning(tag.text());
                     }
-                } catch(Exception e) {
+                } catch (Exception e) {
                     DocReporter.printError(tag.text());
                     throw new RuntimeException(e);
                 }
@@ -236,19 +238,20 @@ public class MethodProcessor {
             // CheckPermission signifies that this method should use the explicit set of permissions
             for (AnnotationDesc.ElementValuePair pair : checkPermission.elementValues()) {
                 if (pair.element().name().equals("roles")) {
-                    for (AnnotationValue value : (AnnotationValue[])pair.value().value()) {
+                    for (AnnotationValue value : (AnnotationValue[]) pair.value().value()) {
                         apiMethod.addRole(((FieldDoc) value.value()).name());
                     }
                 }
                 else if (pair.element().name().equals("acls")) {
-                    for (AnnotationValue value : (AnnotationValue[])pair.value().value()) {
+                    for (AnnotationValue value : (AnnotationValue[]) pair.value().value()) {
                         apiMethod.addAcl(((FieldDoc) value.value()).name());
                     }
                 }
             }
         } else if (AnnotationUtils.hasAnnotation(method, KnownAnnotations.InheritCheckPermission_Annotation)) {
             // InheritCheckPermission signifies that the method should inherit from teh DefaultPermission read or write lists
-            boolean inheritWrite = AnnotationUtils.getAnnotationValue(method, KnownAnnotations.InheritCheckPermission_Annotation, "write_access", false);
+            boolean inheritWrite = AnnotationUtils.getAnnotationValue(method, KnownAnnotations.InheritCheckPermission_Annotation,
+                    "write_access", false);
 
             if (inheritWrite) {
                 apiMethod.acls.addAll(apiMethod.apiService.writeAcls);
@@ -280,7 +283,8 @@ public class MethodProcessor {
             if (AnnotationUtils.hasAnnotation(parameter, parameterAnnotation)) {
                 ApiField apiParam = new ApiField();
 
-                apiParam.name = AnnotationUtils.getAnnotationValue(parameter, parameterAnnotation, KnownAnnotations.Value_Element, parameter.name());
+                apiParam.name = AnnotationUtils.getAnnotationValue(parameter, parameterAnnotation, KnownAnnotations.Value_Element,
+                        parameter.name());
                 if (parameter.type().asClassDoc() != null) {
                     apiParam.type = JaxbClassProcessor.convertToApiClass(parameter.type().asClassDoc());
                 }

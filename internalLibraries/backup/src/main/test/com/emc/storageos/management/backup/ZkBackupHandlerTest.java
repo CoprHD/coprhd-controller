@@ -17,12 +17,12 @@ import com.emc.storageos.management.backup.util.ValidationUtil.*;
 public class ZkBackupHandlerTest extends BackupTestBase {
 
     @Test
-    public void testValidateQuorumStatus() throws IOException{
+    public void testValidateQuorumStatus() throws IOException {
         zkBackupHandler.validateQuorumStatus();
     }
 
     @Test
-    public void testCheckLeader() throws IOException{
+    public void testCheckLeader() throws IOException {
         Assert.assertTrue(zkBackupHandler.isLeader());
     }
 
@@ -33,7 +33,7 @@ public class ZkBackupHandlerTest extends BackupTestBase {
 
     @Test
     public void testBackupFolder() throws IOException {
-        ValidationUtil.validateFile(zkBackupHandler.getZkDir(), FileType.Dir, 
+        ValidationUtil.validateFile(zkBackupHandler.getZkDir(), FileType.Dir,
                 NotExistEnum.NOT_EXSIT_CREATE);
 
         File targetDir = new File(backupManager.getBackupContext().getBackupDir(), "ut_test"

@@ -10,24 +10,25 @@ import java.net.URI;
 import javax.xml.bind.annotation.XmlElement;
 
 public class VirtualPoolHighAvailabilityParam {
-    
+
     private String type;
-    private VirtualArrayVirtualPoolMapEntry haVirtualArrayVirtualPool; 
+    private VirtualArrayVirtualPoolMapEntry haVirtualArrayVirtualPool;
     private Boolean metroPoint;
     private Boolean autoCrossConnectExport;
-    
-    public VirtualPoolHighAvailabilityParam() {}
-    
+
+    public VirtualPoolHighAvailabilityParam() {
+    }
+
     public VirtualPoolHighAvailabilityParam(String type) {
         this.type = type;
     }
-    
+
     public VirtualPoolHighAvailabilityParam(String type,
             VirtualArrayVirtualPoolMapEntry haVirtualArrayVirtualPool) {
         this.type = type;
         this.haVirtualArrayVirtualPool = haVirtualArrayVirtualPool;
     }
-    
+
     /**
      * The high availability type.
      * 
@@ -57,39 +58,41 @@ public class VirtualPoolHighAvailabilityParam {
     public void setHaVirtualArrayVirtualPool(
             VirtualArrayVirtualPoolMapEntry haVirtualArrayVirtualPool) {
         this.haVirtualArrayVirtualPool = haVirtualArrayVirtualPool;
-    }  
+    }
 
     /**
      * Flag to specify whether or not MetroPoint configuration will be used.
+     * 
      * @valid true
      * @valid false
      */
     @XmlElement(name = "metroPoint", required = false)
-	public Boolean getMetroPoint() {
-		return metroPoint;
-	}
+    public Boolean getMetroPoint() {
+        return metroPoint;
+    }
 
-	public void setMetroPoint(Boolean metroPoint) {
-		this.metroPoint = metroPoint;
-	}
+    public void setMetroPoint(Boolean metroPoint) {
+        this.metroPoint = metroPoint;
+    }
 
-	/**
-     *  The class provides the REST representation of an entry in a
-     *  VirtualArray VirtualPool map.
+    /**
+     * The class provides the REST representation of an entry in a
+     * VirtualArray VirtualPool map.
      */
     public static class VirtualArrayVirtualPoolMapEntry {
- 
+
         private URI virtualArray;
         private URI virtualPool;
         private Boolean activeProtectionAtHASite;
-               
-        public VirtualArrayVirtualPoolMapEntry() {}
-        
+
+        public VirtualArrayVirtualPoolMapEntry() {
+        }
+
         public VirtualArrayVirtualPoolMapEntry(URI key, URI val) {
             virtualArray = key;
             virtualPool = val;
         }
-        
+
         public VirtualArrayVirtualPoolMapEntry(URI key, URI val, Boolean rp) {
             virtualArray = key;
             virtualPool = val;
@@ -128,7 +131,7 @@ public class VirtualPoolHighAvailabilityParam {
 
         /**
          * Indicates whether or not to use the HA side of the VPlex as the
-         * RecoverPoint protected site in an RP+VPLEX setup.  In a MetroPoint
+         * RecoverPoint protected site in an RP+VPLEX setup. In a MetroPoint
          * context, if true, this field indicates that the HA VPlex site will be
          * the active site.
          * 
@@ -137,18 +140,19 @@ public class VirtualPoolHighAvailabilityParam {
          */
         @XmlElement(name = "activeProtectionAtHASite", required = false)
         @JsonProperty("activeProtectionAtHASite")
-		public Boolean getActiveProtectionAtHASite() {
-			return activeProtectionAtHASite;
-		}
+        public Boolean getActiveProtectionAtHASite() {
+            return activeProtectionAtHASite;
+        }
 
-		public void setActiveProtectionAtHASite(Boolean activeProtectionAtHASite) {
-			this.activeProtectionAtHASite = activeProtectionAtHASite;
-		}        
+        public void setActiveProtectionAtHASite(Boolean activeProtectionAtHASite) {
+            this.activeProtectionAtHASite = activeProtectionAtHASite;
+        }
     }
 
     /**
-     * Flag to specify whether to automatically export both VPlex Clusters to 
+     * Flag to specify whether to automatically export both VPlex Clusters to
      * cross-connected hosts.
+     * 
      * @valid true
      * @valid false
      */

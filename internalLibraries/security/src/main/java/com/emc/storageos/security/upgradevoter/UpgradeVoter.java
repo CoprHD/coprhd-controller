@@ -10,7 +10,7 @@ import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 /**
  * Interface exposed by syssvc upgrade service for other high level
  * components(e.g geosvc) to disallow upgrade in some situations.
- *  
+ * 
  */
 public interface UpgradeVoter {
 

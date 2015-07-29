@@ -18,7 +18,7 @@ public class ServiceFieldGroupRestRep extends ServiceItemRestRep implements Serv
     private Boolean collapsible;
 
     private Boolean collapsed;
-    
+
     private List<ServiceItemRestRep> items;
 
     @XmlElement(name = "collapsible")
@@ -38,12 +38,12 @@ public class ServiceFieldGroupRestRep extends ServiceItemRestRep implements Serv
     public void setCollapsed(Boolean collapsed) {
         this.collapsed = collapsed;
     }
-    
-    @XmlElementWrapper(name="items")
+
+    @XmlElementWrapper(name = "items")
     @XmlElements({
-        @XmlElement(name="field", type=ServiceFieldRestRep.class),
-        @XmlElement(name="group", type=ServiceFieldGroupRestRep.class),
-        @XmlElement(name="table", type=ServiceFieldTableRestRep.class)
+            @XmlElement(name = "field", type = ServiceFieldRestRep.class),
+            @XmlElement(name = "group", type = ServiceFieldGroupRestRep.class),
+            @XmlElement(name = "table", type = ServiceFieldTableRestRep.class)
     })
     public List<ServiceItemRestRep> getItems() {
         if (items == null) {
@@ -51,8 +51,9 @@ public class ServiceFieldGroupRestRep extends ServiceItemRestRep implements Serv
         }
         return items;
     }
+
     public void setItems(List<ServiceItemRestRep> items) {
         this.items = items;
-    }    
+    }
 
 }

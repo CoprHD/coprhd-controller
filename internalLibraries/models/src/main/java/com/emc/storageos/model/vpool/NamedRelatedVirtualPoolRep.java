@@ -27,8 +27,8 @@ public class NamedRelatedVirtualPoolRep extends NamedRelatedResourceRep {
     /**
      * The virtual pool type.
      * 
-     * @valid block  = Volume
-     * @valid file   = File System
+     * @valid block = Volume
+     * @valid file = File System
      * @valid object = Object Store
      * 
      * @return The virtual pool type.
@@ -38,6 +38,7 @@ public class NamedRelatedVirtualPoolRep extends NamedRelatedResourceRep {
     public String getVirtualPoolType() {
         return virtualPoolType;
     }
+
     public void setVirtualPoolType(String virtualPoolType) {
         this.virtualPoolType = virtualPoolType;
     }

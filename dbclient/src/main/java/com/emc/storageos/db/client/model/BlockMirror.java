@@ -27,10 +27,12 @@ public class BlockMirror extends Volume {
     private String _syncType;
 
     public static String MIRROR_SYNC_TYPE = "6";
+
     public static enum SynchronizationState {
         UNKNOWN(0), RESYNCHRONIZING(5), SYNCHRONIZED(6), FRACTURED(13), COPYINPROGRESS(15);
 
         private int state;
+
         SynchronizationState(int state) {
             this.state = state;
         }

@@ -28,14 +28,14 @@ import java.util.List;
 import org.junit.Assert;
 
 /**
- *  custom callback to initialize res4 field value on Resource 3 based on flags initialized in other callback
+ * custom callback to initialize res4 field value on Resource 3 based on flags initialized in other callback
  */
 public class Resource3Resource4RefInitializer extends BaseTestCustomMigrationCallback {
-    
+
     List<URI> expected = new ArrayList<URI>();
 
     @Override
-    public void process(){
+    public void process() {
         DbClient dbClient = getDbClient();
         List<URI> res3Keys = dbClient.queryByType(Resource3.class, false);
         Iterator<Resource3> res3Objs =
@@ -45,7 +45,7 @@ public class Resource3Resource4RefInitializer extends BaseTestCustomMigrationCal
             if (res3.getExtraFlags() > 0L) {
                 Resource4 res4 = new Resource4();
                 res4.setId(URIUtil.createId(Resource4.class));
-                res4.setLabel("res4 for "+res3.getLabel());
+                res4.setLabel("res4 for " + res3.getLabel());
                 dbClient.createObject(res4);
                 res3.setRes4(res4.getId());
                 dbClient.persistObject(res3);
@@ -53,9 +53,9 @@ public class Resource3Resource4RefInitializer extends BaseTestCustomMigrationCal
             }
         }
     }
-    
+
     @Override
-    public void verify(){
+    public void verify() {
         DbClient dbClient = getDbClient();
         List<URI> res3Keys = dbClient.queryByType(Resource3.class, false);
         Iterator<Resource3> res3Objs =

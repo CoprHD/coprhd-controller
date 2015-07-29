@@ -13,48 +13,49 @@ public class VariableParam {
     private String name;
     private String sampleValue;
     private boolean isRecommended;
-    
+
     /**
      * The name of the variable
-     *
+     * 
      * @valid none
      */
-    @XmlElement(name="display_name")
+    @XmlElement(name = "display_name")
     public String getName() {
         return name;
     }
+
     public void setName(String name) {
         this.name = name;
     }
-    
+
     /**
      * The sample value of the variable
-     *
+     * 
      * @valid none
      */
-    @XmlElement(name="sample_value")
+    @XmlElement(name = "sample_value")
     public String getSampleValue() {
         return sampleValue;
     }
+
     public void setSampleValue(String sample) {
         this.sampleValue = sample;
     }
-    
+
     /**
-     * Whether or not this variable is recommended to be used when constructing the 
+     * Whether or not this variable is recommended to be used when constructing the
      * config value
-     *
+     * 
      * @valid true
      * @valid false
      */
-    @XmlElement(name="recommended")
+    @XmlElement(name = "recommended")
     public boolean getIsRecommended() {
         return isRecommended;
     }
+
     public void setIsRecommended(boolean isRecommended) {
         this.isRecommended = isRecommended;
     }
-    
-    
 
 }

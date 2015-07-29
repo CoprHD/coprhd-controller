@@ -25,7 +25,7 @@ public class ChangeIntervalRule implements Rule {
 
     /**
      * validate the time passed since last change password operation.
-     *
+     * 
      * @param password
      */
     public void validate(Password password) {
@@ -37,7 +37,7 @@ public class ChangeIntervalRule implements Rule {
         long lastChangeTime = password.getLatestChangedTime();
         long interval = System.currentTimeMillis() - lastChangeTime;
         _log.info(MessageFormat.format("expect > {0} minutes, real = {1} minutes", changeInterval, interval / (60 * 1000)));
-        if ( interval < milliseconds) {
+        if (interval < milliseconds) {
             _log.info("fail");
             throw APIException.badRequests.passwordInvalidInterval(changeInterval);
         }

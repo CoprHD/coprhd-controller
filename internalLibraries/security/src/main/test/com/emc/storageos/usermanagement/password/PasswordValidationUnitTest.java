@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.usermanagement.password;
 
-
 import com.emc.storageos.db.client.model.LongMap;
 import com.emc.storageos.db.client.model.PasswordHistory;
 import com.emc.storageos.security.password.Constants;
@@ -18,9 +17,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.crypto.Data;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 
 public class PasswordValidationUnitTest {
@@ -72,27 +69,24 @@ public class PasswordValidationUnitTest {
             Assert.assertTrue(e.getMessage().contains("characters be changed between the old and new passwords"));
         }
 
-
         password = new Password("aabb334455", "1122334455");
         rule.validate(password);
     }
 
-
     @Test
     public void testExtractDetails() {
         String message = "<error><code>1008</code><description>Parameter was provided but invalid</description><details>Old password is invalid</details><retryable>false</retryable></error>";
-        message = message.replaceAll(".*<details>(.*)</details>.*","$1");
+        message = message.replaceAll(".*<details>(.*)</details>.*", "$1");
         logger.info(message);
         Assert.assertTrue(message.equals("Old password is invalid"));
     }
-
 
     @Test
     public void testExpireRule() {
         ExpireRule expireRule = new ExpireRule(1);
         long current = System.currentTimeMillis();
         long twoDaysAgo = current - 2 * 24 * 60 * 60 * 1000;
-        Password password = new Password("svcuser","oldpassword","password");
+        Password password = new Password("svcuser", "oldpassword", "password");
         PasswordHistory passwordHistory = new PasswordHistory();
         LongMap map = new LongMap();
         map.put("hashedPassword", twoDaysAgo);
@@ -112,13 +106,13 @@ public class PasswordValidationUnitTest {
     @Test
     public void testPasswordHistorySort() {
         long current = System.currentTimeMillis();
-        long oneDayAgo =  current - 1 * 24 * 60 * 60 * 1000;
+        long oneDayAgo = current - 1 * 24 * 60 * 60 * 1000;
         long twoDaysAgo = current - 2 * 24 * 60 * 60 * 1000;
         long threeDaysAgo = current - 3 * 24 * 60 * 60 * 1000;
         logger.info("oneDayAgo = " + oneDayAgo);
         logger.info("twoDaysAgo = " + twoDaysAgo);
         logger.info("threeDaysAgo = " + threeDaysAgo);
-        Password password = new Password("svcuser","oldpassword","password");
+        Password password = new Password("svcuser", "oldpassword", "password");
         PasswordHistory passwordHistory = new PasswordHistory();
         LongMap map = new LongMap();
         map.put("hashedPassword1", oneDayAgo);
@@ -126,7 +120,6 @@ public class PasswordValidationUnitTest {
         map.put("hashedPassword2", twoDaysAgo);
         passwordHistory.setUserPasswordHash(map);
         password.setPasswordHistory(passwordHistory);
-
 
         long latestChangedTime = password.getLatestChangedTime();
         logger.info("latestChangedTime = " + latestChangedTime);
@@ -145,7 +138,7 @@ public class PasswordValidationUnitTest {
     @Test
     public void testGetDaysAfterEpoch() {
         Calendar year1971 = Calendar.getInstance();
-        year1971.set(1971,0,1);
+        year1971.set(1971, 0, 1);
         logger.info("Time: " + year1971.getTime() + ", " + year1971.getTimeInMillis());
 
         int days = PasswordUtils.getDaysAfterEpoch(year1971);
@@ -164,7 +157,6 @@ public class PasswordValidationUnitTest {
         logger.info("days after epoch for now + 60 days: " + String.valueOf(newdays));
         Assert.assertEquals(days + 60, newdays);
     }
-
 
     @Test
     public void testDayToMilliSeconds() {

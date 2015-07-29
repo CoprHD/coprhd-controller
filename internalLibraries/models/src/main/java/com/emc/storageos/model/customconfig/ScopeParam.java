@@ -12,9 +12,10 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class ScopeParam {
     private String type;
     private String value;
-    
-    public ScopeParam() {}
-    
+
+    public ScopeParam() {
+    }
+
     public ScopeParam(String type, String value) {
         this.type = type;
         this.value = value;
@@ -22,6 +23,7 @@ public class ScopeParam {
 
     /**
      * The scope type
+     * 
      * @valid none
      */
     @XmlElement(name = "type")
@@ -35,6 +37,7 @@ public class ScopeParam {
 
     /**
      * The scope value
+     * 
      * @valid none
      */
     @XmlElement
@@ -45,6 +48,5 @@ public class ScopeParam {
     public void setValue(String value) {
         this.value = value;
     }
-    
-    
+
 }

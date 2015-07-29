@@ -16,7 +16,7 @@ import com.emc.storageos.model.BulkRestRep;
 
 @XmlRootElement(name = "bulk_compute_vpools")
 public class ComputeVirtualPoolBulkRep extends BulkRestRep {
-	
+
     private List<ComputeVirtualPoolRestRep> virtualPools;
 
     /**

@@ -22,15 +22,16 @@ import java.util.List;
  */
 public class DeduplicationParam {
     private DedupStateEnum state;
-    /*list of path names to include in deduplication operations. Any directory below 
-    *a specified path name that includes this setting will be excluded from deduplication.
-    */
+    /*
+     * list of path names to include in deduplication operations. Any directory below
+     * a specified path name that includes this setting will be excluded from deduplication.
+     */
     private List<String> pathNameExcludeList;
     /*
      * list of filename extensions to be excluded from deduplication
      */
     private List<String> fileExtExcludeList;
-    
+
     public DedupStateEnum getState() {
         return state;
     }

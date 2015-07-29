@@ -13,7 +13,8 @@ public class TaskStatsRestRep {
     int ready;
     int error;
 
-    public TaskStatsRestRep(){};
+    public TaskStatsRestRep() {
+    };
 
     public TaskStatsRestRep(int pending, int ready, int error) {
         this.pending = pending;

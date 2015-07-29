@@ -18,8 +18,9 @@ public class DiagnosticsRestRep {
 
     private List<NodeDiagnostics> nodeDiagnosticsList;
 
-    public DiagnosticsRestRep() {}
-    
+    public DiagnosticsRestRep() {
+    }
+
     public DiagnosticsRestRep(List<NodeDiagnostics> nodeDiagnosticsList) {
         super();
         this.nodeDiagnosticsList = nodeDiagnosticsList;

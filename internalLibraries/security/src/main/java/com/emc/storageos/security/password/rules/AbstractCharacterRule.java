@@ -31,32 +31,29 @@ public abstract class AbstractCharacterRule implements CharacterRule {
         return numCharacters;
     }
 
-
     /**
      * Returns the number of the type of characters in the supplied password for
      * the implementing class.
-     *
-     * @param  password  to get character count from
-     *
-     * @return  number of characters
+     * 
+     * @param password to get character count from
+     * 
+     * @return number of characters
      */
     public abstract int getNumber(Password password);
 
-
     /**
      * Returns the proper Exception
-     *
+     * 
      * @return
      */
     public abstract BadRequestException getException();
 
     /**
      * Returns the type of character managed by this rule.
-     *
-     * @return  name of a character type, e.g. "digits."
+     * 
+     * @return name of a character type, e.g. "digits."
      */
     public abstract String getType();
-
 
     @Override
     public void validate(Password password) {

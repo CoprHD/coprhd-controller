@@ -19,8 +19,9 @@ public class VirtualArrayChangeParam {
 
     private URI virtualArray;
 
-    public VirtualArrayChangeParam() {}
-    
+    public VirtualArrayChangeParam() {
+    }
+
     public VirtualArrayChangeParam(URI virtualArray) {
         this.virtualArray = virtualArray;
     }

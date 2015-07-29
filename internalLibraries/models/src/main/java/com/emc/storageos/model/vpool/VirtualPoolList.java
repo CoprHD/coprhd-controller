@@ -19,8 +19,9 @@ public class VirtualPoolList {
 
     private List<NamedRelatedVirtualPoolRep> virtualPool;
 
-    public VirtualPoolList() {}
-    
+    public VirtualPoolList() {
+    }
+
     public VirtualPoolList(List<NamedRelatedVirtualPoolRep> virtualPool) {
         this.virtualPool = virtualPool;
     }
@@ -56,7 +57,7 @@ public class VirtualPoolList {
         for (RelatedResourceRep vpoolListResource : getVirtualPool()) {
             URI vpoolListResourceId = vpoolListResource.getId();
             if ((vpoolListResourceId != null)
-                && (vpoolListResourceId.toString().equals(virtualPoolId))) {
+                    && (vpoolListResourceId.toString().equals(virtualPoolId))) {
                 return true;
             }
         }

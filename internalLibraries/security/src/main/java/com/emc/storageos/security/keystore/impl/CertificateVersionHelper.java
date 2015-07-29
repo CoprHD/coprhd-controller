@@ -51,12 +51,12 @@ public class CertificateVersionHelper {
 
     public boolean updateCertificateVersion() {
         int attempts = 0;
-        while(attempts < MAX_CONFIG_RETRIES) {
+        while (attempts < MAX_CONFIG_RETRIES) {
             log.debug("Config attempt {}", ++attempts);
             AuthSvcInternalApiClientIterator sysSvcClientItr =
                     new AuthSvcInternalApiClientIterator(sysSvcEndPointLocator,
                             coordinator);
-            if(sysSvcClientItr.hasNext()) {
+            if (sysSvcClientItr.hasNext()) {
                 final ClientResponse response =
                         sysSvcClientItr.put(URI_INCREMENT_CERTIFICATE_VERSION, null);
                 final int status = response.getStatus();

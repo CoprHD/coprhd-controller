@@ -20,58 +20,58 @@ import com.emc.storageos.model.pools.VirtualArrayAssignments;
  */
 public class ProtectionSystemUpdateRequestParamTest {
 
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@Before
-	public void setUp() throws Exception {
-	}
+    /**
+     * @throws java.lang.Exception
+     */
+    @Before
+    public void setUp() throws Exception {
+    }
 
-	@Test
-	public void test() {
-		ProtectionSystemUpdateRequestParam param = new ProtectionSystemUpdateRequestParam();
-		
-		param.setIpAddress("foobarIP");
-		param.setPassword("password");
-		param.setPortNumber(344);
-		param.setUserName("username");
-		
-		RPClusterVirtualArrayAssignmentChanges c1 = new RPClusterVirtualArrayAssignmentChanges();
-		VirtualArrayAssignments va1 = new VirtualArrayAssignments();
-		Set<String> vas = new HashSet<String>();
-		vas.add("varray1");
-		vas.add("varray2");
-		va1.setVarrays(vas);
-		c1.setClusterId("cluster1");
-		c1.setAdd(va1);
+    @Test
+    public void test() {
+        ProtectionSystemUpdateRequestParam param = new ProtectionSystemUpdateRequestParam();
 
-		RPClusterVirtualArrayAssignmentChanges c2 = new RPClusterVirtualArrayAssignmentChanges();
-		VirtualArrayAssignments va2 = new VirtualArrayAssignments();
-		Set<String> vas2 = new HashSet<String>();
-		vas2.add("varray3");
-		vas2.add("varray4");
-		va2.setVarrays(vas2);
-		c2.setClusterId("cluster2");
-		c2.setAdd(va2);
-		
-		Set<RPClusterVirtualArrayAssignmentChanges> cs = new HashSet<>();
-		cs.add(c1);
-		cs.add(c2);
-		param.setVarrayChanges(cs);		
+        param.setIpAddress("foobarIP");
+        param.setPassword("password");
+        param.setPortNumber(344);
+        param.setUserName("username");
 
-	    // create JAXB context and instantiate marshaller
-	    JAXBContext context;
-		try {
-			context = JAXBContext.newInstance(ProtectionSystemUpdateRequestParam.class);
-	    Marshaller m = context.createMarshaller();
-	    m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+        RPClusterVirtualArrayAssignmentChanges c1 = new RPClusterVirtualArrayAssignmentChanges();
+        VirtualArrayAssignments va1 = new VirtualArrayAssignments();
+        Set<String> vas = new HashSet<String>();
+        vas.add("varray1");
+        vas.add("varray2");
+        va1.setVarrays(vas);
+        c1.setClusterId("cluster1");
+        c1.setAdd(va1);
 
-	    // Write to System.out
-	    m.marshal(param, System.out);
-	} catch (JAXBException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-	}
-	}
+        RPClusterVirtualArrayAssignmentChanges c2 = new RPClusterVirtualArrayAssignmentChanges();
+        VirtualArrayAssignments va2 = new VirtualArrayAssignments();
+        Set<String> vas2 = new HashSet<String>();
+        vas2.add("varray3");
+        vas2.add("varray4");
+        va2.setVarrays(vas2);
+        c2.setClusterId("cluster2");
+        c2.setAdd(va2);
+
+        Set<RPClusterVirtualArrayAssignmentChanges> cs = new HashSet<>();
+        cs.add(c1);
+        cs.add(c2);
+        param.setVarrayChanges(cs);
+
+        // create JAXB context and instantiate marshaller
+        JAXBContext context;
+        try {
+            context = JAXBContext.newInstance(ProtectionSystemUpdateRequestParam.class);
+            Marshaller m = context.createMarshaller();
+            m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+
+            // Write to System.out
+            m.marshal(param, System.out);
+        } catch (JAXBException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
 
 }

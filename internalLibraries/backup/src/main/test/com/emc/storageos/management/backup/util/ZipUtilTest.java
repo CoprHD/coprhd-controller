@@ -30,12 +30,13 @@ public class ZipUtilTest {
 
     @BeforeClass
     public static void setUp() throws IOException {
-    	//Suppress Sonar violation of Lazy initialization of static fields should be synchronized
-    	//Junit test will be called in single thread by default, it's safe to ignore this violation
-        testDir = new File(TEST_FOLDER);  //NOSONAR ("squid:S2444")
+        // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+        // Junit test will be called in single thread by default, it's safe to ignore this violation
+        testDir = new File(TEST_FOLDER);  // NOSONAR ("squid:S2444")
         tearDown();
-        if (testDir.exists())
+        if (testDir.exists()) {
             FileUtils.deleteDirectory(testDir);
+        }
         Assert.assertTrue(testDir.mkdir());
     }
 
@@ -50,23 +51,26 @@ public class ZipUtilTest {
         // 1. Prepare directory and file
         String zipName = directoryLevel.toString() + "-" + UUID.randomUUID().toString();
         File zipDir = new File(testDir, zipName);
-        if (zipDir.exists())
+        if (zipDir.exists()) {
             FileUtils.deleteDirectory(zipDir);
+        }
         Assert.assertTrue(zipDir.mkdir());
         File prepareFile = FileUtil.createRandomFile(testDir, zipName + ".txt", DEFAULT_FILE_SIZE);
         long checksum = FileUtils.checksumCRC32(prepareFile);
-        for ( int i = 0; i < DEFAULT_DIRECTORY_NUM; i++) {
+        for (int i = 0; i < DEFAULT_DIRECTORY_NUM; i++) {
             File folder = new File(zipDir, TEST_FOLDER + "-" + i);
             Assert.assertTrue(folder.mkdir());
             if ((directoryLevel.equals(DirectoryLevel.FULL))
-                    || (directoryLevel.equals(DirectoryLevel.MIX) && (i <= DEFAULT_DIRECTORY_NUM/2)))
+                    || (directoryLevel.equals(DirectoryLevel.MIX) && (i <= DEFAULT_DIRECTORY_NUM / 2))) {
                 FileUtils.copyFile(prepareFile, new File(folder, prepareFile.getName()));
+            }
         }
 
         // 2. pack directory to zip file
-        File targetZip = new File(testDir, zipName+".zip");
-        if (targetZip.exists())
+        File targetZip = new File(testDir, zipName + ".zip");
+        if (targetZip.exists()) {
             Assert.assertTrue(targetZip.delete());
+        }
         Assert.assertFalse(targetZip.exists());
         ZipUtil.pack(zipDir, targetZip, comressionLevel);
         Assert.assertTrue(targetZip.exists());
@@ -75,11 +79,12 @@ public class ZipUtilTest {
         FileUtils.deleteDirectory(zipDir);
         Assert.assertFalse(zipDir.exists());
         File tmpFolder = new File(testDir, UUID.randomUUID().toString());
-        if (!tmpFolder.exists())
+        if (!tmpFolder.exists()) {
             Assert.assertTrue(tmpFolder.mkdir());
+        }
         ZipUtil.unpack(targetZip, tmpFolder);
         File[] folders = tmpFolder.listFiles();
-        
+
         for (File folder : FileUtil.toSafeArray(folders)) {
             Assert.assertTrue(folder.exists());
             Assert.assertTrue(folder.isDirectory());
@@ -115,10 +120,10 @@ public class ZipUtilTest {
 
     @Test
     public void testZipWithAllLevels() throws IOException {
-        //      NO_COMPRESSION = 0;
-        //      BEST_SPEED = 1;
-        //      BEST_COMPRESSION = 9;
-        //      DEFAULT_COMPRESSION = -1;
+        // NO_COMPRESSION = 0;
+        // BEST_SPEED = 1;
+        // BEST_COMPRESSION = 9;
+        // DEFAULT_COMPRESSION = -1;
         for (int i = 0; i < 10; i++) {
             long zipSize = execute(i, DirectoryLevel.FULL);
             log.info("Compress Level: {}\tSize: {}", i, zipSize);
@@ -127,8 +132,9 @@ public class ZipUtilTest {
 
     @AfterClass
     public static void tearDown() throws IOException {
-        if (testDir != null && testDir.exists())
+        if (testDir != null && testDir.exists()) {
             FileUtils.deleteDirectory(testDir);
+        }
     }
 
 }

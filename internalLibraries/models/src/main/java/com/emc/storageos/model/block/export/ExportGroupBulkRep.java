@@ -10,15 +10,15 @@ import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 
-
 @XmlRootElement(name = "bulk_exportgroups")
 public class ExportGroupBulkRep extends BulkRestRep {
     private List<ExportGroupRestRep> exports;
 
     /**
      * List of export groups.
+     * 
      * @valid none
-     */    
+     */
     @XmlElement(name = "exportgroup")
     public List<ExportGroupRestRep> getExports() {
         if (exports == null) {

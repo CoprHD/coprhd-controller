@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
- *  HMAC authentication filter for inter-node internal apis
+ * HMAC authentication filter for inter-node internal apis
  */
 public class InterNodeHMACAuthFilter extends AbstractHMACAuthFilter {
     @SuppressWarnings("unused")
@@ -41,7 +41,7 @@ public class InterNodeHMACAuthFilter extends AbstractHMACAuthFilter {
         }
         return null;
     }
-    
+
     /**
      * Determine if a request is intended for the internal (/internal/*) APIs
      * 

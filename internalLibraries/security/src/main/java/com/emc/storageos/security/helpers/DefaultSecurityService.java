@@ -8,7 +8,6 @@ import com.emc.storageos.security.helpers.SecurityService;
 import com.emc.storageos.security.ssh.PEMUtil;
 
 import java.security.*;
-import java.security.interfaces.RSAPrivateKey;
 
 public class DefaultSecurityService implements SecurityService {
 
@@ -17,7 +16,7 @@ public class DefaultSecurityService implements SecurityService {
     @Override
     public byte[] loadPrivateKeyFromPEMString(String pemKey) throws Exception {
 
-        if (! PEMUtil.isPKCS8Key(pemKey)) {
+        if (!PEMUtil.isPKCS8Key(pemKey)) {
             throw new Exception("Only PKCS8 is supported");
         }
 

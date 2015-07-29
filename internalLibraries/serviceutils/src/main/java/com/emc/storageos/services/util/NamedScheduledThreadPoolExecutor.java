@@ -103,6 +103,7 @@ public class NamedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecuto
      * Wrap the running task within @NamedTask so that we can easily capture
      * it's name. The default decorateTask method from super class @ScheduledThreadPoolExecutor
      * hides every runnable within it's own wrapped class -
+     * 
      * @RunnableScheduledFuture.
      */
     @Override

@@ -14,17 +14,21 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class RoleAssignmentChanges {
     /**
      * List of role assignment entries elements to be added.
+     * 
      * @valid none
      */
     private List<RoleAssignmentEntry> add;
 
     /**
      * List of role assignment entries elements to be removed.
+     * 
      * @valid none
      */
     private List<RoleAssignmentEntry> remove;
 
-    public RoleAssignmentChanges() { }
+    public RoleAssignmentChanges() {
+    }
+
     public RoleAssignmentChanges(List<RoleAssignmentEntry> add, List<RoleAssignmentEntry> remove) {
         this.add = add;
         this.remove = remove;

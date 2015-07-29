@@ -70,9 +70,9 @@ public class VMwareUtils {
      * Gets the hosts attached to the specified datastore.
      * 
      * @param vcenter
-     *        the vcenter API.
+     *            the vcenter API.
      * @param datastore
-     *        the datastore
+     *            the datastore
      * @return the list of hosts attached to the datastore.
      */
     public static List<HostSystem> getHostsForDatastore(VCenterAPI vcenter, Datastore datastore) {
@@ -94,7 +94,7 @@ public class VMwareUtils {
      * the list.
      * 
      * @param host
-     *        the host.
+     *            the host.
      * @return the list of hosts in the same cluster.
      */
     public static List<HostSystem> getHostsInCluster(HostSystem host) {
@@ -117,7 +117,7 @@ public class VMwareUtils {
      * Gets the HostVmfsVolume information about a datastore, if that datastore is a VMFS datastore.
      * 
      * @param datastore
-     *        the datastore.
+     *            the datastore.
      * @return the HostVmfsVolume, or null if the datastore is null or not a VMFS datastore.
      */
     public static HostVmfsVolume getHostVmfsVolume(Datastore datastore) {
@@ -131,7 +131,7 @@ public class VMwareUtils {
      * Gets the HostNasVolume information about a datastore, if that datastore is a NAS datastore.
      * 
      * @param datastore
-     *        the datastore.
+     *            the datastore.
      * @return the HostNasVolume, or null if the datastore is null or not a NAS datastore.
      */
     public static HostNasVolume getHostNasVolume(Datastore datastore) {
@@ -154,7 +154,7 @@ public class VMwareUtils {
      * Gets the connection state of the given host system.
      * 
      * @param host
-     *        the host system.
+     *            the host system.
      * @return the host system connection state, or null if it cannot be determined.
      */
     public static HostSystemConnectionState getConnectionState(HostSystem host) {
@@ -164,15 +164,15 @@ public class VMwareUtils {
     }
 
     public static String getDiskWwn(HostScsiDisk disk) {
-    	if(StringUtils.startsWith(disk.getCanonicalName(), CANONICAL_NAME_PREFIX)){
-    		return disk.getCanonicalName().replaceFirst(CANONICAL_NAME_PREFIX_REGEX, "");
-    	}else if (StringUtils.startsWith(disk.getCanonicalName(), ALTERNATE_CANONICAL_NAME_PREFIX)){
-    		return disk.getCanonicalName().replaceFirst(ALTERNATE_CANONICAL_NAME_PREFIX_REGEX, "");
-    	}else{
-    		return null;
-    	}    	
+        if (StringUtils.startsWith(disk.getCanonicalName(), CANONICAL_NAME_PREFIX)) {
+            return disk.getCanonicalName().replaceFirst(CANONICAL_NAME_PREFIX_REGEX, "");
+        } else if (StringUtils.startsWith(disk.getCanonicalName(), ALTERNATE_CANONICAL_NAME_PREFIX)) {
+            return disk.getCanonicalName().replaceFirst(ALTERNATE_CANONICAL_NAME_PREFIX_REGEX, "");
+        } else {
+            return null;
+        }
     }
-    
+
     /**
      * Checks if the multipath policy is a valid policy
      * 
@@ -187,15 +187,15 @@ public class VMwareUtils {
         }
         return false;
     }
-    
+
     /**
-     * Class that holds all params for volume creation. These params will be added 
+     * Class that holds all params for volume creation. These params will be added
      * to the createBlockVolumeHelper for each pair of Datastore / volumes. This class
-     * is needed since all params listed are single instance on the form while the 
-     * Datastore / Volume can have multiple. 
+     * is needed since all params listed are single instance on the form while the
+     * Datastore / Volume can have multiple.
      * 
      * @author cormij4
-     *
+     * 
      */
     public static class DatastoreToVolumeParams {
         @Param(VIRTUAL_POOL)
@@ -208,7 +208,7 @@ public class VMwareUtils {
         protected URI hostId;
         @Param(value = NUMBER_OF_VOLUMES, required = false)
         protected Integer count;
-        @Param(value=CONSISTENCY_GROUP, required = false)
+        @Param(value = CONSISTENCY_GROUP, required = false)
         protected URI consistencyGroup;
         @Param(value = HLU, required = false)
         protected Integer hlu;
@@ -218,7 +218,7 @@ public class VMwareUtils {
                     + ", Host Id=" + hostId + ", Volume Count=" + count + ", Consistency Group=" + consistencyGroup
                     + ", HLU=" + hlu;
         }
-        
+
         public Map<String, Object> getParams() {
             Map<String, Object> map = new HashMap<String, Object>();
             map.put(VIRTUAL_POOL, virtualPool);
@@ -231,12 +231,12 @@ public class VMwareUtils {
             return map;
         }
     }
-    
+
     /**
      * Class to hold params of all pair of Datastore / Volume.
      * 
      * @author cormij4
-     *
+     * 
      */
     public static class DatastoreToVolumeTable {
         @Param(DATASTORE_NAME)
@@ -249,7 +249,7 @@ public class VMwareUtils {
         public String toString() {
             return "Datastore Name=" + datastoreName + ", Volume=" + nameParam + ", size=" + sizeInGb;
         }
-        
+
         public Map<String, Object> getParams() {
             Map<String, Object> map = new HashMap<String, Object>();
             map.put(DATASTORE_NAME, datastoreName);
@@ -258,13 +258,13 @@ public class VMwareUtils {
             return map;
         }
     }
-    
+
     /**
      * Helper method for creating a list of all the params for the createBlockVolumesHelper.
      * 
      * @param table of Datastore to Volumes
      * @param params for volume creation
-     * @return Map of all params 
+     * @return Map of all params
      */
     public static Map<String, Object> createDatastoreVolumeParam(DatastoreToVolumeTable table, DatastoreToVolumeParams params) {
         Map<String, Object> map = new HashMap<String, Object>();
@@ -272,7 +272,7 @@ public class VMwareUtils {
         map.putAll(params.getParams());
         return map;
     }
-    
+
     /**
      * Loop through all the Datastore / Volumes pair and return all the Datastore names.
      * 
@@ -300,24 +300,24 @@ public class VMwareUtils {
         }
         return volumeNames;
     }
-    
+
     /**
-     * Determine whether all entries are unique within a given list 
+     * Determine whether all entries are unique within a given list
      * 
      * @param names list
      * @return true or false if the list contain unique names
      */
     public static boolean isUniqueNames(List<String> names) {
         List<String> unique = Lists.newArrayList();
-        
+
         for (String n : names) {
             if (unique.contains(n)) {
                 return false;
             }
             unique.add(n);
         }
-        
+
         return true;
     }
-    
+
 }

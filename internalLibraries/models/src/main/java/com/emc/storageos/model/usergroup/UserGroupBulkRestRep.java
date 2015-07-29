@@ -23,6 +23,7 @@ public class UserGroupBulkRestRep extends BulkRestRep {
 
     /**
      * List of user groups
+     * 
      * @valid none
      */
     @XmlElement(name = "user_group")

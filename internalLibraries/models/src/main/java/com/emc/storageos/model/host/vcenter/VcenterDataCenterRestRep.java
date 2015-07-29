@@ -19,18 +19,20 @@ import com.emc.storageos.model.host.TenantResourceRestRep;
 public class VcenterDataCenterRestRep extends TenantResourceRestRep {
     private RelatedResourceRep vcenter;
 
-    public VcenterDataCenterRestRep() {}
-    
+    public VcenterDataCenterRestRep() {
+    }
+
     public VcenterDataCenterRestRep(RelatedResourceRep vcenter) {
         this.vcenter = vcenter;
     }
 
     /**
-     * The vCenter URI where this data center exists. 
+     * The vCenter URI where this data center exists.
+     * 
      * @valid none
-     * @return  the vCenter URI where this data center exists. 
+     * @return the vCenter URI where this data center exists.
      */
-    @XmlElement(name="vcenter")
+    @XmlElement(name = "vcenter")
     public RelatedResourceRep getVcenter() {
         return vcenter;
     }
@@ -39,4 +41,3 @@ public class VcenterDataCenterRestRep extends TenantResourceRestRep {
         this.vcenter = vcenter;
     }
 }
-

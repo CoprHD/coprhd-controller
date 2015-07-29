@@ -20,8 +20,9 @@ public class QuotaDirectoryList {
 
     private List<NamedRelatedResourceRep> quotaDirs;
 
-    public QuotaDirectoryList() {}
-    
+    public QuotaDirectoryList() {
+    }
+
     public QuotaDirectoryList(List<NamedRelatedResourceRep> quotaDirs) {
         this.quotaDirs = quotaDirs;
     }
@@ -35,7 +36,7 @@ public class QuotaDirectoryList {
     @JsonProperty("quota_dir")
     public List<NamedRelatedResourceRep> getQuotaDirs() {
         if (quotaDirs == null) {
-        	quotaDirs = new ArrayList<NamedRelatedResourceRep>();
+            quotaDirs = new ArrayList<NamedRelatedResourceRep>();
         }
         return quotaDirs;
     }
@@ -57,7 +58,7 @@ public class QuotaDirectoryList {
         for (RelatedResourceRep quotaDirRes : getQuotaDirs()) {
             URI quotaDirId = quotaDirRes.getId();
             if ((quotaDirId != null)
-                && (quotaDirId.toString().equals(quotaId))) {
+                    && (quotaDirId.toString().equals(quotaId))) {
                 return true;
             }
         }

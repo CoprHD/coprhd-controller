@@ -13,27 +13,28 @@ import org.codehaus.jackson.annotate.JsonProperty;
 
 public class RPClusterVirtualArrayResourceUpdateParam {
 
-	private Set<RPClusterVirtualArrayAssignmentChanges> varrayAssignmentChanges;
+    private Set<RPClusterVirtualArrayAssignmentChanges> varrayAssignmentChanges;
 
-	public RPClusterVirtualArrayResourceUpdateParam() {}
+    public RPClusterVirtualArrayResourceUpdateParam() {
+    }
 
-	public RPClusterVirtualArrayResourceUpdateParam(Set<RPClusterVirtualArrayAssignmentChanges> varrayChanges) {
-		varrayAssignmentChanges = varrayChanges;
-	}
+    public RPClusterVirtualArrayResourceUpdateParam(Set<RPClusterVirtualArrayAssignmentChanges> varrayChanges) {
+        varrayAssignmentChanges = varrayChanges;
+    }
 
-	/**
-	 * The list of virtual arrays to be added to or removed from the resource.
-	 * 
-	 * @valid none
-	 */
-	@XmlElementWrapper(name = "varray_assignment_changes")
-	@XmlElement(name = "varray_assignment_change")
-	@JsonProperty("varray_assignment_changes")
-	public Set<RPClusterVirtualArrayAssignmentChanges> getVarrayChanges() {
-		return varrayAssignmentChanges;
-	}
+    /**
+     * The list of virtual arrays to be added to or removed from the resource.
+     * 
+     * @valid none
+     */
+    @XmlElementWrapper(name = "varray_assignment_changes")
+    @XmlElement(name = "varray_assignment_change")
+    @JsonProperty("varray_assignment_changes")
+    public Set<RPClusterVirtualArrayAssignmentChanges> getVarrayChanges() {
+        return varrayAssignmentChanges;
+    }
 
-	public void setVarrayChanges(Set<RPClusterVirtualArrayAssignmentChanges> varrayChanges) {
-		varrayAssignmentChanges = varrayChanges;
-	}
+    public void setVarrayChanges(Set<RPClusterVirtualArrayAssignmentChanges> varrayChanges) {
+        varrayAssignmentChanges = varrayChanges;
+    }
 }

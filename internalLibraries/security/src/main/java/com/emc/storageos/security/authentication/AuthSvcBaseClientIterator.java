@@ -19,7 +19,7 @@ import com.sun.jersey.api.client.Client;
  */
 // GEO-TODO: rename this after the merge with the geo branch so it won't include Auth in
 // the name
-    public abstract class AuthSvcBaseClientIterator implements Iterator<URI> {
+public abstract class AuthSvcBaseClientIterator implements Iterator<URI> {
     private static final Logger _log = LoggerFactory.getLogger(AuthSvcBaseClientIterator.class);
     protected final URI[] _authSvcEndpoints;
     protected final int _size;
@@ -29,12 +29,13 @@ import com.sun.jersey.api.client.Client;
 
     /**
      * Initializes the list of endpoints
+     * 
      * @param endPointLocator
      */
     public AuthSvcBaseClientIterator(EndPointLocator endPointLocator) {
         List<URI> endpoints = endPointLocator.getServiceEndpointList();
-        _size  = endpoints.size();
-        _authSvcEndpoints = endpoints.toArray(new URI[_size]);    
+        _size = endpoints.size();
+        _authSvcEndpoints = endpoints.toArray(new URI[_size]);
     }
 
     protected void setClientRequestHelper(ClientRequestHelper helper) {
@@ -46,8 +47,8 @@ import com.sun.jersey.api.client.Client;
      * @see java.util.Iterator#hasNext()
      */
     @Override
-    public boolean hasNext() {        
-        return _currentIndex < _size && null !=  _authSvcEndpoints[_currentIndex];
+    public boolean hasNext() {
+        return _currentIndex < _size && null != _authSvcEndpoints[_currentIndex];
     }
 
     /*
@@ -68,6 +69,7 @@ import com.sun.jersey.api.client.Client;
 
     /**
      * Peek at the current URI in the list but do not advance the index
+     * 
      * @return the current URI in the list
      */
     public URI peek() {

@@ -19,7 +19,8 @@ public class BackupSets {
 
     private List<BackupSet> backupSets;
 
-    public BackupSets() {}
+    public BackupSets() {
+    }
 
     @XmlElementWrapper(name = "backupsets_info")
     @XmlElement(name = "backupset")
@@ -44,7 +45,8 @@ public class BackupSets {
         private long size = 0;
         private long createTime = 0;
 
-        public BackupSet() {}
+        public BackupSet() {
+        }
 
         public BackupSet(String name, long size, long createTime) {
             this.name = name;

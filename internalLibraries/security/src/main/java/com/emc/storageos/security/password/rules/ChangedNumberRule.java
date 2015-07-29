@@ -24,7 +24,7 @@ public class ChangedNumberRule implements Rule {
 
     /**
      * validate the number of characters get changed between old and new passwords.
-     *
+     * 
      * @param password
      */
     public void validate(Password password) {

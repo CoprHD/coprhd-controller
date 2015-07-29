@@ -8,21 +8,22 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * This represents an wwn alias to change "address" to "new address": 
- *      name - name of alias  (required)
- *      new_name - change alias name to this new name
- *      address - WWN format
- *      newAddress - change alias's address to this new address (required)
+ * This represents an wwn alias to change "address" to "new address":
+ * name - name of alias (required)
+ * new_name - change alias name to this new name
+ * address - WWN format
+ * newAddress - change alias's address to this new address (required)
  */
-@XmlRootElement(name="wwn_alias")
-public class WwnAliasUpdateParam extends WwnAliasParam{
+@XmlRootElement(name = "wwn_alias")
+public class WwnAliasUpdateParam extends WwnAliasParam {
 
     private String newName;
     private String newAddress;
-    
-    public WwnAliasUpdateParam() {};
-    
-    @XmlElement(name="new_name")
+
+    public WwnAliasUpdateParam() {
+    };
+
+    @XmlElement(name = "new_name")
     public String getNewName() {
         return newName;
     }
@@ -31,12 +32,12 @@ public class WwnAliasUpdateParam extends WwnAliasParam{
         this.newName = newName;
     }
 
-    @XmlElement(name="new_address")
-	public String getNewAddress() {
-		return newAddress;
-	}
-	
-	public void setNewAddress(String address) {
-	    this.newAddress = address;
-	}	
+    @XmlElement(name = "new_address")
+    public String getNewAddress() {
+        return newAddress;
+    }
+
+    public void setNewAddress(String address) {
+        this.newAddress = address;
+    }
 }

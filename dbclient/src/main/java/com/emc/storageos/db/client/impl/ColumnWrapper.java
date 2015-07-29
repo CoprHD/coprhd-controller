@@ -57,7 +57,7 @@ public class ColumnWrapper implements Column<CompositeColumnName> {
 
     @Override
     public String getStringValue() {
-        return (String)_val;
+        return (String) _val;
     }
 
     @Override

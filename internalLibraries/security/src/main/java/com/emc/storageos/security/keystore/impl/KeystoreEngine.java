@@ -43,7 +43,9 @@ public class KeystoreEngine extends KeyStoreSpi {
 
     private SecurityService secService;
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.security.KeyStoreSpi#engineAliases()
      */
     @Override
@@ -67,7 +69,9 @@ public class KeystoreEngine extends KeyStoreSpi {
         return Collections.enumeration(allAliases);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.security.KeyStoreSpi#engineContainsAlias(java.lang.String)
      */
     @Override
@@ -75,11 +79,17 @@ public class KeystoreEngine extends KeyStoreSpi {
 
         log.debug("engineContainsAlias called ( alias = {} )", alias);
 
-        if (alias.equalsIgnoreCase(ViPR_KEY_AND_CERTIFICATE_ALIAS)) return true;
+        if (alias.equalsIgnoreCase(ViPR_KEY_AND_CERTIFICATE_ALIAS)) {
+            return true;
+        }
 
-        if (distributedKeyStore.containsUserAddedCerts(alias)) return true;
+        if (distributedKeyStore.containsUserAddedCerts(alias)) {
+            return true;
+        }
 
-        if (distributedKeyStore.containsViprSuppliedCerts(suffixedAlias(alias))) return true;
+        if (distributedKeyStore.containsViprSuppliedCerts(suffixedAlias(alias))) {
+            return true;
+        }
 
         return false;
     }
@@ -92,7 +102,9 @@ public class KeystoreEngine extends KeyStoreSpi {
         }
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.security.KeyStoreSpi#engineDeleteEntry(java.lang.String)
      */
     @Override
@@ -115,10 +127,12 @@ public class KeystoreEngine extends KeyStoreSpi {
         }
 
         throw new KeyStoreException("The specified alias " + alias
-                    + " does not exist");
+                + " does not exist");
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.security.KeyStoreSpi#engineGetCertificate(java.lang.String)
      */
     @Override
@@ -145,7 +159,9 @@ public class KeystoreEngine extends KeyStoreSpi {
         return null;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.security.KeyStoreSpi#engineGetCertificateAlias(java.security.cert.Certificate)
      */
     @Override
@@ -172,7 +188,9 @@ public class KeystoreEngine extends KeyStoreSpi {
         return null;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.security.KeyStoreSpi#engineGetCertificateChain(java.lang.String)
      */
     @Override
@@ -186,7 +204,9 @@ public class KeystoreEngine extends KeyStoreSpi {
         return null;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.security.KeyStoreSpi#engineGetCreationDate(java.lang.String)
      */
     @Override
@@ -209,7 +229,9 @@ public class KeystoreEngine extends KeyStoreSpi {
         return null;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.security.KeyStoreSpi#engineGetKey(java.lang.String, char[])
      */
     @Override
@@ -233,27 +255,31 @@ public class KeystoreEngine extends KeyStoreSpi {
         log.debug("getKeyCertificatePair called ");
 
         KeyCertificateEntry pair = distributedKeyStore.getKeyCertificatePair();
-        if(makeKeyNull) {
+        if (makeKeyNull) {
             SecurityUtil.clearSensitiveData(pair.getKey());
         }
         return pair;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.security.KeyStoreSpi#engineIsCertificateEntry(java.lang.String)
      */
     @Override
     public boolean engineIsCertificateEntry(String alias) {
 
         log.debug("engineIsCertificateEntry called ( alias = {} )", alias);
-        if (alias.equalsIgnoreCase(ViPR_KEY_AND_CERTIFICATE_ALIAS) ){
+        if (alias.equalsIgnoreCase(ViPR_KEY_AND_CERTIFICATE_ALIAS)) {
             return false;
         }
 
         return engineContainsAlias(alias);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.security.KeyStoreSpi#engineIsKeyEntry(java.lang.String)
      */
     @Override
@@ -261,35 +287,41 @@ public class KeystoreEngine extends KeyStoreSpi {
         return alias.equalsIgnoreCase(ViPR_KEY_AND_CERTIFICATE_ALIAS);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.security.KeyStoreSpi#engineLoad(java.io.InputStream, char[])
      */
     @Override
     public void engineLoad(InputStream stream, char[] password) throws IOException,
-    NoSuchAlgorithmException, CertificateException {
+            NoSuchAlgorithmException, CertificateException {
         throw SecurityException.fatals
-        .failedToInitializedKeystoreNeedDistKeystoreParams();
+                .failedToInitializedKeystoreNeedDistKeystoreParams();
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.security.KeyStoreSpi#engineLoad(java.security.KeyStore.LoadStoreParameter)
      */
     @Override
     public void engineLoad(KeyStore.LoadStoreParameter param) throws IOException,
-    NoSuchAlgorithmException, CertificateException {
+            NoSuchAlgorithmException, CertificateException {
 
         log.debug("engineLoad called ");
 
         if (!(param instanceof KeystoreParam)) {
             throw SecurityException.fatals
-            .failedToInitializedKeystoreNeedDistKeystoreParams();
+                    .failedToInitializedKeystoreNeedDistKeystoreParams();
         }
         KeystoreParam scheduledReloadParam = (KeystoreParam) param;
         distributedKeyStore = new DistributedKeyStoreImpl();
         distributedKeyStore.init(scheduledReloadParam);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.security.KeyStoreSpi#engineSetCertificateEntry(java.lang.String, java.security.cert.Certificate)
      */
     @Override
@@ -302,13 +334,15 @@ public class KeystoreEngine extends KeyStoreSpi {
         distributedKeyStore.addTrustedCertificate(alias, entry);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.security.KeyStoreSpi#engineSetKeyEntry(java.lang.String, byte[], java.security.cert.Certificate[])
      */
     @Override
     public synchronized void engineSetKeyEntry(String alias, byte[] key,
             Certificate[] chain)
-                    throws KeyStoreException {
+            throws KeyStoreException {
         if (alias.equalsIgnoreCase(ViPR_KEY_AND_CERTIFICATE_ALIAS)) {
             KeyCertificateEntry entryToSet =
                     new KeyCertificateEntry(key, chain, new Date());
@@ -319,7 +353,9 @@ public class KeystoreEngine extends KeyStoreSpi {
         }
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.security.KeyStoreSpi#engineSetKeyEntry(java.lang.String, java.security.Key, char[], java.security.cert.Certificate[])
      */
     @Override
@@ -328,7 +364,9 @@ public class KeystoreEngine extends KeyStoreSpi {
         engineSetKeyEntry(alias, key.getEncoded(), chain);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.security.KeyStoreSpi#engineSize()
      */
     @Override
@@ -345,15 +383,17 @@ public class KeystoreEngine extends KeyStoreSpi {
      */
     @Override
     public void engineStore(LoadStoreParameter param) throws IOException,
-    NoSuchAlgorithmException, CertificateException {
+            NoSuchAlgorithmException, CertificateException {
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.security.KeyStoreSpi#engineStore(java.io.OutputStream, char[])
      */
     @Override
     public void engineStore(OutputStream stream, char[] password) throws IOException,
-    NoSuchAlgorithmException, CertificateException {
+            NoSuchAlgorithmException, CertificateException {
         KeyStore ks = loadAndPopulateJKS();
 
         try {
@@ -414,6 +454,6 @@ public class KeystoreEngine extends KeyStoreSpi {
     }
 
     public static boolean isUserSuppliedCerts(String alias) {
-        return ! alias.endsWith(KeystoreEngine.SUFFIX_VIPR_SUPPLY_CERT);
+        return !alias.endsWith(KeystoreEngine.SUFFIX_VIPR_SUPPLY_CERT);
     }
 }

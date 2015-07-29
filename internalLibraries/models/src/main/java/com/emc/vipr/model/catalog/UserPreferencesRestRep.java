@@ -22,8 +22,8 @@ public class UserPreferencesRestRep extends DataObjectRestRep {
 
     private String username;
     private Boolean notifyByEmail;
-    private String email;    
-    
+    private String email;
+
     public UserPreferencesRestRep() {
     }
 

@@ -12,15 +12,17 @@ import java.util.List;
 @XmlRootElement(name = "workflow_steps")
 public class StepList {
     private List<WorkflowStepRestRep> steps;
-    
-    public StepList() {}
-    
+
+    public StepList() {
+    }
+
     public StepList(List<WorkflowStepRestRep> steps) {
         this.steps = steps;
     }
 
     /**
      * A list of Workflow Steps.
+     * 
      * @valid none
      */
     @XmlElement(name = "workflow_step")

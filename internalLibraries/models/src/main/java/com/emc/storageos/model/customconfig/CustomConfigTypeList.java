@@ -14,13 +14,14 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "config_types")
 public class CustomConfigTypeList {
     private List<RelatedConfigTypeRep> configTypes;
-    
-    public CustomConfigTypeList() {}
-    
+
+    public CustomConfigTypeList() {
+    }
+
     public CustomConfigTypeList(List<RelatedConfigTypeRep> configTypes) {
         this.configTypes = configTypes;
     }
-    
+
     @XmlElement(name = "config_type")
     public List<RelatedConfigTypeRep> getConfigTypes() {
         if (configTypes == null) {
@@ -28,7 +29,7 @@ public class CustomConfigTypeList {
         }
         return configTypes;
     }
-    
+
     public void setConfigTypes(List<RelatedConfigTypeRep> configTypes) {
         this.configTypes = configTypes;
     }

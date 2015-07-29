@@ -14,16 +14,13 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
 
-
 import com.emc.nas.vnxfile.xmlapi.CifsServer;
-import com.emc.nas.vnxfile.xmlapi.Mover;
 import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
 import com.emc.nas.vnxfile.xmlapi.Status;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
 import com.emc.storageos.vnx.xmlapi.VNXCifsServer;
-import com.emc.storageos.vnx.xmlapi.VNXDataMover;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
 
 import org.apache.commons.httpclient.Header;
@@ -45,7 +42,7 @@ public class VNXCifsConfigProcessor extends VNXFileProcessor {
 
     @Override
     public void processResult(Operation operation, Object resultObj,
-                              Map<String, Object> keyMap) throws BaseCollectionException {
+            Map<String, Object> keyMap) throws BaseCollectionException {
         final PostMethod result = (PostMethod) resultObj;
         _logger.info("processing vnx cifs config response" + resultObj);
         try {

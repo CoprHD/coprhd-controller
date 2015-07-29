@@ -15,7 +15,6 @@
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.plugins.AccessProfile;
@@ -23,7 +22,6 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.PoolProcessor;
-import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.base.Strings;
 
 import org.slf4j.Logger;
@@ -32,14 +30,11 @@ import org.slf4j.LoggerFactory;
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 
-import java.io.IOException;
-import java.net.URI;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 
 /**
  * Each StoragePool will be associated with multiple Storage PoolSettings.
@@ -49,7 +44,7 @@ import java.util.Set;
  * This is currently supported only vmax3 systems.
  * 
  * an(ref-poolcapability, EMC_StorageSettingsAssociatedToCapabilities, EMC_StoragePoolSetting...)
- *           => Instance of EMC_StoragePoolSetting.
+ * => Instance of EMC_StoragePoolSetting.
  * 
  */
 public class StoragePoolSettingProcessor extends PoolProcessor {
@@ -96,16 +91,15 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
             }
         } catch (Exception e) {
             _logger.error("Pool Setting Discovery failed -->{}", getMessage(e));
-        } 
+        }
     }
-    
 
     @Override
     protected void setPrerequisiteObjects(List<Object> args)
             throws BaseCollectionException {
         _args = args;
     }
-    
+
     /**
      * return 1st Argument in inputArguments used to
      * call this SMI-S call.
@@ -119,11 +113,11 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
 
     /**
      * Validate that this represents a SLO setting. If it does, add slo policy name to slonames collection.
-     *
+     * 
      * If the CIMInstance has a its EMCFastSetting populated, then this is a SLO policy
      * based StoragePoolSetting. We will extract the SLOName, Workload, and Average response time.
      * Updates 'sloNames' list
-     *
+     * 
      * @param storageSystem [in] - StorageSystem that the setting belongs to
      * @param settingInstance [in] - Should be an instance of Symm_StoragePoolSetting.
      * @param sloNames [in] - List of sloNames found for the Symm_StoragePoolSetting.

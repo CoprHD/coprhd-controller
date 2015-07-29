@@ -22,8 +22,9 @@ public class ComputeVirtualPoolList {
 
     private List<NamedRelatedResourceRep> computeVirtualPool;
 
-    public ComputeVirtualPoolList() {}
-    
+    public ComputeVirtualPoolList() {
+    }
+
     public ComputeVirtualPoolList(List<NamedRelatedResourceRep> computeVirtualPool) {
         this.computeVirtualPool = computeVirtualPool;
     }
@@ -59,7 +60,7 @@ public class ComputeVirtualPoolList {
         for (RelatedResourceRep vpoolListResource : getComputeVirtualPool()) {
             URI vpoolListResourceId = vpoolListResource.getId();
             if ((vpoolListResourceId != null)
-                && (vpoolListResourceId.toString().equals(computeVirtualPoolId))) {
+                    && (vpoolListResourceId.toString().equals(computeVirtualPoolId))) {
                 return true;
             }
         }

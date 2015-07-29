@@ -22,7 +22,7 @@ public class ApiList<T> implements Serializable {
         this.list = new ArrayList<T>(collection);
     }
 
-    @XmlAnyElement(lax=true)
+    @XmlAnyElement(lax = true)
     public List<T> getList() {
         if (list == null) {
             list = new ArrayList<T>();

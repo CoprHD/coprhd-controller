@@ -12,8 +12,8 @@ public class UserPreferencesUpdateParam {
 
     private String username;
     private Boolean notifyByEmail;
-    private String email;   
-    
+    private String email;
+
     @XmlElement(name = "notify_by_email")
     public Boolean getNotifyByEmail() {
         return notifyByEmail;

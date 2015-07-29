@@ -74,7 +74,7 @@ public class CustomConfigs extends ViprResourceController {
             flash.error(MessagesUtils.get("CustomConfigs.error.create",
                     value,
                     MessagesUtils.get("CustomConfigs.configType." + configType)
-            ));
+                    ));
         }
     }
 
@@ -95,7 +95,7 @@ public class CustomConfigs extends ViprResourceController {
             flash.error(MessagesUtils.get("CustomConfigs.error.update",
                     value,
                     MessagesUtils.get("CustomConfigs.configType." + configType)
-            ));
+                    ));
         }
     }
 
@@ -127,10 +127,10 @@ public class CustomConfigs extends ViprResourceController {
 
         public CustomConfigTypeInfo(CustomConfigTypeRep typeRep) {
             configType = typeRep.getConfigName();
-            rules = (typeRep.getRules() != null) ? typeRep.getRules().getRules() : Collections.<String>emptyList();
+            rules = (typeRep.getRules() != null) ? typeRep.getRules().getRules() : Collections.<String> emptyList();
             scopes = typeRep.getScopes().getScopes();
             type = typeRep.getType();
-            variables = (typeRep.getVariables() != null) ? typeRep.getVariables().getVariables() : Collections.<VariableParam>emptyList();
+            variables = (typeRep.getVariables() != null) ? typeRep.getVariables().getVariables() : Collections.<VariableParam> emptyList();
             metaType = typeRep.getConfigType();
         }
     }
@@ -144,14 +144,14 @@ public class CustomConfigs extends ViprResourceController {
         private String scopeValue;
         private String value;
         private Boolean inactive;
-//        private RestLinkRep link;
+        // private RestLinkRep link;
         private String name;
         private Boolean registered;
         private Boolean global;
         private Boolean internal;
         private Boolean remote;
         private Set<String> tags;
-//        private URI vdc;
+        // private URI vdc;
         private Boolean systemDefault;
         private Calendar creationTime;
 
@@ -164,14 +164,14 @@ public class CustomConfigs extends ViprResourceController {
             scopeValue = customConfig.getScope().getValue();
             value = customConfig.getValue();
             inactive = customConfig.getInactive();
-//            link = customConfig.getLink();
+            // link = customConfig.getLink();
             name = customConfig.getName();
             registered = customConfig.getRegistered();
             global = customConfig.getGlobal();
             internal = customConfig.getInternal();
             remote = customConfig.getRemote();
             tags = customConfig.getTags();
-//            vdc = customConfig.getVdc().getLink().getLinkRef();
+            // vdc = customConfig.getVdc().getLink().getLinkRef();
             systemDefault = customConfig.getSystemDefault();
             creationTime = customConfig.getCreationTime();
         }
@@ -192,9 +192,9 @@ public class CustomConfigs extends ViprResourceController {
 
         @Override
         public int compare(ScopeParam s1, ScopeParam s2) {
-            return    (s1.getType().compareTo(s2.getType()) != 0)   ? s1.getType().compareTo(s2.getType())
+            return (s1.getType().compareTo(s2.getType()) != 0) ? s1.getType().compareTo(s2.getType())
                     : (s1.getValue().compareTo(s2.getValue()) != 0) ? s1.getValue().compareTo(s2.getValue())
-                    :                                                 0;
+                            : 0;
         }
     }
 }

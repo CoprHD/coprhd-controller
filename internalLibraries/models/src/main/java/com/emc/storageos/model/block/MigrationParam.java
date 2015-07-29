@@ -21,8 +21,9 @@ public class MigrationParam {
     private URI tgtStorageSystem;
     private URI virtualPool;
 
-    public MigrationParam() {}
-    
+    public MigrationParam() {
+    }
+
     public MigrationParam(URI volume, URI srcStorageSystem,
             URI tgtStorageSystem, URI virtualPool) {
         this.volume = volume;

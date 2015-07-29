@@ -41,12 +41,11 @@ public class ProcModels {
         public long getMemBuffers() {
             return memBuffers;
         }
-        
+
         @XmlElement(name = "memory_cached_in_kb")
         public long getMemCached() {
             return memCached;
         }
-       
 
         public void setMemTotal(long memTotal) {
             this.memTotal = memTotal;
@@ -59,8 +58,9 @@ public class ProcModels {
         public void setMemBuffers(long memBuffers) {
             this.memBuffers = memBuffers;
         }
-        public void setMemCached(long memCached){
-        	this.memCached = memCached;
+
+        public void setMemCached(long memCached) {
+            this.memCached = memCached;
         }
     }
 
@@ -70,8 +70,8 @@ public class ProcModels {
         }
 
         public LoadAvgStats(double loadAvgTasksPastMinute,
-                            double loadAvgTasksPastFiveMinutes,
-                            double loadAvgTasksPastFifteenMinutes) {
+                double loadAvgTasksPastFiveMinutes,
+                double loadAvgTasksPastFifteenMinutes) {
             this.loadAvgTasksPastMinute = loadAvgTasksPastMinute;
             this.loadAvgTasksPastFiveMinutes = loadAvgTasksPastFiveMinutes;
             this.loadAvgTasksPastFifteenMinutes = loadAvgTasksPastFifteenMinutes;
@@ -116,8 +116,8 @@ public class ProcModels {
         }
 
         public ProcessStatus(long upTime, long numberOfThreads,
-                             long startTime, int pid,
-                             long residentMem, long virtualMemSizeInBytes) {
+                long startTime, int pid,
+                long residentMem, long virtualMemSizeInBytes) {
             this.upTime = upTime;
             this.startTime = startTime;
             this.pid = pid;
@@ -167,7 +167,7 @@ public class ProcModels {
         public void setUpTime(long upTime) {
             this.upTime = upTime;
         }
-        
+
         public void setPid(int pid) {
             this.pid = pid;
         }

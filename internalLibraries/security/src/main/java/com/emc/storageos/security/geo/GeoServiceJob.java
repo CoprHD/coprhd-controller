@@ -27,9 +27,9 @@ public class GeoServiceJob implements Serializable {
     public enum JobType {
         VDC_CONNECT_JOB(ResourceOperationTypeEnum.ADD_VDC),
         VDC_UPDATE_JOB(ResourceOperationTypeEnum.UPDATE_VDC),
-        VDC_DISCONNECT_JOB (ResourceOperationTypeEnum.DISCONNECT_VDC),
-        VDC_RECONNECT_JOB (ResourceOperationTypeEnum.RECONNECT_VDC),
-        VDC_REMOVE_JOB (ResourceOperationTypeEnum.REMOVE_VDC);
+        VDC_DISCONNECT_JOB(ResourceOperationTypeEnum.DISCONNECT_VDC),
+        VDC_RECONNECT_JOB(ResourceOperationTypeEnum.RECONNECT_VDC),
+        VDC_REMOVE_JOB(ResourceOperationTypeEnum.REMOVE_VDC);
 
         private final ResourceOperationTypeEnum rtype;
 
@@ -42,7 +42,7 @@ public class GeoServiceJob implements Serializable {
         }
     }
 
-    private URI    _vdcId;
+    private URI _vdcId;
     private VirtualDataCenter _vdc;
     private String _task;
     private JobType _type;
@@ -62,7 +62,7 @@ public class GeoServiceJob implements Serializable {
 
     public URI getVdcId() {
         return _vdcId;
-    } 
+    }
 
     public VirtualDataCenter getVdc() {
         return _vdc;

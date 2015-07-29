@@ -28,7 +28,7 @@ public class QueryRetryPolicy extends SleepingRetryPolicy {
         super(maxRetry);
         _sleepMs = sleepMs;
     }
-    
+
     @Override
     public long getSleepTimeMs() {
         return _sleepMs;

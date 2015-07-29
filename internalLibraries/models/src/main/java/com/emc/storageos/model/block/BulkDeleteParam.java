@@ -7,8 +7,6 @@ package com.emc.storageos.model.block;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import org.codehaus.jackson.annotate.JsonProperty;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,14 +19,16 @@ public class BulkDeleteParam {
 
     private List<URI> ids;
 
-    public BulkDeleteParam() {}
-    
+    public BulkDeleteParam() {
+    }
+
     public BulkDeleteParam(List<URI> ids) {
         this.ids = ids;
     }
 
     /**
      * The list of volume URIs to be deleted
+     * 
      * @valid URI
      */
     @XmlElement(name = "id")
@@ -42,6 +42,5 @@ public class BulkDeleteParam {
     public void setIds(List<URI> ids) {
         this.ids = ids;
     }
-    
-    
+
 }

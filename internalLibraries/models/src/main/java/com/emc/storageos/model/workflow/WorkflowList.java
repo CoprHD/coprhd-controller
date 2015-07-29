@@ -13,8 +13,9 @@ import java.util.List;
 public class WorkflowList {
     private List<WorkflowRestRep> workflows;
 
-    public WorkflowList() {}
-    
+    public WorkflowList() {
+    }
+
     public WorkflowList(List<WorkflowRestRep> workflows) {
         this.workflows = workflows;
     }

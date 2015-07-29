@@ -11,16 +11,19 @@ public class NodeProgress {
     public enum DownloadStatus {
         NORMAL,
         DOWNLOADERROR,
-        CHECKSUMERROR, 
-        CANCELLED, 
+        CHECKSUMERROR,
+        CANCELLED,
         COMPLETED;
     }
+
     long bytesDownloaded;
     int downloadErrorCount;
     int checksumErrorCount;
     DownloadStatus status;
-    
-    public NodeProgress() {}
+
+    public NodeProgress() {
+    }
+
     public NodeProgress(long bytes, DownloadStatus s, int dCount, int cCount) {
         bytesDownloaded = bytes;
         status = s;
@@ -28,35 +31,35 @@ public class NodeProgress {
         checksumErrorCount = cCount;
     }
 
-    @XmlElement (name = "bytes_downloaded")
-    public long getBytesDownloaded(){
-         return bytesDownloaded;
+    @XmlElement(name = "bytes_downloaded")
+    public long getBytesDownloaded() {
+        return bytesDownloaded;
     }
 
     public void setBytesDownloaded(long bytesDownloaded) {
         this.bytesDownloaded = bytesDownloaded;
     }
-    
-    @XmlElement (name = "download_status")
-    public DownloadStatus getStatus(){
+
+    @XmlElement(name = "download_status")
+    public DownloadStatus getStatus() {
         return status;
     }
 
     public void setStatus(DownloadStatus status) {
         this.status = status;
     }
-    
-    @XmlElement (name = "download_error_count")
-    public int getDownloadErrorCount(){
+
+    @XmlElement(name = "download_error_count")
+    public int getDownloadErrorCount() {
         return downloadErrorCount;
     }
 
     public void setDownloadErrorCount(int downloadErrorCount) {
         this.downloadErrorCount = downloadErrorCount;
     }
-    
-    @XmlElement (name = "checksum_error_count")
-    public int getChecksumErrorCount(){
+
+    @XmlElement(name = "checksum_error_count")
+    public int getChecksumErrorCount() {
         return checksumErrorCount;
     }
 

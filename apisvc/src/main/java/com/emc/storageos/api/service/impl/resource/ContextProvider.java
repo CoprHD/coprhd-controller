@@ -20,12 +20,8 @@ import javax.ws.rs.ext.Provider;
 import javax.xml.bind.*;
 
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
-
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
 
 /**
  * JAXB context provider with validation bits
@@ -48,10 +44,9 @@ public class ContextProvider implements ContextResolver<JAXBContext> {
         private static final ValidationEventHandler _eventHandler = new ValidationEventHandler() {
             @Override
             public boolean handleEvent(ValidationEvent event) {
-            	throw APIException.badRequests.invalidInput(event.getLocator().getLineNumber(), event.getLocator().getColumnNumber());
+                throw APIException.badRequests.invalidInput(event.getLocator().getLineNumber(), event.getLocator().getColumnNumber());
             }
         };
-
 
         /**
          * Throws error on any missing parameters
@@ -98,7 +93,7 @@ public class ContextProvider implements ContextResolver<JAXBContext> {
             _contextMap.putIfAbsent(clazz, ctx);
             return ctx;
         } catch (JAXBException e) {
-            throw APIException.internalServerErrors.jaxbContextError(e.getMessage(),e);
+            throw APIException.internalServerErrors.jaxbContextError(e.getMessage(), e);
         }
     }
 }

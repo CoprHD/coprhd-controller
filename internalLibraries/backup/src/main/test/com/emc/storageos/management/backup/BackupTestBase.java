@@ -40,8 +40,8 @@ public abstract class BackupTestBase {
             backupManager.setCoordinatorClient(coordinatorClient);
 
             // Initializes geodb simulator and backupHandler
-            //context = new ClassPathXmlApplicationContext("backup-test-geodb-conf.xml");
-            //geoDbBackupHandler = context.getBean("geoDbBackupHandler", DbBackupHandler.class);
+            // context = new ClassPathXmlApplicationContext("backup-test-geodb-conf.xml");
+            // geoDbBackupHandler = context.getBean("geoDbBackupHandler", DbBackupHandler.class);
 
         } catch (Exception ex) {
             System.err.println(ex);
@@ -51,14 +51,16 @@ public abstract class BackupTestBase {
 
     /**
      * General method to help create backup of specified Handler
+     * 
      * @param backupTag
-     *          The tag of backup
+     *            The tag of backup
      * @param newBackupHandler
-     *          New backup handler
+     *            New backup handler
      */
     public static void createBackup(String backupTag, BackupHandler newBackupHandler) {
-        if (backupTag == null || newBackupHandler == null)
+        if (backupTag == null || newBackupHandler == null) {
             return;
+        }
         BackupHandler backupHandler = backupManager.getBackupHandler();
         try {
             backupManager.setBackupHandler(newBackupHandler);

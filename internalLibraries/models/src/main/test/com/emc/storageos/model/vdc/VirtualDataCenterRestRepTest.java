@@ -18,10 +18,10 @@ public class VirtualDataCenterRestRepTest {
         vdc.canReconnect();
         vdc.setLocal(true);
         vdc.canDisconnect();
-        vdc.canReconnect();        
+        vdc.canReconnect();
     }
-    
-    @Test 
+
+    @Test
     public void testRejectLocal() {
         VirtualDataCenterRestRep vdc = new VirtualDataCenterRestRep();
         vdc.setLocal(true);
@@ -30,7 +30,7 @@ public class VirtualDataCenterRestRepTest {
         vdc.setConnectionStatus("DISCONNECTED");
         Assert.assertFalse("reconnect should fail on a local vdc", vdc.canReconnect());
     }
-    
+
     @Test
     public void testCanDisconnect() {
         VirtualDataCenterRestRep vdc = new VirtualDataCenterRestRep();
@@ -38,15 +38,15 @@ public class VirtualDataCenterRestRepTest {
         vdc.setConnectionStatus("CONNECTED");
         Assert.assertTrue("disconnect should work on a CONNECTED non-local vdc", vdc.canDisconnect());
     }
-    
-    @Test 
+
+    @Test
     public void testCanReconnect() {
         VirtualDataCenterRestRep vdc = new VirtualDataCenterRestRep();
         vdc.setLocal(false);
         vdc.setConnectionStatus("DISCONNECTED");
-        Assert.assertTrue("reconnect should work on a DISCONNECTED non-local vdc", vdc.canReconnect());  
-    }    
-    
+        Assert.assertTrue("reconnect should work on a DISCONNECTED non-local vdc", vdc.canReconnect());
+    }
+
     @Test
     public void testShouldAlarm() {
         VirtualDataCenterRestRep vdc = new VirtualDataCenterRestRep();

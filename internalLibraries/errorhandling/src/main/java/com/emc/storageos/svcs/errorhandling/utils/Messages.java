@@ -13,7 +13,6 @@ import java.lang.reflect.Array;
 import java.text.MessageFormat;
 import java.util.*;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.WordUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +22,6 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 public class Messages {
     private static final Logger _logger = LoggerFactory.getLogger(Messages.class);
 
-
     private Messages() {
         // nothing to do
     }
@@ -32,9 +30,8 @@ public class Messages {
         try {
             final ResourceBundle bundle = bundleForClass(ServiceCode.class, locale);
             return bundle.getString(code.name());
-        }
-        catch(MissingResourceException e) {
-            _logger.error("Unable to find resource for ServiceCode "+code.name(),e);
+        } catch (MissingResourceException e) {
+            _logger.error("Unable to find resource for ServiceCode " + code.name(), e);
             return WordUtils.capitalize(code.name().replaceAll("_", " ").toLowerCase());
         }
     }

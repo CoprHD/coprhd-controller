@@ -29,10 +29,10 @@ public class VdcConfig {
     private String secretKey;
     private String apiEndpoint;
     private String certificate_chain;
-    
+
     private String geoCommandEndpoint;
     private String geoDataEndpoint;
-    
+
     public static enum ConfigChangeType {
         CONNECT_VDC,
         REMOVE_VDC,
@@ -40,48 +40,53 @@ public class VdcConfig {
         DISCONNECT_VDC,
         RECONNECT_VDC
     };
-    
-    @XmlElement(name="id")    
+
+    @XmlElement(name = "id")
     public URI getId() {
         return id;
     }
+
     public void setId(URI id) {
         this.id = id;
     }
-    
-    @XmlElement(name="connection_status")
+
+    @XmlElement(name = "connection_status")
     public String getConnectionStatus() {
         return connectionStatus;
     }
+
     public void setConnectionStatus(String connectionStatus) {
         this.connectionStatus = connectionStatus;
     }
-    
-    @XmlElement(name="version")
+
+    @XmlElement(name = "version")
     public Long getVersion() {
         return version;
     }
+
     public void setVersion(Long version) {
         this.version = version;
     }
-    
-    @XmlElement(name="short_id")
+
+    @XmlElement(name = "short_id")
     public String getShortId() {
         return shortId;
     }
+
     public void setShortId(String shortId) {
         this.shortId = shortId;
     }
 
-    @XmlElement(name="host_count")
+    @XmlElement(name = "host_count")
     public Integer getHostCount() {
         return hostCount;
     }
+
     public void setHostCount(Integer hostCount) {
         this.hostCount = hostCount;
     }
-    
-    @XmlElement(name="hostIPv4AddressesMap")
+
+    @XmlElement(name = "hostIPv4AddressesMap")
     public HashMap<String, String> getHostIPv4AddressesMap() {
         return hostIPv4AddressesMap;
     }
@@ -90,7 +95,7 @@ public class VdcConfig {
         this.hostIPv4AddressesMap = addressesMap;
     }
 
-    @XmlElement(name="hostIPv6AddressesMap")
+    @XmlElement(name = "hostIPv6AddressesMap")
     public HashMap<String, String> getHostIPv6AddressesMap() {
         return hostIPv6AddressesMap;
     }
@@ -99,43 +104,43 @@ public class VdcConfig {
         this.hostIPv6AddressesMap = addressesMap;
     }
 
-    @XmlElement(name="name")
+    @XmlElement(name = "name")
     public String getName() {
         return name;
     }
-    
+
     public void setName(String name) {
         this.name = name;
     }
-    
-    @XmlElement(name="description")
+
+    @XmlElement(name = "description")
     public String getDescription() {
         return description;
     }
-    
+
     public void setDescription(String description) {
         this.description = description;
     }
-    
-    @XmlElement(name="secret_key")
+
+    @XmlElement(name = "secret_key")
     public String getSecretKey() {
         return secretKey;
     }
-    
+
     public void setSecretKey(String secretKey) {
         this.secretKey = secretKey;
     }
-    
-    @XmlElement(name="api_endpoint")
+
+    @XmlElement(name = "api_endpoint")
     public String getApiEndpoint() {
         return apiEndpoint;
     }
-    
+
     public void setApiEndpoint(String apiEndpoint) {
         this.apiEndpoint = apiEndpoint;
     }
 
-    @XmlElement(name="certificate_chain")
+    @XmlElement(name = "certificate_chain")
     public String getCertificateChain() {
         return certificate_chain;
     }
@@ -144,33 +149,33 @@ public class VdcConfig {
         this.certificate_chain = certificate_chain;
     }
 
-    @XmlElement(name="geo_command_endpoint")
+    @XmlElement(name = "geo_command_endpoint")
     public String getGeoCommandEndpoint() {
         return geoCommandEndpoint;
     }
-    
+
     public void setGeoCommandEndpoint(String geoCommandEndpoint) {
         this.geoCommandEndpoint = geoCommandEndpoint;
     }
-    
-    @XmlElement(name="geo_data_endpoint")
+
+    @XmlElement(name = "geo_data_endpoint")
     public String getGeoDataEndpoint() {
         return geoDataEndpoint;
     }
-    
+
     public void setGeoDataEndpoint(String geoDataEndpoint) {
         this.geoDataEndpoint = geoDataEndpoint;
     }
-    
-    @XmlElement(name="rep_status")
+
+    @XmlElement(name = "rep_status")
     public String getRepStatus() {
         return repStatus;
     }
-    
+
     public void setRepStatus(String repStatus) {
         this.repStatus = repStatus;
     }
-    
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder(this.getClass().getName());

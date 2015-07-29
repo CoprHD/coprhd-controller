@@ -19,10 +19,12 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class DownloadProgress {
     Map<String, NodeProgress> progress;
     long imageSize;
-    public DownloadProgress(){
+
+    public DownloadProgress() {
         progress = new TreeMap<String, NodeProgress>();
     }
-    @XmlElement (name = "imageSize")
+
+    @XmlElement(name = "imageSize")
     public long getImageSize() {
         return imageSize;
     }
@@ -30,7 +32,7 @@ public class DownloadProgress {
     public void setImageSize(long size) {
         this.imageSize = size;
     }
-    
+
     @XmlElementWrapper(name = "progress")
     public Map<String, NodeProgress> getProgress() {
         return progress;
@@ -39,8 +41,8 @@ public class DownloadProgress {
     public void setProgress(Map<String, NodeProgress> progress) {
         this.progress = progress;
     }
-    
-    public void addNodeProgress(String nodeId, NodeProgress nodeProgress){
+
+    public void addNodeProgress(String nodeId, NodeProgress nodeProgress) {
         progress.put(nodeId, nodeProgress);
     }
 }

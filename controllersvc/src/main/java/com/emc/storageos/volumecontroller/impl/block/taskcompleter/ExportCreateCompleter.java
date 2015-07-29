@@ -42,20 +42,20 @@ public class ExportCreateCompleter extends ExportTaskCompleter {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             Operation operation = new Operation();
             switch (status) {
-            case error:
-                operation.error(coded);
-                break;
-            case ready:
-                operation.ready();
-                break;
-            default:
-                break;
+                case error:
+                    operation.error(coded);
+                    break;
+                case ready:
+                    operation.ready();
+                    break;
+                default:
+                    break;
             }
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
             // If the operation does not complete successfully,
             // then make sure that the inactive flag is set to true
             if (!hasActiveMasks(dbClient, exportGroup)) {
-            exportGroup.setInactive(status != Operation.Status.ready);
+                exportGroup.setInactive(status != Operation.Status.ready);
             }
             dbClient.persistObject(exportGroup);
 
@@ -63,7 +63,8 @@ public class ExportCreateCompleter extends ExportTaskCompleter {
             _log.info(String.format("Done ExportMaskCreate - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
 
-            recordBlockExportOperation(dbClient, OperationTypeEnum.CREATE_EXPORT_GROUP, status, eventMessage(status, exportGroup), exportGroup);
+            recordBlockExportOperation(dbClient, OperationTypeEnum.CREATE_EXPORT_GROUP, status, eventMessage(status, exportGroup),
+                    exportGroup);
         } catch (Exception e) {
             _log.error(String.format("Failed updating status for ExportMaskCreate - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);

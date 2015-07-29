@@ -17,6 +17,7 @@ public class ProtectionSystemBulkRep extends BulkRestRep {
 
     /**
      * List of Protection Systems.
+     * 
      * @valid 0 or more Protection System IDs
      * @valid example: urn:storageos:ProtectionSystem:4379693c-c2f9-4e8e-ac4f-c67789cf1934:
      */

@@ -59,7 +59,7 @@ import java.util.List;
  */
 @SuppressWarnings("deprecation")
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"classpath:coordinatorclient-var.xml"})
+@ContextConfiguration(locations = { "classpath:coordinatorclient-var.xml" })
 public class InternalApiTest extends ApiTestBase {
     private String _server = "localhost";
     private String _apiServer = "https://" + _server + ":8443";
@@ -79,22 +79,22 @@ public class InternalApiTest extends ApiTestBase {
     @XmlRootElement(name = "results")
     public static class Resources {
         public List<SearchResultResourceRep> resource;
-    } 
+    }
 
     @Before
-    public void setup () throws Exception {
+    public void setup() throws Exception {
         _requestHelper = new ClientRequestHelper(_coordinatorClient);
-                
+
         _client = _requestHelper.createClient();
 
         _internalFileClient = new InternalFileServiceClient();
         _internalFileClient.setCoordinatorClient(_coordinatorClient);
         _internalFileClient.setServer(_server);
-        
+
         _internalNetworkClient = new InternalNetworkClient();
         _internalNetworkClient.setCoordinatorClient(_coordinatorClient);
         _internalNetworkClient.setServer(_server);
-                
+
         List<String> urls = new ArrayList<String>();
         urls.add(_apiServer);
         rSys = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, urls);
@@ -102,13 +102,13 @@ public class InternalApiTest extends ApiTestBase {
                 .get(TenantResponse.class);
         _rootTenantId = tenantResp.getTenant();
         _rootToken = (String) _savedTokens.get("root");
-        
+
         // find a CoS to use
         Resources results = rSys.path("/file/vpools/search").queryParam("name", "cosisi")
                 .get(Resources.class);
         Assert.assertTrue(results.resource.iterator().hasNext());
         _cosId = results.resource.iterator().next().getId();
-        String cosAclUrl = "/file/vpools/"+_cosId.toString()+"/acl";
+        String cosAclUrl = "/file/vpools/" + _cosId.toString() + "/acl";
         ACLAssignmentChanges changes = new ACLAssignmentChanges();
         ACLEntry entry1 = new ACLEntry();
         entry1.setTenant(_rootTenantId.toString());
@@ -122,10 +122,10 @@ public class InternalApiTest extends ApiTestBase {
                 .get(Resources.class);
         Assert.assertTrue(results.resource.iterator().hasNext());
         _nhId = results.resource.iterator().next().getId();
-        String nhAclUrl = "/vdc/varrays/"+_nhId.toString()+"/acl";
+        String nhAclUrl = "/vdc/varrays/" + _nhId.toString() + "/acl";
         resp = rSys.path(nhAclUrl)
                 .put(ClientResponse.class, changes);
-        Assert.assertEquals(200, resp.getStatus());        
+        Assert.assertEquals(200, resp.getStatus());
 
         // find a network to use
         results = rSys.path("/vdc/networks/search").queryParam("name", "iptz")
@@ -133,7 +133,7 @@ public class InternalApiTest extends ApiTestBase {
         Assert.assertTrue(results.resource.iterator().hasNext());
         _networkId = results.resource.iterator().next().getId();
     }
-    
+
     @Test
     /**
      * This test exercises only the server side functionaly, not the internal client
@@ -143,7 +143,7 @@ public class InternalApiTest extends ApiTestBase {
         // create fs
         FileSystemParam fsparam = new FileSystemParam();
         fsparam.setVpool(_cosId);
-        fsparam.setLabel("test-internalapi-"+System.currentTimeMillis());
+        fsparam.setLabel("test-internalapi-" + System.currentTimeMillis());
         fsparam.setVarray(_nhId);
         fsparam.setSize("20971520");
         URI path = URI.create(_apiServer).resolve("/internal/file/filesystems");
@@ -154,12 +154,12 @@ public class InternalApiTest extends ApiTestBase {
         Assert.assertTrue(resp != null);
         Assert.assertNotNull(resp.getOpId());
         Assert.assertNotNull(resp.getResource());
-        String fsId= resp.getResource().getId().toString();
+        String fsId = resp.getResource().getId().toString();
         String opId = resp.getOpId();
         // GET filesystem
         path = URI.create(_apiServer).resolve("/internal/file/filesystems/" + fsId);
         rRoot = _client.resource(path);
-        rBuilder = _requestHelper.addSignature(rRoot);        
+        rBuilder = _requestHelper.addSignature(rRoot);
         ClientResponse response = _requestHelper.addToken(rBuilder, _rootToken)
                 .get(ClientResponse.class);
         Assert.assertTrue(response != null);
@@ -188,7 +188,7 @@ public class InternalApiTest extends ApiTestBase {
         export.setEndpoints(new ArrayList<String>());
         export.getEndpoints().add("www.ford.com");
         rRoot = _client.resource(path);
-        rBuilder = _requestHelper.addSignature(rRoot);                
+        rBuilder = _requestHelper.addSignature(rRoot);
         resp = _requestHelper.addToken(rBuilder, _rootToken)
                 .post(TaskResourceRep.class, export);
         opId = resp.getOpId();
@@ -210,7 +210,7 @@ public class InternalApiTest extends ApiTestBase {
                 fsId, export.getProtocol(), export.getSecurityType(), export.getPermissions(), export.getRootUserMapping());
         path = URI.create(_apiServer).resolve(unexportPath);
         rRoot = _client.resource(path);
-        rBuilder = _requestHelper.addSignature(rRoot);        
+        rBuilder = _requestHelper.addSignature(rRoot);
         resp = _requestHelper.addToken(rBuilder, _rootToken)
                 .delete(TaskResourceRep.class, export);
         opId = resp.getOpId();
@@ -227,18 +227,18 @@ public class InternalApiTest extends ApiTestBase {
         if (!status.equals("ready")) {
             Assert.assertTrue("Fileshare unexport timed out", false);
         }
-        
+
         // delete
         path = URI.create(_apiServer).resolve("/internal/file/filesystems/" + fsId + "/deactivate");
         FileSystemDeleteParam deleteParam = new FileSystemDeleteParam();
         deleteParam.setForceDelete(false);
         rRoot = _client.resource(path);
-        rBuilder = _requestHelper.addSignature(rRoot);        
+        rBuilder = _requestHelper.addSignature(rRoot);
         resp = _requestHelper.addToken(rBuilder, _rootToken)
                 .post(TaskResourceRep.class, deleteParam);
         Assert.assertTrue(resp != null);
     }
-    
+
     @Test
     /**
      * This test exercises both server side and internal client
@@ -248,25 +248,25 @@ public class InternalApiTest extends ApiTestBase {
         // create fs
         FileSystemParam fsparam = new FileSystemParam();
         fsparam.setVpool(_cosId);
-        fsparam.setLabel("test-internalapi-"+System.currentTimeMillis());
+        fsparam.setLabel("test-internalapi-" + System.currentTimeMillis());
         fsparam.setVarray(_nhId);
-        fsparam.setSize("20971520");        
-        TaskResourceRep resp = _internalFileClient.createFileSystem(fsparam, _rootToken);         
+        fsparam.setSize("20971520");
+        TaskResourceRep resp = _internalFileClient.createFileSystem(fsparam, _rootToken);
         Assert.assertTrue(resp != null);
         Assert.assertNotNull(resp.getOpId());
         Assert.assertNotNull(resp.getResource());
-        
-        URI fsId= resp.getResource().getId();
+
+        URI fsId = resp.getResource().getId();
         String opId = resp.getOpId();
-        // GET filesystem - no method on the client for this?       
-        
+        // GET filesystem - no method on the client for this?
+
         WebResource rRoot = _requestHelper.createRequest(_client, _apiServer, "/internal/file/filesystems/" + fsId);
-        WebResource.Builder rBuilder = _requestHelper.addSignature(rRoot);        
+        WebResource.Builder rBuilder = _requestHelper.addSignature(rRoot);
         ClientResponse response = _requestHelper.addToken(rBuilder, _rootToken)
                 .get(ClientResponse.class);
         Assert.assertTrue(response != null);
         Assert.assertEquals(200, response.getStatus());
-        
+
         // wait for the create to finish
         int checkCount = 1200;
         String status;
@@ -299,7 +299,7 @@ public class InternalApiTest extends ApiTestBase {
             Assert.assertTrue("Fileshare export timed out", false);
         }
         // unexport
-        resp = _internalFileClient.unexportFileSystem(fsId, export.getProtocol(), export.getSecurityType(), export.getPermissions(), 
+        resp = _internalFileClient.unexportFileSystem(fsId, export.getProtocol(), export.getSecurityType(), export.getPermissions(),
                 export.getRootUserMapping(), null);
         opId = resp.getOpId();
         // wait for the unexport to finish
@@ -312,42 +312,42 @@ public class InternalApiTest extends ApiTestBase {
         if (!status.equals("ready")) {
             Assert.assertTrue("Fileshare unexport timed out", false);
         }
-        
+
         // delete
         FileSystemDeleteParam deleteParam = new FileSystemDeleteParam();
         deleteParam.setForceDelete(false);
         resp = _internalFileClient.deactivateFileSystem(fsId, _rootToken, deleteParam);
         Assert.assertTrue(resp != null);
     }
-    
+
     @Test
     public void testFSReleaseUsingInternalClient() throws Exception {
-        
+
         // get tenant
         TenantResponse tenant = rSys.path("/tenant").get(TenantResponse.class);
         Assert.assertNotNull(tenant);
-        
+
         // create a project to host a normal file system
         ProjectParam projectParam = new ProjectParam();
         projectParam.setName("test-internalapi-" + System.currentTimeMillis());
         ProjectElement projectResp = rSys.path("/tenants/" + tenant.getTenant().toString() + "/projects")
                 .post(ProjectElement.class, projectParam);
         Assert.assertNotNull(projectResp);
-        
+
         // create a normal file system which we can then release
         FileSystemParam fsparam = new FileSystemParam();
         fsparam.setVpool(_cosId);
-        fsparam.setLabel("test-internalapi-"+System.currentTimeMillis());
+        fsparam.setLabel("test-internalapi-" + System.currentTimeMillis());
         fsparam.setVarray(_nhId);
         fsparam.setSize("20971520");
         TaskResourceRep taskResp = rSys.path("/file/filesystems").queryParam("project", projectResp.getId().toString())
-                .post(TaskResourceRep.class, fsparam);        
+                .post(TaskResourceRep.class, fsparam);
         Assert.assertTrue(taskResp != null);
         Assert.assertNotNull(taskResp.getOpId());
         Assert.assertNotNull(taskResp.getResource());
         URI fsId = taskResp.getResource().getId();
         String opId = taskResp.getOpId();
-        
+
         // get the file system object we just created
         ClientResponse response = rSys.path("/file/filesystems/" + fsId.toString())
                 .get(ClientResponse.class);
@@ -367,7 +367,7 @@ public class InternalApiTest extends ApiTestBase {
         if (!status.equals("ready")) {
             Assert.assertTrue("Fileshare create timed out", false);
         }
-        
+
         // a normal file system should be present in the bulk results
         BulkIdParam bulkIds = rSys.path("/file/filesystems/bulk")
                 .get(BulkIdParam.class);
@@ -383,13 +383,13 @@ public class InternalApiTest extends ApiTestBase {
         }
         Assert.assertTrue("unable to find public FileShare in the bulk results", found);
 
-        //only token is used in release file system operation and hence
-        //setting dummy strings for username and tenant ID do not matter
+        // only token is used in release file system operation and hence
+        // setting dummy strings for username and tenant ID do not matter
         StorageOSUser user = new StorageOSUser("dummyUserName", "dummyTeneatId");
         user.setToken(_rootToken);
         FileShareRestRep fileShareResponse = _internalFileClient.releaseFileSystem(fsId, user);
         Assert.assertNotNull(fileShareResponse);
-        
+
         // after release, the file system should no longer be present in the bulk results
         bulkFileShares = rSys.path("/file/filesystems/bulk")
                 .post(FileShareBulkRep.class, bulkIds);
@@ -401,25 +401,25 @@ public class InternalApiTest extends ApiTestBase {
             }
         }
         Assert.assertFalse("found internal FileShare in the bulk results", found);
-        
+
         // undo the release of the file system
-        fileShareResponse = _internalFileClient.undoReleaseFileSystem(fsId);  
+        fileShareResponse = _internalFileClient.undoReleaseFileSystem(fsId);
         Assert.assertNotNull(fileShareResponse);
 
         // release it again
         fileShareResponse = _internalFileClient.releaseFileSystem(fsId, user);
         Assert.assertNotNull(fileShareResponse);
-                
+
         // delete the file system via the internal api
         FileSystemDeleteParam deleteParam = new FileSystemDeleteParam();
         deleteParam.setForceDelete(false);
         taskResp = _internalFileClient.deactivateFileSystem(fsId, _rootToken, deleteParam);
-        Assert.assertNotNull(taskResp);        
-    }    
-            
+        Assert.assertNotNull(taskResp);
+    }
+
     @Test
     public void testNetworkUsingInternalClient() {
-        // first add a new endpoint 
+        // first add a new endpoint
         String newEndpoint = "www.networktest-" + System.currentTimeMillis() + ".com";
         NetworkEndpointParam endpointParam = new NetworkEndpointParam();
         endpointParam.setEndpoints(Arrays.asList(newEndpoint));
@@ -432,9 +432,9 @@ public class InternalApiTest extends ApiTestBase {
         endpointParam.setOp(NetworkEndpointParam.EndpointOp.remove.name());
         network = _internalNetworkClient.updateNetworkEndpoints(_networkId, endpointParam);
         Assert.assertNotNull("update should not return a null response", network);
-        Assert.assertFalse("response should not contain the new endpoint " + newEndpoint, network.getEndpoints().contains(newEndpoint));        
+        Assert.assertFalse("response should not contain the new endpoint " + newEndpoint, network.getEndpoints().contains(newEndpoint));
     }
-       
+
     @After
     public void teardown() throws Exception {
         _internalFileClient.shutdown();

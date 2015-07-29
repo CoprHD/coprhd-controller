@@ -5,5 +5,5 @@
 package com.iwave.ext.vmware;
 
 public enum DataStoreAccessMode {
-	readWrite, readOnly
+    readWrite, readOnly
 }

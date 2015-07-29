@@ -14,11 +14,12 @@ import javax.xml.bind.annotation.XmlRootElement;
 import com.emc.storageos.model.BulkRestRep;
 
 @XmlRootElement(name = "bulk_configs")
-public class CustomConfigBulkRep extends BulkRestRep{
+public class CustomConfigBulkRep extends BulkRestRep {
     private List<CustomConfigRestRep> configs;
-    
-    public CustomConfigBulkRep() {}
-    
+
+    public CustomConfigBulkRep() {
+    }
+
     public CustomConfigBulkRep(List<CustomConfigRestRep> configs) {
         this.configs = configs;
     }
@@ -34,7 +35,5 @@ public class CustomConfigBulkRep extends BulkRestRep{
     public void setCustomConfigs(List<CustomConfigRestRep> configs) {
         this.configs = configs;
     }
-    
-    
 
 }

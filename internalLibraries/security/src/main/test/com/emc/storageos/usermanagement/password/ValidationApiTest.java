@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.usermanagement.password;
 
-import com.emc.storageos.security.password.Password;
 import com.emc.storageos.usermanagement.setup.LocalUserMode;
 import com.emc.vipr.client.AuthClient;
 import com.emc.vipr.client.ViPRSystemClient;
@@ -22,7 +21,8 @@ public class ValidationApiTest extends LocalUserMode {
     private static Logger logger = LoggerFactory.getLogger(ValidationApiTest.class);
 
     private static ViPRSystemClient svcuserClient;
-    private static String password="ChangeMe"; // NOSONAR ("Suppressing: removing this hard-coded password since it's default ViPR password.")
+    private static String password = "ChangeMe"; // NOSONAR
+                                                 // ("Suppressing: removing this hard-coded password since it's default ViPR password.")
 
     @BeforeClass
     public synchronized static void setupPasswordValidation() throws Exception {
@@ -84,7 +84,6 @@ public class ValidationApiTest extends LocalUserMode {
             Assert.assertTrue(see.getMessage().contains("at least 1 lowercase alphabetic"));
         }
 
-
         // positive test, should be no exception
         svcuserClient.password().validateUpdate(password, "ChangeMe1!");
 
@@ -138,11 +137,8 @@ public class ValidationApiTest extends LocalUserMode {
             Assert.assertTrue(see.getMessage().contains("at least 1 lowercase alphabetic"));
         }
 
-
         // positive test, should be no exception
         authClient.validatePasswordChange("svcuser", password, "ChangeMe1!");
     }
-
-
 
 }

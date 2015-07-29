@@ -17,6 +17,7 @@ public class NetworkSystemBulkRep extends BulkRestRep {
 
     /**
      * List of network system objects that exist in ViPR.
+     * 
      * @valid none
      */
     @XmlElement(name = "network_system")

@@ -39,18 +39,18 @@ public class ValidationUtil {
     /**
      * Validate file based on user's requirements
      */
-    public static void validateFile(File file, FileType type, NotExistEnum notExist) 
+    public static void validateFile(File file, FileType type, NotExistEnum notExist)
             throws IOException {
         Preconditions.checkNotNull(file, "Invalid parameter");
         if (file.exists()) {
             switch (type) {
                 case File:
                     Preconditions.checkState(file.isFile(),
-                       "%s is not a file", file.getAbsolutePath());
+                            "%s is not a file", file.getAbsolutePath());
                     break;
                 case Dir:
                     Preconditions.checkState(file.isDirectory(),
-                       "%s is not a directory", file.getAbsolutePath());
+                            "%s is not a directory", file.getAbsolutePath());
                     break;
                 case Any:
                     break;
@@ -81,4 +81,3 @@ public class ValidationUtil {
     }
 
 }
-

@@ -30,8 +30,9 @@ public class DbBackupHandler extends BackupHandler {
 
     /**
      * Sets vipr keyspace name
+     * 
      * @param viprKeyspace
-     *          The name of vipr keyspace
+     *            The name of vipr keyspace
      */
     public void setViprKeyspace(String viprKeyspace) {
         this.viprKeyspace = viprKeyspace.trim();
@@ -39,8 +40,9 @@ public class DbBackupHandler extends BackupHandler {
 
     /**
      * Sets ignored column family list to include basic ignore column families, such as "Stats"
+     * 
      * @param ignoreCfList
-     *      The list of ignored column family
+     *            The list of ignored column family
      */
     public void setIgnoreCfList(List<String> ignoreCfList) {
         this.ignoreCfList = ignoreCfList;
@@ -84,11 +86,12 @@ public class DbBackupHandler extends BackupHandler {
     public String createBackup(final String backupTag) {
         // For multi vdc ViPR, need to reinit geodb during restore, so use the special backup type
         // to show the difference
-        if (backupType.equals(BackupType.geodb) && backupContext.getVdcList().size() > 1)
+        if (backupType.equals(BackupType.geodb) && backupContext.getVdcList().size() > 1) {
             backupType = BackupType.geodbmultivdc;
+        }
         String fullBackupTag = backupTag + BackupConstants.BACKUP_NAME_DELIMITER +
-                               backupType.name() + BackupConstants.BACKUP_NAME_DELIMITER +
-                               backupContext.getNodeName();
+                backupType.name() + BackupConstants.BACKUP_NAME_DELIMITER +
+                backupContext.getNodeName();
         checkBackupFileExist(backupTag, fullBackupTag);
         try {
             StorageService.instance.takeSnapshot(fullBackupTag, viprKeyspace);
@@ -104,19 +107,22 @@ public class DbBackupHandler extends BackupHandler {
     public File dumpBackup(final String backupTag, final String fullBackupTag) {
         // Prepares backup folder to accept snapshot files
         File targetDir = new File(backupContext.getBackupDir(), backupTag);
-        if (!targetDir.exists())
+        if (!targetDir.exists()) {
             targetDir.mkdir();
+        }
         File backupFolder = new File(targetDir, fullBackupTag);
-        if (backupFolder.exists())
+        if (backupFolder.exists()) {
             FileUtils.deleteQuietly(backupFolder);
+        }
         backupFolder.mkdir();
         try {
-        	File[] cfDirs = getValidKeyspace().listFiles();
-        	cfDirs = (cfDirs == null) ? BackupConstants.EMPTY_ARRAY : cfDirs;
+            File[] cfDirs = getValidKeyspace().listFiles();
+            cfDirs = (cfDirs == null) ? BackupConstants.EMPTY_ARRAY : cfDirs;
             for (File cfDir : cfDirs) {
                 File cfBackupFolder = new File(backupFolder, cfDir.getName());
-                if (cfBackupFolder.exists())
+                if (cfBackupFolder.exists()) {
                     FileUtils.deleteQuietly(cfBackupFolder);
+                }
                 // Handles empty Column Family
                 String[] cfSubFileList = cfDir.list(new FilenameFilter() {
                     @Override
@@ -161,4 +167,3 @@ public class DbBackupHandler extends BackupHandler {
     }
 
 }
-

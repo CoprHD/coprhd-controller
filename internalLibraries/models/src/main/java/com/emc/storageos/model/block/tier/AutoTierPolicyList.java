@@ -14,9 +14,10 @@ import java.util.List;
 @XmlRootElement(name = "auto_tier_policies")
 public class AutoTierPolicyList {
     private List<NamedRelatedResourceRep> autoTierPolicies;
-    
-    public AutoTierPolicyList() {}
-    
+
+    public AutoTierPolicyList() {
+    }
+
     public AutoTierPolicyList(List<NamedRelatedResourceRep> autoTierPolicies) {
         this.autoTierPolicies = autoTierPolicies;
     }

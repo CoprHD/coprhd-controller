@@ -17,15 +17,16 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class VirtualDataCenterSecretKeyRestRep {
     private String encodedKey;
 
-    public VirtualDataCenterSecretKeyRestRep() {}
+    public VirtualDataCenterSecretKeyRestRep() {
+    }
 
     // Key must be base 64 encoded, UTF-8 string
-    public void setSecretKey(String k) {      
+    public void setSecretKey(String k) {
         encodedKey = k;
     }
 
     @XmlElement(name = "secret_key")
-    public String getSecretKey() { 
+    public String getSecretKey() {
         return encodedKey;
     }
 

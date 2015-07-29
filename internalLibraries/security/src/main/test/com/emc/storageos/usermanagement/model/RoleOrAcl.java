@@ -7,7 +7,6 @@ package com.emc.storageos.usermanagement.model;
 public class RoleOrAcl {
     private String roleName;
 
-
     public static RoleOrAcl SecurityAdmin = new RoleOrAcl("SECURITY_ADMIN");
     public static RoleOrAcl SystemAdmin = new RoleOrAcl("SYSTEM_ADMIN");
     public static RoleOrAcl SystemMonitor = new RoleOrAcl("SYSTEM_MONITOR");
@@ -18,7 +17,6 @@ public class RoleOrAcl {
     public static RoleOrAcl ProjectAclOwn = new RoleOrAcl("OWN");
     public static RoleOrAcl ProjectAclAll = new RoleOrAcl("ALL");
     public static RoleOrAcl ProjectAclBackup = new RoleOrAcl("BACKUP");
-
 
     private RoleOrAcl(String roleName) {
         this.roleName = roleName;

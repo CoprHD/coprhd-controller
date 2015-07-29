@@ -16,23 +16,21 @@ import org.junit.BeforeClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 import java.util.ArrayList;
 import java.util.List;
-
 
 public class GeoMode extends TenantMode {
 
     private static Logger logger = LoggerFactory.getLogger(GeoMode.class);
-    private static List <VirtualDataCenterRestRep> vdcList = new ArrayList<VirtualDataCenterRestRep>();
+    private static List<VirtualDataCenterRestRep> vdcList = new ArrayList<VirtualDataCenterRestRep>();
 
     @BeforeClass
     public static void setup_GeoTenantModeBase() throws Exception {
 
-        VirtualDataCenters vdcs =  superUserClient.vdcs();
+        VirtualDataCenters vdcs = superUserClient.vdcs();
 
         List<NamedRelatedResourceRep> list = vdcs.list();
-        for (NamedRelatedResourceRep vdc: list) {
+        for (NamedRelatedResourceRep vdc : list) {
             VirtualDataCenterRestRep restRep = superUserClient.vdcs().get(vdc.getId());
             vdcList.add(restRep);
         }
@@ -65,7 +63,6 @@ public class GeoMode extends TenantMode {
     public static void teardown_GeoTenantModeBase() throws Exception {
 
     }
-
 
     public static String getVdcEndpointByIndex(int index) {
         if (vdcList.size() >= index) {

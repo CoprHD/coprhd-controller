@@ -94,16 +94,16 @@ public interface FatalGeoExceptions {
     // Fail to remove root's roles and project ownerships
     @DeclareServiceCode(ServiceCode.GEOSVC_CONNECTVDC_REMOVE_ROOT_ROLES_ERROR)
     public FatalGeoException connectVdcRemoveRootRolesFailed(Throwable cause);
-    
+
     // Remove vdc precheck failed, do not meet the requirement
     @DeclareServiceCode(ServiceCode.GEOSVC_PRECHECK_ERROR)
     public FatalGeoException removeVdcPrecheckFail(String vdcName, String errMsg);
 
-    // Remove vdc sync config failed 
+    // Remove vdc sync config failed
     @DeclareServiceCode(ServiceCode.GEOSVC_REMOVEVDC_SYNC_CONFIG_ERROR)
     public FatalGeoException removeVdcSyncConfigFail(Throwable cause);
 
-    // Remove vdc post check failed 
+    // Remove vdc post check failed
     @DeclareServiceCode(ServiceCode.GEOSVC_POSTCHECK_ERROR)
     public FatalGeoException removeVdcPostcheckFail(Throwable cause);
 
@@ -176,10 +176,10 @@ public interface FatalGeoExceptions {
 
     @DeclareServiceCode(ServiceCode.GEOSVC_VDC_VERSION_INCOMPATIBLE)
     public FatalGeoException remoteVDCIncompatibleVersion();
-    
+
     @DeclareServiceCode(ServiceCode.GEOSVC_VDC_VERSION_INCOMPATIBLE)
     public FatalGeoException remoteVDCInLowerVersion();
-    
+
     @DeclareServiceCode(ServiceCode.GEOSVC_VDC_VERSION_INCOMPATIBLE)
     public FatalGeoException hasTripleVDCVersionsInFederation();
 

@@ -8,7 +8,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class Reference {
-    
+
     private String id;
     protected String href;
 

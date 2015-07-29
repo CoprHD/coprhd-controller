@@ -19,8 +19,9 @@ public class HealthRestRep {
 
     private List<NodeHealth> nodeHealthList;
 
-    public HealthRestRep() {}
-    
+    public HealthRestRep() {
+    }
+
     public HealthRestRep(List<NodeHealth> nodeHealthList) {
         this.nodeHealthList = nodeHealthList;
     }
@@ -38,5 +39,3 @@ public class HealthRestRep {
         this.nodeHealthList = nodeHealthList;
     }
 }
-
-

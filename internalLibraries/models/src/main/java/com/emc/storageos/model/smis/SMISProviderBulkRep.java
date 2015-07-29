@@ -15,8 +15,10 @@ import java.util.List;
 @XmlRootElement(name = "bulk_smis_providers")
 public class SMISProviderBulkRep extends BulkRestRep {
     private List<SMISProviderRestRep> smisProviders;
+
     /**
      * List of SMIS Providers.
+     * 
      * @valid none
      */
     @XmlElement(name = "smis_provider")

@@ -23,7 +23,7 @@ public class DistributedLoadKeyStoreParam implements KeystoreParam {
 
     /**
      * @return the coordiantor
-     */ 
+     */
     @Override
     public CoordinatorClient getCoordinator() {
         return coordinator;
@@ -32,7 +32,7 @@ public class DistributedLoadKeyStoreParam implements KeystoreParam {
     /**
      * @param coordiantor
      *            the coordiantor to set
-     */ 
+     */
     public void setCoordinator(CoordinatorClient coordiantor) {
         this.coordinator = coordiantor;
     }

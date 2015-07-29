@@ -21,25 +21,28 @@ import com.emc.storageos.model.adapters.StringSetMapAdapter;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class UnManagedVolumeRestRep extends DataObjectRestRep {
     /**
-     * The native GUID of a discovered unmanaged volume which 
-     * has not yet been ingested into ViPR.  
+     * The native GUID of a discovered unmanaged volume which
+     * has not yet been ingested into ViPR.
+     * 
      * @valid none
-     */ 
+     */
     private String nativeGuid;
-    
+
     /**
-     * Information about the unmanaged volume. For example, allocated capacity, 
-     * provisioned capacity, disk technology, and whether or not the volume is 
-     * thinly provisioned. 
+     * Information about the unmanaged volume. For example, allocated capacity,
+     * provisioned capacity, disk technology, and whether or not the volume is
+     * thinly provisioned.
+     * 
      * @valid none
-     */ 
+     */
     private List<StringSetMapAdapter.Entry> volumeInformation;
-    
+
     /**
-     * Characteristics of the unmanaged volume, such as is it mapped, 
-     * is it a composite, and is it a snapshot. 
+     * Characteristics of the unmanaged volume, such as is it mapped,
+     * is it a composite, and is it a snapshot.
+     * 
      * @valid none
-     */ 
+     */
     private List<StringHashMapEntry> volumeCharacteristics;
 
     /**
@@ -61,17 +64,19 @@ public class UnManagedVolumeRestRep extends DataObjectRestRep {
      * List of storage port URIs associated with this UnManagedVolume.
      */
     private List<String> storagePortUris;
-    
+
     /**
-     * The storage system to which this volume belongs. 
+     * The storage system to which this volume belongs.
+     * 
      * @valid none
-     */ 
+     */
     private RelatedResourceRep storageSystem;
 
     /**
-     * The storage pool to which this volume belongs. 
+     * The storage pool to which this volume belongs.
+     * 
      * @valid none
-     */ 
+     */
     private RelatedResourceRep storagePool;
 
     @XmlElement(name = "native_guid")
@@ -91,7 +96,7 @@ public class UnManagedVolumeRestRep extends DataObjectRestRep {
     public void setStorageSystem(RelatedResourceRep storageSystem) {
         this.storageSystem = storageSystem;
     }
-    
+
     @XmlElement(name = "storage_pool")
     public RelatedResourceRep getStoragePool() {
         return storagePool;

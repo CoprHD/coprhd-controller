@@ -15,8 +15,9 @@ import java.util.List;
 public class ComputeElementList {
     private List<NamedRelatedResourceRep> computeElements;
 
-    public ComputeElementList() {}
-    
+    public ComputeElementList() {
+    }
+
     public ComputeElementList(List<NamedRelatedResourceRep> computeElements) {
         this.computeElements = computeElements;
     }
@@ -25,7 +26,7 @@ public class ComputeElementList {
      * List of compute element URLs with name
      * 
      * @valid none
-     */ 
+     */
     @XmlElement(name = "compute_element")
     public List<NamedRelatedResourceRep> getComputeElements() {
         if (computeElements == null) {

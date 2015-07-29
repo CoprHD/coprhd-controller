@@ -8,9 +8,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
 @XmlRootElement(name = "catalog_category_update")
-@XmlType(name="CatalogCategoryUpdateParam")
+@XmlType(name = "CatalogCategoryUpdateParam")
 public class CatalogCategoryUpdateParam extends CatalogCategoryCommonParam {
-
-
 
 }

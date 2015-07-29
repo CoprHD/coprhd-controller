@@ -16,20 +16,21 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class BlockConsistencyGroupCreate {
     /**
      * Name of the block consistency group
-     *
+     * 
      * @valid none
      */
     private String name;
 
     /**
      * Related Project URI
-     *
+     * 
      * @valid none
      */
     private URI project;
 
-    public BlockConsistencyGroupCreate() {}
-    
+    public BlockConsistencyGroupCreate() {
+    }
+
     public BlockConsistencyGroupCreate(String name, URI project) {
         this.name = name;
         this.project = project;

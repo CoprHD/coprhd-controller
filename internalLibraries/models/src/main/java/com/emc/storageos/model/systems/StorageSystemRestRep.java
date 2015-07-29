@@ -52,8 +52,9 @@ public class StorageSystemRestRep extends DiscoveredSystemObjectRestRep {
     private Boolean hasSRDFActiveRAGroups;
     private Double averagePortMetrics;
 
-    public StorageSystemRestRep() {}
-    
+    public StorageSystemRestRep() {
+    }
+
     // TODO: We should change this to drop the _uri from the name. It is not a URI
     @XmlElement(name = "active_provider_uri")
     public RelatedResourceRep getActiveProvider() {
@@ -181,7 +182,7 @@ public class StorageSystemRestRep extends DiscoveredSystemObjectRestRep {
         this.reachableStatus = reachableStatus;
     }
 
-    @XmlElementWrapper(name="secondary_ips")
+    @XmlElementWrapper(name = "secondary_ips")
     @XmlElement(name = "secondary_ip")
     public Set<String> getSecondaryIPs() {
         if (secondaryIPs == null) {
@@ -247,7 +248,7 @@ public class StorageSystemRestRep extends DiscoveredSystemObjectRestRep {
     public void setSupportedProvisioningType(String supportedProvisioningType) {
         this.supportedProvisioningType = supportedProvisioningType;
     }
-    
+
     @XmlElementWrapper(name = "async_actions")
     @XmlElement(name = "async_action")
     public Set<String> getSupportedAsynchronousActions() {
@@ -256,10 +257,11 @@ public class StorageSystemRestRep extends DiscoveredSystemObjectRestRep {
         }
         return supportedAsynchronousActions;
     }
-    
+
     public void setSupportedAsynchronousActions(Set<String> supportedAsynchronousActions) {
         this.supportedAsynchronousActions = supportedAsynchronousActions;
     }
+
     @XmlElement(name = "smis_user_name")
     public String getSmisUserName() {
         return smisUserName;
@@ -268,7 +270,7 @@ public class StorageSystemRestRep extends DiscoveredSystemObjectRestRep {
     public void setSmisUserName(String smisUserName) {
         this.smisUserName = smisUserName;
     }
-    
+
     @XmlElement(name = "smis_connection_status")
     public String getSmisConnectionStatus() {
         return smisConnectionStatus;
@@ -277,7 +279,7 @@ public class StorageSystemRestRep extends DiscoveredSystemObjectRestRep {
     public void setSmisConnectionStatus(String smisConnectionStatus) {
         this.smisConnectionStatus = smisConnectionStatus;
     }
-    
+
     @XmlElement(name = "max_resources")
     public Integer getMaxResources() {
         return maxResources;
@@ -295,7 +297,7 @@ public class StorageSystemRestRep extends DiscoveredSystemObjectRestRep {
     public void setNumResources(Integer numResources) {
         this.numResources = numResources;
     }
-    
+
     @XmlElementWrapper(name = "supported_replication_types")
     @XmlElement(name = "supported_replication_type")
     public Set<String> getSupportedReplicationTypes() {
@@ -308,7 +310,7 @@ public class StorageSystemRestRep extends DiscoveredSystemObjectRestRep {
         }
         this.supportedReplicationTypes = supportedReplicationTypes;
     }
-  
+
     @XmlElementWrapper(name = "connected_systems")
     @XmlElement(name = "connected_system")
     public Set<String> getRemotelyConnectedTo() {

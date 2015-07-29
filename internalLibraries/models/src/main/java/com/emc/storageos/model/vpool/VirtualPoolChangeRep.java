@@ -22,24 +22,24 @@ public class VirtualPoolChangeRep extends NamedRelatedVirtualPoolRep {
 
     private Boolean allowed;
     private String notAllowedReason;
-    private List<StringHashMapEntry> allowedChangeOperations; 
-    
+    private List<StringHashMapEntry> allowedChangeOperations;
+
     public VirtualPoolChangeRep() {
     }
 
     public VirtualPoolChangeRep(URI id, RestLinkRep selfLink, String name, String virtualPoolType,
-                                String notAllowedReason, List<VirtualPoolChangeOperationEnum> allowedChangeOperationEnums) {
+            String notAllowedReason, List<VirtualPoolChangeOperationEnum> allowedChangeOperationEnums) {
         super(id, selfLink, name, virtualPoolType);
         this.allowed = allowedChangeOperationEnums != null && !allowedChangeOperationEnums.isEmpty();
         this.notAllowedReason = notAllowedReason;
-        
+
         if (allowedChangeOperationEnums != null) {
             for (VirtualPoolChangeOperationEnum allowedChangeOperationEnum : allowedChangeOperationEnums) {
-                getAllowedChangeOperations().add(new StringHashMapEntry(allowedChangeOperationEnum.name(), allowedChangeOperationEnum.toString()));
+                getAllowedChangeOperations().add(
+                        new StringHashMapEntry(allowedChangeOperationEnum.name(), allowedChangeOperationEnum.toString()));
             }
         }
     }
-    
 
     /**
      * Specifies whether or not a virtual pool change is allowed.
@@ -72,6 +72,7 @@ public class VirtualPoolChangeRep extends NamedRelatedVirtualPoolRep {
 
     /**
      * Get list of allowed change operations
+     * 
      * @return
      */
     @XmlElement(name = "allowed_change_operation")
@@ -84,6 +85,5 @@ public class VirtualPoolChangeRep extends NamedRelatedVirtualPoolRep {
 
     public void setAllowedChangeOperations(List<StringHashMapEntry> allowedOperations) {
         this.allowedChangeOperations = allowedOperations;
-    }  
+    }
 }
-

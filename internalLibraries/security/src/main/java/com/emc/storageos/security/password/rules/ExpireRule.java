@@ -11,7 +11,6 @@ import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.MessageFormat;
 import java.util.Calendar;
 
 public class ExpireRule implements Rule {
@@ -22,7 +21,7 @@ public class ExpireRule implements Rule {
 
     /**
      * expire time: in days
-     *
+     * 
      * @param expireTime
      */
     public ExpireRule(int expireTime) {
@@ -31,7 +30,7 @@ public class ExpireRule implements Rule {
 
     /**
      * validate if password expired
-     *
+     * 
      * @param password
      */
     @Override
@@ -53,7 +52,7 @@ public class ExpireRule implements Rule {
         Calendar expireDate = ph.getExpireDate();
         Calendar now = Calendar.getInstance();
 
-        if (expireDate == null ) {
+        if (expireDate == null) {
             Long lastChangedTime = password.getLatestChangedTime();
             expireDate = Calendar.getInstance();
             expireDate.setTimeInMillis(lastChangedTime);

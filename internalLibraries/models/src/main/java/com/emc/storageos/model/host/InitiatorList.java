@@ -17,15 +17,17 @@ import java.util.List;
 @XmlRootElement(name = "initiators")
 public class InitiatorList {
     private List<NamedRelatedResourceRep> initiators;
-    
-    public InitiatorList() {}
-    
+
+    public InitiatorList() {
+    }
+
     public InitiatorList(List<NamedRelatedResourceRep> initiators) {
         this.initiators = initiators;
     }
 
     /**
      * List of host initiators that exists in ViPR.
+     * 
      * @valid none
      */
     @XmlElement(name = "initiator")

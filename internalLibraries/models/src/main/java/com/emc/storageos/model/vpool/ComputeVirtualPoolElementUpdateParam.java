@@ -12,11 +12,12 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement(name = "vpool_element_update")
 public class ComputeVirtualPoolElementUpdateParam {
-    
+
     private ComputeVirtualPoolAssignmentChanges computeVirtualPoolAssignmentChanges;
 
-    public ComputeVirtualPoolElementUpdateParam() {}
-    
+    public ComputeVirtualPoolElementUpdateParam() {
+    }
+
     public ComputeVirtualPoolElementUpdateParam(
             ComputeVirtualPoolAssignmentChanges computeVirtualPoolAssignmentChanges) {
         this.computeVirtualPoolAssignmentChanges = computeVirtualPoolAssignmentChanges;
@@ -36,5 +37,5 @@ public class ComputeVirtualPoolElementUpdateParam {
             ComputeVirtualPoolAssignmentChanges computeVirtualPoolAssignmentChanges) {
         this.computeVirtualPoolAssignmentChanges = computeVirtualPoolAssignmentChanges;
     }
-    
+
 }

@@ -22,19 +22,19 @@ import java.util.List;
 /**
  * Created by zeldib on 2/10/14.
  */
-@JsonRootName(value="dd_systems")
+@JsonRootName(value = "dd_systems")
 public class DDSystemList {
 
     @SerializedName("system_info")
-    @JsonProperty(value="system_info")
+    @JsonProperty(value = "system_info")
     private List<DDSystemInfo> systemInfo;
 
-	public List<DDSystemInfo> getSystemInfo() {
-		return systemInfo;
-	}
+    public List<DDSystemInfo> getSystemInfo() {
+        return systemInfo;
+    }
 
-	public void setSystemInfo(List<DDSystemInfo> systemInfo) {
-		this.systemInfo = systemInfo;
-	}
+    public void setSystemInfo(List<DDSystemInfo> systemInfo) {
+        this.systemInfo = systemInfo;
+    }
 
 }

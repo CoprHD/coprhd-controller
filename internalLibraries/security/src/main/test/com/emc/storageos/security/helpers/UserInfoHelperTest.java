@@ -53,19 +53,19 @@ public class UserInfoHelperTest {
         _coordinatorClient.start();
 
         String envVar = System.getenv(USER_WRONG_DOMAIN_CONFIG);
-        if(StringUtils.isNotBlank(envVar)) {
+        if (StringUtils.isNotBlank(envVar)) {
             user_in_wrong_domain = envVar;
         }
         envVar = System.getenv(USER_DOESNT_EXIST_CONFIG);
-        if(StringUtils.isNotBlank(envVar)) {
+        if (StringUtils.isNotBlank(envVar)) {
             user_doesnt_exist = envVar;
         }
         envVar = System.getenv(EXISTING_USER_CONFIG);
-        if(StringUtils.isNotBlank(envVar)) {
+        if (StringUtils.isNotBlank(envVar)) {
             existing_user = envVar;
         }
         envVar = System.getenv(EXISTING_USER_NUM_OF_GROUPS_CONFIG);
-        if(StringUtils.isNotBlank(envVar)) {
+        if (StringUtils.isNotBlank(envVar)) {
             try {
                 num_of_groups = Integer.parseInt(envVar);
             } catch (NumberFormatException e) {
@@ -77,7 +77,7 @@ public class UserInfoHelperTest {
 
     @Test
     public void testGetUserDetails() throws Exception {
-        //look for a user with an unsupported domain
+        // look for a user with an unsupported domain
         String principalSearchFailedFormat =
                 "Search for %s failed for this tenant, or could not be found for this tenant.";
         String user = user_in_wrong_domain;
@@ -107,7 +107,7 @@ public class UserInfoHelperTest {
         Assert.assertEquals(
                 "The groups " + user + " is a member of are: "
                         + StringUtils.join(userDetails.getUserGroupList(), ", "),
-                        num_of_groups, userDetails.getUserGroupList().size());
+                num_of_groups, userDetails.getUserGroupList().size());
         Assert.assertNotNull(userDetails.getTenant());
 
     }

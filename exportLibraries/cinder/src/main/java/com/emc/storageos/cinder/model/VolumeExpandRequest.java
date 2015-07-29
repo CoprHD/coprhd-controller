@@ -19,17 +19,17 @@ import com.google.gson.annotations.SerializedName;
 
 /**
  * 
- * {"os-extend": 
- *     {"new_size": 2}
+ * {"os-extend":
+ * {"new_size": 2}
  * }
- *
+ * 
  */
 public class VolumeExpandRequest {
 
-	@SerializedName("os-extend")
-	public os_extend extend = new os_extend();
-	
-	public class os_extend {
-		public long new_size;
-	}
+    @SerializedName("os-extend")
+    public os_extend extend = new os_extend();
+
+    public class os_extend {
+        public long new_size;
+    }
 }

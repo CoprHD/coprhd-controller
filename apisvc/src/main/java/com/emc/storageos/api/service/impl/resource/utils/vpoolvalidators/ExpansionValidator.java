@@ -23,7 +23,7 @@ import com.emc.storageos.model.vpool.VirtualPoolProtectionMirrorParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public class ExpansionValidator extends VirtualPoolValidator<VirtualPoolCommonParam, BlockVirtualPoolUpdateParam> {
-   
+
     @Override
     public void setNextValidator(VirtualPoolValidator validator) {
         _nextValidator = validator;
@@ -37,8 +37,9 @@ public class ExpansionValidator extends VirtualPoolValidator<VirtualPoolCommonPa
 
     @Override
     protected boolean isUpdateAttributeOn(BlockVirtualPoolUpdateParam updateParam) {
-        if (null != updateParam && updateParam.getExpandable() != null)
+        if (null != updateParam && updateParam.getExpandable() != null) {
             return true;
+        }
         return false;
     }
 
@@ -46,23 +47,24 @@ public class ExpansionValidator extends VirtualPoolValidator<VirtualPoolCommonPa
     protected void validateVirtualPoolCreateAttributeValue(VirtualPoolCommonParam createParam, DbClient dbClient) {
         // No create validation required - ProtectionValidator takes care of this
     }
-    
+
     /**
      * If there is an attempt to set expandable expansion to true when the
      * VirtualPool currently specifies mirroring, we must fail.
-     *
+     * 
      */
-    public void validateExpansion(VirtualPool virtualPool, BlockVirtualPoolUpdateParam updateParam, DbClient dbClient){
+    public void validateExpansion(VirtualPool virtualPool, BlockVirtualPoolUpdateParam updateParam, DbClient dbClient) {
         // Validate only when the update param does not specify mirroring.
-    	// The ProtectionValidator handles the case when mirroring is specified 
-    	// by update param.
+        // The ProtectionValidator handles the case when mirroring is specified
+        // by update param.
 
         // True, if expansion is being enabled on a mirror-enabled VPool and we're not explicitly disabling
         // mirrors within the same request.
-        if (updateParam.allowsExpansion() && VirtualPool.vPoolSpecifiesMirrors(virtualPool, dbClient)
+        if (updateParam.allowsExpansion()
+                && VirtualPool.vPoolSpecifiesMirrors(virtualPool, dbClient)
                 && (updateParam.getProtection() == null || updateParam.getProtection().getContinuousCopies() == null
-                || updateParam.getProtection().getContinuousCopies().getMaxMirrors() == null
-                || updateParam.getProtection().getContinuousCopies().getMaxMirrors() != VirtualPoolProtectionMirrorParam.MAX_DISABLED)) {
+                        || updateParam.getProtection().getContinuousCopies().getMaxMirrors() == null
+                        || updateParam.getProtection().getContinuousCopies().getMaxMirrors() != VirtualPoolProtectionMirrorParam.MAX_DISABLED)) {
             throw APIException.badRequests.protectionVirtualPoolDoesNotSupportExpandingMirrors(virtualPool.getId());
         }
     }

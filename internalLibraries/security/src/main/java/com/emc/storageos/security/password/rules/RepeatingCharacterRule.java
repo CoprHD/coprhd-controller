@@ -5,7 +5,6 @@
 
 package com.emc.storageos.security.password.rules;
 
-
 import com.emc.storageos.security.password.Password;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import org.slf4j.Logger;
@@ -31,10 +30,10 @@ public class RepeatingCharacterRule implements Rule {
         int max_repeating = 1;
         char old = text.charAt(0);
 
-        for (int i=1; i<text.length(); i++) {
+        for (int i = 1; i < text.length(); i++) {
             char c = text.charAt(i);
             if (c == old) {
-                repeating ++;
+                repeating++;
                 if (repeating > max_repeating) {
                     max_repeating = repeating;
                 }

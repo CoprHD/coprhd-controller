@@ -16,6 +16,6 @@ public interface ServiceCoded {
     public String getMessage();
 
     public String getMessage(Locale locale);
-    
+
     public boolean isRetryable();
 }

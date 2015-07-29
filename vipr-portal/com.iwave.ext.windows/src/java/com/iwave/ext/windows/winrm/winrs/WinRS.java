@@ -29,13 +29,12 @@ public class WinRS {
             String commandId = submitCommand(shellId, command, arguments);
             CommandOutput output = receiveOutput(shellId, commandId);
             if (LOG.isDebugEnabled()) {
-                LOG.debug("EXIT CODE: "+output.getExitValue());
-                LOG.debug("STDOUT: "+output.getStdout());
-                LOG.debug("STDERR: "+output.getStderr());
+                LOG.debug("EXIT CODE: " + output.getExitValue());
+                LOG.debug("STDOUT: " + output.getStdout());
+                LOG.debug("STDERR: " + output.getStderr());
             }
             return output;
-        }
-        finally {
+        } finally {
             deleteShell(shellId);
         }
     }

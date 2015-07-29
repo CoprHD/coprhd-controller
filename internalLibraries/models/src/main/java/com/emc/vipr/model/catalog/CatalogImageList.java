@@ -14,17 +14,19 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 
 @XmlRootElement(name = "catalog_images")
 public class CatalogImageList {
-    
+
     private List<NamedRelatedResourceRep> catalogImages;
-    
-    public CatalogImageList() {}
-    
+
+    public CatalogImageList() {
+    }
+
     public CatalogImageList(List<NamedRelatedResourceRep> catalogImages) {
         this.catalogImages = catalogImages;
     }
 
     /**
      * List of catalog images
+     * 
      * @valid none
      */
     @XmlElement(name = "catalog_image")
@@ -37,5 +39,5 @@ public class CatalogImageList {
 
     public void setCatalogImages(List<NamedRelatedResourceRep> catalogImages) {
         this.catalogImages = catalogImages;
-    }    
+    }
 }

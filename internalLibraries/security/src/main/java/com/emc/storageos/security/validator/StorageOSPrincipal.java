@@ -5,14 +5,14 @@
 package com.emc.storageos.security.validator;
 
 /**
- *  Principal representation for validation
+ * Principal representation for validation
  */
 public class StorageOSPrincipal {
     public enum Type {
         User,
         Group
     }
-    
+
     private String _name;
     private Type _type;
 
@@ -20,11 +20,11 @@ public class StorageOSPrincipal {
         _name = name;
         _type = type;
     }
-    
+
     public StorageOSPrincipal() {
         _type = Type.User;
     }
-    
+
     public String getName() {
         return _name;
     }
@@ -40,7 +40,7 @@ public class StorageOSPrincipal {
     public void setType(Type type) {
         this._type = type;
     }
-    
+
     @Override
     public String toString() {
         return _type.toString() + ":" + _name;

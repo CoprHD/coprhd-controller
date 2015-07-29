@@ -5,7 +5,6 @@
 
 package com.emc.storageos.security.password.rules;
 
-
 import com.emc.storageos.security.password.Password;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import org.slf4j.Logger;
@@ -15,14 +14,14 @@ import java.text.MessageFormat;
 
 /**
  * Rule for determining if a password is within a desired length.
-*/
+ */
 public class LengthRule implements Rule {
     private static final Logger _log = LoggerFactory.getLogger(LengthRule.class);
 
     private int minimumLength = 8;
 
     /**
-     * @param  length  min length of password
+     * @param length min length of password
      */
     public LengthRule(final int length) {
         minimumLength = length;

@@ -15,13 +15,14 @@ public class SysSvcTaskList {
 
     private List<SysSvcTask> taskList;
 
-    public SysSvcTaskList() {}
-    
+    public SysSvcTaskList() {
+    }
+
     public SysSvcTaskList(List<SysSvcTask> taskList) {
         this.taskList = taskList;
     }
 
-    @XmlElement(name="syssvc_task")
+    @XmlElement(name = "syssvc_task")
     public List<SysSvcTask> getTaskList() {
         if (taskList == null) {
             taskList = new ArrayList<SysSvcTask>();

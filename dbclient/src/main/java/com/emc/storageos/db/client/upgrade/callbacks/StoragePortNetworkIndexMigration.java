@@ -21,11 +21,13 @@ import com.emc.storageos.db.client.upgrade.MigrateIndexHelper;
 
 /**
  * @author cgarber
- *
+ * 
  */
 public class StoragePortNetworkIndexMigration extends BaseCustomMigrationCallback {
-    
-    /* (non-Javadoc)
+
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback#process()
      */
     @Override

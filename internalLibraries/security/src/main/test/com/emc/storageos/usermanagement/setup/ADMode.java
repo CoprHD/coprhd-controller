@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.usermanagement.setup;
 
-
-
 import com.emc.storageos.model.auth.AuthnCreateParam;
 import com.emc.storageos.model.auth.AuthnProviderRestRep;
 import com.emc.storageos.services.util.EnvConfig;
@@ -18,9 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-
-
-
 
 import java.io.InputStream;
 import java.util.Properties;
@@ -41,10 +36,10 @@ public class ADMode extends LocalUserMode {
     @BeforeClass
     public synchronized static void setup_ADModeBaseClass() throws Exception {
 
-        //get super user from parameter, better be AD user
+        // get super user from parameter, better be AD user
         superUser = System.getProperty("SUPER_USER");
         superUserPassword = System.getProperty("SUPER_USER_PASSWORD");
-        if(superUser == null || superUserPassword == null){
+        if (superUser == null || superUserPassword == null) {
             Properties properties = new Properties();
             properties.load(ClassLoader.class.getResourceAsStream("/test-env.conf"));
             superUser = properties.getProperty("SUPER_USER");
@@ -65,8 +60,8 @@ public class ADMode extends LocalUserMode {
         authnProviderRestRep = helper.createAuthnProvider(input);
 
         // construct ldapClient, which will be used for creating users on AD server.
-        String serverUrl = (String)input.getServerUrls().toArray()[0];
-        String domain = (String)input.getDomains().toArray()[0];
+        String serverUrl = (String) input.getServerUrls().toArray()[0];
+        String domain = (String) input.getDomains().toArray()[0];
         adClient = new ADClient(serverUrl,
                 input.getManagerDn(),
                 input.getManagerPassword(),

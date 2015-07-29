@@ -58,11 +58,11 @@ public class VNXVdm extends VNXBaseClass {
         _vdmId = vdmId;
     }
 
-    public void setInterfaces(List<String> interfaces){
+    public void setInterfaces(List<String> interfaces) {
         this._interfaces = interfaces;
     }
 
-    public List<String> getInterfaces(){
+    public List<String> getInterfaces() {
         return this._interfaces;
     }
 
@@ -76,4 +76,3 @@ public class VNXVdm extends VNXBaseClass {
         return xml;
     }
 }
-

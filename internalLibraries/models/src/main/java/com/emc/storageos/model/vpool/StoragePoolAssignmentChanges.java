@@ -6,19 +6,18 @@ package com.emc.storageos.model.vpool;
 
 import javax.xml.bind.annotation.XmlElement;
 
-import org.codehaus.jackson.annotate.JsonProperty;
-
 /**
  * Class captures lists of URIs for storage pools to be assigned/unassigned
  * to/from the storage pool.
  */
 public class StoragePoolAssignmentChanges {
-    
+
     private StoragePoolAssignments add;
     private StoragePoolAssignments remove;
 
-    public StoragePoolAssignmentChanges() {}
-    
+    public StoragePoolAssignmentChanges() {
+    }
+
     public StoragePoolAssignmentChanges(StoragePoolAssignments add,
             StoragePoolAssignments remove) {
         this.add = add;
@@ -52,5 +51,5 @@ public class StoragePoolAssignmentChanges {
     public void setRemove(StoragePoolAssignments remove) {
         this.remove = remove;
     }
-    
+
 }

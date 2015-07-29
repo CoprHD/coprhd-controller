@@ -47,60 +47,65 @@ abstract public class RestClientFactory {
 
     /**
      * Maximum number of outstanding connections
-     *
+     * 
      * @param maxConn
      */
     public void setMaxConnections(int maxConn) {
         _maxConn = maxConn;
     }
-    public int getMaxConnections(){
+
+    public int getMaxConnections() {
         return _maxConn;
     }
 
     /**
      * Maximum number of outstanding connections per host
-     *
+     * 
      * @param maxConnPerHost
      */
     public void setMaxConnectionsPerHost(int maxConnPerHost) {
         _maxConnPerHost = maxConnPerHost;
     }
+
     public int getMaxConnectionsPerHost() {
         return _maxConnPerHost;
     }
 
     /**
      * Connection timeout
-     *
+     * 
      * @param connectionTimeoutMs
      */
     public void setConnectionTimeoutMs(int connectionTimeoutMs) {
         _connTimeout = connectionTimeoutMs;
     }
+
     public int getConnectionTimeoutMs() {
         return _connTimeout;
     }
 
     /**
      * Socket connection timeout
-     *
+     * 
      * @param connectionTimeoutMs
      */
     public void setSocketConnectionTimeoutMs(int connectionTimeoutMs) {
         _socketConnTimeout = connectionTimeoutMs;
     }
+
     public int getSocketConnectionTimeoutMs() {
         return _socketConnTimeout;
     }
 
     /**
      * If Factory should create a ApacheHTTPClient client with Cetificate Manager
-     *
+     * 
      * @param need
      */
     public void setNeedCertificateManager(boolean need) {
         _needCertificateManager = need;
     }
+
     public boolean getNeedCertificateManager() {
         return _needCertificateManager;
     }
@@ -131,20 +136,21 @@ abstract public class RestClientFactory {
                 return false;
             }
         });
-        //client.
+        // client.
 
-
-        if( _needCertificateManager ) {
-            //TMP CODE to create dummy security certificate manager
+        if (_needCertificateManager) {
+            // TMP CODE to create dummy security certificate manager
             ClientConfig clientConfig = null;
             try {
                 final TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
                     @Override
-                    public void checkClientTrusted( final X509Certificate[] chain, final String authType ) {
+                    public void checkClientTrusted(final X509Certificate[] chain, final String authType) {
                     }
+
                     @Override
-                    public void checkServerTrusted( final X509Certificate[] chain, final String authType ) {
+                    public void checkServerTrusted(final X509Certificate[] chain, final String authType) {
                     }
+
                     @Override
                     public X509Certificate[] getAcceptedIssuers() {
                         return null;
@@ -152,9 +158,9 @@ abstract public class RestClientFactory {
                 } };
                 // Install the all-trusting trust manager
                 SSLContext sslContext;
-                sslContext = SSLContext.getInstance( "SSL" );
-                sslContext.init( null, trustAllCerts, new java.security.SecureRandom() );
-                javax.net.ssl.HostnameVerifier hostVerifier =  new javax.net.ssl.HostnameVerifier() {
+                sslContext = SSLContext.getInstance("SSL");
+                sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+                javax.net.ssl.HostnameVerifier hostVerifier = new javax.net.ssl.HostnameVerifier() {
                     @Override
                     public boolean verify(String hostname, javax.net.ssl.SSLSession sslSession) {
                         return true;
@@ -162,12 +168,11 @@ abstract public class RestClientFactory {
                 };
                 clientConfig = new com.sun.jersey.client.apache.config.DefaultApacheHttpClientConfig();
                 clientConfig.getProperties().put(HTTPSProperties.PROPERTY_HTTPS_PROPERTIES,
-                                                 new HTTPSProperties(hostVerifier, sslContext));
+                        new HTTPSProperties(hostVerifier, sslContext));
+            } catch (GeneralSecurityException ex) {
+                throw new RuntimeException("Failed to obtain ApacheHTTPClient Config");
             }
-            catch (GeneralSecurityException ex)  {
-                    throw new RuntimeException("Failed to obtain ApacheHTTPClient Config");
-            }
-            _clientHandler = new ApacheHttpClientHandler(client,clientConfig);
+            _clientHandler = new ApacheHttpClientHandler(client, clientConfig);
         }
         else {
             _clientHandler = new ApacheHttpClientHandler(client);
@@ -180,38 +185,35 @@ abstract public class RestClientFactory {
     /**
      * shutdown http connection manager.
      */
-    protected void shutdown()  {
+    protected void shutdown() {
         _connectionManager.shutdown();
     }
 
-   
     public RestClientItf getRESTClient(URI endpoint, String username, String password, boolean authFilter) {
-        RestClientItf clientApi = _clientMap.get(endpoint.toString() +":"+ username +":"+ password);
+        RestClientItf clientApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
         if (clientApi == null) {
             Client jerseyClient = new ApacheHttpClient(_clientHandler);
-            if (authFilter)  {
+            if (authFilter) {
                 jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
             }
             clientApi = createNewRestClient(endpoint, username, password, jerseyClient);
 
-            _clientMap.putIfAbsent(endpoint.toString()+":"+username+":"+password, clientApi);
+            _clientMap.putIfAbsent(endpoint.toString() + ":" + username + ":" + password, clientApi);
         }
         return clientApi;
     }
 
     public RestClientItf getRESTClient(URI endpoint, String username, String password) {
-        RestClientItf clientApi = _clientMap.get(endpoint.toString() +":"+ username +":"+ password);
+        RestClientItf clientApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
         if (clientApi == null) {
             Client jerseyClient = new ApacheHttpClient(_clientHandler);
             clientApi = createNewRestClient(endpoint, username, password, jerseyClient);
-            _clientMap.putIfAbsent(endpoint.toString()+":"+username+":"+password, clientApi);
+            _clientMap.putIfAbsent(endpoint.toString() + ":" + username + ":" + password, clientApi);
         }
         return clientApi;
     }
 
-
-    abstract protected RestClientItf createNewRestClient(URI endpoint, String username, String password, com.sun.jersey.api.client.Client client);
-
-
+    abstract protected RestClientItf createNewRestClient(URI endpoint, String username, String password,
+            com.sun.jersey.api.client.Client client);
 
 }

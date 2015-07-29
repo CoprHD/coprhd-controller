@@ -14,13 +14,14 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class CustomConfigRuleList {
     private List<String> rules;
 
-    public CustomConfigRuleList() {}
-    
+    public CustomConfigRuleList() {
+    }
+
     public CustomConfigRuleList(List<String> rules) {
         this.rules = rules;
     }
-    
-    @XmlElement(name="rule")
+
+    @XmlElement(name = "rule")
     public List<String> getRules() {
         return rules;
     }
@@ -28,7 +29,5 @@ public class CustomConfigRuleList {
     public void setRules(List<String> rules) {
         this.rules = rules;
     }
-    
-    
 
 }

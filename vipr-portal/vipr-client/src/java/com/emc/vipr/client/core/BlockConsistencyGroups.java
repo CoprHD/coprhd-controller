@@ -10,10 +10,14 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.block.BlockConsistencyGroupBulkRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupCreate;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.storageos.model.block.BlockConsistencyGroupUpdate;
+import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -58,7 +62,73 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
     public Task<BlockConsistencyGroupRestRep> getTask(URI id, URI taskId) {
         return doGetTask(id, taskId);
     }
-
+    
+    /**
+     * Begins creating a full copy of the given block volume.
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/full-copies</tt>
+     * 
+     * @param id
+     *            the ID of the consistency group.
+     * @param input
+     *            the create configuration.
+     * @return tasks for monitoring the progress of the operation(s).
+     */
+    public Tasks<BlockConsistencyGroupRestRep> createFullCopy(URI id, VolumeFullCopyCreateParam input) {
+    	final String url = getIdUrl() + "/protection/full-copies";
+    	return postTasks(input, url, id);
+    }
+    
+    public Tasks<BlockConsistencyGroupRestRep> activateFullCopy(URI consistencyGroup, URI fullCopy){
+    	final String url = getIdUrl() + "/protection/full-copies/{fcid}/activate";
+    	return postTasks(url, consistencyGroup, fullCopy);
+    }
+    
+    public Tasks<BlockConsistencyGroupRestRep> detachFullCopy(URI consistencyGroup, URI fullCopy){
+    	final String url = getIdUrl() + "/protection/full-copies/{fcid}/detach";
+    	return postTasks(url, consistencyGroup, fullCopy);
+    }
+    
+    public Tasks<BlockConsistencyGroupRestRep> restoreFullCopy(URI consistencyGroup, URI fullCopy){
+    	final String url = getIdUrl() + "/protection/full-copies/{fcid}/restore";
+    	return postTasks(url, consistencyGroup, fullCopy);
+    }
+    
+    public Tasks<BlockConsistencyGroupRestRep> resynchronizeFullCopy(URI consistencyGroup, URI fullCopy){
+    	final String url = getIdUrl() + "/protection/full-copies/{fcid}/resynchronize";
+    	return postTasks(url, consistencyGroup, fullCopy);
+    }
+    
+    public Tasks<BlockConsistencyGroupRestRep> deactivateFullCopy(URI consistencyGroup, URI fullCopy){
+    	final String url = getIdUrl() + "/protection/full-copies/{fcid}/deactivate";
+    	return postTasks(url, consistencyGroup, fullCopy);
+    }
+    
+    /*
+     * TODO
+     * Snapshots
+     */
+    public Tasks<BlockConsistencyGroupRestRep> createSnapshot(URI id, BlockConsistencyGroupSnapshotCreate input) {
+    	final String url = getIdUrl() + "/protection/snapshots";
+    	return postTasks(input, url, id);
+    }
+    
+    public Task<BlockConsistencyGroupRestRep> activateSnapshot(URI consistencyGroup, URI snapshot){
+    	final String url = getIdUrl() + "/protection/snapshots/{fcid}/activate";
+    	return postTask(url, consistencyGroup, snapshot);
+    }
+    
+    public Tasks<BlockConsistencyGroupRestRep> deactivateSnapshot(URI consistencyGroup, URI snapshot){
+    	final String url = getIdUrl() + "/protection/snapshots/{fcid}/deactivate";
+    	return postTasks(url, consistencyGroup, snapshot);
+    }
+    
+    public Task<BlockConsistencyGroupRestRep> restoreSnapshot(URI consistencyGroup, URI snapshot){
+    	final String url = getIdUrl() + "/protection/snapshots/{fcid}/restore";
+    	return postTask(url, consistencyGroup, snapshot);
+    }
+    
+    
     /**
      * Creates a block consistency group.
      * <p>

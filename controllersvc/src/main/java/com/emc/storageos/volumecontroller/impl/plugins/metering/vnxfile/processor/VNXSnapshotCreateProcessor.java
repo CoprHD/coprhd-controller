@@ -35,7 +35,7 @@ public class VNXSnapshotCreateProcessor extends VNXFileProcessor {
         try {
             ResponsePacket responsePacket = (ResponsePacket) _unmarshaller
                     .unmarshal(result.getResponseBodyAsStream());
-            
+
             Status status = null;
             if (null != responsePacket.getPacketFault()) {
                 status = responsePacket.getPacketFault();
@@ -75,7 +75,7 @@ public class VNXSnapshotCreateProcessor extends VNXFileProcessor {
                     _logger.info("Received celerra session information from the Server.");
                 }
             }
-        }catch (final Exception ex) {
+        } catch (final Exception ex) {
             _logger.error(
                     "Exception occurred while processing the vnx snapshot create response due to ",
                     ex);
@@ -88,6 +88,6 @@ public class VNXSnapshotCreateProcessor extends VNXFileProcessor {
 
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs) throws BaseCollectionException {
-        // TODO  Is this method needed?  Not used in other processors.
+        // TODO Is this method needed? Not used in other processors.
     }
 }

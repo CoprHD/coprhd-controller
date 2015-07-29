@@ -42,25 +42,26 @@ public class BlockSnapshotActivateCompleter extends BlockSnapshotTaskCompleter {
         try {
             for (URI thisOne : _snapshotURIs) {
                 switch (status) {
-                case error:
-                    dbClient.error(BlockSnapshot.class, thisOne, getOpId(), coded);
-                    break;
-                default:
-                    dbClient.ready(BlockSnapshot.class, thisOne, getOpId());
+                    case error:
+                        dbClient.error(BlockSnapshot.class, thisOne, getOpId(), coded);
+                        break;
+                    default:
+                        dbClient.ready(BlockSnapshot.class, thisOne, getOpId());
                 }
 
                 BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, thisOne);
                 Volume volume = dbClient.queryObject(Volume.class, snapshot.getParent());
 
                 switch (status) {
-                case error:
-                    dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
-                    break;
-                default:
-                    dbClient.ready(Volume.class, volume.getId(), getOpId());
+                    case error:
+                        dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
+                        break;
+                    default:
+                        dbClient.ready(Volume.class, volume.getId(), getOpId());
                 }
 
-                recordBlockSnapshotOperation(dbClient, OperationTypeEnum.ACTIVATE_VOLUME_SNAPSHOT, status, eventMessage(status, volume, snapshot), snapshot, volume);
+                recordBlockSnapshotOperation(dbClient, OperationTypeEnum.ACTIVATE_VOLUME_SNAPSHOT, status,
+                        eventMessage(status, volume, snapshot), snapshot, volume);
             }
             _log.info("Done SnapshotActivate {}, with Status: {}", getOpId(), status.name());
         } catch (Exception e) {

@@ -102,7 +102,7 @@ public abstract class StorageProcessor extends PoolProcessor {
 
     /**
      * get UnManaged Volume Object path
-     *
+     * 
      * @param path
      * @return
      */
@@ -126,7 +126,7 @@ public abstract class StorageProcessor extends PoolProcessor {
             String targetNativeGuid) {
         String targetSystem = targetNativeGuid.split(Constants.PATH_DELIMITER_REGEX)[1];
         if (sourceNativeGuid.contains(targetSystem)) {
-        	_logger.info("Source {} and target {} are from same arrays",sourceNativeGuid,targetNativeGuid);
+            _logger.info("Source {} and target {} are from same arrays", sourceNativeGuid, targetNativeGuid);
             return true;
         }
         return false;
@@ -134,7 +134,7 @@ public abstract class StorageProcessor extends PoolProcessor {
 
     /**
      * get Native Guid from Volume Info Object path
-     *
+     * 
      * @param path
      * @return
      */
@@ -148,7 +148,7 @@ public abstract class StorageProcessor extends PoolProcessor {
 
     /**
      * get Native Guid from Volume Info Object path
-     *
+     * 
      * @param path
      * @return
      */
@@ -171,13 +171,13 @@ public abstract class StorageProcessor extends PoolProcessor {
 
     /**
      * get Native Guid from Volume Object path
-     *
+     * 
      * @param path
      * @return
      */
     protected String getVolumeNativeGuid(CIMObjectPath path) {
-    	String systemName = path.getKey(Constants.SYSTEMNAME).getValue().toString();
-    	systemName = systemName.replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
+        String systemName = path.getKey(Constants.SYSTEMNAME).getValue().toString();
+        systemName = systemName.replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
         String id = path.getKey(Constants.DEVICEID).getValue().toString();
         // for snapshot or Volume , native Guid format is same
         return NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
@@ -188,14 +188,15 @@ public abstract class StorageProcessor extends PoolProcessor {
             throws IOException {
         Volume volume = checkStorageVolumeExistsInDB(getVolumeNativeGuid(sourcePath),
                 dbClient);
-        if (null == volume)
+        if (null == volume) {
             return NullColumnValueGetter.getNullURI();
+        }
         return volume.getId();
     }
 
     /**
      * get Storage System Id from Path
-     *
+     * 
      * @param protocolEndPointPath
      * @return
      */
@@ -211,35 +212,35 @@ public abstract class StorageProcessor extends PoolProcessor {
         return storageSystemId.toUpperCase();
     }
 
-
     protected StorageHADomain getStorageAdapter(DbClient dbClient, String adapterNativeGuid) {
         try {
-            _logger.info("Adapter Native {}",adapterNativeGuid);
+            _logger.info("Adapter Native {}", adapterNativeGuid);
             @SuppressWarnings("deprecation")
             List<URI> adapterURIs = dbClient
-            .queryByConstraint(AlternateIdConstraint.Factory
-                    .getStorageHADomainByNativeGuidConstraint(adapterNativeGuid));
-            if (adapterURIs!=null && !adapterURIs.isEmpty()) {
-                for(URI adapterURI:adapterURIs){
-                	StorageHADomain adapter =  dbClient.queryObject(
+                    .queryByConstraint(AlternateIdConstraint.Factory
+                            .getStorageHADomainByNativeGuidConstraint(adapterNativeGuid));
+            if (adapterURIs != null && !adapterURIs.isEmpty()) {
+                for (URI adapterURI : adapterURIs) {
+                    StorageHADomain adapter = dbClient.queryObject(
                             StorageHADomain.class, adapterURI);
-                    _logger.info("Adapter {}",adapter.getId());
+                    _logger.info("Adapter {}", adapter.getId());
                     if (!adapter.getInactive()) {
                         return adapter;
                     }
                 }
             }
-        }catch(Exception e) {
-            _logger.error("Adapter {} not found",adapterNativeGuid,e);
+        } catch (Exception e) {
+            _logger.error("Adapter {} not found", adapterNativeGuid, e);
         }
         return null;
     }
 
     protected RemoteDirectorGroup checkRAGroupExistsInDB(DbClient dbClient, CIMInstance instance) {
         String raGroupNativeGuid = NativeGUIDGenerator.generateRAGroupNativeGuid(instance);
-        _logger.info("RA Group Id :" + raGroupNativeGuid );
+        _logger.info("RA Group Id :" + raGroupNativeGuid);
         @SuppressWarnings("deprecation")
-        List<URI> raGroupUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getRAGroupByNativeGuidConstraint(raGroupNativeGuid));
+        List<URI> raGroupUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getRAGroupByNativeGuidConstraint(raGroupNativeGuid));
 
         for (URI raGroupURI : raGroupUris) {
             RemoteDirectorGroup raGroup = dbClient.queryObject(RemoteDirectorGroup.class, raGroupURI);
@@ -253,7 +254,8 @@ public abstract class StorageProcessor extends PoolProcessor {
     protected RemoteDirectorGroup getRAGroupUriFromDB(DbClient dbClient, String raGroupNativeGuid) {
 
         @SuppressWarnings("deprecation")
-        List<URI> raGroupUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getRAGroupByNativeGuidConstraint(raGroupNativeGuid));
+        List<URI> raGroupUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getRAGroupByNativeGuidConstraint(raGroupNativeGuid));
 
         for (URI raGroupURI : raGroupUris) {
             RemoteDirectorGroup raGroup = dbClient.queryObject(RemoteDirectorGroup.class, raGroupURI);
@@ -266,7 +268,7 @@ public abstract class StorageProcessor extends PoolProcessor {
 
     /**
      * get Port Uri from DB
-     *
+     * 
      * @param path
      * @return
      * @throws IOException
@@ -285,7 +287,7 @@ public abstract class StorageProcessor extends PoolProcessor {
 
     /**
      * Check if Port exists in DB.
-     *
+     * 
      * @param portInstance
      * @return
      * @throws IOException
@@ -312,7 +314,7 @@ public abstract class StorageProcessor extends PoolProcessor {
 
     /**
      * get Volume or snapshot Uri from DB
-     *
+     * 
      * @param path
      * @return
      * @throws IOException
@@ -325,7 +327,7 @@ public abstract class StorageProcessor extends PoolProcessor {
         if (null == volume || volume.getInactive()) {
             BlockSnapshot snapShot = checkSnapShotExistsInDB(nativeGuid, dbClient);
             if (!snapShot.getInactive()) {
-                uri =  snapShot.getId();
+                uri = snapShot.getId();
             }
 
         } else {
@@ -336,7 +338,7 @@ public abstract class StorageProcessor extends PoolProcessor {
 
     /**
      * check Storage Volume exists in DB
-     *
+     * 
      * @param nativeGuid
      * @param dbClient
      * @return
@@ -350,7 +352,7 @@ public abstract class StorageProcessor extends PoolProcessor {
 
         for (URI volumeURI : volumeUris) {
             Volume volume = dbClient.queryObject(Volume.class, volumeURI);
-            if (volume!=null && !volume.getInactive()) {
+            if (volume != null && !volume.getInactive()) {
                 return volume;
             }
         }
@@ -365,7 +367,7 @@ public abstract class StorageProcessor extends PoolProcessor {
 
         for (URI mirrorURI : mirrorUris) {
             BlockMirror mirror = dbClient.queryObject(BlockMirror.class, mirrorURI);
-            if (mirror!=null && !mirror.getInactive()) {
+            if (mirror != null && !mirror.getInactive()) {
                 return mirror;
             }
         }
@@ -374,7 +376,7 @@ public abstract class StorageProcessor extends PoolProcessor {
 
     /**
      * check Pre Existing Storage Volume exists in DB
-     *
+     * 
      * @param nativeGuid
      * @param dbClient
      * @return
@@ -388,7 +390,7 @@ public abstract class StorageProcessor extends PoolProcessor {
 
         for (URI volumeURI : volumeUris) {
             UnManagedVolume volumeInfo = dbClient.queryObject(UnManagedVolume.class, volumeURI);
-            if (volumeInfo!=null && !volumeInfo.getInactive()) {
+            if (volumeInfo != null && !volumeInfo.getInactive()) {
                 return volumeInfo;
             }
         }
@@ -397,7 +399,7 @@ public abstract class StorageProcessor extends PoolProcessor {
 
     /**
      * check Snapshot exists in DB
-     *
+     * 
      * @param nativeGuid
      * @param dbClient
      * @return
@@ -411,7 +413,7 @@ public abstract class StorageProcessor extends PoolProcessor {
 
         for (URI snapShotUri : snapShotUris) {
             BlockSnapshot snapShot = dbClient.queryObject(BlockSnapshot.class, snapShotUri);
-            if (snapShot!=null && !snapShot.getInactive()) {
+            if (snapShot != null && !snapShot.getInactive()) {
                 return snapShot;
             }
         }
@@ -420,31 +422,31 @@ public abstract class StorageProcessor extends PoolProcessor {
 
     /**
      * Check if Port exists in DB.
-     *
+     * 
      * @param portInstance
      * @return
      * @throws IOException
      */
     protected URI getStoragePortUriFromDB(String portNativeGuid, DbClient dbClient)
-    		throws IOException {
-    	URI portUri = NullColumnValueGetter.getNullURI();
-    	StoragePort port = null;
-    	@SuppressWarnings("deprecation")
-    	List<URI> portURIs = dbClient.queryByConstraint(AlternateIdConstraint.Factory
-    			.getStoragePortByNativeGuidConstraint(portNativeGuid));
-    	for(URI portURI : portURIs){
-    		port = dbClient.queryObject(StoragePort.class, portURI);
-    		if (port!=null && !port.getInactive()) {
-    			portUri = port.getId();
-    			break;
-    		}
-    	}
-    	return portUri;
+            throws IOException {
+        URI portUri = NullColumnValueGetter.getNullURI();
+        StoragePort port = null;
+        @SuppressWarnings("deprecation")
+        List<URI> portURIs = dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getStoragePortByNativeGuidConstraint(portNativeGuid));
+        for (URI portURI : portURIs) {
+            port = dbClient.queryObject(StoragePort.class, portURI);
+            if (port != null && !port.getInactive()) {
+                portUri = port.getId();
+                break;
+            }
+        }
+        return portUri;
     }
 
     /**
      * get Masking View Native Guid from Masking View Object Path
-     *
+     * 
      * @param lunMaskingViewPath
      * @return
      */
@@ -464,7 +466,7 @@ public abstract class StorageProcessor extends PoolProcessor {
 
     /**
      * get Initiator native Guid
-     *
+     * 
      * @param initiatorInstance
      * @return
      */
@@ -476,6 +478,7 @@ public abstract class StorageProcessor extends PoolProcessor {
     /**
      * Loop through each VolumeInformation Entry in Enum, extract the property value from
      * Provider, and insert into Volume info's VolumeInformation Map.
+     * 
      * @param storageVolumeInfo
      * @param volumeInstance
      * @param volumeInformation
@@ -484,8 +487,9 @@ public abstract class StorageProcessor extends PoolProcessor {
     protected UnManagedVolume injectVolumeInformation(
             UnManagedVolume storageVolumeInfo, CIMInstance volumeInstance,
             Map<String, StringSet> volumeInformation) {
-        if (null == volumeInformation)
+        if (null == volumeInformation) {
             volumeInformation = new HashMap<String, StringSet>();
+        }
         for (SupportedVolumeInformation volumeInfo : SupportedVolumeInformation.values()) {
             injectIntoVolumeInformationContainer(volumeInformation,
                     volumeInfo.getInfoKey(), volumeInfo.getAlternateKey(), volumeInstance);
@@ -497,6 +501,7 @@ public abstract class StorageProcessor extends PoolProcessor {
     /**
      * Extract value from Provider for given volume info key, and then get its
      * Name and use that to inject to Map.
+     * 
      * @param volumeInformation
      * @param infoKey
      * @param volumeInstance
@@ -516,17 +521,18 @@ public abstract class StorageProcessor extends PoolProcessor {
             StringSet valueSet = new StringSet();
             // right now ,we don't have any properties which needs to be typecasted other than to String
             // hence doesn't have any instanceOf logic
-        	if (value instanceof String) {
-        		valueSet.add(value.toString());
-        	} else if (value instanceof String[]) {
-        		valueSet.addAll(Arrays.asList((String[])value));
-        	}
+            if (value instanceof String) {
+                valueSet.add(value.toString());
+            } else if (value instanceof String[]) {
+                valueSet.addAll(Arrays.asList((String[]) value));
+            }
             volumeInformation.put(charactersticName, valueSet);
         }
     }
 
     /**
      * insert into Map directly
+     * 
      * @param storageVolumeInfo
      * @param infoKey
      * @param path
@@ -544,10 +550,10 @@ public abstract class StorageProcessor extends PoolProcessor {
         }
     }
 
-
     /**
      * Loop through each VolumeCharacterstics Entry in Enum, extract the property value from
      * Provider, and insert into Volume info's VolumeCharacterstci Map.
+     * 
      * @param storageVolumeInfo
      * @param volumeInstance
      * @param volumeInformation
@@ -556,8 +562,9 @@ public abstract class StorageProcessor extends PoolProcessor {
     protected UnManagedVolume injectVolumeCharacterstics(
             UnManagedVolume storageVolumeInfo, CIMInstance volumeInstance,
             Map<String, String> volumeCharacterstics) {
-        if (null == volumeCharacterstics)
+        if (null == volumeCharacterstics) {
             volumeCharacterstics = new HashMap<String, String>();
+        }
         for (SupportedVolumeCharacterstics characterstic : SupportedVolumeCharacterstics
                 .values()) {
             injectIntoVolumeCharactersticContainer(volumeCharacterstics,
@@ -573,6 +580,7 @@ public abstract class StorageProcessor extends PoolProcessor {
     /**
      * Extract value from Provider for given volume info key, and then get its
      * Name and use that to inject to Map.
+     * 
      * @param volumeInformation
      * @param infoKey
      * @param volumeInstance
@@ -594,6 +602,7 @@ public abstract class StorageProcessor extends PoolProcessor {
 
     /**
      * insert into Map directly
+     * 
      * @param storageVolumeInfo
      * @param infoKey
      * @param path

@@ -9,7 +9,6 @@ import com.emc.storageos.plugins.common.Executor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.metering.recoverpoint.RecoverPointCollectionException;
 
-
 public class RPExecutor extends Executor {
 
     @Override

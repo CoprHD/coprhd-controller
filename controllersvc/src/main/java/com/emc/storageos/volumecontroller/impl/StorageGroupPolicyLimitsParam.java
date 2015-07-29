@@ -17,49 +17,50 @@ public class StorageGroupPolicyLimitsParam extends HostIOLimitsParam {
     public static final String NON_FAST_POLICY = "NonFast";
     public static final String BANDWIDTH = "bw";
     public static final String IOPS = "iops";
-    
+
     private String autoTierPolicyName;
     private StorageSystem storage;
 
-    
     StorageGroupPolicyLimitsParam() {
-        
+
     }
-    
+
     public StorageGroupPolicyLimitsParam(VolumeURIHLU volumeURIHlu, StorageSystem storage) {
         this(volumeURIHlu.getAutoTierPolicyName(), volumeURIHlu.getHostIOLimitBandwidth(), volumeURIHlu.getHostIOLimitIOPs(), storage);
     }
-    
+
     public StorageGroupPolicyLimitsParam(VolumeURIHLU volumeURIHlu, StorageSystem storage, SmisCommandHelper helper) {
-        if(storage.checkIfVmax3()){
+        if (storage.checkIfVmax3()) {
             setAutoTierPolicyName(helper.getVMAX3FastSettingForVolume(volumeURIHlu.getVolumeURI(), volumeURIHlu.getAutoTierPolicyName()));
             setHostIOLimitBandwidth(volumeURIHlu.getHostIOLimitBandwidth());
             setHostIOLimitIOPs(volumeURIHlu.getHostIOLimitIOPs());
             setStorage(storage);
-        } 
+        }
     }
-    
-    public StorageGroupPolicyLimitsParam(String  policyName) {
-        this(policyName, (Integer)null, (Integer)null, null);
+
+    public StorageGroupPolicyLimitsParam(String policyName) {
+        this(policyName, (Integer) null, (Integer) null, null);
     }
-    
-    public StorageGroupPolicyLimitsParam (String autoTierPolicyName, Integer hostIOLimitBandwidth, Integer hostIOLimitIOPs, StorageSystem storage) {
+
+    public StorageGroupPolicyLimitsParam(String autoTierPolicyName, Integer hostIOLimitBandwidth, Integer hostIOLimitIOPs,
+            StorageSystem storage) {
         setAutoTierPolicyName(autoTierPolicyName);
         setHostIOLimitBandwidth(hostIOLimitBandwidth);
         setHostIOLimitIOPs(hostIOLimitIOPs);
         setStorage(storage);
     }
 
-    public StorageGroupPolicyLimitsParam (String autoTierPolicyName, String hostIOLimitBandwidth, String hostIOLimitIOPs, StorageSystem storage) {
-        this(autoTierPolicyName,(Integer)null, (Integer)null, storage);
+    public StorageGroupPolicyLimitsParam(String autoTierPolicyName, String hostIOLimitBandwidth, String hostIOLimitIOPs,
+            StorageSystem storage) {
+        this(autoTierPolicyName, (Integer) null, (Integer) null, storage);
         try {
             setHostIOLimitBandwidth(StringUtils.isEmpty(hostIOLimitBandwidth) ? null : Integer.parseInt(hostIOLimitBandwidth));
             setHostIOLimitIOPs(StringUtils.isEmpty(hostIOLimitIOPs) ? null : Integer.parseInt(hostIOLimitIOPs));
         } catch (Exception e) {
-            //ignore number format exception
+            // ignore number format exception
         }
     }
-    
+
     public String getAutoTierPolicyName() {
         return autoTierPolicyName;
     }
@@ -67,7 +68,7 @@ public class StorageGroupPolicyLimitsParam extends HostIOLimitsParam {
     public void setAutoTierPolicyName(String autoTierPolicyName) {
         this.autoTierPolicyName = autoTierPolicyName;
     }
-    
+
     public StorageSystem getStorage() {
         return storage;
     }
@@ -78,37 +79,38 @@ public class StorageGroupPolicyLimitsParam extends HostIOLimitsParam {
 
     /**
      * Construct a storage group key string based on given FAST policy name, limit bandwidth, and limit IO
+     * 
      * @return
      */
     public String toString() {
-        String policyName = StringUtils.equalsIgnoreCase(autoTierPolicyName,Constants.NONE) ? NON_FAST_POLICY : getAutoTierPolicyName();
+        String policyName = StringUtils.equalsIgnoreCase(autoTierPolicyName, Constants.NONE) ? NON_FAST_POLICY : getAutoTierPolicyName();
         if (isHostIOLimitBandwidthSet()) {
-            policyName += "_bw"+getHostIOLimitBandwidth();
+            policyName += "_bw" + getHostIOLimitBandwidth();
         }
-        
-        if ( isHostIOLimitIOPsSet()) {
-            policyName += "_iops"+getHostIOLimitIOPs();
+
+        if (isHostIOLimitIOPsSet()) {
+            policyName += "_iops" + getHostIOLimitIOPs();
         }
-        
-        return policyName;                
+
+        return policyName;
     }
-    
+
     public String getString() {
-        if(storage != null && storage.checkIfVmax3()){
+        if (storage != null && storage.checkIfVmax3()) {
             autoTierPolicyName = autoTierPolicyName.replaceAll(Constants.SMIS_PLUS_REGEX, Constants.UNDERSCORE_DELIMITER);
         }
-        String policyName = StringUtils.equalsIgnoreCase(autoTierPolicyName,Constants.NONE) ? NON_FAST_POLICY : getAutoTierPolicyName();
+        String policyName = StringUtils.equalsIgnoreCase(autoTierPolicyName, Constants.NONE) ? NON_FAST_POLICY : getAutoTierPolicyName();
         if (isHostIOLimitBandwidthSet()) {
-            policyName += "_"+BANDWIDTH+getHostIOLimitBandwidth();
+            policyName += "_" + BANDWIDTH + getHostIOLimitBandwidth();
         }
-        
-        if ( isHostIOLimitIOPsSet()) {
-            policyName += "_"+IOPS+getHostIOLimitIOPs();
+
+        if (isHostIOLimitIOPsSet()) {
+            policyName += "_" + IOPS + getHostIOLimitIOPs();
         }
-        
-        return policyName;                
+
+        return policyName;
     }
-    
+
     @Override
     public int hashCode() {
         return toString().hashCode();
@@ -116,12 +118,14 @@ public class StorageGroupPolicyLimitsParam extends HostIOLimitsParam {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        
-        if (obj == null) 
+        }
+
+        if (obj == null) {
             return false;
-        
+        }
+
         return StringUtils.equalsIgnoreCase(toString(), obj.toString());
     }
 }

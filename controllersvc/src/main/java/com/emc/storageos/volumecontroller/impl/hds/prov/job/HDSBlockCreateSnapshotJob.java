@@ -31,91 +31,91 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 
 public class HDSBlockCreateSnapshotJob extends HDSJob {
-	private static final Logger log = LoggerFactory.getLogger(HDSBlockCreateSnapshotJob.class);
-	 // These atomic references are for use in the volume rename step in processVolume
+    private static final Logger log = LoggerFactory.getLogger(HDSBlockCreateSnapshotJob.class);
+    // These atomic references are for use in the volume rename step in processVolume
     private static final AtomicReference<NameGenerator> _nameGeneratorRef = new AtomicReference<NameGenerator>();
 
-	public HDSBlockCreateSnapshotJob(String messageId, URI storageSystem,
-			TaskCompleter taskCompleter) {
-		super(messageId, storageSystem, taskCompleter, "CreateBlockSnapshot");
-		// Keep a reference to these singletons
+    public HDSBlockCreateSnapshotJob(String messageId, URI storageSystem,
+            TaskCompleter taskCompleter) {
+        super(messageId, storageSystem, taskCompleter, "CreateBlockSnapshot");
+        // Keep a reference to these singletons
         _nameGeneratorRef.compareAndSet(null,
                 (NameGenerator) ControllerServiceImpl.getBean("defaultNameGenerator"));
-	}
-	
-	@Override
-	public void updateStatus(JobContext jobContext) throws Exception 
-	{
-		DbClient dbClient = jobContext.getDbClient();
-		try {
-			//Do nothing if the job is not completed yet
-			if (_status == JobStatus.IN_PROGRESS)
-			{
-				return;
-			}
+    }
 
-			String opId = getTaskCompleter().getOpId();
-			StringBuilder logMsgBuilder = new StringBuilder(
-					String.format("Updating status of job %s to %s", opId, _status.name()));
-			StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, getStorageSystemURI());
-			HDSApiClient hdsApiClient = jobContext.getHdsApiFactory().getClient
-					(HDSUtils.getHDSServerManagementServerInfo(storageSystem), storageSystem.getSmisUserName(), 
-							storageSystem.getSmisPassword());
-			URI snapshotId = getTaskCompleter().getId(0);
-			if (_status == JobStatus.SUCCESS) 
-			{
-				LogicalUnit logicalUnit = _javaResult.getBean(LogicalUnit.class);
-				BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotId);
-				snapshot.setNativeId(String.valueOf(logicalUnit.getDevNum()));
-				snapshot.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(storageSystem, snapshot));
-				snapshot.setInactive(false);
-				snapshot.setCreationTime(Calendar.getInstance());
-				long capacityInBytes = Long.valueOf(logicalUnit.getCapacityInKB()) * 1024L;
-				snapshot.setProvisionedCapacity(capacityInBytes);
-				snapshot.setAllocatedCapacity(capacityInBytes);
-				snapshot.setWWN(HDSUtils.generateHitachiWWN(logicalUnit.getObjectID(), String.valueOf(logicalUnit.getDevNum())));
-				snapshot.setIsSyncActive(true);
-				dbClient.persistObject(snapshot);
-				changeSnapshotName(dbClient, hdsApiClient, snapshot);
-				if (logMsgBuilder.length() != 0) 
-				{
-					logMsgBuilder.append("\n");
-				}
-				logMsgBuilder.append(String.format(
-						"Created Snapshot successfully .. NativeId: %s, URI: %s", snapshot.getNativeId(),
-						getTaskCompleter().getId()));
-			} 
-			else if (_status == JobStatus.FAILED) 
-			{
-				logMsgBuilder.append("\n");
-				logMsgBuilder.append(String.format(
-						"Task %s failed to create volume: %s", opId, getTaskCompleter().getId().toString()));
-				Snapshot snapshot = dbClient.queryObject(Snapshot.class, snapshotId);
-				if(snapshot != null){
-					snapshot.setInactive(true);
-					dbClient.persistObject(snapshot);
-				}
-			}
-			log.info(logMsgBuilder.toString());
-		} catch (Exception e) {
-        	log.error("Caught an exception while trying to updateStatus for HDSBlockCreateSnapshotJob", e);
+    @Override
+    public void updateStatus(JobContext jobContext) throws Exception
+    {
+        DbClient dbClient = jobContext.getDbClient();
+        try {
+            // Do nothing if the job is not completed yet
+            if (_status == JobStatus.IN_PROGRESS)
+            {
+                return;
+            }
+
+            String opId = getTaskCompleter().getOpId();
+            StringBuilder logMsgBuilder = new StringBuilder(
+                    String.format("Updating status of job %s to %s", opId, _status.name()));
+            StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, getStorageSystemURI());
+            HDSApiClient hdsApiClient = jobContext.getHdsApiFactory().getClient
+                    (HDSUtils.getHDSServerManagementServerInfo(storageSystem), storageSystem.getSmisUserName(),
+                            storageSystem.getSmisPassword());
+            URI snapshotId = getTaskCompleter().getId(0);
+            if (_status == JobStatus.SUCCESS)
+            {
+                LogicalUnit logicalUnit = _javaResult.getBean(LogicalUnit.class);
+                BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotId);
+                snapshot.setNativeId(String.valueOf(logicalUnit.getDevNum()));
+                snapshot.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(storageSystem, snapshot));
+                snapshot.setInactive(false);
+                snapshot.setCreationTime(Calendar.getInstance());
+                long capacityInBytes = Long.valueOf(logicalUnit.getCapacityInKB()) * 1024L;
+                snapshot.setProvisionedCapacity(capacityInBytes);
+                snapshot.setAllocatedCapacity(capacityInBytes);
+                snapshot.setWWN(HDSUtils.generateHitachiWWN(logicalUnit.getObjectID(), String.valueOf(logicalUnit.getDevNum())));
+                snapshot.setIsSyncActive(true);
+                dbClient.persistObject(snapshot);
+                changeSnapshotName(dbClient, hdsApiClient, snapshot);
+                if (logMsgBuilder.length() != 0)
+                {
+                    logMsgBuilder.append("\n");
+                }
+                logMsgBuilder.append(String.format(
+                        "Created Snapshot successfully .. NativeId: %s, URI: %s", snapshot.getNativeId(),
+                        getTaskCompleter().getId()));
+            }
+            else if (_status == JobStatus.FAILED)
+            {
+                logMsgBuilder.append("\n");
+                logMsgBuilder.append(String.format(
+                        "Task %s failed to create volume: %s", opId, getTaskCompleter().getId().toString()));
+                Snapshot snapshot = dbClient.queryObject(Snapshot.class, snapshotId);
+                if (snapshot != null) {
+                    snapshot.setInactive(true);
+                    dbClient.persistObject(snapshot);
+                }
+            }
+            log.info(logMsgBuilder.toString());
+        } catch (Exception e) {
+            log.error("Caught an exception while trying to updateStatus for HDSBlockCreateSnapshotJob", e);
             setErrorStatus("Encountered an internal error during snapshot create job status processing : " + e.getMessage());
-        } finally {	
-        	_postProcessingStatus = JobStatus.SUCCESS;
-        	super.updateStatus(jobContext);
+        } finally {
+            _postProcessingStatus = JobStatus.SUCCESS;
+            super.updateStatus(jobContext);
         }
-	}
-	
-	/**
+    }
+
+    /**
      * Method will modify the name of a given volume to a generate name.
-     *
-     * @param dbClient   [in] - Client instance for reading/writing from/to DB
-     * @param client     [in] - HDSApiClient used for reading/writing from/to HiCommand DM.
-     * @param snapshotObj     [in] - Volume object
+     * 
+     * @param dbClient [in] - Client instance for reading/writing from/to DB
+     * @param client [in] - HDSApiClient used for reading/writing from/to HiCommand DM.
+     * @param snapshotObj [in] - Volume object
      */
     private void changeSnapshotName(DbClient dbClient, HDSApiClient client, BlockSnapshot snapshotObj) {
         try {
-        	Volume source = dbClient.queryObject(Volume.class, snapshotObj.getParent());
+            Volume source = dbClient.queryObject(Volume.class, snapshotObj.getParent());
             // Get the tenant name from the volume
             TenantOrg tenant = dbClient.queryObject(TenantOrg.class, source.getTenant().getURI());
             String tenantName = tenant.getLabel();
@@ -130,7 +130,8 @@ public class HDSBlockCreateSnapshotJob extends HDSJob {
             log.info(String.format("Attempting to add snapshot label %s to %s", generatedName, snapshotObj.getNativeId()));
             StorageSystem system = dbClient.queryObject(StorageSystem.class, snapshotObj.getStorageController());
             String systemObjectId = HDSUtils.getSystemObjectID(system);
-            LogicalUnit logicalUnit = client.getLogicalUnitInfo(systemObjectId, HDSUtils.getLogicalUnitObjectId(snapshotObj.getNativeId(), system));
+            LogicalUnit logicalUnit = client.getLogicalUnitInfo(systemObjectId,
+                    HDSUtils.getLogicalUnitObjectId(snapshotObj.getNativeId(), system));
             if (null != logicalUnit && null != logicalUnit.getLdevList() && !logicalUnit.getLdevList().isEmpty()) {
                 Iterator<LDEV> ldevItr = logicalUnit.getLdevList().iterator();
                 if (ldevItr.hasNext()) {

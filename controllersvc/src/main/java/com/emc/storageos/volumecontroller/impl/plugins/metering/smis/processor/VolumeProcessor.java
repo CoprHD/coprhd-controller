@@ -43,10 +43,10 @@ public class VolumeProcessor extends CommonStatsProcessor {
      * scale problem,need to decide on using Native Heaps solutions like
      * EhCache, Memcache.
      */
-    private Logger       _logger = LoggerFactory.getLogger(VolumeProcessor.class);
-    
+    private Logger _logger = LoggerFactory.getLogger(VolumeProcessor.class);
+
     private CassandraInsertion _statsColumnInjector;
-   
+
     public static enum VolumeMetric
     {
         UnKnown,
@@ -61,7 +61,7 @@ public class VolumeProcessor extends CommonStatsProcessor {
         IdleTimeCounter,
         IOTimeCounter,
         EMCQueueLength;
-        
+
         private static final VolumeMetric[] metricCopyOfValues = values();
 
         public static VolumeMetric lookup(String name) {
@@ -94,7 +94,7 @@ public class VolumeProcessor extends CommonStatsProcessor {
             List<String> metricSequence = (List<String>) keyMap.get(Constants.STORAGEOS_VOLUME_MANIFEST);
             _logger.debug("volume metricNames Sequence {}", metricSequence);
             for (String volume : volumes) {
-                if(volume.isEmpty()) {
+                if (volume.isEmpty()) {
                     _logger.debug("Empty Volume returned as part of Statistics Response");
                     continue;
                 }
@@ -133,14 +133,14 @@ public class VolumeProcessor extends CommonStatsProcessor {
                 deviceID = deviceID + "+" + tokens[i];
             }
         }
-        
-        CIMProperty<?> CreationClassName  = new CIMProperty(CreationClassNamestr,
-                CIMDataType.STRING_T, volume,true,false,null);
+
+        CIMProperty<?> CreationClassName = new CIMProperty(CreationClassNamestr,
+                CIMDataType.STRING_T, volume, true, false, null);
         CIMProperty<?> SystemCreationClassName = new CIMProperty(
-                SystemCreationClassNamestr, CIMDataType.STRING_T, system,true,false,null);
+                SystemCreationClassNamestr, CIMDataType.STRING_T, system, true, false, null);
         CIMProperty<?> systemName = new CIMProperty(SystemNamestr, CIMDataType.STRING_T,
-                SystemName,true,false,null);
-        CIMProperty<?> Id = new CIMProperty(DeviceIDstr, CIMDataType.STRING_T, deviceID,true,false,null);
+                SystemName, true, false, null);
+        CIMProperty<?> Id = new CIMProperty(DeviceIDstr, CIMDataType.STRING_T, deviceID, true, false, null);
         CIMProperty<?>[] keys = new CIMProperty<?>[4];
         keys[0] = CreationClassName;
         keys[1] = SystemCreationClassName;
@@ -149,13 +149,13 @@ public class VolumeProcessor extends CommonStatsProcessor {
         // To-DO : "root/emc - get it from outside"
         return CimObjectPathCreator.createInstance(volume, keyMap.get(Constants._InteropNamespace)
                 .toString(), keys);
-        
+
     }
 
     /**
      * Parse NativeGuid, create Volume CIMObjectPaths by using nativeGuids. Get
      * the associated Metrics Object for each Volume, update with
-     * ReadIOs,WriteIOs, guid content. 
+     * ReadIOs,WriteIOs, guid content.
      * 
      * string CSVSequence[] = InstanceID,
      * ElementType, TotalIOs, KBytesTransferred, ReadIOs, KBytesRead, WriteIOs,
@@ -202,56 +202,56 @@ public class VolumeProcessor extends CommonStatsProcessor {
                 for (String metricName : metricSequence) {
                     String metricValue = metricValuesList.get(count);
                     switch (VolumeMetric.lookup(metricName)) {
-                    case InstanceID:
-                    case ElementType:
-                        count++;
-                        break;
-                    case KBytesWritten:
-                        statObj.setBandwidthIn(ControllerUtils.getLongValue(metricValue));
-                        count++;
-                        break;
-                    case KBytesRead:
-                        statObj.setBandwidthOut(ControllerUtils.getLongValue(metricValue));
-                        count++;
-                        break;
-                    case TotalIOs:
-                        statObj.setTotalIOs(ControllerUtils.getLongValue(metricValue));
-                        count++;
-                        break;
-                    case ReadIOs:
-                        statObj.setReadIOs(ControllerUtils.getLongValue(metricValue));
-                        count++;
-                        break;
-                    case WriteIOs:
-                        statObj.setWriteIOs(ControllerUtils.getLongValue(metricValue));
-                        count++;
-                        break;
-                    case KBytesTransferred:
-                        statObj.setKbytesTransferred(ControllerUtils.getLongValue(metricValue));
-                        count++;
-                        break;
-                    case IdleTimeCounter:
-                        if (null != metricValue && 0 < metricValue.trim().length()) {
-                            statObj.setIdleTimeCounter(ControllerUtils.getLongValue(metricValue));
-                        }
-                        count++;
-                        break;
-                    case IOTimeCounter:
-                        if (null != metricValue && 0 < metricValue.trim().length()) {
-                            statObj.setIoTimeCounter(ControllerUtils.getLongValue(metricValue));
-                        }
-                        count++;
-                        break;
-                    case EMCQueueLength:
-                        if (null != metricValue && 0 < metricValue.trim().length()) {
-                            statObj.setQueueLength(ControllerUtils.getLongValue(metricValue));
-                        }
-                        count++;
-                        break;
-                    default:
-                        _logger.warn("Ignoring unknown metric {} during system metric processing:", metricName);
-                        count++;
-                        break;
+                        case InstanceID:
+                        case ElementType:
+                            count++;
+                            break;
+                        case KBytesWritten:
+                            statObj.setBandwidthIn(ControllerUtils.getLongValue(metricValue));
+                            count++;
+                            break;
+                        case KBytesRead:
+                            statObj.setBandwidthOut(ControllerUtils.getLongValue(metricValue));
+                            count++;
+                            break;
+                        case TotalIOs:
+                            statObj.setTotalIOs(ControllerUtils.getLongValue(metricValue));
+                            count++;
+                            break;
+                        case ReadIOs:
+                            statObj.setReadIOs(ControllerUtils.getLongValue(metricValue));
+                            count++;
+                            break;
+                        case WriteIOs:
+                            statObj.setWriteIOs(ControllerUtils.getLongValue(metricValue));
+                            count++;
+                            break;
+                        case KBytesTransferred:
+                            statObj.setKbytesTransferred(ControllerUtils.getLongValue(metricValue));
+                            count++;
+                            break;
+                        case IdleTimeCounter:
+                            if (null != metricValue && 0 < metricValue.trim().length()) {
+                                statObj.setIdleTimeCounter(ControllerUtils.getLongValue(metricValue));
+                            }
+                            count++;
+                            break;
+                        case IOTimeCounter:
+                            if (null != metricValue && 0 < metricValue.trim().length()) {
+                                statObj.setIoTimeCounter(ControllerUtils.getLongValue(metricValue));
+                            }
+                            count++;
+                            break;
+                        case EMCQueueLength:
+                            if (null != metricValue && 0 < metricValue.trim().length()) {
+                                statObj.setQueueLength(ControllerUtils.getLongValue(metricValue));
+                            }
+                            count++;
+                            break;
+                        default:
+                            _logger.warn("Ignoring unknown metric {} during system metric processing:", metricName);
+                            count++;
+                            break;
                     }
                 }
                 metricsObjList.add(statObj);
@@ -264,7 +264,7 @@ public class VolumeProcessor extends CommonStatsProcessor {
     public void setStatsColumnInjector(CassandraInsertion statsColumnInjector) {
         _statsColumnInjector = statsColumnInjector;
     }
-    
+
     public CassandraInsertion getStatsColumnInjector() {
         return _statsColumnInjector;
     }

@@ -21,7 +21,7 @@ import java.util.List;
  * Info for a VPlex initiator port.
  */
 public class VPlexInitiatorInfo extends VPlexResourceInfo {
-    
+
     // Initiator types can be specified when an initiator
     // is registered.
     public enum Initiator_Type {
@@ -33,7 +33,7 @@ public class VPlexInitiatorInfo extends VPlexResourceInfo {
 
         // The VPlex name for the initiator type.
         private String _type;
-        
+
         /**
          * Constructor.
          * 
@@ -42,16 +42,16 @@ public class VPlexInitiatorInfo extends VPlexResourceInfo {
         Initiator_Type(String type) {
             _type = type;
         }
-        
+
         /**
          * Getter for the VPlex initiator type.
          * 
          * @return The VPlex initiator type.
          */
         public String getType() {
-             return _type;
+            return _type;
         }
-        
+
         /**
          * Returns the enum whose type matches the passed type, else null when
          * not found.
@@ -69,7 +69,7 @@ public class VPlexInitiatorInfo extends VPlexResourceInfo {
                 }
             }
             return null;
-        }        
+        }
     };
 
     // Enumerates the initiator attributes we are interested in and
@@ -80,10 +80,10 @@ public class VPlexInitiatorInfo extends VPlexResourceInfo {
     public static enum InitiatorAttribute {
         PORT_WWN("port-wwn"),
         NODE_WWN("node-wwn");
-        
+
         // The VPlex name for the attribute.
         private String _name;
-        
+
         /**
          * Constructor.
          * 
@@ -92,16 +92,16 @@ public class VPlexInitiatorInfo extends VPlexResourceInfo {
         InitiatorAttribute(String name) {
             _name = name;
         }
-        
+
         /**
          * Getter for the VPlex name for the attribute.
          * 
          * @return The VPlex name for the attribute.
          */
         public String getAttributeName() {
-             return _name;
+            return _name;
         }
-        
+
         /**
          * Returns the enum whose name matches the passed name, else null when
          * not found.
@@ -121,17 +121,17 @@ public class VPlexInitiatorInfo extends VPlexResourceInfo {
             return null;
         }
     };
-    
+
     // The port WWN id.
     private String portWwn;
 
     // The node WWN id.
     private String nodeWwn;
-    
+
     // The registration name for the initiator. The name will be
     // the registration name if the port is registered.
     private String registrationName;
-    
+
     // The initiator type for registration.
     private Initiator_Type initiatorType = Initiator_Type.DEFAULT;
 
@@ -143,7 +143,7 @@ public class VPlexInitiatorInfo extends VPlexResourceInfo {
     public String getPortWwn() {
         return VPlexApiUtils.formatWWN(portWwn);
     }
-    
+
     /**
      * Getter for the raw port WWN.
      * 
@@ -152,7 +152,7 @@ public class VPlexInitiatorInfo extends VPlexResourceInfo {
     public String getPortWwnRaw() {
         return portWwn;
     }
-    
+
     /**
      * Setter for the port WWN.
      * 
@@ -161,7 +161,7 @@ public class VPlexInitiatorInfo extends VPlexResourceInfo {
     public void setPortWwn(String strVal) {
         portWwn = strVal;
     }
-    
+
     /**
      * Getter for the node WWN.
      * 
@@ -170,7 +170,7 @@ public class VPlexInitiatorInfo extends VPlexResourceInfo {
     public String getNodeWwn() {
         return VPlexApiUtils.formatWWN(nodeWwn);
     }
-    
+
     /**
      * Getter for the raw node WWN.
      * 
@@ -178,8 +178,8 @@ public class VPlexInitiatorInfo extends VPlexResourceInfo {
      */
     public String getNodeWwnRaw() {
         return nodeWwn;
-    }    
-    
+    }
+
     /**
      * Setter for the node WWN.
      * 
@@ -188,36 +188,36 @@ public class VPlexInitiatorInfo extends VPlexResourceInfo {
     public void setNodeWwn(String strVal) {
         nodeWwn = strVal;
     }
-    
+
     /**
-     * Getter for the registration  name.
+     * Getter for the registration name.
      * 
      * @return The registration name.
      */
     public String getRegistrationName() {
         return registrationName;
     }
-    
+
     /**
-     * Setter for the registration  name.
+     * Setter for the registration name.
      * 
-     * @param name The registration  name.
+     * @param name The registration name.
      */
     public void setRegistrationName(String name) {
         registrationName = name;
     }
-    
+
     public void updateOnRegistration() {
-        // When an initiator becomes registered, the context path for the 
+        // When an initiator becomes registered, the context path for the
         // initiator on the VPlex will now use the registration name, rather
         // than the unregistered name. Also, the initiator name becomes the
-        // registration name. We update these in the object so they are 
+        // registration name. We update these in the object so they are
         // accurate.
         String currentPath = getPath();
         setPath(currentPath.replace(getName(), registrationName));
         setName(registrationName);
     }
-    
+
     /**
      * Getter for the initiator registration type.
      * 
@@ -226,7 +226,7 @@ public class VPlexInitiatorInfo extends VPlexResourceInfo {
     public Initiator_Type getInitiatorType() {
         return initiatorType;
     }
-    
+
     /**
      * Setter for the initiator registration type.
      * 
@@ -235,7 +235,7 @@ public class VPlexInitiatorInfo extends VPlexResourceInfo {
     public void setInitiatorType(Initiator_Type type) {
         initiatorType = type;
     }
-    
+
     /**
      * {@inheritDoc}
      */

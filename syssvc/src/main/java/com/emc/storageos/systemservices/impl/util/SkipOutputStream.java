@@ -33,7 +33,7 @@ public class SkipOutputStream extends OutputStream {
     private int skip(int len) {
         long toSkip = Math.min(this.bytesToSkip, len);
         this.bytesToSkip -= toSkip;
-        return (int)toSkip;
+        return (int) toSkip;
     }
 
     @Override

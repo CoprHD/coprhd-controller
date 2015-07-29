@@ -15,31 +15,31 @@ import com.emc.storageos.db.client.model.VirtualPool;
  */
 @SuppressWarnings("serial")
 public class VPlexRecommendation extends RPProtectionRecommendation {
-    
+
     // The VPlex storage system.
     private URI _vplexStorageSystem;
-    
+
     // The virtual array for the recommendation.
     private URI _varray;
-    
+
     // The vpool used to get the recommendation
     private VirtualPool _vpool;
-    
+
     @Override
-	public String toString() {
-    	StringBuffer ret = new StringBuffer();
-    	if (super.getSourceInternalSiteName() != null) {
-    		ret.append(super.toString());
-    	}
-    	
-    	ret.append("VPlexRecommendation [_vplexStorageSystem=" + _vplexStorageSystem
-						+ ", _varray=" + _varray
-						+ ", _vpool=" + _vpool
-						+ "]");
-    	
-		return ret.toString();
-	}
-    
+    public String toString() {
+        StringBuffer ret = new StringBuffer();
+        if (super.getSourceInternalSiteName() != null) {
+            ret.append(super.toString());
+        }
+
+        ret.append("VPlexRecommendation [_vplexStorageSystem=" + _vplexStorageSystem
+                + ", _varray=" + _varray
+                + ", _vpool=" + _vpool
+                + "]");
+
+        return ret.toString();
+    }
+
     /**
      * Getter for the VPlex storage system for the recommendation.
      * 
@@ -48,7 +48,7 @@ public class VPlexRecommendation extends RPProtectionRecommendation {
     public URI getVPlexStorageSystem() {
         return _vplexStorageSystem;
     }
-    
+
     /**
      * Setter for the VPlex storage system for the recommendation.
      * 
@@ -57,7 +57,7 @@ public class VPlexRecommendation extends RPProtectionRecommendation {
     public void setVPlexStorageSystem(URI vplexStorageSystem) {
         _vplexStorageSystem = vplexStorageSystem;
     }
-    
+
     /**
      * Getter for the varray for this recommendation.
      * 
@@ -66,7 +66,7 @@ public class VPlexRecommendation extends RPProtectionRecommendation {
     public URI getVirtualArray() {
         return _varray;
     }
-    
+
     /**
      * Setter for the varray for this recommendation.
      * 
@@ -75,7 +75,7 @@ public class VPlexRecommendation extends RPProtectionRecommendation {
     public void setVirtualArray(URI varray) {
         _varray = varray;
     }
-    
+
     /**
      * Getter for the VirtualPool for this recommendation.
      * 
@@ -84,7 +84,7 @@ public class VPlexRecommendation extends RPProtectionRecommendation {
     public VirtualPool getVirtualPool() {
         return _vpool;
     }
-    
+
     /**
      * Setter for the VirtualPool for this recommendation.
      * 

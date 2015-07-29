@@ -34,18 +34,18 @@ public class BlockMirrorCreateCompleter extends BlockMirrorTaskCompleter {
             Volume volume = dbClient.queryObject(Volume.class, mirror.getSource());
 
             switch (status) {
-            case error:
-            	if(mirror!=null){
-                    mirror.setInactive(true);
-                    dbClient.persistObject(mirror);
-            	}
-                removeMirrorFromVolume(getMirrorURI(), volume, dbClient);
-                dbClient.error(BlockMirror.class, mirror.getId(), getOpId(), coded);
-                dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
-                break;
-            default:
-                dbClient.ready(BlockMirror.class, mirror.getId(), getOpId());
-                dbClient.ready(Volume.class, volume.getId(), getOpId());
+                case error:
+                    if (mirror != null) {
+                        mirror.setInactive(true);
+                        dbClient.persistObject(mirror);
+                    }
+                    removeMirrorFromVolume(getMirrorURI(), volume, dbClient);
+                    dbClient.error(BlockMirror.class, mirror.getId(), getOpId(), coded);
+                    dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
+                    break;
+                default:
+                    dbClient.ready(BlockMirror.class, mirror.getId(), getOpId());
+                    dbClient.ready(Volume.class, volume.getId(), getOpId());
             }
 
             recordBlockMirrorOperation(dbClient, OperationTypeEnum.CREATE_VOLUME_MIRROR,

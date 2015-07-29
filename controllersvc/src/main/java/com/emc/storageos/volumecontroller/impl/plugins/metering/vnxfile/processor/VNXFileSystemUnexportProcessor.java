@@ -41,7 +41,7 @@ public class VNXFileSystemUnexportProcessor extends VNXFileProcessor {
         try {
             ResponsePacket responsePacket = (ResponsePacket) _unmarshaller
                     .unmarshal(result.getResponseBodyAsStream());
-            
+
             Status status = null;
             if (null != responsePacket.getPacketFault()) {
                 status = responsePacket.getPacketFault();
@@ -55,7 +55,7 @@ public class VNXFileSystemUnexportProcessor extends VNXFileProcessor {
                         TaskResponse taskResp = (TaskResponse) responseObj;
                         status = taskResp.getStatus();
                         _logger.info("FileSystem Unexport task response status: {}", status.getMaxSeverity().name());
-                        
+
                         if (status.getMaxSeverity() == Severity.OK) {
                             keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
                         } else {
@@ -76,7 +76,7 @@ public class VNXFileSystemUnexportProcessor extends VNXFileProcessor {
                     _logger.info("Received celerra session information from the Server.");
                 }
             }
-        }catch (final Exception ex) {
+        } catch (final Exception ex) {
             _logger.error(
                     "Exception occurred while processing the vnx create file sys response due to ",
                     ex);
@@ -89,6 +89,6 @@ public class VNXFileSystemUnexportProcessor extends VNXFileProcessor {
 
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs) throws BaseCollectionException {
-        // TODO  Is this method needed?  Not used in other processors.
+        // TODO Is this method needed? Not used in other processors.
     }
 }

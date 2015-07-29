@@ -36,11 +36,11 @@ public class RPCGExportCompleter extends RPCGTaskCompleter {
             // Tell the individual objects we're done.
             for (URI id : getIds()) {
                 switch (status) {
-                case error:
-                    dbClient.error(ExportGroup.class, id, getOpId(), coded);
-                    break;
-                default:
-                    dbClient.ready(ExportGroup.class, id, getOpId());
+                    case error:
+                        dbClient.error(ExportGroup.class, id, getOpId(), coded);
+                        break;
+                    default:
+                        dbClient.ready(ExportGroup.class, id, getOpId());
                 }
             }
         } catch (Exception e) {

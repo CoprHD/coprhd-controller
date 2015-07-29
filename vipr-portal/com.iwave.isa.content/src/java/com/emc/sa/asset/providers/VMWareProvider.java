@@ -53,19 +53,19 @@ public class VMWareProvider extends BaseHostProvider {
         return api(context).vcenters().getByTenant(context.getTenant(), REGISTERED.and(INCOMPATIBLE.not()));
     }
 
-    protected List<VcenterRestRep> listVcentersForCluster(AssetOptionsContext context, URI clusterId) {	
-    	ClusterRestRep clusterRestRep = api(context).clusters().get(clusterId);  	
-    	RelatedResourceRep vcenterDatacenter = clusterRestRep.getVcenterDataCenter();
-    	if(vcenterDatacenter == null) {
-    		// return all vcenters
-        	return api(context).vcenters().getByTenant(context.getTenant(), REGISTERED.and(INCOMPATIBLE.not()));
-    	}
-    	else {
-    		// return the vcenter this vipr cluster is already associated with in vcenter
-    		RelatedResourceRep vcenterRelatedRestRep = api(context).vcenterDataCenters().get(vcenterDatacenter.getId()).getVcenter();
-    		VcenterRestRep vcenterRestRep = api(context).vcenters().get(vcenterRelatedRestRep.getId());
-    		return Arrays.asList(vcenterRestRep);	
-    	}
+    protected List<VcenterRestRep> listVcentersForCluster(AssetOptionsContext context, URI clusterId) {
+        ClusterRestRep clusterRestRep = api(context).clusters().get(clusterId);
+        RelatedResourceRep vcenterDatacenter = clusterRestRep.getVcenterDataCenter();
+        if (vcenterDatacenter == null) {
+            // return all vcenters
+            return api(context).vcenters().getByTenant(context.getTenant(), REGISTERED.and(INCOMPATIBLE.not()));
+        }
+        else {
+            // return the vcenter this vipr cluster is already associated with in vcenter
+            RelatedResourceRep vcenterRelatedRestRep = api(context).vcenterDataCenters().get(vcenterDatacenter.getId()).getVcenter();
+            VcenterRestRep vcenterRestRep = api(context).vcenters().get(vcenterRelatedRestRep.getId());
+            return Arrays.asList(vcenterRestRep);
+        }
     }
 
     protected List<VcenterDataCenterRestRep> listDatacentersByVCenter(AssetOptionsContext context, URI vcenterId) {
@@ -73,17 +73,17 @@ public class VMWareProvider extends BaseHostProvider {
     }
 
     protected List<VcenterDataCenterRestRep> listDatacentersByVCenterAndCluster(AssetOptionsContext context, URI vcenterId, URI clusterId) {
-    	ClusterRestRep clusterRestRep = api(context).clusters().get(clusterId);  	
-    	RelatedResourceRep vcenterDatacenter = clusterRestRep.getVcenterDataCenter();
-    	if(vcenterDatacenter == null) {
-    		// return all datacenters for this datacenter
+        ClusterRestRep clusterRestRep = api(context).clusters().get(clusterId);
+        RelatedResourceRep vcenterDatacenter = clusterRestRep.getVcenterDataCenter();
+        if (vcenterDatacenter == null) {
+            // return all datacenters for this datacenter
             return api(context).vcenterDataCenters().getByVcenter(vcenterId);
-    	}
-    	else {
-    		// return the datacenter this vipr cluster is already associated with in vcenter
-    		VcenterDataCenterRestRep vcenterDataCenterRestRep = api(context).vcenterDataCenters().get(vcenterDatacenter.getId());
-    		return Arrays.asList(vcenterDataCenterRestRep);	
-    	}
+        }
+        else {
+            // return the datacenter this vipr cluster is already associated with in vcenter
+            VcenterDataCenterRestRep vcenterDataCenterRestRep = api(context).vcenterDataCenters().get(vcenterDatacenter.getId());
+            return Arrays.asList(vcenterDataCenterRestRep);
+        }
     }
 
     protected List<HostRestRep> listEsxHostsByDatacenter(AssetOptionsContext context, URI datacenterId) {
@@ -109,15 +109,14 @@ public class VMWareProvider extends BaseHostProvider {
     }
 
     @Asset("esxHost")
-    @AssetDependencies({"datacenter"})
+    @AssetDependencies({ "datacenter" })
     public List<AssetOption> getEsxHosts(AssetOptionsContext context, URI datacenter) {
         debug("getting esxHosts (datacenter=%s)", datacenter);
         return createHostOptions(context, listEsxHostsByDatacenter(context, datacenter));
     }
 
-
     @Asset("esxHost")
-    @AssetDependencies({"datacenter", "blockStorageType"})
+    @AssetDependencies({ "datacenter", "blockStorageType" })
     public List<AssetOption> getEsxHosts(AssetOptionsContext context, URI datacenter, String storageType) {
         debug("getting esxHosts (datacenter=%s)", datacenter);
         return getHostOrClusterOptions(context, listEsxHostsByDatacenter(context, datacenter), storageType);
@@ -129,7 +128,7 @@ public class VMWareProvider extends BaseHostProvider {
         debug("getting fileDatastores (datacenter=%s, project=%s)", datacenter, project);
         return createStringOptions(listFileDatastoresByProjectAndDatacenter(context, project, datacenter));
     }
-    
+
     private static List<URI> getVolumeList(List<? extends BlockObjectRestRep> objects) {
         List<URI> volumes = Lists.newArrayList();
         for (BlockObjectRestRep rep : objects) {
@@ -137,14 +136,14 @@ public class VMWareProvider extends BaseHostProvider {
         }
         return volumes;
     }
-    
-    
+
     @Asset("unassignedBlockDatastore")
-    @AssetDependencies({"esxHost", "project"})
+    @AssetDependencies({ "esxHost", "project" })
     public List<AssetOption> getUnassignedDatastores(AssetOptionsContext ctx, URI hostOrClusterId, final URI projectId) {
         ViPRCoreClient client = api(ctx);
         Set<URI> exportedBlockResources = BlockProvider.getExportedVolumes(api(ctx), projectId, hostOrClusterId, null);
-        UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter = new UnexportedBlockResourceFilter<VolumeRestRep>(exportedBlockResources);
+        UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter = new UnexportedBlockResourceFilter<VolumeRestRep>(
+                exportedBlockResources);
         SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
         List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter));
         List<URI> volumeIds = getVolumeList(volumes);
@@ -152,7 +151,7 @@ public class VMWareProvider extends BaseHostProvider {
 
         return createBlockVolumeDatastoreOptions(volumeHlus, volumes, hostOrClusterId);
     }
-    
+
     @Asset("assignedBlockDatastore")
     @AssetDependencies("esxHost")
     public List<AssetOption> getAssignedDatastores(AssetOptionsContext context, URI esxHost) {
@@ -169,10 +168,10 @@ public class VMWareProvider extends BaseHostProvider {
 
         List<URI> resourceIds = getVolumeList(resources);
         Map<URI, Integer> volumeHlus = getVolumeHLUs(context, resourceIds);
-        
+
         return createBlockVolumeDatastoreOptions(volumeHlus, resources, esxHost);
     }
-    
+
     @Asset("blockdatastore")
     @AssetDependencies("esxHost")
     public List<AssetOption> getBlockDatastores(AssetOptionsContext context, URI esxHost) {
@@ -182,7 +181,7 @@ public class VMWareProvider extends BaseHostProvider {
 
         return createDatastoreOptions(mountedVolumes, esxHost);
     }
-    
+
     @Asset("vcentersForCluster")
     @AssetDependencies("cluster")
     public List<AssetOption> getVcentersForCluster(AssetOptionsContext context, URI cluster) {
@@ -191,8 +190,8 @@ public class VMWareProvider extends BaseHostProvider {
     }
 
     @Asset("datacentersForCluster")
-    @AssetDependencies({"vcentersForCluster","cluster"})
-    public List<AssetOption> getDatacentersForCluster(AssetOptionsContext context, URI vcentersForCluster,  URI cluster) {
+    @AssetDependencies({ "vcentersForCluster", "cluster" })
+    public List<AssetOption> getDatacentersForCluster(AssetOptionsContext context, URI vcentersForCluster, URI cluster) {
         debug("getting datacenters (vcenter=%s, cluster=%s)", vcentersForCluster, cluster);
         return createBaseResourceOptions(listDatacentersByVCenterAndCluster(context, vcentersForCluster, cluster));
     }
@@ -205,13 +204,14 @@ public class VMWareProvider extends BaseHostProvider {
     }
 
     @Asset("datacentersForEsxCluster")
-    @AssetDependencies({"vcentersForEsxCluster","esxCluster"})
-    public List<AssetOption> getDatacentersForEsxCluster(AssetOptionsContext context, URI vcentersForEsxCluster,  URI esxCluster) {
+    @AssetDependencies({ "vcentersForEsxCluster", "esxCluster" })
+    public List<AssetOption> getDatacentersForEsxCluster(AssetOptionsContext context, URI vcentersForEsxCluster, URI esxCluster) {
         debug("getting datacenters (vcenter=%s, cluster=%s)", vcentersForEsxCluster, esxCluster);
         return createBaseResourceOptions(listDatacentersByVCenterAndCluster(context, vcentersForEsxCluster, esxCluster));
     }
-    
-    protected static List<AssetOption> createBlockVolumeDatastoreOptions(Map<URI, Integer> volumeHlus, List<? extends BlockObjectRestRep> mountedVolumes, URI hostId) {
+
+    protected static List<AssetOption> createBlockVolumeDatastoreOptions(Map<URI, Integer> volumeHlus,
+            List<? extends BlockObjectRestRep> mountedVolumes, URI hostId) {
         List<AssetOption> options = Lists.newArrayList();
 
         for (BlockObjectRestRep volume : mountedVolumes) {
@@ -219,12 +219,12 @@ public class VMWareProvider extends BaseHostProvider {
             Integer hlu = volumeHlus.get(volume.getId());
             String hluLabel = hlu == null ? "N/A" : hlu.toString();
             String datastoresLabel = datastoreNames.isEmpty() ? "N/A" : StringUtils.join(datastoreNames, ",");
-            options.add(newAssetOption(volume.getId(), "volume.hlu.datastore", volume.getDeviceLabel(), hluLabel, datastoresLabel));            
+            options.add(newAssetOption(volume.getId(), "volume.hlu.datastore", volume.getDeviceLabel(), hluLabel, datastoresLabel));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }
-    
+
     private Map<URI, Integer> getVolumeHLUs(AssetOptionsContext context, List<URI> volumeIds) {
         BulkIdParam bulkParam = new BulkIdParam();
         Map<URI, Integer> volumeHLUs = Maps.newHashMap();
@@ -238,8 +238,6 @@ public class VMWareProvider extends BaseHostProvider {
 
     }
 
- 
-    
     protected static List<AssetOption> createDatastoreOptions(List<? extends BlockObjectRestRep> mountedVolumes, URI hostId) {
         Set<String> datastores = Sets.newHashSet(); // There can be multiple volumes to a DS, so de-dupe in a Set
         for (BlockObjectRestRep volume : mountedVolumes) {

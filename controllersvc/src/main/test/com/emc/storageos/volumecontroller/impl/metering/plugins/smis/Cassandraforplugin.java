@@ -28,8 +28,8 @@ import com.emc.storageos.db.exceptions.DatabaseException;
  */
 public class Cassandraforplugin {
     private static final String SERVICE_BEAN = "dbsvc";
-    private static final Logger _logger      = LoggerFactory
-                                                     .getLogger(Cassandraforplugin.class);
+    private static final Logger _logger = LoggerFactory
+            .getLogger(Cassandraforplugin.class);
 
     public static long query(DbClient dbClient) {
         ExecutorService executor = Executors.newFixedThreadPool(10);
@@ -44,7 +44,7 @@ public class Cassandraforplugin {
         try {
             latch.await(60, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-        	_logger.error(e.getMessage(),e);
+            _logger.error(e.getMessage(), e);
         }
         return latch.getCount();
     }
@@ -62,7 +62,7 @@ public class Cassandraforplugin {
     private static class DummyQueryResult implements TimeSeriesQueryResult<Stat> {
         private CountDownLatch _latch;
 
-        DummyQueryResult ( CountDownLatch latch ) {
+        DummyQueryResult(CountDownLatch latch) {
             _latch = latch;
         }
 

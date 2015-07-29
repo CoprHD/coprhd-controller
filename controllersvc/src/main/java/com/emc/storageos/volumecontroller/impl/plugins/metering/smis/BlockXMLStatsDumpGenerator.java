@@ -8,10 +8,11 @@ import java.io.PrintWriter;
 import java.util.Map;
 
 import com.emc.storageos.volumecontroller.impl.plugins.metering.XMLStatsDumpGenerator;
+
 /**
  * Dump the Block stat records using the below header & tailer format
- * to identify the Block stats. 
- *
+ * to identify the Block stats.
+ * 
  */
 public class BlockXMLStatsDumpGenerator extends XMLStatsDumpGenerator {
 

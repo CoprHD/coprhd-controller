@@ -11,7 +11,7 @@ import com.emc.vipr.model.sys.healthmonitor.ServiceHealth;
 import com.emc.vipr.model.sys.healthmonitor.ServiceStats;
 
 public class NodeServicesDataTable extends DataTable {
-    
+
     public NodeServicesDataTable() {
         addColumn("nodeId").hidden();
         addColumn("name");
@@ -24,7 +24,7 @@ public class NodeServicesDataTable extends DataTable {
         addColumn("actions").setRenderFunction("renderServiceActions");
         sortAllExcept("actions", "pid", "files");
     }
-    
+
     public static class Services {
         String nodeId;
         String name;
@@ -34,7 +34,7 @@ public class NodeServicesDataTable extends DataTable {
         Long memory;
         int files;
         Integer pid;
-        
+
         public Services(String nodeId, ServiceHealth serviceHealth, ServiceStats serviceStats) {
             this.nodeId = nodeId;
             this.name = serviceHealth.getServiceName();

@@ -22,9 +22,9 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 public class CloneCreateWorkflowCompleter extends VolumeTaskCompleter {
 
     private static final long serialVersionUID = -8760349639300139009L;
-    
+
     private static final Logger log = LoggerFactory
-        .getLogger(CloneCreateWorkflowCompleter.class);
+            .getLogger(CloneCreateWorkflowCompleter.class);
 
     public CloneCreateWorkflowCompleter(List<URI> fullCopyVolumeURIs, String task) {
         super(Volume.class, fullCopyVolumeURIs, task);
@@ -33,7 +33,7 @@ public class CloneCreateWorkflowCompleter extends VolumeTaskCompleter {
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
-        throws DeviceControllerException {
+            throws DeviceControllerException {
         log.info("START FullCopyVolumeCreateWorkflowCompleter complete");
         super.setStatus(dbClient, status, coded);
         super.complete(dbClient, status, coded);

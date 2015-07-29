@@ -45,7 +45,7 @@ public class SmisCloneVolumeJob extends SmisReplicaCreationJobs {
             CloneCreateCompleter completer = (CloneCreateCompleter) getTaskCompleter();
             Volume cloneVolume = dbClient.queryObject(Volume.class, completer.getId());
 
-            // If terminal state update storage pool capacity and remove reservation for  volume capacity
+            // If terminal state update storage pool capacity and remove reservation for volume capacity
             // from pool's reserved capacity map.
             if (jobStatus == JobStatus.SUCCESS || jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 cimConnectionFactory = jobContext.getCimConnectionFactory();
@@ -67,7 +67,7 @@ public class SmisCloneVolumeJob extends SmisReplicaCreationJobs {
                 if (iterator.hasNext()) {
                     CIMObjectPath cloneVolumePath = iterator.next();
                     CIMInstance syncVolume = client.getInstance(cloneVolumePath, false, false, null);
-                    
+
                     String deviceId = cloneVolumePath.getKey(SmisConstants.CP_DEVICE_ID).getValue().toString();
                     String elementName = CIMPropertyFactory.getPropertyValue(syncVolume, SmisConstants.CP_ELEMENT_NAME);
                     String wwn = CIMPropertyFactory.getPropertyValue(syncVolume, SmisConstants.CP_WWN_NAME);
@@ -86,12 +86,13 @@ public class SmisCloneVolumeJob extends SmisReplicaCreationJobs {
                         cloneVolume.setReplicaState(ReplicationState.INACTIVE.name());
                     }
                     dbClient.persistObject(cloneVolume);
-                    
+
                 }
                 /*
-                for (URI id : completer.getIds()) {
-                    completer.ready(dbClient);
-                }*/
+                 * for (URI id : completer.getIds()) {
+                 * completer.ready(dbClient);
+                 * }
+                 */
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 String msg = String.format("Failed job to create full copy from %s to %s",
                         cloneVolume.getAssociatedSourceVolume(), cloneVolume.getId());

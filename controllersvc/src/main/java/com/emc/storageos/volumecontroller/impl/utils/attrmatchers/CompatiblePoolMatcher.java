@@ -20,32 +20,32 @@ import com.google.common.base.Joiner;
 
 public class CompatiblePoolMatcher extends AttributeMatcher {
 
-	private static final Logger _logger = LoggerFactory.getLogger(CompatiblePoolMatcher.class);
-	
-	@Override
-	protected boolean isAttributeOn(Map<String, Object> attributeMap) {
-		// Since this is a defaultMatcher, it should always return true.
-        return true;
-	}
+    private static final Logger _logger = LoggerFactory.getLogger(CompatiblePoolMatcher.class);
 
-	@Override
-	protected List<StoragePool> matchStoragePoolsWithAttributeOn(
-			List<StoragePool> allPools, Map<String, Object> attributeMap) {
-		List<StoragePool> matchedPools = new ArrayList<StoragePool>();
-        //Filter out incompatible pools.
+    @Override
+    protected boolean isAttributeOn(Map<String, Object> attributeMap) {
+        // Since this is a defaultMatcher, it should always return true.
+        return true;
+    }
+
+    @Override
+    protected List<StoragePool> matchStoragePoolsWithAttributeOn(
+            List<StoragePool> allPools, Map<String, Object> attributeMap) {
+        List<StoragePool> matchedPools = new ArrayList<StoragePool>();
+        // Filter out incompatible pools.
         _logger.info("Compatible Pools Matcher Started : {}", Joiner.on("\t").join(getNativeGuidFromPools(allPools)));
         Iterator<StoragePool> poolIterator = allPools.iterator();
-        while(poolIterator.hasNext()) {
+        while (poolIterator.hasNext()) {
             StoragePool pool = poolIterator.next();
             if (null == pool) {
                 continue;
-            }else if (!CompatibilityStatus.INCOMPATIBLE.name().equalsIgnoreCase(pool.getCompatibilityStatus())) {
+            } else if (!CompatibilityStatus.INCOMPATIBLE.name().equalsIgnoreCase(pool.getCompatibilityStatus())) {
                 matchedPools.add(pool);
             }
-            
+
         }
         _logger.info("Compatible Pools Matcher Ended : {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
         return matchedPools;
-	}
+    }
 
 }

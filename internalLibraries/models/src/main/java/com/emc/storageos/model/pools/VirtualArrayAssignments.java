@@ -29,8 +29,9 @@ public class VirtualArrayAssignments {
 
     private Set<String> varrays;
 
-    public VirtualArrayAssignments() {}
-    
+    public VirtualArrayAssignments() {
+    }
+
     public VirtualArrayAssignments(Set<String> varrays) {
         this.varrays = varrays;
     }
@@ -47,6 +48,6 @@ public class VirtualArrayAssignments {
 
     public void setVarrays(Set<String> varrays) {
         this.varrays = varrays;
-    }    
-    
+    }
+
 }

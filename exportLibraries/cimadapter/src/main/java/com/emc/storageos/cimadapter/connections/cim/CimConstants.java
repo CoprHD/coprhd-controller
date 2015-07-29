@@ -51,13 +51,13 @@ public abstract class CimConstants {
 
     // Default impl namespace for a CIM connection
     public static final String DFLT_CIM_CONNECTION_IMPL_NS = "root/emc";
-    
+
     // Default impl namespace for a CIM connection
     public static final String FILE_CIM_CONNECTION_IMPL_NS = "root/emc/celerra";
 
     // Default impl namespace for a CIM connection for IBM
     public static final String DFLT_IBM_CIM_CONNECTION_IMPL_NS = "root/ibm";
-    
+
     // Secure connection protocol.
     public static final String SECURE_PROTOCOL = "https";
 

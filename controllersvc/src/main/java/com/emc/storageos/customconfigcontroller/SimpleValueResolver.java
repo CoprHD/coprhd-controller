@@ -7,7 +7,7 @@ package com.emc.storageos.customconfigcontroller;
 import com.emc.storageos.customconfigcontroller.exceptions.CustomConfigControllerException;
 import com.emc.storageos.db.client.model.StringMap;
 
-public class SimpleValueResolver extends CustomConfigResolver{
+public class SimpleValueResolver extends CustomConfigResolver {
 
     private static final long serialVersionUID = -5310184248459285708L;
     private static final String INTEGER = "Integer";
@@ -16,7 +16,7 @@ public class SimpleValueResolver extends CustomConfigResolver{
     @Override
     public void validate(CustomConfigType configType, StringMap scope,
             String value) {
-        //validate value type
+        // validate value type
         String type = configType.getType();
         try {
             if (type.equals(INTEGER)) {
@@ -28,15 +28,14 @@ public class SimpleValueResolver extends CustomConfigResolver{
             throw CustomConfigControllerException.exceptions.invalidValueType(
                     type, value, configType.getName());
         }
-        
+
     }
 
     @Override
     public String resolve(CustomConfigType configType, StringMap scope,
             String value, DataSource datasource) {
-        
+
         return value;
     }
-    
 
 }

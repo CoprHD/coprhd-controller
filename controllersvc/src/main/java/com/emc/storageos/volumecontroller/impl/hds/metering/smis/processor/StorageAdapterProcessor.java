@@ -17,30 +17,29 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Processor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 
-
 public class StorageAdapterProcessor extends Processor {
-	private Logger _logger = LoggerFactory.getLogger(StorageAdapterProcessor.class);
-	
-	@Override
-	public void processResult(Operation operation, Object resultObj,
-			Map<String, Object> keyMap) throws BaseCollectionException {
-		try {
-			@SuppressWarnings("unchecked")
-			final Iterator<CIMInstance> it = (Iterator<CIMInstance>) resultObj;
-			while (it.hasNext()) {
-				CIMInstance adapterInstance = it.next();
-				addPath(keyMap, operation.getResult(), adapterInstance.getObjectPath());
-			}
-		} catch (Exception e) {
-			_logger.error("Fetching Adapter Information failed -->{}", getMessage(e));
-		}
-	}
+    private Logger _logger = LoggerFactory.getLogger(StorageAdapterProcessor.class);
 
-	@Override
-	protected void setPrerequisiteObjects(List<Object> inputArgs)
-			throws BaseCollectionException {
-		// TODO Auto-generated method stub
-		
-	}
+    @Override
+    public void processResult(Operation operation, Object resultObj,
+            Map<String, Object> keyMap) throws BaseCollectionException {
+        try {
+            @SuppressWarnings("unchecked")
+            final Iterator<CIMInstance> it = (Iterator<CIMInstance>) resultObj;
+            while (it.hasNext()) {
+                CIMInstance adapterInstance = it.next();
+                addPath(keyMap, operation.getResult(), adapterInstance.getObjectPath());
+            }
+        } catch (Exception e) {
+            _logger.error("Fetching Adapter Information failed -->{}", getMessage(e));
+        }
+    }
+
+    @Override
+    protected void setPrerequisiteObjects(List<Object> inputArgs)
+            throws BaseCollectionException {
+        // TODO Auto-generated method stub
+
+    }
 
 }

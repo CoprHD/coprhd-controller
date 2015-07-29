@@ -4,13 +4,10 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering;
 
-import java.net.URI;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.plugins.BaseCollectionException;
 
@@ -30,6 +27,7 @@ public abstract class CassandraInsertion {
      * Block,we need to get the Volume Instance to retrieve Project Details. But
      * for File ,we need FileShare Instance. hence, each Plugin needs to
      * implement logic to attach Project Details.
+     * 
      * @return
      * @throws Exception
      */
@@ -37,6 +35,7 @@ public abstract class CassandraInsertion {
 
     /**
      * Each plugin responsible for throwing customized Exception
+     * 
      * @param e
      * @throws BaseCollectionException
      */
@@ -44,6 +43,7 @@ public abstract class CassandraInsertion {
 
     /**
      * Inject Stat columns.
+     * 
      * @param statObj
      * @param client
      * @throws BaseCollectionException

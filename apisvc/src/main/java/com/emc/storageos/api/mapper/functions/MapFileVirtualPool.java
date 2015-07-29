@@ -9,7 +9,7 @@ import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.google.common.base.Function;
 
-public class MapFileVirtualPool implements Function<VirtualPool,FileVirtualPoolRestRep> {
+public class MapFileVirtualPool implements Function<VirtualPool, FileVirtualPoolRestRep> {
     public static final MapFileVirtualPool instance = new MapFileVirtualPool();
 
     public static MapFileVirtualPool getInstance() {

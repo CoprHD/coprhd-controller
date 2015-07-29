@@ -117,7 +117,7 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
             if (null != pool) {
                 // add to modified pool list if pool's property which is required for vPool matcher, has changed.
                 // If the modified list already has this pool, skip the check.
-                if (!poolsToMatchWithVpool.containsKey(pool.getId()) && 
+                if (!poolsToMatchWithVpool.containsKey(pool.getId()) &&
                         ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getSupportedRaidLevels(), raidLevels)) {
                     poolsToMatchWithVpool.put(pool.getId(), pool);
                 }
@@ -249,13 +249,13 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
 
     /**
      * For each AutoTierPolicy in the the given lists, asociated them to the pool
-     *
-     * @param pool       [in] - StoragePool object
-     * @param newList    [in] - List of AutoTierPolicies that were not found in the database
+     * 
+     * @param pool [in] - StoragePool object
+     * @param newList [in] - List of AutoTierPolicies that were not found in the database
      * @param updateList [in] - List of AutoTierPolicies that were already in the database
      */
     private void attachPoolsToSLOBasedAutoTierPolicies(StoragePool pool, List<AutoTieringPolicy> newList,
-                                                       List<AutoTieringPolicy> updateList) {
+            List<AutoTieringPolicy> updateList) {
         if (newList != null) {
             for (AutoTieringPolicy newPolicy : newList) {
                 newPolicy.addPool(pool.getId().toString());
@@ -271,15 +271,15 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
     /**
      * Persist the AutoTieringPolicies found in the passed in lists. Perform some checks
      * and update policies that may have been removed.
-     *
+     * 
      * @param storageSystem [in] - StorageSystem that the AutoTierPolicies will belong to
-     * @param sloNames      [in] - SLO policy native GUID names found
-     * @param newList       [in] - List of AutoTierPolicies that were not found in the database
-     * @param updateList    [in] - List of AutoTierPolicies that were already in the database
+     * @param sloNames [in] - SLO policy native GUID names found
+     * @param newList [in] - List of AutoTierPolicies that were not found in the database
+     * @param updateList [in] - List of AutoTierPolicies that were already in the database
      * @throws IOException
      */
     private void processSLOBasedAutoTierPolicies(StorageSystem storageSystem, Set<String> sloNames,
-                                                 List<AutoTieringPolicy> newList, List<AutoTieringPolicy> updateList)
+            List<AutoTieringPolicy> newList, List<AutoTieringPolicy> updateList)
             throws IOException {
         if (newList != null) {
             _dbClient.createObject(newList);
@@ -292,13 +292,13 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
 
     /**
      * Validate that this represents a SLO setting. If it does, then process it as an AutoTierPolicy
-     *
+     * 
      * If the CIMInstance has a its EMCFastSetting populated, then this is a SLO policy
      * based StoragePoolSetting. We will extract the SLOName, Workload, and Average response time.
      * These will be populated in the AutoTieringPolicy object (if one needs to be created).
-     *
+     * 
      * Updates 'sloNames' list
-     *
+     * 
      * @param storageSystem [in] - StorageSystem that the setting belongs to
      * @param settingInstance [in] - Should be an instance of Symm_StoragePoolSetting.
      */
@@ -330,18 +330,18 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
 
     /**
      * Create or update an AutoTieringPolicy object with the passed parameters.
-     *
+     * 
      * Updates 'newSLOList' and 'updateSLOList'
-     *
-     * @param storageSystem   [in] - StorageSystem that the AutoTierPolicy will belong to
-     * @param policy          [in] - If null, implies we have to create a new one, otherwise it's an update
-     * @param sloID           [in] - Native ID constructed based on the slo and workload
-     * @param sloName         [in] - SLO + Workload
-     * @param avgResponseTime [in] - Average Expected Response time for the SLO + Workload    @throws IOException
+     * 
+     * @param storageSystem [in] - StorageSystem that the AutoTierPolicy will belong to
+     * @param policy [in] - If null, implies we have to create a new one, otherwise it's an update
+     * @param sloID [in] - Native ID constructed based on the slo and workload
+     * @param sloName [in] - SLO + Workload
+     * @param avgResponseTime [in] - Average Expected Response time for the SLO + Workload @throws IOException
      */
     private void createOrUpdateSLOBasedAutoTierPolicy(StorageSystem storageSystem, AutoTieringPolicy policy,
-                                                      String sloID, String sloName, String slo, String workload,
-                                                      String avgResponseTime) {
+            String sloID, String sloName, String slo, String workload,
+            String avgResponseTime) {
         boolean newPolicy = false;
         if (null == policy) {
             newPolicy = true;
@@ -369,9 +369,9 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
 
     /**
      * if the policy had been removed from the Array, the rediscovery cycle should set the fast Policy to inactive.
-     *
-     * @param dbClient         [in] - Database client
-     * @param policyNames      [in] - List SLO nativeGUIDs
+     * 
+     * @param dbClient [in] - Database client
+     * @param policyNames [in] - List SLO nativeGUIDs
      * @param storageSystemURI [in] - URI of StorageSystem object
      * @throws java.io.IOException
      */

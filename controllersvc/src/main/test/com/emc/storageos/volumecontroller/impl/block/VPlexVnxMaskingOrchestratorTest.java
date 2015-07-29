@@ -17,7 +17,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.PropertyConfigurator;
 
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -54,87 +53,93 @@ public class VPlexVnxMaskingOrchestratorTest extends StoragePortsAllocatorTest {
         VPlexBackendManager bemgr = new VPlexBackendManager();
         orca.setSimulation(true);
         URI arrayURI = URI.create("vmaxArray");
-        
+
         Map<String, Set<String>> directorToInitiators = new HashMap<String, Set<String>>();
         Map<String, URI> initiatorIdToNetwork = new HashMap<String, URI>();
         Map<String, Initiator> initiatorMap = new HashMap<String, Initiator>();
-        
+
         PortAllocationContext context = null;
         Map<URI, NetworkLite> networkMap = new HashMap<URI, NetworkLite>();
         Map<URI, List<StoragePort>> allocatablePorts = new HashMap<URI, List<StoragePort>>();
         URI varray1 = URI.create("varray1");
-        
+
         context = getNet1Ports(networkMap, allocatablePorts);
         context = getNet2Ports(networkMap, allocatablePorts);
         logNetworks(allocatablePorts);
-        getInitiatorsVplex154Clus1(directorToInitiators, initiatorIdToNetwork, initiatorMap, 
+        getInitiatorsVplex154Clus1(directorToInitiators, initiatorIdToNetwork, initiatorMap,
                 "net1", "net2", null, false);
-        Set<Map<String, Map<URI, Set<Initiator>>>> initiatorGroups = 
+        Set<Map<String, Map<URI, Set<Initiator>>>> initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, true, true);
-        Set<Map<URI,List<StoragePort>>> portGroups = orca.getPortGroups(
+        Set<Map<URI, List<StoragePort>>> portGroups = orca.getPortGroups(
                 allocatablePorts, networkMap, varray1, initiatorGroups.size());
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
-        
-        context.reinitialize(); networkMap.clear(); allocatablePorts.clear();
+
+        context.reinitialize();
+        networkMap.clear();
+        allocatablePorts.clear();
         context = getNet3Ports(networkMap, allocatablePorts);
         context = getNet4Ports(networkMap, allocatablePorts);
         logNetworks(allocatablePorts);
-        getInitiatorsVplex154Clus1(directorToInitiators, initiatorIdToNetwork, initiatorMap, 
+        getInitiatorsVplex154Clus1(directorToInitiators, initiatorIdToNetwork, initiatorMap,
                 "net3", "net4", null, false);
-        initiatorGroups = 
+        initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, true, true);
         portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size());
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
-        
+
         context = getNet1Ports(networkMap, allocatablePorts);
         context = getNet2Ports(networkMap, allocatablePorts);
         logNetworks(allocatablePorts);
-        getInitiatorsVplex154Clus1(directorToInitiators, initiatorIdToNetwork, initiatorMap, 
+        getInitiatorsVplex154Clus1(directorToInitiators, initiatorIdToNetwork, initiatorMap,
                 "net1", "net2", null, true);
-        initiatorGroups = 
+        initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, true, true);
         portGroups = orca.getPortGroups(
                 allocatablePorts, networkMap, varray1, initiatorGroups.size());
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
-        
-        context.reinitialize(); networkMap.clear(); allocatablePorts.clear();
+
+        context.reinitialize();
+        networkMap.clear();
+        allocatablePorts.clear();
         context = getNet3Ports(networkMap, allocatablePorts);
         context = getNet4Ports(networkMap, allocatablePorts);
         logNetworks(allocatablePorts);
-        getInitiatorsVplex154Clus1(directorToInitiators, initiatorIdToNetwork, initiatorMap, 
+        getInitiatorsVplex154Clus1(directorToInitiators, initiatorIdToNetwork, initiatorMap,
                 "net3", "net4", null, true);
-        initiatorGroups = 
+        initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, true, true);
         portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size());
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
 
-
     }
-    
+
     static Integer maskCounter = 1;
-    
+
     private static void makeExportMasks(URI arrayURI, VPlexVnxMaskingOrchestrator orca,
-            Set<Map<URI,List<StoragePort>>> portGroups, 
+            Set<Map<URI, List<StoragePort>>> portGroups,
             Set<Map<String, Map<URI, Set<Initiator>>>> initiatorGroups,
             Map<URI, NetworkLite> networkMap) {
         // Iterate through the PortGroups generating zoning info and an ExportMask
         Iterator<Map<String, Map<URI, Set<Initiator>>>> igIterator = initiatorGroups.iterator();
-        Iterator<Map<URI,List<StoragePort>>> pgIterator = portGroups.iterator();
-        
+        Iterator<Map<URI, List<StoragePort>>> pgIterator = portGroups.iterator();
+
         while (igIterator.hasNext()) {
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup = igIterator.next();
             String maskName = "testMask" + maskCounter.toString();
-            if (!pgIterator.hasNext()) break;
-            Map<URI,List<StoragePort>> portGroup = pgIterator.next();
+            if (!pgIterator.hasNext()) {
+                break;
+            }
+            Map<URI, List<StoragePort>> portGroup = pgIterator.next();
             maskCounter++;
             _log.info("Generating ExportMask: " + maskName);
             StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, networkMap);
-            VPlexBackendManager mgr = new VPlexBackendManager(null, null, null, null, null, URI.create("project"), URI.create("tenant"), null);
+            VPlexBackendManager mgr = new VPlexBackendManager(null, null, null, null, null, URI.create("project"), URI.create("tenant"),
+                    null);
             ExportMask exportMask = mgr.generateExportMask(arrayURI, maskName, portGroup, initiatorGroup, zoningMap);
         }
         _log.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
     }
-    
+
     private static PortAllocationContext getNet1Ports(Map<URI, NetworkLite> networkMap, Map<URI, List<StoragePort>> allocatablePorts) {
         String label = "net1";
         URI id = URI.create(label);
@@ -152,7 +157,7 @@ public class VPlexVnxMaskingOrchestratorTest extends StoragePortsAllocatorTest {
         allocatablePorts.put(id, ports);
         return context;
     }
-    
+
     private static PortAllocationContext getNet2Ports(Map<URI, NetworkLite> networkMap, Map<URI, List<StoragePort>> allocatablePorts) {
         String label = "net2";
         URI id = URI.create(label);
@@ -170,7 +175,7 @@ public class VPlexVnxMaskingOrchestratorTest extends StoragePortsAllocatorTest {
         allocatablePorts.put(id, ports);
         return context;
     }
-    
+
     private static PortAllocationContext getNet3Ports(Map<URI, NetworkLite> networkMap, Map<URI, List<StoragePort>> allocatablePorts) {
         String label = "net3";
         URI id = URI.create(label);
@@ -196,7 +201,7 @@ public class VPlexVnxMaskingOrchestratorTest extends StoragePortsAllocatorTest {
         allocatablePorts.put(id, ports);
         return context;
     }
-    
+
     private static PortAllocationContext getNet4Ports(Map<URI, NetworkLite> networkMap, Map<URI, List<StoragePort>> allocatablePorts) {
         String label = "net4";
         URI id = URI.create(label);
@@ -222,7 +227,7 @@ public class VPlexVnxMaskingOrchestratorTest extends StoragePortsAllocatorTest {
         allocatablePorts.put(id, ports);
         return context;
     }
-    
+
     private static void getInitiatorsVplex154Clus1(
             Map<String, Set<String>> directorToInitiators,
             Map<String, URI> initiatorIdToNetwork,
@@ -257,6 +262,7 @@ public class VPlexVnxMaskingOrchestratorTest extends StoragePortsAllocatorTest {
 
     /**
      * Add a VPlex initiator to the simulation.
+     * 
      * @param initiatorMap -- Map of id to initiators being generated.
      * @param directorToInitiators -- Director to initiators map.
      * @param netToInitiators -- Network to initiators map.
@@ -265,7 +271,7 @@ public class VPlexVnxMaskingOrchestratorTest extends StoragePortsAllocatorTest {
      * @param net
      */
     private static void addInitiator(
-            Map<String, Initiator> initiatorMap, 
+            Map<String, Initiator> initiatorMap,
             Map<String, Set<String>> directorToInitiators,
             Map<String, URI> initiatorIdToNetwork,
             String director, String wwn, String net) {
@@ -281,7 +287,7 @@ public class VPlexVnxMaskingOrchestratorTest extends StoragePortsAllocatorTest {
         directorToInitiators.get(director).add(initiator.getId().toString());
         initiatorIdToNetwork.put(initiator.getId().toString(), netURI);
     }
-    
+
     private static void logNetworks(Map<URI, List<StoragePort>> allocatablePorts) {
         for (URI netURI : allocatablePorts.keySet()) {
             StringBuilder buf = new StringBuilder();
@@ -289,7 +295,8 @@ public class VPlexVnxMaskingOrchestratorTest extends StoragePortsAllocatorTest {
             for (StoragePort port : allocatablePorts.get(netURI)) {
                 buf.append(port.getPortName() + " ");
             }
-            _log.info(buf.toString());;
+            _log.info(buf.toString());
+            ;
         }
     }
 }

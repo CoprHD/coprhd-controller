@@ -23,12 +23,10 @@ import com.emc.storageos.volumecontroller.impl.plugins.metering.ZeroRecordGenera
 
 /**
  * FileCacheSyncher is responsible to do File specific operations.
- *
+ * 
  */
 public class FileZeroRecordGenerator extends ZeroRecordGenerator {
     private Logger _logger = LoggerFactory.getLogger(FileZeroRecordGenerator.class);
-
- 
 
     /**
      * Inject FileShareURI of the given nativeGuid.
@@ -53,7 +51,6 @@ public class FileZeroRecordGenerator extends ZeroRecordGenerator {
         return fileshareURIs;
     }
 
-
     @Override
     public void generateZeroRecord(Stat zeroStatRecord,
             Map<String, Object> keyMap) {
@@ -72,13 +69,12 @@ public class FileZeroRecordGenerator extends ZeroRecordGenerator {
         zeroStatRecord.setSnapshotCount(0);
     }
 
-
     @Override
     protected Stat getStatObject(URI resourceURI, DbClient dbClient) {
-        if(URIUtil.isType(resourceURI, FileShare.class)) {
+        if (URIUtil.isType(resourceURI, FileShare.class)) {
             FileShare fs = dbClient.queryObject(FileShare.class, resourceURI);
             if (!fs.checkInternalFlags(Flag.NO_METERING)) {
-                return new Stat();                
+                return new Stat();
             }
         }
         return null;

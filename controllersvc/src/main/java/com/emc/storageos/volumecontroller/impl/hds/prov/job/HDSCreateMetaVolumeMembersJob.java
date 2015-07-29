@@ -31,10 +31,11 @@ public class HDSCreateMetaVolumeMembersJob extends HDSJob {
     private Volume metaHead;
     // Actually denotes the LogicalUnit id's.
     private List<String> metaMembers = new ArrayList<String>();
-    
+
     private MetaVolumeTaskCompleter metaVolumeTaskCompleter;
 
-    public HDSCreateMetaVolumeMembersJob(String messageId, URI storageSystem, Volume metaHead, int count, MetaVolumeTaskCompleter metaVolumeTaskCompleter) {
+    public HDSCreateMetaVolumeMembersJob(String messageId, URI storageSystem, Volume metaHead, int count,
+            MetaVolumeTaskCompleter metaVolumeTaskCompleter) {
         super(messageId, storageSystem, metaVolumeTaskCompleter.getVolumeTaskCompleter(), "CreateMetaVolumeMembers");
         this.metaVolumeTaskCompleter = metaVolumeTaskCompleter;
         this.count = count;
@@ -45,14 +46,13 @@ public class HDSCreateMetaVolumeMembersJob extends HDSJob {
         return metaMembers;
     }
 
-
     public JobStatus getStatus() {
         return _status;
     }
 
     /**
      * Called to update the job status when the create meta members job completes.
-     *
+     * 
      * @param jobContext The job context.
      */
     public void updateStatus(JobContext jobContext) throws Exception {
@@ -65,11 +65,12 @@ public class HDSCreateMetaVolumeMembersJob extends HDSJob {
             String opId = getTaskCompleter().getOpId();
             StringBuilder logMsgBuilder =
                     new StringBuilder(String.format("Updating status of job %s to %s, task: %s", this.getJobName(), _status.name(), opId));
-            
+
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, getStorageSystemURI());
 
-            HDSApiClient hdsApiClient = jobContext.getHdsApiFactory().getClient(HDSUtils.getHDSServerManagementServerInfo(storageSystem), storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
-            
+            HDSApiClient hdsApiClient = jobContext.getHdsApiFactory().getClient(HDSUtils.getHDSServerManagementServerInfo(storageSystem),
+                    storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
+
             JavaResult javaResult = hdsApiClient.checkAsyncTaskStatus(getHDSJobMessageId());
             if (_status == JobStatus.SUCCESS) {
                 List<LogicalUnit> luList = (List<LogicalUnit>) javaResult.getBean(HDSConstants.LOGICALUNIT_LIST_BEAN_NAME);
@@ -83,7 +84,8 @@ public class HDSCreateMetaVolumeMembersJob extends HDSJob {
 
                 if (luObjectIdList.size() != count) {
                     logMsgBuilder.append("\n");
-                    logMsgBuilder.append(String.format("   Failed to create required number %s of meta members for meta head %s, task: %s .",
+                    logMsgBuilder.append(String.format(
+                            "   Failed to create required number %s of meta members for meta head %s, task: %s .",
                             count, metaHead.getLabel(), opId));
                     _log.error(logMsgBuilder.toString());
                     setFailedStatus(logMsgBuilder.toString());
@@ -94,7 +96,7 @@ public class HDSCreateMetaVolumeMembersJob extends HDSJob {
                             count, metaHead.getLabel(), opId));
                     metaMembers.addAll(luObjectIdList);
                     logMsgBuilder.append(String.format("%n Meta member device ID's: %s", metaMembers));
-                   
+
                     _log.info(logMsgBuilder.toString());
                 }
             } else if (_status == JobStatus.FAILED) {
@@ -108,7 +110,7 @@ public class HDSCreateMetaVolumeMembersJob extends HDSJob {
             _log.error("Caught an exception while trying to updateStatus for " + this.getJobName(), e);
             setErrorStatus("Encountered an internal error during " + this.getJobName() + " job status processing : " + e.getMessage());
         } finally {
-           
+
             metaVolumeTaskCompleter.setLastStepStatus(_status);
 
             if (_status != JobStatus.IN_PROGRESS) {

@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -18,7 +17,6 @@ import javax.wbem.client.WBEMClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -69,7 +67,7 @@ public class CapacityPoolProcessor extends Processor {
                 processVolumeCapacity(volumeInstanceChunks.getResponses(),
                         keyMap);
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             _logger.error("Provisioned Capacity failure :", e);
         } finally {
             resultObj = null;
@@ -88,6 +86,7 @@ public class CapacityPoolProcessor extends Processor {
     /**
      * Process volume capacity, iterates over the given chunk and process
      * each volume capacity.
+     * 
      * @param volumeInstances {@link CloseableIterator} instance
      * @param keyMap {@link Map} instance
      */
@@ -124,8 +123,9 @@ public class CapacityPoolProcessor extends Processor {
                 }
             } catch (Exception ex) {
                 // This check will make sure to skip unnecessary logs
-                if (!(ex instanceof BaseCollectionException))
+                if (!(ex instanceof BaseCollectionException)) {
                     _logger.error("Provisioned Capacity failure : ", ex);
+                }
             }
         }
 

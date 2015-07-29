@@ -28,7 +28,7 @@ public class CatalogImageDataTable extends DataTable {
         public long size;
         public String preview;
         public String rowLink;
-        
+
         public ImageInfo(CatalogImageRestRep image) {
             id = image.getId().toString();
             name = image.getName();

@@ -20,7 +20,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseTyp
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 
 public final class LicenseConstants {
-        
+
     public static final String MM_DD_YYYY_FORMAT = "MM/dd/yyyy";
     public static final String LICENSE_FILE_PATH = "/tmp/.license";
     // indicators to show what system generated the serial number. SYR will use
@@ -38,18 +38,18 @@ public final class LicenseConstants {
     final static String VIPR_BLOCK = "ViPR_Block";
     final static String VIPR_COMMODITY = "ViPR_Commodity";
     final static String VIPR_ECS = "ViPR_ECS";
-    
-    // Static strings used as map keys for the vendorstring map. 
+
+    // Static strings used as map keys for the vendorstring map.
     public final static String STORAGE_CAPACITY = "CAPACITY";
     public final static String STORAGE_CAPACITY_UNITS = "CAPACITY_UNIT";
     public final static String SWID_VALUE = "SWID";
     // name value pair for trial license: UNIT=TrialMode
     public final static String TRIAL_LICENSE_NAME = "UNIT";
-    
+
     // Allowed trial license values in ViPR 2.0 trial license and ViPR 1.0 trial license
-    public final static String[] TRIAL_LICENSE_VALUE = {"LimitedUseMode", "TrialMode"};
-    
-    public final static String TERABYTE="TB";
+    public final static String[] TRIAL_LICENSE_VALUE = { "LimitedUseMode", "TrialMode" };
+
+    public final static String TERABYTE = "TB";
     public final static BigInteger TB_VALUE = new BigInteger("1099511627776");
     // License File regex pattern. This pattern will return the ViPR model number and the value of the VENDOR_STRING
     public static final String LICENSE_PATTERN = "(ViPR_[a-zA-Z]+).+?VENDOR_STRING=" +
@@ -62,49 +62,51 @@ public final class LicenseConstants {
     public static final String SERVICE_LOOKUP_VERSION = "1";
     public static final String LICENSE_FEATRES_DELIM = "INCREMENT";
     public static final String LICENSE_EXPIRATION_DATE = "01/01/12006";
-        
+
     public static String getModelId(LicenseType licenseType)
     {
-        if(licenseType.equals(LicenseType.CONTROLLER))
+        if (licenseType.equals(LicenseType.CONTROLLER)) {
             return VIPR_CONTROLLER;
-        else if(licenseType.equals(LicenseType.OBJECT))
+        } else if (licenseType.equals(LicenseType.OBJECT)) {
             return VIPR_OBJECT;
-        else if(licenseType.equals(LicenseType.HDFS))
+        } else if (licenseType.equals(LicenseType.HDFS)) {
             return VIPR_HDFS;
-        else if(licenseType.equals(LicenseType.OBJECTHDFS))
-            return VIPR_OBJECTHDFS;        
-        else if(licenseType.equals(LicenseType.UNSTRUCTURED))
+        } else if (licenseType.equals(LicenseType.OBJECTHDFS)) {
+            return VIPR_OBJECTHDFS;
+        } else if (licenseType.equals(LicenseType.UNSTRUCTURED)) {
             return VIPR_UNSTRUCTURED;
-        else if(licenseType.equals(LicenseType.CAS))
+        } else if (licenseType.equals(LicenseType.CAS)) {
             return VIPR_CAS;
-        else if(licenseType.equals(LicenseType.BLOCK))
+        } else if (licenseType.equals(LicenseType.BLOCK)) {
             return VIPR_BLOCK;
-        else if(licenseType.equals(LicenseType.COMMODITY))
+        } else if (licenseType.equals(LicenseType.COMMODITY)) {
             return VIPR_COMMODITY;
-        else if(licenseType.equals(LicenseType.ECS))
+        } else if (licenseType.equals(LicenseType.ECS)) {
             return VIPR_ECS;
-        else
-            return "";		
+        } else {
+            return "";
+        }
     }
-    
+
     public static LicenseType getLicenseType(String modelId)
     {
-    	if(modelId.compareToIgnoreCase(VIPR_CONTROLLER) ==0)
-    		return LicenseType.CONTROLLER;
-    	else if(modelId.compareToIgnoreCase(VIPR_OBJECT) ==0)
-    		return LicenseType.OBJECT;
-    	else if(modelId.compareToIgnoreCase(VIPR_HDFS) ==0)
-    		return LicenseType.HDFS;
-    	else if(modelId.compareToIgnoreCase(VIPR_UNSTRUCTURED) ==0)
-    		return LicenseType.UNSTRUCTURED;
-    	else if(modelId.compareToIgnoreCase(VIPR_CAS) ==0)
-    		return LicenseType.CAS;
-    	else if(modelId.compareToIgnoreCase(VIPR_BLOCK) ==0)
-    		return LicenseType.BLOCK;
-    	else if(modelId.compareToIgnoreCase(VIPR_COMMODITY) ==0)
-    		return LicenseType.COMMODITY;
-    	else if(modelId.compareToIgnoreCase(VIPR_ECS) ==0)
-    		return LicenseType.ECS;
+        if (modelId.compareToIgnoreCase(VIPR_CONTROLLER) == 0) {
+            return LicenseType.CONTROLLER;
+        } else if (modelId.compareToIgnoreCase(VIPR_OBJECT) == 0) {
+            return LicenseType.OBJECT;
+        } else if (modelId.compareToIgnoreCase(VIPR_HDFS) == 0) {
+            return LicenseType.HDFS;
+        } else if (modelId.compareToIgnoreCase(VIPR_UNSTRUCTURED) == 0) {
+            return LicenseType.UNSTRUCTURED;
+        } else if (modelId.compareToIgnoreCase(VIPR_CAS) == 0) {
+            return LicenseType.CAS;
+        } else if (modelId.compareToIgnoreCase(VIPR_BLOCK) == 0) {
+            return LicenseType.BLOCK;
+        } else if (modelId.compareToIgnoreCase(VIPR_COMMODITY) == 0) {
+            return LicenseType.COMMODITY;
+        } else if (modelId.compareToIgnoreCase(VIPR_ECS) == 0) {
+            return LicenseType.ECS;
+        }
         return null;
     }
 }

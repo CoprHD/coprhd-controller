@@ -11,16 +11,12 @@ import javax.cim.CIMObjectPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
-import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
-import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.fast.AbstractFASTPolicyProcessor;
 
 /**
  * Processor used in finding out associated Auto Tiering Policy Name with PreExisting Volume.
@@ -46,8 +42,9 @@ public class TierPolicyProcessor extends StorageProcessor {
             String nativeGuid = getUnManagedVolumeNativeGuidFromVolumePath(volumePath);
             UnManagedVolume preExistingVolume = checkUnManagedVolumeExistsInDB(
                     nativeGuid, _dbClient);
-            if (null == preExistingVolume)
+            if (null == preExistingVolume) {
                 return;
+            }
             // get VolumeInfo Object and inject Fast Policy Name.
             @SuppressWarnings("unchecked")
             final Iterator<CIMObjectPath> it = (Iterator<CIMObjectPath>) resultObj;

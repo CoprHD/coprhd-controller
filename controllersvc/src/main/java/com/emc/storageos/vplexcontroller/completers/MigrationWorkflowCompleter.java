@@ -19,7 +19,6 @@ import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
-
 public class MigrationWorkflowCompleter extends TaskCompleter {
 
     String _wfStepId;
@@ -43,22 +42,22 @@ public class MigrationWorkflowCompleter extends TaskCompleter {
         updateMigrationStatus(dbClient, status, coded);
         updateWorkflowStatus(status, coded);
     }
-    
+
     @Override
     protected void updateWorkflowStatus(Status status, ServiceCoded coded) throws WorkflowException {
         String id = (_wfStepId != null ? _wfStepId : getOpId());
         switch (status) {
-        case error:
-            WorkflowStepCompleter.stepFailed(id, coded);
-            break;
-        case pending:
-            WorkflowStepCompleter.stepExecuting(id);
-            break;
-        default:
-            WorkflowStepCompleter.stepSucceded(id);
+            case error:
+                WorkflowStepCompleter.stepFailed(id, coded);
+                break;
+            case pending:
+                WorkflowStepCompleter.stepExecuting(id);
+                break;
+            default:
+                WorkflowStepCompleter.stepSucceded(id);
         }
     }
-    
+
     @Override
     protected void updateWorkflowState(Workflow.StepState state, ServiceCoded coded) throws WorkflowException {
         String id = (_wfStepId != null ? _wfStepId : getOpId());
@@ -74,7 +73,7 @@ public class MigrationWorkflowCompleter extends TaskCompleter {
                 WorkflowStepCompleter.stepSucceded(id);
         }
     }
-    
+
     /**
      * Update the status of the migration tasks.
      * 
@@ -95,6 +94,6 @@ public class MigrationWorkflowCompleter extends TaskCompleter {
                 }
                 break;
             default:
-        } 
+        }
     }
 }

@@ -33,18 +33,17 @@ import com.emc.storageos.util.ConnectivityUtil;
 /**
  * This is a helper class to update the implicit associations between varrays and
  * storage pools. These associations exist when a varray has one or more transport
- * zones with end points that map to storage arrays. The pools of these arrays are 
+ * zones with end points that map to storage arrays. The pools of these arrays are
  * considered implicitly associated with the varray. This is because volumes can
  * be created and exported to hosts in these varrays. These associations are changed
- * when networks are added/remove to varrays, storage ports are discovered, 
+ * when networks are added/remove to varrays, storage ports are discovered,
  * registered and de-registered, and when new pools are discovered. <em>Note</em> removal
  * of storage ports and storage pools is not yet supported.
- *
+ * 
  */
 public class StoragePoolAssociationHelper {
 
     private static final Logger _log = LoggerFactory.getLogger(StoragePoolAssociationHelper.class);
-
 
     /**
      * Update the storage pools that are affected by the network update. These are the pools
@@ -59,41 +58,43 @@ public class StoragePoolAssociationHelper {
      * @param ports the ports that were changed in the network if any, otherwise null
      * @param remPorts the ports that were removed to the network if any, otherwise null
      */
-    public static void handleNetworkUpdated (Network network, Collection<URI> addVarrays, Collection<URI> remVarray,
-            Collection<StoragePort> ports , Collection<StoragePort> remPorts, DbClient dbClient, CoordinatorClient coordinator) {
-        StoragePortAssociationHelper.runUpdatePortAssociationsProcess(ports, remPorts, dbClient, coordinator,null);
+    public static void handleNetworkUpdated(Network network, Collection<URI> addVarrays, Collection<URI> remVarray,
+            Collection<StoragePort> ports, Collection<StoragePort> remPorts, DbClient dbClient, CoordinatorClient coordinator) {
+        StoragePortAssociationHelper.runUpdatePortAssociationsProcess(ports, remPorts, dbClient, coordinator, null);
     }
-    
-    
+
     /**
      * Method to get Storage Systems from Ports
+     * 
      * @param ports
      * @param remPorts
      * @return
      */
-    public static  HashSet<URI> getStorageSytemsFromPorts(Collection<StoragePort> ports , Collection<StoragePort> remPorts) {
-         Map<URI, List<StoragePort>> systemsMap = getPortsBySystem(ports);
-         Map<URI, List<StoragePort>> remPortsSystemsMap = getPortsBySystem(remPorts);
-         // get all the system that were affected and update their virtual arrays 
-         HashSet<URI> systemsToProcess = new HashSet<URI>(remPortsSystemsMap.keySet());
-         systemsToProcess.addAll(systemsMap.keySet());
-         return systemsToProcess;
+    public static HashSet<URI> getStorageSytemsFromPorts(Collection<StoragePort> ports, Collection<StoragePort> remPorts) {
+        Map<URI, List<StoragePort>> systemsMap = getPortsBySystem(ports);
+        Map<URI, List<StoragePort>> remPortsSystemsMap = getPortsBySystem(remPorts);
+        // get all the system that were affected and update their virtual arrays
+        HashSet<URI> systemsToProcess = new HashSet<URI>(remPortsSystemsMap.keySet());
+        systemsToProcess.addAll(systemsMap.keySet());
+        return systemsToProcess;
     }
-    
+
     /**
      * Extract Storage Pools from Storage Systems the ports belonging to.
+     * 
      * @param dbClient
      * @param ports
      * @param remPorts
      * @return
      */
     public static List<StoragePool> getStoragePoolsFromPorts(DbClient dbClient,
-        Collection<StoragePort> ports, Collection<StoragePort> remPorts) {
+            Collection<StoragePort> ports, Collection<StoragePort> remPorts) {
         return getStoragePoolsFromPorts(dbClient, ports, remPorts, false);
     }
-    
+
     /**
      * Extract Storage Pools from Storage Systems the ports belonging to.
+     * 
      * @param dbClient
      * @param ports
      * @param remPorts
@@ -101,11 +102,11 @@ public class StoragePoolAssociationHelper {
      * @return
      */
     public static List<StoragePool> getStoragePoolsFromPorts(DbClient dbClient,
-        Collection<StoragePort> ports, Collection<StoragePort> remPorts,
-        boolean getVplexConnected) {
-        
+            Collection<StoragePort> ports, Collection<StoragePort> remPorts,
+            boolean getVplexConnected) {
+
         List<StoragePool> storagePools = new ArrayList<StoragePool>();
-        
+
         HashSet<URI> systemsToProcess = new HashSet<URI>();
         HashSet<URI> portSystems = getStorageSytemsFromPorts(ports, remPorts);
         for (URI systemUri : portSystems) {
@@ -113,8 +114,8 @@ public class StoragePoolAssociationHelper {
                 StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
                 if (DiscoveredDataObject.Type.vplex.name().equals(system.getSystemType())) {
                     Set<URI> connectedSystemURIs = ConnectivityUtil
-                        .getStorageSystemAssociationsByNetwork(dbClient, systemUri,
-                            PortType.backend);
+                            .getStorageSystemAssociationsByNetwork(dbClient, systemUri,
+                                    PortType.backend);
                     for (URI connectedSystemURI : connectedSystemURIs) {
                         systemsToProcess.add(connectedSystemURI);
                     }
@@ -125,15 +126,15 @@ public class StoragePoolAssociationHelper {
                 systemsToProcess.addAll(portSystems);
             }
         }
-         
+
         for (URI systemUri : systemsToProcess) {
             URIQueryResultList storagePoolURIs = new URIQueryResultList();
             dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getStorageDeviceStoragePoolConstraint(systemUri), storagePoolURIs);
+                    .getStorageDeviceStoragePoolConstraint(systemUri), storagePoolURIs);
             while (storagePoolURIs.iterator().hasNext()) {
                 URI storagePoolURI = storagePoolURIs.iterator().next();
                 StoragePool storagePool = dbClient.queryObject(StoragePool.class,
-                    storagePoolURI);
+                        storagePoolURI);
                 if (storagePool != null && !storagePool.getInactive()) {
                     storagePools.add(storagePool);
                 }
@@ -142,7 +143,7 @@ public class StoragePoolAssociationHelper {
 
         return storagePools;
     }
-        
+
     /**
      * Given the changes made to a list of ports' varray associations, update the pools associations.
      * 
@@ -151,15 +152,15 @@ public class StoragePoolAssociationHelper {
      * @param dbClient an instance of db client
      * @param coordinator an instance of coordinator service
      */
-    public static void updateVArrayRelations (Collection<StoragePort> ports , Collection<StoragePort> remPorts, 
+    public static void updateVArrayRelations(Collection<StoragePort> ports, Collection<StoragePort> remPorts,
             DbClient dbClient, CoordinatorClient coordinator) {
-        // get all the system that were affected and update their virtual arrays 
+        // get all the system that were affected and update their virtual arrays
         HashSet<URI> systemsToProcess = getStorageSytemsFromPorts(ports, remPorts);
         // this is very crude still because it resets the connections for all the systems
         // what is needed is:
-        //    If neighborhoods were changed, update all the systems
-        //    If neighborhoods not changed, to get the removed, added and existing systems.
-        //       only act on systems that exist only in add and only in remove.
+        // If neighborhoods were changed, update all the systems
+        // If neighborhoods not changed, to get the removed, added and existing systems.
+        // only act on systems that exist only in add and only in remove.
         for (URI systemUri : systemsToProcess) {
             updateSystemVarrays(systemUri, dbClient);
         }
@@ -169,11 +170,11 @@ public class StoragePoolAssociationHelper {
      * When the ports-varray associations change, for vplex system, update the system-varray association.
      * For other storage systems, update the pools-varrays associations.
      * 
-     * @param systemUri the system where the varray association has changed 
+     * @param systemUri the system where the varray association has changed
      * @param dbClient an instance of dbClient
      */
-    private static void updateSystemVarrays (URI systemUri, DbClient dbClient) {
-        StorageSystem system =  dbClient.queryObject(StorageSystem.class, systemUri);
+    private static void updateSystemVarrays(URI systemUri, DbClient dbClient) {
+        StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
         if (!system.getInactive()) {
             _log.info("Updating the virtual arrays for storage system {}", system.getNativeGuid());
             if (ConnectivityUtil.isAVPlex(system)) {
@@ -213,18 +214,18 @@ public class StoragePoolAssociationHelper {
                 storagePool.replaceConnectedVirtualArray(varrayURIs);
             } else {
                 _log.error("Pool {} does not belong to storage system {} and will not be updated",
-                        storagePool.getNativeGuid(), systemUri );
+                        storagePool.getNativeGuid(), systemUri);
             }
         }
         dbClient.updateAndReindexObject(storagePools);
 
-        //now ensure any RP systems are getting their varray connections updated
-        ConnectivityUtil.updateRpSystemsConnectivity( 
+        // now ensure any RP systems are getting their varray connections updated
+        ConnectivityUtil.updateRpSystemsConnectivity(
                 java.util.Collections.singletonList(systemUri), dbClient);
     }
 
     /**
-     * Create a map of storage system to ports. The logic of associating/dis-associating 
+     * Create a map of storage system to ports. The logic of associating/dis-associating
      * needs to look at the aggregate data to make decisions.
      * 
      * @param portSet the list of ports
@@ -233,7 +234,7 @@ public class StoragePoolAssociationHelper {
     private static Map<URI, List<StoragePort>> getPortsBySystem(Collection<StoragePort> portSet) {
         Map<URI, List<StoragePort>> systemPorts = new HashMap<URI, List<StoragePort>>();
         if (portSet != null) {
-            List<StoragePort>ports = null;
+            List<StoragePort> ports = null;
             for (StoragePort port : portSet) {
                 ports = (ArrayList<StoragePort>) systemPorts.get(port.getStorageDevice());
                 if (ports == null) {
@@ -291,8 +292,8 @@ public class StoragePoolAssociationHelper {
     }
 
     /**
-     * Returns a list of varrays that have connectivity to the storage 
-     * system. Connectivity is determined by the presence in one of the 
+     * Returns a list of varrays that have connectivity to the storage
+     * system. Connectivity is determined by the presence in one of the
      * varray's networks of an end point that corresponds to a
      * storage port that was discovered on the array.
      * 
@@ -305,7 +306,7 @@ public class StoragePoolAssociationHelper {
         List<StoragePort> ports = getSystemPorts(systemUri, dbClient);
         StringSet varrays = new StringSet();
         for (StoragePort port : ports) {
-            if (port.getTaggedVirtualArrays() != null && 
+            if (port.getTaggedVirtualArrays() != null &&
                     (portType == null || port.getPortType().equals(portType))) {
                 varrays.addAll(port.getTaggedVirtualArrays());
             }

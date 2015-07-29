@@ -26,10 +26,10 @@ public class MigrationTaskCompleter extends TaskCompleter {
 
     // Logger reference.
     private static final Logger s_logger = LoggerFactory
-        .getLogger(MigrationTaskCompleter.class);
+            .getLogger(MigrationTaskCompleter.class);
 
     /**
-     *
+     * 
      * @param migrationURI
      * @param taskId
      */
@@ -46,8 +46,8 @@ public class MigrationTaskCompleter extends TaskCompleter {
         URI migrationURI = getId();
         String opId = getOpId();
         s_logger.info(String.format(
-            "Migration %s for step %s completed with status %s", migrationURI,
-            opId, status.name()));
+                "Migration %s for step %s completed with status %s", migrationURI,
+                opId, status.name()));
 
         // Update the workflow status.
         updateWorkflowStatus(status, coded);

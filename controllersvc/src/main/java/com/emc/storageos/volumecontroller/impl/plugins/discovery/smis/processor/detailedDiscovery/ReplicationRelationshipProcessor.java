@@ -58,7 +58,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
         _syncAspectMap = (Map<String, String>) keyMap
                 .get(Constants.SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP);
 
-        CIMInstance[] instances = (CIMInstance[]) getFromOutputArgs((CIMArgument[])resultObj, SmisConstants.SYNCHRONIZATIONS);
+        CIMInstance[] instances = (CIMInstance[]) getFromOutputArgs((CIMArgument[]) resultObj, SmisConstants.SYNCHRONIZATIONS);
         if (instances == null) {
             _logger.info("No {} returned", SmisConstants.SYNCHRONIZATIONS);
             return;
@@ -133,7 +133,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                                 // Mirrors with restorable states (fractured and split, except synchronized) are treated as full copies,
                                 // while mirrors with synchronized and other states are treated as mirrors
                                 systemName.toLowerCase().startsWith(Constants.CLARIION) &&
-                                (copyState.equals(COPY_STATE_FRACTURED) || copyState.equals(COPY_STATE_SPLIT)))) {
+                        (copyState.equals(COPY_STATE_FRACTURED) || copyState.equals(COPY_STATE_SPLIT)))) {
                     replicaObj.setType(LocalReplicaObject.Types.FullCopy);
                     replicaObj.setSyncActive(inSync);
                     replicaObj.setReplicaState(isReplicaOfSnapshot ? SNAPSHOT_CLONE_REPLICA_STATE : getReplicaState(copyState));
@@ -190,7 +190,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
 
     /**
      * create object path from source and target paths
-     *
+     * 
      * @param targetPath
      * @param sourcePath
      * @return String
@@ -212,7 +212,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
 
     /*
      * Translate CopyState to ViPR ReplicationState for clone
-     *
+     * 
      * Clone can be restored if it is ReplicationState.SYNCHRONIZED
      * corresponding CopyState values are synchronized, fractured and split
      */

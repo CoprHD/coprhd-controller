@@ -17,15 +17,15 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public class RollbackExportGroupCreateCompleter extends ExportTaskCompleter {
-	
-	private static final long serialVersionUID = -8307408975210762419L;
-	private static final Logger _log = LoggerFactory.getLogger(RollbackExportGroupCreateCompleter.class);
-	
-	public RollbackExportGroupCreateCompleter(URI egUri, URI emUri, String task) {
+
+    private static final long serialVersionUID = -8307408975210762419L;
+    private static final Logger _log = LoggerFactory.getLogger(RollbackExportGroupCreateCompleter.class);
+
+    public RollbackExportGroupCreateCompleter(URI egUri, URI emUri, String task) {
         super(ExportGroup.class, egUri, emUri, task);
-    }	
-	
-	@Override
+    }
+
+    @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());

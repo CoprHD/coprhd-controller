@@ -8,7 +8,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.Header;
 import org.slf4j.Logger;
@@ -36,7 +35,7 @@ public class VNXControlStationProcessor extends VNXFileProcessor {
      */
     private final Logger _logger = LoggerFactory
             .getLogger(VNXControlStationProcessor.class);
-    
+
     @Override
     public void processResult(Operation operation, Object resultObj,
             Map<String, Object> keyMap) throws BaseCollectionException {

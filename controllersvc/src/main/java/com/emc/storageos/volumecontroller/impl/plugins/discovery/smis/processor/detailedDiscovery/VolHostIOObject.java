@@ -6,7 +6,6 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor
 
 import com.emc.storageos.plugins.common.Constants;
 
-
 public class VolHostIOObject {
     private String volNativeGuid;
     private String hostIoBw;
@@ -37,20 +36,20 @@ public class VolHostIOObject {
         this.hostIops = hostIops;
     }
 
-	public String getFastSetting() {
-		return fastSetting;
-	}
+    public String getFastSetting() {
+        return fastSetting;
+    }
 
-	public void setFastSetting(String fastSetting) {
-		this.fastSetting = fastSetting;
-	}
-	
-	public String toString() {
-		StringBuilder hostIoObj = new StringBuilder(volNativeGuid);
-		hostIoObj.append(Constants._minusDelimiter).append(hostIoBw)
-				.append(Constants._minusDelimiter).append(hostIops)
-				.append(Constants._minusDelimiter).append(fastSetting);
-		return hostIoObj.toString();
-	}
+    public void setFastSetting(String fastSetting) {
+        this.fastSetting = fastSetting;
+    }
+
+    public String toString() {
+        StringBuilder hostIoObj = new StringBuilder(volNativeGuid);
+        hostIoObj.append(Constants._minusDelimiter).append(hostIoBw)
+                .append(Constants._minusDelimiter).append(hostIops)
+                .append(Constants._minusDelimiter).append(fastSetting);
+        return hostIoObj.toString();
+    }
 
 }

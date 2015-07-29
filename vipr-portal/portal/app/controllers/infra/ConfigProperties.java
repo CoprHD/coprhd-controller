@@ -43,7 +43,7 @@ import static controllers.Common.flashException;
 import static util.BourneUtil.getSysClient;
 
 @With(Common.class)
-@Restrictions({@Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN")})
+@Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
 public class ConfigProperties extends Controller {
 
     private static final String DEFAULT_PAGE = "general";
@@ -58,10 +58,10 @@ public class ConfigProperties extends Controller {
     private static void handleError(Map<String, String> updated) {
         // Limit the amount of data flashed to 2K, hopefully leaving enough for other things
         int maxFlash = MAX_FLASH;
-        
+
         if (updated.size() != 0) {
-            int avgFlash = maxFlash/updated.size();
-            
+            int avgFlash = maxFlash / updated.size();
+
             // Only flash properties that have been updated
             for (Map.Entry<String, String> entry : updated.entrySet()) {
                 String name = entry.getKey();
@@ -118,8 +118,7 @@ public class ConfigProperties extends Controller {
                 try {
                     ConfigPropertyUtils.saveProperties(updated);
                     flash.success(MessagesUtils.get("configProperties.saved"));
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     flashException(e);
                     handleError(updated);
                 }
@@ -188,7 +187,7 @@ public class ConfigProperties extends Controller {
         }
         return properties;
     }
-    
+
     private static String getPort(final String port, final String enableTls) {
         if ("0".equals(port) || StringUtils.isBlank(port)) {
             // use default values
@@ -255,8 +254,7 @@ public class ConfigProperties extends Controller {
 
         try {
             MailSettingsValidator.validate(settings, toAddress);
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             Logger.error(e, "Failed to send email");
             Validation.addError(null, "configProperties.smtp.validationFailed", e.getMessage());
         }
@@ -268,24 +266,24 @@ public class ConfigProperties extends Controller {
             renderJSON(ValidationResponse.valid(Messages.get("configProperties.smtp.testSuccessful")));
         }
     }
-    
+
     public static String getPasswordValidPromptRule() {
-    	String promptString = PasswordUtil.getPasswordValidPromptRules(Constants.PASSWORD_VALID_PROMPT);
+        String promptString = PasswordUtil.getPasswordValidPromptRules(Constants.PASSWORD_VALID_PROMPT);
         return promptString;
     }
-    
+
     public static void validatePasswords(@Required String password, @Required String fieldName) {
         String validation = PasswordUtil.validatePassword(password);
         if (StringUtils.isNotBlank(validation)) {
-            Validation.addError(fieldName , validation);
-        } 
+            Validation.addError(fieldName, validation);
+        }
         if (Validation.hasErrors()) {
             renderJSON(ValidationResponse.collectErrors());
-        }    
+        }
         else {
             renderJSON(ValidationResponse.valid());
         }
-        
+
     }
 
     public static void passwords() {
@@ -318,8 +316,7 @@ public class ConfigProperties extends Controller {
                     if (StringUtils.equals(Security.getUserInfo().getCommonName(), user)) {
                         Security.clearAuthToken();
                     }
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     Logger.error(e, "Failed to change password for user '%s'", user);
                     String message = Common.getUserMessage(e);
                     flash.error(Messages.get("configProperties.passwordChange.error", user, message));

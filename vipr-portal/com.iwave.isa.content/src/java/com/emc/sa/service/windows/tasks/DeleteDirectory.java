@@ -7,15 +7,15 @@ package com.emc.sa.service.windows.tasks;
 public class DeleteDirectory extends WindowsExecutionTask<Void> {
 
     private String directory;
-    
+
     public DeleteDirectory(String directory) {
         this.directory = directory;
         provideDetailArgs(directory);
     }
-    
+
     @Override
     public void execute() throws Exception {
         getTargetSystem().deleteDirectory(directory);
     }
-    
+
 }

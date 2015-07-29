@@ -22,7 +22,7 @@ import com.emc.storageos.volumecontroller.impl.plugins.metering.ZeroRecordGenera
 
 /**
  * BlockCacheSyncher is responsible to do Block specific operations.
- *
+ * 
  */
 public class BlockZeroRecordGenerator extends ZeroRecordGenerator {
     private Logger _logger = LoggerFactory.getLogger(BlockZeroRecordGenerator.class);
@@ -37,16 +37,16 @@ public class BlockZeroRecordGenerator extends ZeroRecordGenerator {
      */
     public List<URI> injectResourceURI(final DbClient dbClient, final String nativeGuid) {
         List<URI> volumeURIs = null;
-      
+
         try {
             // Get VolumeUUID
             volumeURIs = dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getVolumeNativeGuidConstraint(nativeGuid));
             if (volumeURIs == null || volumeURIs.isEmpty()) {
-                    //look for snap, we never know whether the returned volume is a snap
-                    volumeURIs = dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                            .getBlockSnapshotsByNativeGuid(nativeGuid));
-                   
+                // look for snap, we never know whether the returned volume is a snap
+                volumeURIs = dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getBlockSnapshotsByNativeGuid(nativeGuid));
+
             }
         } catch (Exception e) {
             // Even if one volume fails, no need to throw exception instead
@@ -54,12 +54,12 @@ public class BlockZeroRecordGenerator extends ZeroRecordGenerator {
             _logger.warn(
                     "Volume could not be found using NativeGuid : {}",
                     nativeGuid);
-            
+
         }
-        
+
         return volumeURIs;
     }
-    
+
     @Override
     public void generateZeroRecord(Stat zeroStatRecord,
             Map<String, Object> keyMap) {
@@ -88,7 +88,7 @@ public class BlockZeroRecordGenerator extends ZeroRecordGenerator {
         if (URIUtil.isType(resourceURI, Volume.class)) {
             Volume volume = dbClient.queryObject(Volume.class, resourceURI);
             if (!volume.checkInternalFlags(Flag.NO_METERING)) {
-                return new Stat();                
+                return new Stat();
             }
         }
         return null;

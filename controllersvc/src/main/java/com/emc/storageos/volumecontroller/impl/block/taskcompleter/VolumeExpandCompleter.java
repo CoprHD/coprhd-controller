@@ -81,7 +81,7 @@ public class VolumeExpandCompleter extends VolumeTaskCompleter {
             super.complete(dbClient, status, coded);
             Volume volume = dbClient.queryObject(Volume.class, getId());
             if (Operation.Status.ready == status) {
-               dbClient.ready(Volume.class, getId(), getOpId());
+                dbClient.ready(Volume.class, getId(), getOpId());
                 _log.info(String.format("Done VolumeExpand - Volume Id: %s, NativeId: %s, OpId: %s, status: %s, New size: %d",
                         getId().toString(), volume.getNativeId(), getOpId(), status.name(), _size));
             } else if (Operation.Status.error == status) {

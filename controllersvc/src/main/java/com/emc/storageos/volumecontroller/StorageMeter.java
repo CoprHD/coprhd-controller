@@ -25,6 +25,7 @@ public interface StorageMeter {
      * @param storageDevice A reference to the storage device.
      */
     public void stopMeteringDevice(StorageSystem storageDevice) throws StorageMeteringException;
+
     /**
      * Shutdown the metering scheduler when controller is shutdown.
      */

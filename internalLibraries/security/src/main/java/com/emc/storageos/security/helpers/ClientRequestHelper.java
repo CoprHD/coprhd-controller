@@ -45,15 +45,15 @@ public class ClientRequestHelper {
 
     private InternalApiSignatureKeyGenerator _keyGenerator = null;
     private SignatureKeyType defaultSignatureType = SignatureKeyType.INTERNAL_API;
-        
+
     private int clientReadTimeout;
     private int clientConnectTimeout;
-   
+
     // typically the default constructor will be used for clients that are not
     // using signature based requests (coordinator/keygenerator not needed)
     public ClientRequestHelper() {
     }
-    
+
     /**
      * Construct with the supplied coordinator
      * 
@@ -62,10 +62,9 @@ public class ClientRequestHelper {
     public ClientRequestHelper(CoordinatorClient coordinatorClient) {
         this(coordinatorClient, DEFAULT_READ_TIMEOUT, DEFAULT_CONNECT_TIMEOUT);
     }
-      
-    
+
     /**
-     * This is the preferred constructor.  Pass in an existing keygenerator that has been instantiated
+     * This is the preferred constructor. Pass in an existing keygenerator that has been instantiated
      * by the container.
      * Construct with the supplied keyGenerator and non-default timeout values for clients
      * 
@@ -79,10 +78,11 @@ public class ClientRequestHelper {
         this._keyGenerator = keyGen;
         this._keyGenerator.loadKeys();
     }
-    
+
     /**
      * Construct with the supplied coordinator and non-default timeout values for clients
      * Use this constructor if a keygenerator is not already available.
+     * 
      * @param coordinatorClient
      * @param clientReadTimeout
      * @param clientConnectTimeout
@@ -91,10 +91,10 @@ public class ClientRequestHelper {
         this.clientReadTimeout = clientReadTimeout;
         this.clientConnectTimeout = clientConnectTimeout;
         this._keyGenerator = new InternalApiSignatureKeyGenerator();
-        this._keyGenerator.setCoordinator( coordinatorClient);
+        this._keyGenerator.setCoordinator(coordinatorClient);
         this._keyGenerator.loadKeys();
     }
-  
+
     public final int getClientConnectTimeout() {
         return clientConnectTimeout;
     }
@@ -110,7 +110,7 @@ public class ClientRequestHelper {
     public final void setClientReadTimeout(int clientReadTimeout) {
         this.clientReadTimeout = clientReadTimeout;
     }
-     
+
     public SignatureKeyType getDefaultSignatureType() {
         return defaultSignatureType;
     }
@@ -118,7 +118,7 @@ public class ClientRequestHelper {
     public void setDefaultSignatureType(SignatureKeyType defaultSignatureType) {
         this.defaultSignatureType = defaultSignatureType;
     }
-    
+
     /**
      * Create an SSL-trusting Client using the default configurations
      * 
@@ -129,7 +129,7 @@ public class ClientRequestHelper {
      * thread-safe so they should be re-used across requests
      * 
      * @return the client
-     */        
+     */
     public Client createClient() {
         return createClient(clientReadTimeout, clientConnectTimeout);
     }
@@ -139,21 +139,21 @@ public class ClientRequestHelper {
      * 
      * This method adds permissive HTTPSProperties settings to the
      * configuration of the client.
-
+     * 
      * Note: Client objects are expensive to create and largely
      * thread-safe so they should be re-used across requests
      * 
      * @param readTimeout the read timeout
      * @param connectTimeout the connect timeout
      * @return the client
-     */    
+     */
     public Client createClient(int readTimeout, int connectTimeout) {
         ClientConfig config = new DefaultClientConfig();
         config.getProperties().put(ClientConfig.PROPERTY_READ_TIMEOUT, readTimeout);
         config.getProperties().put(ClientConfig.PROPERTY_CONNECT_TIMEOUT, connectTimeout);
         return createClient(config);
     }
-    
+
     /**
      * Create an SSL-trusting Client using the specified configurations
      * 
@@ -170,11 +170,11 @@ public class ClientRequestHelper {
         try {
             config.getProperties().put(HTTPSProperties.PROPERTY_HTTPS_PROPERTIES, createPermissiveHTTPSProperties());
         } catch (Exception ex) {
-            log.error("Unexpected failure while configuring trusting HTTPS properties", ex);            
+            log.error("Unexpected failure while configuring trusting HTTPS properties", ex);
         }
         return Client.create(config);
-    }        
-    
+    }
+
     /**
      * Create a client request using the provided client, base URI, and request URI
      * 
@@ -185,8 +185,8 @@ public class ClientRequestHelper {
      */
     public WebResource createRequest(Client client, String baseURI, String requestPath) {
         return createRequest(client, URI.create(baseURI), URI.create(requestPath));
-    }    
-        
+    }
+
     /**
      * Create a client request using the provided client, base URI, and request URI
      * 
@@ -197,9 +197,9 @@ public class ClientRequestHelper {
      */
     public WebResource createRequest(Client client, URI baseURI, URI requestPath) {
         URI fullURI = baseURI.resolve(requestPath);
-        return client.resource(fullURI);                
-    }    
-    
+        return client.resource(fullURI);
+    }
+
     /**
      * Add HMAC signature headers to this request using internal key
      * (Use this version of addSignature for internal api calls)
@@ -215,13 +215,14 @@ public class ClientRequestHelper {
         return webResource.header(AbstractHMACAuthFilter.INTERNODE_HMAC, getSignature(webResource, timestamp, null))
                 .header(AbstractHMACAuthFilter.INTERNODE_TIMESTAMP, timestamp);
     }
-    
+
     /**
      * Add HMAC signature headers to this request using the provided key
      * (Use this version of addSignature to inter vdc requests, with the key
      * corresponding to the target vdc)
+     * 
      * @param webResource client request to sign
-     * @param key secret key 
+     * @param key secret key
      * @return a builder object for this request with the signatures added
      */
     public Builder addSignature(WebResource webResource, SecretKey key) {
@@ -240,7 +241,7 @@ public class ClientRequestHelper {
     public Builder addToken(Builder requestBuilder, String token) {
         return addTokens(requestBuilder, token, null);
     }
-    
+
     /**
      * Add user and/or proxy tokens to the returned request builder
      * 
@@ -256,46 +257,46 @@ public class ClientRequestHelper {
         if (StringUtils.isNotEmpty(proxyToken)) {
             requestBuilder = requestBuilder.header(RequestProcessingUtils.AUTH_PROXY_TOKEN_HEADER, proxyToken);
         }
-        return requestBuilder;        
+        return requestBuilder;
     }
-            
+
     /**
      * Get an HMAC signature for the specified client request
      * 
      * Note: In order for the signature to be valid, all query parameters
      * should have been added to the request prior to calling this method
-
+     * 
      * @param webResource client request to sign
      * @param timestamp timestamp of the request
      * @param key optional, if supplied, signature will be computed on the fly based on
-     * the provided key.  If omitted, the signature will be computed based on the internal api
-     * key cached in the keygenerator
+     *            the provided key. If omitted, the signature will be computed based on the internal api
+     *            key cached in the keygenerator
      * 
      * @return HMAC signature for this request
      */
     private String getSignature(WebResource webResource, long timestamp, SecretKey key) {
         StringBuilder buf = new StringBuilder(webResource.getURI().toString());
-        buf.append(timestamp);  
-        String sig = (key == null) ? _keyGenerator.sign(buf.toString(), defaultSignatureType) : 
-            SignatureHelper.sign2(buf.toString(), key, key.getAlgorithm());
+        buf.append(timestamp);
+        String sig = (key == null) ? _keyGenerator.sign(buf.toString(), defaultSignatureType) :
+                SignatureHelper.sign2(buf.toString(), key, key.getAlgorithm());
         log.debug("getSignature(): buffer: {} signature: {}", buf.toString(), sig);
         return sig;
     }
-        
+
     /**
      * Create an HTTPProperties object that will allow communication
      * with self-signed certs
      * 
      * @return the properties
      */
-    private HTTPSProperties createPermissiveHTTPSProperties() throws Exception {    
+    private HTTPSProperties createPermissiveHTTPSProperties() throws Exception {
         // Create an SSL context that trusts all certs
         SSLContext sc = null;
-        sc = SSLContext.getInstance("TLS");        
-        sc.init(null, trustingTrustManager, new SecureRandom());        
+        sc = SSLContext.getInstance("TLS");
+        sc.init(null, trustingTrustManager, new SecureRandom());
         return new HTTPSProperties(trustingHostVerifier, sc);
     }
-    
+
     /**
      * A HostnameVerifier that trusts everything
      */
@@ -314,11 +315,13 @@ public class ClientRequestHelper {
         public X509Certificate[] getAcceptedIssuers() {
             return null;
         }
+
         @Override
         public void checkClientTrusted(X509Certificate[] certs, String authType) {
         }
+
         @Override
         public void checkServerTrusted(X509Certificate[] certs, String authType) {
         }
-    } };       
+    } };
 }

@@ -39,14 +39,15 @@ import com.google.common.base.Joiner;
  * Processor used in getting bound storage volumes for VMAX2 Thin pool.
  * 
  * CTRL-11845 : A VMAX2 FAST thin volume may be associated with more than one storage pool.
- *    � one is bound pool where it is originally created from, and the others are because of data movement due to auto-tiering policy.
- *    With the bound volumes list for each thin pool, skip the non-bound volumes in StorageVolumeInfoProcessor while creating UnManaged Volumes.
+ * � one is bound pool where it is originally created from, and the others are because of data movement due to auto-tiering policy.
+ * With the bound volumes list for each thin pool, skip the non-bound volumes in StorageVolumeInfoProcessor while creating UnManaged
+ * Volumes.
  * 
  */
 public class StorageVolumeBoundPoolProcessor extends StorageProcessor {
     private Logger _logger = LoggerFactory.getLogger(StorageVolumeBoundPoolProcessor.class);
-    private List<Object>        _args;
-    private DbClient            _dbClient;
+    private List<Object> _args;
+    private DbClient _dbClient;
 
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap)
@@ -70,7 +71,7 @@ public class StorageVolumeBoundPoolProcessor extends StorageProcessor {
                         storagePoolPath.toString());
                 return;
             }
-            
+
             Set<String> boundVolumes = new HashSet<String>();
             allocatedFromStoragePoolInstanceChunks = (EnumerateResponse<CIMInstance>) resultObj;
             allocatedFromStoragePoolInstances = allocatedFromStoragePoolInstanceChunks.getResponses();
@@ -106,9 +107,10 @@ public class StorageVolumeBoundPoolProcessor extends StorageProcessor {
             Set<String> volumesList) {
         while (allocatedFromStoragePoolInstances.hasNext()) {
             CIMInstance allocatedFromStoragePoolInstance = allocatedFromStoragePoolInstances.next();
-            String boundToThinStoragePool  = allocatedFromStoragePoolInstance.getPropertyValue(SmisConstants.EMC_BOUND_TO_THIN_STORAGE_POOL).toString();
+            String boundToThinStoragePool = allocatedFromStoragePoolInstance.getPropertyValue(SmisConstants.EMC_BOUND_TO_THIN_STORAGE_POOL)
+                    .toString();
             if (Boolean.valueOf(boundToThinStoragePool)) {
-                String volume  = allocatedFromStoragePoolInstance.getPropertyValue(SmisConstants.CP_DEPENDENT).toString();
+                String volume = allocatedFromStoragePoolInstance.getPropertyValue(SmisConstants.CP_DEPENDENT).toString();
                 CIMObjectPath volumePath = new CIMObjectPath(volume);
                 String deviceId = volumePath.getKey(DEVICE_ID).getValue().toString();
                 volumesList.add(deviceId);

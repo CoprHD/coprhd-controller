@@ -43,16 +43,16 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 
 public class HDSMetaVolumeOperations implements MetaVolumeOperations {
-    
+
     private static Logger log = LoggerFactory.getLogger(HDSMetaVolumeOperations.class);
-    
+
     private static final int SYNC_WRAPPER_WAIT = 5000;
     private static final int SYNC_WRAPPER_TIME_OUT = 1200000;
     private static final String VOLUME_FORMAT_TYPE = "noformat";
     private DbClient dbClient;
-    
+
     private HDSApiFactory hdsApiFactory;
-    
+
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
@@ -63,7 +63,7 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
     public void setHdsApiFactory(HDSApiFactory hdsApiFactory) {
         this.hdsApiFactory = hdsApiFactory;
     }
-    
+
     /**
      * Create meta volume member devices. These devices provide capacity to meta volume.
      * 
@@ -73,7 +73,7 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
      * @param memberCount
      * @param memberCapacity
      * @param metaVolumeTaskCompleter
-     * @return  list of native ids of meta member devices
+     * @return list of native ids of meta member devices
      * @throws Exception
      */
     @Override
@@ -88,20 +88,20 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
         try {
             String systemObjectID = HDSUtils.getSystemObjectID(storageSystem);
             String poolObjectID = HDSUtils.getPoolObjectID(storagePool);
-            
+
             HDSApiClient hdsApiClient = hdsApiFactory.getClient(
                     HDSUtils.getHDSServerManagementServerInfo(storageSystem),
                     storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
-            //commenting this to rever the fix.
-            //Integer ldevIdToUse = getLDEVNumberToCreateMetaMembers(hdsApiClient, systemObjectID);
+            // commenting this to rever the fix.
+            // Integer ldevIdToUse = getLDEVNumberToCreateMetaMembers(hdsApiClient, systemObjectID);
             String asyncTaskMessageId = hdsApiClient.createThickVolumes(systemObjectID,
                     poolObjectID, memberCapacity, memberCount, "", VOLUME_FORMAT_TYPE, storageSystem.getModel(), null);
             HDSCreateMetaVolumeMembersJob metaVolumeMembersJob = new HDSCreateMetaVolumeMembersJob(
                     asyncTaskMessageId, storageSystem.getId(), metaHead, memberCount,
                     metaVolumeTaskCompleter);
-           
+
             invokeMethodSynchronously(hdsApiFactory, asyncTaskMessageId, metaVolumeMembersJob);
-           
+
             return metaVolumeMembersJob.getMetaMembers();
         } catch (Exception e) {
             log.error("Problem in createMetaVolumeMembers: ", e);
@@ -116,9 +116,10 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
                             metaHead.getLabel()));
         }
     }
-    
+
     /**
      * Utility finds the highest ldev Id which is used on HiCommand DM.
+     * 
      * @param hdsApiClient
      * @param systemObjectID
      * @return
@@ -136,7 +137,7 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
         // Incrementing the highest
         return (highestLDEVId + 1);
     }
-    
+
     public Function<LogicalUnit, Integer> fctnLogicalUnitToVolumeIDs() {
         return new Function<LogicalUnit, Integer>() {
 
@@ -153,9 +154,8 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
             VirtualPoolCapabilityValuesWrapper capabilities,
             MetaVolumeTaskCompleter metaVolumeTaskCompleter) throws Exception {
         throw new DeviceControllerException("Unsupported operation");
-        
-    }
 
+    }
 
     @Override
     public void createMetaVolume(StorageSystem storageSystem, StoragePool storagePool,
@@ -167,9 +167,10 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
 
     @Override
     public void createMetaVolumes(StorageSystem storageSystem, StoragePool storagePool, List<Volume> volumes,
-                                  VirtualPoolCapabilityValuesWrapper capabilities, TaskCompleter taskCompleter) throws Exception {
-            throw new DeviceControllerException("Unsupported operation");
+            VirtualPoolCapabilityValuesWrapper capabilities, TaskCompleter taskCompleter) throws Exception {
+        throw new DeviceControllerException("Unsupported operation");
     }
+
     /**
      * Meta volume expansion is similar to the way expand Volume as meta.
      * Hence we are calling expandVolumeAsMetaVolume inside this.
@@ -185,12 +186,12 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
     @Override
     public void expandVolumeAsMetaVolume(StorageSystem storageSystem,
             StoragePool storagePool, Volume metaHead, List<String> newMetaMembers,
-            String metaType, MetaVolumeTaskCompleter  metaVolumeTaskCompleter) throws Exception {
+            String metaType, MetaVolumeTaskCompleter metaVolumeTaskCompleter) throws Exception {
 
         HDSApiClient hdsApiClient = hdsApiFactory.getClient(
                 HDSUtils.getHDSServerManagementServerInfo(storageSystem),
-                storageSystem.getSmisUserName(), storageSystem.getSmisPassword()); 
-        String systemObjectID = HDSUtils.getSystemObjectID(storageSystem); 
+                storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
+        String systemObjectID = HDSUtils.getSystemObjectID(storageSystem);
         LogicalUnit metaHeadVolume = hdsApiClient.getLogicalUnitInfo(
                 systemObjectID, HDSUtils.getLogicalUnitObjectId(metaHead.getNativeId(), storageSystem));
         String metaHeadLdevId = null;
@@ -200,7 +201,8 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
             for (String metaMember : newMetaMembers) {
                 if (null != metaMember) {
                     String asyncTaskMessageId = hdsApiClient.formatLogicalUnit(systemObjectID, metaMember);
-                    HDSJob formatLUJob = new HDSJob(asyncTaskMessageId, storageSystem.getId(), metaVolumeTaskCompleter.getVolumeTaskCompleter(), "formatLogicalUnit");
+                    HDSJob formatLUJob = new HDSJob(asyncTaskMessageId, storageSystem.getId(),
+                            metaVolumeTaskCompleter.getVolumeTaskCompleter(), "formatLogicalUnit");
                     invokeMethodSynchronously(hdsApiFactory, asyncTaskMessageId, formatLUJob);
                 }
                 LogicalUnit metaMemberVolume = hdsApiClient.getLogicalUnitInfo(
@@ -208,13 +210,13 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
                 if (null != metaMemberVolume
                         && !metaMemberVolume.getLdevList().isEmpty()) {
                     for (LDEV ldev : metaMemberVolume.getLdevList()) {
-                        //Format the logical unit. This is synchronous operation
+                        // Format the logical unit. This is synchronous operation
                         // should wait it the operation completes.
                         metaMembersLdevObjectIds.add(ldev.getObjectID());
                     }
                 }
             }
-            
+
         }
         log.info("New Meta member LDEV ids: {}", metaMembersLdevObjectIds);
         // Step 2: Get LDEV id of the meta volume head.
@@ -232,7 +234,7 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
                 }
             }
         }
-        
+
         // Step 3: Create LUSE Volume using metaHead LDEV & meta
         // members LDEV Ids.
         LogicalUnit logicalUnit = hdsApiClient.createLUSEVolume(systemObjectID,
@@ -243,9 +245,9 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
             metaHead.setAllocatedCapacity(capacityInBytes);
             dbClient.persistObject(metaHead);
         }
-    
+
     }
-    
+
     /**
      * Makes a call to Hicommand DM and returns the response back to the caller. If the HDS call
      * is a asynchronous, it waits for the HDS job to complete before returning. This is done to
@@ -278,9 +280,10 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
                     job.getStorageSystemURI());
         }
     }
-    
+
     /**
      * Waits the thread to till the operation completes.
+     * 
      * @param storageDeviceURI
      * @param messageId
      * @param job
@@ -341,10 +344,9 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
         return status;
     }
 
-
-
     /**
      * Return the LDEVID of the metaHead.
+     * 
      * @param ldevObjectID
      * @return
      */
@@ -353,7 +355,6 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
                 .split(ldevObjectID);
         return Iterables.getLast(splitter);
     }
-
 
     @Override
     public String defineExpansionType(StorageSystem storageSystem, Volume volume,

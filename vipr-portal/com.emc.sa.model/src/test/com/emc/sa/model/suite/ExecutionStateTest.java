@@ -21,11 +21,11 @@ import com.emc.storageos.db.client.URIUtil;
 public class ExecutionStateTest extends BaseModelTest<ExecutionState> {
 
     private static final Logger _logger = Logger.getLogger(ExecutionStateTest.class);
-    
+
     public ExecutionStateTest() {
         super(ExecutionState.class);
     }
-    
+
     @Test
     public void testPersistObject() throws Exception {
         _logger.info("Starting persist ExecutionState test");
@@ -48,10 +48,10 @@ public class ExecutionStateTest extends BaseModelTest<ExecutionState> {
         URI taskLogIdTwo = URIUtil.createId(ExecutionTaskLog.class);
         model.getTaskLogIds().add(taskLogIdOne.toString());
         model.getTaskLogIds().add(taskLogIdTwo.toString());
-        
+
         save(model);
         model = findById(model.getId());
-        
+
         Assert.assertNotNull(model);
         Assert.assertEquals("foo", model.getLabel());
         Assert.assertEquals(2, model.getAffectedResources().size());
@@ -63,10 +63,10 @@ public class ExecutionStateTest extends BaseModelTest<ExecutionState> {
         Assert.assertEquals(2, model.getLogIds().size());
         Assert.assertTrue(model.getLogIds().contains(logIdOne.toString()));
         Assert.assertTrue(model.getLogIds().contains(logIdTwo.toString()));
-        Assert.assertEquals(2,  model.getTaskLogIds().size());
+        Assert.assertEquals(2, model.getTaskLogIds().size());
         Assert.assertTrue(model.getTaskLogIds().contains(taskLogIdOne.toString()));
         Assert.assertTrue(model.getTaskLogIds().contains(taskLogIdTwo.toString()));
-        
+
     }
-    
+
 }

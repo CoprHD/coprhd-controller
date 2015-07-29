@@ -40,7 +40,6 @@ import util.datatable.DataTablesSupport;
 import java.util.*;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
-import static controllers.Common.flashException;
 import static util.BourneUtil.getViprClient;
 import static util.RoleAssignmentUtils.createRoleAssignmentEntry;
 import static util.RoleAssignmentUtils.getTenantRoleAssignment;
@@ -49,7 +48,7 @@ import static util.RoleAssignmentUtils.deleteTenantRoleAssignment;
 import static util.RoleAssignmentUtils.putTenantRoleAssignmentChanges;
 
 @With(Common.class)
-@Restrictions({@Restrict("ROOT_TENANT_ADMIN"), @Restrict("HOME_TENANT_ADMIN"), @Restrict("TENANT_ADMIN"), @Restrict("SECURITY_ADMIN")})
+@Restrictions({ @Restrict("ROOT_TENANT_ADMIN"), @Restrict("HOME_TENANT_ADMIN"), @Restrict("TENANT_ADMIN"), @Restrict("SECURITY_ADMIN") })
 public class Tenants extends ViprResourceController {
     protected static final String UNKNOWN = "tenants.unknown";
 
@@ -65,7 +64,7 @@ public class Tenants extends ViprResourceController {
 
         if (Security.isRootTenantAdmin() || Security.isSecurityAdmin()) {
             TenantOrgRestRep rootTenant = TenantUtils.findRootTenant();
-            tenants.add(new TenantsDataTable.Tenant(rootTenant, ((Security.isRootTenantAdmin()|| Security.isSecurityAdmin()))));
+            tenants.add(new TenantsDataTable.Tenant(rootTenant, ((Security.isRootTenantAdmin() || Security.isSecurityAdmin()))));
             subtenants = TenantUtils.getSubTenants(rootTenant.getId());
         } else if (Security.isHomeTenantAdmin()) {
             tenants.add(new TenantsDataTable.Tenant(TenantUtils.getUserTenant(), true));
@@ -75,7 +74,8 @@ public class Tenants extends ViprResourceController {
         }
 
         for (TenantOrgRestRep tenant : subtenants) {
-            boolean admin = Security.isRootTenantAdmin() || user.hasSubTenantRole(tenant.getId().toString(), Security.TENANT_ADMIN) || Security.isSecurityAdmin();
+            boolean admin = Security.isRootTenantAdmin() || user.hasSubTenantRole(tenant.getId().toString(), Security.TENANT_ADMIN)
+                    || Security.isSecurityAdmin();
             if (admin) {
                 tenants.add(new TenantsDataTable.Tenant(tenant, admin));
             }
@@ -107,14 +107,15 @@ public class Tenants extends ViprResourceController {
         }
     }
 
-    @FlashException(keep=true, referrer={"create","edit"})
+    @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(TenantForm tenant) {
         tenant.validate("tenant");
         if (Validation.hasErrors()) {
             Common.handleError();
         }
         if (tenant.isNew()) {
-            List<UserMappingParam> tempMappings = UserMappingForm.getAddedMappings(Collections.<UserMappingParam>emptyList(), tenant.usermapping);
+            List<UserMappingParam> tempMappings = UserMappingForm.getAddedMappings(Collections.<UserMappingParam> emptyList(),
+                    tenant.usermapping);
             TenantCreateParam createParam = new TenantCreateParam(tenant.name, tempMappings);
             createParam.setDescription(tenant.description);
             tenant.id = stringId(TenantUtils.create(createParam));
@@ -125,7 +126,8 @@ public class Tenants extends ViprResourceController {
             if (currentTenant != null) {
                 UserMappingChanges mappingChanges = null;
                 if (Security.isSecurityAdmin()) {
-                    mappingChanges = new UserMappingChanges(UserMappingForm.getAddedMappings(currentTenant.getUserMappings(), tenant.usermapping),
+                    mappingChanges = new UserMappingChanges(UserMappingForm.getAddedMappings(currentTenant.getUserMappings(),
+                            tenant.usermapping),
                             UserMappingForm.getRemovedMappings(currentTenant.getUserMappings(), tenant.usermapping));
                 }
 
@@ -144,7 +146,7 @@ public class Tenants extends ViprResourceController {
         list();
     }
 
-    @Restrictions({@Restrict("SECURITY_ADMIN")})
+    @Restrictions({ @Restrict("SECURITY_ADMIN") })
     public static void create() {
         TenantForm tenant = new TenantForm();
         addRenderArgs(tenant);
@@ -153,7 +155,7 @@ public class Tenants extends ViprResourceController {
     }
 
     @FlashException("list")
-    @Restrictions({@Restrict("SECURITY_ADMIN")})
+    @Restrictions({ @Restrict("SECURITY_ADMIN") })
     public static void delete(@As(",") String[] ids) {
         if (ids != null && ids.length > 0) {
             boolean deleteExecuted = false;
@@ -198,14 +200,14 @@ public class Tenants extends ViprResourceController {
         }
     }
 
-    @Restrictions({@Restrict("SECURITY_ADMIN"), @Restrict("TENANT_ADMIN")})
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("TENANT_ADMIN") })
     public static void listRoles(String id) {
         TenantRoleAssignmentDataTable dataTable = new TenantRoleAssignmentDataTable(uri(id));
         TenantOrgRestRep tenant = TenantUtils.getTenant(id);
         render("@listRoles", dataTable, tenant);
     }
 
-    @Restrictions({@Restrict("SECURITY_ADMIN"), @Restrict("TENANT_ADMIN")})
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("TENANT_ADMIN") })
     public static void listRolesJson(String id) {
         List<RoleAssignmentEntry> viprRoleAssignments = getTenantRoleAssignments(id);
         List<TenantRoleAssignmentDataTable.RoleInfo> roles = Lists.newArrayList();
@@ -215,7 +217,7 @@ public class Tenants extends ViprResourceController {
         renderJSON(DataTablesSupport.createJSON(roles, params));
     }
 
-    @Restrictions({@Restrict("SECURITY_ADMIN"), @Restrict("TENANT_ADMIN")})
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("TENANT_ADMIN") })
     public static void editRole(@Required String id) {
 
         // Extract info from id
@@ -244,8 +246,8 @@ public class Tenants extends ViprResourceController {
         }
     }
 
-    @FlashException(keep=true, referrer={"createRole","editRole"})
-    @Restrictions({@Restrict("SECURITY_ADMIN"), @Restrict("TENANT_ADMIN")})
+    @FlashException(keep = true, referrer = { "createRole", "editRole" })
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("TENANT_ADMIN") })
     public static void saveRole(TenantRoleAssignmentForm roleAssignment) {
         String tenantId = params.get("tenantId");
         roleAssignment.validate(tenantId, "roleAssignment");
@@ -256,14 +258,15 @@ public class Tenants extends ViprResourceController {
         roleAssignment.save(tenantId);
         flash.success(MessagesUtils.get("roleAssignments.saved", roleAssignment.name));
 
-        if (RoleAssignmentType.USER.equals(roleAssignment.type) && Security.getUserInfo().getIdentifier().equalsIgnoreCase(roleAssignment.name)) {
+        if (RoleAssignmentType.USER.equals(roleAssignment.type)
+                && Security.getUserInfo().getIdentifier().equalsIgnoreCase(roleAssignment.name)) {
             Security.clearUserInfo();
         }
 
         listRoles(tenantId);
     }
 
-    @Restrictions({@Restrict("SECURITY_ADMIN"), @Restrict("TENANT_ADMIN")})
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("TENANT_ADMIN") })
     public static void createRole(@Required String tenantId) {
         addTenantAndRolesToRenderArgs(tenantId);
 
@@ -280,13 +283,13 @@ public class Tenants extends ViprResourceController {
 
     /**
      * Removes a number of role assignments from the given tenant, and redisplays the role assignment page.
-     *
+     * 
      * @param tenantId
-     *        the tenant ID.
+     *            the tenant ID.
      * @param ids
-     *        the IDs of the roles to remove.
+     *            the IDs of the roles to remove.
      */
-    @Restrictions({@Restrict("SECURITY_ADMIN"), @Restrict("TENANT_ADMIN")})
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("TENANT_ADMIN") })
     public static void removeRoleAssignments(String tenantId, @As(",") String[] ids) {
         if ((ids == null) || (ids.length == 0)) {
             listRoles(tenantId);
@@ -351,7 +354,6 @@ public class Tenants extends ViprResourceController {
             return StringUtils.isBlank(id);
         }
 
-
         public void validate(String formName) {
             Validation.valid(formName, this);
 
@@ -373,14 +375,14 @@ public class Tenants extends ViprResourceController {
                     if (userMappingForm != null) {
                         userMappingForm.validate();
                     }
-                } catch(Exception e) {
-                    Validation.addError(formName +".usermapping",e.getMessage());
+                } catch (Exception e) {
+                    Validation.addError(formName + ".usermapping", e.getMessage());
                 }
             }
 
             if (enableQuota) {
                 if (this.quota == null) {
-                    Validation.addError(formName+ ".quota", MessagesUtils.get("tenant.quota.error.required"));
+                    Validation.addError(formName + ".quota", MessagesUtils.get("tenant.quota.error.required"));
                 }
                 else {
                     String quotaParamName = formName + ".quota";
@@ -390,8 +392,7 @@ public class Tenants extends ViprResourceController {
                         if (quota <= 0) {
                             Validation.addError(quotaParamName, MessagesUtils.get("tenant.quota.error.mustBeBigger"));
                         }
-                    }
-                    catch(NumberFormatException e) {
+                    } catch (NumberFormatException e) {
                         Validation.addError(quotaParamName, MessagesUtils.get("tenant.quota.error.invalid"));
                     }
                 }
@@ -422,7 +423,7 @@ public class Tenants extends ViprResourceController {
         public Boolean tenantApprover = Boolean.FALSE;
 
         public static String createId(String tenantId, String name, RoleAssignmentType type) {
-            return tenantId+ ID_DELIMITER + name + ID_DELIMITER + type.name();
+            return tenantId + ID_DELIMITER + name + ID_DELIMITER + type.name();
         }
 
         public static String extractNameFromId(String id) {
@@ -533,7 +534,8 @@ public class Tenants extends ViprResourceController {
             return true;
         }
 
-        public void writeTenantRoleChangesTo(RoleAssignmentEntry roleAssignmentEntry, List<RoleAssignmentEntry> add, List<RoleAssignmentEntry> remove) {
+        public void writeTenantRoleChangesTo(RoleAssignmentEntry roleAssignmentEntry, List<RoleAssignmentEntry> add,
+                List<RoleAssignmentEntry> remove) {
             RoleAssignmentEntry rae = createRoleAssignmentEntry(type, name, Security.TENANT_ADMIN);
             if (hasRoleChanged(roleAssignmentEntry, Security.TENANT_ADMIN)) {
                 if (tenantAdmin != null && tenantAdmin == true) {
@@ -544,7 +546,7 @@ public class Tenants extends ViprResourceController {
                 }
             }
 
-            rae = createRoleAssignmentEntry(type, name,Security.PROJECT_ADMIN);
+            rae = createRoleAssignmentEntry(type, name, Security.PROJECT_ADMIN);
             if (hasRoleChanged(roleAssignmentEntry, Security.PROJECT_ADMIN)) {
                 if (projectAdmin != null && projectAdmin == true) {
                     add.add(rae);

@@ -26,9 +26,10 @@ public class VdcConfigSyncParam {
     private String assignedVdcId;
     private String geoEncryptionKey;
     private String configChangeType;
-    
-    public VdcConfigSyncParam() {}
-    
+
+    public VdcConfigSyncParam() {
+    }
+
     public VdcConfigSyncParam(List<VdcConfig> virtualDataCenters) {
         this.virtualDataCenters = virtualDataCenters;
     }
@@ -72,7 +73,7 @@ public class VdcConfigSyncParam {
         this.configChangeType = configChangeType;
     }
 
-     @Override
+    @Override
     public String toString() {
         StringBuilder builder = new StringBuilder(this.getClass().getName());
 

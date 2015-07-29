@@ -98,7 +98,7 @@ public class FileControllerImplTest {
                 throws DatabaseException {
             return null;
         }
-        
+
         @Override
         public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> id, boolean acitveOnly)
                 throws DatabaseException {
@@ -116,7 +116,7 @@ public class FileControllerImplTest {
                 throws DatabaseException {
             return null;
         }
-        
+
         @Override
         public <T extends DataObject> Iterator<T> queryIterativeObjects(Class<T> clazz, Collection<URI> id, boolean activeOnly)
                 throws DatabaseException {
@@ -238,14 +238,14 @@ public class FileControllerImplTest {
 
         @Deprecated
         public void setStatus(Class<? extends DataObject> clazz,
-                              URI id, String opId, String status)
-                throws DatabaseException{
+                URI id, String opId, String status)
+                throws DatabaseException {
         }
 
         @Deprecated
         public void setStatus(Class<? extends DataObject> clazz,
-                              URI id, String opId, String status, String message)
-            throws DatabaseException{
+                URI id, String opId, String status, String message)
+                throws DatabaseException {
         }
 
         @Override
@@ -289,7 +289,7 @@ public class FileControllerImplTest {
                 DateTime time, T data) throws DatabaseException {
             return null;
         }
-        
+
         @SuppressWarnings("rawtypes")
         @Override
         public <T extends DataPoint> void queryTimeSeries(Class<? extends TimeSeries> tsType,
@@ -321,7 +321,7 @@ public class FileControllerImplTest {
 
         @Override
         public Integer countObjects(Class<? extends DataObject> type, String columnField, URI uri)
-                throws DatabaseException{
+                throws DatabaseException {
             return 0;
         }
 
@@ -338,6 +338,7 @@ public class FileControllerImplTest {
             // TODO Auto-generated method stub
             return null;
         }
+
         @Override
         public String getSchemaVersion() {
             return "1";
@@ -357,26 +358,26 @@ public class FileControllerImplTest {
         public void invalidateVdcUrnCache() {
         }
 
-		@Override
-		public Operation createTaskOpStatus(Class<? extends DataObject> clazz,
-				URI id, String opId, ResourceOperationTypeEnum type)
-				throws DatabaseException {
-			// TODO Auto-generated method stub
-			return null;
-		}
+        @Override
+        public Operation createTaskOpStatus(Class<? extends DataObject> clazz,
+                URI id, String opId, ResourceOperationTypeEnum type)
+                throws DatabaseException {
+            // TODO Auto-generated method stub
+            return null;
+        }
 
-		@Override
-		public Operation createTaskOpStatus(Class<? extends DataObject> clazz,
-				URI id, String opId, ResourceOperationTypeEnum type,
-				String associatedResources) throws DatabaseException {
-			// TODO Auto-generated method stub
-			return null;
-		}
+        @Override
+        public Operation createTaskOpStatus(Class<? extends DataObject> clazz,
+                URI id, String opId, ResourceOperationTypeEnum type,
+                String associatedResources) throws DatabaseException {
+            // TODO Auto-generated method stub
+            return null;
+        }
 
-		@Override
-		public boolean checkGeoCompatible(String expectVersion) {
-			return true;
-		}
+        @Override
+        public boolean checkGeoCompatible(String expectVersion) {
+            return true;
+        }
     }
 
     @BeforeClass

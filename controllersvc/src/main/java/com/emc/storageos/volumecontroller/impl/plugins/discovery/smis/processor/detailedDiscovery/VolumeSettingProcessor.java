@@ -14,9 +14,6 @@ import javax.cim.CIMObjectPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-
-
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -38,15 +35,15 @@ import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
  * VolumeSettings (next SMI-S operation), from which the exact policy is being found.
  */
 public class VolumeSettingProcessor extends StorageProcessor {
-  
+
     private Logger _logger = LoggerFactory.getLogger(VolumeSettingProcessor.class);
     private List<Object> _args;
     private DbClient _dbClient;
-    
+
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap)
             throws BaseCollectionException {
-        
+
         try {
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
             AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
@@ -56,8 +53,9 @@ public class VolumeSettingProcessor extends StorageProcessor {
             String nativeGuid = getUnManagedVolumeNativeGuidFromVolumePath(volumePath);
             UnManagedVolume unManagedVolume = checkUnManagedVolumeExistsInDB(
                     nativeGuid, _dbClient);
-            if (null == unManagedVolume)
+            if (null == unManagedVolume) {
                 return;
+            }
             while (it.hasNext()) {
                 CIMInstance settingInstance = it.next();
                 String initialTierSetting = settingInstance.getPropertyValue(Constants.INITIAL_STORAGE_TIER_METHODOLOGY).toString();
@@ -79,8 +77,8 @@ public class VolumeSettingProcessor extends StorageProcessor {
 
                 _dbClient.persistObject(unManagedVolume);
             }
-        }catch(Exception e) {
-            _logger.error("Updating Auto Tier Policies failed on unmanaged volumes",e);
+        } catch (Exception e) {
+            _logger.error("Updating Auto Tier Policies failed on unmanaged volumes", e);
         }
     }
 

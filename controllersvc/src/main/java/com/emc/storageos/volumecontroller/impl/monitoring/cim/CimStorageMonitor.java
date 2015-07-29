@@ -60,11 +60,11 @@ public class CimStorageMonitor implements StorageMonitor {
      * @param storageDevice A reference to the storage device.
      * 
      * @throws StorageMonitorException When an error occurs monitoring the
-     *         device.
+     *             device.
      */
     @Override
     public void startMonitoring(StorageSystem storageDevice, WorkPool.Work work)
-        throws StorageMonitorException {
+            throws StorageMonitorException {
         s_logger.debug("Connecting storage for event monitoring. {}", storageDevice.getSystemType());
 
         // Verify we got a non-null storage device.
@@ -73,13 +73,13 @@ public class CimStorageMonitor implements StorageMonitor {
         }
 
         s_logger.info(
-            "Attempting to connect to storage provider {} for event monitoring.",
-            storageDevice.getSmisProviderIP());
+                "Attempting to connect to storage provider {} for event monitoring.",
+                storageDevice.getSmisProviderIP());
 
         // Verify the CIM connection manager reference.
         if (_cimConnectionManager == null) {
             throw new StorageMonitorException(
-                "CIM adapter connection manager reference is null.");
+                    "CIM adapter connection manager reference is null.");
         }
 
         // Create the CIM connection info for the connection.
@@ -96,7 +96,7 @@ public class CimStorageMonitor implements StorageMonitor {
 
         // Set the implementation namespace for this type of storage device
         connectionInfo
-            .setImplNS(getImplNamespaceForDevice(storageDevice.getSystemType()));
+                .setImplNS(getImplNamespaceForDevice(storageDevice.getSystemType()));
 
         // Create a connection to the SMI-S provider for the storage array. Note
         // that the connection manager will only create a connection if the
@@ -105,12 +105,12 @@ public class CimStorageMonitor implements StorageMonitor {
             _cimConnectionManager.addConnection(connectionInfo);
         } catch (ConnectionManagerException cme) {
             throw new StorageMonitorException(MessageFormatter.format(
-                "Failed attempting to establish a connection to storage provider {}.",
-                storageDevice.getSmisProviderIP()).getMessage(), cme);
+                    "Failed attempting to establish a connection to storage provider {}.",
+                    storageDevice.getSmisProviderIP()).getMessage(), cme);
         }
 
         s_logger.info("Connection established for storage provider {}.",
-            storageDevice.getSmisProviderIP());
+                storageDevice.getSmisProviderIP());
     }
 
     /**
@@ -120,11 +120,11 @@ public class CimStorageMonitor implements StorageMonitor {
      * @param storageDevice A reference to the storage device.
      * 
      * @throws StorageMonitorException When an error occurs stopping monitoring
-     *         for the device.
+     *             for the device.
      */
     @Override
     public void stopMonitoring(StorageSystem storageDevice)
-        throws StorageMonitorException {
+            throws StorageMonitorException {
         s_logger.debug("Disconnecting storage from event monitoring.");
 
         // Verify we got a non-null storage device.
@@ -133,13 +133,13 @@ public class CimStorageMonitor implements StorageMonitor {
         }
 
         s_logger.info(
-            "Attempting to disconnect storage provider {} from event monitoring.",
-            storageDevice.getSmisProviderIP());
+                "Attempting to disconnect storage provider {} from event monitoring.",
+                storageDevice.getSmisProviderIP());
 
         // Verify the CIM connection manager reference
         if (_cimConnectionManager == null) {
             throw new StorageMonitorException(
-                "CIM adapter connection manager reference is null.");
+                    "CIM adapter connection manager reference is null.");
         }
 
         // Use the CIM connection manager to remove the connection. Note that
@@ -149,12 +149,12 @@ public class CimStorageMonitor implements StorageMonitor {
             _cimConnectionManager.removeConnection(storageDevice.getSmisProviderIP());
         } catch (ConnectionManagerException cme) {
             throw new StorageMonitorException(MessageFormatter.format(
-                "Failed attempting to remove the connection to storage provider {}",
-                storageDevice.getSmisProviderIP()).getMessage(), cme);
+                    "Failed attempting to remove the connection to storage provider {}",
+                    storageDevice.getSmisProviderIP()).getMessage(), cme);
         }
 
         s_logger.info("Connection to storage provider {} was removed.",
-            storageDevice.getSmisProviderIP());
+                storageDevice.getSmisProviderIP());
     }
 
     /**
@@ -167,12 +167,12 @@ public class CimStorageMonitor implements StorageMonitor {
                 _cimConnectionManager.shutdown();
             } catch (ConnectionManagerException cme) {
                 s_logger.error(
-                    "An exception occurred shutting down connection manager reference.",
-                    cme);
+                        "An exception occurred shutting down connection manager reference.",
+                        cme);
             }
         } else {
             s_logger
-                .error("Failed shutting down CIM storage monitor due to null connection manager reference.");
+                    .error("Failed shutting down CIM storage monitor due to null connection manager reference.");
         }
     }
 
@@ -195,13 +195,13 @@ public class CimStorageMonitor implements StorageMonitor {
     private String getConnectionTypeForDevice(String storageDeviceType) {
 
         if ((storageDeviceType.equals(StorageSystem.Type.vnxblock.name()))
-            || (storageDeviceType.equals(StorageSystem.Type.vmax.name()))) {
+                || (storageDeviceType.equals(StorageSystem.Type.vmax.name()))) {
             return CimConstants.ECOM_CONNECTION_TYPE;
         } else if (storageDeviceType.equals(StorageSystem.Type.vnxfile.name())) {
             return CimConstants.ECOM_FILE_CONNECTION_TYPE;
         } else {
             s_logger.error("Unexpected storage device type {} for CIM event monitoring",
-                storageDeviceType);
+                    storageDeviceType);
         }
 
         return CimConstants.CIM_CONNECTION_TYPE;
@@ -217,13 +217,13 @@ public class CimStorageMonitor implements StorageMonitor {
     private String getImplNamespaceForDevice(String storageDeviceType) {
 
         if ((storageDeviceType.equals(StorageSystem.Type.vnxblock.name()))
-            || (storageDeviceType.equals(StorageSystem.Type.vmax.name()))) {
+                || (storageDeviceType.equals(StorageSystem.Type.vmax.name()))) {
             return CimConstants.DFLT_CIM_CONNECTION_IMPL_NS;
         } else if (storageDeviceType.equals(StorageSystem.Type.vnxfile.name())) {
             return CimConstants.FILE_CIM_CONNECTION_IMPL_NS;
         } else {
             s_logger.error("Unexpected storage device type {} for CIM event monitoring",
-                storageDeviceType);
+                    storageDeviceType);
         }
 
         return CimConstants.DFLT_CIM_CONNECTION_IMPL_NS;

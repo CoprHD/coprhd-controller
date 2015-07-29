@@ -24,15 +24,11 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 
-
 /**
- * Default service implementation.  Uses properties txt serialization format
+ * Default service implementation. Uses properties txt serialization format
  */
 public class ServiceImpl implements Service {
     private static final char RESERVED_CHAR = '_';
@@ -104,9 +100,9 @@ public class ServiceImpl implements Service {
     public URI getEndpoint(String key) {
         String endpoint = null;
         if (key == null) {
-            endpoint = (String)_map.get(ENDPOINT_KEY);
+            endpoint = (String) _map.get(ENDPOINT_KEY);
         } else {
-            endpoint = (String)_map.get(String.format("%1$s_%2$s", ENDPOINT_KEY, key));
+            endpoint = (String) _map.get(String.format("%1$s_%2$s", ENDPOINT_KEY, key));
         }
         if (endpoint == null) {
             return null;
@@ -116,6 +112,7 @@ public class ServiceImpl implements Service {
 
     /**
      * Set default endpoint on the service
+     * 
      * @param endpoint
      */
     public void setEndpoint(URI endpoint) {
@@ -124,13 +121,14 @@ public class ServiceImpl implements Service {
 
     /**
      * Set endpoint with specific key in the endpointmap
+     * 
      * @param key
      * @param endpoint
      */
     public void setEndpoint(String key, URI endpoint) {
-    	_map.put(String.format("%1$s_%2$s", ENDPOINT_KEY, key), endpoint.toString());
+        _map.put(String.format("%1$s_%2$s", ENDPOINT_KEY, key), endpoint.toString());
     }
-    
+
     public void setEndpointMap(Map<String, URI> endpoint) {
         Iterator<Map.Entry<String, URI>> it = endpoint.entrySet().iterator();
         while (it.hasNext()) {

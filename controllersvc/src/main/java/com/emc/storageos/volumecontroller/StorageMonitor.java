@@ -27,7 +27,7 @@ public interface StorageMonitor {
      * @param storageDevice A reference to the storage device.
      */
     public void stopMonitoring(StorageSystem storageDevice) throws StorageMonitorException;
-    
+
     /**
      * Shuts down the storage monitor so that event monitoring is stopped for
      * all storage devices being monitored and all resources are cleaned up.

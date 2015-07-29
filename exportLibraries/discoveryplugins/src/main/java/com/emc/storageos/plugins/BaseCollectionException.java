@@ -22,14 +22,14 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
  * indicate a discovery failure. It should be extend for specific error
  * conditions, and each subclass should set the errorCode to a well-known error
  * code that the Exception corresponds to.
- *
+ * 
  */
 public abstract class BaseCollectionException extends DiscoveryException {
     /**
      * An error code representing the error that occurred.
-     *
+     * 
      */
-    protected int             _errorCode;
+    protected int _errorCode;
 
     private static final long serialVersionUID = 1L;
 
@@ -38,13 +38,13 @@ public abstract class BaseCollectionException extends DiscoveryException {
      * BaseCollectionException and throw them to indicate failures. The derived
      * exception should specify a value for errorCode and return that value in
      * getErrorCode.
-     *
+     * 
      * @return a well-known error core associated with the exception
      */
     public abstract int getErrorCode();
 
-
-    protected BaseCollectionException(final boolean retryable, final ServiceCode code, final Throwable cause, final String detailBase, final String detailKey,
+    protected BaseCollectionException(final boolean retryable, final ServiceCode code, final Throwable cause, final String detailBase,
+            final String detailKey,
             final Object[] detailParams) {
         super(retryable, code, cause, detailBase, detailKey, detailParams);
     }
@@ -59,7 +59,7 @@ public abstract class BaseCollectionException extends DiscoveryException {
 
     /**
      * Constructor accepting a message and a causing Exception
-     *
+     * 
      * @param message
      *            Message associated with the Exception
      * @param cause
@@ -72,7 +72,7 @@ public abstract class BaseCollectionException extends DiscoveryException {
 
     /**
      * Constructor accepting a message
-     *
+     * 
      * @param message
      *            Message associated with the Exception
      */
@@ -83,7 +83,7 @@ public abstract class BaseCollectionException extends DiscoveryException {
 
     /**
      * Constructor accepting a causing Exception
-     *
+     * 
      * @param cause
      *            Exception that caused this to occur
      */

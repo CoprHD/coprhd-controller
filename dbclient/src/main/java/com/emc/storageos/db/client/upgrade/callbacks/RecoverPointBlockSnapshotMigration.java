@@ -30,27 +30,27 @@ import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
  */
 public class RecoverPointBlockSnapshotMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(RecoverPointBlockSnapshotMigration.class);
-    
+
     @Override
     public void process() {
         migrateRpBlockSnapshots();
     }
-    
+
     /**
-     * Migrates the RP BlockSnapshots.  The migration consists of setting the deviceLabel
+     * Migrates the RP BlockSnapshots. The migration consists of setting the deviceLabel
      * field based on the associated target volume's deviceLabel.
      */
     private void migrateRpBlockSnapshots() {
-        log.info("Migrating RecoverPoint BlockSnapshot objects."); 
+        log.info("Migrating RecoverPoint BlockSnapshot objects.");
         DbClient dbClient = getDbClient();
         List<URI> blockSnapshotURIs = dbClient.queryByType(BlockSnapshot.class, false);
         Iterator<BlockSnapshot> snapshots = dbClient.queryIterativeObjects(BlockSnapshot.class, blockSnapshotURIs);
-        
+
         int migrationCount = 0;
-        
+
         while (snapshots.hasNext()) {
             BlockSnapshot snapshot = snapshots.next();
-            if (snapshot != null && snapshot.getParent() != null && 
+            if (snapshot != null && snapshot.getParent() != null &&
                     BlockSnapshot.checkForRP(dbClient, snapshot.getId())) {
                 // If this is an RP BlockSnapshot we need to migrate it.
                 Volume parent = dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
@@ -62,12 +62,12 @@ public class RecoverPointBlockSnapshotMigration extends BaseCustomMigrationCallb
                             snapshot.setDeviceLabel(targetVolume.getDeviceLabel());
                             dbClient.persistObject(snapshot);
                             migrationCount++;
-                        }   
+                        }
                     }
                 }
             }
         }
-        
+
         log.info("RecoverPoint BlockSnapshot migration complete.  A total of {} BlockSnapshots were migrated.", migrationCount);
     }
 }

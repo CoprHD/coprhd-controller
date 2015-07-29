@@ -11,7 +11,6 @@ import javax.cim.CIMInstance;
 
 import com.emc.storageos.services.util.EnvConfig;
 
-
 public class DCNMDialogTest {
 
     static final Integer sshport = 22;

@@ -28,12 +28,12 @@ public class SmisSynchSubTaskJob extends SmisJob {
     private static Logger log = LoggerFactory.getLogger(SmisSynchSubTaskJob.class);
 
     public SmisSynchSubTaskJob(CIMObjectPath cimJob,
-                               URI storageSystem,
-                               final String name) {
+            URI storageSystem,
+            final String name) {
         super(cimJob, storageSystem, new TaskCompleter() {
             @Override
             protected void complete(DbClient dbClient, Operation.Status status,
-                                 ServiceCoded coded)
+                    ServiceCoded coded)
                     throws DeviceControllerException {
                 log.info(String.format("Completing synchronous sub-task %s with status %s",
                         name, status.toString()));

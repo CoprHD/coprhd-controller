@@ -37,10 +37,10 @@ public class BlockExportControllerImpl implements BlockExportController {
 
     /**
      * Dummy implementation that just returns the first controller that implements this device
-     *
+     * 
      * @return
      * @throws com.emc.storageos.volumecontroller.ControllerException
-     *
+     * 
      */
     private BlockExportController getExportController()
             throws ControllerException {
@@ -53,11 +53,11 @@ public class BlockExportControllerImpl implements BlockExportController {
 
     /**
      * Puts the operation in the zkQueue so it can Dispatch'd to a Device Controller
-     *
+     * 
      * @param methodName
      * @param args
      * @throws com.emc.storageos.volumecontroller.ControllerException
-     *
+     * 
      */
     private void blockRMI(String methodName, Object... args) throws ControllerException {
         final URI export = (URI) args[0];
@@ -68,28 +68,28 @@ public class BlockExportControllerImpl implements BlockExportController {
     /**
      * Export one or more volumes. The volumeToExports parameter has
      * all the information required to do the add volumes operation.
-     *
-     * @param export        URI of ExportMask
-     * @param volumeMap     Volume-lun map to be part of the export mask
+     * 
+     * @param export URI of ExportMask
+     * @param volumeMap Volume-lun map to be part of the export mask
      * @param initiatorURIs List of URIs for the initiators to be added to the export mask
-     * @param opId          Operation ID
+     * @param opId Operation ID
      * @throws com.emc.storageos.volumecontroller.ControllerException
-     *
+     * 
      */
     @Override
     public void exportGroupCreate(URI export, Map<URI, Integer> volumeMap,
-                                  List<URI> initiatorURIs, String opId)
+            List<URI> initiatorURIs, String opId)
             throws ControllerException {
         blockRMI("exportGroupCreate", export, volumeMap, initiatorURIs, opId);
     }
 
     /**
      * Delete the export.
-     *
+     * 
      * @param export URI of ExportMask
-     * @param opId   Operation ID
+     * @param opId Operation ID
      * @throws com.emc.storageos.volumecontroller.ControllerException
-     *
+     * 
      */
     @Override
     public void exportGroupDelete(URI export, String opId) throws ControllerException {
@@ -101,12 +101,13 @@ public class BlockExportControllerImpl implements BlockExportController {
             List<URI> updatedClusters, List<URI> updatedHosts,
             List<URI> updatedInitiators, String opId)
             throws ControllerException {
-        blockRMI("exportGroupUpdate", export, updatedBlockObjectMap, 
+        blockRMI("exportGroupUpdate", export, updatedBlockObjectMap,
                 updatedClusters, updatedHosts, updatedInitiators, opId);
     }
-    
+
     /**
      * Update the path parameters for a volume from a new Vpool.
+     * 
      * @param volumeURI - URI of volume
      * @param newVpoolURI - URI of new Vpool
      * @param opid String containing task identifier
@@ -118,7 +119,7 @@ public class BlockExportControllerImpl implements BlockExportController {
 
     /**
      * Updates the Auto-tiering policy from a new vPool for the given volumes.
-     *
+     * 
      * @param volumeURIs the volume uris
      * @param newVpoolURI - URI of new Vpool
      * @param opId the op id

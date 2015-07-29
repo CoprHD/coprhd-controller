@@ -11,7 +11,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
  */
 public class WorkflowRestartedException extends WorkflowException {
 
-	private static final long serialVersionUID = -8346457868124567639L;
+    private static final long serialVersionUID = -8346457868124567639L;
 
     protected WorkflowRestartedException(final ServiceCode code, final Throwable cause,
             final String detailBase, final String detailKey, final Object[] detailParams) {
@@ -19,17 +19,17 @@ public class WorkflowRestartedException extends WorkflowException {
     }
 
     @Deprecated
-	public WorkflowRestartedException(String pattern, Object[] parameters) {
-		super(ServiceCode.WORKFLOW_RESTARTED_ERROR, pattern, parameters);
-	}
+    public WorkflowRestartedException(String pattern, Object[] parameters) {
+        super(ServiceCode.WORKFLOW_RESTARTED_ERROR, pattern, parameters);
+    }
 
     @Deprecated
-	public WorkflowRestartedException(ServiceCode serviceCode, String pattern, Object[] parameters) {
-		super(serviceCode == ServiceCode.UNFORSEEN_ERROR ? ServiceCode.WORKFLOW_RESTARTED_ERROR : serviceCode, pattern, parameters);
-	}
+    public WorkflowRestartedException(ServiceCode serviceCode, String pattern, Object[] parameters) {
+        super(serviceCode == ServiceCode.UNFORSEEN_ERROR ? ServiceCode.WORKFLOW_RESTARTED_ERROR : serviceCode, pattern, parameters);
+    }
 
     @Deprecated
-	public WorkflowRestartedException(String msg) {
-		super(ServiceCode.WORKFLOW_RESTARTED_ERROR, msg, null);
-	}
+    public WorkflowRestartedException(String msg) {
+        super(ServiceCode.WORKFLOW_RESTARTED_ERROR, msg, null);
+    }
 }

@@ -51,7 +51,7 @@ public abstract class HDSAbstractCreateVolumeJob extends HDSJob {
      * Called to update the job status when the volume create job completes.
      * <p/>
      * This is common update code for volume create operations.
-     *
+     * 
      * @param jobContext The job context.
      */
     @Override
@@ -66,12 +66,13 @@ public abstract class HDSAbstractCreateVolumeJob extends HDSJob {
             String opId = getTaskCompleter().getOpId();
             StringBuilder logMsgBuilder = new StringBuilder(String.format("Updating status of job %s to %s", opId, _status.name()));
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, getStorageSystemURI());
-            
-            HDSApiClient hdsApiClient = jobContext.getHdsApiFactory().getClient(HDSUtils.getHDSServerManagementServerInfo(storageSystem), storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
-            
+
+            HDSApiClient hdsApiClient = jobContext.getHdsApiFactory().getClient(HDSUtils.getHDSServerManagementServerInfo(storageSystem),
+                    storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
+
             JavaResult javaResult = hdsApiClient.checkAsyncTaskStatus(getHDSJobMessageId());
 
-            // If terminal state update storage pool capacity and remove reservation for  volumes capacity
+            // If terminal state update storage pool capacity and remove reservation for volumes capacity
             // from pool's reserved capacity map.
             if (_status == JobStatus.SUCCESS || _status == JobStatus.FAILED) {
                 StoragePool storagePool = dbClient.queryObject(StoragePool.class, storagePoolURI);
@@ -101,8 +102,8 @@ public abstract class HDSAbstractCreateVolumeJob extends HDSJob {
                     logMsgBuilder.append(String.format(
                             "Task %s failed to create volume: %s", opId, id.toString()));
                     BlockObject object = BlockObject.fetch(dbClient, id);
-                    if(object!=null){
-                    	object.setInactive(true);
+                    if (object != null) {
+                        object.setInactive(true);
                         dbClient.persistObject(object);
                     }
                 }
@@ -115,21 +116,21 @@ public abstract class HDSAbstractCreateVolumeJob extends HDSJob {
             super.updateStatus(jobContext);
         }
     }
-    
-    
+
     /**
      * This method is abstract and should be implemented by the derived class for
      * specific updates or processing for a derived class.
-     *
-     * @param dbClient     [in] - Client for reading/writing from/to database.
-     * @param client       [in] - HDSApiClient for accessing Hitachi provider data
-     * @param volume       [in] - Reference to Bourne's Volume object
-     *
+     * 
+     * @param dbClient [in] - Client for reading/writing from/to database.
+     * @param client [in] - HDSApiClient for accessing Hitachi provider data
+     * @param volume [in] - Reference to Bourne's Volume object
+     * 
      */
     abstract void specificProcessing(DbClient dbClient, HDSApiClient client, Volume volume);
-    
+
     /**
      * Return the LUList based on the model.
+     * 
      * @param storageSystem
      * @param javaResult
      * @param isThinVolumeRequest
@@ -149,6 +150,7 @@ public abstract class HDSAbstractCreateVolumeJob extends HDSJob {
     /**
      * When multiple thin volumes are created, volumes are reported under ArrayGroup seperately.
      * Hence we should iterate through all ArrayGroups and get all the logical units.
+     * 
      * @param arrayGroupList
      * @return
      */
@@ -166,6 +168,7 @@ public abstract class HDSAbstractCreateVolumeJob extends HDSJob {
 
     /**
      * Verifies whether the request contains thin volumes or not.
+     * 
      * @param volumeIds
      * @param dbClient
      * @return
@@ -174,8 +177,8 @@ public abstract class HDSAbstractCreateVolumeJob extends HDSJob {
         boolean isThinVolumeRequest = false;
         if (null != volumeIds && !volumeIds.isEmpty()) {
             for (URI volumeId : volumeIds) {
-                //Volume volume = dbClient.queryObject(Volume.class, volumeId);
-                Volume volume = (Volume)BlockObject.fetch(dbClient, volumeId);
+                // Volume volume = dbClient.queryObject(Volume.class, volumeId);
+                Volume volume = (Volume) BlockObject.fetch(dbClient, volumeId);
                 if (volume.getThinlyProvisioned().booleanValue()) {
                     isThinVolumeRequest = true;
                     break;
@@ -188,6 +191,7 @@ public abstract class HDSAbstractCreateVolumeJob extends HDSJob {
     /**
      * Process the LogicalUnit response received from server by setting the
      * LogicalUnit attributes in Volume db object.
+     * 
      * @param volumeId : volume URI.
      * @param logicalUnit : LogicalUnit.
      * @param dbClient : dbClient reference.
@@ -198,8 +202,8 @@ public abstract class HDSAbstractCreateVolumeJob extends HDSJob {
     private void processVolume(URI volumeId, LogicalUnit logicalUnit, DbClient dbClient,
             HDSApiClient hdsApiClient, Calendar now, StringBuilder logMsgBuilder) {
         try {
-            //Volume volume = dbClient.queryObject(Volume.class, volumeId);
-        	Volume volume = (Volume)BlockObject.fetch(dbClient, volumeId);
+            // Volume volume = dbClient.queryObject(Volume.class, volumeId);
+            Volume volume = (Volume) BlockObject.fetch(dbClient, volumeId);
             volume.setCreationTime(now);
             volume.setNativeId(String.valueOf(logicalUnit.getDevNum()));
             volume.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, volume));
@@ -220,20 +224,21 @@ public abstract class HDSAbstractCreateVolumeJob extends HDSJob {
             _log.error("Caught an exception while trying to update volume attributes", e);
         }
     }
-    
+
     /**
      * Method will modify the name of a given volume to a generate name.
-     *
-     * @param dbClient   [in] - Client instance for reading/writing from/to DB
-     * @param client     [in] - HDSApiClient used for reading/writing from/to HiCommand DM.
-     * @param volume     [in] - Volume object
+     * 
+     * @param dbClient [in] - Client instance for reading/writing from/to DB
+     * @param client [in] - HDSApiClient used for reading/writing from/to HiCommand DM.
+     * @param volume [in] - Volume object
      */
     protected void changeVolumeName(DbClient dbClient, HDSApiClient client, Volume volume, String name) {
         try {
             _log.info(String.format("Attempting to add volume label %s to %s", name, volume.getWWN()));
             StorageSystem system = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
             String systemObjectId = HDSUtils.getSystemObjectID(system);
-            LogicalUnit logicalUnit = client.getLogicalUnitInfo(systemObjectId, HDSUtils.getLogicalUnitObjectId(volume.getNativeId(), system));
+            LogicalUnit logicalUnit = client.getLogicalUnitInfo(systemObjectId,
+                    HDSUtils.getLogicalUnitObjectId(volume.getNativeId(), system));
             if (null != logicalUnit && null != logicalUnit.getLdevList() && !logicalUnit.getLdevList().isEmpty()) {
                 Iterator<LDEV> ldevItr = logicalUnit.getLdevList().iterator();
                 if (ldevItr.hasNext()) {

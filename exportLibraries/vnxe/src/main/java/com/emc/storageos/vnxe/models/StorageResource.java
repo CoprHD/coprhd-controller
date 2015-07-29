@@ -18,8 +18,9 @@ package com.emc.storageos.vnxe.models;
 import java.util.List;
 
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-@JsonIgnoreProperties(ignoreUnknown=true)
-public class StorageResource extends VNXeBase{
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class StorageResource extends VNXeBase {
     private List<Integer> operationalStatus;
     private Health health;
     private String name;
@@ -34,13 +35,13 @@ public class StorageResource extends VNXeBase{
     private boolean isSnapSchedulePaused;
     private TieringPolicyEnum relocationPolicy;
     private List<Long> perTierSizeused;
-    //private List<BlockHostAccess> blockHostAccess;
+    // private List<BlockHostAccess> blockHostAccess;
     private long metadataSize;
     private long metadataSizeAllocated;
     private long snapSizeTotal;
     private long snapSizeAllocated;
     private int snapCount;
-    
+
     public List<Integer> getOperationalStatus() {
         return operationalStatus;
     }
@@ -204,7 +205,7 @@ public class StorageResource extends VNXeBase{
         MICROSOFT_EXCHANGE2010,
         STANDALONE;
     }
-    
+
     public static enum TieringPolicyEnum {
         AUTOTIER_HIGH(0),
         AUTOTIER(1),
@@ -212,24 +213,25 @@ public class StorageResource extends VNXeBase{
         LOWEST(3),
         NO_DATA_MOVEMENT(4),
         MIXED(0xffff);
-        
+
         private int value;
 
         private TieringPolicyEnum(int value) {
             this.value = value;
         }
+
         @org.codehaus.jackson.annotate.JsonValue
         public int getValue() {
             return this.value;
         }
-        
+
         public static String[] getTieringPolicyNames() {
-            String[] policies = {AUTOTIER_HIGH.name(),
-                                 AUTOTIER.name(),
-                                 HIGHEST.name(),
-                                 LOWEST.name()};
+            String[] policies = { AUTOTIER_HIGH.name(),
+                    AUTOTIER.name(),
+                    HIGHEST.name(),
+                    LOWEST.name() };
             return policies;
-            
+
         }
     }
 }

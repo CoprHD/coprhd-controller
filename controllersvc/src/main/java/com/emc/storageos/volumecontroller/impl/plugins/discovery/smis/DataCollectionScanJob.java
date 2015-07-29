@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
@@ -12,7 +11,6 @@ import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -28,100 +26,98 @@ public class DataCollectionScanJob extends DataCollectionJob implements Serializ
 
     ArrayList<ScanTaskCompleter> _completers = new ArrayList<ScanTaskCompleter>();
 
-    public DataCollectionScanJob(){
-       super(JobOrigin.USER_API);
+    public DataCollectionScanJob() {
+        super(JobOrigin.USER_API);
     }
 
-    DataCollectionScanJob(JobOrigin origin){
+    DataCollectionScanJob(JobOrigin origin) {
         super(origin);
     }
 
-
-    public void addCompleter(ScanTaskCompleter completer ){
+    public void addCompleter(ScanTaskCompleter completer) {
         _completers.add(completer);
     }
 
-    public ArrayList<ScanTaskCompleter> getCompleters(){
+    public ArrayList<ScanTaskCompleter> getCompleters() {
         return _completers;
     }
 
     @Override
-    public ScanTaskCompleter getCompleter() throws ControllerException{
+    public ScanTaskCompleter getCompleter() throws ControllerException {
         throw new DeviceControllerException("Wrong job");
     }
 
-    public List<URI> getProviders(){
-        List<URI>  providers = new ArrayList<URI>();
-        for( ScanTaskCompleter completer : _completers) {
-            providers.add(completer.getId() );
+    public List<URI> getProviders() {
+        List<URI> providers = new ArrayList<URI>();
+        for (ScanTaskCompleter completer : _completers) {
+            providers.add(completer.getId());
         }
         return providers;
     }
 
     public ScanTaskCompleter findProviderTaskCompleter(URI provider) {
-        for( ScanTaskCompleter completer : _completers) {
-            if ( completer.getId().equals(provider) )
+        for (ScanTaskCompleter completer : _completers) {
+            if (completer.getId().equals(provider)) {
                 return completer;
+            }
         }
         return null;
     }
 
-
     @Override
-    public void ready(DbClient dbClient) throws DeviceControllerException{
-        for( DataCollectionTaskCompleter completer : _completers) {
+    public void ready(DbClient dbClient) throws DeviceControllerException {
+        for (DataCollectionTaskCompleter completer : _completers) {
             completer.ready(dbClient);
         }
     }
 
     @Override
-    public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException{
-        for( DataCollectionTaskCompleter completer : _completers) {
+    public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException {
+        for (DataCollectionTaskCompleter completer : _completers) {
             completer.error(dbClient, serviceCoded);
         }
     }
 
     @Override
-    public void schedule(DbClient dbClient){
-        for( ScanTaskCompleter completer : _completers) {
+    public void schedule(DbClient dbClient) {
+        for (ScanTaskCompleter completer : _completers) {
             completer.schedule(dbClient);
         }
     }
 
     @Override
-    final public void setTaskError(DbClient dbClient,ServiceCoded code) {
-        for( ScanTaskCompleter completer : _completers) {
-            completer.statusError(dbClient,code);
+    final public void setTaskError(DbClient dbClient, ServiceCoded code) {
+        for (ScanTaskCompleter completer : _completers) {
+            completer.statusError(dbClient, code);
         }
     }
 
     @Override
-    final public void setTaskReady(DbClient dbClient,String message){
-        for( ScanTaskCompleter completer : _completers) {
-            completer.statusReady(dbClient,message);
+    final public void setTaskReady(DbClient dbClient, String message) {
+        for (ScanTaskCompleter completer : _completers) {
+            completer.statusReady(dbClient, message);
         }
     }
 
     @Override
-    final public void updateTask(DbClient dbClient, String message){
-        for( ScanTaskCompleter completer : _completers) {
-            completer.statusPending(dbClient,message);
+    final public void updateTask(DbClient dbClient, String message) {
+        for (ScanTaskCompleter completer : _completers) {
+            completer.statusPending(dbClient, message);
         }
     }
 
-   public String getType(){
+    public String getType() {
         return ControllerServiceImpl.SCANNER;
     }
 
+    public String systemString() {
+        return Joiner.on("\t").join(getProviders());
+    }
 
-   public String systemString()  {
-       return Joiner.on("\t").join(getProviders());
-   }
-
-    public boolean isActiveJob(DbClient dbClient){
-        for( DataCollectionTaskCompleter completer : _completers) {
-            DataObject dbObject = dbClient.queryObject(completer.getType(),completer.getId());
-            if (dbObject != null && !dbObject.getInactive()){
+    public boolean isActiveJob(DbClient dbClient) {
+        for (DataCollectionTaskCompleter completer : _completers) {
+            DataObject dbObject = dbClient.queryObject(completer.getType(), completer.getId());
+            if (dbObject != null && !dbObject.getInactive()) {
                 return true;
             }
         }

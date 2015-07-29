@@ -8,9 +8,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class FCProtocolEndpoint {
-    
+
     public static Map<String, FCProtocolEndpoint> wwpnToFCEndpoint = new HashMap<String, FCProtocolEndpoint>();
-    
+
     String wwpn;
     String wwnn;
     Interface iface;            // interface implementing this endpoint

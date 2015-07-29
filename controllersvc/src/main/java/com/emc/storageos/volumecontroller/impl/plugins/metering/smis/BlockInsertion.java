@@ -11,7 +11,6 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.metering.smis.SMIPluginException;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.CassandraInsertion;
 
-
 public class BlockInsertion extends CassandraInsertion {
     @Override
     public void injectColumnsDetails(Stat statObj, DbClient client) throws Exception {

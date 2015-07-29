@@ -25,8 +25,8 @@ public class ExportMaskDeleteCompleter extends ExportTaskCompleter {
         super(ExportGroup.class, egUri, emUri, task);
     }
 
-	private void updateExportGroups(DbClient dbClient, Operation.Status status)
-			throws DeviceControllerException {
+    private void updateExportGroups(DbClient dbClient, Operation.Status status)
+            throws DeviceControllerException {
         ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
         ExportMask exportMask = (getMask() != null) ?
                 dbClient.queryObject(ExportMask.class, getMask()) : null;
@@ -37,7 +37,7 @@ public class ExportMaskDeleteCompleter extends ExportTaskCompleter {
         }
         _log.info(String.format("Done ExportMaskDelete - Id: %s, OpId: %s, status: %s",
                 getId().toString(), getOpId(), status.name()));
-	}
+    }
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {

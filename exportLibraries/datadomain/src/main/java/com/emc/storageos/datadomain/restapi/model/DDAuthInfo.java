@@ -14,32 +14,30 @@
  */
 package com.emc.storageos.datadomain.restapi.model;
 
-import com.google.gson.annotations.SerializedName;
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.annotate.JsonTypeName;
 import org.codehaus.jackson.map.annotate.JsonRootName;
 
 /**
  * Created by zeldib on 2/4/14.
  */
 
-
-@JsonRootName(value="auth_info")
+@JsonRootName(value = "auth_info")
 public class DDAuthInfo {
 
     private String username;
     private String password;
 
-    String getUsername(){
+    String getUsername() {
         return username;
     }
+
     public void setUsername(String username) {
         this.username = username;
     }
 
-    String getPassword(){
+    String getPassword() {
         return password;
     }
+
     public void setPassword(String password) {
         this.password = password;
     }

@@ -14,10 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.utility.CIMConstants;
 
-
-
-
-
 /**
  * Periodic timer that executes this class to process the indications sits in
  * the queue.

@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.file;
 
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
@@ -14,7 +13,6 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFilePluginException;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.CassandraInsertion;
-
 
 /**
  * 

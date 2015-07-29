@@ -31,7 +31,7 @@ public class RecordableIsilonEvent extends RecordableDeviceEvent {
     public RecordableIsilonEvent(StorageSystem isilonDevice, IsilonEvent event) {
         super(null);
         _event = event;
-        _isilonDevice= isilonDevice;
+        _isilonDevice = isilonDevice;
     }
 
     /**
@@ -89,7 +89,7 @@ public class RecordableIsilonEvent extends RecordableDeviceEvent {
     @Override
     public String getSource() {
         String source = null;
-        if(_isilonDevice!=null){
+        if (_isilonDevice != null) {
             source = _isilonDevice.getIpAddress();
         }
         return source;
@@ -109,8 +109,9 @@ public class RecordableIsilonEvent extends RecordableDeviceEvent {
     @Override
     public String getSeverity() {
         String severity = _event.getSeverity();
-        if(severity!=null)
+        if (severity != null) {
             severity = severity.toUpperCase();
+        }
         return severity;
     }
 
@@ -136,7 +137,7 @@ public class RecordableIsilonEvent extends RecordableDeviceEvent {
     @Override
     public String getNativeGuid() {
         String nativeGuid = null;
-        if(_isilonDevice != null){
+        if (_isilonDevice != null) {
             nativeGuid = _isilonDevice.getNativeGuid();
         }
         return nativeGuid;
@@ -157,32 +158,32 @@ public class RecordableIsilonEvent extends RecordableDeviceEvent {
     public String getOperationalStatusCodes() {
         return null;
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public URI getResourceId() {
         URI resourceId = null;
-        if(_isilonDevice != null){
+        if (_isilonDevice != null) {
             resourceId = _isilonDevice.getId();
         }
         return resourceId;
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public URI getProjectId() {
-       return null;
+        return null;
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public URI getVirtualPool() {
-       return null;
+        return null;
     }
 }

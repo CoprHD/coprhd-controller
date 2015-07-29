@@ -48,7 +48,7 @@ public class SmisBlockDetachCloneJob extends SmisJob {
             message = "Failed to detached volume clone";
         }
         // set to terminal status to stop polling job
-        if (jobStatus == JobStatus.ERROR){
+        if (jobStatus == JobStatus.ERROR) {
             setFatalErrorStatus(message);
         }
         dbClient.updateTaskOpStatus(Volume.class, cloneVolume.getId(), taskCompleter.getOpId(),

@@ -37,13 +37,14 @@ public class VNXVolumeViewEventProcessor extends BaseProcessor {
             spEvent.setIndication(notification);
             Boolean status = spEvent
                     .updateStoragePoolObjectFromVNXVolumeViewIndication();
-            if (status)
+            if (status) {
                 logMessage(
                         "VNX StoragePool object updated sucessfully from VNX VolumeView Event",
                         new Object[] {});
-            else
+            } else {
                 logMessage("VNX StoragePool object not updated",
                         new Object[] {});
+            }
             spEvent = null;
 
         } catch (Exception e) {

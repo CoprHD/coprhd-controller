@@ -22,14 +22,14 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 
 /**
  * A utility class for implementing {@link DataObject} common functions.
- *
+ * 
  * @author elalih
- *
+ * 
  */
 public class DataObjectUtils {
     /**
      * This function returns the property value for an object of {@link DataObject} subtype.
-     *
+     * 
      * @param clzz the object class that should be a subtype of {@link DataObject}
      * @param dataObject the instance of clzz
      * @param property the string name of the property
@@ -41,31 +41,33 @@ public class DataObjectUtils {
             ColumnField field = doType.getColumnField(property);
             return field.getPropertyDescriptor().getReadMethod().invoke(dataObject);
         } catch (Exception ex) {
-        	throw DatabaseException.fatals.failedToReadPropertyValue(clzz, property, ex);
+            throw DatabaseException.fatals.failedToReadPropertyValue(clzz, property, ex);
         }
     }
-    
+
     /**
      * This method invokes a parameterless function. The function is expected to return a value.
-     * This is use when some manipulation of the property is required 
+     * This is use when some manipulation of the property is required
+     * 
      * @param clzz the data object class
      * @param dataObject the data object
      * @param methodName the name of the method
-     * @return 
+     * @return
      * @throws Exception
      */
     public static <T extends DataObject> Object invokeMethod(Class<T> clzz, DataObject dataObject,
             String methodName) throws Exception {
         Method method = String.class.getDeclaredMethod(methodName, new Class[] {});
-        return (Object) method.invoke(dataObject, new Object[]{});
-        
+        return (Object) method.invoke(dataObject, new Object[] {});
+
     }
-    
+
     /**
      * Finds an DataObject in a collection by matching it by Id
+     * 
      * @param col the collection
      * @param obj the object to be found
-     * @return the object in the collection with the same Id and obj. Returns null if no match is found. 
+     * @return the object in the collection with the same Id and obj. Returns null if no match is found.
      */
     public static <T extends DataObject> T findInCollection(Collection<T> col, T obj) {
         if (col != null && obj != null) {
@@ -73,10 +75,11 @@ public class DataObjectUtils {
         }
         return null;
     }
-    
+
     /**
      * Returns if the object is found in the collection when the collection contains
      * and object of the same Id but different instance.
+     * 
      * @param col the collection
      * @param obj the object being searched for
      * @return true if an object with the same Id is found; false otherwise.
@@ -85,12 +88,12 @@ public class DataObjectUtils {
         return findInCollection(col, obj) != null;
     }
 
-    
     /**
      * Finds an DataObject in a collection by matching it by Id
+     * 
      * @param col the collection
      * @param id the object id URI
-     * @return the object in the collection with the ID id. Returns null if no match is found. 
+     * @return the object in the collection with the ID id. Returns null if no match is found.
      */
     public static <T extends DataObject> T findInCollection(Collection<T> col, URI id) {
         if (col != null && id != null) {
@@ -105,9 +108,10 @@ public class DataObjectUtils {
 
     /**
      * Finds an DataObject in a collection by matching it by Id
+     * 
      * @param col the collection
-     * @param id the object id URI as a string 
-     * @return the object in the collection with the ID id. Returns null if no match is found. 
+     * @param id the object id URI as a string
+     * @return the object in the collection with the ID id. Returns null if no match is found.
      */
     public static <T extends DataObject> T findInCollection(Collection<T> col, String id) {
         if (col != null && id != null) {
@@ -122,6 +126,7 @@ public class DataObjectUtils {
 
     /**
      * Returns a map of DataObject by Id
+     * 
      * @param col the collection being changed into a map
      * @return a map of DataObject by Id
      */
@@ -133,23 +138,24 @@ public class DataObjectUtils {
             }
         }
         return map;
-    } 
-    
+    }
+
     /**
      * Finds an DataObject in a collection by matching its property to a value. This method
-     * assumes only one object in the collection can be matched. 
+     * assumes only one object in the collection can be matched.
+     * 
      * @param col the collection
      * @param property the property to be checked
      * @param value the property value to be matched.
-     * @return the object in the collection for which the property value matched the passed in 
-     * value. Returns null if no match is found. 
+     * @return the object in the collection for which the property value matched the passed in
+     *         value. Returns null if no match is found.
      */
-    public static <T extends DataObject> T findByProperty(Collection<T> col, String property, Object value ) {
+    public static <T extends DataObject> T findByProperty(Collection<T> col, String property, Object value) {
         if (col != null && property != null) {
             Object val = null;
             for (T t : col) {
                 val = getPropertyValue(t.getClass(), t, property);
-                if ((val == value) || ( val != null && val.equals(value))) {
+                if ((val == value) || (val != null && val.equals(value))) {
                     return t;
                 }
             }
@@ -159,6 +165,7 @@ public class DataObjectUtils {
 
     /**
      * Utility functions that returns the iterator entries as a list
+     * 
      * @param itr the iterator
      * @return a list that holds the iterator entries
      */
@@ -172,6 +179,7 @@ public class DataObjectUtils {
 
     /**
      * Utility functions that returns the iterator entries as a list
+     * 
      * @param itr the iterator
      * @return a list that holds the iterator entries
      */

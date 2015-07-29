@@ -24,21 +24,26 @@ import com.google.common.base.Joiner;
  * Capacity Matcher- Pools which satisfy the required capacity values will be retained.
  * This is invoked in following scenarios:
  * 1. During Provisioning to Match pools based on provisioning attributes.
- * 2. Invoked independently to find the recommendation pool based on no. of resources & its capacity.  
- *
+ * 2. Invoked independently to find the recommendation pool based on no. of resources & its capacity.
+ * 
  */
 public class CapacityMatcher extends AttributeMatcher {
     private static final int BYTESCONVERTER = 1024;
-    public static final String MAX_THIN_POOL_SUBSCRIPTION_PERCENTAGE = "controller_max_thin_pool_subscription_percentage"; // default percentage of subscription rate.
-    public static final String MAX_POOL_UTILIZATION_PERCENTAGE = "controller_max_pool_utilization_percentage"; // percentage of pool utilization limit.
-       
+    public static final String MAX_THIN_POOL_SUBSCRIPTION_PERCENTAGE = "controller_max_thin_pool_subscription_percentage"; // default
+                                                                                                                           // percentage of
+                                                                                                                           // subscription
+                                                                                                                           // rate.
+    public static final String MAX_POOL_UTILIZATION_PERCENTAGE = "controller_max_pool_utilization_percentage"; // percentage of pool
+                                                                                                               // utilization limit.
+
     public static final String ZERO = "0L";
     private static final Logger _log = LoggerFactory.getLogger(CapacityMatcher.class);
 
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
-        if (null != attributeMap && attributeMap.containsKey(Attributes.size.toString()))
+        if (null != attributeMap && attributeMap.containsKey(Attributes.size.toString())) {
             return true;
+        }
         return false;
     }
 
@@ -65,8 +70,9 @@ public class CapacityMatcher extends AttributeMatcher {
         while (poolIterator.hasNext()) {
             StoragePool pool = poolIterator.next();
             // During provisioning matching, this matcher runs against the volume size requested.
-            if (!poolMatchesCapacity(pool, requiredCapacity, resourceSize, true, supportsThinProvisioning, thinVolumePreAllocationSize))
-               filteredPoolList.remove(pool);
+            if (!poolMatchesCapacity(pool, requiredCapacity, resourceSize, true, supportsThinProvisioning, thinVolumePreAllocationSize)) {
+                filteredPoolList.remove(pool);
+            }
         }
         _log.info("Pools Matching capacity Ended :" + Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));
         return filteredPoolList;
@@ -76,17 +82,18 @@ public class CapacityMatcher extends AttributeMatcher {
      * Decision is made as following:
      * 1. Check volume size against maximum volume size limit of storage pool (if required).
      * 2.
-     * --- Thick pool: solely based on the pool utilization capacity including the current request 
-     *                  & the requested capacity < pool freeCapacity.
+     * --- Thick pool: solely based on the pool utilization capacity including the current request
+     * & the requested capacity < pool freeCapacity.
      * --- Thin pool: It depends on two factors.
-     *                1. pool utilization -> Pool should be less utilized
-     *                2. pool subscribedCapacity  -> pool should subscribed less than user configured.
+     * 1. pool utilization -> Pool should be less utilized
+     * 2. pool subscribedCapacity -> pool should subscribed less than user configured.
+     * 
      * @param pool
      *            storage pool
      * @param requiredCapacity : requested size
-     *            This capacity changes as per the provisioning logic. 
-     *            It could be requiredCapacity = resourceSize * resourceCount. 
-     *            This should be computed whoever calls this method. 
+     *            This capacity changes as per the provisioning logic.
+     *            It could be requiredCapacity = resourceSize * resourceCount.
+     *            This should be computed whoever calls this method.
      * @param resourceSize : always size of the requested value capacity
      * @param checkPoolMaxSizeLimit
      *            indicates if the size should be checked against max. limits for volume
@@ -104,15 +111,15 @@ public class CapacityMatcher extends AttributeMatcher {
         long sizeInKB = getSizeInKB(requiredCapacity);
         // single resource size in KB.
         long resourceSizeInKB = getSizeInKB(resourceSize);
-        
+
         // Step 1: Check for Maximum Volume size limit if block type pool.
         if ((PoolServiceType.block.toString().equalsIgnoreCase(pool.getPoolServiceType()) ||
-                PoolServiceType.block_file.name().equalsIgnoreCase(pool.getPoolServiceType())) 
+                PoolServiceType.block_file.name().equalsIgnoreCase(pool.getPoolServiceType()))
                 && checkPoolMaxSizeLimit) {
             // check against maximum volume size limit of storage pool
             // limit in kilobytes
             Long maxVolumeSizeLimit = getMaxVolumeSizeLimit(pool, supportsThinProvisioning);
-            
+
             if (maxVolumeSizeLimit == null || maxVolumeSizeLimit == 0) {
                 String errorMsg = String.format("Pool %s does not have maximum size limit for %s volumes set.",
                         pool.getId(), pool.getSupportedResourceTypes());
@@ -124,7 +131,7 @@ public class CapacityMatcher extends AttributeMatcher {
             // volumes (meta volumes).
             if (null != pool.getPoolClassName()
                     && (pool.getPoolClassName().equals(StoragePool.PoolClassNames.Clar_UnifiedStoragePool.toString())
-                        || pool.getPoolClassName().equals(StoragePool.PoolClassNames.VNXe_Pool.name()))     
+                    || pool.getPoolClassName().equals(StoragePool.PoolClassNames.VNXe_Pool.name()))
                     && resourceSizeInKB > maxVolumeSizeLimit) {
                 _log.info(String
                         .format("Pool %s is not matching as the pool's maximum volume size (%s KB) is below the requested volume size %s KB.",
@@ -133,7 +140,8 @@ public class CapacityMatcher extends AttributeMatcher {
             }
         }
         // Step 2: Check whether StoragePool is Thick or not.
-        if (pool.getSupportedResourceTypes() != null && pool.getSupportedResourceTypes().equals(StoragePool.SupportedResourceTypes.THICK_ONLY.name())
+        if (pool.getSupportedResourceTypes() != null
+                && pool.getSupportedResourceTypes().equals(StoragePool.SupportedResourceTypes.THICK_ONLY.name())
                 || !supportsThinProvisioning) {
             // If it is thick then check whether pool has more utilization or not.
             return isPoolMatchesCapacityForThickProvisioning(pool, sizeInKB);
@@ -147,17 +155,19 @@ public class CapacityMatcher extends AttributeMatcher {
 
     /**
      * return size in KB
+     * 
      * @param resourceSize
      * @return
      */
     private long getSizeInKB(long resourceSize) {
-        return (resourceSize%BYTESCONVERTER == 0) ? resourceSize/BYTESCONVERTER : resourceSize/BYTESCONVERTER +1;
+        return (resourceSize % BYTESCONVERTER == 0) ? resourceSize / BYTESCONVERTER : resourceSize / BYTESCONVERTER + 1;
     }
 
     /**
      * Return VolumeSizeLimit based on supportsThinProvisioning flag.
+     * 
      * @param pool
-     * @param supportsThinProvisioning 
+     * @param supportsThinProvisioning
      * @return
      */
     private Long getMaxVolumeSizeLimit(StoragePool pool, boolean supportsThinProvisioning) {
@@ -165,36 +175,41 @@ public class CapacityMatcher extends AttributeMatcher {
         if (supportsThinProvisioning) {
             maxVolumeSizeLimit = pool.getMaximumThinVolumeSize();
         } else {
-            maxVolumeSizeLimit = pool.getMaximumThickVolumeSize(); 
+            maxVolumeSizeLimit = pool.getMaximumThickVolumeSize();
         }
         return maxVolumeSizeLimit;
     }
 
     /**
      * Check whether Thick pool is matching with the capacity requirement or not.
+     * 
      * @param pool
      * @param requiredCapacityInKB
      * @return
      */
     private boolean isPoolMatchesCapacityForThickProvisioning(StoragePool pool, long requiredCapacityInKB) {
-        if(requiredCapacityInKB > pool.getFreeCapacity()) {
-            _log.info(String.format("Pool %s is not matching as it doesn't have enough space to create resources. Pool has %dKB, Required capacity of request %dKB",
-                    pool.getId(),
-                    pool.getFreeCapacity().longValue(),
-                    requiredCapacityInKB));
+        if (requiredCapacityInKB > pool.getFreeCapacity()) {
+            _log.info(String
+                    .format("Pool %s is not matching as it doesn't have enough space to create resources. Pool has %dKB, Required capacity of request %dKB",
+                            pool.getId(),
+                            pool.getFreeCapacity().longValue(),
+                            requiredCapacityInKB));
             return false;
         }
         if (!checkThickPoolCandidacy(pool, requiredCapacityInKB, _coordinator)) {
-            String msg = String.format("Pool %s is not matching as it will have utilization of %s percent after allocation. Pool's max utilization percentage is %s percent .",
-                    pool.getId(), 100-getThickPoolFreeCapacityPercentage(pool, requiredCapacityInKB), getMaxPoolUtilizationPercentage(pool, _coordinator));
+            String msg = String
+                    .format("Pool %s is not matching as it will have utilization of %s percent after allocation. Pool's max utilization percentage is %s percent .",
+                            pool.getId(), 100 - getThickPoolFreeCapacityPercentage(pool, requiredCapacityInKB),
+                            getMaxPoolUtilizationPercentage(pool, _coordinator));
             _log.info(msg);
             return false;
         }
         return true;
     }
-    
+
     /**
      * Return the thickPoolFreeCapacity percentage.
+     * 
      * @param pool
      * @param requiredCapacityInKB
      * @return
@@ -207,7 +222,7 @@ public class CapacityMatcher extends AttributeMatcher {
     /**
      * Verifies whether Thick pool is more utilized or less utilized based on the user configured max utilized value.
      * 
-     * Step 1: Calculate the new freeCapacity Percentage including the current requested capacity. 
+     * Step 1: Calculate the new freeCapacity Percentage including the current requested capacity.
      * Step 2: Determine the maximumPoolUtlization Percentage If user is configured else use the default.
      * Step 3: Check whether requiredCapacityInKB is less than Pool FreeCapacity & isPoolLessUtilized.
      * 
@@ -224,9 +239,10 @@ public class CapacityMatcher extends AttributeMatcher {
     public static boolean checkThickPoolCandidacy(StoragePool pool, long requiredCapacityInKB, CoordinatorClient coordinator) {
         return (100 - getThickPoolFreeCapacityPercentage(pool, requiredCapacityInKB)) <= getMaxPoolUtilizationPercentage(pool, coordinator);
     }
-    
+
     /**
-     * return the pool max utilization if it is set else return default value. 
+     * return the pool max utilization if it is set else return default value.
+     * 
      * @param pool
      * @return
      */
@@ -236,12 +252,11 @@ public class CapacityMatcher extends AttributeMatcher {
                 : Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator, MAX_POOL_UTILIZATION_PERCENTAGE));
     }
 
-    
     /**
      * Check whether Thin Pool matches with the pool capacity requirement or not.
      * 
      * Formulae: [isPoolLessUtilized && isPoolLessSubscribed]
-     *
+     * 
      * @param pool
      * @return
      */
@@ -249,39 +264,44 @@ public class CapacityMatcher extends AttributeMatcher {
             long requestedCapacityInKB, long preAllocationSize,
             CoordinatorClient coordinator) {
         if (!isThinPoolLessUtilized(pool, preAllocationSize, coordinator)) {
-            String msg = String.format("Thin pool %s is not matching as it will have utilization of %s percent after allocation. Pool's max utilization percentage is %s percent .",
-                    pool.getId(), 100-getThinPoolFreeCapacityPercentage(pool, preAllocationSize), getMaxPoolUtilizationPercentage(pool, coordinator));
+            String msg = String
+                    .format("Thin pool %s is not matching as it will have utilization of %s percent after allocation. Pool's max utilization percentage is %s percent .",
+                            pool.getId(), 100 - getThinPoolFreeCapacityPercentage(pool, preAllocationSize),
+                            getMaxPoolUtilizationPercentage(pool, coordinator));
             _log.info(msg);
 
             return false;
         }
         if (!isThinPoolLessSubscribed(pool, requestedCapacityInKB, coordinator)) {
-            String msg = String.format("Thin pool %s is not matching as it will have %s percent subscribed after allocation. Pool's max subscription percentage is %s percent .",
-                    pool.getId(), getThinPoolSubscribedCapacityPercentage(pool, requestedCapacityInKB), getMaxPoolSubscriptionPercentage(pool, coordinator));
+            String msg = String
+                    .format("Thin pool %s is not matching as it will have %s percent subscribed after allocation. Pool's max subscription percentage is %s percent .",
+                            pool.getId(), getThinPoolSubscribedCapacityPercentage(pool, requestedCapacityInKB),
+                            getMaxPoolSubscriptionPercentage(pool, coordinator));
             _log.info(msg);
 
             return false;
         }
         return true;
     }
-    
+
     /**
      * Verifies whether pool is more utilized or less utilized based on the user configured max utilized value.
      * 
-     * Step 1: Calculate the pool freeCapacity Percentage. 
+     * Step 1: Calculate the pool freeCapacity Percentage.
      * Step 2: Determine the maximumPoolUtlization Percentage If user is configured else use the default.
      * Step 3: Check whether pool is isLessUtilized or not.
      * 
-     * Formulae: [(100 - poolFreeCapacityPercentage) <= maximumPoolUtilizationPercentage] 
+     * Formulae: [(100 - poolFreeCapacityPercentage) <= maximumPoolUtilizationPercentage]
      * 
      * @param pool : Pool to verify
      * @return
      */
     private static boolean isThinPoolLessUtilized(StoragePool pool, long preAllocationSize, CoordinatorClient coordinator) {
-        final boolean isPoolUtilizedLess = (100 - getThinPoolFreeCapacityPercentage(pool, preAllocationSize)) <= getMaxPoolUtilizationPercentage(pool, coordinator);
+        final boolean isPoolUtilizedLess = (100 - getThinPoolFreeCapacityPercentage(pool, preAllocationSize)) <= getMaxPoolUtilizationPercentage(
+                pool, coordinator);
         return isPoolUtilizedLess;
     }
-    
+
     /**
      * Calculates the ThinPoolFreeCapacityPercentage.
      * 
@@ -293,7 +313,7 @@ public class CapacityMatcher extends AttributeMatcher {
     private static double getThinPoolFreeCapacityPercentage(StoragePool pool, long preAllocationSize) {
         return ((pool.getFreeCapacity().doubleValue() - preAllocationSize) / pool.getTotalCapacity()) * 100;
     }
-    
+
     /**
      * Returns true if Thin pool is subscribed less than user configured value else false.
      * 
@@ -306,7 +326,7 @@ public class CapacityMatcher extends AttributeMatcher {
     public static boolean isThinPoolLessSubscribed(StoragePool pool, long requestedCapacityInKB, CoordinatorClient coordinator) {
         return getThinPoolSubscribedCapacityPercentage(pool, requestedCapacityInKB) <= getMaxPoolSubscriptionPercentage(pool, coordinator);
     }
-    
+
     /**
      * return thinPoolSubscribeCapacityPercentage which include the current request resource size.
      * 
@@ -320,14 +340,14 @@ public class CapacityMatcher extends AttributeMatcher {
         // thinPoolSubscribedCapacity includes the current resource capacity.
         return (((pool.getSubscribedCapacity().doubleValue() + requestedCapacityInKB) / pool.getTotalCapacity()) * 100);
     }
-    
-    
+
     /**
-     * return the pool subscribed percentage if it is set else return default value. 
+     * return the pool subscribed percentage if it is set else return default value.
+     * 
      * @param pool
      * @return
      */
-    public static double getMaxPoolSubscriptionPercentage(StoragePool pool,CoordinatorClient coordinator) {
+    public static double getMaxPoolSubscriptionPercentage(StoragePool pool, CoordinatorClient coordinator) {
         return (pool.getMaxThinPoolSubscriptionPercentage() != null && pool.getMaxThinPoolSubscriptionPercentage() != 0L)
                 ? pool.getMaxThinPoolSubscriptionPercentage() : Integer.valueOf(
                         ControllerUtils.getPropertyValueFromCoordinator(coordinator, MAX_THIN_POOL_SUBSCRIPTION_PERCENTAGE));

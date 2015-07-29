@@ -17,9 +17,7 @@ package com.emc.storageos.auth.service.impl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
-import org.springframework.context.support.FileSystemXmlApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
-
 
 /**
  * Use this to start authentication service with a spring config
@@ -37,7 +35,7 @@ public class Main {
             ctx.load(args);
             ctx.refresh();
 
-            AuthenticationServerImpl service = (AuthenticationServerImpl)ctx.getBean(SERVICE_BEAN);
+            AuthenticationServerImpl service = (AuthenticationServerImpl) ctx.getBean(SERVICE_BEAN);
             service.start();
         } catch (Exception e) {
             _log.error("failed to start {}:", SERVICE_BEAN, e);

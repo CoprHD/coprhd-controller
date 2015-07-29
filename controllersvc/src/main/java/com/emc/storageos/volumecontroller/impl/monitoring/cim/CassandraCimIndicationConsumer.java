@@ -129,11 +129,11 @@ public class CassandraCimIndicationConsumer extends CimIndicationConsumer {
                 _logger.debug("Indication Queued at {}", list.size());
             } else {
                 _logger.warn("Indication dropped. Indication buffer reached  max. capacity. Buffer size: {}", list.size());
-                _logger.info("Indication with key : value pairs dropped --> \n" +CIMIndicationProcessor.getIndicationData(indication.getIndication()));
+                _logger.info("Indication with key : value pairs dropped --> \n"
+                        + CIMIndicationProcessor.getIndicationData(indication.getIndication()));
             }
         } catch (Exception e) {
             _logger.error("Exception while processing the indication", e);
         }
     }
 }
-

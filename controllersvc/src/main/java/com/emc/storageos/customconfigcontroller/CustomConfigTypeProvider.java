@@ -16,26 +16,26 @@ import org.slf4j.LoggerFactory;
  */
 public class CustomConfigTypeProvider {
 
-	private static final Logger logger = LoggerFactory
-			.getLogger(CustomConfigTypeProvider.class);
+    private static final Logger logger = LoggerFactory
+            .getLogger(CustomConfigTypeProvider.class);
 
-	private List<CustomConfigType> customConfigTypes;
+    private List<CustomConfigType> customConfigTypes;
 
-	public List<CustomConfigType> getCustomConfigTypes() {
-		return customConfigTypes;
-	}
+    public List<CustomConfigType> getCustomConfigTypes() {
+        return customConfigTypes;
+    }
 
-	public void setCustomConfigTypes(List<CustomConfigType> customConfigTypes) {
-		this.customConfigTypes = customConfigTypes;
-	}
+    public void setCustomConfigTypes(List<CustomConfigType> customConfigTypes) {
+        this.customConfigTypes = customConfigTypes;
+    }
 
-	public CustomConfigType getCustomConfigType(String name) {
-		for (CustomConfigType item : customConfigTypes) {
-			if (item.getName().equals(name)) {
-				return item;
-			}
-		}
-		return null;
-	}
+    public CustomConfigType getCustomConfigType(String name) {
+        for (CustomConfigType item : customConfigTypes) {
+            if (item.getName().equals(name)) {
+                return item;
+            }
+        }
+        return null;
+    }
 
 }

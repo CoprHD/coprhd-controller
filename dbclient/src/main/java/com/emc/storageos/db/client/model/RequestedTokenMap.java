@@ -22,22 +22,21 @@ package com.emc.storageos.db.client.model;
 @NoInactiveIndex
 @Cf("RequestedTokenMap")
 public class RequestedTokenMap extends DataObject {
-    
+
     private String tokenID;
     private StringSet VDCIDs;
-    
-    
+
     @AlternateId("AltIdIndex")
     @Name("tokenId")
     public String getTokenID() {
         return tokenID;
     }
-    
+
     public void setTokenID(String id) {
         tokenID = id;
         setChanged("tokenId");
     }
-    
+
     @Name("vdcIds")
     public StringSet getVDCIDs() {
         if (VDCIDs == null) {
@@ -45,17 +44,17 @@ public class RequestedTokenMap extends DataObject {
         }
         return VDCIDs;
     }
-    
+
     public void setVDCIDs(StringSet ids) {
         VDCIDs = ids;
     }
-    
-    public void addVDCID(String shortId) {       
+
+    public void addVDCID(String shortId) {
         getVDCIDs().add(shortId);
     }
 
     public void removeVDCID(String shortId) {
         getVDCIDs().remove(shortId);
     }
- 
+
 }

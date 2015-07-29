@@ -24,9 +24,8 @@ public class MetaData {
     public static void save(File file, List<ApiService> apiServices) {
         try (FileOutputStream metadataFile = new FileOutputStream(file)) {
             save(metadataFile, apiServices);
-        }
-        catch (IOException e) {
-            DocReporter.printError("Error loading MetaData from "+file);
+        } catch (IOException e) {
+            DocReporter.printError("Error loading MetaData from " + file);
             throw new RuntimeException(e);
         }
     }
@@ -38,10 +37,9 @@ public class MetaData {
             String asJson = gson.toJson(apiServices);
             IOUtils.write(asJson.getBytes(), outputStream);
 
-            DocReporter.printWarning("Written Meta Data to "+KnownPaths.getOutputFile("meta_data.json"));
-        }
-        catch (IOException e) {
-            DocReporter.printError("Error Dumping Meta Data "+e.getMessage());
+            DocReporter.printWarning("Written Meta Data to " + KnownPaths.getOutputFile("meta_data.json"));
+        } catch (IOException e) {
+            DocReporter.printError("Error Dumping Meta Data " + e.getMessage());
             throw new RuntimeException(e);
         } finally {
             addApiServiceLink(apiServices);
@@ -51,9 +49,8 @@ public class MetaData {
     public static List<ApiService> load(File file) {
         try {
             return load(new FileInputStream(file));
-        }
-        catch (FileNotFoundException e) {
-            DocReporter.printError("Error loading MetaData from InputStream "+e.getMessage());
+        } catch (FileNotFoundException e) {
+            DocReporter.printError("Error loading MetaData from InputStream " + e.getMessage());
             throw new RuntimeException(e);
         }
     }
@@ -69,7 +66,6 @@ public class MetaData {
     public MetaData(OutputStream outputStream) {
         this.outputStream = outputStream;
     }
-
 
     // ApiMethods contain a link to the parent service, but this causes cyclic issues with JSON
     // These methods should be used with caution as they modify the actual service information

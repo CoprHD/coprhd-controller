@@ -48,46 +48,46 @@ public class VolumeVpoolAutoTieringPolicyChangeTaskCompleter extends
     protected void complete(DbClient dbClient, Operation.Status status,
             ServiceCoded serviceCoded) {
         switch (status) {
-        case error:
-            _log.error(
-                    "An error occurred during virtual pool change "
-                            + "- restore the old auto tiering policy to the volume(s): {}",
-                            serviceCoded.getMessage());
-            for (URI id : getIds()) {
-                Volume volume = dbClient.queryObject(Volume.class, id);
-                _log.info("rolling back auto tiering policy on volume {}({})",
-                        id, volume.getLabel());
-                URI policyURI = oldVolToPolicyMap.get(id);
-                if (policyURI == null) {
-                    policyURI = NullColumnValueGetter.getNullURI();
-                }
-                volume.setAutoTieringPolicyUri(policyURI);
-                _log.info("set volume's auto tiering policy back to {}",
-                        policyURI);
-                dbClient.persistObject(volume);
-            }
-            break;
-        case ready:
-            // The new auto tiering policy has already been stored in the volume
-            // in BlockDeviceExportController.
-
-            //record event.
-            OperationTypeEnum opType = OperationTypeEnum.CHANGE_VOLUME_AUTO_TIERING_POLICY;
-            try {
-                boolean opStatus = (Operation.Status.ready == status)? true: false;
-                String evType = opType.getEvType(opStatus);
-                String evDesc = opType.getDescription();
+            case error:
+                _log.error(
+                        "An error occurred during virtual pool change "
+                                + "- restore the old auto tiering policy to the volume(s): {}",
+                        serviceCoded.getMessage());
                 for (URI id : getIds()) {
-                    recordBourneVolumeEvent(dbClient, id, evType, status, evDesc);
+                    Volume volume = dbClient.queryObject(Volume.class, id);
+                    _log.info("rolling back auto tiering policy on volume {}({})",
+                            id, volume.getLabel());
+                    URI policyURI = oldVolToPolicyMap.get(id);
+                    if (policyURI == null) {
+                        policyURI = NullColumnValueGetter.getNullURI();
+                    }
+                    volume.setAutoTieringPolicyUri(policyURI);
+                    _log.info("set volume's auto tiering policy back to {}",
+                            policyURI);
+                    dbClient.persistObject(volume);
                 }
-            } catch (Exception ex) {
-                _logger.error(
-                        "Failed to record block volume operation {}, err: {}",
-                        opType.toString(), ex);
-            }
-            break;
-        default:
-            break;
+                break;
+            case ready:
+                // The new auto tiering policy has already been stored in the volume
+                // in BlockDeviceExportController.
+
+                // record event.
+                OperationTypeEnum opType = OperationTypeEnum.CHANGE_VOLUME_AUTO_TIERING_POLICY;
+                try {
+                    boolean opStatus = (Operation.Status.ready == status) ? true : false;
+                    String evType = opType.getEvType(opStatus);
+                    String evDesc = opType.getDescription();
+                    for (URI id : getIds()) {
+                        recordBourneVolumeEvent(dbClient, id, evType, status, evDesc);
+                    }
+                } catch (Exception ex) {
+                    _logger.error(
+                            "Failed to record block volume operation {}, err: {}",
+                            opType.toString(), ex);
+                }
+                break;
+            default:
+                break;
         }
         super.complete(dbClient, status, serviceCoded);
     }

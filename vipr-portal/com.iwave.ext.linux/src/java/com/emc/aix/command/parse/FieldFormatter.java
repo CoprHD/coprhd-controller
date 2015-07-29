@@ -5,7 +5,7 @@
 package com.emc.aix.command.parse;
 
 public interface FieldFormatter {
-    
+
     public Object format(Object source);
-    
+
 }

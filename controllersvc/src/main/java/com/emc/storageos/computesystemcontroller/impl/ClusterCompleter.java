@@ -22,11 +22,11 @@ public class ClusterCompleter extends ComputeSystemCompleter {
      */
     private static final Logger _logger = LoggerFactory
             .getLogger(HostCompleter.class);
-    
+
     public ClusterCompleter(URI id, boolean deactivateOnComplete, String opId) {
         super(Cluster.class, id, deactivateOnComplete, opId);
     }
-    
+
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         switch (status) {
@@ -37,7 +37,7 @@ public class ClusterCompleter extends ComputeSystemCompleter {
                 dbClient.ready(Cluster.class, this.getId(), getOpId());
         }
 
-        if (deactivateOnComplete && status.equals(Status.ready)) {            
+        if (deactivateOnComplete && status.equals(Status.ready)) {
             Cluster cluster = dbClient.queryObject(Cluster.class, this.getId());
             ComputeSystemHelper.doDeactivateCluster(dbClient, cluster);
             _logger.info("Deactivating Cluster: " + this.getId());

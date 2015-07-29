@@ -24,7 +24,6 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
-import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
@@ -46,7 +45,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 
 /**
  * Processor responsible for handling Provider response data and creates Physical StoragePorts
@@ -90,46 +88,46 @@ public class StoragePortProcessor extends StorageProcessor {
             _updatePortList = new ArrayList<StoragePort>();
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
             CoordinatorClient coordinator = (CoordinatorClient) keyMap.get(Constants.COORDINATOR_CLIENT);
-            Map<URI,StoragePool> poolsToMatchWithVpool = (Map<URI, StoragePool>) keyMap.get(Constants.MODIFIED_STORAGEPOOLS);
+            Map<URI, StoragePool> poolsToMatchWithVpool = (Map<URI, StoragePool>) keyMap.get(Constants.MODIFIED_STORAGEPOOLS);
             Set<URI> systemsToRunRPConnectivity = (HashSet<URI>) keyMap.get(Constants.SYSTEMS_RUN_RP_CONNECTIVITY);
             StorageSystem device = _dbClient.queryObject(StorageSystem.class, profile.getSystemId());
             CIMObjectPath storageAdapterPath = getObjectPathfromCIMArgument(args);
             Iterable<String> adapterItr = Splitter.on(Constants.PATH_DELIMITER_PATTERN)
                     .limit(3).split(storageAdapterPath.getKey(Constants.NAME).getValue().toString());
-            String adapterNativeGuid = NativeGUIDGenerator. generateNativeGuid(device,
+            String adapterNativeGuid = NativeGUIDGenerator.generateNativeGuid(device,
                     Iterables.getLast(adapterItr),
                     NativeGUIDGenerator.ADAPTER);
-            StorageHADomain haDomain = getStorageAdapter(_dbClient,adapterNativeGuid);
+            StorageHADomain haDomain = getStorageAdapter(_dbClient, adapterNativeGuid);
             if (null == haDomain) {
                 _logger.info("Adapter Not found");
                 return;
             }
-            
+
             while (it.hasNext()) {
                 CIMInstance portInstance = null;
                 StoragePort port = null;
                 try {
                     portInstance = it.next();
-                   
+
                     // skip back end ports other than RDF Ports
                     if (!HADomainType.REMOTE.name().equalsIgnoreCase(
                             haDomain.getAdapterType())
-                            && "3".equalsIgnoreCase(getCIMPropertyValue(portInstance,USAGERESTRICTION))) {
+                            && "3".equalsIgnoreCase(getCIMPropertyValue(portInstance, USAGERESTRICTION))) {
                         continue;
                     }
                     // only if its an EthernetPort, as protocolEnd point needs
                     // to run only for Ethernet
                     // Ports , because SCSI address we don't have it in
                     // CIM_LogicalPort Class
-                        // 2 - Ethernet Port 4 - FC Port
+                    // 2 - Ethernet Port 4 - FC Port
                     if ("2".equalsIgnoreCase(getCIMPropertyValue(portInstance, LINKTECHNOLOGY))) {
                         port = createStoragePort(null, portInstance, profile, haDomain, false, IP, device);
                         checkProtocolAlreadyExists(protocols, ISCSI);
                         String deviceId = getCIMPropertyValue(portInstance, DEVICEID);
-                        /* 
-                         * For SMI-S 8.x, While getting the iSCSI Port details, we use SystemName property 
+                        /*
+                         * For SMI-S 8.x, While getting the iSCSI Port details, we use SystemName property
                          * (Ex. SYMMETRIX-+-<<SERIAL>>-+-SE-1G-+-0)
-                         * Where this call just add the deviceId to the KeyMap (i.e SE-1G-+-0). 
+                         * Where this call just add the deviceId to the KeyMap (i.e SE-1G-+-0).
                          * Hence manually constructing the key.
                          */
                         if (device.getUsingSmis80()) {
@@ -149,39 +147,39 @@ public class StoragePortProcessor extends StorageProcessor {
                         _logger.debug("Unsupported Port : {}", getCIMPropertyValue(portInstance, DEVICEID));
                     }
 
-				} catch (Exception e) {
-					_logger.warn("Port Discovery failed for {}",
-							getCIMPropertyValue(portInstance, DEVICEID), e);
-				}
+                } catch (Exception e) {
+                    _logger.warn("Port Discovery failed for {}",
+                            getCIMPropertyValue(portInstance, DEVICEID), e);
+                }
             }
             _dbClient.createObject(_newPortList);
             _dbClient.persistObject(_updatePortList);
-            
-            
-            
-          //ports used later to run Transport Zone connectivity
+
+            // ports used later to run Transport Zone connectivity
             List<List<StoragePort>> portsUsedToRunTZoneConnectivity = (List<List<StoragePort>>) keyMap.get(Constants.STORAGE_PORTS);
             portsUsedToRunTZoneConnectivity.add(_newPortList);
             portsUsedToRunTZoneConnectivity.add(_updatePortList);
-            
-            List<StoragePool> modifiedPools = StoragePoolAssociationHelper.getStoragePoolsFromPorts(_dbClient, _newPortList, _updatePortList);
+
+            List<StoragePool> modifiedPools = StoragePoolAssociationHelper.getStoragePoolsFromPorts(_dbClient, _newPortList,
+                    _updatePortList);
             for (StoragePool pool : modifiedPools) {
                 // pool matcher will be invoked on this pool
                 if (!poolsToMatchWithVpool.containsKey(pool.getId())) {
                     poolsToMatchWithVpool.put(pool.getId(), pool);
                 }
             }
-            
-            //Systems used to run RP connectivity later after runing pool matcher
+
+            // Systems used to run RP connectivity later after runing pool matcher
             systemsToRunRPConnectivity.addAll(StoragePoolAssociationHelper.getStorageSytemsFromPorts(_newPortList, null));
             systemsToRunRPConnectivity.addAll(StoragePoolAssociationHelper.getStorageSytemsFromPorts(_updatePortList, null));
-            
-            //discovered ports used later to check for not visible ports
+
+            // discovered ports used later to check for not visible ports
             List<StoragePort> discoveredPorts = (List<StoragePort>) keyMap.get(Constants.DISCOVERED_PORTS);
             discoveredPorts.addAll(_newPortList);
             discoveredPorts.addAll(_updatePortList);
-            
-            _logger.debug("# Pools used in invoking PoolMatcher during StoragePortProcessor {}",Joiner.on("\t").join(poolsToMatchWithVpool.keySet()));
+
+            _logger.debug("# Pools used in invoking PoolMatcher during StoragePortProcessor {}",
+                    Joiner.on("\t").join(poolsToMatchWithVpool.keySet()));
         } catch (Exception e) {
             _logger.error("Port Discovery failed -->{}", getMessage(e));
         } finally {
@@ -209,10 +207,10 @@ public class StoragePortProcessor extends StorageProcessor {
      * @param port
      * @param portInstance
      * @throws URISyntaxException
-     * @throws IOException 
+     * @throws IOException
      */
     private StoragePort createStoragePort(
-            StoragePort port, CIMInstance portInstance, AccessProfile profile,StorageHADomain haDomain,
+            StoragePort port, CIMInstance portInstance, AccessProfile profile, StorageHADomain haDomain,
             boolean flag, String transportType, StorageSystem device) throws URISyntaxException, IOException {
         boolean newPort = false;
         if (null == port) {
@@ -221,29 +219,30 @@ public class StoragePortProcessor extends StorageProcessor {
             port.setId(URIUtil.createId(StoragePort.class));
             // if true, then its FC Port or else its Ethernet, PORTID
             // or ethernet will be updated later in ProtocolEndPoint Processor
-            if (flag)
+            if (flag) {
                 port.setPortNetworkId(WWNUtility.getWWNWithColons(getCIMPropertyValue(portInstance, PORTID)));
+            }
             port.setStorageDevice(profile.getSystemId());
             String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(_dbClient, port);
             port.setNativeGuid(portNativeGuid);
             port.setLabel(portNativeGuid);
             port.setPortGroup(haDomain.getAdapterName());
             port.setStorageHADomain(haDomain.getId());
-           
+
         }
-        setPortType(port,portInstance);
+        setPortType(port, portInstance);
         port.setTransportType(transportType);
         port.setPortName(getCIMPropertyValue(portInstance, PORTNAME));
         port.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
         port.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
-        
-        UnsignedInteger16[] operationalStatusCodes = (UnsignedInteger16[])portInstance.getPropertyValue(OPERATIONALSTATUS);
+
+        UnsignedInteger16[] operationalStatusCodes = (UnsignedInteger16[]) portInstance.getPropertyValue(OPERATIONALSTATUS);
         OperationalStatus operationalStatus = getPortOperationalStatus(operationalStatusCodes);
-        if(OperationalStatus.NOT_OK.equals(operationalStatus)){
+        if (OperationalStatus.NOT_OK.equals(operationalStatus)) {
             _logger.info("StoragePort {} operationalStatus is NOT_OK. operationalStatusCodes collected from SMI-S :{}"
-                    ,port.getId(),operationalStatusCodes);
-        }else{
-            _logger.debug("operationalStatusCodes :{}",operationalStatusCodes);
+                    , port.getId(), operationalStatusCodes);
+        } else {
+            _logger.debug("operationalStatusCodes :{}", operationalStatusCodes);
 
             // there can be multiple statuses. {OK, Online}, {OK, Stopped}
             if (operationalStatusCodes != null && operationalStatusCodes.length > 1 &&
@@ -257,19 +256,21 @@ public class StoragePortProcessor extends StorageProcessor {
         if (null != portSpeed) {
             // SMI returns port speed in bits per sec ?? Is this always true?
             Long portSpeedInBitsPerSec = Long.parseLong(portSpeed);
-            Long portSpeedInGbps = portSpeedInBitsPerSec/GB;
+            Long portSpeedInGbps = portSpeedInBitsPerSec / GB;
             port.setPortSpeed(portSpeedInGbps);
         }
         setCompatibilityByACLXFlag(device, portInstance, port);
-        if (flag)
-            if (newPort){
+        if (flag) {
+            if (newPort) {
                 _logger.info("Creating port - {}:{}", port.getLabel(), port.getNativeGuid());
                 _newPortList.add(port);
             }
             else {
                 _logger.info("Updating port - {}:{}", port.getLabel(), port.getNativeGuid());
                 _updatePortList.add(port);
-            };
+            }
+        }
+        ;
         return port;
     }
 
@@ -295,26 +296,28 @@ public class StoragePortProcessor extends StorageProcessor {
     private void setPortType(StoragePort port, CIMInstance portInstance) {
         if ("2".equalsIgnoreCase(getCIMPropertyValue(portInstance, USAGERESTRICTION))) {
             port.setPortType(PortType.frontend.toString());
-        } else if ("3".equalsIgnoreCase(getCIMPropertyValue(portInstance, USAGERESTRICTION))){
+        } else if ("3".equalsIgnoreCase(getCIMPropertyValue(portInstance, USAGERESTRICTION))) {
             port.setPortType(PortType.rdf.toString());
         } else {
             port.setPortType(PortType.Unknown.toString());
         }
 
     }
-    
-    
+
     /**
      * Returns operationalStatus based on the given operationalCodes collected from smisProvider.
      * OpertaionalCode 2 means Ok.
-     * ValueMap("0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, .., 0x8000.."), 
-     * Values("Unknown, Other, OK, Degraded, Stressed, Predictive Failure, Error, Non-Recoverable Error, Starting, Stopping, Stopped, In Service, No Contact, Lost Communication, Aborted, Dormant, Supporting Entity in Error, Completed, Power Mode, Relocating, DMTF Reserved, Vendor Reserved")]
+     * ValueMap("0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, .., 0x8000.."),
+     * Values(
+     * "Unknown, Other, OK, Degraded, Stressed, Predictive Failure, Error, Non-Recoverable Error, Starting, Stopping, Stopped, In Service, No Contact, Lost Communication, Aborted, Dormant, Supporting Entity in Error, Completed, Power Mode, Relocating, DMTF Reserved, Vendor Reserved"
+     * )]
+     * 
      * @param operationalCodes
      * @return
      */
-    public static OperationalStatus getPortOperationalStatus(UnsignedInteger16[] operationalCodes){
+    public static OperationalStatus getPortOperationalStatus(UnsignedInteger16[] operationalCodes) {
         OperationalStatus result = StoragePort.OperationalStatus.NOT_OK;
-        
+
         // operationalStatusCodes may have multiple statuses ({OK, Online}, {OK, Stopped}, {Stopped, OK})
         if (operationalCodes != null && Arrays.asList(operationalCodes).contains(ok_code)) {
             result = StoragePort.OperationalStatus.OK;
@@ -351,8 +354,6 @@ public class StoragePortProcessor extends StorageProcessor {
             _logger.warn("Storage Port not found : {}", adapterName);
         }
     }
-
-
 
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs)

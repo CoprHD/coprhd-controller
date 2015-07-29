@@ -23,63 +23,70 @@ import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
  * Marks Workflows and their WorkflowSteps inactive if older than WORKFLOW_HOLDING_TIME
  * (30 days).
  * (Modeled after TaskScrubberExecutor by David Maddison).
+ * 
  * @author watson
  */
 public class WorkflowScrubberExecutor {
-	private static final Logger log = LoggerFactory.getLogger(WorkflowScrubberExecutor.class);
-	private ScheduledExecutorService _executor = new NamedScheduledThreadPoolExecutor("WorkflowScrubber", 1);
-	private DbClient dbClient;
-	private static final Long DAYS_IN_MSEC = 24L * 3600 * 1000;
-	private static final Long WORKFLOW_HOLDING_TIME_MSEC = 30L * DAYS_IN_MSEC; // 30 days
-	
-	public void start() {
-		log.info("Starting WorkflowScrubber");
-		_executor.scheduleWithFixedDelay(
-				new Runnable() { 
-					public void run() { deleteOldWorkflows(); }
-				}, 1, 24, TimeUnit.HOURS);
-	}
+    private static final Logger log = LoggerFactory.getLogger(WorkflowScrubberExecutor.class);
+    private ScheduledExecutorService _executor = new NamedScheduledThreadPoolExecutor("WorkflowScrubber", 1);
+    private DbClient dbClient;
+    private static final Long DAYS_IN_MSEC = 24L * 3600 * 1000;
+    private static final Long WORKFLOW_HOLDING_TIME_MSEC = 30L * DAYS_IN_MSEC; // 30 days
 
-	/**
-	 * Scan all the workflows, marking any completed workflows older than
-	 * WORKFLOW_HOLDING_TIME_MSEC as inactive.
-	 */
-	public void deleteOldWorkflows() {
-		log.info("Scanning for old workflows to be deleted");
-		List<URI> workflowURIs = dbClient.queryByType(Workflow.class, true);
-		Long currentTime = System.currentTimeMillis();
-		for (URI uri : workflowURIs) {
-			try {
-				Workflow workflow = dbClient.queryObject(Workflow.class, uri);
-				if (workflow == null) continue;
-				Long creationTime = workflow.getCreationTime().getTimeInMillis();
-				Long age = currentTime - creationTime;
-				if ((age) >= WORKFLOW_HOLDING_TIME_MSEC) {
-					log.info("Processing workflow {} age (msec) {}", uri, age);
-					// Find all the WorkflowSteps for this Workflow, and them mark them for deletion.
-					URIQueryResultList stepURIs = new URIQueryResultList();
-					dbClient.queryByConstraint(ContainmentConstraint.Factory.getWorkflowWorkflowStepConstraint(uri), stepURIs);
-					for (URI stepURI : stepURIs) {
-						WorkflowStep step = dbClient.queryObject(WorkflowStep.class, stepURI);
-						if (step == null) continue;
-						dbClient.markForDeletion(step);
-					}
-					// Mark the workflow itself for deletion
-					dbClient.markForDeletion(workflow);
-					log.info("Workflow {} marked inactive", uri);
-				}
-			} catch (Exception ex) {
-				log.error("Exception processing workflow: " + uri, ex);
-			}
-		}
-		log.info("Done scanning for old workflows");
-	}
+    public void start() {
+        log.info("Starting WorkflowScrubber");
+        _executor.scheduleWithFixedDelay(
+                new Runnable() {
+                    public void run() {
+                        deleteOldWorkflows();
+                    }
+                }, 1, 24, TimeUnit.HOURS);
+    }
 
-	public DbClient getDbClient() {
-		return dbClient;
-	}
+    /**
+     * Scan all the workflows, marking any completed workflows older than
+     * WORKFLOW_HOLDING_TIME_MSEC as inactive.
+     */
+    public void deleteOldWorkflows() {
+        log.info("Scanning for old workflows to be deleted");
+        List<URI> workflowURIs = dbClient.queryByType(Workflow.class, true);
+        Long currentTime = System.currentTimeMillis();
+        for (URI uri : workflowURIs) {
+            try {
+                Workflow workflow = dbClient.queryObject(Workflow.class, uri);
+                if (workflow == null) {
+                    continue;
+                }
+                Long creationTime = workflow.getCreationTime().getTimeInMillis();
+                Long age = currentTime - creationTime;
+                if ((age) >= WORKFLOW_HOLDING_TIME_MSEC) {
+                    log.info("Processing workflow {} age (msec) {}", uri, age);
+                    // Find all the WorkflowSteps for this Workflow, and them mark them for deletion.
+                    URIQueryResultList stepURIs = new URIQueryResultList();
+                    dbClient.queryByConstraint(ContainmentConstraint.Factory.getWorkflowWorkflowStepConstraint(uri), stepURIs);
+                    for (URI stepURI : stepURIs) {
+                        WorkflowStep step = dbClient.queryObject(WorkflowStep.class, stepURI);
+                        if (step == null) {
+                            continue;
+                        }
+                        dbClient.markForDeletion(step);
+                    }
+                    // Mark the workflow itself for deletion
+                    dbClient.markForDeletion(workflow);
+                    log.info("Workflow {} marked inactive", uri);
+                }
+            } catch (Exception ex) {
+                log.error("Exception processing workflow: " + uri, ex);
+            }
+        }
+        log.info("Done scanning for old workflows");
+    }
 
-	public void setDbClient(DbClient dbClient) {
-		this.dbClient = dbClient;
-	}
+    public DbClient getDbClient() {
+        return dbClient;
+    }
+
+    public void setDbClient(DbClient dbClient) {
+        this.dbClient = dbClient;
+    }
 }

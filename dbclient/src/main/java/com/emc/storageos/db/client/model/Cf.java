@@ -18,7 +18,7 @@ package com.emc.storageos.db.client.model;
 import java.lang.annotation.*;
 
 @Documented
-@Target({ElementType.TYPE})
+@Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 /**
  * Column family a data object class maps to

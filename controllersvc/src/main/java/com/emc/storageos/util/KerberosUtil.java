@@ -25,8 +25,7 @@ public class KerberosUtil {
         try {
             String krb5Config = generateKerberosConfigFile(authProviders);
             KerberosConfig.getInstance().initialize(krb5Config);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new IllegalStateException("Failed to initialize Kerberos", e);
         }
     }
@@ -43,8 +42,7 @@ public class KerberosUtil {
                     try {
                         URI uri = new URI(kdcAddress);
                         kdcAddresses.add(uri.getHost());
-                    }
-                    catch (URISyntaxException e) {
+                    } catch (URISyntaxException e) {
                         log.error("Error processing AD " + domain + " address " + kdcAddress, e);
                     }
                 }

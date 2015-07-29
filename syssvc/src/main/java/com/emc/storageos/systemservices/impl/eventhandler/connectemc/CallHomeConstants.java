@@ -25,14 +25,14 @@ import java.util.Set;
 public interface CallHomeConstants {
     public static final String BASE_URL_FORMAT = "http://{}:{}";
     public static final String CALL_URL = MessageFormatter.arrayFormat(
-    BASE_URL_FORMAT, new Object[] { "localhost", "9998" }).getMessage();
+            BASE_URL_FORMAT, new Object[] { "localhost", "9998" }).getMessage();
     // connectemc polling directory. Data is this directory will be send to SYR.
     public static final String CONNECT_EMC_HOME = "/data/connectemc/poll/";
     // File name and location containing alert information to SYR.
     public static final String SYSTEM_LOGS_FILE_NAME = "logs";
     public static final String SYSTEM_LOGS_FILE_PATH =
             "/data/connectemc/tmp/logs.zip";
-    public static final String SYSTEM_EVENT_FILE_NAME =  "system-events";
+    public static final String SYSTEM_EVENT_FILE_NAME = "system-events";
     public static final String SYSTEM_EVENT_FILE_PATH =
             "/data/connectemc/tmp/system-events.zip";
     // File name and location containing config properties data information to SYR.
@@ -70,10 +70,12 @@ public interface CallHomeConstants {
     public static final String SYMPTOM_CODE_REQUEST_LOGS = "999";
     public static final String SEND_ALERT_DESCRIPTION = "Customer Generated Alert Event";
     public static final Set<Integer> VALID_ALERT_EVENT_IDS =
-            Collections.unmodifiableSet(new HashSet<Integer>() {{
-                add(999);
-                add(599);
-            }});
+            Collections.unmodifiableSet(new HashSet<Integer>() {
+                {
+                    add(999);
+                    add(599);
+                }
+            });
     // product name in SYR.
     public static final String PRODUCT_NAME = "ViPR";
     // Family Name in SYR,.
@@ -92,7 +94,7 @@ public interface CallHomeConstants {
     public static final int CAPACITY_EXCEEDED_EVENT_THRESHOLD = 14;
     // Date format used for serializing dates in coordinator service for the callhome events.
     public static final String SERIALIZE_DATE_FORMAT = "MM/dd/yyyy";
-    
+
     // The following are constants used for encoding/decoding data into coordinator service.
     public static final String CALL_HOME_INFO = "callHomeInfo";
     public static final String LAST_REGISTRATION_EVENT_DATE = "lastRegistrationEventDate";
@@ -108,5 +110,5 @@ public interface CallHomeConstants {
     public static final String STANDALONE = "standalone";
     public static final long BYTE_TO_MB = 1048576;
     public static int LOCK_WAIT_TIME_MS = 5000;
-    public static int MAX_LOCK_WAIT_TIME_MS = 3600000; //1hr
+    public static int MAX_LOCK_WAIT_TIME_MS = 3600000; // 1hr
 }

@@ -18,22 +18,23 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public class SRDFLinkDetachCompleter extends SRDFTaskCompleter {
-	
-	private static final Logger _log = LoggerFactory.getLogger(SRDFLinkDetachCompleter.class);
-	
-    public SRDFLinkDetachCompleter(List<URI> ids, String opId) {
-		super(ids, opId);
-	}
 
-	@Override
+    private static final Logger _log = LoggerFactory.getLogger(SRDFLinkDetachCompleter.class);
+
+    public SRDFLinkDetachCompleter(List<URI> ids, String opId) {
+        super(ids, opId);
+    }
+
+    @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
-        	setDbClient(dbClient);
-        	recordSRDFOperation(dbClient, OperationTypeEnum.DETACH_SRDF_LINK, status, getSourceVolume().getId().toString(), getTargetVolume().getId().toString());        	            
+            setDbClient(dbClient);
+            recordSRDFOperation(dbClient, OperationTypeEnum.DETACH_SRDF_LINK, status, getSourceVolume().getId().toString(),
+                    getTargetVolume().getId().toString());
         } catch (Exception e) {
-        	 _log.error("Failed updating status. SRDFMirrorDetach {}, for task " + getOpId(), getId(), e);
+            _log.error("Failed updating status. SRDFMirrorDetach {}, for task " + getOpId(), getId(), e);
         } finally {
-        	super.complete(dbClient, status, coded);
+            super.complete(dbClient, status, coded);
         }
     }
 
@@ -42,4 +43,3 @@ public class SRDFLinkDetachCompleter extends SRDFTaskCompleter {
         return Volume.LinkStatus.DETACHED;
     }
 }
-

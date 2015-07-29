@@ -23,9 +23,10 @@ import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.
  * It populates mapping between Storage Groups-->Fast Policy
  * later this mapping information is used to find out the fast policies associated with Volumes belonging to SGs.
  */
-public class SGsWithFastProcessor extends StorageProcessor{
+public class SGsWithFastProcessor extends StorageProcessor {
     private List<Object> _args;
     private Logger _logger = LoggerFactory.getLogger(SGsWithFastProcessor.class);
+
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap)
             throws BaseCollectionException {
@@ -40,20 +41,20 @@ public class SGsWithFastProcessor extends StorageProcessor{
             while (it.hasNext()) {
                 final CIMObjectPath storageGroupPath = it.next();
                 String groupId = getCIMPropertyValue(storageGroupPath, Constants.INSTANCEID);
-                _logger.info("Adding Group {} To Policy {} mapping",groupId,policyName);
+                _logger.info("Adding Group {} To Policy {} mapping", groupId, policyName);
                 policyToStorageGroupMapping.put(groupId, policyName);
                 addPath(keyMap, operation.getResult(), storageGroupPath);
             }
-        }catch(Exception e) {
-            _logger.error("Discovering SGs with FAST failed",e);
+        } catch (Exception e) {
+            _logger.error("Discovering SGs with FAST failed", e);
         }
-        
+
     }
 
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs) throws BaseCollectionException {
         _args = inputArgs;
-        
+
     }
 
 }

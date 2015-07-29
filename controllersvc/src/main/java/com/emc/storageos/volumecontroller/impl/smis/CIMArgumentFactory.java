@@ -126,7 +126,7 @@ public class CIMArgumentFactory {
         }
         return bool;
     }
-    
+
     public CIMArgument<Object> object(String name, Object value) {
         CIMArgument<Object> obj;
         try {

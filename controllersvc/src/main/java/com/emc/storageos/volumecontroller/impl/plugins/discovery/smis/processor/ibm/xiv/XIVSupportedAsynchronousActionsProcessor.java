@@ -49,17 +49,17 @@ public class XIVSupportedAsynchronousActionsProcessor extends StorageProcessor {
                 if (supportedAsyncActions != null) {
                     for (UnsignedInteger16 actionValue : supportedAsyncActions) {
                         switch (actionValue.intValue()) {
-                        case Constants.CREATE_ELEMENT_REPLICA_ASYNC_ACTION:
-                            supportedAsyncActionsSet
-                                    .add(StorageSystem.AsyncActions.CreateElementReplica
-                                            .name());
-                            break;
-                        case Constants.CREATE_GROUP_REPLICA_ASYNC_ACTION:
-                            supportedAsyncActionsSet
-                                    .add(StorageSystem.AsyncActions.CreateGroupReplica
-                                            .name());
-                            break;
-                        default:
+                            case Constants.CREATE_ELEMENT_REPLICA_ASYNC_ACTION:
+                                supportedAsyncActionsSet
+                                        .add(StorageSystem.AsyncActions.CreateElementReplica
+                                                .name());
+                                break;
+                            case Constants.CREATE_GROUP_REPLICA_ASYNC_ACTION:
+                                supportedAsyncActionsSet
+                                        .add(StorageSystem.AsyncActions.CreateGroupReplica
+                                                .name());
+                                break;
+                            default:
                         }
                     }
                 }

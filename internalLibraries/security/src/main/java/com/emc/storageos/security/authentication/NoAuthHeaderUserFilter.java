@@ -21,7 +21,7 @@ import com.emc.storageos.security.authentication.StorageOSUserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
- *  Dummy authentication filter, takes in the user context from a header string
+ * Dummy authentication filter, takes in the user context from a header string
  */
 public class NoAuthHeaderUserFilter extends AbstractAuthenticationFilter {
     public static String USER_INFO_HEADER_TAG = "BourneUser";
@@ -30,8 +30,7 @@ public class NoAuthHeaderUserFilter extends AbstractAuthenticationFilter {
     private StorageOSUserRepository _userRepo;
 
     private boolean fromLocalhost(HttpServletRequest req) {
-        return (req.getRemoteHost().equalsIgnoreCase("localhost") ||
-                req.getRemoteHost().equals("127.0.0.1"));
+        return (req.getRemoteHost().equalsIgnoreCase("localhost") || req.getRemoteHost().equals("127.0.0.1"));
     }
 
     @Override

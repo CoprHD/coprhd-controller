@@ -12,7 +12,6 @@ import com.emc.storageos.plugins.common.Executor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFilePluginException;
 
-
 /**
  * This class is responsible for generating the command objects from the
  * operations and also execute them sequentially.

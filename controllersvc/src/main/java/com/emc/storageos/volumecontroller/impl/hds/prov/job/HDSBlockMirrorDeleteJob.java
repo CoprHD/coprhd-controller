@@ -10,9 +10,9 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 
 public class HDSBlockMirrorDeleteJob extends HDSDeleteVolumeJob {
 
-	public HDSBlockMirrorDeleteJob(String hdsJob, URI storageSystem,
-			TaskCompleter taskCompleter) {
-		super(hdsJob, storageSystem, taskCompleter, "DeleteMirror");
-	}
-	
+    public HDSBlockMirrorDeleteJob(String hdsJob, URI storageSystem,
+            TaskCompleter taskCompleter) {
+        super(hdsJob, storageSystem, taskCompleter, "DeleteMirror");
+    }
+
 }

@@ -25,7 +25,7 @@ public class ExportMaskVolumeToStorageGroupCompleter extends ExportTaskCompleter
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
-    	_log.info("completed adding volumes to storage group");
+        _log.info("completed adding volumes to storage group");
     }
 
 }

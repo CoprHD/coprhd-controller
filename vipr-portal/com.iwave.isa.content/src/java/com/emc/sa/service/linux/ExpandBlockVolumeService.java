@@ -15,13 +15,13 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 
 @Service("Linux-ExpandBlockVolume")
 public class ExpandBlockVolumeService extends LinuxService {
-    
+
     @Param(VOLUME)
     protected String volumeId;
-    
+
     @Param(SIZE_IN_GB)
     protected Double newSizeInGB;
-    
+
     protected ExpandBlockVolumeHelper expandBlockVolumeHelper;
 
     private BlockObjectRestRep volume;

@@ -37,13 +37,14 @@ public class VMAXVolumeViewEventProcessor extends BaseProcessor {
             spEvent.setIndication(notification);
             Boolean status = spEvent
                     .updateStoragePoolObjectFromVMAXVolumeViewIndication();
-            if (status)
+            if (status) {
                 logMessage(
                         "VMAX StoragePool object updated sucessfully from VMAX Volume View Event",
                         new Object[] {});
-            else
+            } else {
                 logMessage("VMAX StoragePool object not updated",
                         new Object[] {});
+            }
             spEvent = null;
 
         } catch (Exception e) {

@@ -82,7 +82,7 @@ public class BiosCommandResultTest {
                 result.getMessage());
         Assert.assertNotNull(result.getServiceCoded());
     }
-    
+
     private VirtualPool createVPool() {
         VirtualPool vpool = new VirtualPool();
         vpool.setId(URIUtil.createId(VirtualPool.class));

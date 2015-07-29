@@ -27,7 +27,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 /**
  * Processor to handle StorageSynchronized instances of single volume snapshots
  * and update corresponding BlockSnapshots in ViPR
- *
+ * 
  * Used in BLOCK_SNAPSHOTS discovery only
  */
 public class SnapshotReplicationRelationshipProcessor extends StorageProcessor {

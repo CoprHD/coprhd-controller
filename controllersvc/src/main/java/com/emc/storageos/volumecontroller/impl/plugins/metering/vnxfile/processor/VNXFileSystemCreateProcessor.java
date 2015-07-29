@@ -52,15 +52,15 @@ public class VNXFileSystemCreateProcessor extends VNXFileProcessor {
                     Object responseObj = queryRespItr.next();
                     if (responseObj instanceof TaskResponse) {
                         TaskResponse taskResp = (TaskResponse) responseObj;
-                        status = taskResp.getStatus(); 
+                        status = taskResp.getStatus();
                         _logger.info("NewFileSystem task response status: {}", status.getMaxSeverity().name());
-                        
+
                         if (status.getMaxSeverity() == Severity.OK) {
                             keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
                         } else {
                             processErrorStatus(status, keyMap);
                         }
-                        
+
                         break;
                     } else {
                         _logger.info("Response not TaskResponse: {}", responseObj.getClass().getName());
@@ -73,7 +73,7 @@ public class VNXFileSystemCreateProcessor extends VNXFileProcessor {
                     _logger.info("Received celerra session information from the Server.");
                 }
             }
-        }catch (final Exception ex) {
+        } catch (final Exception ex) {
             _logger.error(
                     "Exception occurred while processing the vnx create file sys response due to ",
                     ex);
@@ -86,6 +86,6 @@ public class VNXFileSystemCreateProcessor extends VNXFileProcessor {
 
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs) throws BaseCollectionException {
-        // TODO  Is this method needed?  Not used in other processors.
+        // TODO Is this method needed? Not used in other processors.
     }
 }

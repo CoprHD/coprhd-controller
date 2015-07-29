@@ -29,9 +29,9 @@ public class SRDFRecommendation extends Recommendation {
             return targetPool;
         }
 
-		public URI getSourceRAGroup() {
-			return sourceRAGroup;
-		}
+        public URI getSourceRAGroup() {
+            return sourceRAGroup;
+        }
 
         public void setTargetPool(URI targetPool) {
             this.targetPool = targetPool;
@@ -41,17 +41,17 @@ public class SRDFRecommendation extends Recommendation {
             this.targetDevice = targetDevice;
         }
 
-		public void setSourceRAGroup(URI sourceRAGroup) {
-			this.sourceRAGroup = sourceRAGroup;
-		}
+        public void setSourceRAGroup(URI sourceRAGroup) {
+            this.sourceRAGroup = sourceRAGroup;
+        }
 
-		public String getCopyMode() {
-			return copyMode;
-		}
+        public String getCopyMode() {
+            return copyMode;
+        }
 
-		public void setCopyMode(String copyMode) {
-			this.copyMode = copyMode;
-		}
+        public void setCopyMode(String copyMode) {
+            this.copyMode = copyMode;
+        }
 
     }
 

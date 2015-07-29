@@ -20,7 +20,6 @@ import java.util.Set;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DbKeyspace.Keyspaces;
-import org.apache.http.client.utils.URIUtils;
 
 /**
  * Tenant org (configuration) data object
@@ -41,8 +40,8 @@ public class TenantOrg extends DataObject {
     private StringSetMap _userMappings;
     private StringSetMap _roleAssignments;
 
-    //current Quota for the tenant in GB
-    private Long  _quotaGB;
+    // current Quota for the tenant in GB
+    private Long _quotaGB;
 
     private Boolean _quotaEnabled;
 
@@ -73,30 +72,31 @@ public class TenantOrg extends DataObject {
         _description = description;
         setChanged("description");
     }
+
     @Name("userMappings")
     @PermissionsIndex("PermissionsIndex")
     public StringSetMap getUserMappings() {
         return _userMappings;
     }
-    
+
     public void setUserMappings(StringSetMap userMappings) {
         _userMappings = userMappings;
         setChanged("userMappings");
     }
-    
+
     public void addUserMapping(String domain, String userMapping) {
-        if( null == _userMappings ) {
+        if (null == _userMappings) {
             _userMappings = new StringSetMap();
         }
-        _userMappings.put(domain,  userMapping);
+        _userMappings.put(domain, userMapping);
     }
-    
+
     public void removeUserMapping(String domain, String userMapping) {
-        if( null != _userMappings ) {
+        if (null != _userMappings) {
             _userMappings.remove(domain, userMapping);
         }
     }
-    
+
     @PermissionsIndex("PermissionsIndex")
     @Name("role-assignment")
     public StringSetMap getRoleAssignments() {
@@ -111,7 +111,7 @@ public class TenantOrg extends DataObject {
     }
 
     @Name("quota")
-    public Long getQuota(){
+    public Long getQuota() {
         return (_quotaGB == null) ? 0L : _quotaGB;
     }
 
@@ -121,11 +121,11 @@ public class TenantOrg extends DataObject {
     }
 
     @Name("quotaEnabled")
-    public Boolean  getQuotaEnabled(){
+    public Boolean getQuotaEnabled() {
         return (_quotaEnabled == null) ? false : _quotaEnabled;
     }
 
-    public void  setQuotaEnabled(Boolean enable){
+    public void setQuotaEnabled(Boolean enable) {
         _quotaEnabled = enable;
         setChanged("quotaEnabled");
     }

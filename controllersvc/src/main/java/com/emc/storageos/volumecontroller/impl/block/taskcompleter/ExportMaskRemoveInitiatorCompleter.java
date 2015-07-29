@@ -26,14 +26,14 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
     private List<URI> _initiatorURIs;
 
     public ExportMaskRemoveInitiatorCompleter(URI egUri, URI emUri, List<URI> initiatorURIs,
-                                              String task) {
+            String task) {
         super(ExportGroup.class, egUri, emUri, task);
         _initiatorURIs = new ArrayList<URI>();
         _initiatorURIs.addAll(initiatorURIs);
     }
 
-	private void updateExportGroups(DbClient dbClient, Operation.Status status)
-	throws DeviceControllerException {
+    private void updateExportGroups(DbClient dbClient, Operation.Status status)
+            throws DeviceControllerException {
         ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
         ExportMask exportMask = (getMask() != null) ?
                 dbClient.queryObject(ExportMask.class, getMask()) : null;
@@ -54,11 +54,11 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
                     "Done ExportMaskRemoveInitiator - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
         }
-	}
+    }
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status,
-                         ServiceCoded coded) throws DeviceControllerException {
+            ServiceCoded coded) throws DeviceControllerException {
         try {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             ExportMask exportMask = (getMask() != null) ?

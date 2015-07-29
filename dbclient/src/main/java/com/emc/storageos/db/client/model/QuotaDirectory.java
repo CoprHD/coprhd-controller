@@ -21,16 +21,16 @@ package com.emc.storageos.db.client.model;
 @SuppressWarnings("serial")
 @Cf("QuotaDirectory")
 public class QuotaDirectory extends FileObject implements ProjectResource {
-	
-	// enumeration of quota directory security styles
-	public enum SecurityStyles {
-		    parent,
-	 		unix,
-	 	    ntfs,
-	 	    mixed
-	 	};
-	
-	// file share or volume this quota directory is associated with
+
+    // enumeration of quota directory security styles
+    public enum SecurityStyles {
+        parent,
+        unix,
+        ntfs,
+        mixed
+    };
+
+    // file share or volume this quota directory is associated with
     private NamedURI _parent;
 
     // Project the quota-directory was associated to
@@ -39,28 +39,26 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
     // tenant this quota-directory is associated with
     private NamedURI _tenant;
 
-
     // native device ID to be indexed - this field is not exposed to client
     private String _nativeId;
 
     // native device ID to be indexed - this field is not exposed to client
     private String _nativeGuid;
-    
+
     // Generated name
     private String _name;
-    
+
     private Boolean _oplock;
-    
-    private Long _size; //Quota size in bytes- hard limit.
-    
+
+    private Long _size; // Quota size in bytes- hard limit.
+
     // UNIX, NTFS, Mixed
     private String _securityStyle = SecurityStyles.parent.name();
-    
-    
+
     public Class<? extends DataObject> parentClass() {
         return FileShare.class;
     }
-    
+
     @NamedRelationIndex(cf = "NamedRelationIndex", type = FileShare.class)
     @Name("parent")
     public NamedURI getParent() {
@@ -82,18 +80,18 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
         _tenant = tenant;
         setChanged("tenant");
     }
-    
+
     @NamedRelationIndex(cf = "NamedRelationIndex", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
         return _project;
     }
-    
+
     public void setProject(NamedURI project) {
         _project = project;
         setChanged("project");
     }
-    
+
     @Name("nativeId")
     public String getNativeId() {
         return _nativeId;
@@ -103,7 +101,7 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
         this._nativeId = nativeId;
         setChanged("nativeId");
     }
-    
+
     @AlternateId("AltIdIndex")
     @Name("nativeGuid")
     public String getNativeGuid() {
@@ -114,7 +112,7 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
         this._nativeGuid = nativeGuid;
         setChanged("nativeGuid");
     }
-    
+
     @Name("oplock")
     public Boolean getOpLock() {
         return _oplock;
@@ -124,7 +122,7 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
         this._oplock = oplock;
         setChanged("oplock");
     }
-    
+
     @Name("size")
     public Long getSize() {
         return _size;
@@ -134,7 +132,7 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
         this._size = size;
         setChanged("size");
     }
-    
+
     @Name("security_style")
     public String getSecurityStyle() {
         return _securityStyle;
@@ -144,8 +142,7 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
         this._securityStyle = securityStyle;
         setChanged("security_style");
     }
-    
-    
+
     @Name("name")
     public String getName() {
         return _name;
@@ -156,6 +153,3 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
         setChanged("name");
     }
 }
-
-
-

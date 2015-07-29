@@ -12,8 +12,11 @@ import com.emc.storageos.volumecontroller.AsyncTask;
 
 public interface ComputeController extends Controller {
 
-   public void discoverComputeSystems(AsyncTask[] tasks) throws InternalException;
-   public void createHosts(URI varray,URI poolId,AsyncTask[] tasks) throws InternalException;
-   public void clearDeviceSession(URI computeSystemId) throws InternalException;
-   public void deactivateHost(AsyncTask[] tasks) throws InternalException;
+    public void discoverComputeSystems(AsyncTask[] tasks) throws InternalException;
+
+    public void createHosts(URI varray, URI poolId, AsyncTask[] tasks) throws InternalException;
+
+    public void clearDeviceSession(URI computeSystemId) throws InternalException;
+
+    public void deactivateHost(AsyncTask[] tasks) throws InternalException;
 }

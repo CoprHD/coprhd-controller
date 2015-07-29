@@ -23,7 +23,7 @@ public class VNXControlStation extends VNXBaseClass {
     }
 
     public VNXControlStation(String serialNum, String softwareVer) {
-        _serialNumber    = serialNum;
+        _serialNumber = serialNum;
         _softwareVersion = softwareVer;
     }
 
@@ -53,4 +53,3 @@ public class VNXControlStation extends VNXBaseClass {
         return xml;
     }
 }
-

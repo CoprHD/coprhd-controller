@@ -77,7 +77,7 @@ public class UserInfoHelper {
 
                     final ClientResponse response =
                             authSvcClientItr
-                            .get(URI.create(_URI_GET_USER_GROUPS + param));
+                                    .get(URI.create(_URI_GET_USER_GROUPS + param));
                     final int status = response.getStatus();
 
                     _log.debug("Status: {}", status);
@@ -87,7 +87,7 @@ public class UserInfoHelper {
                     } else if (status == ClientResponse.Status.BAD_REQUEST
                             .getStatusCode()
                             || status == ClientResponse.Status.INTERNAL_SERVER_ERROR
-                            .getStatusCode()) {
+                                    .getStatusCode()) {
                         ServiceErrorRestRep errorXml =
                                 response.getEntity(ServiceErrorRestRep.class);
                         error.append(errorXml.getDetailedMessage());

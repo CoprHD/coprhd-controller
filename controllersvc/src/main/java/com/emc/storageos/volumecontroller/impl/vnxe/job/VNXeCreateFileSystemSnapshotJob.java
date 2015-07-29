@@ -23,17 +23,18 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 
-public class VNXeCreateFileSystemSnapshotJob extends VNXeJob{
+public class VNXeCreateFileSystemSnapshotJob extends VNXeJob {
 
     private static final long serialVersionUID = 7902323147091720210L;
     private static final Logger _logger = LoggerFactory.getLogger(VNXeCreateFileSystemSnapshotJob.class);
+
     public VNXeCreateFileSystemSnapshotJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter) {
         super(jobId, storageSystemUri, taskCompleter, "createFileSystemSnapshot");
     }
-    
+
     /**
      * Called to update the job status when the file system snapshot create job completes.
-     *
+     * 
      * @param jobContext The job context.
      */
     @Override
@@ -47,7 +48,7 @@ public class VNXeCreateFileSystemSnapshotJob extends VNXeJob{
 
             String opId = getTaskCompleter().getOpId();
             StringBuilder logMsgBuilder = new StringBuilder(String.format("Updating status of job %s to %s", opId, _status.name()));
-            
+
             VNXeApiClient vnxeApiClient = getVNXeClient(jobContext);
 
             URI snapId = getTaskCompleter().getId();
@@ -82,17 +83,18 @@ public class VNXeCreateFileSystemSnapshotJob extends VNXeJob{
             super.updateStatus(jobContext);
         }
     }
-    
+
     /**
      * update snapshot
+     * 
      * @param fsId fileShare uri in vipr
      * @param dbClient DbClient
      * @param logMsgBuilder string builder for logging
      * @param vnxeApiClient VNXeApiClient
      */
-    private void updateSnapshot(Snapshot snapObj, DbClient dbClient, 
+    private void updateSnapshot(Snapshot snapObj, DbClient dbClient,
             StringBuilder logMsgBuilder, VNXeApiClient vnxeApiClient) {
-       
+
         VNXeFileSystemSnap vnxeSnap = null;
         vnxeSnap = vnxeApiClient.getSnapshotByName(snapObj.getName());
         if (vnxeSnap != null) {
@@ -100,7 +102,7 @@ public class VNXeCreateFileSystemSnapshotJob extends VNXeJob{
             snapObj.setCreationTime(Calendar.getInstance());
             snapObj.setNativeId(vnxeSnap.getId());
             String path = "/" + snapObj.getName();
-            //Set path & mountpath
+            // Set path & mountpath
             snapObj.setMountPath(path);
             snapObj.setPath(path);
             try {
@@ -112,13 +114,13 @@ public class VNXeCreateFileSystemSnapshotJob extends VNXeJob{
             }
             logMsgBuilder.append("/n");
             logMsgBuilder.append(String.format(
-                "Create file system snapshot successfully for NativeId: %s, URI: %s", snapObj.getNativeId(),
-                getTaskCompleter().getId()));
+                    "Create file system snapshot successfully for NativeId: %s, URI: %s", snapObj.getNativeId(),
+                    getTaskCompleter().getId()));
             dbClient.persistObject(snapObj);
         } else {
             logMsgBuilder.append("Could not get newly created snapshot in the VNXe, using the snapshot name: ");
             logMsgBuilder.append(snapObj.getName());
         }
     }
-    
+
 }

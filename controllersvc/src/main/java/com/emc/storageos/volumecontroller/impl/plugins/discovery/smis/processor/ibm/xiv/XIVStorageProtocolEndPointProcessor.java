@@ -35,7 +35,7 @@ public class XIVStorageProtocolEndPointProcessor extends StorageEndPointProcesso
     private DbClient _dbClient;
     private static final String NAME = "Name";
     private List<Object> args;
-    
+
     @Override
     public void processResult(
             Operation operation, Object resultObj, Map<String, Object> keyMap)
@@ -46,7 +46,7 @@ public class XIVStorageProtocolEndPointProcessor extends StorageEndPointProcesso
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
             AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
             @SuppressWarnings("unchecked")
-			Map<URI,StoragePool> poolsToMatchWithVpool = (Map<URI, StoragePool>) keyMap.get(Constants.MODIFIED_STORAGEPOOLS);
+            Map<URI, StoragePool> poolsToMatchWithVpool = (Map<URI, StoragePool>) keyMap.get(Constants.MODIFIED_STORAGEPOOLS);
             StorageSystem device = _dbClient.queryObject(StorageSystem.class, profile.getSystemId());
             List<StoragePort> newPorts = new ArrayList<StoragePort>();
             List<StoragePort> existingPorts = new ArrayList<StoragePort>();
@@ -56,7 +56,7 @@ public class XIVStorageProtocolEndPointProcessor extends StorageEndPointProcesso
                 try {
                     endPointInstance = it.next();
                     String name = getCIMPropertyValue(endPointInstance, NAME).toLowerCase();
-                    
+
                     String portInstanceID = getObjectPathfromCIMArgument(args).toString();
                     port = checkEthernetStoragePortExistsInDB(name, _dbClient, device);
                     URI portID = createEthernetStoragePort(keyMap, port, name,
@@ -69,25 +69,26 @@ public class XIVStorageProtocolEndPointProcessor extends StorageEndPointProcesso
                             getMessage(e));
                 }
             }
-            
+
             @SuppressWarnings("unchecked")
             List<List<StoragePort>> portsUsedToRunNetworkConnectivity = (List<List<StoragePort>>) keyMap.get(Constants.STORAGE_PORTS);
             portsUsedToRunNetworkConnectivity.add(newPorts);
-            
-            //discovered ports used later to check for not visible ports
+
+            // discovered ports used later to check for not visible ports
             List<StoragePort> discoveredPorts = (List<StoragePort>) keyMap.get(Constants.DISCOVERED_PORTS);
             discoveredPorts.addAll(newPorts);
             discoveredPorts.addAll(existingPorts);
-           
-            List<StoragePool> modifiedPools = StoragePoolAssociationHelper.getStoragePoolsFromPorts(_dbClient,newPorts,null);
+
+            List<StoragePool> modifiedPools = StoragePoolAssociationHelper.getStoragePoolsFromPorts(_dbClient, newPorts, null);
             for (StoragePool pool : modifiedPools) {
                 // pool matcher will be invoked on this pool
                 if (!poolsToMatchWithVpool.containsKey(pool.getId())) {
                     poolsToMatchWithVpool.put(pool.getId(), pool);
                 }
             }
-            
-            _logger.debug("# Pools used in invoking PoolMatcher during StorageProtoclEndPoint {}", Joiner.on("\t").join(poolsToMatchWithVpool.keySet()));
+
+            _logger.debug("# Pools used in invoking PoolMatcher during StorageProtoclEndPoint {}",
+                    Joiner.on("\t").join(poolsToMatchWithVpool.keySet()));
         } catch (Exception e) {
             _logger.error("SCSI End Point Discovery failed -->{}", getMessage(e));
         }
@@ -121,7 +122,7 @@ public class XIVStorageProtocolEndPointProcessor extends StorageEndPointProcesso
             portinMemory.setLabel(portNativeGuid);
             _dbClient.createObject(portinMemory);
             newPorts.add(portinMemory);
-            
+
             return portinMemory.getId();
         } else {
             port.setPortName(portinMemory.getPortName());
@@ -134,7 +135,7 @@ public class XIVStorageProtocolEndPointProcessor extends StorageEndPointProcesso
             _dbClient.persistObject(port);
             existingPorts.add(port);
             return port.getId();
-        }             
+        }
     }
 
     @Override

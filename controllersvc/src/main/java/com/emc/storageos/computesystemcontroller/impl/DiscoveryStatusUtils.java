@@ -16,7 +16,7 @@ public class DiscoveryStatusUtils {
      * Marks the target as processing.
      * 
      * @param target
-     *        the target object.
+     *            the target object.
      */
     public static void markAsProcessing(ModelClient modelClient, DataObject target) {
         if (target instanceof DiscoveredSystemObject) {
@@ -30,7 +30,7 @@ public class DiscoveryStatusUtils {
      * Marks the target as succeeded.
      * 
      * @param target
-     *        the target object.
+     *            the target object.
      */
     public static void markAsSucceeded(ModelClient modelClient, DataObject target) {
         if (target instanceof DiscoveredSystemObject) {
@@ -47,7 +47,7 @@ public class DiscoveryStatusUtils {
      * Marks the target as incompatible.
      * 
      * @param target
-     *        the target object.
+     *            the target object.
      */
     public static void markAsIncompatible(ModelClient modelClient, DataObject target, String message) {
         if (target instanceof DiscoveredSystemObject) {
@@ -64,11 +64,11 @@ public class DiscoveryStatusUtils {
      * Marks the target as failed.
      * 
      * @param target
-     *        the target object.
+     *            the target object.
      * @param message
-     *        the error message
+     *            the error message
      * @param e
-     *        the error that caused the failure.
+     *            the error that caused the failure.
      */
     public static void markAsFailed(ModelClient modelClient, DataObject target, String message, Exception e) {
         if (target instanceof DiscoveredSystemObject) {
@@ -84,7 +84,7 @@ public class DiscoveryStatusUtils {
      * Marks the target as ignored.
      * 
      * @param target
-     *        the target object.
+     *            the target object.
      */
     public static void markAsIgnored(ModelClient modelClient, DataObject target) {
         if (target instanceof DiscoveredSystemObject) {

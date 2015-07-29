@@ -6,17 +6,12 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
-import javax.cim.CIMProperty;
 import javax.wbem.CloseableIterator;
 import javax.wbem.client.WBEMClient;
 
@@ -30,7 +25,6 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
-import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 
@@ -41,13 +35,13 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
  * It also skips the SG's which are already processed in LunMaskingProcessor to avoid
  * duplicate calls to the provider which means this processor responsible to set SLO Name
  * for the unexported volumes.
- *
+ * 
  */
 public class StorageGroupProcessor extends StorageProcessor {
     private Logger logger = LoggerFactory.getLogger(StorageGroupProcessor.class);
     private List<Object> _args;
     private DbClient dbClient;
-    
+
     @Override
     public void processResult(
             Operation operation, Object resultObj, Map<String, Object> keyMap)
@@ -64,7 +58,7 @@ public class StorageGroupProcessor extends StorageProcessor {
             StorageSystem device = dbClient.queryObject(StorageSystem.class, systemId);
             // Process these only for VMAX3 Systems.
             if (device.checkIfVmax3()) {
-                
+
                 if (keyMap.containsKey(Constants.STORAGE_GROUPS_PROCESSED)) {
                     processedSGs = (List<CIMObjectPath>) keyMap.get(Constants.STORAGE_GROUPS_PROCESSED);
                 }
@@ -93,7 +87,7 @@ public class StorageGroupProcessor extends StorageProcessor {
             processedSGs.clear();
         }
     }
-    
+
     /**
      * Find the volumes associated with the SG and extract the SLOName and set
      * it in keyMap.

@@ -17,11 +17,11 @@ import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
 /**
  * AttributeMapBuilder to construct map using VirtualPool attributes.
  * This builder is only used prior to VirtualPool creation.
- *
+ * 
  */
 public class VirtualPoolPreCreateParamAttributeMapBuilder extends AttributeMapBuilder {
-    
-    private String _autoTieringPolicyName; 
+
+    private String _autoTieringPolicyName;
     private String _driveType;
     private String _haType;
     private String _haVarray;
@@ -41,26 +41,26 @@ public class VirtualPoolPreCreateParamAttributeMapBuilder extends AttributeMapBu
     private Integer _maxNativeContinuousCopies;
     private StringMap _rpVaVpMap;
     private Integer _thinVolumePreAllocation;
-    private  Map<String,List<String>> remoteProtectionSettings;
+    private Map<String, List<String>> remoteProtectionSettings;
     private Boolean _long_term_retention;
     private boolean uniquePolicyNames;
-    
+
     public VirtualPoolPreCreateParamAttributeMapBuilder(String autoTieringPolicyName,
-                                                        String driveType, String haType, String haVarray, String haVpool,
-                                                        Boolean haUseAsRecoverPointSource,
-                                                        Boolean metroPoint,
-                                                        Set<String> varrays, Integer maxPaths, Set<String> protocols,
-                                                        String provisionType, Set<String> raidLevels,
-                                                        String systemType, String type, Boolean multiVolumeConsistency,
-                                                        Integer maxNativeSnapshots, Integer maxNativeContinuousCopies,
-                                                        StringMap rpVaVpMap, Integer thinVolumePreAllocation,
-                                                        Integer pathsPerInitiator,
-                                                        Map<String,List<String>> remoteProtectionSettings,
-                                                        Boolean long_term_retention,
-                                                        boolean uniquePolicyNames) {
+            String driveType, String haType, String haVarray, String haVpool,
+            Boolean haUseAsRecoverPointSource,
+            Boolean metroPoint,
+            Set<String> varrays, Integer maxPaths, Set<String> protocols,
+            String provisionType, Set<String> raidLevels,
+            String systemType, String type, Boolean multiVolumeConsistency,
+            Integer maxNativeSnapshots, Integer maxNativeContinuousCopies,
+            StringMap rpVaVpMap, Integer thinVolumePreAllocation,
+            Integer pathsPerInitiator,
+            Map<String, List<String>> remoteProtectionSettings,
+            Boolean long_term_retention,
+            boolean uniquePolicyNames) {
         this(varrays, protocols, provisionType, systemType, type, (long_term_retention == null ? Boolean.FALSE : long_term_retention));
         _autoTieringPolicyName = autoTieringPolicyName;
-        _driveType = driveType; 
+        _driveType = driveType;
         _haType = haType;
         _haVarray = haVarray;
         _haVpool = haVpool;
@@ -79,7 +79,7 @@ public class VirtualPoolPreCreateParamAttributeMapBuilder extends AttributeMapBu
     }
 
     public VirtualPoolPreCreateParamAttributeMapBuilder(Set<String> varrays, Set<String> protocols,
-                                                        String provisionType, String systemType, String type, Boolean long_term_retention) {
+            String provisionType, String systemType, String type, Boolean long_term_retention) {
         _varrays = varrays;
         _protocols = protocols;
         _provisionType = provisionType;
@@ -98,9 +98,9 @@ public class VirtualPoolPreCreateParamAttributeMapBuilder extends AttributeMapBu
             StringSet systemTypeSet = new StringSet();
             systemTypeSet.add(_systemType);
             putAttributeInMap(Attributes.system_type.toString(), systemTypeSet);
-            // raid levels valid only for vnx and vmax system type. 
-            if(!VirtualPool.SystemType.NONE.name().equalsIgnoreCase(_systemType)){
-                putAttributeInMap(Attributes.raid_levels.toString(), _raidLevels); 
+            // raid levels valid only for vnx and vmax system type.
+            if (!VirtualPool.SystemType.NONE.name().equalsIgnoreCase(_systemType)) {
+                putAttributeInMap(Attributes.raid_levels.toString(), _raidLevels);
             }
         }
         putAttributeInMap(Attributes.high_availability_type.toString(), _haType);
@@ -113,13 +113,13 @@ public class VirtualPoolPreCreateParamAttributeMapBuilder extends AttributeMapBu
         putAttributeInMap(Attributes.max_paths.toString(), _maxPaths);
         putAttributeInMap(Attributes.paths_per_initiator.toString(), _pathsPerInitiator);
         putAttributeInMap(Attributes.varrays.toString(), _varrays);
-        
+
         // Only check pools for consistency group compatibility if RecoverPoint protection is
-        // not selected.  We are creating a RecoverPoint consistency group if RP is selected,
+        // not selected. We are creating a RecoverPoint consistency group if RP is selected,
         // not an array-based consistency group.
-        putAttributeInMap(Attributes.multi_volume_consistency.toString(), 
-                (_rpVaVpMap == null || _rpVaVpMap.size() == 0) ?  _multiVolumeConsistency : Boolean.FALSE);
-        
+        putAttributeInMap(Attributes.multi_volume_consistency.toString(),
+                (_rpVaVpMap == null || _rpVaVpMap.size() == 0) ? _multiVolumeConsistency : Boolean.FALSE);
+
         putAttributeInMap(Attributes.max_native_snapshots.toString(), _maxNativeSnapshots);
         putAttributeInMap(Attributes.max_native_continuous_copies.toString(), _maxNativeContinuousCopies);
         putAttributeInMap(Attributes.recoverpoint_map.toString(), _rpVaVpMap);
@@ -130,7 +130,7 @@ public class VirtualPoolPreCreateParamAttributeMapBuilder extends AttributeMapBu
         if ((_thinVolumePreAllocation != null) && (_thinVolumePreAllocation > 0)) {
             putAttributeInMap(Attributes.thin_volume_preallocation_percentage.toString(), _thinVolumePreAllocation);
         }
-        putAttributeInMap(Attributes.long_term_retention_policy.toString(),_long_term_retention);
+        putAttributeInMap(Attributes.long_term_retention_policy.toString(), _long_term_retention);
         return _attributeMap;
     }
 

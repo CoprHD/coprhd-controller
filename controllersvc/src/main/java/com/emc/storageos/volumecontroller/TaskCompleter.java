@@ -52,7 +52,7 @@ public abstract class TaskCompleter implements Serializable {
     @XmlTransient
     private boolean notifyWorkflow = true;
 
-	/**
+    /**
      * JAXB requirement
      */
     public TaskCompleter() {
@@ -70,7 +70,7 @@ public abstract class TaskCompleter implements Serializable {
         _opId = opId;
     }
 
-    public TaskCompleter(AsyncTask task)  {
+    public TaskCompleter(AsyncTask task) {
         _clazz = task._clazz;
         _ids.add(task._id);
         _opId = task._opId;
@@ -116,16 +116,16 @@ public abstract class TaskCompleter implements Serializable {
     }
 
     public boolean isNotifyWorkflow() {
-		return notifyWorkflow;
-	}
+        return notifyWorkflow;
+    }
 
-	public void setNotifyWorkflow(boolean notifyWorkflow) {
-		this.notifyWorkflow = notifyWorkflow;
-	}
+    public void setNotifyWorkflow(boolean notifyWorkflow) {
+        this.notifyWorkflow = notifyWorkflow;
+    }
 
     /**
      * Update the Operation status of the overall task to "ready" and the current workflow step to "success" (if any)
-     *
+     * 
      * @param dbClient
      * @throws DeviceControllerException TODO
      */
@@ -139,21 +139,21 @@ public abstract class TaskCompleter implements Serializable {
 
     /**
      * Update the Operation status of the task to "error" and the current workflow step to "error" too (if any)
-     *
+     * 
      * @param dbClient
      * @param message String message from controller
      * @throws DeviceControllerException
      */
-    public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException{
-        complete(dbClient, Status.error, serviceCoded!=null?serviceCoded:DeviceControllerException.errors.unforeseen());
+    public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException {
+        complete(dbClient, Status.error, serviceCoded != null ? serviceCoded : DeviceControllerException.errors.unforeseen());
     }
 
-    public void error(DbClient dbClient, ControllerLockingService locker, ServiceCoded serviceCoded) throws DeviceControllerException{
-        complete(dbClient, locker, Status.error, serviceCoded!=null?serviceCoded:DeviceControllerException.errors.unforeseen());
+    public void error(DbClient dbClient, ControllerLockingService locker, ServiceCoded serviceCoded) throws DeviceControllerException {
+        complete(dbClient, locker, Status.error, serviceCoded != null ? serviceCoded : DeviceControllerException.errors.unforeseen());
     }
 
     public void statusReady(DbClient dbClient) throws DeviceControllerException {
-        setStatus(dbClient, Status.ready, (ServiceCoded) null, (String)null);
+        setStatus(dbClient, Status.ready, (ServiceCoded) null, (String) null);
     }
 
     public void statusReady(DbClient dbClient, String message) throws DeviceControllerException {
@@ -161,19 +161,20 @@ public abstract class TaskCompleter implements Serializable {
     }
 
     public void statusPending(DbClient dbClient, String message) throws DeviceControllerException {
-        setStatus(dbClient, Status.pending, null,message);
+        setStatus(dbClient, Status.pending, null, message);
     }
 
     public void statusError(DbClient dbClient, ServiceCoded serviceCoded)
             throws DeviceControllerException {
         setStatus(dbClient, Status.error, serviceCoded);
     }
-    
+
     protected void setStatus(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
-        setStatus(dbClient,status,coded,null);
+        setStatus(dbClient, status, coded, null);
     }
 
-    protected void setStatus(DbClient dbClient, Operation.Status status, ServiceCoded coded, String message) throws DeviceControllerException {
+    protected void setStatus(DbClient dbClient, Operation.Status status, ServiceCoded coded, String message)
+            throws DeviceControllerException {
         switch (status) {
             case error:
                 for (URI id : _ids) {
@@ -182,14 +183,15 @@ public abstract class TaskCompleter implements Serializable {
                 break;
             case ready:
                 for (URI id : _ids) {
-                    if(message == null)
+                    if (message == null) {
                         dbClient.ready(_clazz, id, _opId);
-                    else
+                    } else {
                         dbClient.ready(_clazz, id, _opId, message);
+                    }
                 }
                 break;
             default:
-                if( message != null) {
+                if (message != null) {
                     for (URI id : _ids) {
                         dbClient.pending(_clazz, id, _opId, message);
                     }
@@ -199,18 +201,18 @@ public abstract class TaskCompleter implements Serializable {
 
     /**
      * This method will be called upon the job execution finished
+     * 
      * @param dbClient
      * @param status
      * @param coded
      * @throws DeviceControllerException
      */
     protected abstract void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException;
-    
-    
+
     /**
      * This method will be called upon job execution finish with a locking controller.
      * It is not expected that non-locking controllers will call this version, however we need a base
-     * method so we don't need to ship around TaskLockingCompleters all over the code. 
+     * method so we don't need to ship around TaskLockingCompleters all over the code.
      * 
      * @param dbClient
      * @param locker
@@ -218,14 +220,14 @@ public abstract class TaskCompleter implements Serializable {
      * @param coded
      * @throws DeviceControllerException
      */
-    protected void complete(DbClient dbClient, ControllerLockingService locker, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
-    	complete(dbClient, status, coded);
+    protected void complete(DbClient dbClient, ControllerLockingService locker, Operation.Status status, ServiceCoded coded)
+            throws DeviceControllerException {
+        complete(dbClient, status, coded);
     }
-    
 
     /**
      * Update a Workflow Step State.
-     *
+     * 
      * @param state Workflow.StepState
      * @param coded
      * @throws WorkflowException
@@ -233,21 +235,21 @@ public abstract class TaskCompleter implements Serializable {
     protected void updateWorkflowState(Workflow.StepState state, ServiceCoded coded)
             throws WorkflowException {
         switch (state) {
-        case ERROR:
-            WorkflowStepCompleter.stepFailed(getOpId(), coded);
-            break;
-        case EXECUTING:
-            WorkflowStepCompleter.stepExecuting(getOpId());
-            break;
-        case SUCCESS:
-        default:
-            WorkflowStepCompleter.stepSucceded(getOpId());
+            case ERROR:
+                WorkflowStepCompleter.stepFailed(getOpId(), coded);
+                break;
+            case EXECUTING:
+                WorkflowStepCompleter.stepExecuting(getOpId());
+                break;
+            case SUCCESS:
+            default:
+                WorkflowStepCompleter.stepSucceded(getOpId());
         }
     }
 
     /**
      * Update a Workflow Step by using the Operation.Status.
-     *
+     * 
      * @param status Operation.Status
      * @param coded
      * @throws WorkflowException
@@ -255,14 +257,14 @@ public abstract class TaskCompleter implements Serializable {
     protected void updateWorkflowStatus(Operation.Status status, ServiceCoded coded)
             throws WorkflowException {
         switch (status) {
-        case error:
-            WorkflowStepCompleter.stepFailed(getOpId(), coded);
-            break;
-        case pending:
-            WorkflowStepCompleter.stepExecuting(getOpId());
-            break;
-        default:
-            WorkflowStepCompleter.stepSucceded(getOpId());
+            case error:
+                WorkflowStepCompleter.stepFailed(getOpId(), coded);
+                break;
+            case pending:
+                WorkflowStepCompleter.stepExecuting(getOpId());
+                break;
+            default:
+                WorkflowStepCompleter.stepSucceded(getOpId());
         }
     }
 
@@ -272,35 +274,35 @@ public abstract class TaskCompleter implements Serializable {
      * @param context context information
      */
     public void updateWorkflowStepContext(Object context) {
-    	WorkflowService.getInstance().storeStepData(getOpId(), context);
-    	_logger.info("Storing rollback context to op: " + getOpId() + " context: " + context.toString());
+        WorkflowService.getInstance().storeStepData(getOpId(), context);
+        _logger.info("Storing rollback context to op: " + getOpId() + " context: " + context.toString());
     }
-    
+
     /**
      * Set the error status of the dataObject referred by the uri
-     *
+     * 
      * @param dbClient [in] - Database Client
-     * @param clazz    [in] - Class in DataObject hierarchy
-     * @param uri      [in] - URI of clazz
-     * @param coded    [in] - ServiceCoded containing error message reference
+     * @param clazz [in] - Class in DataObject hierarchy
+     * @param uri [in] - URI of clazz
+     * @param coded [in] - ServiceCoded containing error message reference
      */
     protected void setErrorOnDataObject(DbClient dbClient, Class<? extends DataObject> clazz, URI uri,
-                                        ServiceCoded coded) {
-        if (!NullColumnValueGetter.isNullURI(uri)){
+            ServiceCoded coded) {
+        if (!NullColumnValueGetter.isNullURI(uri)) {
             dbClient.error(clazz, uri, getOpId(), coded);
         }
     }
 
     /**
      * Set the error status of the dataObject
-     *
+     * 
      * @param dbClient [in] - Database Client
-     * @param clazz    [in] - Class in DataObject hierarchy
-     * @param dObject  [in] - DataObject of clazz
-     * @param coded    [in] - ServiceCoded containing error message reference
+     * @param clazz [in] - Class in DataObject hierarchy
+     * @param dObject [in] - DataObject of clazz
+     * @param coded [in] - ServiceCoded containing error message reference
      */
     protected void setErrorOnDataObject(DbClient dbClient, Class<? extends DataObject> clazz, DataObject dObject,
-                                        ServiceCoded coded) {
+            ServiceCoded coded) {
         if (dObject != null) {
             dbClient.error(clazz, dObject.getId(), getOpId(), coded);
         }
@@ -308,23 +310,23 @@ public abstract class TaskCompleter implements Serializable {
 
     /**
      * Set the ready status of the dataObject referred by the uri
-     *
+     * 
      * @param dbClient [in] - Database Client
-     * @param clazz    [in] - Class in DataObject hierarchy
-     * @param uri      [in] - URI of clazz
+     * @param clazz [in] - Class in DataObject hierarchy
+     * @param uri [in] - URI of clazz
      */
     protected void setReadyOnDataObject(DbClient dbClient, Class<? extends DataObject> clazz, URI uri) {
-        if (!NullColumnValueGetter.isNullURI(uri)){
+        if (!NullColumnValueGetter.isNullURI(uri)) {
             dbClient.ready(clazz, uri, getOpId());
         }
     }
 
     /**
      * Set the ready status on the dataObject
-     *
+     * 
      * @param dbClient [in] - Database Client
-     * @param clazz    [in] - Class in DataObject hierarchy
-     * @param dObject  [in] - DataObject of clazz
+     * @param clazz [in] - Class in DataObject hierarchy
+     * @param dObject [in] - DataObject of clazz
      */
     protected void setReadyOnDataObject(DbClient dbClient, Class<? extends DataObject> clazz, DataObject dObject) {
         if (dObject != null) {

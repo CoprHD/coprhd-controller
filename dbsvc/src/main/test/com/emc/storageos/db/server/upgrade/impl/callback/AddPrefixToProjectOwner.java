@@ -16,7 +16,6 @@
 package com.emc.storageos.db.server.upgrade.impl.callback;
 
 import java.net.URI;
-import java.net.URL;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -25,7 +24,6 @@ import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.Project;
@@ -33,7 +31,7 @@ import com.emc.storageos.db.server.upgrade.DbMigrationTest;
 import com.emc.storageos.db.server.upgrade.util.DbSchemaChanger;
 
 /**
- * Add "@PrefixIndex" to Project.getOwner() 
+ * Add "@PrefixIndex" to Project.getOwner()
  */
 public class AddPrefixToProjectOwner extends DbMigrationTest {
     private static final Logger log = LoggerFactory.getLogger(AddPrefixToProjectOwner.class);
@@ -63,8 +61,8 @@ public class AddPrefixToProjectOwner extends DbMigrationTest {
 
         changer = new DbSchemaChanger("com.emc.storageos.db.client.model.Project");
         changer.beginChange()
-               .addAnnotation("getOwner","com.emc.storageos.db.client.model.PrefixIndex", values)
-               .endChange();
+                .addAnnotation("getOwner", "com.emc.storageos.db.client.model.PrefixIndex", values)
+                .endChange();
     }
 
     @Override
@@ -75,8 +73,8 @@ public class AddPrefixToProjectOwner extends DbMigrationTest {
     @Override
     protected void prepareData() throws Exception {
         // prepare a Project object for migration
-        Project project  = new Project();
- 
+        Project project = new Project();
+
         project.setId(URIUtil.createId(Project.class));
         project.setLabel("project1");
         project.setOwner("foo1");
@@ -105,7 +103,7 @@ public class AddPrefixToProjectOwner extends DbMigrationTest {
     protected void verifyResults() throws Exception {
         // Check results after migration
         Class clazz = Class.forName("com.emc.storageos.db.client.model.Project");
-        List<URI> ids = 
+        List<URI> ids =
                 dbClient.queryByConstraint(PrefixConstraint.Factory.getConstraint(clazz, "owner", "fo"));
 
         Assert.assertEquals(1, ids.size());

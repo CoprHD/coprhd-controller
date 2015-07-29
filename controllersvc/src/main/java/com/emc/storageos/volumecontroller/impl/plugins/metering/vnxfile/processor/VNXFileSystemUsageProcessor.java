@@ -33,7 +33,6 @@ import com.emc.storageos.volumecontroller.impl.plugins.metering.CassandraInserti
 import com.emc.storageos.volumecontroller.impl.plugins.metering.ZeroRecordGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
 
-
 /**
  * FileshareUsageProcessor responsible to process the response received from the
  * XMLAPI server and parse the stream and populates the java objects.
@@ -47,10 +46,8 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
             .getLogger(VNXFileSystemUsageProcessor.class);
 
     private ZeroRecordGenerator _zeroRecordGenerator;
-    
+
     private CassandraInsertion _statsColumnInjector;
-    
-    
 
     @SuppressWarnings("unchecked")
     @Override
@@ -141,7 +138,7 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
                     DbClient client = (DbClient) keyMap.get(Constants.dbClient);
                     if (client != null) {
                         FileShare fileSystem = client.queryObject(FileShare.class, stat.getResourceId());
-                        if(fileSystem != null){
+                        if (fileSystem != null) {
                             if (!fileSystem.getInactive() && fileSystem.getUsedCapacity() != stat.getAllocatedCapacity()) {
                                 fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
                                 client.persistObject(fileSystem);
@@ -156,6 +153,7 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
 
     /**
      * injects the ProvisionedCapacity from provisioning capacity.
+     * 
      * @param stat
      * @param keyMap
      */
@@ -168,17 +166,15 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
         } catch (final Exception e) {
             _logger.error("No FileShare found using resource {}", stat.getResourceId());
         }
-        
+
     }
 
-     // @Override
+    // @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs)
             throws VNXFilePluginException {
     }
-    
 
-
-	/**
+    /**
      * set the cachesyncher.
      * 
      * @param cachesync
@@ -190,7 +186,7 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
     public void setStatsColumnInjector(CassandraInsertion statsColumnInjector) {
         _statsColumnInjector = statsColumnInjector;
     }
-    
+
     public CassandraInsertion getStatsColumnInjector() {
         return _statsColumnInjector;
     }

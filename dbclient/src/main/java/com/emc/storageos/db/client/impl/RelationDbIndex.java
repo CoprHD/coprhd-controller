@@ -2,7 +2,7 @@
  * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.db.client.impl;                                                    
+package com.emc.storageos.db.client.impl;
 
 import java.util.List;
 import java.util.Map;
@@ -26,8 +26,8 @@ public class RelationDbIndex extends DbIndex {
     }
 
     @Override
-    boolean addColumn(String recordKey, CompositeColumnName column, Object value, 
-                      String className, RowMutator mutator, Integer ttl, DataObject obj) {
+    boolean addColumn(String recordKey, CompositeColumnName column, Object value,
+            String className, RowMutator mutator, Integer ttl, DataObject obj) {
         String rowKey = getRowKey(column, value);
 
         ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
@@ -41,12 +41,12 @@ public class RelationDbIndex extends DbIndex {
 
     @Override
     boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
-                         String className, RowMutator mutator,
-                         Map<String,List<Column<CompositeColumnName>>> fieldColumnMap) {
+            String className, RowMutator mutator,
+            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
         String rowKey = getRowKey(column);
 
         ColumnListMutation<IndexColumnName> indexColList =
-                    mutator.getIndexColumnList(indexCF, rowKey);
+                mutator.getIndexColumnList(indexCF, rowKey);
 
         UUID uuid = column.getName().getTimeUUID();
 
@@ -56,22 +56,24 @@ public class RelationDbIndex extends DbIndex {
     }
 
     String getRowKey(CompositeColumnName column, Object value) {
-        if (indexByKey)
+        if (indexByKey) {
             return column.getTwo();
+        }
 
-        return ((URI)value).toString();
+        return ((URI) value).toString();
     }
 
     String getRowKey(Column<CompositeColumnName> column) {
-        if (indexByKey)
+        if (indexByKey) {
             return column.getName().getTwo();
+        }
 
-         return column.getStringValue();
+        return column.getStringValue();
     }
 
     @Override
     public String toString() {
-        StringBuilder builder  = new StringBuilder("RelationDbIndex class");
+        StringBuilder builder = new StringBuilder("RelationDbIndex class");
         builder.append("\t");
         builder.append(super.toString());
         builder.append("\n");
@@ -79,4 +81,4 @@ public class RelationDbIndex extends DbIndex {
         return builder.toString();
     }
 
-} 
+}

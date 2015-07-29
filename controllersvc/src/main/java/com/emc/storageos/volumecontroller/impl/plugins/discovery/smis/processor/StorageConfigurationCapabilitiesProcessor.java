@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-
 public class StorageConfigurationCapabilitiesProcessor extends Processor {
     private static final String SUPPORTED_ELEMENT_TYPES = "SupportedStorageElementTypes";
     private static final String EMC_UNRESTRICTED_THIN_STORAGE_VOLUME = "32777";
@@ -91,7 +90,7 @@ public class StorageConfigurationCapabilitiesProcessor extends Processor {
             system.setSupportedProvisioningType(SupportedProvisioningTypes.NONE.toString());
         }
     }
-    
+
     /**
      * Set supported provisioning type for storage system based on
      * SupportedStorageElementTypes for VNX
@@ -106,7 +105,7 @@ public class StorageConfigurationCapabilitiesProcessor extends Processor {
         UnsignedInteger16[] supportedElementTypeArr = (UnsignedInteger16[]) storageConfigurationInstance
                 .getPropertyValue(SUPPORTED_ELEMENT_TYPES);
         String supportedElementTypes = Arrays.toString(supportedElementTypeArr);
-        _logger.debug("Capability : {}" , supportedElementTypes);
+        _logger.debug("Capability : {}", supportedElementTypes);
         if (supportedElementTypes.contains(THINLY_PROVISIONED_STORAGE_VOLUME)) {
             system.setSupportedProvisioningType(SupportedProvisioningTypes.THIN_AND_THICK
                     .toString());

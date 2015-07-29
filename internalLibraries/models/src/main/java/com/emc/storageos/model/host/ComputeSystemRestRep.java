@@ -12,20 +12,23 @@ import com.emc.storageos.model.RelatedResourceRep;
 
 /**
  * Common class to all tenant resource types
+ * 
  * @author elalih
  */
-@XmlType(name="abstractComputeSystemRestRep")
+@XmlType(name = "abstractComputeSystemRestRep")
 public abstract class ComputeSystemRestRep extends DiscoveredSystemObjectRestRep {
     private RelatedResourceRep tenant;
 
-    public ComputeSystemRestRep() {}
-    
+    public ComputeSystemRestRep() {
+    }
+
     public ComputeSystemRestRep(RelatedResourceRep tenant) {
         this.tenant = tenant;
     }
 
     /**
      * The tenant organization of the host.
+     * 
      * @valid String
      * @return the tenant organization of the host.
      */

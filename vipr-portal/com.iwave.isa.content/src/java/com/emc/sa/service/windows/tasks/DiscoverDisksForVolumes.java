@@ -33,19 +33,17 @@ public class DiscoverDisksForVolumes extends FindDisksForVolumes {
                 }
                 Thread.sleep(retryDelay);
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             // Will fail with missing disk drive exception
         }
         failIfMissingVolumes(results);
         return results;
     }
-    
 
     public static String getVolumesDisplay(Collection<? extends BlockObjectRestRep> volumes) {
         StringBuilder sb = new StringBuilder();
         Iterator<? extends BlockObjectRestRep> i = volumes.iterator();
-        while(i.hasNext()) {
+        while (i.hasNext()) {
             BlockObjectRestRep volume = i.next();
             sb.append(volume.getId());
             if (i.hasNext()) {
@@ -54,5 +52,5 @@ public class DiscoverDisksForVolumes extends FindDisksForVolumes {
         }
         return sb.toString();
     }
-    
+
 }

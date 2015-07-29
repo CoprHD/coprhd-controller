@@ -15,8 +15,9 @@ import java.util.List;
 public class StorageSystemList {
     private List<NamedRelatedResourceRep> storageSystems;
 
-    public StorageSystemList() {}
-    
+    public StorageSystemList() {
+    }
+
     public StorageSystemList(List<NamedRelatedResourceRep> storageSystems) {
         this.storageSystems = storageSystems;
     }
@@ -25,7 +26,7 @@ public class StorageSystemList {
      * List of storage system URLs with name
      * 
      * @valid none
-     */ 
+     */
     @XmlElement(name = "storage_system")
     public List<NamedRelatedResourceRep> getStorageSystems() {
         if (storageSystems == null) {

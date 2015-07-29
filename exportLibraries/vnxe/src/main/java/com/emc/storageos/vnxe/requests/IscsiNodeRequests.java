@@ -19,23 +19,22 @@ import java.util.List;
 
 import com.emc.storageos.vnxe.models.VNXeIscsiNode;
 
-public class IscsiNodeRequests extends KHRequests<VNXeIscsiNode>{
+public class IscsiNodeRequests extends KHRequests<VNXeIscsiNode> {
     private static final String URL = "/api/instances/iscsiNode/";
     private static final String URL_ALL = "/api/types/iscsiNode/instances";
+
     public IscsiNodeRequests(KHClient client) {
         super(client);
     }
 
-
-    public VNXeIscsiNode get(String id){
+    public VNXeIscsiNode get(String id) {
         _url = URL + id;
         return getDataForOneObject(VNXeIscsiNode.class);
     }
-    
+
     public List<VNXeIscsiNode> getAllNodes() {
         _url = URL_ALL;
         return getDataForObjects(VNXeIscsiNode.class);
     }
-    
 
 }

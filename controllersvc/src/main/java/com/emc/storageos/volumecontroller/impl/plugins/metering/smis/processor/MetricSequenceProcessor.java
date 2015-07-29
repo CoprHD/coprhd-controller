@@ -20,7 +20,7 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
 /**
  * MetricSequenceProcessor is responsible to get the sequence of metrics in CSV format retrieved from
  * the provider for each component.
- *
+ * 
  */
 public class MetricSequenceProcessor extends Processor {
     private Logger _logger = LoggerFactory.getLogger(MetricSequenceProcessor.class);
@@ -38,7 +38,7 @@ public class MetricSequenceProcessor extends Processor {
                     blockManifestInstance = it.next();
                     String elementType = getCIMPropertyValue(blockManifestInstance, Constants.ELEMENTTYPE);
                     String elementName = getCIMPropertyValue(blockManifestInstance, Constants.ELEMENTNAME);
-                    String []csvSeq = (String[]) blockManifestInstance.getPropertyValue(Constants.CSV_SEQUENCE);
+                    String[] csvSeq = (String[]) blockManifestInstance.getPropertyValue(Constants.CSV_SEQUENCE);
                     List<String> csvSequenceList = new LinkedList<String>(Arrays.asList(csvSeq));
                     _logger.debug("csvSequenceList: {}", csvSequenceList);
                     if (elementType.equals(Constants.VOLUME_ELEMENTTYPE)
@@ -50,13 +50,13 @@ public class MetricSequenceProcessor extends Processor {
                     } else if (elementType.equals(Constants.FEADAPT_ELEMENTTYPE) &&
                             elementName.equals(Constants.STORAGEOS_FEADAPT_MANIFEST)) {
                         keyMap.put(Constants.STORAGEOS_FEADAPT_MANIFEST, csvSequenceList);
-                    } else if(elementType.equals(Constants.SYSTEM_ELEMENTTYPE) &&
+                    } else if (elementType.equals(Constants.SYSTEM_ELEMENTTYPE) &&
                             elementName.equals(Constants.STORAGEOS_SYSTEM_MANIFEST)) {
                         keyMap.put(Constants.STORAGEOS_SYSTEM_MANIFEST, csvSequenceList);
                     }
                 } catch (Exception e) {
                     _logger.warn("MetricSequence call failed for {}",
-                            getCIMPropertyValue(blockManifestInstance, Constants.INSTANCEID),e);
+                            getCIMPropertyValue(blockManifestInstance, Constants.INSTANCEID), e);
                 }
             }
         } catch (Exception e) {

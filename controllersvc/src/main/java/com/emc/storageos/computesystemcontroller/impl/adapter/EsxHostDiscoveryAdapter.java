@@ -9,7 +9,6 @@ import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
@@ -18,7 +17,6 @@ import org.springframework.stereotype.Component;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.computesystemcontroller.impl.HostToComputeElementMatcher;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
@@ -49,18 +47,18 @@ import com.vmware.vim25.HostVirtualNic;
 import com.vmware.vim25.mo.HostSystem;
 
 /**
- *
+ * 
  * Discovery Adapter for ESX hosts.
- *
+ * 
  * @author kumara4
- *
+ * 
  */
 @Component
 public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Create helper API instance of VCenter to traverse tree structure of mob.
-     *
+     * 
      * @param host
      *            - {@link Host} instance
      * @return {@link VCenterAPI}
@@ -81,7 +79,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Returns host type (supported type)
-     *
+     * 
      * @return
      */
     @Override
@@ -91,18 +89,17 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * (non-Javadoc)
-     *
-     * @see com.emc.storageos.computesystemcontroller.impl.ComputeSystemDiscoveryAdapter
-     *      #discoverTarget(java.lang.String)
+     * 
+     * @see com.emc.storageos.computesystemcontroller.impl.ComputeSystemDiscoveryAdapter #discoverTarget(java.lang.String)
      */
     @Override
     public void discoverTarget(String targetId) {
         Host host = getModelClient().hosts().findById(targetId);
         HostStateChange changes = new HostStateChange(host, host.getCluster());
-        if(checkHostCredentials(host))
+        if (checkHostCredentials(host))
         {
             discoverEsxHost(host, changes);
-        }else
+        } else
         {
             debug("Skipping Esx host discovery, credentials not found for host - %s", host.getHostName());
         }
@@ -110,20 +107,22 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Check if the given host has credentials
+     * 
      * @param host - {@link Host}
      * @return
      */
     private boolean checkHostCredentials(Host host) {
         boolean hasCredentials = false;
-        if(null != host.getUsername() && null !=host.getPassword())
+        if (null != host.getUsername() && null != host.getPassword()) {
             hasCredentials = true;
+        }
         return hasCredentials;
-        
+
     }
 
     /**
      * Discover Esx host
-     *
+     * 
      * @param host
      *            {@link Host} instance to be discovered
      * @param changes
@@ -155,12 +154,12 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
      */
     @Override
     public void matchHostsToComputeElements(URI hostId) {
-        HostToComputeElementMatcher.matchHostsToComputeElementsByUuid(hostId,getDbClient());
+        HostToComputeElementMatcher.matchHostsToComputeElementsByUuid(hostId, getDbClient());
     }
 
     /**
      * Discover Esx host
-     *
+     * 
      * @param host
      *            {@link Host} instance to be discovered
      * @param changes
@@ -172,7 +171,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         VCenterAPI api = createVCenterAPI(host);
         try {
             List<HostSystem> hostSystems = api.listAllHostSystems();
-            if(null != hostSystems && !hostSystems.isEmpty())
+            if (null != hostSystems && !hostSystems.isEmpty())
             {
                 // getting the 0th element only coz we are querying an ESX for
                 // hostsystems and this will always return one or none.
@@ -185,13 +184,13 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                         && hw.systemInfo.uuid != null) {
                     // try finding host by UUID
                     uuid = hw.systemInfo.uuid;
-                    //search host by uuid in VIPR if host already discovered
+                    // search host by uuid in VIPR if host already discovered
                     targetHost = findHostByUuid(uuid);
                     checkDuplicateHost(host, targetHost);
                 }
 
                 if (targetHost == null) {
-                    //if target host is null, this is a new discovery.
+                    // if target host is null, this is a new discovery.
                     targetHost = host;
                 }
                 targetHost.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
@@ -207,7 +206,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                     targetHost.setUuid(uuid);
                     save(targetHost);
                 }
-            
+
                 DiscoveryStatusUtils.markAsProcessing(getModelClient(),
                         targetHost);
                 try {
@@ -228,11 +227,12 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Check if the host already exists in VIPR
+     * 
      * @param host - {@link Host} instance being discovered / added.
      * @param targetHost {@link Host} instance from VIPR DB.
      */
     private void checkDuplicateHost(Host host, Host targetHost) {
-        if(targetHost != null && !(host.getId().equals(targetHost.getId())))
+        if (targetHost != null && !(host.getId().equals(targetHost.getId())))
         {
             ComputeSystemControllerException ex =
                     ComputeSystemControllerException.exceptions.duplicateSystem("Host", targetHost.getLabel());
@@ -243,7 +243,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Discover Exs host and its IpIterfaces and Initiators.
-     *
+     * 
      * @param hostSystem
      *            - {@link HostSystem} VI SDK managedObject instance
      * @param targetHost
@@ -295,7 +295,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Discovers connected Host's Initiators and Ipinterfcaes
-     *
+     * 
      * @param hostSystem
      *            - {@link HostSystem} VI SDK managedObject instance
      * @param targetHost
@@ -361,7 +361,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Get version of host
-     *
+     * 
      * @param host
      *            {@link Host} being discovered
      * @return
@@ -379,7 +379,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Lookup for host in the db by uuid
-     *
+     * 
      * @param uuid
      *            - uuid of host
      * @return
@@ -390,7 +390,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Find an existing host with matching label or ip address
-     *
+     * 
      * @param hostSystem
      *            the host system to use
      * @return host that has a matching label or ip address, null if can't be
@@ -435,7 +435,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
      * Finds a matching value in the DB by label, or creates one if none is
      * found. If a match is found in the list, it will be removed from the list
      * before returning.
-     *
+     * 
      * @param hosts
      *            - host list
      * @param name
@@ -447,7 +447,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Returns true if the host is of type Esx or Other
-     *
+     * 
      * @param host
      *            host to check the type
      * @return true if Esx or Other, otherwise false
@@ -461,7 +461,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Get list of IP addresses for the given host
-     *
+     * 
      * @param hostSystem
      *            {@link HostSystem} vi sdk MO
      * @return
@@ -481,7 +481,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Fetch Nics for the hostsystem
-     *
+     * 
      * @param hostSystem
      *            - {@link HostSystem} vi sdk MO
      * @return
@@ -500,7 +500,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Find the connection state of the hostsystem
-     *
+     * 
      * @param source
      *            - {@link HostSystem} vi sdk MO
      * @return
@@ -514,7 +514,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Fetches the {@link IpInterface} for the {@link Host}
-     *
+     * 
      * @param host
      *            {@link Host}
      * @return
@@ -525,7 +525,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Check if {@link HostVirtualNic} is Ip4 interface
-     *
+     * 
      * @param nic
      *            - {@link HostVirtualNic}
      * @return
@@ -536,7 +536,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Check if {@link HostVirtualNic} is Ip6 interface
-     *
+     * 
      * @param nic
      *            - {@link HostVirtualNic}
      * @return
@@ -550,7 +550,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Discovery of Ip interface
-     *
+     * 
      * @param host
      *            {@linkk Host}
      * @param ipInterface
@@ -571,7 +571,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Discovery of Ip interface
-     *
+     * 
      * @param host
      *            {@linkk Host}
      * @param ipInterface
@@ -593,7 +593,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Fetch the IPv6 address of {@link HostVirtualNic}
-     *
+     * 
      * @param nic
      *            {@link HostVirtualNic}
      * @return
@@ -614,7 +614,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
      * Finds a matching value in the list of IpInterfaces by ipAddress, or
      * creates one if none is found. If a match is found in the list, it will be
      * removed from the list before returning.
-     *
+     * 
      * @param ipInterfaces
      * @param ip
      * @return
@@ -626,7 +626,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Fetch initiators corresponding the {@link Host}
-     *
+     * 
      * @param host
      *            {@link Host}
      * @return
@@ -637,7 +637,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Fetch {@link HostHostBusAdapter} corresponding the {@link HostSystem}
-     *
+     * 
      * @param host
      *            {@link HostSystem}
      * @return
@@ -653,7 +653,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Discover FC Initiator
-     *
+     * 
      * @param host
      *            {@link Host}
      * @param initiator
@@ -675,7 +675,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Discover Scsi Initiator
-     *
+     * 
      * @param host
      *            {@link Host}
      * @param initiator
@@ -695,7 +695,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Sets properties pertaining to the {@link Initiator}
-     *
+     * 
      * @param initiator
      *            {@link Initiator}
      * @param host
@@ -711,19 +711,19 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
     protected void discoverIpInterfaces(Host host,
             List<IpInterface> oldIpInterfaces) {
         // Do nothing, for ESX host ip interfaces are discovered differently
-        
+
     }
 
     @Override
     protected void discoverInitiators(Host host, List<Initiator> oldInitiators,
             HostStateChange changes) {
         // Do nothing, for ESX host Initiators are discovered differently
-        
+
     }
 
     @Override
     protected void setNativeGuid(Host host) {
         // TODO Auto-generated method stub
-        
+
     }
 }

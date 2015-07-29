@@ -7,13 +7,12 @@ package com.emc.storageos.customconfigcontroller;
 
 import java.util.List;
 
-
 /**
- * A string manipulation function that returns the n to m characters in a string 
- *
+ * A string manipulation function that returns the n to m characters in a string
+ * 
  */
 public class SubstringCustomConfigMethod extends CustomConfigMethod {
-   
+
     public String invoke(String str, List<String> args) {
         int start = Integer.parseInt(args.get(0));
         int end = Integer.parseInt(args.get(1));

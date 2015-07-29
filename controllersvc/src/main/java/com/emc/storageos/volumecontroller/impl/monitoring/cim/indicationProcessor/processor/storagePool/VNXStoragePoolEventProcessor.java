@@ -37,15 +37,15 @@ public class VNXStoragePoolEventProcessor extends BaseProcessor {
             spEvent.setIndication(notification);
             Boolean status = spEvent
                     .updateStoragePoolObjectFromVNXStoragePoolIndication();
-            if (status){
+            if (status) {
                 logMessage(
                         "VNX StoragePool object updated sucessfully from VNX StoragePool Event",
                         new Object[] {});
-            }else{
+            } else {
                 logMessage("VNX StoragePool object not updated",
                         new Object[] {});
             }
-                
+
             getRecordableEventManager().recordEvents(spEvent);
             logMessage("VNX StoragePool Event persisted in DB",
                     new Object[] {});

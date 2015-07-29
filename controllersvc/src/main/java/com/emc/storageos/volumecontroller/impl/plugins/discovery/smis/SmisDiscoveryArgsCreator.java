@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
-
 import java.util.List;
 import java.util.Map;
 import javax.cim.CIMArgument;
@@ -19,9 +18,10 @@ import com.emc.storageos.plugins.common.ArgsCreator;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.Util;
 import com.emc.storageos.plugins.common.domainmodel.Argument;
+
 /**
  * Methods used in Fast Discovery
- *
+ * 
  */
 public class SmisDiscoveryArgsCreator extends ArgsCreator {
     public SmisDiscoveryArgsCreator(Util util) {
@@ -31,6 +31,7 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
     /**
      * Create SE_DeviceMaskingGroup Object Path for Bourne Generated Device Group Name
      * used in checkDeviceGroupExists Already in Provider.
+     * 
      * @param argument
      * @param keyMap
      * @param index
@@ -66,7 +67,6 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
         return value;
     }
 
-    
     /**
      * Get Bourne Created device Group Name from DeviceGroupNames list.
      * 
@@ -128,6 +128,7 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
     /**
      * get FAST policy Object path associated with DeviceGroup, wrapped as CIMArgument
      * used while adding DeviceGroup to fast Policy
+     * 
      * @param argument
      * @param keyMap
      * @param index
@@ -147,6 +148,7 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
     /**
      * get vnxPoolCapabilities CIMObject Path from PoolCapabilities-->InitailTierMethodology mapping
      * used in creating a Storage Pool Setting
+     * 
      * @param argument
      * @param keyMap
      * @param index
@@ -159,7 +161,7 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
                 .getValue());
         String vnxPoolCapabilities_tierMethod = vnxPoolCapabilities_tierMethods
                 .get(index);
-        String vnxPoolCapabilities = vnxPoolCapabilities_tierMethod.substring(0,vnxPoolCapabilities_tierMethod.lastIndexOf("-"));
+        String vnxPoolCapabilities = vnxPoolCapabilities_tierMethod.substring(0, vnxPoolCapabilities_tierMethod.lastIndexOf("-"));
         CIMObjectPath vnxPoolCapabilitiesPath = CimObjectPathCreator.createInstance(vnxPoolCapabilities);
         _logger.debug("VNX Pool capabilities found from Capabilities_Tier Mapping :"
                 + vnxPoolCapabilitiesPath);
@@ -169,6 +171,7 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
     /**
      * get Initial Storage Tiering methodology value for given Storage Pool Setting.
      * used while modifying Storage Pool Setting Instance
+     * 
      * @param argument
      * @param keyMap
      * @param index
@@ -183,14 +186,15 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
         String tierMethod = (String) keyMap.get(vnxPoolSettingInstance.getObjectPath()
                 .toString() + Constants.HYPEN + Constants.TIERMETHODOLOGY);
         _logger.debug("Tier Method got from Mapping :" + tierMethod);
-        CIMProperty<?> prop = new CIMProperty<Object>(Constants.INITIAL_STORAGE_TIER_METHODOLOGY, CIMDataType.UINT16_T, new UnsignedInteger16(tierMethod));
+        CIMProperty<?> prop = new CIMProperty<Object>(Constants.INITIAL_STORAGE_TIER_METHODOLOGY, CIMDataType.UINT16_T,
+                new UnsignedInteger16(tierMethod));
         CIMProperty<?> initialStorageTierSelectionProp = new CIMProperty<Object>(
                 Constants.INITIAL_STORAGE_TIERING_SELECTION, CIMDataType.UINT16_T,
                 new UnsignedInteger16(Constants.RELATIVE_PERFORMANCE_ORDER));
-        CIMProperty<?>[] propArray = new CIMProperty<?>[] {prop,initialStorageTierSelectionProp};
+        CIMProperty<?>[] propArray = new CIMProperty<?>[] { prop, initialStorageTierSelectionProp };
         return propArray;
     }
-    
+
     public Object getPoolSetting(
             final Argument argument, final Map<String, Object> keyMap, int index) {
         return CimObjectPathCreator.createInstance("");
@@ -234,6 +238,5 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
         }
         return value;
     }
-    
-   
+
 }

@@ -14,7 +14,6 @@
  */
 package com.emc.storageos.security.authentication;
 
-
 /**
  * Class for looking up registered syssvc endpoints in coordinator
  */

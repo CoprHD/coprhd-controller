@@ -44,7 +44,7 @@ public class QueueJob implements Serializable {
         try {
             QueueJob job = new QueueJob();
             ObjectInputStream oim = new ObjectInputStream(new ByteArrayInputStream(bytes));
-            Map<String, Object> map = (Map<String, Object>)oim.readObject();
+            Map<String, Object> map = (Map<String, Object>) oim.readObject();
             job._map = map;
             return job;
         } catch (IOException e) {

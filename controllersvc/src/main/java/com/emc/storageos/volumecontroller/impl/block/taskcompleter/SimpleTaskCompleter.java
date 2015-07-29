@@ -15,10 +15,10 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 
-
 public class SimpleTaskCompleter extends TaskCompleter {
 
     private static final Logger _log = LoggerFactory.getLogger(SimpleTaskCompleter.class);
+
     /**
      * @param clazz
      * @param id
@@ -30,6 +30,7 @@ public class SimpleTaskCompleter extends TaskCompleter {
 
     /**
      * This method will be called upon the job execution finished
+     * 
      * @param dbClient
      * @param status
      * @param coded

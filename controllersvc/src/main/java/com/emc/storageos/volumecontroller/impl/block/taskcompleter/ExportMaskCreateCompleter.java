@@ -32,7 +32,7 @@ public class ExportMaskCreateCompleter extends ExportMaskInitiatorCompleter {
     private Map<URI, Integer> _volumeMap;
 
     public ExportMaskCreateCompleter(URI egUri, URI emUri, List<URI> initiators,
-                                     Map<URI, Integer> volumes, String task) {
+            Map<URI, Integer> volumes, String task) {
         super(ExportGroup.class, egUri, emUri, task);
         _initiatorURIs = new ArrayList<URI>();
         _initiatorURIs.addAll(initiators);
@@ -46,7 +46,7 @@ public class ExportMaskCreateCompleter extends ExportMaskInitiatorCompleter {
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status,
-                         ServiceCoded coded) throws DeviceControllerException {
+            ServiceCoded coded) throws DeviceControllerException {
         try {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             ExportMask exportMask = (getMask() != null) ?
@@ -55,19 +55,19 @@ public class ExportMaskCreateCompleter extends ExportMaskInitiatorCompleter {
                 List<Initiator> initiators = dbClient.queryObject(Initiator.class,
                         _initiatorURIs);
                 exportMask.addInitiators(initiators);
-                
+
                 StorageSystem system = dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice());
 
-                // Add only the initiators that we created and added.  Currently only VMAX will fill in these initiators.
-    			if (getUserAddedInitiatorURIs() != null && !getUserAddedInitiatorURIs().isEmpty()) { 
-    				exportMask.addToUserCreatedInitiators(dbClient.queryObject(Initiator.class, getUserAddedInitiatorURIs()));
+                // Add only the initiators that we created and added. Currently only VMAX will fill in these initiators.
+                if (getUserAddedInitiatorURIs() != null && !getUserAddedInitiatorURIs().isEmpty()) {
+                    exportMask.addToUserCreatedInitiators(dbClient.queryObject(Initiator.class, getUserAddedInitiatorURIs()));
                 } else if (!Type.vmax.toString().equalsIgnoreCase(system.getSystemType())) {
-    				// Fall-back, add all initiators.  Currently only VMAX cherry-picks specific initiators that
-    				// are user-added based on the initiators that it found on the array.  Other arrays need to 
-    				// fall back to the original way of tracking user added initiators, which is to add all of them.
-                	exportMask.addToUserCreatedInitiators(initiators);
+                    // Fall-back, add all initiators. Currently only VMAX cherry-picks specific initiators that
+                    // are user-added based on the initiators that it found on the array. Other arrays need to
+                    // fall back to the original way of tracking user added initiators, which is to add all of them.
+                    exportMask.addToUserCreatedInitiators(initiators);
                 }
-                
+
                 exportMask.addVolumes(_volumeMap);
                 if (Type.xtremio.toString().equalsIgnoreCase(system.getSystemType())) {
                     // XtremIO case, wwn's are updated only during export.
@@ -76,12 +76,12 @@ public class ExportMaskCreateCompleter extends ExportMaskInitiatorCompleter {
                     _log.info("Cleaning existing xtremio volumes with dummy wwns");
                     exportMask.getUserAddedVolumes().clear();
                 }
-                
+
                 for (URI boURI : _volumeMap.keySet()) {
                     BlockObject blockObject = BlockObject.fetch(dbClient, boURI);
                     exportMask.addToUserCreatedVolumes(blockObject);
-                    //CTRL-11544: Set the hlu in the export group too
-                    if(exportMask.getCreatedBySystem() && exportMask.getVolumes() != null) {
+                    // CTRL-11544: Set the hlu in the export group too
+                    if (exportMask.getCreatedBySystem() && exportMask.getVolumes() != null) {
                         String hlu = exportMask.getVolumes().get(boURI.toString());
                         exportGroup.addVolume(boURI, Integer.parseInt(hlu));
                     }
@@ -95,14 +95,13 @@ public class ExportMaskCreateCompleter extends ExportMaskInitiatorCompleter {
                     "Done ExportMaskCreate - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
 
-
         } catch (Exception e) {
             _log.error(String.format(
                     "Failed updating status for ExportMaskCreate - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
 
         } finally {
-            super.complete(dbClient, status,coded);
+            super.complete(dbClient, status, coded);
         }
     }
 

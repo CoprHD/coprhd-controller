@@ -90,8 +90,9 @@ class DataCollectionJobInvoker {
             } else {
                 // CTRL-10441 fix
                 String contextFile = getContextFile(contextkey);
-                if (null == contextFile)
+                if (null == contextFile) {
                     return;
+                }
                 context = new ClassPathXmlApplicationContext(new String[] { getContextFile(contextkey) },
                         parentApplicationContext);
 

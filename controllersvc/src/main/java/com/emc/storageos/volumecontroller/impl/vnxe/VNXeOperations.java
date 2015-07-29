@@ -14,7 +14,7 @@ public class VNXeOperations {
 
     protected VNXeApiClientFactory _clientFactory;
     protected DbClient _dbClient;
-    
+
     public VNXeApiClientFactory getVnxeApiClientFactory() {
         return _clientFactory;
     }
@@ -22,8 +22,7 @@ public class VNXeOperations {
     public void setVnxeApiClientFactory(VNXeApiClientFactory clientFactory) {
         this._clientFactory = clientFactory;
     }
-    
-    
+
     public DbClient getDbClient() {
         return _dbClient;
     }
@@ -31,7 +30,7 @@ public class VNXeOperations {
     public void setDbClient(DbClient dbClient) {
         this._dbClient = dbClient;
     }
-    
+
     /**
      * Get the Vnxe service client for making requests to the Vnxe based
      * on the passed profile.
@@ -42,11 +41,11 @@ public class VNXeOperations {
      */
     protected VNXeApiClient getVnxeClient(StorageSystem storage) {
         VNXeApiClient client = _clientFactory.getClient(storage.getIpAddress(),
-                storage.getPortNumber(),storage.getUsername(), 
+                storage.getPortNumber(), storage.getUsername(),
                 storage.getPassword());
-        
+
         return client;
-        
+
     }
-    
+
 }

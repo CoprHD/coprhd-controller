@@ -12,32 +12,33 @@ import java.net.URI;
  * after a workflow failure.
  */
 public class VPlexDeleteCGRollbackData implements Serializable {
-    
+
     private static final long serialVersionUID = 1L;
-    
+
     String cgName;
     String clusterName;
     Boolean isDistributed;
     URI vplexSystemURI;
-    
-    public VPlexDeleteCGRollbackData() {}
-    
+
+    public VPlexDeleteCGRollbackData() {
+    }
+
     public void setCgName(String val) {
         cgName = val;
     }
-    
+
     public String getCgName() {
         return cgName;
     }
-    
+
     public void setClusterName(String val) {
         clusterName = val;
     }
-    
+
     public String getClusterName() {
         return clusterName;
     }
-    
+
     public void setIsDistributed(Boolean val) {
         isDistributed = val;
     }
@@ -45,11 +46,11 @@ public class VPlexDeleteCGRollbackData implements Serializable {
     public Boolean getIsDistributed() {
         return isDistributed;
     }
-    
+
     public void setVplexSystemURI(URI val) {
         vplexSystemURI = val;
     }
-    
+
     public URI getVplexSystemURI() {
         return vplexSystemURI;
     }

@@ -7,47 +7,52 @@ package com.emc.storageos.networkcontroller.impl.mds;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /*
  * instance of CISCO_ZoneMemberSettingData {
 
-   Caption = null;
-   Description = null;
-   InstanceID = "3176^2^5006016446E47142^0";
-   ElementName = null;
-   OtherConnectivityMemberType = null;
-   ConnectivityMemberID = "5006016446E47142";
-   ConnectivityMemberType = 2;
-};
+ Caption = null;
+ Description = null;
+ InstanceID = "3176^2^5006016446E47142^0";
+ ElementName = null;
+ OtherConnectivityMemberType = null;
+ ConnectivityMemberID = "5006016446E47142";
+ ConnectivityMemberType = 2;
+ };
  */
 public class ZoneMember extends ZoneWwnAlias {
     private static final Logger _log = LoggerFactory.getLogger(ZoneMember.class);
 
-	String instanceID;
+    String instanceID;
     String description;
     ConnectivityMemberType type;
     /**
-     * marked transient because it cannot be serialized 
+     * marked transient because it cannot be serialized
      */
-    // The path to the ZoneMembershipSettingData object for 
+    // The path to the ZoneMembershipSettingData object for
     // the zone WWN or alias member
     transient Object cimObjectPath = null;
-    // The path to the alias object that is a member of a 
+    // The path to the alias object that is a member of a
     // zone when one exists
     transient Object cimAliasPath = null;
 
-	public enum ConnectivityMemberType {
+    public enum ConnectivityMemberType {
         NONE(0), WWPN(2), FCID(3), SWITCHPORT(4), PORTGROUP(5);
         private int value;
-        ConnectivityMemberType(int value) { this.value = value; }
+
+        ConnectivityMemberType(int value) {
+            this.value = value;
+        }
+
         static public ConnectivityMemberType byValue(int v) {
             for (ConnectivityMemberType t : values()) {
-                if (v == t.value) return t;
+                if (v == t.value) {
+                    return t;
+                }
             }
             return NONE;
         }
     };
-    
+
     public ZoneMember(ConnectivityMemberType type) {
         this.type = type;
     }
@@ -56,55 +61,56 @@ public class ZoneMember extends ZoneWwnAlias {
         this(type);
         setAddress(address);
     }
-    
+
     public String getLogString() {
-        return "ZoneMember: " + getAddress() + " " + type.toString() +  " Alias: " + getName() == null ? "" : getName();
+        return "ZoneMember: " + getAddress() + " " + type.toString() + " Alias: " + getName() == null ? "" : getName();
     }
-    
+
     /**
-     * name and alias are interchangeable in zone member.  
+     * name and alias are interchangeable in zone member.
+     * 
      * @return name of zone member
      */
     public String getAlias() {
         return getName();
     }
-    
+
     public void setAlias(String alias) {
         setName(alias);
     }
-    
+
     public String getInstanceID() {
-		return instanceID;
-	}
+        return instanceID;
+    }
 
-	public void setInstanceID(String instanceID) {
-		this.instanceID = instanceID;
-	}
+    public void setInstanceID(String instanceID) {
+        this.instanceID = instanceID;
+    }
 
-	public String getDescription() {
-		return description;
-	}
+    public String getDescription() {
+        return description;
+    }
 
-	public void setDescription(String description) {
-		this.description = description;
-	}
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
-	public ConnectivityMemberType getType() {
-		return type;
-	}
+    public ConnectivityMemberType getType() {
+        return type;
+    }
 
-	public void setType(ConnectivityMemberType type) {
-		this.type = type;
-	}
-    
+    public void setType(ConnectivityMemberType type) {
+        this.type = type;
+    }
+
     public Object getCimObjectPath() {
-		return cimObjectPath;
-	}
+        return cimObjectPath;
+    }
 
-	public void setCimObjectPath(Object cimObjectPath) {
-		this.cimObjectPath = cimObjectPath;
-	}
-    
+    public void setCimObjectPath(Object cimObjectPath) {
+        this.cimObjectPath = cimObjectPath;
+    }
+
     public Object getCimAliasPath() {
         return cimAliasPath;
     }

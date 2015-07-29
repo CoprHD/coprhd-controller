@@ -18,7 +18,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 
 /**
- *  Base class for custom migration handlers
+ * Base class for custom migration handlers
  */
 public abstract class BaseCustomMigrationCallback implements MigrationCallback {
     protected DbClient dbClient;
@@ -36,7 +36,7 @@ public abstract class BaseCustomMigrationCallback implements MigrationCallback {
     public void setCoordinatorClient(CoordinatorClient coordinatorClient) {
         this.coordinatorClient = coordinatorClient;
     }
-    
+
     public void setName(String name) {
         this.name = name;
     }

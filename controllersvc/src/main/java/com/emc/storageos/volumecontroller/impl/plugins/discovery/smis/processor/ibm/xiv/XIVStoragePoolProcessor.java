@@ -54,11 +54,11 @@ public class XIVStoragePoolProcessor extends PoolProcessor {
             .getLogger(XIVStoragePoolProcessor.class);
     private static final String HARD_SIZE = "HardSize";
     private static final String SOFT_SIZE = "SoftSize";
-    private static final String POOL_ID = "PoolID";    
+    private static final String POOL_ID = "PoolID";
     private static final String OPERATIONAL_STATUS = "OperationalStatus";
     private static final String TWO = "2";
     private static final String IBM_SUBSCRIBEDCAPACITY = "VirtualSpaceConsumed";
-    		
+
     private DbClient _dbClient = null;
     private AccessProfile _profile = null;
     private List<StoragePool> _newPoolList = null;
@@ -96,7 +96,7 @@ public class XIVStoragePoolProcessor extends PoolProcessor {
                 try {
                     addPath(keyMap, operation.getResult(),
                             poolInstance.getObjectPath());
-                    
+
                     String hardSizeStr = getCIMPropertyValue(poolInstance,
                             HARD_SIZE);
                     long hardSize = Long.parseLong(hardSizeStr);
@@ -126,8 +126,8 @@ public class XIVStoragePoolProcessor extends PoolProcessor {
             keyMap.put(Constants.MODIFIED_STORAGEPOOLS, poolsToMatchWithVpool);
             _dbClient.createObject(_newPoolList);
             _dbClient.updateAndReindexObject(_updatePoolList);
-            
-            //find the pools not visible in this discovery
+
+            // find the pools not visible in this discovery
             List<StoragePool> discoveredPools = new ArrayList<StoragePool>(_newPoolList);
             discoveredPools.addAll(_updatePoolList);
             List<StoragePool> notVisiblePools = DiscoveryUtils.checkStoragePoolsNotVisible(discoveredPools, _dbClient, device.getId());
@@ -148,7 +148,7 @@ public class XIVStoragePoolProcessor extends PoolProcessor {
             _updatePoolList = null;
         }
     }
-    
+
     /*
      * Determine operational status of pool
      * READY, if any of the status value is 2 (OK).
@@ -169,13 +169,13 @@ public class XIVStoragePoolProcessor extends PoolProcessor {
             _logger.error("Discovering Pool Operational Status failed : {}-->",
                     getCIMPropertyValue(poolInstance, Constants.INSTANCEID), ex);
         }
-        
+
         return operationalStatus;
-    } 
+    }
 
     /**
      * Create StoragePool, if not present already, else only update the properties
-     *
+     * 
      * @param dbClient
      * @param device
      * @param poolInstance
@@ -195,11 +195,11 @@ public class XIVStoragePoolProcessor extends PoolProcessor {
             List<StoragePool> updatePoolList) throws URISyntaxException,
             IOException {
         boolean newPool = false;
-        boolean modifiedPool = false;   // indicates whether to add to modified pools list or not    
+        boolean modifiedPool = false;   // indicates whether to add to modified pools list or not
         String nativeId = getCIMPropertyValue(poolInstance, POOL_ID);
-        String poolName = getCIMPropertyValue(poolInstance, SmisConstants.CP_ELEMENT_NAME);    
-        
-        StoragePool pool = checkStoragePoolExistsInDB(nativeId, dbClient, device);        
+        String poolName = getCIMPropertyValue(poolInstance, SmisConstants.CP_ELEMENT_NAME);
+
+        StoragePool pool = checkStoragePoolExistsInDB(nativeId, dbClient, device);
         if (null == pool) {
             newPool = true;
             pool = new StoragePool();
@@ -208,16 +208,17 @@ public class XIVStoragePoolProcessor extends PoolProcessor {
             pool.setNativeId(nativeId);
             pool.setStorageDevice(device.getId());
             pool.setPoolServiceType(PoolServiceType.block.toString());
-            String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(dbClient, pool); 
+            String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(dbClient, pool);
             pool.setNativeGuid(poolNativeGuid);
             pool.setLabel(poolNativeGuid);
-            //setting default values on Pool Creation
+            // setting default values on Pool Creation
             pool.setMaximumThickVolumeSize(0L);
             pool.setMinimumThickVolumeSize(0L);
             pool.setMaximumThinVolumeSize(0L);
             pool.setMinimumThinVolumeSize(0L);
-            _logger.info(String.format("Maximum default limits for volume capacity in storage pool: %s  %n   max thin volume capacity: %s, max thick volume capacity: %s ",
-                    pool.getId(), pool.getMaximumThinVolumeSize(), pool.getMaximumThickVolumeSize()));
+            _logger.info(String
+                    .format("Maximum default limits for volume capacity in storage pool: %s  %n   max thin volume capacity: %s, max thick volume capacity: %s ",
+                            pool.getId(), pool.getMaximumThinVolumeSize(), pool.getMaximumThickVolumeSize()));
 
             pool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
             Set<String> diskDrives = new HashSet<String>();
@@ -232,7 +233,7 @@ public class XIVStoragePoolProcessor extends PoolProcessor {
 
             pool.addDriveTypes(diskDrives);
         }
-        
+
         String subscribedCapacity = getCIMPropertyValue(poolInstance, IBM_SUBSCRIBEDCAPACITY);
         if (null != subscribedCapacity) {
             pool.setSubscribedCapacity(ControllerUtils.convertBytesToKBytes(subscribedCapacity));
@@ -241,10 +242,13 @@ public class XIVStoragePoolProcessor extends PoolProcessor {
         pool.setTotalCapacity(SmisUtils.getTotalCapacity(poolInstance));
         pool.setPoolName(poolName);
         String operationalStatus = determineOperationalStatus(poolInstance);
-        if (!newPool && (ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getOperationalStatus(), operationalStatus) ||
-                ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getProtocols(), protocols) ||
-                ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getSupportedResourceTypes(), supportedVolumeTypes)) ||
-                ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getDiscoveryStatus(), DiscoveredDataObject.DiscoveryStatus.VISIBLE.name())) {
+        if (!newPool
+                && (ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getOperationalStatus(), operationalStatus) ||
+                        ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getProtocols(), protocols) ||
+                ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getSupportedResourceTypes(), supportedVolumeTypes))
+                ||
+                ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getDiscoveryStatus(),
+                        DiscoveredDataObject.DiscoveryStatus.VISIBLE.name())) {
             modifiedPool = true;
         }
         pool.addProtocols(protocols);
@@ -252,7 +256,7 @@ public class XIVStoragePoolProcessor extends PoolProcessor {
 
         pool.setSupportedResourceTypes(supportedVolumeTypes);
         pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
-        
+
         if (newPool) {
             newPoolList.add(pool);
             // add new pools to modified pools list to consider them for implicit pool matching.

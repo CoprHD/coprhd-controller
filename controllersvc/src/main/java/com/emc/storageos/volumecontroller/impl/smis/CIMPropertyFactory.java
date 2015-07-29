@@ -128,8 +128,8 @@ public class CIMPropertyFactory {
     }
 
     public static String getPropertyValue(CIMInstance instance, String propertyName) {
-        _log.debug("instance :{}",instance);
-        _log.debug("propertyName :{}",propertyName);
+        _log.debug("instance :{}", instance);
+        _log.debug("propertyName :{}", propertyName);
         String propertyValue = SmisConstants.EMPTY_STRING;
         if (instance != null && propertyName != null) {
             CIMProperty property = instance.getProperty(propertyName);
@@ -148,15 +148,15 @@ public class CIMPropertyFactory {
     }
 
     public static String[] getPropertyArray(CIMInstance instance, String propertyName) {
-        _log.debug("instance :{}",instance);
-        _log.debug("propertyName :{}",propertyName);
+        _log.debug("instance :{}", instance);
+        _log.debug("propertyName :{}", propertyName);
         String[] propertyValue = { SmisConstants.EMPTY_STRING };
         if (instance != null && propertyName != null) {
             CIMProperty property = instance.getProperty(propertyName);
             if (property != null) {
                 Object value = property.getValue();
                 if (value != null && value instanceof String[]) {
-                    propertyValue = (String[])value;
+                    propertyValue = (String[]) value;
                 } else {
                     _log.warn(String.format(
                             "CIMInstance %s does not have a '%s' property or the property value is null",

@@ -33,8 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.regex.Pattern;
-
 
 /**
  * SMIExecutor- responsible for executing SMICommands
@@ -91,7 +89,7 @@ public abstract class Executor {
         return _generator;
     }
 
-    public Executor () {
+    public Executor() {
         execService = Executors.newFixedThreadPool(10);
     }
 
@@ -142,9 +140,9 @@ public abstract class Executor {
         // hence haven't made it synchronized.
         _processor = operation.getProcessor();
         if (null != _processor) {
-             List<Object> argsList = new ArrayList<Object>();
-             argsList.add(Util.normalizedReadArgs(_keyMap, commandObj.retreiveArguments()));
-             argsList.add(commandObj.getCommandIndex());
+            List<Object> argsList = new ArrayList<Object>();
+            argsList.add(Util.normalizedReadArgs(_keyMap, commandObj.retreiveArguments()));
+            argsList.add(commandObj.getCommandIndex());
 
             _processor.setPrerequisiteObjects(argsList);
             _processor.processResult(operation, result, _keyMap);
@@ -187,7 +185,7 @@ public abstract class Executor {
                 Object resultObj = null;
                 try {
                     resultObj = commandObj.execute();
-                    processResult(operation, resultObj,commandObj);
+                    processResult(operation, resultObj, commandObj);
                 } catch (Exception e) {
                     _LOGGER.error("Execution failed for :", e);
                     // We do not want 'Provider/Firmware Not Supported Error' to get suppressed. check and throw again.
@@ -205,7 +203,7 @@ public abstract class Executor {
             _LOGGER.error("Operation Execution failed : ", e);
             customizeException(e, operation);
         }
-        _LOGGER.debug(null==operation.getMessage()? "END Executing operation": "END :" + operation.getMessage());
+        _LOGGER.debug(null == operation.getMessage() ? "END Executing operation" : "END :" + operation.getMessage());
     }
 
     /**
@@ -246,7 +244,7 @@ public abstract class Executor {
                         logMessage.append("}").append(SEMICOLON).append(NEWLINE);
                     } else if (obj instanceof CIMProperty<?>[]) {
                         logMessage.append(NEWLINE).append("Input CIMProperty Array : {");
-                        
+
                         CIMProperty<?>[] args = (CIMProperty<?>[]) obj;
                         for (CIMProperty<?> p : args) {
                             if (null != p) {
@@ -275,14 +273,15 @@ public abstract class Executor {
             }
             logMessage.append("}");
             _LOGGER.debug(logMessage.toString());
-           
+
         } catch (Exception e) {
             _LOGGER.debug("Logging operations failed", e);
         }
     }
-    
+
     /**
      * return true always to support other device types.
+     * 
      * @param operation
      * @return
      */

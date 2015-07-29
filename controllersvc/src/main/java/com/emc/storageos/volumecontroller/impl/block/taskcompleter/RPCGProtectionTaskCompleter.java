@@ -26,15 +26,15 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 public class RPCGProtectionTaskCompleter extends RPCGTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(RPCGCreateCompleter.class);
     private OperationTypeEnum opTypeEnum = null;
-    
+
     public RPCGProtectionTaskCompleter(URI uri, String task) {
         super(Volume.class, uri, task);
     }
 
     public void setOperationTypeEnum(OperationTypeEnum opTypeEnum) {
-    	this.opTypeEnum = opTypeEnum;
+        this.opTypeEnum = opTypeEnum;
     }
-    
+
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
@@ -45,18 +45,18 @@ public class RPCGProtectionTaskCompleter extends RPCGTaskCompleter {
 
             // Record audit event(s)
             if (opTypeEnum == null) {
-            	setOperationTypeEnum(OperationTypeEnum.PERFORM_PROTECTION_OPERATION);
+                setOperationTypeEnum(OperationTypeEnum.PERFORM_PROTECTION_OPERATION);
             }
-            
-        	recordRPOperation(dbClient, opTypeEnum, status, getId().toString());
 
-        	// Tell the individual objects we're done.
+            recordRPOperation(dbClient, opTypeEnum, status, getId().toString());
+
+            // Tell the individual objects we're done.
             switch (status) {
-            case error:
-                dbClient.error(Volume.class, getId(), getOpId(), coded);
-                break;
-            default:
-                dbClient.ready(Volume.class, getId(), getOpId());
+                case error:
+                    dbClient.error(Volume.class, getId(), getOpId(), coded);
+                    break;
+                default:
+                    dbClient.ready(Volume.class, getId(), getOpId());
             }
         } catch (Exception e) {
             _log.error(String.format("Failed updating status for protection task - Volume ID: %s, OpId: %s",
@@ -66,14 +66,15 @@ public class RPCGProtectionTaskCompleter extends RPCGTaskCompleter {
 
     /**
      * Record block volume related event and audit
-     * @param dbClient  db client
-     * @param opType    operation type
-     * @param status    operation status
-     * @param extParam  parameters array from which we could generate detail audit message
+     * 
+     * @param dbClient db client
+     * @param opType operation type
+     * @param status operation status
+     * @param extParam parameters array from which we could generate detail audit message
      */
     private void recordRPOperation(DbClient dbClient, OperationTypeEnum opType, Operation.Status status, Object... extParam) {
         try {
-            boolean opStatus = (Operation.Status.ready == status)? true: false;
+            boolean opStatus = (Operation.Status.ready == status) ? true : false;
             String evType;
             evType = opType.getEvType(opStatus);
             String evDesc = opType.getDescription();
@@ -101,7 +102,7 @@ public class RPCGProtectionTaskCompleter extends RPCGTaskCompleter {
 
     /**
      * Record RP event
-     *
+     * 
      * @param dbClient db client
      * @param volumeUri volume operation performed on
      * @param evtType event type
@@ -110,26 +111,26 @@ public class RPCGProtectionTaskCompleter extends RPCGTaskCompleter {
      * @throws Exception
      */
     private void recordBourneRPEvent(DbClient dbClient, URI volumeUri,
-    		String evtType,
-    		Operation.Status status, String desc) {
-    	RecordableEventManager eventManager = new RecordableEventManager();
-    	eventManager.setDbClient(dbClient);
+            String evtType,
+            Operation.Status status, String desc) {
+        RecordableEventManager eventManager = new RecordableEventManager();
+        eventManager.setDbClient(dbClient);
 
-    	Volume volObj = dbClient.queryObject(Volume.class, volumeUri);
-    	RecordableBourneEvent event = ControllerUtils
-    			.convertToRecordableBourneEvent(volObj, evtType,
-    					desc, "", dbClient,
-    					ControllerUtils.BLOCK_EVENT_SERVICE,
-    					RecordType.Event.name(),
-    					ControllerUtils.BLOCK_EVENT_SOURCE);
+        Volume volObj = dbClient.queryObject(Volume.class, volumeUri);
+        RecordableBourneEvent event = ControllerUtils
+                .convertToRecordableBourneEvent(volObj, evtType,
+                        desc, "", dbClient,
+                        ControllerUtils.BLOCK_EVENT_SERVICE,
+                        RecordType.Event.name(),
+                        ControllerUtils.BLOCK_EVENT_SOURCE);
 
-    	try {
-    		eventManager.recordEvents(event);
-    		_log.info("Bourne {} event recorded", evtType);
-    	} catch (Exception e) {
-    		_log.error(
-    				"Failed to record event. Event description: {}. Error: ",
-    				evtType, e);
-    	}
+        try {
+            eventManager.recordEvents(event);
+            _log.info("Bourne {} event recorded", evtType);
+        } catch (Exception e) {
+            _log.error(
+                    "Failed to record event. Event description: {}. Error: ",
+                    evtType, e);
+        }
     }
 }

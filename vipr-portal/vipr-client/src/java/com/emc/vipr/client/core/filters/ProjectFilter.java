@@ -5,8 +5,6 @@
 package com.emc.vipr.client.core.filters;
 
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
-import com.emc.vipr.client.core.util.ResourceUtils;
-
 import java.net.URI;
 
 public class ProjectFilter extends DefaultResourceFilter<ExportGroupRestRep> {

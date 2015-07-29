@@ -9,7 +9,6 @@ import java.util.List;
 
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
-import javax.wbem.CloseableIterator;
 import javax.wbem.client.WBEMClient;
 
 import org.slf4j.Logger;
@@ -25,7 +24,7 @@ import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
-public class SmisWaitForGroupSynchronizedJob extends SmisJob{
+public class SmisWaitForGroupSynchronizedJob extends SmisJob {
     private static final Logger log = LoggerFactory.getLogger(SmisWaitForGroupSynchronizedJob.class);
     private static final String GROUP_SYNC_PATH = "GroupSynchronizationPath";
     private static final String COMPLETE = "100";
@@ -35,7 +34,7 @@ public class SmisWaitForGroupSynchronizedJob extends SmisJob{
         _map.put(GROUP_SYNC_PATH, groupSyncPath);
 
     }
-    
+
     @Override
     public JobPollResult poll(JobContext jobContext, long trackingPeriodInMillis) {
         JobPollResult pollResult = new JobPollResult();
@@ -50,18 +49,18 @@ public class SmisWaitForGroupSynchronizedJob extends SmisJob{
             pollResult.setJobName(getJobName());
             pollResult.setJobId(SmisConstants.CP_PERCENT_SYNCED);
             pollResult.setJobStatus(JobStatus.IN_PROGRESS);
-            
+
             CIMObjectPath path = getGroupSyncPath();
             // no corresponding sync obj, set to complete
             if (SmisConstants.NULL_IBM_CIM_OBJECT_PATH.equals(path)) {
                 log.info("Sync complete");
                 pollResult.setJobPercentComplete(100);
                 pollResult.setJobStatus(JobStatus.SUCCESS);
-                completer.ready(dbClient);                 
+                completer.ready(dbClient);
                 return pollResult;
             }
             String[] propertyKeys =
-                {SmisConstants.CP_SYNC_STATE, SmisConstants.CP_SYNC_TYPE, SmisConstants.CP_PERCENT_SYNCED,SmisConstants.CP_PROGRESS_STATUS };
+            { SmisConstants.CP_SYNC_STATE, SmisConstants.CP_SYNC_TYPE, SmisConstants.CP_PERCENT_SYNCED, SmisConstants.CP_PROGRESS_STATUS };
             CIMInstance syncInstance = client.getInstance(path, false, false, propertyKeys);
             if (syncInstance != null) {
                 String state = CIMPropertyFactory.getPropertyValue(syncInstance, SmisConstants.CP_SYNC_STATE);
@@ -69,7 +68,7 @@ public class SmisWaitForGroupSynchronizedJob extends SmisJob{
                 String percent = CIMPropertyFactory.getPropertyValue(syncInstance, SmisConstants.CP_PERCENT_SYNCED);
                 String status = CIMPropertyFactory.getPropertyValue(syncInstance, SmisConstants.CP_PROGRESS_STATUS);
                 String msg = String.format("Target=%s, State=%s, Type=%s, Percent=%s, Status=%s",
-                        clones.get(0).getId(),state, type, percent, status);
+                        clones.get(0).getId(), state, type, percent, status);
                 log.info(msg);
                 pollResult.setJobPercentComplete(Integer.parseInt(percent));
 
@@ -84,7 +83,7 @@ public class SmisWaitForGroupSynchronizedJob extends SmisJob{
             log.error("Failed to update synchronization", e);
             pollResult.setJobStatus(JobStatus.FAILED);
             completer.error(dbClient, DeviceControllerException.errors.jobFailed(e));
-        } 
+        }
 
         return pollResult;
     }

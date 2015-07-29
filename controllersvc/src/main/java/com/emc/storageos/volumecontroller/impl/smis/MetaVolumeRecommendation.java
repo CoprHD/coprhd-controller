@@ -13,15 +13,15 @@ import org.slf4j.LoggerFactory;
 public class MetaVolumeRecommendation {
     private static final Logger _log = LoggerFactory.getLogger(MetaVolumeRecommendation.class);
 
-    private static final int BYTESCONVERTER= 1024;
+    private static final int BYTESCONVERTER = 1024;
 
     private boolean _createMetaVolumes = false;
     private long _metaMemberSize = 0;
     private long _metaMemberCount = 0;
     private Volume.CompositionType _metaVolumeType = Volume.CompositionType.STRIPED;
 
-
-    public  MetaVolumeRecommendation() {}
+    public MetaVolumeRecommendation() {
+    }
 
     public boolean isCreateMetaVolumes() {
         return _createMetaVolumes;
@@ -54,21 +54,20 @@ public class MetaVolumeRecommendation {
     public void setMetaVolumeType(Volume.CompositionType _metaVolumeType) {
         this._metaVolumeType = _metaVolumeType;
     }
-    
+
     /**
      * Created COP-37 to track hashCode() implemenatation in this class.
      */
-    @SuppressWarnings({"squid:S1206"})
+    @SuppressWarnings({ "squid:S1206" })
     public boolean equals(Object o) {
-    	if (o == null || !(o instanceof MetaVolumeRecommendation)) {
-    		return false;
-    	}
+        if (o == null || !(o instanceof MetaVolumeRecommendation)) {
+            return false;
+        }
 
-    	MetaVolumeRecommendation other = (MetaVolumeRecommendation)o;
+        MetaVolumeRecommendation other = (MetaVolumeRecommendation) o;
 
-    	return (isCreateMetaVolumes() == other.isCreateMetaVolumes() &&
-    			getMetaMemberSize() == other.getMetaMemberSize() &&
-    			getMetaMemberCount() == other.getMetaMemberCount() &&
-    			getMetaVolumeType().equals(other.getMetaVolumeType()));
+        return (isCreateMetaVolumes() == other.isCreateMetaVolumes() &&
+                getMetaMemberSize() == other.getMetaMemberSize() &&
+                getMetaMemberCount() == other.getMetaMemberCount() && getMetaVolumeType().equals(other.getMetaVolumeType()));
     }
 }

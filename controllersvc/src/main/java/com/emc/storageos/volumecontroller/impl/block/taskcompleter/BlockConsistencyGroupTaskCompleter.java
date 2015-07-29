@@ -30,8 +30,8 @@ public abstract class BlockConsistencyGroupTaskCompleter extends TaskCompleter {
     }
 
     public void recordBourneBlockConsistencyGroupEvent(DbClient dbClient, URI consistencyGroupURI,
-                                             RecordableEventManager.EventType evtType,
-                                             Operation.Status status, String desc)
+            RecordableEventManager.EventType evtType,
+            Operation.Status status, String desc)
             throws Exception {
         RecordableEventManager eventManager = new RecordableEventManager();
         eventManager.setDbClient(dbClient);
@@ -52,7 +52,7 @@ public abstract class BlockConsistencyGroupTaskCompleter extends TaskCompleter {
     }
 
     @Override
-    protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException{
+    protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         updateWorkflowStatus(status, coded);
     }
 

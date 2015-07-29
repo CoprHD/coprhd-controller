@@ -9,7 +9,6 @@ import java.util.List;
 
 import com.emc.storageos.db.client.model.ExportGroup;
 
-
 public class ExportDeregisterInitiatorCompleter extends ExportTaskCompleter {
 
     public ExportDeregisterInitiatorCompleter(URI egUri, URI emUri, List<URI> initiatorURIs,

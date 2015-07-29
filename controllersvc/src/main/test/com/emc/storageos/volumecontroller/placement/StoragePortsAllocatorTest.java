@@ -10,22 +10,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.PropertyConfigurator;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.Network;
-import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.common.VdcUtil;
-import com.emc.storageos.networkcontroller.impl.mds.MDSDialogTest;
 import com.emc.storageos.util.DummyDbClient;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
@@ -39,7 +33,7 @@ import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAl
  *         Required classpath: placement (directory containing the test source)
  *         eclipse.out (directory containing complied classes)
  *         slf4j-api-1.6.4.jar slf4j-ext-1.6.4.jar slf4j-log4j12-1.6.4.jar
- *         log4j-1.2.16.jar 
+ *         log4j-1.2.16.jar
  *         jersey-core-1.12.jar
  *         commons-lang-2.4.jar (Apache commons)
  *         Required run directory: Directory containing test
@@ -58,144 +52,150 @@ public class StoragePortsAllocatorTest {
 
     public static void main(String[] args) throws Exception {
         for (String arg : args) {
-            if (arg.equals("vmaxonly")) vmaxonly = true;
-            if (arg.equals("vnxonly")) vnxonly = true;
-            if (arg.equals("vplexonly")) vplexonly = true; 
+            if (arg.equals("vmaxonly")) {
+                vmaxonly = true;
+            }
+            if (arg.equals("vnxonly")) {
+                vnxonly = true;
+            }
+            if (arg.equals("vplexonly")) {
+                vplexonly = true;
+            }
         }
         VdcUtil.setDbClient(new DummyDbClient());
         PropertyConfigurator.configure("log4j.properties");
         _log.info("Beginning logging");
         testFC();
         testIP();
-        
+
         System.out.println("Empty transport zone, should throw PlacementException");
         PortAllocationContext ctx = createEmptyTzone();
         StoragePortsAllocator allocator = new StoragePortsAllocator();
         try {
-           alloc(allocator, 1, ctx, true);
+            alloc(allocator, 1, ctx, true);
         } catch (PlacementException ex) {
             System.out.println("caught PlacementException: " + ex.toString());
         }
         System.out.println("done");
         _log.info(pass ? "PASSED" : "FAILED");
     }
-    
+
     private static void testIP() throws Exception {
         PortAllocationContext ctx = createVNX2director4portIP();
         StoragePortsAllocator allocator = new StoragePortsAllocator();
         if (!vmaxonly && !vplexonly) {
-        alloc(allocator, 1, ctx, false);
-        alloc(allocator, 2, ctx, false);
-        alloc(allocator, 4, ctx, false);
-        alloc(allocator, 8, ctx, false);
-        alloc(allocator, 16, ctx, false);
-        alloc(allocator, 32, ctx, false);
+            alloc(allocator, 1, ctx, false);
+            alloc(allocator, 2, ctx, false);
+            alloc(allocator, 4, ctx, false);
+            alloc(allocator, 8, ctx, false);
+            alloc(allocator, 16, ctx, false);
+            alloc(allocator, 32, ctx, false);
         }
 
         ctx = createVMAX3engine4portIP();
         allocator = new StoragePortsAllocator();
         if (!vnxonly && !vplexonly) {
-        alloc(allocator, 1, ctx, false);
-        alloc(allocator, 2, ctx, false);
-        alloc(allocator, 4, ctx, false);
-        alloc(allocator, 8, ctx, false);
-        duplicateCpuExpected = true;
-        alloc(allocator, 16, ctx, false);
-        duplicateCpuExpected = true;
-        alloc(allocator, 32, ctx, false);
-        runIterations(50, allocator, 4, ctx, false);
-        System.out
-                .println("Symmetrical two transport zones each with four directors two ports each");
-        test2tzones(1, createTzone1IP(), createTzone2IP(), false);
-        test2tzones(2, createTzone1IP(), createTzone2IP(), false);
-        test2tzones(4, createTzone1IP(), createTzone2IP(), false);
-        System.out
-                .println("Asymmetrical transport zones, one with two directors, one with one");
-        test2tzones(1, createTzone3IP(), createTzone4IP(), false);
-        test2tzones(2, createTzone3IP(), createTzone4IP(), false);
-        test2tzones(4, createTzone3IP(), createTzone4IP(), false);
+            alloc(allocator, 1, ctx, false);
+            alloc(allocator, 2, ctx, false);
+            alloc(allocator, 4, ctx, false);
+            alloc(allocator, 8, ctx, false);
+            duplicateCpuExpected = true;
+            alloc(allocator, 16, ctx, false);
+            duplicateCpuExpected = true;
+            alloc(allocator, 32, ctx, false);
+            runIterations(50, allocator, 4, ctx, false);
+            System.out
+                    .println("Symmetrical two transport zones each with four directors two ports each");
+            test2tzones(1, createTzone1IP(), createTzone2IP(), false);
+            test2tzones(2, createTzone1IP(), createTzone2IP(), false);
+            test2tzones(4, createTzone1IP(), createTzone2IP(), false);
+            System.out
+                    .println("Asymmetrical transport zones, one with two directors, one with one");
+            test2tzones(1, createTzone3IP(), createTzone4IP(), false);
+            test2tzones(2, createTzone3IP(), createTzone4IP(), false);
+            test2tzones(4, createTzone3IP(), createTzone4IP(), false);
         }
     }
-    
+
     protected static void testFC() throws Exception {
         PortAllocationContext ctx = createVNX2director4portFC();
         StoragePortsAllocator allocator = new StoragePortsAllocator();
         if (!vmaxonly && !vplexonly) {
-        alloc(allocator, 1, ctx, true);
-        alloc(allocator, 2, ctx, true);
-        alloc(allocator, 4, ctx, true);
-        alloc(allocator, 8, ctx, true);
-        alloc(allocator, 16, ctx, true);
-        alloc(allocator, 32, ctx, true);
+            alloc(allocator, 1, ctx, true);
+            alloc(allocator, 2, ctx, true);
+            alloc(allocator, 4, ctx, true);
+            alloc(allocator, 8, ctx, true);
+            alloc(allocator, 16, ctx, true);
+            alloc(allocator, 32, ctx, true);
         }
 
         if (!vnxonly && !vplexonly) {
-        ctx = createVMAX3engine4portFC();
-        allocator = new StoragePortsAllocator();
-        alloc(allocator, 1, ctx, true);
-        alloc(allocator, 2, ctx, true);
-        alloc(allocator, 4, ctx, true);
-        alloc(allocator, 8, ctx, true);
-        duplicateCpuExpected = true;
-        alloc(allocator, 16, ctx, true);
-        duplicateCpuExpected = true;
-        alloc(allocator, 32, ctx, true);
-        
-        ctx = createVMAXWithCpuDuplication();
-        allocator = new StoragePortsAllocator();
-        alloc(allocator, 1, ctx, true);
-        alloc(allocator, 2, ctx, true);
-        alloc(allocator, 3, ctx, true);
-        _log.debug("Cpu duplication forced");
-        duplicateCpuExpected = true;
-        alloc(allocator, 4, ctx, true);
+            ctx = createVMAX3engine4portFC();
+            allocator = new StoragePortsAllocator();
+            alloc(allocator, 1, ctx, true);
+            alloc(allocator, 2, ctx, true);
+            alloc(allocator, 4, ctx, true);
+            alloc(allocator, 8, ctx, true);
+            duplicateCpuExpected = true;
+            alloc(allocator, 16, ctx, true);
+            duplicateCpuExpected = true;
+            alloc(allocator, 32, ctx, true);
+
+            ctx = createVMAXWithCpuDuplication();
+            allocator = new StoragePortsAllocator();
+            alloc(allocator, 1, ctx, true);
+            alloc(allocator, 2, ctx, true);
+            alloc(allocator, 3, ctx, true);
+            _log.debug("Cpu duplication forced");
+            duplicateCpuExpected = true;
+            alloc(allocator, 4, ctx, true);
         }
-        
+
         if (!vnxonly && !vmaxonly) {
-        ctx = createVplex1engine4portFC();
-        allocator = new StoragePortsAllocator();
-        _log.info("Start Vplex 1 engine port allocation");
-        alloc(allocator, 1, ctx, true);
-        alloc(allocator, 2, ctx, true);
-        alloc(allocator, 4, ctx, true);
-        alloc(allocator, 8, ctx, true);
-        alloc(allocator, 16, ctx, true);
-        alloc(allocator, 32, ctx, true);
-        _log.info("Done with Vplex 1 engine port allocation");
-        
-        _log.info("Start Vplex 2 engine port allocation");
-        ctx = createVplex2engine4portFC();
-        allocator = new StoragePortsAllocator();
-        alloc(allocator, 1, ctx, true);
-        alloc(allocator, 2, ctx, true);
-        alloc(allocator, 4, ctx, true);
-        alloc(allocator, 8, ctx, true);
-        alloc(allocator, 16, ctx, true);
-        alloc(allocator, 32, ctx, true);
-        _log.info("Done with Vplex 2 engine port allocation");
-        
-        _log.info("Start Vplex 4 engine port allocation");
-        ctx = createVplex4engine4portFC();
-        allocator = new StoragePortsAllocator();
-        alloc(allocator, 1, ctx, true);
-        alloc(allocator, 2, ctx, true);
-        alloc(allocator, 4, ctx, true);
-        alloc(allocator, 8, ctx, true);
-        alloc(allocator, 16, ctx, true);
-        alloc(allocator, 32, ctx, true);
-        _log.info("Done with Vplex 4 engine port allocation");
-        
-        runIterations(50, allocator, 4, ctx, true);
-        System.out
-                .println("Symmetrical two transport zones each with four directors two ports each");
-        test2tzones(1, createTzone1FC(), createTzone2FC(), true);
-        test2tzones(2, createTzone1FC(), createTzone2FC(), true);
-        test2tzones(4, createTzone1FC(), createTzone2FC(), true);
-        System.out
-                .println("Asymmetrical transport zones, one with two directors, one with one");
-        test2tzones(1, createTzone3FC(), createTzone4FC(), true);
-        test2tzones(2, createTzone3FC(), createTzone4FC(), true);
-        test2tzones(4, createTzone3FC(), createTzone4FC(), true);
+            ctx = createVplex1engine4portFC();
+            allocator = new StoragePortsAllocator();
+            _log.info("Start Vplex 1 engine port allocation");
+            alloc(allocator, 1, ctx, true);
+            alloc(allocator, 2, ctx, true);
+            alloc(allocator, 4, ctx, true);
+            alloc(allocator, 8, ctx, true);
+            alloc(allocator, 16, ctx, true);
+            alloc(allocator, 32, ctx, true);
+            _log.info("Done with Vplex 1 engine port allocation");
+
+            _log.info("Start Vplex 2 engine port allocation");
+            ctx = createVplex2engine4portFC();
+            allocator = new StoragePortsAllocator();
+            alloc(allocator, 1, ctx, true);
+            alloc(allocator, 2, ctx, true);
+            alloc(allocator, 4, ctx, true);
+            alloc(allocator, 8, ctx, true);
+            alloc(allocator, 16, ctx, true);
+            alloc(allocator, 32, ctx, true);
+            _log.info("Done with Vplex 2 engine port allocation");
+
+            _log.info("Start Vplex 4 engine port allocation");
+            ctx = createVplex4engine4portFC();
+            allocator = new StoragePortsAllocator();
+            alloc(allocator, 1, ctx, true);
+            alloc(allocator, 2, ctx, true);
+            alloc(allocator, 4, ctx, true);
+            alloc(allocator, 8, ctx, true);
+            alloc(allocator, 16, ctx, true);
+            alloc(allocator, 32, ctx, true);
+            _log.info("Done with Vplex 4 engine port allocation");
+
+            runIterations(50, allocator, 4, ctx, true);
+            System.out
+                    .println("Symmetrical two transport zones each with four directors two ports each");
+            test2tzones(1, createTzone1FC(), createTzone2FC(), true);
+            test2tzones(2, createTzone1FC(), createTzone2FC(), true);
+            test2tzones(4, createTzone1FC(), createTzone2FC(), true);
+            System.out
+                    .println("Asymmetrical transport zones, one with two directors, one with one");
+            test2tzones(1, createTzone3FC(), createTzone4FC(), true);
+            test2tzones(2, createTzone3FC(), createTzone4FC(), true);
+            test2tzones(4, createTzone3FC(), createTzone4FC(), true);
         }
     }
 
@@ -245,7 +245,7 @@ public class StoragePortsAllocatorTest {
             throws Exception {
         StoragePortsAllocator allocator = new StoragePortsAllocator();
         List<URI> tzone1Uris = getPortURIs(
-                allocator.allocatePortsForNetwork(numPaths/2, tzone1, checkConnectivity, null, false));
+                allocator.allocatePortsForNetwork(numPaths / 2, tzone1, checkConnectivity, null, false));
         System.out.println(String.format("Transport zone: %s paths: %d", tzone1._initiatorNetwork.getLabel(), new Integer(numPaths)));
         printPorts(tzone1Uris, tzone1);
         checkForDuplicates(tzone1Uris, tzone1);
@@ -254,7 +254,7 @@ public class StoragePortsAllocatorTest {
         tzone2._alreadyAllocatedSwitches
                 .addAll(tzone1._alreadyAllocatedSwitches);
         List<URI> tzone2Uris = getPortURIs(
-                allocator.allocatePortsForNetwork(numPaths/2, tzone2, checkConnectivity, null, false));
+                allocator.allocatePortsForNetwork(numPaths / 2, tzone2, checkConnectivity, null, false));
         System.out.println(String.format("Transport zone: %s paths: %d", tzone2._initiatorNetwork.getLabel(), new Integer(numPaths)));
         printPorts(tzone2Uris, tzone2);
         checkForDuplicates(tzone2Uris, tzone2);
@@ -329,12 +329,12 @@ public class StoragePortsAllocatorTest {
                     ctx._storagePortToSwitchName.get(port)));
         }
     }
-    
+
     protected static PortAllocationContext createVplex1engine4portFC() {
         NetworkLite tz = new NetworkLite("TzoneVplexFC1");
         PortAllocationContext context = new PortAllocationContext(tz, "test");
         StoragePort port;
-        //Cluster 1 Engine 1 - Ports
+        // Cluster 1 Engine 1 - Ports
         port = createVplexFCPort("A0-FC00", "50:00:14:42:60:01:01:00", "director-1-1-A");
         addPort(context, port, "mds-a");
         port = createVplexFCPort("A0-FC01", "50:00:14:42:60:01:01:01", "director-1-1-A");
@@ -353,12 +353,12 @@ public class StoragePortsAllocatorTest {
         addPort(context, port, "mds-b");
         return context;
     }
-    
+
     protected static PortAllocationContext createVplex2engine4portFC() {
         NetworkLite tz = new NetworkLite("TzoneVplexFC2");
         PortAllocationContext context = new PortAllocationContext(tz, "test");
         StoragePort port;
-        //Cluster 1 Engine 1 - Ports
+        // Cluster 1 Engine 1 - Ports
         port = createVplexFCPort("A0-FC00", "50:00:14:42:60:01:01:00", "director-1-1-A");
         addPort(context, port, "mds-a");
         port = createVplexFCPort("A0-FC01", "50:00:14:42:60:01:01:01", "director-1-1-A");
@@ -375,7 +375,7 @@ public class StoragePortsAllocatorTest {
         addPort(context, port, "mds-a");
         port = createVplexFCPort("B0-FC04", "50:00:14:42:70:01:01:04", "director-1-1-B");
         addPort(context, port, "mds-b");
-        //Cluster 2 Engine 1 - Ports
+        // Cluster 2 Engine 1 - Ports
         port = createVplexFCPort("A0-FC00", "50:00:14:42:60:02:01:00", "director-2-1-A");
         addPort(context, port, "mds-a");
         port = createVplexFCPort("A0-FC01", "50:00:14:42:60:02:01:01", "director-2-1-A");
@@ -394,7 +394,7 @@ public class StoragePortsAllocatorTest {
         addPort(context, port, "mds-b");
         return context;
     }
-    
+
     protected static PortAllocationContext createVplex4engine4portFC() {
         NetworkLite tz = new NetworkLite("TzoneVplexFC3");
         PortAllocationContext context = new PortAllocationContext(tz, "test");
@@ -416,7 +416,7 @@ public class StoragePortsAllocatorTest {
         addPort(context, port, "mds-a");
         port = createVplexFCPort("B0-FC04", "50:00:14:42:70:01:01:04", "director-1-1-B");
         addPort(context, port, "mds-b");
-        //Cluster 1 Engine 2 - Ports
+        // Cluster 1 Engine 2 - Ports
         port = createVplexFCPort("A0-FC00", "50:00:14:42:60:01:02:00", "director-1-2-A");
         addPort(context, port, "mds-a");
         port = createVplexFCPort("A0-FC01", "50:00:14:42:60:01:02:01", "director-1-2-A");
@@ -433,7 +433,7 @@ public class StoragePortsAllocatorTest {
         addPort(context, port, "mds-a");
         port = createVplexFCPort("B0-FC04", "50:00:14:42:70:01:02:04", "director-1-2-B");
         addPort(context, port, "mds-b");
-        //Cluster 2 Engine 1 - Ports
+        // Cluster 2 Engine 1 - Ports
         port = createVplexFCPort("A0-FC00", "50:00:14:42:60:02:01:00", "director-2-1-A");
         addPort(context, port, "mds-a");
         port = createVplexFCPort("A0-FC01", "50:00:14:42:60:02:01:01", "director-2-1-A");
@@ -450,7 +450,7 @@ public class StoragePortsAllocatorTest {
         addPort(context, port, "mds-a");
         port = createVplexFCPort("B0-FC04", "50:00:14:42:70:02:01:04", "director-2-1-B");
         addPort(context, port, "mds-b");
-        //Cluster 2 Engine 2 - Ports
+        // Cluster 2 Engine 2 - Ports
         port = createVplexFCPort("A0-FC00", "50:00:14:42:60:02:02:00", "director-2-2-A");
         addPort(context, port, "mds-a");
         port = createVplexFCPort("A0-FC01", "50:00:14:42:60:02:02:01", "director-2-2-A");
@@ -469,7 +469,6 @@ public class StoragePortsAllocatorTest {
         addPort(context, port, "mds-b");
         return context;
     }
-
 
     protected static PortAllocationContext createVNX2director4portIP() {
         NetworkLite tz = new NetworkLite("TzoneIP1");
@@ -509,7 +508,7 @@ public class StoragePortsAllocatorTest {
         addPort(context, port, null);
         return context;
     }
-    
+
     protected static PortAllocationContext createVNX2director4portFC() {
         NetworkLite tz = new NetworkLite("Tzon3d4p1");
         PortAllocationContext context = new PortAllocationContext(tz, "test");
@@ -548,7 +547,7 @@ public class StoragePortsAllocatorTest {
         addPort(context, port, null);
         return context;
     }
-    
+
     protected static PortAllocationContext createVMAX3engine4portIP() {
         NetworkLite tz = new NetworkLite("TzoneIP2");
         PortAllocationContext context = new PortAllocationContext(tz, "test");
@@ -658,7 +657,7 @@ public class StoragePortsAllocatorTest {
         addPort(context, port, "mds-b");
         return context;
     }
-    
+
     protected static PortAllocationContext createVMAXWithCpuDuplication() {
         NetworkLite tz = new NetworkLite("Tzon3e4p1");
         PortAllocationContext context = new PortAllocationContext(tz, "test");
@@ -673,7 +672,7 @@ public class StoragePortsAllocatorTest {
         addPort(context, port, "mds-a");
         return context;
     }
-    
+
     protected static PortAllocationContext createTzone1IP() {
         NetworkLite tz = new NetworkLite("TzoneIP1");
         PortAllocationContext context = new PortAllocationContext(tz, "test");
@@ -696,7 +695,7 @@ public class StoragePortsAllocatorTest {
         addPort(context, port, null);
         return context;
     }
-    
+
     protected static PortAllocationContext createTzone2IP() {
         NetworkLite tz = new NetworkLite("TzoneIP2");
         PortAllocationContext context = new PortAllocationContext(tz, "test");
@@ -719,7 +718,7 @@ public class StoragePortsAllocatorTest {
         addPort(context, port, null);
         return context;
     }
-    
+
     protected static PortAllocationContext createTzone3IP() {
         NetworkLite tz = new NetworkLite("TzoneIP3");
         PortAllocationContext context = new PortAllocationContext(tz, "test");
@@ -734,7 +733,7 @@ public class StoragePortsAllocatorTest {
         addPort(context, port, null);
         return context;
     }
-    
+
     protected static PortAllocationContext createTzone4IP() {
         NetworkLite tz = new NetworkLite("TzoneIP4");
         PortAllocationContext context = new PortAllocationContext(tz, "test");
@@ -817,7 +816,7 @@ public class StoragePortsAllocatorTest {
         addPort(context, port, "mds-b");
         return context;
     }
-    
+
     protected static PortAllocationContext createEmptyTzone() {
         NetworkLite tz = new NetworkLite("EmptyNetwork");
         PortAllocationContext context = new PortAllocationContext(tz, "test");
@@ -837,7 +836,7 @@ public class StoragePortsAllocatorTest {
         port.setNativeGuid(uri.toString());
         return port;
     }
-    
+
     protected static StoragePort createFCPort(String name, String wwpn) {
         StoragePort port = new StoragePort();
         port.setPortName(name);
@@ -851,7 +850,7 @@ public class StoragePortsAllocatorTest {
         port.setNativeGuid(uri.toString());
         return port;
     }
-    
+
     protected static StoragePort createVplexFCPort(String name, String wwpn,
             String portGroup) {
         StoragePort port = new StoragePort();
@@ -866,9 +865,10 @@ public class StoragePortsAllocatorTest {
         port.setNativeGuid(uri.toString());
         return port;
     }
-    
+
     /**
      * Add ports to a Port Allocation Context.
+     * 
      * @param context -- PortAllocationContext used by StoragePortsAllocator
      * @param port -- StoragePort object
      * @param switchName -- Switch name
@@ -880,10 +880,14 @@ public class StoragePortsAllocatorTest {
         String portGroup = port.getPortGroup();
         StorageHADomain haDomain = new StorageHADomain();
         StorageSystem.Type type = StorageSystem.Type.vnxblock;
-        if (port.getPortName().startsWith("FA-")) haDomain.setNativeGuid("SYMMETRIX+" + portName);
-        else if (portGroup != null && portGroup.startsWith("director-")) haDomain.setNativeGuid("VPLEX+" + port.getPortGroup()); 
-        else haDomain.setNativeGuid("VNX+" + portName);
-        
+        if (port.getPortName().startsWith("FA-")) {
+            haDomain.setNativeGuid("SYMMETRIX+" + portName);
+        } else if (portGroup != null && portGroup.startsWith("director-")) {
+            haDomain.setNativeGuid("VPLEX+" + port.getPortGroup());
+        } else {
+            haDomain.setNativeGuid("VNX+" + portName);
+        }
+
         if (portName.startsWith("SP_A")) {
             haDomain.setSlotNumber("1");
         } else if (portName.startsWith("SP_B")) {
@@ -896,58 +900,63 @@ public class StoragePortsAllocatorTest {
         else if (portName.startsWith("FA-")) {
             type = StorageSystem.Type.vmax;
             int index;
-            for (index=3; index < portName.length(); index++) {
+            for (index = 3; index < portName.length(); index++) {
                 // Stop on first non-digit after FA-
-                if (Character.isDigit(portName.charAt(index)) == false) break;
+                if (Character.isDigit(portName.charAt(index)) == false) {
+                    break;
+                }
             }
             haDomain.setSlotNumber(portName.substring(3, index));
         } else {
             haDomain.setSlotNumber("0");
         }
-        
-        if (portGroup != null){
+
+        if (portGroup != null) {
             if (portGroup.equals("director-1-1-A")) {
                 haDomain.setSlotNumber("0");
                 type = StorageSystem.Type.vplex;
-            } else if(portGroup.equals("director-1-1-B")) {
+            } else if (portGroup.equals("director-1-1-B")) {
                 haDomain.setSlotNumber("1");
                 type = StorageSystem.Type.vplex;
-            } else if(portGroup.equals("director-1-2-A")) {
+            } else if (portGroup.equals("director-1-2-A")) {
                 haDomain.setSlotNumber("2");
                 type = StorageSystem.Type.vplex;
-            } else if(portGroup.equals("director-1-2-B")) {
+            } else if (portGroup.equals("director-1-2-B")) {
                 haDomain.setSlotNumber("3");
                 type = StorageSystem.Type.vplex;
-            } else if(portGroup.equals("director-2-1-A")) {
+            } else if (portGroup.equals("director-2-1-A")) {
                 haDomain.setSlotNumber("8");
                 type = StorageSystem.Type.vplex;
-            } else if(portGroup.equals("director-2-1-B")) {
+            } else if (portGroup.equals("director-2-1-B")) {
                 haDomain.setSlotNumber("9");
                 type = StorageSystem.Type.vplex;
-            } else if(portGroup.equals("director-2-2-A")) {
+            } else if (portGroup.equals("director-2-2-A")) {
                 haDomain.setSlotNumber("10");
                 type = StorageSystem.Type.vplex;
-            } else if(portGroup.equals("director-2-2-B")) {
+            } else if (portGroup.equals("director-2-2-B")) {
                 haDomain.setSlotNumber("11");
                 type = StorageSystem.Type.vplex;
             }
             haDomain.setName(portGroup);
         }
-        
+
         String digits = port.getPortName().replaceAll("[^0-9]", "");
         Long usage = new Long(digits);
-        
+
         context.addPort(port, haDomain, type, switchName, usage);
     }
-    
+
     /**
      * Returns a list of Storage Port URIs for a list of StoragePorts.
+     * 
      * @param ports List<StoragePort>
      * @return List<URI> of StoragePorts
      */
     static protected List<URI> getPortURIs(List<StoragePort> ports) {
         ArrayList<URI> uris = new ArrayList<URI>();
-        for (StoragePort port : ports) uris.add(port.getId());
+        for (StoragePort port : ports) {
+            uris.add(port.getId());
+        }
         return uris;
     }
 }

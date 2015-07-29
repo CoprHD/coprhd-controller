@@ -19,20 +19,21 @@ import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 
-public class VNXeDeleteFileSystemSnapshotJob extends VNXeJob{
+public class VNXeDeleteFileSystemSnapshotJob extends VNXeJob {
 
     /**
      * 
      */
     private static final long serialVersionUID = 4942134855002932670L;
     private static final Logger _logger = LoggerFactory.getLogger(VNXeCreateFileSystemSnapshotJob.class);
+
     public VNXeDeleteFileSystemSnapshotJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter) {
         super(jobId, storageSystemUri, taskCompleter, "deleteFileSystemSnapshot");
     }
-    
+
     /**
      * Called to update the job status when the file system snapshot delete job completes.
-     *
+     * 
      * @param jobContext The job context.
      */
     @Override
@@ -78,5 +79,5 @@ public class VNXeDeleteFileSystemSnapshotJob extends VNXeJob{
             super.updateStatus(jobContext);
         }
     }
-    
+
 }

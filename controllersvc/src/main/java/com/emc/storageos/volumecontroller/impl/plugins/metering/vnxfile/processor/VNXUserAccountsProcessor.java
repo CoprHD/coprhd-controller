@@ -33,7 +33,7 @@ public class VNXUserAccountsProcessor extends VNXFileProcessor {
 
     @Override
     public void processResult(Operation operation, Object resultObj,
-                              Map<String, Object> keyMap) throws BaseCollectionException {
+            Map<String, Object> keyMap) throws BaseCollectionException {
         final PostMethod result = (PostMethod) resultObj;
         try {
             ResponsePacket responsePacket = (ResponsePacket) _unmarshaller.unmarshal(result
@@ -66,10 +66,10 @@ public class VNXUserAccountsProcessor extends VNXFileProcessor {
 
     }
 
-    private void processUserAccountList( List<Object> userList, Map<String, Object> keyMap ) throws VNXFilePluginException {
+    private void processUserAccountList(List<Object> userList, Map<String, Object> keyMap) throws VNXFilePluginException {
 
         Iterator<Object> iterator = userList.iterator();
-        Map<String,String> userInfo = new HashMap<String,String>();
+        Map<String, String> userInfo = new HashMap<String, String>();
 
         if (iterator.hasNext()) {
             Status status = (Status) iterator.next();
@@ -79,8 +79,8 @@ public class VNXUserAccountsProcessor extends VNXFileProcessor {
                     UserAccount user = (UserAccount) iterator.next();
                     userInfo.put(user.getUser(), user.getUid());
                     _logger.debug("user name: {} ", user.getUser());
-                    }
-                
+                }
+
                 keyMap.put(VNXFileConstants.USER_INFO, userInfo);
             } else {
                 throw new VNXFilePluginException(
@@ -97,4 +97,3 @@ public class VNXUserAccountsProcessor extends VNXFileProcessor {
     }
 
 }
-

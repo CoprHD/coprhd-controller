@@ -44,23 +44,24 @@ public class BlockSnapshotDeactivateCompleter extends BlockSnapshotTaskCompleter
         try {
             for (URI thisOne : _snapshotURIs) {
                 switch (status) {
-                case error:
-                    dbClient.error(BlockSnapshot.class, thisOne, getOpId(), coded);
-                    break;
-                default:
-                    dbClient.ready(BlockSnapshot.class, thisOne, getOpId());
+                    case error:
+                        dbClient.error(BlockSnapshot.class, thisOne, getOpId(), coded);
+                        break;
+                    default:
+                        dbClient.ready(BlockSnapshot.class, thisOne, getOpId());
                 }
                 BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, thisOne);
                 Volume volume = dbClient.queryObject(Volume.class, snapshot.getParent());
                 switch (status) {
-                case error:
-                    dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
-                    break;
-                default:
-                    dbClient.ready(Volume.class, volume.getId(), getOpId());
+                    case error:
+                        dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
+                        break;
+                    default:
+                        dbClient.ready(Volume.class, volume.getId(), getOpId());
                 }
 
-                recordBlockSnapshotOperation(dbClient, OperationTypeEnum.DEACTIVATE_VOLUME_SNAPSHOT, status, eventMessage(status, volume, snapshot), snapshot);
+                recordBlockSnapshotOperation(dbClient, OperationTypeEnum.DEACTIVATE_VOLUME_SNAPSHOT, status,
+                        eventMessage(status, volume, snapshot), snapshot);
             }
             _log.info("Done dectivate {}, with Status: {}", getOpId(), status.name());
         } catch (Exception e) {

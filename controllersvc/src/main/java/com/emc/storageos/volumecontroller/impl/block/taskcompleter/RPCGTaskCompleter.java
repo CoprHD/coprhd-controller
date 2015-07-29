@@ -26,6 +26,6 @@ public abstract class RPCGTaskCompleter extends TaskLockingCompleter {
 
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded serviceCoded) throws DeviceControllerException {
-    	updateWorkflowStatus(status, serviceCoded);
+        updateWorkflowStatus(status, serviceCoded);
     }
 }

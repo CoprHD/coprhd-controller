@@ -41,18 +41,18 @@ import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 
 public class ExportMaskOperationsHelper {
     private static Logger _log = LoggerFactory.getLogger(ExportMaskOperationsHelper.class);
-    
+
     public static void populateDeviceNumberFromProtocolControllers(DbClient dbClient,
-                                                                   CimConnection cimConnection,
-                                                                   URI exportMaskURI,
-                                                                   VolumeURIHLU[] volumeURIHLUs,
-                                                                   CIMObjectPath[] protocolControllers,
-                                                                   TaskCompleter taskCompleter) throws DeviceControllerException {
+            CimConnection cimConnection,
+            URI exportMaskURI,
+            VolumeURIHLU[] volumeURIHLUs,
+            CIMObjectPath[] protocolControllers,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         setHLUFromProtocolControllers(dbClient, cimConnection, exportMaskURI, volumeURIHLUs,
                 Arrays.asList(protocolControllers), taskCompleter);
     }
 
-    public static boolean volumeURIHLUsHasNullHLU (VolumeURIHLU[] volumeURIHLUs) {
+    public static boolean volumeURIHLUsHasNullHLU(VolumeURIHLU[] volumeURIHLUs) {
         boolean hasNullHLU = false;
         if (volumeURIHLUs != null && volumeURIHLUs.length > 0) {
             for (VolumeURIHLU vuh : volumeURIHLUs) {
@@ -66,20 +66,21 @@ public class ExportMaskOperationsHelper {
     }
 
     /**
-     *  During an export group operation e.g. creating one with initiators and volumes or when
-     *  adding volume(s) to an existing export group the user has the option of supplying HLUs
-     *  (Host Lun Unit) for the corresponding volumes.  If the user does not supply HLUs, the
-     *  underlying array generates them.  This helper function displays those array generated
-     *  HLUs during a GET/volume/exports operation.  If the user has supplied the HLUs, this
-     *  function does nothing.
+     * During an export group operation e.g. creating one with initiators and volumes or when
+     * adding volume(s) to an existing export group the user has the option of supplying HLUs
+     * (Host Lun Unit) for the corresponding volumes. If the user does not supply HLUs, the
+     * underlying array generates them. This helper function displays those array generated
+     * HLUs during a GET/volume/exports operation. If the user has supplied the HLUs, this
+     * function does nothing.
+     * 
      * @throws DeviceControllerException
      **/
     public static void setHLUFromProtocolControllers(DbClient dbClient,
-                                                     CimConnection cimConnection,
-                                                     URI exportMaskURI,
-                                                     VolumeURIHLU[] volumeURIHLUs,
-                                                     Collection<CIMObjectPath> protocolControllers,
-                                                     TaskCompleter taskCompleter) throws DeviceControllerException {
+            CimConnection cimConnection,
+            URI exportMaskURI,
+            VolumeURIHLU[] volumeURIHLUs,
+            Collection<CIMObjectPath> protocolControllers,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         long startTime = System.currentTimeMillis();
         boolean hasNullHLU = volumeURIHLUsHasNullHLU(volumeURIHLUs);
         if (!hasNullHLU || protocolControllers.isEmpty()) {
@@ -115,8 +116,9 @@ public class ExportMaskOperationsHelper {
                         URI volumeURI = deviceIdToURI.get(deviceId);
                         if (volumeURI != null) {
                             String deviceNumber = CIMPropertyFactory.getPropertyValue(pcu, CP_DEVICE_NUMBER);
-                            _log.info(String.format("setHLUFromProtocolControllers -- volumeURI=%s --> %s", volumeURI.toString(), deviceNumber));
-                            mask.addVolume(volumeURI, (int)Long.parseLong(deviceNumber, 16));
+                            _log.info(String.format("setHLUFromProtocolControllers -- volumeURI=%s --> %s", volumeURI.toString(),
+                                    deviceNumber));
+                            mask.addVolume(volumeURI, (int) Long.parseLong(deviceNumber, 16));
                             requiresUpdate = true;
                         }
                     }
@@ -138,10 +140,11 @@ public class ExportMaskOperationsHelper {
             _log.info(String.format("setHLUFromProtocolControllers took %f seconds", (double) totalTime / (double) 1000));
         }
     }
-    
+
     /**
      * This method is invoked specifically on AddVolumeToMaskingView jobs, which in turn
-     * gets HLU's for processed volumes alone. 
+     * gets HLU's for processed volumes alone.
+     * 
      * @param dbClient
      * @param cimConnection
      * @param exportMaskURI
@@ -169,18 +172,18 @@ public class ExportMaskOperationsHelper {
             boolean requiresUpdate = false;
             CloseableIterator<CIMInstance> protocolControllerForUnitIter;
             for (CIMObjectPath volumePath : volumePaths) {
-                _log.info(String.format("setHLUFromProtocolControllers -- protocolController=%s",volumePath.toString()));
+                _log.info(String.format("setHLUFromProtocolControllers -- protocolController=%s", volumePath.toString()));
                 protocolControllerForUnitIter = null;
                 try {
                     protocolControllerForUnitIter = cimConnection.getCimClient()
-                            .referenceInstances(volumePath, CIM_PROTOCOL_CONTROLLER_FOR_UNIT, null,false, PS_DEVICE_NUMBER);
+                            .referenceInstances(volumePath, CIM_PROTOCOL_CONTROLLER_FOR_UNIT, null, false, PS_DEVICE_NUMBER);
                     while (protocolControllerForUnitIter.hasNext()) {
                         CIMInstance pcu = protocolControllerForUnitIter.next();
                         CIMObjectPath pcuPath = pcu.getObjectPath();
                         CIMObjectPath maskingViewPath = (CIMObjectPath) pcuPath.getKey(ANTECEDENT).getValue();
                         // Provider returns multiple references with same relationship , hence looking for class name
                         if (!maskingViewPath.toString().contains(LUNMASKING)) {
-                            _log.info("Skipping CIMPath other than masking view path {}",pcuPath);
+                            _log.info("Skipping CIMPath other than masking view path {}", pcuPath);
                             continue;
                         }
                         String deviceId = volumePath.getKey(CP_DEVICE_ID).getValue().toString();
@@ -188,7 +191,8 @@ public class ExportMaskOperationsHelper {
                         if (volumeURI != null) {
                             String deviceNumber = CIMPropertyFactory.getPropertyValue(pcu,
                                     CP_DEVICE_NUMBER);
-                            _log.info(String.format("setHLUFromProtocolControllers -- volumeURI=%s --> %s",volumeURI.toString(), deviceNumber));
+                            _log.info(String.format("setHLUFromProtocolControllers -- volumeURI=%s --> %s", volumeURI.toString(),
+                                    deviceNumber));
                             mask.addVolume(volumeURI, (int) Long.parseLong(deviceNumber, 16));
                             requiresUpdate = true;
                         }

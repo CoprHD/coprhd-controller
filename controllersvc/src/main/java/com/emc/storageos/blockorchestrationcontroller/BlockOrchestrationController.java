@@ -17,38 +17,42 @@ public interface BlockOrchestrationController extends Controller {
      * (Block, BlockMirroring, RP, VPlex). This method is responsible for creating
      * a Workflow and invoking the BlockOrchestrationInterface.addStepsForCreateVolume
      * for each technology layer.
+     * 
      * @param volumes -- The complete list of VolumeDescriptors (of all technology types)
-     * received from the API layer. This defines what volumes need to be created,
-     * and in which pool each volume should be created.
+     *            received from the API layer. This defines what volumes need to be created,
+     *            and in which pool each volume should be created.
      * @param taskId -- The overall taskId for the operation.
      */
-    public abstract void createVolumes(List<VolumeDescriptor> volumes, String taskId) 
-        throws ControllerException;
+    public abstract void createVolumes(List<VolumeDescriptor> volumes, String taskId)
+            throws ControllerException;
 
     /**
      * Deletes one or more volumes having potentially mixed technology attributes.
+     * 
      * @param volumes -- a list of top level VolumeDescriptors
      * @param taskId -- The overall taskId for the operation
      */
     public abstract void deleteVolumes(List<VolumeDescriptor> volumes, String taskId)
-        throws ControllerException;
+            throws ControllerException;
 
     /**
      * Expands a single volume having potentially mixed technology attributes.
+     * 
      * @param volumes -- a list of top level VolumeDescriptors
      * @param taskId -- The overall taskId for the operation
      */
     public abstract void expandVolume(List<VolumeDescriptor> volumes, String taskId)
-        throws ControllerException;
-    
+            throws ControllerException;
+
     /**
      * Changes the virtual pool of one or more volumes having potentially mixed technology attributes.
+     * 
      * @param volumes -- a list of top level VolumeDescriptors
      * @param taskId -- The overall taskId for the operation
      */
     public abstract void changeVirtualPool(List<VolumeDescriptor> volumes, String taskId)
-        throws ControllerException;
-    
+            throws ControllerException;
+
     /**
      * Changes the virtual array of one or more volumes.
      * 
@@ -56,5 +60,5 @@ public interface BlockOrchestrationController extends Controller {
      * @param taskId -- The overall taskId for the operation.
      */
     public abstract void changeVirtualArray(List<VolumeDescriptor> volumeDescriptors,
-        String taskId) throws ControllerException;
+            String taskId) throws ControllerException;
 }

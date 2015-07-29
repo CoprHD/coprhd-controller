@@ -40,6 +40,6 @@ public class CinderDetachVolumeJob extends CinderJob {
     @Override
     protected boolean isJobFailed(String currentStatus) {
         return (CinderConstants.ComponentStatus.ERROR.getStatus().equalsIgnoreCase(currentStatus)
-                || CinderConstants.ComponentStatus.IN_USE.getStatus().equalsIgnoreCase(currentStatus));
+        || CinderConstants.ComponentStatus.IN_USE.getStatus().equalsIgnoreCase(currentStatus));
     }
 }

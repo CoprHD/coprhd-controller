@@ -39,7 +39,7 @@ public class VNXFileSystemUnmountProcessor extends VNXFileProcessor {
         try {
             ResponsePacket responsePacket = (ResponsePacket) _unmarshaller
                     .unmarshal(result.getResponseBodyAsStream());
-            
+
             Status status = null;
             if (null != responsePacket.getPacketFault()) {
                 status = responsePacket.getPacketFault();
@@ -53,13 +53,13 @@ public class VNXFileSystemUnmountProcessor extends VNXFileProcessor {
                         TaskResponse system = (TaskResponse) responseObj;
                         status = system.getStatus();
                         _logger.info("Unmount task response status: {}", status.getMaxSeverity().name());
-                        
+
                         if (status.getMaxSeverity() == Severity.OK) {
                             keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
                         } else {
                             processErrorStatus(status, keyMap);
                         }
-                        
+
                         break;
                     } else {
                         _logger.info("Response not TaskResponse: {}", responseObj.getClass().getName());
@@ -74,7 +74,7 @@ public class VNXFileSystemUnmountProcessor extends VNXFileProcessor {
                     _logger.info("Recieved celerra session information from the Server.");
                 }
             }
-        }catch (final Exception ex) {
+        } catch (final Exception ex) {
             _logger.error(
                     "Exception occurred while processing the vnx prov response due to ",
                     ex);
@@ -87,6 +87,6 @@ public class VNXFileSystemUnmountProcessor extends VNXFileProcessor {
 
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs) throws BaseCollectionException {
-        // TODO  Is this method needed?  Not used in other processors.
+        // TODO Is this method needed? Not used in other processors.
     }
 }

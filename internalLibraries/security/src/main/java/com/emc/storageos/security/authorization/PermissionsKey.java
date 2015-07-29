@@ -27,6 +27,7 @@ public class PermissionsKey {
         GROUP,
         TENANT,
     }
+
     private Type _type;
     private String _value;
     // for acls, we have an extra specifier
@@ -36,14 +37,15 @@ public class PermissionsKey {
     /**
      * Default constructor
      */
-    public PermissionsKey() {   }
+    public PermissionsKey() {
+    }
 
     /**
      * Constructor for type and value
      */
     public PermissionsKey(Type prefix, String value) {
         _type = prefix;
-        _value = normalizeValue(prefix,value);
+        _value = normalizeValue(prefix, value);
         _specifier = null;
     }
 
@@ -52,7 +54,7 @@ public class PermissionsKey {
      */
     public PermissionsKey(Type prefix, String value, URI id) {
         _type = prefix;
-        _value = normalizeValue(prefix,value);
+        _value = normalizeValue(prefix, value);
         _specifier = (id != null) ? id.toString() : null;
     }
 
@@ -61,12 +63,13 @@ public class PermissionsKey {
      */
     public PermissionsKey(Type prefix, String value, String spec) {
         _type = prefix;
-        _value = normalizeValue(prefix,value);
+        _value = normalizeValue(prefix, value);
         _specifier = spec;
     }
 
     /**
      * Parses the given string to populate fields of the object
+     * 
      * @param in String representation of the key
      * @throws IllegalArgumentException
      */
@@ -74,7 +77,7 @@ public class PermissionsKey {
         String[] parts = in.split(",");
         if (parts.length > 1) {
             _type = Type.valueOf(parts[0]);
-            _value = normalizeValue(_type,parts[1]);
+            _value = normalizeValue(_type, parts[1]);
         } else {
             throw APIException.badRequests.theParametersAreNotValid(in);
         }
@@ -86,6 +89,7 @@ public class PermissionsKey {
 
     /**
      * Get type of the key
+     * 
      * @return Type
      * @See PermissionsKey.Type
      */
@@ -96,6 +100,7 @@ public class PermissionsKey {
     /**
      * Get actual value of the key
      * this is the subject-id for subject key, group name for group key
+     * 
      * @return String
      */
     public String getValue() {
@@ -110,17 +115,18 @@ public class PermissionsKey {
             return String.format("%s,%s", _type.toString(), _value);
         }
     }
-    
+
     /**
      * Convert the provided value to a suitable value for a key
+     * 
      * @param type Type of the permissions key
      * @param value permissions key value
      * @return normailzed value of the key
      */
-    private String normalizeValue( Type type, String value ) {        
-        if( type.equals(Type.GROUP) ) {
+    private String normalizeValue(Type type, String value) {
+        if (type.equals(Type.GROUP)) {
             return value.toUpperCase();
-        } else if( type.equals(Type.SID) ) {            
+        } else if (type.equals(Type.SID)) {
             return value.toLowerCase();
         }
         return value;

@@ -28,15 +28,15 @@ public class MultiVolumeTaskCompleter extends TaskCompleter {
 
     /**
      * Constructor.
-     *
+     * 
      * @param volumeTaskCompleters A list of volume task completers.
      * @param opId The operation id.
      */
     public MultiVolumeTaskCompleter(List<URI> ids, List<VolumeTaskCompleter> volumeTaskCompleters, String opId) {
         super(Volume.class, ids, opId);
         _volumeTaskCompleterMap = new HashMap<URI, VolumeTaskCompleter>();
-        for(VolumeTaskCompleter tc : volumeTaskCompleters) {
-        	tc.setNotifyWorkflow(false); // This completer will take care of notifying workflow
+        for (VolumeTaskCompleter tc : volumeTaskCompleters) {
+            tc.setNotifyWorkflow(false); // This completer will take care of notifying workflow
             _volumeTaskCompleterMap.put(tc.getId(), tc);
         }
     }
@@ -44,7 +44,7 @@ public class MultiVolumeTaskCompleter extends TaskCompleter {
     /**
      * Implements TaskCompleter interface by invoking the the like method for
      * the associated volume task completer instances.
-     *
+     * 
      * @param dbClient A reference to the database client.
      * @param status The completion status.
      */
@@ -59,8 +59,10 @@ public class MultiVolumeTaskCompleter extends TaskCompleter {
     public VolumeTaskCompleter skipTaskCompleter(URI volumeURI) {
         return _volumeTaskCompleterMap.remove(volumeURI);
     }
+
     /**
      * check whether VolumeTaskCompleters left out
+     * 
      * @return
      */
     public boolean isVolumeTaskCompletersEmpty() {

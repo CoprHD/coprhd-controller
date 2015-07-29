@@ -14,9 +14,9 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public class VolumeVarrayChangeTaskCompleter extends VolumeWorkflowCompleter {
-    
+
     List<URI> _migrationURIs = new ArrayList<URI>();
-    
+
     public VolumeVarrayChangeTaskCompleter(List<URI> volUris, List<URI> migrationURIs, String task) {
         super(volUris, task);
         _migrationURIs.addAll(migrationURIs);
@@ -26,7 +26,7 @@ public class VolumeVarrayChangeTaskCompleter extends VolumeWorkflowCompleter {
         super(volUri, task);
         _migrationURIs.add(migrationURI);
     }
-    
+
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded serviceCoded) {
         switch (status) {

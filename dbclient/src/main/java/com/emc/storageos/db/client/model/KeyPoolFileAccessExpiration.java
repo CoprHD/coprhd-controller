@@ -13,7 +13,7 @@ import java.util.Calendar;
  */
 @Cf("KeyPoolFileAccessExpiration")
 @XmlRootElement(name = "key_pool_file_access_expiration")
-public class KeyPoolFileAccessExpiration extends  DataObject {
+public class KeyPoolFileAccessExpiration extends DataObject {
     public KeyPoolFileAccessExpiration() {
         super();
     }

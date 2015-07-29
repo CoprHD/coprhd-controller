@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
-import javax.cim.CIMProperty;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
@@ -55,5 +54,5 @@ public abstract class SmisBlockMirrorJob extends SmisReplicaCreationJobs {
         }
         return references.next();
     }
-   
+
 }

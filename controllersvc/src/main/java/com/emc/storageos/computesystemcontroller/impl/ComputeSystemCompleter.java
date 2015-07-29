@@ -26,7 +26,7 @@ public class ComputeSystemCompleter extends TaskCompleter {
         super(clazz, id, opId);
         this.deactivateOnComplete = deactivateOnComplete;
     }
-    
+
     public ComputeSystemCompleter(Class clazz, List<URI> ids, boolean deactivateOnComplete, String opId) {
         super(clazz, ids, opId);
         this.deactivateOnComplete = deactivateOnComplete;

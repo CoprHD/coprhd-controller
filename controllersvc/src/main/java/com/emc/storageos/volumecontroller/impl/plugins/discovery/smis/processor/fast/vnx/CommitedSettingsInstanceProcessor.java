@@ -97,26 +97,26 @@ public class CommitedSettingsInstanceProcessor extends PoolProcessor {
     private void updatePoolSettingId(
             int tierMethodology, StoragePool pool, String poolSettingId) {
         switch (tierMethodology) {
-        case Constants.NO_DATA_MOVEMENT:
-            pool.setNoDataMovementId(poolSettingId);
-            break;
-        case Constants.AUTO_TIER:
-            pool.setAutoTierSettingId(poolSettingId);
-            break;
-        case Constants.HIGH_AVAILABLE_TIER:
-            pool.setHighAvailableTierId(poolSettingId);
-            break;
-        case Constants.LOW_AVAILABLE_TIER:
-            pool.setLowAvailableTierId(poolSettingId);
-            break;
-        case Constants.START_HIGH_THEN_AUTO_TIER:
-            pool.setStartHighThenAutoTierId(poolSettingId);
-            break;
-        default:
-            _logger.warn(
-                    "Found Invalid Storage tier methodology '{}' for Storage Pool {}",
-                    tierMethodology, pool.getId());
-            break;
+            case Constants.NO_DATA_MOVEMENT:
+                pool.setNoDataMovementId(poolSettingId);
+                break;
+            case Constants.AUTO_TIER:
+                pool.setAutoTierSettingId(poolSettingId);
+                break;
+            case Constants.HIGH_AVAILABLE_TIER:
+                pool.setHighAvailableTierId(poolSettingId);
+                break;
+            case Constants.LOW_AVAILABLE_TIER:
+                pool.setLowAvailableTierId(poolSettingId);
+                break;
+            case Constants.START_HIGH_THEN_AUTO_TIER:
+                pool.setStartHighThenAutoTierId(poolSettingId);
+                break;
+            default:
+                _logger.warn(
+                        "Found Invalid Storage tier methodology '{}' for Storage Pool {}",
+                        tierMethodology, pool.getId());
+                break;
         }
     }
 }

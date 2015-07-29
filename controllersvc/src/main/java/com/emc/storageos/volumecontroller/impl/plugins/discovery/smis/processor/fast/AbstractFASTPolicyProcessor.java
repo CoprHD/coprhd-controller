@@ -8,7 +8,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageTier;
 import com.emc.storageos.plugins.BaseCollectionException;
@@ -60,10 +59,10 @@ public abstract class AbstractFASTPolicyProcessor extends Processor {
         }
         return tier;
     }
-    
-    
+
     /**
      * get nativeGuid for vmax Tiers
+     * 
      * @param tierID
      * @return
      */
@@ -77,9 +76,10 @@ public abstract class AbstractFASTPolicyProcessor extends Processor {
         return NativeGUIDGenerator.generateStorageTierNativeGuidForVnxTier(storageSystemId, poolID,
                 tierName);
     }
-    
+
     /**
      * get nativeGuid for vnx Tiers
+     * 
      * @param tierID
      * @return
      */
@@ -92,15 +92,16 @@ public abstract class AbstractFASTPolicyProcessor extends Processor {
         return NativeGUIDGenerator.generateStorageTierNativeGuidForVmaxTier(storageSystemId,
                 tierName);
     }
-    
+
     protected String getTierNativeGuidFromTierInstance(CIMInstance tierInstance) {
         String tierID = tierInstance.getObjectPath().getKey(Constants.INSTANCEID)
                 .getValue().toString();
         String tierNativeGuid = null;
-        if (tierID.toLowerCase().contains(Constants.SYMMETRIX))
+        if (tierID.toLowerCase().contains(Constants.SYMMETRIX)) {
             tierNativeGuid = getTierNativeGuidForVMax(tierID);
-        else
+        } else {
             tierNativeGuid = getTierNativeGuidForVnx(tierID);
+        }
         return tierNativeGuid;
     }
 
@@ -112,13 +113,13 @@ public abstract class AbstractFASTPolicyProcessor extends Processor {
      * @return String format of: Array Serial ID + FASTPOLICY + policyRuleName
      */
     protected String getFASTPolicyID(CIMObjectPath policyObjectPath) {
-            String array = policyObjectPath.getKey(Constants.SYSTEMNAME).getValue()
-                    .toString();
-            String policyRuleName = policyObjectPath.getKey(Constants.POLICYRULENAME)
-                    .getValue().toString();
+        String array = policyObjectPath.getKey(Constants.SYSTEMNAME).getValue()
+                .toString();
+        String policyRuleName = policyObjectPath.getKey(Constants.POLICYRULENAME)
+                .getValue().toString();
         return getFASTPolicyID(array, policyRuleName);
     }
-    
+
     /**
      * Get FAST Policy Name
      * PolicyRuleName doesn't need to be same across multiple Arrays.
@@ -126,13 +127,13 @@ public abstract class AbstractFASTPolicyProcessor extends Processor {
      * @param systemName - system name from CIMObjectPath in format of: Array Serial ID
      * @param policyRuleName - auto tier policy name, e.g., LOW
      * @return String format of: Array Serial ID + FASTPOLICY + policyRuleName
-     */    
+     */
     protected String getFASTPolicyID(String systemName, String policyRuleName) {
         try {
             return NativeGUIDGenerator.generateAutoTierPolicyNativeGuid(systemName,
-                    policyRuleName, NativeGUIDGenerator.FASTPOLICY);            
+                    policyRuleName, NativeGUIDGenerator.FASTPOLICY);
         } catch (Exception e) {
-            _logger.error("FAST Policy Id creation failed", e);         
+            _logger.error("FAST Policy Id creation failed", e);
         }
         return null;
     }
@@ -244,7 +245,7 @@ public abstract class AbstractFASTPolicyProcessor extends Processor {
             }
         }
     }
-    
+
     /**
      * create Storage Tier
      * 
@@ -278,10 +279,11 @@ public abstract class AbstractFASTPolicyProcessor extends Processor {
         }
         return tierObject;
     }
-    
+
     /**
      * Create Storage Tiers for VNX, if not present already
      * Add Tier Uris to Storage Pool Object for both vmax and vnx
+     * 
      * @param storagePoolpath
      * @param it
      * @param dbClient
@@ -322,7 +324,7 @@ public abstract class AbstractFASTPolicyProcessor extends Processor {
                     dbClient.createObject(tierObject);
                 }
                 tierUris.add(tierObject.getId().toString());
-                
+
             } catch (Exception e) {
                 _logger.error("Determing Drive Type, Tier Info failed for {} : ",
                         tierInstance.getObjectPath(), e);
@@ -334,7 +336,7 @@ public abstract class AbstractFASTPolicyProcessor extends Processor {
             pool.addTierUtilizationPercentage(tierUtilizationPercentageMap);
             // add to modified pool list if pool's property which is required for vPool matcher, has changed.
             // If the modified list already has this pool, skip the check.
-            if (!poolsToMatchWithVpool.containsKey(pool.getId()) && 
+            if (!poolsToMatchWithVpool.containsKey(pool.getId()) &&
                     ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getTiers(), tierUris)) {
                 poolsToMatchWithVpool.put(pool.getId(), pool);
             }

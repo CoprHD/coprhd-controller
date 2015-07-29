@@ -82,21 +82,21 @@ public class XIVSupportedCopyTypesProcessor extends PoolProcessor {
         StringSet set = new StringSet();
         for (UnsignedInteger16 n : copyTypes) {
             switch (n.intValue()) {
-            case Constants.ASYNC_COPY_TYPE:
-                set.add(StoragePool.CopyTypes.ASYNC.name());
-                break;
-            case Constants.SYNC_COPY_TYPE:
-                set.add(StoragePool.CopyTypes.SYNC.name());
-                break;
-            case Constants.UNSYNC_ASSOC_COPY_TYPE:
-                set.add(StoragePool.CopyTypes.UNSYNC_ASSOC.name());
-                break;
-            case Constants.UNSYNC_UNASSOC_COPY_TYPE:
-                set.add(StoragePool.CopyTypes.UNSYNC_UNASSOC.name());
-                break;
-            default:
-                _log.warn("Encountered unknown copy type {} for pool {}",
-                        n.intValue(), storagePool.getId());
+                case Constants.ASYNC_COPY_TYPE:
+                    set.add(StoragePool.CopyTypes.ASYNC.name());
+                    break;
+                case Constants.SYNC_COPY_TYPE:
+                    set.add(StoragePool.CopyTypes.SYNC.name());
+                    break;
+                case Constants.UNSYNC_ASSOC_COPY_TYPE:
+                    set.add(StoragePool.CopyTypes.UNSYNC_ASSOC.name());
+                    break;
+                case Constants.UNSYNC_UNASSOC_COPY_TYPE:
+                    set.add(StoragePool.CopyTypes.UNSYNC_UNASSOC.name());
+                    break;
+                default:
+                    _log.warn("Encountered unknown copy type {} for pool {}",
+                            n.intValue(), storagePool.getId());
             }
         }
 

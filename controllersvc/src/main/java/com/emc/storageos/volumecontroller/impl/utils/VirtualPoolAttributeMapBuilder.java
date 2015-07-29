@@ -28,7 +28,7 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
     private Map<String, List<String>> remoteProtectionSettings = null;
     private static final Logger _logger = LoggerFactory
             .getLogger(VirtualPoolAttributeMapBuilder.class);
-    
+
     /**
      * Constructor to initialize with VirtualPool.
      * 
@@ -36,12 +36,12 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
      * @param map
      */
     public VirtualPoolAttributeMapBuilder(VirtualPool vpool, Map<URI, VpoolProtectionVarraySettings> map,
-    Map<String, List<String>> remoteProtectionSettings) {
+            Map<String, List<String>> remoteProtectionSettings) {
         _vpool = vpool;
         protectionSettings = map;
         this.remoteProtectionSettings = remoteProtectionSettings;
     }
-    
+
     @Override
     public Map<String, Object> buildMap() {
         if (null != _vpool.getProtocols() && !_vpool.getProtocols().isEmpty()) {
@@ -95,19 +95,19 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
             }
         }
         putAttributeInMap(Attributes.recoverpoint_map.toString(), rpVaVpMap);
-        
+
         // Only check pools for consistency group compatibility if RecoverPoint protection is
-        // not selected.  We are creating a RecoverPoint consistency group if RP is selected,
+        // not selected. We are creating a RecoverPoint consistency group if RP is selected,
         // not an array-based consistency group.
-        putAttributeInMap(Attributes.multi_volume_consistency.toString(), 
-                (rpVaVpMap.size() == 0) ?  _vpool.getMultivolumeConsistency() : Boolean.FALSE);
-        
+        putAttributeInMap(Attributes.multi_volume_consistency.toString(),
+                (rpVaVpMap.size() == 0) ? _vpool.getMultivolumeConsistency() : Boolean.FALSE);
+
         // Remote Mirror Protection
         if (null != remoteProtectionSettings && !remoteProtectionSettings.isEmpty()) {
             _logger.info("Remote Settings : {}", Joiner.on("\t").join(remoteProtectionSettings.keySet()));
             putAttributeInMap(Attributes.remote_copy.toString(), remoteProtectionSettings);
         }
-        putAttributeInMap(Attributes.long_term_retention_policy.toString(),_vpool.getLongTermRetention());
+        putAttributeInMap(Attributes.long_term_retention_policy.toString(), _vpool.getLongTermRetention());
         return _attributeMap;
     }
 }

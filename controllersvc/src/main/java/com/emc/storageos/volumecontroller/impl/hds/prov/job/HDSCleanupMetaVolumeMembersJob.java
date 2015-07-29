@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.hds.prov.job;
 
-
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.Job;
@@ -25,14 +24,14 @@ public class HDSCleanupMetaVolumeMembersJob extends HDSJob {
     URI storageSystemURI;
     URI volumeURI;
 
-    public HDSCleanupMetaVolumeMembersJob(String asyncMessageId, URI storageSystemURI, URI volumeURI, CleanupMetaVolumeMembersCompleter cleanupCompleter) {
+    public HDSCleanupMetaVolumeMembersJob(String asyncMessageId, URI storageSystemURI, URI volumeURI,
+            CleanupMetaVolumeMembersCompleter cleanupCompleter) {
 
         super(asyncMessageId, storageSystemURI, cleanupCompleter, "CleanupMetaVolumeMembers");
         this.cleanupCompleter = cleanupCompleter;
         this.storageSystemURI = storageSystemURI;
         this.volumeURI = volumeURI;
     }
-
 
     @Override
     public void updateStatus(JobContext jobContext) throws Exception {
@@ -51,7 +50,7 @@ public class HDSCleanupMetaVolumeMembersJob extends HDSJob {
                 WorkflowService.getInstance().storeStepData(sourceStepId, new ArrayList<String>());
 
                 cleanupCompleter.complete(Workflow.StepState.SUCCESS, null);
-            } else if (_status == JobStatus.FAILED ) {
+            } else if (_status == JobStatus.FAILED) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailedOp("CleanupMetaVolumeMembersJob");
                 cleanupCompleter.complete(Workflow.StepState.ERROR, serviceError);
             } else if (_status == JobStatus.ERROR) {

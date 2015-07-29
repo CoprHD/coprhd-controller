@@ -24,7 +24,7 @@ import java.net.URI;
 public class FileShare extends FileObject implements ProjectResource {
     // dummy project URN used for file systems marked for internal use by object
     public static final URI INTERNAL_OBJECT_PROJECT_URN = URI.create("urn:storageos:Project:INTERNAL_OBJECT");
-    
+
     // project this file share is associated with
     private NamedURI _project;
 
@@ -52,7 +52,7 @@ public class FileShare extends FileObject implements ProjectResource {
     // storage controller where this volume is located
     private URI _storageDevice;
 
-    //Setting pool so that the it is available for the delete method
+    // Setting pool so that the it is available for the delete method
     private URI _pool;
 
     // name of the file share
@@ -72,10 +72,10 @@ public class FileShare extends FileObject implements ProjectResource {
 
     // storage port's name used in export/unexport with the storage system
     private String _portName;
-    
+
     // set when a file share is release from a project for internal object use
     private URI _originalProject;
-    
+
     @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
@@ -117,7 +117,7 @@ public class FileShare extends FileObject implements ProjectResource {
     }
 
     public void setCapacity(Long capacity) {
-        if( _capacity == null || !_capacity.equals(capacity)) {
+        if (_capacity == null || !_capacity.equals(capacity)) {
             _capacity = capacity;
             setChanged("capacity");
         }
@@ -130,7 +130,7 @@ public class FileShare extends FileObject implements ProjectResource {
     }
 
     public void setUsedCapacity(Long usedCapacity) {
-        if(_usedCapacity == null || !_usedCapacity.equals(usedCapacity)) {
+        if (_usedCapacity == null || !_usedCapacity.equals(usedCapacity)) {
             _usedCapacity = usedCapacity;
             setChanged("usedCapacity");
         }
@@ -210,14 +210,14 @@ public class FileShare extends FileObject implements ProjectResource {
         setChanged("nativeGuid");
     }
 
-    public void setName(String name){
-       _name = name;
-       setChanged("name");
+    public void setName(String name) {
+        _name = name;
+        setChanged("name");
     }
 
     @Name("name")
     public String getName() {
-      return _name;
+        return _name;
     }
 
     @Name("thinlyProvisioned")
@@ -250,14 +250,14 @@ public class FileShare extends FileObject implements ProjectResource {
         _portName = portName;
         setChanged("portName");
     }
-    
+
     @Name("originalProject")
     public URI getOriginalProject() {
         return _originalProject;
     }
-    
+
     public void setOriginalProject(URI originalProject) {
         _originalProject = originalProject;
-        setChanged("originalProject");        
-    }        
+        setChanged("originalProject");
+    }
 }

@@ -324,7 +324,7 @@ public class Volume extends BlockObject implements ProjectResource {
         }
     }
 
-    @AggregatedIndex(cf = "AggregatedIndex", classGlobal = true)
+    @AggregatedIndex(cf = "AggregatedIndex", groupBy = "storageDevice", classGlobal = true)
     @Name("allocatedCapacity")
     public Long getAllocatedCapacity() {
         return (null == _allocatedCapacity) ? 0L : _allocatedCapacity;

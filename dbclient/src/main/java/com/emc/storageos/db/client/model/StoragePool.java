@@ -312,7 +312,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
     }
 
     @Name("freeCapacity")
-    @AggregatedIndex(cf = "AggregatedIndex", classGlobal = true)
+    @AggregatedIndex(cf = "AggregatedIndex", groupBy = "storageDevice", classGlobal = true)
     public Long getFreeCapacity() {
         return (_freeCapacity != null) ? _freeCapacity - calculateReservedCapacity() : -1;
     }

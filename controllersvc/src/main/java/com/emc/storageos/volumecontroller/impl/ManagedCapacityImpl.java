@@ -23,8 +23,15 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.constraint.AggregatedConstraint;
+import com.emc.storageos.db.client.constraint.AggregationQueryResultList;
+import com.emc.storageos.db.client.model.*;
+
 import com.emc.storageos.model.vpool.ManagedResourcesCapacity;
 import com.emc.storageos.model.vpool.ManagedResourcesCapacity.ManagedResourceCapacity;
+import com.emc.storageos.model.systems.StorageSystemModelsManagedCapacity;
+import com.emc.storageos.model.systems.StorageSystemModelsManagedCapacity.StorageSystemModelManagedCapacity;
+
 import static com.emc.storageos.db.client.model.mapper.PropertyListDataObjectMapper.map;
 
 import org.slf4j.Logger;
@@ -33,11 +40,16 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.util.Calendar;
 import java.util.List;
+import java.util.*;
 
 public class ManagedCapacityImpl implements Runnable {
 
     private static final Logger log = LoggerFactory.getLogger(ManagedCapacityImpl.class);
     public static final long KB = 1024L;
+
+    private static final String USED_CAPACITY_STR = "usedCapacity";
+    private static final String ALLOCATED_CAPACITY_STR = "allocatedCapacity";
+    private static final String FREE_CAPACITY_STR = "freeCapacity";
 
     private DbClient dbClient;
 
@@ -55,6 +67,9 @@ public class ManagedCapacityImpl implements Runnable {
         }
         else {
             try {
+
+                refreshStorageSystemModelsManagedCapacity();
+
                 List<ManagedResourceCapacity> capList = getManagedCapacity().getResourceCapacityList();
                 for (ManagedResourceCapacity cap : capList) {
                     CapacityPropertyListTypes type = mapCapacityType(cap.getType());
@@ -197,4 +212,125 @@ public class ManagedCapacityImpl implements Runnable {
         return type;
     }
 
+    /**
+     * get storage system models' managed capacity and update it to DB
+     * @throws InterruptedException
+     */
+    public void refreshStorageSystemModelsManagedCapacity() throws InterruptedException {
+        StorageSystemModelsManagedCapacity modelsManagedCapacity = getStorageSystemModelsManagedCapacity();
+        Map<String, StorageSystemModelManagedCapacity> modelCapacityMap = modelsManagedCapacity.getModelCapacityMap();
+        for (Map.Entry<String, StorageSystemModelManagedCapacity> entry : modelCapacityMap.entrySet()) {
+
+            /* TODO
+            List<URI> dataResourcesURI = dbClient.queryByConstraint(
+                    AlternateIdConstraint.Factory.getConstraint(PropertyListDataObject.class,
+                            "storagesystemModel", entry.getKey()));
+            if (dataResourcesURI.size() > 0) {
+                resource.setId(dataResourcesURI.get(0));
+                resource.setCreationTime(Calendar.getInstance());
+                dbClient.updateAndReindexObject(resource);
+            }
+            else {
+                resource.setId(URIUtil.createId(PropertyListDataObject.class));
+                dbClient.createObject(resource);
+            }
+            */
+
+        }
+
+    }
+
+    /**
+     * Get all storage system models' managed capacity
+     * @return
+     * @throws InterruptedException
+     */
+    public StorageSystemModelsManagedCapacity getStorageSystemModelsManagedCapacity() throws InterruptedException {
+        log.info("Getting StorageSystemModels managed capacity");
+        StorageSystemModelsManagedCapacity modelsManagedCapacity = new StorageSystemModelsManagedCapacity();
+
+        double totalCapacity = 0;
+        log.info("Iterating StorageSystem CF ...");
+        Iterator<URI> storageIter = dbClient.queryByType(StorageSystem.class,true).iterator();
+        while(storageIter.hasNext()) {
+            URI storageId = storageIter.next();
+            double managedCapacity = getStorageSystemManagedCapacity(storageId);
+
+            StorageSystem storagesystem = dbClient.queryObject(StorageSystem.class, storageId);
+
+            double totalManagedCapacity = 0;
+            long totalNumber = 0;
+            StorageSystemModelManagedCapacity modelManagedCapacity = modelsManagedCapacity.getModelCapacityMap().get(storagesystem.getModel());
+            if (modelManagedCapacity == null) {
+                modelManagedCapacity = new StorageSystemModelManagedCapacity();
+                totalManagedCapacity = managedCapacity;
+                totalNumber = 1;
+            } else {
+                totalManagedCapacity = modelManagedCapacity.getCapacity() + managedCapacity;
+                totalNumber = modelManagedCapacity.getNumber() + 1;
+            }
+            modelManagedCapacity.setCapacity(totalManagedCapacity);
+            modelManagedCapacity.setNumber(totalNumber);
+
+            totalCapacity += totalManagedCapacity;
+
+            modelsManagedCapacity.getModelCapacityMap().put(storagesystem.getModel(), modelManagedCapacity);
+        }
+
+        StringBuilder logMessage = new StringBuilder("");
+        logMessage.append('\n');
+        logMessage.append("------------------------------------------------------------------------\n");
+        logMessage.append("|                 |                |                                   |\n");
+        logMessage.append("|  StorageSystem  | MANAGED COUNT  |  MANAGED CAPACITY                 |\n");
+        logMessage.append("|      Model      |                |                                   |\n");
+        logMessage.append("------------------------------------------------------------------------\n");
+
+        Map<String, StorageSystemModelManagedCapacity> modelCapacityMap = modelsManagedCapacity.getModelCapacityMap();
+        for (Map.Entry<String, StorageSystemModelManagedCapacity> entry : modelCapacityMap.entrySet()) {
+            logMessage.append("|                 |                |                                   |\n");
+            logMessage.append(
+                String.format("|  %13s  |   %10d   |  %30s   |\n", entry.getKey(),
+                        entry.getValue().getNumber(), entry.getValue().getCapacity()
+                ));
+            logMessage.append("|                 |                |                                   |\n");
+        }
+        logMessage.append("|                 |                |                                   |\n");
+        logMessage.append("------------------------------------------------------------------------\n");
+        logMessage.append("|                 |                |                                   |\n");
+        logMessage.append(
+            String.format("| TOTAL Capacity  |                |  %30s   |\n",Double.toString(totalCapacity)));
+        logMessage.append("|                 |                |                                   |\n");
+        logMessage.append("------------------------------------------------------------------------\n");
+        logMessage.append('\n');
+        log.info(logMessage.toString());
+
+        return modelsManagedCapacity;
+    }
+
+    public double getStorageSystemManagedCapacity(URI storageId) throws InterruptedException{
+        // Get managed capacity from all the volumes of the storage system
+        String groupBy = "storageDevice";
+        String groupByValue = storageId.toString();
+
+        double volume_capacity = CustomQueryUtility.aggregatedPrimitiveField(dbClient,Volume.class,
+                groupBy, groupByValue, ALLOCATED_CAPACITY_STR).getValue();
+
+        double fileshare_capacity = CustomQueryUtility.aggregatedPrimitiveField(dbClient, FileShare.class,
+                groupBy, groupByValue, USED_CAPACITY_STR).getValue();
+
+        double storagepool_capacity = CustomQueryUtility.aggregatedPrimitiveField(dbClient, StoragePool.class,
+                groupBy, groupByValue, FREE_CAPACITY_STR).getValue();
+
+        double total = volume_capacity + fileshare_capacity + storagepool_capacity;
+
+        StringBuilder logMessage = new StringBuilder("");
+        logMessage.append(
+                String.format("|  %20s  |  %20s  |   %20s   |  %20s   |  %20s   |\n", storageId.toString(),
+                        Double.toString(volume_capacity),Double.toString(fileshare_capacity), Double.toString(storagepool_capacity),
+                        total
+                ));
+        log.info(logMessage.toString());
+
+        return total;
+    }
 }

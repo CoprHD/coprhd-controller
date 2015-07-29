@@ -124,7 +124,7 @@ public class FileShare extends FileObject implements ProjectResource {
     }
 
     @Name("usedCapacity")
-    @AggregatedIndex(cf = "AggregatedIndex", classGlobal = true)
+    @AggregatedIndex(cf = "AggregatedIndex", groupBy = "storageDevice", classGlobal = true)
     public Long getUsedCapacity() {
         return _usedCapacity;
     }

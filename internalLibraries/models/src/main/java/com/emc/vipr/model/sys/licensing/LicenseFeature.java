@@ -44,6 +44,10 @@ public class LicenseFeature implements Serializable {
     private String storageCapacityUnit;
     private boolean trialLicense = false;
 
+    private String type;
+    private String arrayModel;
+    private String capacityType;
+
     /**
      * public constructor
      */
@@ -294,4 +298,32 @@ public class LicenseFeature implements Serializable {
     public void setTrialLicense(boolean trialLicense) {
         this.trialLicense = trialLicense;
     }
+
+    @XmlElement(name = "type")
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    @XmlElement(name = "arrayModel")
+    public String getArrayModel() {
+        return arrayModel;
+    }
+
+    public void setArrayModel(String arrayModel) {
+        this.arrayModel = arrayModel;
+    }
+
+    @XmlElement(name = "capacityType")
+    public String getCapacityType() {
+        return capacityType;
+    }
+
+    public void setCapacityType(String capacityType) {
+        this.capacityType = capacityType;
+    }
+
 }

@@ -126,7 +126,7 @@ public class BackupExecutor {
             try {
                 Date backupTime = this.cfg.now().getTime();
                 tag = ScheduledBackupTag.toBackupTag(backupTime,
-                        this.cfg.dbSchemaVersion, this.cfg.nodeCount);
+                        this.cfg.getSoftwareVersion(), this.cfg.nodeCount);
                 log.info("Starting backup using tag {} (retry #{})", tag, retryCount);
                 this.cli.createBackup(tag);
 

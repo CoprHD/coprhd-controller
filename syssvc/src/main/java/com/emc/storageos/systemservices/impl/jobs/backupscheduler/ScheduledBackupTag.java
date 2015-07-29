@@ -55,7 +55,7 @@ public class ScheduledBackupTag {
 
     public static String toBackupTag(Date dt, String ver, int nodeCount) {
         String timestamp = toTimestamp(dt);
-        return String.format("%s-%s-%d-%s", ProductName.getName(), ver, nodeCount, timestamp);
+        return String.format("%s-%d-%s", ver, nodeCount, timestamp);
     }
 
     public static Date parseBackupTag(String tag) throws ParseException {
@@ -77,7 +77,7 @@ public class ScheduledBackupTag {
         // Typically, this pattern String could match all tags produced by toBackupTag method
         // also in consideration of extension, version part could be longer and node count could bigger
         backupNamePatternString.append('^').append(ProductName.getName())
-        .append("-(\\d+\\.)*\\d+-\\d+-\\d{").append(DATE_PATTERN.length()).append("}$");
+        .append("-(\\w+|\\.)*\\d+-\\d+-\\d{").append(DATE_PATTERN.length()).append("}$");
         Pattern backupNamePattern = Pattern.compile(backupNamePatternString.toString());
         for (String tag : tags) {
             if(backupNamePattern.matcher(tag).find()) {

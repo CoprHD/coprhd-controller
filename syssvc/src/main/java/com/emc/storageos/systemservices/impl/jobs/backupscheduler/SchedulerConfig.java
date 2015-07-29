@@ -15,6 +15,7 @@
 package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -84,6 +85,7 @@ public class SchedulerConfig {
     public String uploadUrl;
     public String uploadUserName;
     private byte[] uploadPassword;
+    private String softwareVersion;
 
     // Internal state shared between nodes and across restart
     public TreeSet<String> retainedBackups = new TreeSet<>(new ScheduledBackupTag.TagComparator());
@@ -108,10 +110,12 @@ public class SchedulerConfig {
         return Calendar.getInstance(UTC);
     }
 
-    public void reload() throws ParseException, UnsupportedEncodingException {
+    public void reload() throws Exception {
         log.info("Loading configuration");
 
         this.dbSchemaVersion = this.coordinatorClient.getCurrentDbSchemaVersion();
+        
+        this.softwareVersion = this.coordinatorClient.getTargetInfo(RepositoryInfo.class).getCurrentVersion().toString();
 
         PropertyInfo propInfo = this.coordinatorClient.getPropertyInfo();
 
@@ -351,5 +355,9 @@ public class SchedulerConfig {
             return true;
         }
         return false;
+    }
+
+    public String getSoftwareVersion() {
+        return softwareVersion;
     }
 }

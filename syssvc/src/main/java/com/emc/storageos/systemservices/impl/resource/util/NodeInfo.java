@@ -25,7 +25,7 @@ public class NodeInfo {
 
     /**
      * Constructor.
-     *
+     * 
      * @param nodeId The id of the node.
      * @throws Exception If the passed connection info is not valid.
      */
@@ -40,7 +40,7 @@ public class NodeInfo {
 
     /**
      * Getter for the cluster node id.
-     *
+     * 
      * @return The cluster node id.
      */
     public String getId() {
@@ -49,7 +49,7 @@ public class NodeInfo {
 
     /**
      * Getter for the cluster node IP address.
-     *
+     * 
      * @return The cluster node IP address.
      */
     public String getIpAddress() {
@@ -58,7 +58,7 @@ public class NodeInfo {
 
     /**
      * Getter for the cluster node port.
-     *
+     * 
      * @return The cluster node port.
      */
     public int getPort() {

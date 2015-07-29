@@ -15,8 +15,7 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
-public class RaidLevelValidator extends VirtualPoolValidator<BlockVirtualPoolParam,BlockVirtualPoolUpdateParam> {
-    
+public class RaidLevelValidator extends VirtualPoolValidator<BlockVirtualPoolParam, BlockVirtualPoolUpdateParam> {
 
     @Override
     public void setNextValidator(VirtualPoolValidator validator) {
@@ -27,20 +26,22 @@ public class RaidLevelValidator extends VirtualPoolValidator<BlockVirtualPoolPar
     protected void validateVirtualPoolUpdateAttributeValue(
             VirtualPool cos, BlockVirtualPoolUpdateParam param, DbClient dbClient) {
         for (String raidLevel : param.getRaidLevelChanges().getAdd().getRaidLevels()) {
-            if (null == RaidLevel.lookup(raidLevel))
+            if (null == RaidLevel.lookup(raidLevel)) {
                 throw APIException.badRequests.invalidParameter("raidLevel", raidLevel);
+            }
         }
         StringSetMap arrayInfo = cos.getArrayInfo();
-        
+
         /** if system Type is null , throw exception */
         if (null == arrayInfo
                 || null == arrayInfo.get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)
                 || arrayInfo.get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE).contains(
-                        VirtualPool.SystemType.NONE.toString()))
+                        VirtualPool.SystemType.NONE.toString())) {
             if (null == param.getSystemType()
                     || VirtualPool.SystemType.NONE.name().equalsIgnoreCase(param.getSystemType())) {
                 throw APIException.badRequests.mandatorySystemTypeRaidLevels();
             }
+        }
         /**
          * if null != systemType, if deviceType given as part of param, then if other than vmax or vnxblock
          * throw Exception
@@ -53,8 +54,9 @@ public class RaidLevelValidator extends VirtualPoolValidator<BlockVirtualPoolPar
                     && !VirtualPool.SystemType.vnxblock.toString().equalsIgnoreCase(
                             param.getSystemType())
                     && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(
-                            param.getSystemType()))
+                            param.getSystemType())) {
                 throw APIException.badRequests.virtualPoolSupportsVmaxVnxblockWithRaid();
+            }
         }
         /**
          * if system Type already exists in DB, then check whether device Type is vmax or vnxblock
@@ -82,23 +84,27 @@ public class RaidLevelValidator extends VirtualPoolValidator<BlockVirtualPoolPar
     @Override
     protected void validateVirtualPoolCreateAttributeValue(BlockVirtualPoolParam createParam, DbClient dbClient) {
         for (String raidLevel : createParam.getRaidLevels()) {
-            if (null == RaidLevel.lookup(raidLevel))
-            	throw APIException.badRequests.invalidParameter("Raid Level", raidLevel);
+            if (null == RaidLevel.lookup(raidLevel)) {
+                throw APIException.badRequests.invalidParameter("Raid Level", raidLevel);
+            }
         }
-        if (null == createParam.getSystemType())
-        	throw APIException.badRequests.requiredParameterMissingOrEmpty("System Type");
+        if (null == createParam.getSystemType()) {
+            throw APIException.badRequests.requiredParameterMissingOrEmpty("System Type");
+        }
         if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(createParam.getSystemType())
                 && !VirtualPool.SystemType.vnxblock.toString().equalsIgnoreCase(
                         createParam.getSystemType())
                 && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(
-                        createParam.getSystemType()))
-        	throw APIException.badRequests.parameterOnlySupportedForVmaxAndVnxBlock("Raid Levels");
+                        createParam.getSystemType())) {
+            throw APIException.badRequests.parameterOnlySupportedForVmaxAndVnxBlock("Raid Levels");
+        }
     }
 
     @Override
     protected boolean isCreateAttributeOn(BlockVirtualPoolParam createParam) {
-        if (null != createParam.getRaidLevels() && !createParam.getRaidLevels().isEmpty())
+        if (null != createParam.getRaidLevels() && !createParam.getRaidLevels().isEmpty()) {
             return true;
+        }
         return false;
     }
 }

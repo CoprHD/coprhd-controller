@@ -25,19 +25,21 @@ import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
 
 public class PoolPortDiscoveryStatusMigrationTest extends
         DbSimpleMigrationTestBase {
-    
-    private final int INSTANCES_TO_CREATE = 5;    
+
+    private final int INSTANCES_TO_CREATE = 5;
 
     @BeforeClass
     public static void setup() throws IOException {
-        customMigrationCallbacks.put("2.1", new ArrayList<BaseCustomMigrationCallback>() {{
-            add(new StoragePoolDiscoveryStatusMigration());
-            add(new StoragePortDiscoveryStatusMigration());
-        }});
+        customMigrationCallbacks.put("2.1", new ArrayList<BaseCustomMigrationCallback>() {
+            {
+                add(new StoragePoolDiscoveryStatusMigration());
+                add(new StoragePortDiscoveryStatusMigration());
+            }
+        });
 
         DbsvcTestBase.setup();
     }
-    
+
     @Override
     protected String getSourceVersion() {
         return "2.1";
@@ -55,28 +57,28 @@ public class PoolPortDiscoveryStatusMigrationTest extends
         createDataForDiscoveryStatus(null);
 
     }
-    
-    private void createDataForDiscoveryStatus(String discoveryStatus){
-        //create port data
+
+    private void createDataForDiscoveryStatus(String discoveryStatus) {
+        // create port data
         for (int i = 0; i < INSTANCES_TO_CREATE; i++) {
             StoragePort port = new StoragePort();
             port.setId(URIUtil.createId(StoragePort.class));
             port.setDiscoveryStatus(discoveryStatus);
             _dbClient.createObject(port);
         }
-        
-        //create pool data
+
+        // create pool data
         for (int i = 0; i < INSTANCES_TO_CREATE; i++) {
             StoragePool pool = new StoragePool();
             pool.setId(URIUtil.createId(StoragePool.class));
             pool.setDiscoveryStatus(discoveryStatus);
             _dbClient.createObject(pool);
-        }       
+        }
     }
 
     @Override
     protected void verifyResults() throws Exception {
-        //verify ports data
+        // verify ports data
         List<URI> portKeys = _dbClient.queryByType(StoragePort.class, false);
         int portCount = 0;
         Iterator<StoragePort> portObjs = _dbClient.queryIterativeObjects(StoragePort.class, portKeys);
@@ -85,12 +87,12 @@ public class PoolPortDiscoveryStatusMigrationTest extends
             portCount++;
             Assert.assertNotNull("DiscoveryStatus shouldn't be null", port.getDiscoveryStatus());
             Assert.assertEquals("DiscoveryStatus should be VISIBLE", DiscoveryStatus.VISIBLE.name(),
-                port.getDiscoveryStatus());
+                    port.getDiscoveryStatus());
         }
-        Assert.assertTrue("We should still have " + 3*INSTANCES_TO_CREATE + " " + StoragePort.class.getSimpleName() 
-                + " after migration, not " + portCount, portCount == 3*INSTANCES_TO_CREATE);
-        
-        //verify pools data
+        Assert.assertTrue("We should still have " + 3 * INSTANCES_TO_CREATE + " " + StoragePort.class.getSimpleName()
+                + " after migration, not " + portCount, portCount == 3 * INSTANCES_TO_CREATE);
+
+        // verify pools data
         List<URI> poolKeys = _dbClient.queryByType(StoragePool.class, false);
         int poolCount = 0;
         Iterator<StoragePool> poolObjs = _dbClient.queryIterativeObjects(StoragePool.class, poolKeys);
@@ -99,10 +101,10 @@ public class PoolPortDiscoveryStatusMigrationTest extends
             poolCount++;
             Assert.assertNotNull("DiscoveryStatus shouldn't be null", pool.getDiscoveryStatus());
             Assert.assertEquals("DiscoveryStatus should equal VISIBLE", DiscoveryStatus.VISIBLE.name(),
-                pool.getDiscoveryStatus());
+                    pool.getDiscoveryStatus());
         }
-        Assert.assertTrue("We should still have " + 3*INSTANCES_TO_CREATE + " " + StoragePool.class.getSimpleName() 
-                + " after migration, not " + poolCount, poolCount == 3*INSTANCES_TO_CREATE); 
+        Assert.assertTrue("We should still have " + 3 * INSTANCES_TO_CREATE + " " + StoragePool.class.getSimpleName()
+                + " after migration, not " + poolCount, poolCount == 3 * INSTANCES_TO_CREATE);
     }
 
 }

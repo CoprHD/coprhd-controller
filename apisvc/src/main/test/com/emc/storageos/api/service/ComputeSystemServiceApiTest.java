@@ -63,7 +63,7 @@ public class ComputeSystemServiceApiTest extends ApiTestBase {
                 EnvConfig.get("sanity", "ucsm.host"),
                 EnvConfig.get("sanity", "ucsm.host.username"),
                 EnvConfig.get("sanity", "ucsm.host.password"),
-                "api-test-compute-system",80);
+                "api-test-compute-system", 80);
 
         Assert.assertNotNull(taskCreateComputeSystem, "Compute System Task should not be null");
         Assert.assertNotNull(taskCreateComputeSystem.getOpId(), "Compute System Task Id should not be null");

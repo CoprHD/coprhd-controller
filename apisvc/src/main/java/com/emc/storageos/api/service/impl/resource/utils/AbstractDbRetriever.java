@@ -25,10 +25,10 @@ public abstract class AbstractDbRetriever {
     }
 
     protected ExecutorService getThreadPool() {
-        if (dbRetrieverPool == null)
+        if (dbRetrieverPool == null) {
             dbRetrieverPool = new NamedThreadPoolExecutor(
                     this.getClass().getSimpleName(), queryThreadCount);
+        }
         return dbRetrieverPool;
     }
 }
-

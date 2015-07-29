@@ -84,16 +84,16 @@ public class ExecutionWindowApiMapperUtils {
         return new RestLinkRep("self", RestLinkFactory.newLink(type, id));
     }
 
-//    public static ExecutionWindowRestRep updateExecutionWindow(ExecutionWindowInfo info) {
-//        ExecutionWindowRestRep window = new ExecutionWindowRestRep();
-//        if (info != null) {
-//
-//            // window.setId(new URI(info.getId()));
-//
-//        }
-//
-//        return window;
-//    }
+    // public static ExecutionWindowRestRep updateExecutionWindow(ExecutionWindowInfo info) {
+    // ExecutionWindowRestRep window = new ExecutionWindowRestRep();
+    // if (info != null) {
+    //
+    // // window.setId(new URI(info.getId()));
+    //
+    // }
+    //
+    // return window;
+    // }
 
     private static String executionWindowUrl(String id) {
         return reverse("api.ExecutionWindowsApi.executionwindow", "executionWindowId", id);

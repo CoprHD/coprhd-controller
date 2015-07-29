@@ -20,4 +20,3 @@ public abstract class ResRepList<T extends RelatedResourceRep> extends QueryResu
     public ResRepList() {
     }
 }
-

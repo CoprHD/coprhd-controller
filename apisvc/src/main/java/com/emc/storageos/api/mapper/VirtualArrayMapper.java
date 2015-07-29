@@ -64,22 +64,22 @@ public class VirtualArrayMapper {
         StringSet assignedVirtualArrays = from.getAssignedVirtualArrays();
         if ((assignedVirtualArrays != null) && (assignedVirtualArrays.size() == 1)) {
             to.setVirtualArray(toRelatedResource(ResourceTypeEnum.VARRAY,
-                URI.create(assignedVirtualArrays.iterator().next())));
+                    URI.create(assignedVirtualArrays.iterator().next())));
         }
         to.setTransportType(from.getTransportType());
         to.setEndpoints(from.retrieveEndpoints());
-        
+
         List<StringHashMapEntry> endpointsMap = new StringMapAdapter().marshal(from.getEndpointsMap());
-        
+
         /*
-         * Translated network endpoint to its corresponded EndpointAliasRestRep.  At this point, only 
-         * "name" and "value" attribute are filled.  "alias" attribute will filled by the caller.
+         * Translated network endpoint to its corresponded EndpointAliasRestRep. At this point, only
+         * "name" and "value" attribute are filled. "alias" attribute will filled by the caller.
          */
         to.setEndpointsDiscovered(new ArrayList<EndpointAliasRestRep>());
         for (StringHashMapEntry endpointEntry : endpointsMap) {
             to.getEndpointsDiscovered().add(new EndpointAliasRestRep(endpointEntry.getName(), endpointEntry.getValue()));
         }
-        
+
         to.setFabricId(from.getNativeId());
         to.setDiscovered(from.getDiscovered());
         to.setNetworkSystems(from.getNetworkSystems());

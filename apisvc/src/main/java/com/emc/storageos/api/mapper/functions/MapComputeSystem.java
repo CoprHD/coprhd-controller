@@ -9,7 +9,7 @@ import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.google.common.base.Function;
 
-public class MapComputeSystem implements Function<ComputeSystem,ComputeSystemRestRep> {
+public class MapComputeSystem implements Function<ComputeSystem, ComputeSystemRestRep> {
     public static final MapComputeSystem instance = new MapComputeSystem();
 
     public static MapComputeSystem getInstance() {

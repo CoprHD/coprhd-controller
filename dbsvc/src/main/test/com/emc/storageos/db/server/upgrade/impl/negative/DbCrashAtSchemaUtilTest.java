@@ -15,15 +15,15 @@ import static com.emc.storageos.db.server.upgrade.util.DbSchemaChanger.InjectMod
 
 /**
  * tests dbsvc crashed when schemautil adding cf in skip upgrade scenarios
- */    
+ */
 
 public class DbCrashAtSchemaUtilTest extends DbCrashInjectionTestBase {
 
     @Test
     public void runUpgradeNegativeTest() throws Exception {
         Method method = SchemaUtil.class.getDeclaredMethod("checkCf", new Class[] {
-                KeyspaceDefinition.class, AstyanaxContext.class});
+                KeyspaceDefinition.class, AstyanaxContext.class });
         method.setAccessible(true);
-        upgradeNegativeTest(method, InjectModeEnum.AFTER);  
+        upgradeNegativeTest(method, InjectModeEnum.AFTER);
     }
 }

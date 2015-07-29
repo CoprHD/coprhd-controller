@@ -12,14 +12,14 @@ import java.util.Set;
  * Wraps device service singletons for JAX-RS
  */
 public class StorageApplication extends Application {
-   private Set<Object> _resource;
-   
-   public void setResource(Set<Object> resource) {
-      _resource = resource;
-   }
-   
-   @Override
-   public Set<Object> getSingletons() {
-      return _resource;
-   }
+    private Set<Object> _resource;
+
+    public void setResource(Set<Object> resource) {
+        _resource = resource;
+    }
+
+    @Override
+    public Set<Object> getSingletons() {
+        return _resource;
+    }
 }

@@ -19,14 +19,13 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-
 /**
  * resource to validate a Authentication provider by connecting
- * to it and performing various operations.  So far, just bind.
+ * to it and performing various operations. So far, just bind.
  */
 
 @Path("/internal/authnProviderValidate")
-public class AuthnProviderValidatorResource {  
+public class AuthnProviderValidatorResource {
 
     private final int DEFAULT_LDAP_CONNECTION_TIME_OUT_IN_SECS = 5;
     private int _ldapConnectionTimeoutInSecs = DEFAULT_LDAP_CONNECTION_TIME_OUT_IN_SECS;
@@ -35,7 +34,6 @@ public class AuthnProviderValidatorResource {
 
     private static final Logger _log = LoggerFactory.
             getLogger(AuthnProviderValidatorResource.class);
-
 
     public void setLdapConnectionTimeoutInSecs(int secs) {
         _ldapConnectionTimeoutInSecs = secs;
@@ -52,7 +50,8 @@ public class AuthnProviderValidatorResource {
     /**
      * 
      * Validate if the basic parameters of a provider for connectivity
-     * are good. Returns 400 if not.  200 if yes.
+     * are good. Returns 400 if not. 200 if yes.
+     * 
      * @param param has the connectivity parameters
      * @return Response 400 or 200
      */
@@ -63,7 +62,7 @@ public class AuthnProviderValidatorResource {
         if (!ImmutableAuthenticationProviders.checkProviderStatus(coordinator, param,
                 errorString, _ldapConnectionTimeoutInSecs, dbClient)) {
             return Response.status(Status.BAD_REQUEST).entity(errorString.toString()).build();
-        } 
+        }
         return Response.status(Status.OK).build();
-    }  
+    }
 }

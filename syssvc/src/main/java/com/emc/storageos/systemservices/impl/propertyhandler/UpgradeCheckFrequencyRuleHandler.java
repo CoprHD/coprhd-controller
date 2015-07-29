@@ -16,7 +16,7 @@ public class UpgradeCheckFrequencyRuleHandler implements UpdateHandler {
 
     /**
      * check if new system_update_check_frequency_hours value is greater than 0, if not fail the property update.
-     *
+     * 
      * @param oldProps
      * @param newProps
      */
@@ -35,7 +35,7 @@ public class UpgradeCheckFrequencyRuleHandler implements UpdateHandler {
 
     /**
      * do nothing
-     *
+     * 
      * @param oldProps
      * @param newProps
      */

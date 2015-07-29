@@ -18,7 +18,8 @@ import java.util.Arrays;
 public class Main {
     private static void usage() {
         System.out.println("Usage: ");
-        System.out.println("Main --label label [--header iso-header-filename --trailer iso-trailer-filename] [-f input-file -o output-file] config-filename config-file-size");
+        System.out
+                .println("Main --label label [--header iso-header-filename --trailer iso-trailer-filename] [-f input-file -o output-file] config-filename config-file-size");
     }
 
     public static void main(String[] args) throws Exception {
@@ -33,34 +34,34 @@ public class Main {
         String inputFileName = null;
         String outputFileName = null;
         String configFileName = null;
-        int size = 4096; //default 4K
+        int size = 4096; // default 4K
 
-        for (int i =0; i < args.length; i++) {
-            if ( args[i].equals("--label") ) {
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equals("--label")) {
                 i++;
                 label = args[i];
                 continue;
             }
 
-            if ( args[i].equals("--header") ) {
+            if (args[i].equals("--header")) {
                 i++;
                 isoHeaderFileName = args[i];
                 continue;
             }
 
-            if ( args[i].equals("--trailer") ) {
+            if (args[i].equals("--trailer")) {
                 i++;
                 isoTrailerFileName = args[i];
                 continue;
             }
 
-            if ( args[i].equals("-f") ) {
+            if (args[i].equals("-f")) {
                 i++;
                 inputFileName = args[i];
                 continue;
             }
 
-            if ( args[i].equals("-o") ) {
+            if (args[i].equals("-o")) {
                 i++;
                 outputFileName = args[i];
                 continue;
@@ -73,14 +74,14 @@ public class Main {
 
         if (isoHeaderFileName != null) {
             generateISOHeaderAndTrailer(label, isoHeaderFileName, isoTrailerFileName, configFileName, size);
-        }else if (inputFileName != null) {
+        } else if (inputFileName != null) {
             generateISOFile(label, inputFileName, outputFileName, configFileName, size);
         }
     }
 
     private static void generateISOHeaderAndTrailer(String label, String isoHeader, String isoTrailer, String configFileName, int size) {
         try (FileOutputStream header = new FileOutputStream(isoHeader);
-             FileOutputStream trailer = new FileOutputStream(isoTrailer)) {
+                FileOutputStream trailer = new FileOutputStream(isoTrailer)) {
 
             byte[] dummyData = new byte[size];
 
@@ -105,12 +106,13 @@ public class Main {
         System.out.println("The ISO image header and trailer files have been created");
     }
 
-    private static void generateISOFile(String label, String inputFileName, String outputFileName , String configFileName, int size) throws Exception {
+    private static void generateISOFile(String label, String inputFileName, String outputFileName, String configFileName, int size)
+            throws Exception {
         byte[] buffer = new byte[size];
         try (FileInputStream input = new FileInputStream(inputFileName);
-             FileOutputStream out = new FileOutputStream(outputFileName)) {
+                FileOutputStream out = new FileOutputStream(outputFileName)) {
             int count = input.read(buffer);
-            Arrays.fill(buffer, count, buffer.length, (byte)('\n'));
+            Arrays.fill(buffer, count, buffer.length, (byte) ('\n'));
 
             ISOBuffer isoBuffer = new ISOBuffer();
             isoBuffer.addFile(configFileName, buffer);

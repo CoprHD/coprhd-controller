@@ -108,8 +108,9 @@ public class ZkCmdHandler implements Watcher {
             for (String session : sessionList) {
                 ZkTree tree = new ZkTree();
                 List<String> nodeList = (List<String>) sessionNodesMap.get(session);
-                if (nodeList == null)
+                if (nodeList == null) {
                     continue;
+                }
 
                 for (String node : nodeList) {
                     tree.insert(node);
@@ -127,13 +128,15 @@ public class ZkCmdHandler implements Watcher {
         Iterator<String> it = sessionNodesMap.keySet().iterator();
         while (it.hasNext()) {
             String session = (String) it.next();
-            if (hostOwnedSession.contains(session))
+            if (hostOwnedSession.contains(session)) {
                 continue;
+            }
 
             ZkTree tree = new ZkTree();
             List<String> nodeList = (List<String>) sessionNodesMap.get(session);
-            if (nodeList == null)
+            if (nodeList == null) {
                 continue;
+            }
 
             for (String node : nodeList) {
                 tree.insert(node);
@@ -293,15 +296,17 @@ public class ZkCmdHandler implements Watcher {
                 // ignore exception
             }
 
-            if (data != null)
+            if (data != null) {
                 nodeSB.append("size=").append(data.length);
+            }
 
             nodeSB.append(")");
         }
         System.out.println(nodeSB.toString());
 
-        if (data != null && data.length > 0 && turnOnPrintData)
+        if (data != null && data.length > 0 && turnOnPrintData) {
             System.out.println(new String(data));
+        }
 
         List<ZkNode> children = node.children;
         for (int i = 0; i < children.size(); i++) {
@@ -309,8 +314,9 @@ public class ZkCmdHandler implements Watcher {
             String child_prefix = prefix;
 
             boolean lastChild = false;
-            if (i == (children.size() - 1))
+            if (i == (children.size() - 1)) {
                 lastChild = true;
+            }
 
             if (lastNode) {
                 child_prefix += "    ";

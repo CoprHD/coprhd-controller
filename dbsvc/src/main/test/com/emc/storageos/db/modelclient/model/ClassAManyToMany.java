@@ -17,11 +17,11 @@ import com.emc.storageos.db.client.model.StringSet;
 
 /**
  * @author cgarber
- *
+ * 
  */
 @Cf("ClassA")
 public class ClassAManyToMany extends DataObject {
-    
+
     private StringSet bids;
     private List<ClassBManyToMany> binstances;
 
@@ -45,6 +45,5 @@ public class ClassAManyToMany extends DataObject {
     public void setBinstances(List<ClassBManyToMany> binstances) {
         this.binstances = binstances;
     }
-
 
 }

@@ -11,8 +11,8 @@ import com.emc.storageos.db.exceptions.DatabaseException;
  */
 public interface MigrationHandler {
     /**
-     *   process migration
-     *   Returns true on success, false on failure
+     * process migration
+     * Returns true on success, false on failure
      */
     public boolean run() throws DatabaseException;
 

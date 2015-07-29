@@ -9,7 +9,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExp
 import com.emc.storageos.model.block.UnManagedExportMaskRestRep;
 import com.google.common.base.Function;
 
-public class MapUnmanagedExportMask implements Function<UnManagedExportMask,UnManagedExportMaskRestRep> {
+public class MapUnmanagedExportMask implements Function<UnManagedExportMask, UnManagedExportMaskRestRep> {
     public static final MapUnmanagedExportMask instance = new MapUnmanagedExportMask();
 
     public static MapUnmanagedExportMask getInstance() {

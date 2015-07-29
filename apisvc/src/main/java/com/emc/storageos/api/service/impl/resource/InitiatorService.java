@@ -68,15 +68,16 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  * Service providing APIs for host initiators.
  */
 @Path("/compute/initiators")
-@DefaultPermissions( read_roles = {Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN}, 
-                     write_roles = {Role.TENANT_ADMIN},
-                     read_acls = {ACL.OWN, ACL.ALL})
+@DefaultPermissions(read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
+        write_roles = { Role.TENANT_ADMIN },
+        read_acls = { ACL.OWN, ACL.ALL })
 public class InitiatorService extends TaskResourceService {
 
     // Logger
     protected final static Logger _log = LoggerFactory.getLogger(InitiatorService.class);
 
     private static final String EVENT_SERVICE_TYPE = "initiator";
+
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
@@ -85,12 +86,13 @@ public class InitiatorService extends TaskResourceService {
     @Autowired
     private HostService _hostService;
 
-    /**     
+    /**
      * List the exports of the initiator.
+     * 
      * @prereq none
      * @brief List host initiator exports
      * @return A list of ITLs (Initiator/Target/Lun) for this initiator.
-     *
+     * 
      * @throws DatabaseException When an error occurs querying the database.
      */
     @GET
@@ -98,20 +100,20 @@ public class InitiatorService extends TaskResourceService {
     @Path("/{id}/exports")
     public ITLRestRepList getInitiatorExports(@PathParam("id") URI id) {
         Initiator initiator = queryObject(Initiator.class, id, false);
-        // get the initiators' ITLs - permissions are also checked in ExportUtils 
+        // get the initiators' ITLs - permissions are also checked in ExportUtils
         return ExportUtils.getItlsForInitiator(initiator, _dbClient,
                 _permissionsHelper, getUserFromContext());
     }
 
-    /**     
+    /**
      * Show the information for an initiator.
-     *
+     * 
      * @param id the URN of a ViPR initiator
-     *
+     * 
      * @prereq none
      * @brief Show host initiator
      * @return A reference to an InitiatorRestRep specifying the initiator data.
-     *
+     * 
      * @throws DatabaseException When an error occurs querying the database.
      */
     @GET
@@ -124,9 +126,9 @@ public class InitiatorService extends TaskResourceService {
         return HostMapper.map(initiator);
     }
 
-    /**     
+    /**
      * Update a host initiator.
-     *
+     * 
      * @param id the URN of a ViPR initiator
      * @param updateParam the parameter containing the new attributes
      * @prereq none
@@ -137,26 +139,26 @@ public class InitiatorService extends TaskResourceService {
     @PUT
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public InitiatorRestRep updateInitiator(@PathParam("id") URI id,
             InitiatorUpdateParam updateParam) throws DatabaseException {
         Initiator initiator = queryObject(Initiator.class, id, true);
         _hostService.validateInitiatorData(updateParam, initiator);
-        _hostService.populateInitiator(initiator,updateParam);
+        _hostService.populateInitiator(initiator, updateParam);
         _dbClient.persistObject(initiator);
         auditOp(OperationTypeEnum.UPDATE_HOST_INITIATOR, true, null,
                 initiator.auditParameters());
         return map(queryObject(Initiator.class, id, false));
     }
 
-    /**     
+    /**
      * Deactivate an initiator.
-     *
+     * 
      * @param id the URN of a ViPR initiator
      * @prereq The initiator must not have active exports
      * @brief Delete host initiator
      * @return A Response indicating success or failure.
-     *
+     * 
      * @throws DatabaseException When an error occurs querying the database.
      */
     @POST
@@ -165,12 +167,12 @@ public class InitiatorService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep deleteInitiator(@PathParam("id") URI id) {
         _log.info("Delete initiator {}", id);
-        
+
         Initiator initiator = queryObject(Initiator.class, id, isIdEmbeddedInURL(id));
         if (!initiator.getIsManualCreation()) {
             throw APIException.badRequests.initiatorNotCreatedManuallyAndCannotBeDeleted();
         }
-        
+
         ArgValidator.checkReference(Initiator.class, id, checkForDelete(initiator));
 
         String taskId = UUID.randomUUID().toString();
@@ -181,42 +183,42 @@ public class InitiatorService extends TaskResourceService {
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
             controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
         } else {
-        	_dbClient.ready(Initiator.class, initiator.getId(), taskId);
-        	_dbClient.markForDeletion(initiator);
+            _dbClient.ready(Initiator.class, initiator.getId(), taskId);
+            _dbClient.markForDeletion(initiator);
         }
-        
+
         auditOp(OperationTypeEnum.DELETE_HOST_INITIATOR, true, null,
                 initiator.auditParameters());
-        
+
         return toTask(initiator, taskId, op);
     }
 
-    /**     
+    /**
      * List data of specified initiators.
-     *
+     * 
      * @param param POST data containing the id list.
      * @prereq none
      * @brief List data of specified initiators
      * @return list of representations.
-     *
+     * 
      * @throws DatabaseException When an error occurs querying the database.
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public InitiatorBulkRep getBulkResources(BulkIdParam param) {
-    	 return (InitiatorBulkRep) super.getBulkResources(param);
+        return (InitiatorBulkRep) super.getBulkResources(param);
     }
-    
-    /**     
+
+    /**
      * Allows the user to deregister a registered initiator so that it is no
      * longer used by the system. This simply sets the registration_status of
      * the initiator to UNREGISTERED.
-     *
+     * 
      * @param id the URN of a ViPR initiator
-     *
+     * 
      * @brief Unregister initiator
      * @return Status response indicating success or failure
      */
@@ -229,10 +231,11 @@ public class InitiatorService extends TaskResourceService {
         Initiator initiator = queryResource(id);
         ArgValidator.checkEntity(initiator, id, isIdEmbeddedInURL(id));
         if (ComputeSystemHelper.isInitiatorInUse(_dbClient, id.toString())) {
-            throw APIException.badRequests.resourceHasActiveReferencesWithType(Initiator.class.getSimpleName(), initiator.getId(), ExportGroup.class.getSimpleName());
+            throw APIException.badRequests.resourceHasActiveReferencesWithType(Initiator.class.getSimpleName(), initiator.getId(),
+                    ExportGroup.class.getSimpleName());
         }
         if (RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
-        		initiator.getRegistrationStatus())) {                
+                initiator.getRegistrationStatus())) {
             initiator.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
             _dbClient.persistObject(initiator);
             auditOp(OperationTypeEnum.DEREGISTER_INITIATOR, true, null,
@@ -240,15 +243,15 @@ public class InitiatorService extends TaskResourceService {
         }
         return map(initiator);
     }
-    
-    /**     
+
+    /**
      * Manually register the initiator with the passed id.
-     *
+     * 
      * @param id the URN of a ViPR initiator
-     *
+     * 
      * @brief Register initiator
      * @return A reference to an InitiatorRestRep specifying the data for the
-     *       	initiator.
+     *         initiator.
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -259,9 +262,9 @@ public class InitiatorService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, Initiator.class, "id");
         Initiator initiator = _dbClient.queryObject(Initiator.class, id);
         ArgValidator.checkEntity(initiator, id, isIdEmbeddedInURL(id));
-        
-        if(RegistrationStatus.UNREGISTERED.toString().equalsIgnoreCase(
-        		initiator.getRegistrationStatus())) {
+
+        if (RegistrationStatus.UNREGISTERED.toString().equalsIgnoreCase(
+                initiator.getRegistrationStatus())) {
             initiator.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
             _dbClient.persistObject(initiator);
             auditOp(OperationTypeEnum.REGISTER_INITIATOR, true, null, initiator.getId().toString());
@@ -269,12 +272,11 @@ public class InitiatorService extends TaskResourceService {
         return map(initiator);
     }
 
-
     @Override
     public InitiatorBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<Initiator> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new InitiatorBulkRep(BulkList.wrapping(_dbIterator, MapInitiator.getInstance()));
     }
 
@@ -289,11 +291,11 @@ public class InitiatorService extends TaskResourceService {
     @Override
     protected Initiator queryResource(URI id) {
         return queryObject(Initiator.class, id, false);
-	}
+    }
 
     @Override
     protected URI getTenantOwner(URI id) {
-    	return null;
+        return null;
     }
 
     @SuppressWarnings("unchecked")
@@ -304,11 +306,11 @@ public class InitiatorService extends TaskResourceService {
 
     @Override
     protected ResourceTypeEnum getResourceType() {
-    	return ResourceTypeEnum.INITIATOR;
+        return ResourceTypeEnum.INITIATOR;
     }
 
     public static class InitiatorResRepFilter<E extends RelatedResourceRep>
-    extends ResRepFilter<E> {
+            extends ResRepFilter<E> {
         public InitiatorResRepFilter(StorageOSUser user,
                 PermissionsHelper permissionsHelper) {
             super(user, permissionsHelper);
@@ -317,17 +319,20 @@ public class InitiatorService extends TaskResourceService {
         @Override
         public boolean isAccessible(E resrep) {
             boolean ret = false;
-            URI id = resrep.getId(); 
+            URI id = resrep.getId();
 
             Initiator ini = _permissionsHelper.getObjectById(id, Initiator.class);
-            if (ini == null || ini.getHost() == null)
+            if (ini == null || ini.getHost() == null) {
                 return false;
+            }
 
             Host obj = _permissionsHelper.getObjectById(ini.getHost(), Host.class);
-            if (obj == null)
+            if (obj == null) {
                 return false;
-            if (obj.getTenant().toString().equals(_user.getTenantId()))
+            }
+            if (obj.getTenant().toString().equals(_user.getTenantId())) {
                 return true;
+            }
             ret = isTenantAccessible(obj.getTenant());
             return ret;
         }
@@ -360,55 +365,57 @@ public class InitiatorService extends TaskResourceService {
      */
     private void verifyUserPermisions(Initiator initiator) {
         // check the user has permissions
-        if (initiator.getHost() == null ) {
-        	// this is a system-created initiator - should only be viewed by system admin or monitor
-        	verifySystemAdminOrMonitorUser();
+        if (initiator.getHost() == null) {
+            // this is a system-created initiator - should only be viewed by system admin or monitor
+            verifySystemAdminOrMonitorUser();
         } else {
-        	// otherwise, check the user permissions for the tenant org
-        	Host host = queryObject(Host.class, initiator.getHost(), false);
-        	verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
+            // otherwise, check the user permissions for the tenant org
+            Host host = queryObject(Host.class, initiator.getHost(), false);
+            verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
         }
     }
-    
-    /**     
+
+    /**
      * 
      * parameter: 'initiator_port' The identifier of the initiator port.
-     * @return Return a list of initiator that containts the initiator port specified 
+     * 
+     * @return Return a list of initiator that containts the initiator port specified
      *         or an empty list if no match was found.
      */
     @Override
     protected SearchResults getOtherSearchResults(Map<String, List<String>> parameters, boolean authorized) {
-    	SearchResults result = new SearchResults();
-    	
-    	if (!parameters.containsKey("initiator_port")) {
-    	    throw APIException.badRequests.invalidParameterSearchMissingParameter(getResourceClass().getName(), "initiator_port");
-    	}
-    	
-    	for (Map.Entry<String, List<String>> entry : parameters.entrySet()) {
-    	    if (!entry.getKey().equals("initiator_port")) {
-    	        throw APIException.badRequests.parameterForSearchCouldNotBeCombinedWithAnyOtherParameter(getResourceClass().getName(), "initiator_port", entry.getKey());
-    	    }
-    	}
-    	
-    	String port = parameters.get("initiator_port").get(0);
-    	// Validate that the initiator_port value is not empty
-    	ArgValidator.checkFieldNotEmpty(port, "initiator_port");
-    	
-    	// Validate the format of the initiator port.
+        SearchResults result = new SearchResults();
+
+        if (!parameters.containsKey("initiator_port")) {
+            throw APIException.badRequests.invalidParameterSearchMissingParameter(getResourceClass().getName(), "initiator_port");
+        }
+
+        for (Map.Entry<String, List<String>> entry : parameters.entrySet()) {
+            if (!entry.getKey().equals("initiator_port")) {
+                throw APIException.badRequests.parameterForSearchCouldNotBeCombinedWithAnyOtherParameter(getResourceClass().getName(),
+                        "initiator_port", entry.getKey());
+            }
+        }
+
+        String port = parameters.get("initiator_port").get(0);
+        // Validate that the initiator_port value is not empty
+        ArgValidator.checkFieldNotEmpty(port, "initiator_port");
+
+        // Validate the format of the initiator port.
         if (!EndpointUtility.isValidEndpoint(port, EndpointType.SAN)) {
             throw APIException.badRequests.initiatorPortNotValid();
         }
-    	
-    	SearchedResRepList resRepList = new SearchedResRepList(getResourceType());
-    	
-    	// Finds the Initiator that includes the initiator port specified, if any.
-    	_dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(port), resRepList);
-    	
-    	// Filter list based on permission
-    	if (!authorized) {
+
+        SearchedResRepList resRepList = new SearchedResRepList(getResourceType());
+
+        // Finds the Initiator that includes the initiator port specified, if any.
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(port), resRepList);
+
+        // Filter list based on permission
+        if (!authorized) {
             Iterator<SearchResultResourceRep> _queryResultIterator = resRepList.iterator();
             ResRepFilter<SearchResultResourceRep> resRepFilter =
-                    (ResRepFilter<SearchResultResourceRep>)getPermissionFilter(getUserFromContext(), _permissionsHelper);
+                    (ResRepFilter<SearchResultResourceRep>) getPermissionFilter(getUserFromContext(), _permissionsHelper);
 
             SearchedResRepList filteredResRepList = new SearchedResRepList();
             filteredResRepList.setResult(
@@ -418,8 +425,8 @@ public class InitiatorService extends TaskResourceService {
         } else {
             result.setResource(resRepList);
         }
-    	
-    	return result;
+
+        return result;
     }
- 
+
 }

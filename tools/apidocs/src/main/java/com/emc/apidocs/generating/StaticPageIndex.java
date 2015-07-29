@@ -48,7 +48,7 @@ public class StaticPageIndex {
         return artifacts;
     }
 
-    public  PageFolder loadFolder(File directory) {
+    public PageFolder loadFolder(File directory) {
         List<String> indexContents = readFolderIndex(directory);
 
         // The first line is the title
@@ -61,7 +61,7 @@ public class StaticPageIndex {
         // Load Pages/Child folders specified in the index
         PageFolder pageFolder = new PageFolder(title);
         for (String page : indexContents) {
-            File indexEntryFile = new File(directory.getAbsolutePath()+"/"+page);
+            File indexEntryFile = new File(directory.getAbsolutePath() + "/" + page);
             if (indexEntryFile.exists()) {
                 if (indexEntryFile.isDirectory()) {
                     pageFolder.children.add(loadFolder(indexEntryFile));
@@ -114,14 +114,13 @@ public class StaticPageIndex {
 
     private List<String> readFolderIndex(File directory) {
         // See if there is an index.txt
-        File indexFile = new File(directory.getAbsolutePath()+File.separator+INDEX_FILENAME);
+        File indexFile = new File(directory.getAbsolutePath() + File.separator + INDEX_FILENAME);
         List<String> indexContents = Lists.newArrayList();
         if (indexFile.exists()) {
             try {
                 indexContents = IOUtils.readLines(new FileInputStream(indexFile));
-            }
-            catch (IOException e) {
-                throw new RuntimeException("Error reading index file "+indexFile.getAbsolutePath(),e);
+            } catch (IOException e) {
+                throw new RuntimeException("Error reading index file " + indexFile.getAbsolutePath(), e);
             }
         }
 
@@ -129,7 +128,7 @@ public class StaticPageIndex {
 
         // Remove any lines that start with comment marker
         Iterator<String> it = indexContents.iterator();
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             String currentLine = it.next();
             if (!currentLine.startsWith(COMMENT_MARKER) && !currentLine.equals("")) {
                 cleanList.add(currentLine);
@@ -160,7 +159,7 @@ public class StaticPageIndex {
         }
 
         public String getId() {
-            return title.replaceAll(" ","_").replaceAll("\\(","").replaceAll("\\)","");
+            return title.replaceAll(" ", "_").replaceAll("\\(", "").replaceAll("\\)", "");
         }
 
         public boolean includeInTOC() {
@@ -180,7 +179,7 @@ public class StaticPageIndex {
             this.file = file;
             this.parentFolder = parentFolder;
             this.path = "";
-        //    path = file.getParent().substring(pageFileDir.getAbsolutePath().length());
+            // path = file.getParent().substring(pageFileDir.getAbsolutePath().length());
             if (path.startsWith("/")) {
                 path = path.substring(1);
             }
@@ -195,7 +194,7 @@ public class StaticPageIndex {
             if (path.equals("")) {
                 return getFileName();
             } else {
-                return path.replaceAll("/","_")+"_"+getFileName();
+                return path.replaceAll("/", "_") + "_" + getFileName();
             }
         }
 
@@ -203,9 +202,8 @@ public class StaticPageIndex {
             String fileContent = "";
             try {
                 fileContent = IOUtils.toString(new FileInputStream(file));
-            }
-            catch (IOException e) {
-                throw new RuntimeException("Unable to read file "+file.getAbsolutePath(),e);
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to read file " + file.getAbsolutePath(), e);
             }
 
             if (fileContent.startsWith(PAGE_TITLE_PROPERTY)) {

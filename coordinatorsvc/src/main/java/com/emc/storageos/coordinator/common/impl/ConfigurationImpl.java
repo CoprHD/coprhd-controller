@@ -18,7 +18,7 @@ import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 
 /**
  * Default configuration implementation
- *
+ * 
  */
 public class ConfigurationImpl implements Configuration {
     private static final char RESERVED_CHAR = '_';
@@ -49,7 +49,7 @@ public class ConfigurationImpl implements Configuration {
     public String getConfig(String key) {
         return _map.getProperty(key);
     }
-    
+
     @Override
     public Map<String, String> getAllConfigs(boolean customOnly) {
         Map<String, String> toReturn = new HashMap<String, String>();
@@ -70,7 +70,7 @@ public class ConfigurationImpl implements Configuration {
         }
         _map.setProperty(key, val);
     }
-    
+
     @Override
     public void removeConfig(String key) {
         if (key == null || key.length() == 0 || key.charAt(0) == RESERVED_CHAR) {
@@ -81,7 +81,7 @@ public class ConfigurationImpl implements Configuration {
 
     /**
      * Deserializes configuration object
-     *
+     * 
      * @param content
      * @return
      */

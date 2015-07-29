@@ -48,5 +48,5 @@ public class InterVDCHMACAuthFilter extends AbstractHMACAuthFilter {
      */
     public static boolean isInterVDCRequest(HttpServletRequest req) {
         return ((req != null) && req.getRequestURI().contains(INTERVDC_URI));
-    }   
+    }
 }

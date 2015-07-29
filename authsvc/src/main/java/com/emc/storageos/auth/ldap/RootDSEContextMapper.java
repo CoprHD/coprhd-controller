@@ -9,17 +9,19 @@ import org.springframework.ldap.core.support.AbstractContextMapper;
 
 /**
  * RootDSE ContextMapper
- *
+ * 
  */
 public class RootDSEContextMapper extends AbstractContextMapper {
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see org.springframework.ldap.core.support.AbstractContextMapper#doMapFromContext(org.springframework.ldap.core.DirContextOperations)
      */
     @Override
     protected Object doMapFromContext(DirContextOperations ctx) {
         RootDSE rootDSE = new RootDSE();
-        
+
         rootDSE.setNamingContexts(ctx.getStringAttributes("namingContexts"));
         rootDSE.setRootDomainNamingContext(ctx.getStringAttribute("rootDomainNamingContext"));
         rootDSE.setForestFunctionality(ctx.getStringAttribute("forestFunctionality"));
@@ -34,7 +36,7 @@ public class RootDSEContextMapper extends AbstractContextMapper {
         rootDSE.setObjectClass(ctx.getStringAttributes("objectClass"));
         rootDSE.setConfigContext(ctx.getStringAttribute("configContext"));
         rootDSE.setSupportedFeatures(ctx.getStringAttributes("supportedFeatures"));
-        
+
         return rootDSE;
     }
 

@@ -47,12 +47,12 @@ public class MeteringQueryResults implements TimeSeriesQueryResult<Stat> {
     @Override
     public void data(Stat data, long insertionTimeMs) {
         if (data != null) {
-                try {
-                    _marshaller.marshall(data, _out);
-                    _resultsCount.incrementAndGet();
-                } catch (Exception e) {
-                    _logger.error("Exception during marshalling:", e);
-                }
+            try {
+                _marshaller.marshall(data, _out);
+                _resultsCount.incrementAndGet();
+            } catch (Exception e) {
+                _logger.error("Exception during marshalling:", e);
+            }
         }
     }
 }

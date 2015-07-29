@@ -22,8 +22,9 @@ public class ZkTree {
 
         ZkNode tempNode = root;
         for (String element : elements) {
-            if (element == null || element.trim().length() == 0)
+            if (element == null || element.trim().length() == 0) {
                 continue;
+            }
 
             if (!tempNode.hasChild(element)) {
                 tempNode.addChild(element);

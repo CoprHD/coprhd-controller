@@ -24,25 +24,25 @@ import com.emc.vipr.model.sys.logging.LogRequest;
 public class LogFileStream implements LogStream {
     // Logger reference.
     private static final Logger logger = LoggerFactory.getLogger(LogFileStream.class);
-    
+
     private final String basename;
     private final List<String> logPaths;
     private LogReader reader;
     private LogRequest request;
     private LogStatusInfo status;
-    
+
     // number of logs get from LogReader
     private AtomicLong logCounter = new AtomicLong(0);
     // finished files number
-    private AtomicInteger fileCounter = new AtomicInteger(0); 
+    private AtomicInteger fileCounter = new AtomicInteger(0);
     // file size counter, sum up all read files
     private AtomicLong sizeCounter = new AtomicLong(0); // file size counter, sum up all read files
     private List<LogMessage> logs = new LinkedList<>(); // all logMessages which has the same timeStamp
-    private LogMessage currentLog; //defaults to null
-    private long prevLogTime; //defaults to 0
+    private LogMessage currentLog; // defaults to null
+    private long prevLogTime; // defaults to 0
 
     public LogFileStream(String basename, List<File> logFiles, LogRequest req,
-                         LogStatusInfo status) {
+            LogStatusInfo status) {
         logger.trace("LogFileStream()");
         this.request = req;
         this.basename = basename;
@@ -50,7 +50,7 @@ public class LogFileStream implements LogStream {
         reader = null;
         this.status = status;
     }
-    
+
     /**
      * Set log files related to a service, sorted by last modification time.
      * 
@@ -97,7 +97,7 @@ public class LogFileStream implements LogStream {
                 try {
                     reader = new LogReader(filePath, request, status, basename);
                 } catch (Exception e) {
-                    //TODO: generate a dynamic error log message
+                    // TODO: generate a dynamic error log message
                     logger.error("Fail to generate log reader for {}", filePath);
                     return null;
                 }
@@ -106,8 +106,9 @@ public class LogFileStream implements LogStream {
                 sizeCounter.addAndGet(f.length());
             }
 
-            if (currentLog != null)
+            if (currentLog != null) {
                 prevLogTime = currentLog.getTime();
+            }
 
             currentLog = reader.readNextLogMessage();
             if (currentLog != null) {
@@ -115,8 +116,9 @@ public class LogFileStream implements LogStream {
                 currentLog.setService(LogUtil.serviceToBytes(basename));
                 // we cannot determine until the current log message has been read out
                 if (!LogUtil.permitCurrentLog(request.getMaxCount(), logCounter.get(),
-                        currentLog.getTime(), prevLogTime))
+                        currentLog.getTime(), prevLogTime)) {
                     break;
+                }
 
                 return currentLog;
             } else {

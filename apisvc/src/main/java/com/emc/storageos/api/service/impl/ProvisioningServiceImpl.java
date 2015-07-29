@@ -17,16 +17,16 @@ import org.springframework.beans.factory.annotation.Autowired;
  * Provisioning service default implementation
  */
 public class ProvisioningServiceImpl extends AbstractSecuredWebServer implements ProvisioningService {
-    
+
     @Autowired
     private CoordinatorClient _coordinator;
-    
+
     @Autowired
-    private AuthSvcEndPointLocator _authSvcEndPointLocator; 
-  
+    private AuthSvcEndPointLocator _authSvcEndPointLocator;
+
     @Autowired
     StorageOSUserRepository _repository;
-    
+
     @Autowired
     ServiceBeacon _svcBeacon;
 

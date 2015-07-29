@@ -36,13 +36,15 @@ public class DbInitiatorHostMigrationTest extends DbSimpleMigrationTestBase {
 
     @BeforeClass
     public static void setup() throws IOException {
-        customMigrationCallbacks.put("1.1", new ArrayList<BaseCustomMigrationCallback>() {{
-            add(new InitiatorHostMigration());
-        }});
-        
+        customMigrationCallbacks.put("1.1", new ArrayList<BaseCustomMigrationCallback>() {
+            {
+                add(new InitiatorHostMigration());
+            }
+        });
+
         DbsvcTestBase.setup();
     }
-    
+
     @Override
     protected String getSourceVersion() {
         return "1.1";
@@ -54,15 +56,16 @@ public class DbInitiatorHostMigrationTest extends DbSimpleMigrationTestBase {
     }
 
     private List<Initiator> oldInitiators = new ArrayList<Initiator>();
-    private Set<String> newInitiators = new HashSet<String>();        
+    private Set<String> newInitiators = new HashSet<String>();
     private List<Initiator> oldSingleInitiators = new ArrayList<Initiator>();
     private Set<String> newSingleInitiators = new HashSet<String>();
     private URI missingMaskURI = null;
-    
+
     @Override
     protected void prepareData() throws Exception {
-        
-        // Create 2 initiators with a host and 2 initiators with a null host. One initiator from each has the same port name as another initiator.
+
+        // Create 2 initiators with a host and 2 initiators with a null host. One initiator from each has the same port name as another
+        // initiator.
         // Create 2 export groups, one with initiators with a host and one with initiators without a host.
         Initiator oldInitiator00 = createInitiator(URI.create("null"), "10:00:00:00:00", "old-0");
         Initiator oldInitiator01 = createInitiator(URI.create("null"), "10:00:00:00:01", "old-1");
@@ -71,7 +74,7 @@ public class DbInitiatorHostMigrationTest extends DbSimpleMigrationTestBase {
 
         newInitiators.add(newInitiator00.getId().toString());
         newInitiators.add(newInitiator01.getId().toString());
-        
+
         oldInitiators.add(oldInitiator00);
         oldInitiators.add(oldInitiator01);
         createExportGroup(oldInitiators, "old-export");
@@ -80,17 +83,17 @@ public class DbInitiatorHostMigrationTest extends DbSimpleMigrationTestBase {
         validInitiators.add(newInitiator00);
         validInitiators.add(newInitiator01);
         createExportGroup(validInitiators, "new-export");
-        
+
         // Create an initiator with a host and an initiator without a host.
         // Create an export group with the initiator without the host.
         Initiator oldSingleInitiator = createInitiator(URI.create("null"), "10:00:00:00:99", "old-99");
         oldSingleInitiators.add(oldSingleInitiator);
-        
+
         Initiator newSingleInitiator = createInitiator(URIUtil.createId(Host.class), "10:00:00:00:99", "new-99");
         newSingleInitiators.add(newSingleInitiator.getId().toString());
 
         createExportGroup(oldSingleInitiators, "old-exportWithSingleInitiator");
-        
+
         // Create Export Group with mask that doesn't exist
         ExportGroup exportGroupMissingMask = createExportGroup(oldSingleInitiators, "exportGroupMissingMask");
         missingMaskURI = URIUtil.createId(ExportMask.class);
@@ -98,13 +101,13 @@ public class DbInitiatorHostMigrationTest extends DbSimpleMigrationTestBase {
         _dbClient.updateAndReindexObject(exportGroupMissingMask);
 
     }
-    
+
     @Override
     protected void verifyResults() throws Exception {
 
         List<URI> list = _dbClient.queryByType(ExportGroup.class, true);
         int count = 0;
-        
+
         Iterator<ExportGroup> objs = _dbClient.queryIterativeObjects(ExportGroup.class, list);
         while (objs.hasNext()) {
             ExportGroup exportGroup = objs.next();
@@ -126,16 +129,17 @@ public class DbInitiatorHostMigrationTest extends DbSimpleMigrationTestBase {
                 Assert.assertTrue(exportGroup.getInitiators().containsAll(newSingleInitiators));
                 Assert.assertTrue(exportGroup.getExportMasks().size() == 2);
                 exportGroup.removeExportMask(missingMaskURI);
-                _dbClient.updateAndReindexObject(exportGroup);                
+                _dbClient.updateAndReindexObject(exportGroup);
                 Assert.assertTrue(exportGroup.getExportMasks().size() == 1);
                 validateExportMask(exportGroup.getExportMasks(), newSingleInitiators);
             } else {
                 Assert.fail("Found export group that wasn't created in this test");
             }
         }
-        
-        Assert.assertTrue("We should still have " + 4 + " " + ExportGroup.class.getSimpleName() + " after migration, not " + count, count == 4);
-        
+
+        Assert.assertTrue("We should still have " + 4 + " " + ExportGroup.class.getSimpleName() + " after migration, not " + count,
+                count == 4);
+
         // duplicate initiators should now be marked as inactive
         for (Initiator initiator : oldInitiators) {
             Initiator dbInitiator = _dbClient.queryObject(Initiator.class, initiator.getId());
@@ -145,7 +149,7 @@ public class DbInitiatorHostMigrationTest extends DbSimpleMigrationTestBase {
             Initiator dbInitiator = _dbClient.queryObject(Initiator.class, initiator.getId());
             Assert.assertTrue(dbInitiator.getInactive());
         }
-        
+
         // other valid initiators should be still active
         for (String id : newInitiators) {
             Initiator dbInitiator = _dbClient.queryObject(Initiator.class, URI.create(id));
@@ -157,7 +161,7 @@ public class DbInitiatorHostMigrationTest extends DbSimpleMigrationTestBase {
         }
 
     }
-    
+
     private Initiator createInitiator(URI host, String port, String label) {
         Initiator initiator = new Initiator();
         initiator.setId(URIUtil.createId(Initiator.class));
@@ -167,7 +171,7 @@ public class DbInitiatorHostMigrationTest extends DbSimpleMigrationTestBase {
         _dbClient.createObject(initiator);
         return initiator;
     }
-    
+
     private ExportGroup createExportGroup(List<Initiator> initiators, String label) {
         StringSet initiatorIds = new StringSet();
         for (Initiator initiator : initiators) {
@@ -178,16 +182,16 @@ public class DbInitiatorHostMigrationTest extends DbSimpleMigrationTestBase {
         exportGroup.setInitiators(initiatorIds);
         exportGroup.setLabel(label);
         exportGroup.setType(ExportGroupType.Host.toString());
-        
+
         ExportMask mask = createExportMask(initiators);
         StringSet masks = new StringSet();
         masks.add(mask.getId().toString());
         exportGroup.setExportMasks(masks);
-        
+
         _dbClient.createObject(exportGroup);
         return exportGroup;
     }
-    
+
     private ExportMask createExportMask(List<Initiator> initiators) {
         StringSet initiatorIds = new StringSet();
         for (Initiator initiator : initiators) {
@@ -202,9 +206,9 @@ public class DbInitiatorHostMigrationTest extends DbSimpleMigrationTestBase {
         port.setId(URIUtil.createId(StoragePort.class));
         StringSet portMap = new StringSet();
         portMap.add(port.getId().toString());
-        
+
         zoningMap.put(initiators.get(0).getId().toString(), portMap);
-        
+
         ExportMask mask = new ExportMask();
         mask.setId(URIUtil.createId(ExportMask.class));
         mask.setInitiators(initiatorIds);
@@ -213,7 +217,7 @@ public class DbInitiatorHostMigrationTest extends DbSimpleMigrationTestBase {
         _dbClient.createObject(mask);
         return mask;
     }
-    
+
     private void validateExportMask(StringSet exportMaskIds, Set<String> initiators) {
         for (String exportMaskId : exportMaskIds) {
             ExportMask mask = _dbClient.queryObject(ExportMask.class, URI.create(exportMaskId));

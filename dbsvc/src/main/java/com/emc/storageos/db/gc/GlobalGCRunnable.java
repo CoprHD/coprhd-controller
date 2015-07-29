@@ -24,8 +24,8 @@ public class GlobalGCRunnable extends GarbageCollectionRunnable {
     private GeoDependencyChecker geoDependencyChecker;
 
     GlobalGCRunnable(DbClient dbClient, Class<? extends DataObject> type,
-                     DependencyTracker tracker, int gcDelayMins,
-                     CoordinatorClient coordinator) {
+            DependencyTracker tracker, int gcDelayMins,
+            CoordinatorClient coordinator) {
         super(dbClient, type, tracker, gcDelayMins, coordinator);
 
         geoDependencyChecker = new GeoDependencyChecker(dbClient, coordinator, dependencyChecker);
@@ -35,8 +35,9 @@ public class GlobalGCRunnable extends GarbageCollectionRunnable {
     protected boolean canBeGC(URI id) {
         String dependency = geoDependencyChecker.checkDependencies(id, type, true);
 
-        if (dependency != null)
+        if (dependency != null) {
             log.debug("Geo object {} has dependencies on {}", dependency);
+        }
 
         return dependency == null;
     }

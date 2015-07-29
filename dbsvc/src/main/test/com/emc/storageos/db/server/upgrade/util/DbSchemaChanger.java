@@ -51,20 +51,21 @@ public class DbSchemaChanger {
     private File backupFile;
 
     /**
-     * Create a DB schema changer 
+     * Create a DB schema changer
+     * 
      * @param className the name of the class whose schema is to be changed
-     *                  it should be the full class name
+     *            it should be the full class name
      */
     public DbSchemaChanger(String className) throws Exception {
         this.className = className;
 
-        //pool creation 
+        // pool creation
         pool = ClassPool.getDefault();
 
-        //extracting the class
+        // extracting the class
         cc = pool.getCtClass(className);
 
-        String classFileName = cc.getURL().getFile(); 
+        String classFileName = cc.getURL().getFile();
         classFile = new File(classFileName);
 
         log.info("The class file:{}  package:{}", classFileName, cc.getPackageName());
@@ -75,7 +76,7 @@ public class DbSchemaChanger {
      * This method should be called before making any changes to the class
      */
     public DbSchemaChanger beginChange() throws Exception {
-        //backup the original class file
+        // backup the original class file
         backupFile = File.createTempFile("dataobj", ".class");
 
         log.info("copy from {} to {}", classFile.getAbsolutePath(), backupFile.getAbsolutePath());
@@ -114,15 +115,16 @@ public class DbSchemaChanger {
         String classFileName = classFile.getAbsolutePath();
         int lastIndex = classFileName.lastIndexOf(subDirs);
 
-        return classFileName.substring(0, lastIndex); 
+        return classFileName.substring(0, lastIndex);
     }
 
     /**
      * restore the class to the version before the change
      */
     public void restoreClass() throws Exception {
-        if (backupFile == null)
+        if (backupFile == null) {
             return;
+        }
 
         copyFile(backupFile, classFile);
 
@@ -132,21 +134,22 @@ public class DbSchemaChanger {
         Thread.currentThread().sleep(5000);
         log.info("restore done");
 
-        //delete backup file
+        // delete backup file
         boolean deleted = backupFile.delete();
         log.info("delete backup file {} sucess={}", backupFile.getAbsolutePath(), deleted);
         backupFile = null;
     }
-    
+
     /**
      * add an annotation to a method
-     * @param methodName the method to which the annotation to be added 
+     * 
+     * @param methodName the method to which the annotation to be added
      * @param annotationName the annotation name, it should be a full name
      * @param values the attributes of the annotation
      */
     public DbSchemaChanger addAnnotation(String methodName, String annotationName, Map<String, Object> values)
-               throws Exception {
-        //looking for the method to apply the annotation on
+            throws Exception {
+        // looking for the method to apply the annotation on
         CtMethod methodDescriptor = cc.getDeclaredMethod(methodName);
 
         // create the annotation
@@ -157,9 +160,10 @@ public class DbSchemaChanger {
 
         MethodInfo minfo = methodDescriptor.getMethodInfo();
 
-        AnnotationsAttribute attr = (AnnotationsAttribute)minfo.getAttribute(AnnotationsAttribute.visibleTag);
-        if (attr == null)
+        AnnotationsAttribute attr = (AnnotationsAttribute) minfo.getAttribute(AnnotationsAttribute.visibleTag);
+        if (attr == null) {
             attr = new AnnotationsAttribute(constpool, AnnotationsAttribute.visibleTag);
+        }
 
         Annotation annot = new Annotation(annotationName, constpool);
 
@@ -169,11 +173,12 @@ public class DbSchemaChanger {
             Object attrValue = entry.getValue();
 
             if (attrValue instanceof String) {
-                annot.addMemberValue(attrName, new StringMemberValue((String)attrValue, ccFile.getConstPool()));
-            }else
-                throw new RuntimeException(String.format("Unsupported attribute type %s of %s", attrName, attrValue)); 
+                annot.addMemberValue(attrName, new StringMemberValue((String) attrValue, ccFile.getConstPool()));
+            } else {
+                throw new RuntimeException(String.format("Unsupported attribute type %s of %s", attrName, attrValue));
+            }
         }
-            
+
         attr.addAnnotation(annot);
 
         // add the annotation to the method descriptor
@@ -186,11 +191,12 @@ public class DbSchemaChanger {
 
     /**
      * remove an annotation from a method
-     * @param methodName the method to which the annotation to be removed 
+     * 
+     * @param methodName the method to which the annotation to be removed
      * @param annotationName the annotation name, it should be a full name
      */
     public DbSchemaChanger removeAnnotation(String methodName, String annotationName) throws Exception {
-        //looking for the method to apply the annotation on
+        // looking for the method to apply the annotation on
         CtMethod methodDescriptor = cc.getDeclaredMethod(methodName);
 
         // create the annotation
@@ -201,13 +207,14 @@ public class DbSchemaChanger {
 
         MethodInfo minfo = methodDescriptor.getMethodInfo();
 
-        AnnotationsAttribute attr = (AnnotationsAttribute)minfo.getAttribute(AnnotationsAttribute.visibleTag);
+        AnnotationsAttribute attr = (AnnotationsAttribute) minfo.getAttribute(AnnotationsAttribute.visibleTag);
         Annotation[] annotations = attr.getAnnotations();
         List<Annotation> list = new ArrayList();
 
         for (Annotation annotation : annotations) {
-            if (!annotation.getTypeName().equals(annotationName))
+            if (!annotation.getTypeName().equals(annotationName)) {
                 list.add(annotation);
+            }
         }
 
         Annotation[] newAnnotations = list.toArray(new Annotation[0]);
@@ -222,14 +229,15 @@ public class DbSchemaChanger {
     /**
      * Add a bean property to the class i.e. add followings to a class:
      * 1. a class field
-     * 2. a getter method 
-     * 3. a setter method 
+     * 2. a getter method
+     * 3. a setter method
+     * 
      * @param propertyName the bean property name
-     * @param propertyClazz the bean property type 
+     * @param propertyClazz the bean property type
      * @param columnName the corresponding column name of the bean property
      */
     public <T> DbSchemaChanger addBeanProperty(String propertyName, Class<T> propertyClazz, String columnName)
-                throws Exception {
+            throws Exception {
         CtField f = new CtField(pool.get(propertyClazz.getName()), propertyName, cc);
         cc.addField(f);
 
@@ -280,14 +288,14 @@ public class DbSchemaChanger {
     }
 
     private static String buildMethodName(StringBuilder builder, String propertyName) {
-        char firstChar = propertyName.charAt(0); 
+        char firstChar = propertyName.charAt(0);
         int index = 1;
 
         if (firstChar == '_') {
             firstChar = propertyName.charAt(1);
             index = 2;
         }
-        
+
         builder.append(String.valueOf(firstChar).toUpperCase());
         builder.append(propertyName.substring(index));
 
@@ -302,18 +310,19 @@ public class DbSchemaChanger {
 
     private void dumpClassInfo() {
         CtField[] fields = cc.getDeclaredFields();
-        for(int i = 0; i < fields.length; i++){
+        for (int i = 0; i < fields.length; i++) {
             log.info(fields[i].getName());
         }
 
         CtMethod[] methods = cc.getDeclaredMethods();
-        for(int i = 0; i < methods.length; i++){
+        for (int i = 0; i < methods.length; i++) {
             log.info(methods[i].getName());
         }
     }
 
     /**
      * Remove a bean property from the class
+     * 
      * @param propertyName the name of the property to be remooved
      */
     public DbSchemaChanger removeBeanProperty(String propertyName) throws Exception {
@@ -329,8 +338,9 @@ public class DbSchemaChanger {
     }
 
     /**
-     *  remove the method from the class 
-     *  @param methodName the name of the method to be removed
+     * remove the method from the class
+     * 
+     * @param methodName the name of the method to be removed
      */
     private void removeMethod(String methodName) throws Exception {
         CtMethod[] methods = cc.getDeclaredMethods();
@@ -342,7 +352,7 @@ public class DbSchemaChanger {
                 break;
             }
         }
-        
+
         if (method != null) {
             cc.removeMethod(method);
             log.info("The method {} is removed", methodName);
@@ -353,22 +363,24 @@ public class DbSchemaChanger {
 
     /**
      * verify the method does have the annotation
+     * 
      * @param methodName the name of the method to be checked
      * @param annotationName the name of the annotation to be checked
      */
     public void verifyAnnotation(String methodName, String annotationName) throws Exception {
         Class clazz = Class.forName(className);
-        Method method = clazz.getDeclaredMethod(methodName);  
+        Method method = clazz.getDeclaredMethod(methodName);
 
-        //getting the annotation
+        // getting the annotation
         Class annotationClazz = Class.forName(annotationName);
         java.lang.annotation.Annotation annotation = method.getAnnotation(annotationClazz);
         Assert.assertNotNull(annotation);
     }
 
     /**
-     * verify the class doesn't have the bean property 
-     * @param propertyName the name of the property 
+     * verify the class doesn't have the bean property
+     * 
+     * @param propertyName the name of the property
      */
     public void verifyBeanPropertyNotExist(String propertyName) throws Exception {
         Class clazz = Class.forName(className);
@@ -393,8 +405,8 @@ public class DbSchemaChanger {
         Method[] methods = clazz.getMethods();
         for (Method m : methods) {
             if (m.getName().equals(methodName)) {
-                 method = m;
-                 break;
+                method = m;
+                break;
             }
         }
 
@@ -402,8 +414,9 @@ public class DbSchemaChanger {
     }
 
     /**
-     * verify the class has the bean property 
-     * @param propertyName the name of the property 
+     * verify the class has the bean property
+     * 
+     * @param propertyName the name of the property
      */
     public void verifyBeanPropertyExist(String propertyName) throws Exception {
         Class clazz = Class.forName(className);
@@ -423,8 +436,8 @@ public class DbSchemaChanger {
 
     private void copyFile(File sourceFile, File targetFile) throws Exception {
         log.info("copy from {} to {}", sourceFile, targetFile);
-        FileChannel source = new FileInputStream(sourceFile).getChannel(); 
-        FileChannel target = new FileOutputStream(targetFile).getChannel(); 
+        FileChannel source = new FileInputStream(sourceFile).getChannel();
+        FileChannel target = new FileOutputStream(targetFile).getChannel();
         target.transferFrom(source, 0, source.size());
     }
 
@@ -458,9 +471,9 @@ public class DbSchemaChanger {
     /**
      * Check if the class has been loaded by the system class loader or not
      */
-    public boolean isLoaded() { 
+    public boolean isLoaded() {
         try {
-            //ClassLoader.findLoadedClass() is 'protected'
+            // ClassLoader.findLoadedClass() is 'protected'
             // make it accessible outside
             Method m = ClassLoader.class.getDeclaredMethod("findLoadedClass", new Class[] { String.class });
             m.setAccessible(true);
@@ -469,7 +482,7 @@ public class DbSchemaChanger {
             ClassLoader cl = ClassLoader.getSystemClassLoader();
             Object obj = m.invoke(cl, className);
             return obj != null;
-        }catch (Exception e) {
+        } catch (Exception e) {
             log.error("Failed to check if the class {} is loaded e=", className, e);
         }
 

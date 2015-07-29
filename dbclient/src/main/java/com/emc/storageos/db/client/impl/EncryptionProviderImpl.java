@@ -34,7 +34,7 @@ import com.emc.storageos.db.client.model.EncryptionProvider;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 
 /**
- * Default encryption provider.   Uses AES encryption.
+ * Default encryption provider. Uses AES encryption.
  */
 public class EncryptionProviderImpl implements EncryptionProvider {
     private static final Logger _logger = LoggerFactory.getLogger(EncryptionProviderImpl.class);
@@ -48,7 +48,7 @@ public class EncryptionProviderImpl implements EncryptionProvider {
     private SecretKey _key;
     private Cipher _cipher;
     private Cipher _decipher;
-    
+
     private String _encryptId = CONFIG_ID;
 
     /**
@@ -62,7 +62,7 @@ public class EncryptionProviderImpl implements EncryptionProvider {
         _coordinator = coordinator;
     }
 
-    public SecretKey getKey(){
+    public SecretKey getKey() {
         return this._key;
     }
 
@@ -81,7 +81,7 @@ public class EncryptionProviderImpl implements EncryptionProvider {
 
     /**
      * Reads existing encryption key from coordinator and caches it
-     *
+     * 
      * @throws Exception
      */
     private synchronized void cacheKey() throws Exception {
@@ -111,7 +111,7 @@ public class EncryptionProviderImpl implements EncryptionProvider {
 
     /**
      * Generates a new key and persists it to coordinator
-     *
+     * 
      * @throws Exception
      */
     private void generateKey() throws Exception {
@@ -122,7 +122,7 @@ public class EncryptionProviderImpl implements EncryptionProvider {
 
     /**
      * Persists key to coordinator
-     *
+     * 
      * @throws Exception
      */
     private void persistKey(SecretKey key) throws Exception {
@@ -136,7 +136,7 @@ public class EncryptionProviderImpl implements EncryptionProvider {
 
     /**
      * Deserialize secret key
-     *
+     * 
      * @param config
      */
     private void readKey(Configuration config) {
@@ -145,7 +145,7 @@ public class EncryptionProviderImpl implements EncryptionProvider {
                 base64Encoded.getBytes(UTF_8)), ALGO);
         _key = key;
     }
-    
+
     // Add a version number
     private byte[] encode(byte[] input) {
         byte[] out = new byte[input.length + 1];
@@ -161,13 +161,13 @@ public class EncryptionProviderImpl implements EncryptionProvider {
         }
         else if (input[0] != ENC_PROVIDER_VERSION) {
             throw new IllegalStateException("decrypt decode failed from db: "
-                + "version found: " + input[0]
-                + "version expected: " + ENC_PROVIDER_VERSION);
+                    + "version found: " + input[0]
+                    + "version expected: " + ENC_PROVIDER_VERSION);
         }
         byte[] out = new byte[input.length - 1];
         System.arraycopy(input, 1, out, 0, input.length - 1);
         return out;
-    }        
+    }
 
     @Override
     public byte[] encrypt(String input) {
@@ -190,22 +190,22 @@ public class EncryptionProviderImpl implements EncryptionProvider {
 
     @Override
     public String getEncryptedString(String input) {
-       byte[] data = encrypt(input);
-       try {
-          return new String(Base64.encodeBase64(data), "UTF-8");
-       } catch (UnsupportedEncodingException e) {
-          // All JVMs must support UTF-8, this really can never happen
-          throw new RuntimeException(e);
-       }
+        byte[] data = encrypt(input);
+        try {
+            return new String(Base64.encodeBase64(data), "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            // All JVMs must support UTF-8, this really can never happen
+            throw new RuntimeException(e);
+        }
     }
 
-    public void restoreKey(SecretKey key) throws Exception { 
+    public void restoreKey(SecretKey key) throws Exception {
         InterProcessLock lock = null;
         try {
             lock = _coordinator.getLock(CONFIG_KIND);
             lock.acquire();
             persistKey(key);
-        }finally {
+        } finally {
             if (lock != null) {
                 lock.release();
             }

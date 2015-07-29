@@ -19,8 +19,9 @@ import org.junit.Assert;
  */
 public class Resource4KeyInitializer extends BaseTestCustomMigrationCallback {
     public static final String KEY_CONST = "testkey";
+
     @Override
-    public void process(){
+    public void process() {
         DbClient dbClient = getDbClient();
         List<URI> res4Keys = dbClient.queryByType(Resource4.class, false);
         Iterator<Resource4> res4Objs =
@@ -31,9 +32,9 @@ public class Resource4KeyInitializer extends BaseTestCustomMigrationCallback {
             dbClient.persistObject(res4);
         }
     }
-    
+
     @Override
-    public void verify(){
+    public void verify() {
         DbClient dbClient = getDbClient();
         List<URI> res4Keys = dbClient.queryByType(Resource4.class, false);
         Iterator<Resource4> res4Objs =

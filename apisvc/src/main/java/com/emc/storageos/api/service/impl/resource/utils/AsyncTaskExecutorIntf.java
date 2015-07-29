@@ -9,7 +9,6 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 
-
 /**
  * Interface to be use to execute Async tasks.
  */

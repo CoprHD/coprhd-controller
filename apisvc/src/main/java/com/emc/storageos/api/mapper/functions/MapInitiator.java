@@ -10,7 +10,7 @@ import com.emc.storageos.model.host.InitiatorRestRep;
 import com.google.common.base.Function;
 
 public class MapInitiator implements Function<Initiator, InitiatorRestRep> {
-	
+
     public static final MapInitiator instance = new MapInitiator();
 
     public static MapInitiator getInstance() {

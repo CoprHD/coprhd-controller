@@ -11,7 +11,8 @@ public class InvalidSoftwareVersionException extends FatalCoordinatorException {
 
     private static final long serialVersionUID = 3600447300786533101L;
 
-    protected InvalidSoftwareVersionException(final ServiceCode code, final Throwable cause, final String detailBase, final String detailKey, final Object[] detailParams) {
+    protected InvalidSoftwareVersionException(final ServiceCode code, final Throwable cause, final String detailBase,
+            final String detailKey, final Object[] detailParams) {
         super(code, cause, detailBase, detailKey, detailParams);
     }
 }

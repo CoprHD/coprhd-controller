@@ -4,10 +4,10 @@
  */
 package com.emc.storageos.dbcli.wrapper;
 
-public abstract class Wrapper<T>{
+public abstract class Wrapper<T> {
 
     public abstract T getValue();
- 
+
     public abstract void setValue(T object);
 
 }

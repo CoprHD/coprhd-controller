@@ -36,61 +36,59 @@ public class PrimaryVolumeDescriptor {
     public byte terminator = (byte) 255;
     private Date creationDate;
 
-    public PrimaryVolumeDescriptor(Date date){
+    public PrimaryVolumeDescriptor(Date date) {
         creationDate = date;
     }
 
-    public void addToBuffer(ByteBuffer byteBuffer){
+    public void addToBuffer(ByteBuffer byteBuffer) {
 
         byteBuffer.put(volumeDescriptorType);
         byteBuffer.put(standardIdentifier.getBytes());
         byteBuffer.put(volumeDescriptorVersion);
-        ISOUtil.padWithReserved(byteBuffer, 1); //unused
+        ISOUtil.padWithReserved(byteBuffer, 1); // unused
 
         byteBuffer.put(systemIdentifier.getBytes());
-        ISOUtil.padWithSpaces(byteBuffer,32 - systemIdentifier.length());
+        ISOUtil.padWithSpaces(byteBuffer, 32 - systemIdentifier.length());
 
         byteBuffer.put(volumeIdentifier.getBytes());
-        ISOUtil.padWithSpaces(byteBuffer,32 - volumeIdentifier.length());
+        ISOUtil.padWithSpaces(byteBuffer, 32 - volumeIdentifier.length());
 
-        ISOUtil.padWithReserved(byteBuffer, 8); //unused
+        ISOUtil.padWithReserved(byteBuffer, 8); // unused
         ISOUtil.putIntLSBMSB(byteBuffer, volumeSpaceSize);
-        ISOUtil.padWithReserved(byteBuffer, 32); //unused
+        ISOUtil.padWithReserved(byteBuffer, 32); // unused
 
         ISOUtil.putShortLSBMSB(byteBuffer, volumeSetSize);
         ISOUtil.putShortLSBMSB(byteBuffer, volumeSequenceNumber);
         ISOUtil.putShortLSBMSB(byteBuffer, logicalBlockSize);
         ISOUtil.putIntLSBMSB(byteBuffer, pathTableSize);
 
-
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN).putInt(locationOfLittleEndianPathTable);
-        ISOUtil.padWithReserved(byteBuffer, 4); //locationOfOptionalLittleEndianPathTable
+        ISOUtil.padWithReserved(byteBuffer, 4); // locationOfOptionalLittleEndianPathTable
         byteBuffer.order(ByteOrder.BIG_ENDIAN).putInt(locationOfBigEndianPathTable);
-        ISOUtil.padWithReserved(byteBuffer, 4); //locationOfOptionalBigEndianPathTable
+        ISOUtil.padWithReserved(byteBuffer, 4); // locationOfOptionalBigEndianPathTable
 
         rootDirectoryRecord.addToBuffer(byteBuffer);
 
-        ISOUtil.padWithSpaces(byteBuffer,623); //some identifiers
-        ISOUtil.formatDateAsStr(byteBuffer, creationDate); //volume creation date
-        ISOUtil.padWithZeros(byteBuffer, 16); //last modified date
-        byteBuffer.put((byte)0);
-        ISOUtil.padWithZeros(byteBuffer, 16); //expiry date
-        byteBuffer.put((byte)0);
-        ISOUtil.padWithZeros(byteBuffer, 16); //effective date
-        byteBuffer.put((byte)0);
+        ISOUtil.padWithSpaces(byteBuffer, 623); // some identifiers
+        ISOUtil.formatDateAsStr(byteBuffer, creationDate); // volume creation date
+        ISOUtil.padWithZeros(byteBuffer, 16); // last modified date
+        byteBuffer.put((byte) 0);
+        ISOUtil.padWithZeros(byteBuffer, 16); // expiry date
+        byteBuffer.put((byte) 0);
+        ISOUtil.padWithZeros(byteBuffer, 16); // effective date
+        byteBuffer.put((byte) 0);
         byteBuffer.put(fileStructureVersion);
-        int reserve = logicalBlockSize - byteBuffer.position()% logicalBlockSize;
+        int reserve = logicalBlockSize - byteBuffer.position() % logicalBlockSize;
         ISOUtil.padWithReserved(byteBuffer, reserve); // reserving till end of this sector
 
         // TERMINATOR
-        //Descriptor terminator
-        byteBuffer.put(terminator); //ff
+        // Descriptor terminator
+        byteBuffer.put(terminator); // ff
         byteBuffer.put(standardIdentifier.getBytes());
         byteBuffer.put(volumeDescriptorVersion);
         ISOUtil.padWithReserved(byteBuffer, logicalBlockSize - (2 + standardIdentifier
                 .length()));
 
     }
-
 
 }

@@ -17,13 +17,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.service.DistributedDataManager;
-import com.emc.storageos.coordinator.client.service.impl.DistributedDataManagerImpl;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import org.apache.curator.framework.api.CuratorListener;
 import org.apache.curator.framework.state.ConnectionStateListener;
 
 /**
- *  Stub DistributedDataManager class for use with unit tests
+ * Stub DistributedDataManager class for use with unit tests
  */
 public class TestDistributedDataManager implements DistributedDataManager {
 
@@ -31,11 +30,11 @@ public class TestDistributedDataManager implements DistributedDataManager {
     private ZkConnection _zkConnection = null;
     private String _basePath;
     private long _maxNodes;
-    private Map<String, Object> _dataMap = new HashMap<String,Object>();
-    
+    private Map<String, Object> _dataMap = new HashMap<String, Object>();
+
     public TestDistributedDataManager(ZkConnection zkConnection, String basePath, long maxNodes) {
         _zkConnection = zkConnection;
-        if (StringUtils.isEmpty(basePath) || !basePath.startsWith("/") || 
+        if (StringUtils.isEmpty(basePath) || !basePath.startsWith("/") ||
                 (basePath.length() < 2) || basePath.endsWith("/")) {
             throw new IllegalArgumentException("basePath must be at least 2 characters long and start with (but not end with) /");
         }
@@ -89,15 +88,17 @@ public class TestDistributedDataManager implements DistributedDataManager {
         return _dataMap.get(path);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.coordinator.client.service.DistributedDataManager#getChildren(java.lang.String)
      */
     @Override
     public List<String> getChildren(String path) throws Exception {
-    	// We need to return only ClientIP portion of the entries excluding the _basePath
+        // We need to return only ClientIP portion of the entries excluding the _basePath
         Set<String> entries = _dataMap.keySet();
         List<String> list = new ArrayList<String>();
-        for (String str: entries) {
+        for (String str : entries) {
             list.add(str.replaceFirst(_basePath + "/", ""));
         }
         return list;

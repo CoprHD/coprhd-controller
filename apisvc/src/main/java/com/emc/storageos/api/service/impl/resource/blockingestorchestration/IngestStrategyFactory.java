@@ -20,11 +20,11 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 public class IngestStrategyFactory {
 
     private static final Logger _logger = LoggerFactory.getLogger(IngestStrategyFactory.class);
-    
+
     private BlockIngestOrchestrator blockVolumeIngestOrchestrator;
 
     private BlockIngestOrchestrator blockRemoteReplicationIngestOrchestrator;
-    
+
     private BlockIngestOrchestrator blockVplexVolumeIngestOrchestrator;
 
     private BlockIngestExportOrchestrator maskPerHostIngestOrchestrator;
@@ -32,13 +32,13 @@ public class IngestStrategyFactory {
     private BlockIngestExportOrchestrator multipleMaskPerHostIngestOrchestrator;
 
     private BlockIngestExportOrchestrator unexportedVolumeIngestOrchestrator;
-    
+
     private BlockIngestOrchestrator blockSnapshotIngestOrchestrator;
-    
+
     private BlockIngestOrchestrator blockMirrorIngestOrchestrator;
 
     private Map<String, IngestStrategy> ingestStrategyMap;
-    
+
     private Map<String, IngestExportStrategy> ingestExportStrategyMap;
 
     private DbClient _dbClient;
@@ -131,7 +131,7 @@ public class IngestStrategyFactory {
     public enum ReplicationStrategy {
         LOCAL, REMOTE, VPLEX
     }
-    
+
     public enum VolumeType {
         VOLUME, SNAPSHOT, CLONE, MIRROR
     }
@@ -173,8 +173,9 @@ public class IngestStrategyFactory {
 
         public static IngestExportStrategyEnum getIngestStrategy(String strategyName) {
             for (IngestExportStrategyEnum strategy : copyOfValues) {
-                if (strategy.getIngestStrategy().contains(strategyName))
+                if (strategy.getIngestStrategy().contains(strategyName)) {
                     return strategy;
+                }
             }
             return null;
         }
@@ -205,7 +206,7 @@ public class IngestStrategyFactory {
         private static final IngestStrategyEnum[] copyOfValues = values();
 
     }
-    
+
     public IngestExportStrategy getIngestExportStrategy(IngestExportStrategyEnum strategyEnum) {
         IngestExportStrategy ingestStrategy = new IngestExportStrategy();
         ingestStrategy.setDbClient(_dbClient);
@@ -217,36 +218,36 @@ public class IngestStrategyFactory {
          * 
          * Eg: Ingest Exported HDS Remote Replicated Volume into ViPR
          */
-      case MASK_PER_HOST:
-          ingestStrategy.setIngestExportOrchestrator(maskPerHostIngestOrchestrator);
-          break;
-          
-          /*
-           * MULTIPLE_MASK_PER_HOST:
-           * Ingest Block Object, where the masking containers on Array CAN be
-           * modeled as Export mask in ViPR.
-           * 
-           * Eg: Ingest Exported VMAX Remote Replicated Volume (SRDF) into ViPR
-           */
-      case MULTIPLE_MASK_PER_HOST:
-          ingestStrategy.setIngestExportOrchestrator(multipleMaskPerHostIngestOrchestrator);
-          break;
-          
-      
-      case NO_MASK:
-          ingestStrategy.setIngestExportOrchestrator(unexportedVolumeIngestOrchestrator);
-          break;
+            case MASK_PER_HOST:
+                ingestStrategy.setIngestExportOrchestrator(maskPerHostIngestOrchestrator);
+                break;
 
-      default:
-          break;
+            /*
+             * MULTIPLE_MASK_PER_HOST:
+             * Ingest Block Object, where the masking containers on Array CAN be
+             * modeled as Export mask in ViPR.
+             * 
+             * Eg: Ingest Exported VMAX Remote Replicated Volume (SRDF) into ViPR
+             */
+            case MULTIPLE_MASK_PER_HOST:
+                ingestStrategy.setIngestExportOrchestrator(multipleMaskPerHostIngestOrchestrator);
+                break;
+
+            case NO_MASK:
+                ingestStrategy.setIngestExportOrchestrator(unexportedVolumeIngestOrchestrator);
+                break;
+
+            default:
+                break;
         }
-        
+
         return ingestStrategy;
     }
 
     /**
      * Based on the strategy key, ingest strategy object will be associated
      * with corresponding ingestResource and ingestExport orchestrators.
+     * 
      * @param strategyEnum
      * @return
      */
@@ -255,31 +256,31 @@ public class IngestStrategyFactory {
         IngestStrategy ingestStrategy = new IngestStrategy();
         ingestStrategy.setDbClient(_dbClient);
         switch (strategyEnum) {
-          
-        case REMOTE_VOLUME:
-            ingestStrategy.setIngestResourceOrchestrator(blockRemoteReplicationIngestOrchestrator);
-            break;
-            
-        case LOCAL_CLONE:
-        case LOCAL_VOLUME:
-            ingestStrategy.setIngestResourceOrchestrator(blockVolumeIngestOrchestrator);
-            break;
-            
-        case LOCAL_SNAPSHOT:
-            ingestStrategy.setIngestResourceOrchestrator(blockSnapshotIngestOrchestrator);
-            break;
-            
-        case LOCAL_MIRROR:
-            ingestStrategy.setIngestResourceOrchestrator(blockMirrorIngestOrchestrator);
-            break;
-        
-        case VPLEX_VOLUME:
-            ingestStrategy.setIngestResourceOrchestrator(blockVplexVolumeIngestOrchestrator);
 
-            break;
+            case REMOTE_VOLUME:
+                ingestStrategy.setIngestResourceOrchestrator(blockRemoteReplicationIngestOrchestrator);
+                break;
 
-        default:
-            break;
+            case LOCAL_CLONE:
+            case LOCAL_VOLUME:
+                ingestStrategy.setIngestResourceOrchestrator(blockVolumeIngestOrchestrator);
+                break;
+
+            case LOCAL_SNAPSHOT:
+                ingestStrategy.setIngestResourceOrchestrator(blockSnapshotIngestOrchestrator);
+                break;
+
+            case LOCAL_MIRROR:
+                ingestStrategy.setIngestResourceOrchestrator(blockMirrorIngestOrchestrator);
+                break;
+
+            case VPLEX_VOLUME:
+                ingestStrategy.setIngestResourceOrchestrator(blockVplexVolumeIngestOrchestrator);
+
+                break;
+
+            default:
+                break;
 
         }
         return ingestStrategy;
@@ -299,12 +300,12 @@ public class IngestStrategyFactory {
             replicationStrategy = ReplicationStrategy.REMOTE.name();
         }
         String volumeType = VolumeType.VOLUME.name();
-        if(VolumeIngestionUtil.isSnapshot(unManagedVolume)) {
+        if (VolumeIngestionUtil.isSnapshot(unManagedVolume)) {
             volumeType = VolumeType.SNAPSHOT.name();
         } else if (VolumeIngestionUtil.isMirror(unManagedVolume)) {
             volumeType = VolumeType.MIRROR.name();
         }
-        
+
         String strategyKey = replicationStrategy + "_" + volumeType;
         _logger.info("strategy key is " + strategyKey);
 
@@ -316,26 +317,26 @@ public class IngestStrategyFactory {
 
         return ingestStrategyMap.get(strategyKey);
     }
-    
+
     public IngestExportStrategy buildIngestExportStrategy(UnManagedVolume unManagedVolume) {
         boolean isVolumeExported = Boolean.parseBoolean(unManagedVolume.getVolumeCharacterstics().get(
                 SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString()));
         String systemType = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.SYSTEM_TYPE.toString(),
                 unManagedVolume.getVolumeInformation());
         _logger.info("system type is " + systemType);
-        
+
         IngestExportStrategyEnum exportStrategy = IngestExportStrategyEnum.NO_MASK;
         if (isVolumeExported) {
             exportStrategy = IngestExportStrategyEnum.getIngestStrategy(systemType);
         }
         _logger.info("export strategy is " + exportStrategy.name());
-        
+
         if (null == ingestExportStrategyMap.get(exportStrategy.name())) {
             IngestExportStrategy strategy = getIngestExportStrategy(exportStrategy);
             _logger.info("ingest strategy map does not contain key, adding " + exportStrategy + " for " + strategy);
             ingestExportStrategyMap.put(exportStrategy.name(), strategy);
         }
-        
+
         return ingestExportStrategyMap.get(exportStrategy.name());
     }
 

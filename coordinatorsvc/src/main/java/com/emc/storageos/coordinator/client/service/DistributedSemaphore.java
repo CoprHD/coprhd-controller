@@ -25,7 +25,7 @@ public interface DistributedSemaphore {
 
     /**
      * P operation of the semaphore. Blocks if no permit is available.
-     *
+     * 
      * @return Lease
      */
     public Lease acquireLease() throws Exception;
@@ -33,10 +33,10 @@ public interface DistributedSemaphore {
     /**
      * P operation of the semaphore. Blocks if no permit is available until specified time limit is exceeded.
      * If the specified time limit is exceeded, returns null.
-     *
+     * 
      * @param waitTime The amount of time to wait
      * @param waitTimeUnit The unit of waitTime
-     *
+     * 
      * @return Lease:
      *         valid, if the semaphore is acquired within the specified time limit
      *         null, otherwise.
@@ -48,7 +48,7 @@ public interface DistributedSemaphore {
      * This method <b>must</b> be called by clients who called acquireLease methods to release
      * the lease, preferably in a finally block.
      * Leases are freed by the ZK server, in the event of ZK client session drops.
-     *
+     * 
      * @param lease
      */
     public void returnLease(Lease lease) throws Exception;

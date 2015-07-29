@@ -50,11 +50,11 @@ public class DiagnosticsExec implements DiagConstants {
             SyssvcInternalException {
         List<String> cmdList = new ArrayList(Arrays.asList(args));
         cmdList.add(0, DIAGTOOl_CMD);
-        //remove blank args at the end
-        int lastElement = cmdList.size()-1;
-        if(cmdList.get(lastElement).trim().isEmpty()){
-        	cmdList.remove(lastElement);
-        }    
+        // remove blank args at the end
+        int lastElement = cmdList.size() - 1;
+        if (cmdList.get(lastElement).trim().isEmpty()) {
+            cmdList.remove(lastElement);
+        }
         final String[] cmd = cmdList.toArray(new String[cmdList.size()]);
         final Exec.Result result = Exec.sudo(DIAGTOOL_TIMEOUT, cmd);
         if (!result.exitedNormally() || result.getExitValue() != 0) {
@@ -93,7 +93,7 @@ public class DiagnosticsExec implements DiagConstants {
                         paramStrs));
             } else {
                 String[] keyVal = test.split("=");
-                if(keyVal.length >= 2){
+                if (keyVal.length >= 2) {
                     Matcher paramValMatcher = paramValPattern.matcher(keyVal[1]);
                     if (paramValMatcher.find()) {
                         paramStrs.add(new TestParam(keyVal[0].trim(),

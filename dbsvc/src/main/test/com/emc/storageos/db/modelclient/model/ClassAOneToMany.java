@@ -18,14 +18,13 @@ import com.emc.storageos.db.client.model.StringSet;
 
 /**
  * @author cgarber
- *
+ * 
  */
 @Cf("ClassA")
 public class ClassAOneToMany extends DataObject {
-    
+
     private StringSet bids;
     private List<ClassBOneToMany> binstances;
-
 
     @RelationIndex(cf = "RelationIndex", type = ClassBOneToMany.class)
     @IndexByKey
@@ -49,7 +48,9 @@ public class ClassAOneToMany extends DataObject {
     }
 
     public void addB(ClassBOneToMany b) {
-        if (binstances == null) binstances = new ArrayList<ClassBOneToMany>();
+        if (binstances == null) {
+            binstances = new ArrayList<ClassBOneToMany>();
+        }
         binstances.add(b);
     }
 

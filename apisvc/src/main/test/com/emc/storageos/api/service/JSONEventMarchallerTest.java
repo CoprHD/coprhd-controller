@@ -75,7 +75,6 @@ public class JSONEventMarchallerTest {
 
     }
 
-    
     @Test
     public void testJsonEventMarshallingForNullEvent() throws URISyntaxException, IOException,
             MarshallingExcetion {
@@ -83,7 +82,7 @@ public class JSONEventMarchallerTest {
         deleteIfExists(JsonTestOutputFile);
         JSONEventMarshaller jm = new JSONEventMarshaller();
         Event evt = null;
-        
+
         OutputStream output = new OutputStream() {
             private StringBuilder string = new StringBuilder();
 
@@ -113,23 +112,19 @@ public class JSONEventMarchallerTest {
         AnnotationIntrospector introspector = new JaxbAnnotationIntrospector();
         mapper.getDeserializationConfig().withAnnotationIntrospector(
                 introspector);
-        
-        try{
+
+        try {
             @SuppressWarnings("unused")
             Event event = mapper.readValue(new File(JsonTestOutputFile),
                     Event.class);
-        }
-        catch(UnrecognizedPropertyException e){
+        } catch (UnrecognizedPropertyException e) {
             Assert.assertTrue(e.toString().contains("Unrecognized"));
         }
 
-      
         deleteIfExists(JsonTestOutputFile);
 
     }
-    
-    
-    
+
     @Test
     public void testJsonEventMarshallingForIOExceptions() throws URISyntaxException, IOException,
             MarshallingExcetion {
@@ -151,38 +146,37 @@ public class JSONEventMarchallerTest {
                 return this.string.toString();
             }
         };
-       
-        try{
+
+        try {
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
                     output));
             writer.close();
-            jm.header(writer);           
-        } catch(MarshallingExcetion e){
+            jm.header(writer);
+        } catch (MarshallingExcetion e) {
             Assert.assertTrue(e.toString().contains("JSON head Streaming failed"));
         }
 
-        try{
+        try {
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
                     output));
             writer.close();
-            jm.marshal(evt, writer);           
-        } catch(MarshallingExcetion e){
+            jm.marshal(evt, writer);
+        } catch (MarshallingExcetion e) {
             Assert.assertTrue(e.toString().contains("JSON streaming failed"));
         }
-        
-        try{
+
+        try {
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
                     output));
             writer.close();
-            jm.tailer(writer);           
-        } catch(MarshallingExcetion e){
+            jm.tailer(writer);
+        } catch (MarshallingExcetion e) {
             Assert.assertTrue(e.toString().contains("JSON tail Streaming failed"));
         }
         deleteIfExists(JsonTestOutputFile);
 
     }
-    
-    
+
     private void deleteIfExists(String fname) {
         File f = new File(fname);
 

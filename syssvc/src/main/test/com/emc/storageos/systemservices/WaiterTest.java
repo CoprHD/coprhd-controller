@@ -9,18 +9,17 @@ import org.junit.Test;
 
 import com.emc.storageos.services.util.Waiter;
 
-
 class Sleeper implements Runnable {
     private final Waiter _waiter;
-    private final long   _startTimeMillis;
-        
+    private final long _startTimeMillis;
+
     public Sleeper(final Waiter waiter) {
-        _waiter          = waiter;
+        _waiter = waiter;
         _startTimeMillis = System.currentTimeMillis();
     }
-        
+
     public void run() {
-        for (int i=0; i < 5; i++) {
+        for (int i = 0; i < 5; i++) {
             System.out.println("A: sleep(1000): " + (System.currentTimeMillis() - _startTimeMillis));
             _waiter.sleep(1000);
         }

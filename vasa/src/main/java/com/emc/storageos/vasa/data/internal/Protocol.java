@@ -12,32 +12,31 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "protocols")
 public class Protocol {
 
-	@XmlElement
-	private List<String> protocol;
+    @XmlElement
+    private List<String> protocol;
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
-        public List<String> getProtocol() {
-		return protocol;
-	}
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.lang.Object#toString()
+     */
+    public List<String> getProtocol() {
+        return protocol;
+    }
 
-	@Override
-	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("Protocol [protocol=");
-		builder.append(protocol);
-		builder.append("]");
-		return builder.toString();
-	}
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Protocol [protocol=");
+        builder.append(protocol);
+        builder.append("]");
+        return builder.toString();
+    }
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
-	
-
-	
-
-	
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.lang.Object#toString()
+     */
 
 }

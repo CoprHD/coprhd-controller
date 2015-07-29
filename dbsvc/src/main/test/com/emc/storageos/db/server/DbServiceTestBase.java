@@ -5,7 +5,6 @@
 
 package com.emc.storageos.db.server;
 
-import com.emc.storageos.db.TestDBClientUtils;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
@@ -40,7 +39,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The base class of DB service test 
+ * The base class of DB service test
  */
 public abstract class DbServiceTestBase {
     static {
@@ -58,20 +57,23 @@ public abstract class DbServiceTestBase {
             URI.create("thrift://localhost:9160"));
 
     protected static void removeDb() throws Exception {
-        dataDir = new File("./dbtest");
+        // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+        // Junit test will be called in single thread by default, it's safe to ignore this violation
+        dataDir = new File("./dbtest"); // NOSONAR ("squid:S2444")
         if (dataDir.exists() && dataDir.isDirectory()) {
             cleanDirectory(dataDir);
         }
-    } 
+    }
 
     /**
      * Deletes given directory
-     *
+     * 
      * @param dir
      */
     protected static void cleanDirectory(File dir) {
-        if (dir == null || dir.listFiles() == null)
+        if (dir == null || dir.listFiles() == null) {
             return;
+        }
 
         File[] files = dir.listFiles();
 
@@ -108,7 +110,7 @@ public abstract class DbServiceTestBase {
 
         dbVersionInfo = new DbVersionInfo();
         dbVersionInfo.setSchemaVersion(schemaVersion);
-        
+
         coordinator.setDbVersionInfo(dbVersionInfo);
 
         DbServiceStatusChecker statusChecker = new DbServiceStatusChecker();
@@ -178,7 +180,7 @@ public abstract class DbServiceTestBase {
 
         dbsvc.setMigrationHandler(handler);
         dbsvc.setDisableScheduledDbRepair(true);
-        
+
         dbsvc.start();
     }
 
@@ -192,7 +194,7 @@ public abstract class DbServiceTestBase {
 
         return dbClient;
     }
-    
+
     protected DbClientContext createLocalContext() {
         DbClientContext context = new DbClientContext();
         context.setClusterName("Test");
@@ -212,6 +214,6 @@ public abstract class DbServiceTestBase {
     }
 
     protected static boolean isPreMigration() {
-        return Boolean.parseBoolean(System.getProperty("preMigration"));                               
+        return Boolean.parseBoolean(System.getProperty("preMigration"));
     }
 }

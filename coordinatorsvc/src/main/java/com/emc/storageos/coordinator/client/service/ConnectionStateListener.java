@@ -12,7 +12,7 @@ package com.emc.storageos.coordinator.client.service;
 public interface ConnectionStateListener {
     public static enum State {
         // when connection is lost, all runtime state (including locks) created from
-        // coordinator client should be considered no longer valid.  for example, this means
+        // coordinator client should be considered no longer valid. for example, this means
         // that distributed locks are no longer held
         DISCONNECTED,
 
@@ -21,9 +21,9 @@ public interface ConnectionStateListener {
     }
 
     /**
-     * Called when connection state changes.   Don't do any long running / block IO in
-     * here.  There may be other modules waiting for a notification.
-     *
+     * Called when connection state changes. Don't do any long running / block IO in
+     * here. There may be other modules waiting for a notification.
+     * 
      * @param state
      */
     public void connectionStateChanged(State state);

@@ -37,13 +37,15 @@ public class GeoServiceJobQueue extends DistributedQueueConsumer<GeoServiceJob> 
     private CoordinatorClient _coordinator;
     private KeyStore viprKeyStore;
 
-    public void setDbClient(DbClient dbClient){
+    public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
     }
-    public void setVdcController(VdcController controller){
+
+    public void setVdcController(VdcController controller) {
         _controller = controller;
     }
-    public void setCoordinator(CoordinatorClient coordinator){
+
+    public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
     }
 
@@ -62,9 +64,9 @@ public class GeoServiceJobQueue extends DistributedQueueConsumer<GeoServiceJob> 
         _log.info("Starting geosvc job queue");
         try {
             _queue = _coordinator.getQueue(
-                               GeoServiceHelper.GEOSVC_QUEUE_NAME, this, new GeoServiceJobSerializer(),
-                               GeoServiceHelper.DEFAULT_MAX_THREADS);
-        }catch(Exception e){
+                    GeoServiceHelper.GEOSVC_QUEUE_NAME, this, new GeoServiceJobSerializer(),
+                    GeoServiceHelper.DEFAULT_MAX_THREADS);
+        } catch (Exception e) {
             _log.error("can not startup geosvc job queue", e);
         }
     }
@@ -79,7 +81,8 @@ public class GeoServiceJobQueue extends DistributedQueueConsumer<GeoServiceJob> 
 
     /**
      * Used by geosvc in case have subtasks to process
-     * @param job The geosvc job to be enqueued. 
+     * 
+     * @param job The geosvc job to be enqueued.
      * @throws Exception
      */
     public void enqueueJob(GeoServiceJob job) throws Exception {
@@ -89,10 +92,11 @@ public class GeoServiceJobQueue extends DistributedQueueConsumer<GeoServiceJob> 
 
     /**
      * Verify the hosting device has not migrated states while waiting for dispatching and continue task
+     * 
      * @param job The object provisioning job which is being worked on. This could be either creation or deletion job
      * @param callback This must be executed, after the item is processed successfully to remove the item
-     *                 from the distributed queue
-     *
+     *            from the distributed queue
+     * 
      * @throws Exception
      */
     @Override
@@ -109,7 +113,9 @@ public class GeoServiceJobQueue extends DistributedQueueConsumer<GeoServiceJob> 
                 _log.info("db not stable yet, retry");
                 try {
                     TimeUnit.SECONDS.sleep(WAIT_INTERVAL_IN_SEC);
-                } catch (InterruptedException ex) {}
+                } catch (InterruptedException ex) {
+                    // Ignore this exception
+                }
             }
             retry = retry + 1;
         }
@@ -129,8 +135,8 @@ public class GeoServiceJobQueue extends DistributedQueueConsumer<GeoServiceJob> 
             _controller.setKeystore(viprKeyStore);
 
             // these methods will obtain lock and do nothing if operation is already in progress
-            GeoServiceJob.JobType type= job.getType();
-            switch(type) {
+            GeoServiceJob.JobType type = job.getType();
+            switch (type) {
                 case VDC_CONNECT_JOB:
                     _log.info("Continuing initialization operation {} for {}", task, job.getVdcId());
                     _controller.connectVdc(vdcInfo, task, job.getParams());
@@ -145,7 +151,7 @@ public class GeoServiceJobQueue extends DistributedQueueConsumer<GeoServiceJob> 
                     break;
                 case VDC_DISCONNECT_JOB:
                     _log.info("Disconnecting operation {} for {}", task, job.getVdcId());
-                    _controller.disconnectVdc(vdcInfo, task,job.getParams());
+                    _controller.disconnectVdc(vdcInfo, task, job.getParams());
                     break;
                 case VDC_RECONNECT_JOB:
                     _log.info("Reconnecting operation {} for {}", task, job.getVdcId());
@@ -160,11 +166,10 @@ public class GeoServiceJobQueue extends DistributedQueueConsumer<GeoServiceJob> 
             _log.error("Execute job failed", e);
         }
 
-
         // removes item from queue
         callback.itemProcessed();
 
-        _log.info("The job type={} vdcId={} task={} is removed", new Object[] { job.getType(), job.getVdcId(), job.getTask()});
+        _log.info("The job type={} vdcId={} task={} is removed", new Object[] { job.getType(), job.getVdcId(), job.getTask() });
 
     }
 

@@ -12,36 +12,33 @@
 
 package com.emc.storageos.vasa;
 
-public class InvalidLogin extends java.lang.Exception{
+public class InvalidLogin extends java.lang.Exception {
 
     private static final long serialVersionUID = 1348562968853L;
-    
+
     private com.emc.storageos.vasa.VasaServiceStub.InvalidLoginE faultMessage;
 
-    
-        public InvalidLogin() {
-            super("InvalidLogin");
-        }
-
-        public InvalidLogin(java.lang.String s) {
-           super(s);
-        }
-
-        public InvalidLogin(java.lang.String s, java.lang.Throwable ex) {
-          super(s, ex);
-        }
-
-        public InvalidLogin(java.lang.Throwable cause) {
-            super(cause);
-        }
-    
-
-    public void setFaultMessage(com.emc.storageos.vasa.VasaServiceStub.InvalidLoginE msg){
-       faultMessage = msg;
+    public InvalidLogin() {
+        super("InvalidLogin");
     }
-    
-    public com.emc.storageos.vasa.VasaServiceStub.InvalidLoginE getFaultMessage(){
-       return faultMessage;
+
+    public InvalidLogin(java.lang.String s) {
+        super(s);
+    }
+
+    public InvalidLogin(java.lang.String s, java.lang.Throwable ex) {
+        super(s, ex);
+    }
+
+    public InvalidLogin(java.lang.Throwable cause) {
+        super(cause);
+    }
+
+    public void setFaultMessage(com.emc.storageos.vasa.VasaServiceStub.InvalidLoginE msg) {
+        faultMessage = msg;
+    }
+
+    public com.emc.storageos.vasa.VasaServiceStub.InvalidLoginE getFaultMessage() {
+        return faultMessage;
     }
 }
-    

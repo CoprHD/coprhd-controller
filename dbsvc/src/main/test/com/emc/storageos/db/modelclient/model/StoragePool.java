@@ -15,14 +15,14 @@ import com.emc.storageos.db.client.model.RelationIndex;
 
 /**
  * @author cgarber
- *
+ * 
  */
 @Cf("StoragePool")
 public class StoragePool extends DataObject {
-    
+
     private URI _storageDevice;
     private StorageSystem _storageDeviceObj;
-    
+
     @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageDevice() {
@@ -37,7 +37,7 @@ public class StoragePool extends DataObject {
     /**
      * @return the storageDeviceObj
      */
-    @Relation(mappedBy="storageDevice")
+    @Relation(mappedBy = "storageDevice")
     @Name("storageDeviceObj")
     public StorageSystem getStorageDeviceObj() {
         return _storageDeviceObj;

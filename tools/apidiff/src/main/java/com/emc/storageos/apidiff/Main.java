@@ -26,13 +26,15 @@ public class Main {
 
     public static Map<String, List<Pair<String, String>>> serviceNamingMap =
             new HashMap<String, List<Pair<String, String>>>();
+
     public static void loadProperties(final String fileName) {
         try {
             String serviceName = null;
             for (String line : IOUtils.readLines(new FileInputStream(fileName))) {
                 String lineStr = line.trim();
-                if (lineStr.length() ==0 || lineStr.startsWith(Constants.COMMENT_MARKER))
+                if (lineStr.length() == 0 || lineStr.startsWith(Constants.COMMENT_MARKER)) {
                     continue;
+                }
                 String[] items = lineStr.split(Constants.TITLE_MARKER);
                 if (items[0].length() == 0) {
                     serviceName = items[1];
@@ -46,9 +48,9 @@ public class Main {
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException("Error reading Group File "+fileName, e);
+            throw new RuntimeException("Error reading Group File " + fileName, e);
         }
-        //System.out.println("Service Naming Map Size: "+serviceNamingMap.size());
+        // System.out.println("Service Naming Map Size: "+serviceNamingMap.size());
     }
 
     private static void usage() {
@@ -65,25 +67,30 @@ public class Main {
     public static void main(String[] args) {
 
         System.out.println("Arguments: " + Arrays.toString(args));
-        if (args.length < 2)
+        if (args.length < 2) {
             usage();
+        }
 
         File oldFolder = new File(args[0]);
-        if (!oldFolder.exists() || !oldFolder.isDirectory())
+        if (!oldFolder.exists() || !oldFolder.isDirectory()) {
             usage();
+        }
         File newFolder = new File(args[1]);
-        if (!newFolder.exists() || !newFolder.isDirectory())
+        if (!newFolder.exists() || !newFolder.isDirectory()) {
             usage();
+        }
 
         File outputFolder;
         if (args.length < 3) {
             outputFolder = newFolder;
         } else {
             outputFolder = new File(args[2]);
-            if (!outputFolder.isDirectory())
+            if (!outputFolder.isDirectory()) {
                 outputFolder.delete();
-            if (!outputFolder.exists())
+            }
+            if (!outputFolder.exists()) {
                 outputFolder.mkdirs();
+            }
         }
 
         loadProperties(oldFolder.getAbsolutePath() + "/ApiReferenceGrouping.txt");

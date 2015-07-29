@@ -15,7 +15,7 @@ import com.emc.storageos.model.vpool.VirtualPoolUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public class NameValidator extends VirtualPoolValidator<VirtualPoolCommonParam, VirtualPoolUpdateParam> {
-   
+
     @Override
     public void setNextValidator(VirtualPoolValidator validator) {
         _nextValidator = validator;
@@ -29,8 +29,9 @@ public class NameValidator extends VirtualPoolValidator<VirtualPoolCommonParam, 
 
     @Override
     protected boolean isUpdateAttributeOn(VirtualPoolUpdateParam updateParam) {
-        if (null != updateParam.getName())
+        if (null != updateParam.getName()) {
             return true;
+        }
         return false;
     }
 
@@ -38,14 +39,14 @@ public class NameValidator extends VirtualPoolValidator<VirtualPoolCommonParam, 
     protected void validateVirtualPoolCreateAttributeValue(VirtualPoolCommonParam createParam, DbClient dbClient) {
         validateNameString(createParam.getName());
     }
-    
+
     /**
      * Fires APIException.badRequests.requiredParameterMissingOrEmpty if the
      * given collection is empty
      * 
      */
-    public void validateNameString(String name){
-        if(StringUtils.isEmpty(name) || NullColumnValueGetter.getNullStr().equalsIgnoreCase(name)) {
+    public void validateNameString(String name) {
+        if (StringUtils.isEmpty(name) || NullColumnValueGetter.getNullStr().equalsIgnoreCase(name)) {
             throw APIException.badRequests.requiredParameterMissingOrEmpty("name");
         }
     }

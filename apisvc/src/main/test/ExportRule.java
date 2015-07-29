@@ -11,111 +11,108 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.file.FileExportUpdateParams.ExportOperationErrorType;
 
-
 @XmlRootElement
 public class ExportRule {
 
-	// Part of payload Model
-	private String anon;
-	private String secFlavor;
-	private List<String> readOnlyHosts;
-	private List<String> readWriteHosts;
-	private List<String> rootHosts;
-	
-	// Not a part of payload model - for internal use only.
-	private boolean isToProceed = false;
-	private ExportOperationErrorType errorTypeIfNotToProceed;
-	
-	public boolean isToProceed() {
-		return isToProceed;
-	}
+    // Part of payload Model
+    private String anon;
+    private String secFlavor;
+    private List<String> readOnlyHosts;
+    private List<String> readWriteHosts;
+    private List<String> rootHosts;
 
-	public void setToProceed(boolean isToProceed, ExportOperationErrorType type ) {
-		this.isToProceed = isToProceed;
-		errorTypeIfNotToProceed = type;
-	}
+    // Not a part of payload model - for internal use only.
+    private boolean isToProceed = false;
+    private ExportOperationErrorType errorTypeIfNotToProceed;
 
-	public ExportOperationErrorType getErrorTypeIfNotToProceed() {
-		return errorTypeIfNotToProceed;
-	}
+    public boolean isToProceed() {
+        return isToProceed;
+    }
 
-	
-	@XmlElementWrapper(name = "readOnlyHosts")
-	@XmlElement(name="endPoint")
-	public List<String> getReadOnlyHosts() {
-		return readOnlyHosts;
-	}
+    public void setToProceed(boolean isToProceed, ExportOperationErrorType type) {
+        this.isToProceed = isToProceed;
+        errorTypeIfNotToProceed = type;
+    }
 
-	public void setReadOnlyHosts(List<String> readOnlyHosts) {
-		this.readOnlyHosts = readOnlyHosts;
-	}
+    public ExportOperationErrorType getErrorTypeIfNotToProceed() {
+        return errorTypeIfNotToProceed;
+    }
 
-	@XmlElementWrapper(name = "readWriteHosts")
-	@XmlElement(name="endPoint")
-	public List<String> getReadWriteHosts() {
-		return readWriteHosts;
-	}
+    @XmlElementWrapper(name = "readOnlyHosts")
+    @XmlElement(name = "endPoint")
+    public List<String> getReadOnlyHosts() {
+        return readOnlyHosts;
+    }
 
-	
-	public void setReadWriteHosts(List<String> readWriteHosts) {
-		this.readWriteHosts = readWriteHosts;
-	}
+    public void setReadOnlyHosts(List<String> readOnlyHosts) {
+        this.readOnlyHosts = readOnlyHosts;
+    }
 
-	@XmlElementWrapper(name = "rootHosts")
-	@XmlElement(name="endPoint")
-	public List<String> getRootHosts() {
-		return rootHosts;
-	}
+    @XmlElementWrapper(name = "readWriteHosts")
+    @XmlElement(name = "endPoint")
+    public List<String> getReadWriteHosts() {
+        return readWriteHosts;
+    }
 
-	public void setRootHosts(List<String> rootHosts) {
-		this.rootHosts = rootHosts;
-	}
+    public void setReadWriteHosts(List<String> readWriteHosts) {
+        this.readWriteHosts = readWriteHosts;
+    }
 
-	/**
-	 * Security flavor of an export e.g. sys, krb, krbp or krbi
-	 * 
-	 * @valid none
-	 */
-	@XmlElement(name = "secFlavor", required = false)
-	public String getSecFlavor() {
-		return secFlavor;
-	}
+    @XmlElementWrapper(name = "rootHosts")
+    @XmlElement(name = "endPoint")
+    public List<String> getRootHosts() {
+        return rootHosts;
+    }
 
-	public void setSecFlavor(String secFlavor) {
-		this.secFlavor = secFlavor;
-	}
+    public void setRootHosts(List<String> rootHosts) {
+        this.rootHosts = rootHosts;
+    }
 
-	/**
-	 * Anonymous root user mapping e.g. "root", "nobody" or "anyUserName"
-	 * 
-	 * @valid none
-	 */
-	@XmlElement(name = "anon", required = false)
-	public String getAnon() {
-		return anon;
-	}
+    /**
+     * Security flavor of an export e.g. sys, krb, krbp or krbi
+     * 
+     * @valid none
+     */
+    @XmlElement(name = "secFlavor", required = false)
+    public String getSecFlavor() {
+        return secFlavor;
+    }
 
-	public void setAnon(String anon) {
-		this.anon = anon;
-	}
+    public void setSecFlavor(String secFlavor) {
+        this.secFlavor = secFlavor;
+    }
 
-	@Override
-	public String toString() {
+    /**
+     * Anonymous root user mapping e.g. "root", "nobody" or "anyUserName"
+     * 
+     * @valid none
+     */
+    @XmlElement(name = "anon", required = false)
+    public String getAnon() {
+        return anon;
+    }
 
-		StringBuilder sb = new StringBuilder();
-		sb.append("secFlavor : ").append(
-				(secFlavor != null) ? secFlavor : "");
-		sb.append("anon : ").append(
-				(anon != null) ? anon : "");
-		sb.append("readOnlyHosts : ").append(
-				(readOnlyHosts != null) ? readOnlyHosts.size() : 0);
-		sb.append("readWriteHosts : ").append(
-				(readWriteHosts != null) ? readWriteHosts.size() : 0);
-		sb.append("rootHosts : ").append(
-				(rootHosts != null) ? rootHosts.size() : 0);
+    public void setAnon(String anon) {
+        this.anon = anon;
+    }
 
-		return sb.toString();
+    @Override
+    public String toString() {
 
-	}
+        StringBuilder sb = new StringBuilder();
+        sb.append("secFlavor : ").append(
+                (secFlavor != null) ? secFlavor : "");
+        sb.append("anon : ").append(
+                (anon != null) ? anon : "");
+        sb.append("readOnlyHosts : ").append(
+                (readOnlyHosts != null) ? readOnlyHosts.size() : 0);
+        sb.append("readWriteHosts : ").append(
+                (readWriteHosts != null) ? readWriteHosts.size() : 0);
+        sb.append("rootHosts : ").append(
+                (rootHosts != null) ? rootHosts.size() : 0);
+
+        return sb.toString();
+
+    }
 
 }

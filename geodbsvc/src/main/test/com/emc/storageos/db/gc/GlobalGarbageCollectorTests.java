@@ -8,8 +8,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
-import java.io.File;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -33,9 +31,9 @@ public class GlobalGarbageCollectorTests extends DbsvcGeoTestBase {
     private GarbageCollectionExecutor _globalGCExecutor;
     private DbClient _dbClient = getDbClient();
     private DataObjectScanner _scanner;
-        
-    public GlobalGarbageCollectorTests(){
-       
+
+    public GlobalGarbageCollectorTests() {
+
     }
 
     private void initGCExecutor() throws IOException, URISyntaxException {
@@ -118,9 +116,9 @@ public class GlobalGarbageCollectorTests extends DbsvcGeoTestBase {
         Assert.assertNotNull(checker.checkDependencies(vpool.getId(), VirtualPool.class, true));
         for (int i = 0; i < num_projects; i++) {
             if (activeFileSystems.containsKey(activeProjects.get(i))) {
-                Assert.assertNotNull(checker.checkDependencies(activeProjects.get(i),Project.class, true));
+                Assert.assertNotNull(checker.checkDependencies(activeProjects.get(i), Project.class, true));
             } else {
-                Assert.assertNull(checker.checkDependencies(activeProjects.get(i),Project.class, true));
+                Assert.assertNull(checker.checkDependencies(activeProjects.get(i), Project.class, true));
             }
         }
 
@@ -180,8 +178,8 @@ public class GlobalGarbageCollectorTests extends DbsvcGeoTestBase {
         Assert.assertNull(checker.checkDependencies(vpool.getId(), VirtualPool.class, true));
         Assert.assertNotNull(checker.checkDependencies(tenant.getId(), TenantOrg.class, true));
         for (int i = 0; i < num_projects; i++) {
-            Assert.assertNull(checker.checkDependencies(activeProjects.get(i),Project.class, true));
-            Assert.assertNotNull(checker.checkDependencies(activeProjects.get(i),Project.class, false));
+            Assert.assertNull(checker.checkDependencies(activeProjects.get(i), Project.class, true));
+            Assert.assertNotNull(checker.checkDependencies(activeProjects.get(i), Project.class, false));
             Project p = new Project();
             p.setId(activeProjects.get(i));
             p.setInactive(true);

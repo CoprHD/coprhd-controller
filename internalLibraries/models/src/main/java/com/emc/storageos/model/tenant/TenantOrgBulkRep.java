@@ -18,6 +18,7 @@ public class TenantOrgBulkRep extends BulkRestRep {
 
     /**
      * List of tenants
+     * 
      * @valid none
      */
     @XmlElement(name = "tenant")

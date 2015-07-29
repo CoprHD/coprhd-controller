@@ -11,17 +11,17 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.dbcli.adapter.FSExportMapAdapter;
 
-@XmlRootElement(name="wrapper")
-public class FSExportMapWrapper extends Wrapper<FSExportMap>{
+@XmlRootElement(name = "wrapper")
+public class FSExportMapWrapper extends Wrapper<FSExportMap> {
 
     private FSExportMap fSExportMap = new FSExportMap();
- 
+
     @XmlJavaTypeAdapter(FSExportMapAdapter.class)
-    @XmlElement(name="fSExportMap")
+    @XmlElement(name = "fSExportMap")
     public FSExportMap getValue() {
         return fSExportMap;
     }
- 
+
     public void setValue(FSExportMap fSExportMap) {
         this.fSExportMap = fSExportMap;
     }

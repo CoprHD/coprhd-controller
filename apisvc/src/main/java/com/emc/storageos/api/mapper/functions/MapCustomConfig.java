@@ -9,7 +9,7 @@ import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.model.customconfig.CustomConfigRestRep;
 import com.google.common.base.Function;
 
-public class MapCustomConfig implements Function<CustomConfig, CustomConfigRestRep>{
+public class MapCustomConfig implements Function<CustomConfig, CustomConfigRestRep> {
 
     public static final MapCustomConfig instance = new MapCustomConfig();
 

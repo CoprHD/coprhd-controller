@@ -5,7 +5,6 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.io.PrintWriter;
-import java.util.concurrent.ExecutorService;
 import javax.ws.rs.core.MediaType;
 import org.joda.time.DateTime;
 
@@ -32,4 +31,3 @@ public class DbStatRetriever extends AbstractDbRetriever implements StatRetrieve
         marshaller.tailer(out);
     }
 }
-

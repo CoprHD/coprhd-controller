@@ -72,17 +72,17 @@ import com.emc.storageos.vplexcontroller.VPlexController;
 /**
  * StorageProvider resource represents a thirdparty providers which are similar to SMIS Provider.
  * Currently the only provider implemented are HDS and SMIS
- *      1. Allows user to create/list StorageProvider managing block devices.
- *      2. User can register and deactivate StorageProvider.
- *
+ * 1. Allows user to create/list StorageProvider managing block devices.
+ * 2. User can register and deactivate StorageProvider.
+ * 
  */
 @Path("/vdc/storage-providers")
 @DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
         write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-public class StorageProviderService extends TaskResourceService{
+public class StorageProviderService extends TaskResourceService {
     private static final Logger log = LoggerFactory.getLogger(StorageProviderService.class);
     private static final String EVENT_SERVICE_TYPE = "provider";
-    
+
     private static class ScanJobExec implements AsyncTaskExecutorIntf {
 
         private final StorageController _controller;
@@ -98,49 +98,48 @@ public class StorageProviderService extends TaskResourceService{
 
         @Override
         public ResourceOperationTypeEnum getOperation() {
-            return  ResourceOperationTypeEnum.SCAN_STORAGEPROVIDER;
+            return ResourceOperationTypeEnum.SCAN_STORAGEPROVIDER;
         }
     }
-    
+
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
     }
 
     /**
-      * @brief Show Storage provider
-      * This call allows user to fetch Storage Provider details such as provider
-      * host access credential details.
-      *
-      * @param id Storage Provider Identifier
-      * @return Storage Provider details.
-      */
-    
-    @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Path("/{id}")
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR})
-    public StorageProviderRestRep getStorageProvider(@PathParam("id") URI id) {
-         ArgValidator.checkFieldUriType(id, StorageProvider.class, "id");
-         StorageProvider mgmtProvider =  queryResource(id);
-         return map(mgmtProvider);
-     }
+     * @brief Show Storage provider
+     *        This call allows user to fetch Storage Provider details such as provider
+     *        host access credential details.
+     * 
+     * @param id Storage Provider Identifier
+     * @return Storage Provider details.
+     */
 
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public StorageProviderRestRep getStorageProvider(@PathParam("id") URI id) {
+        ArgValidator.checkFieldUriType(id, StorageProvider.class, "id");
+        StorageProvider mgmtProvider = queryResource(id);
+        return map(mgmtProvider);
+    }
 
     @Override
     protected StorageProvider queryResource(URI id) {
         return queryObject(StorageProvider.class, id, true);
     }
-    
+
     /**
      * @brief List Storage providers
-     * This function allows user to fetch list of all Storage Providers information.
-     *
+     *        This function allows user to fetch list of all Storage Providers information.
+     * 
      * @return List of Storage Providers.
      */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public StorageProviderList getStorageProviderList() {
         List<URI> ids = _dbClient.queryByType(StorageProvider.class, true);
         List<StorageProvider> mgmtProviders = _dbClient.queryObject(StorageProvider.class, ids);
@@ -149,7 +148,7 @@ public class StorageProviderService extends TaskResourceService{
         }
         StorageProviderList providerList = new StorageProviderList();
         for (StorageProvider provider : mgmtProviders) {
-            providerList.getStorageProviders().add(toNamedRelatedResource(provider)) ;
+            providerList.getStorageProviders().add(toNamedRelatedResource(provider));
         }
         return providerList;
     }
@@ -159,7 +158,7 @@ public class StorageProviderService extends TaskResourceService{
     public Class<StorageProvider> getResourceClass() {
         return StorageProvider.class;
     }
-    
+
     @Override
     protected URI getTenantOwner(URI id) {
         return null;
@@ -169,57 +168,56 @@ public class StorageProviderService extends TaskResourceService{
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.STORAGE_PROVIDER;
     }
-    
-    /**     
+
+    /**
      * Retrieve resource representations based on input ids.
-     *
+     * 
      * @param param POST data containing the id list.
      * @brief List data of SMI-S provider resources
      * @return list of representations.
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public StorageProviderBulkRep getBulkResources(BulkIdParam param) {
         return (StorageProviderBulkRep) super.getBulkResources(param);
     }
-    
+
     @Override
     public StorageProviderBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
         verifySystemAdmin();
         return queryBulkResourceReps(ids);
     }
-    
+
     @Override
     public StorageProviderBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<StorageProvider> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new StorageProviderBulkRep(BulkList.wrapping(_dbIterator, MapStorageProvider.getInstance()));
     }
-    
-    
+
     @POST
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep registerStorageProvider(StorageProviderCreateParam param)
             throws ControllerException {
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
         checkForDuplicateName(param.getName(), StorageProvider.class);
-        
+
         ArgValidator.checkFieldNotEmpty(param.getIpAddress(), "ip_address");
         ArgValidator.checkFieldNotNull(param.getPortNumber(), "port_number");
         ArgValidator.checkFieldNotEmpty(param.getUserName(), "user_name");
         ArgValidator.checkFieldNotEmpty(param.getPassword(), "password");
-        ArgValidator.checkFieldRange(param.getPortNumber(),  1, 65535, "port_number");
+        ArgValidator.checkFieldRange(param.getPortNumber(), 1, 65535, "port_number");
         ArgValidator.checkFieldValueFromEnum(param.getInterfaceType(), "interface_type",
-                                             StorageProvider.InterfaceType.class);
+                StorageProvider.InterfaceType.class);
         String providerKey = param.getIpAddress() + "-" + param.getPortNumber();
-        List<StorageProvider> providers = CustomQueryUtility.getActiveStorageProvidersByProviderId(_dbClient,providerKey);
-        if(providers != null && !providers.isEmpty()) {
+        List<StorageProvider> providers = CustomQueryUtility.getActiveStorageProvidersByProviderId(_dbClient, providerKey);
+        if (providers != null && !providers.isEmpty()) {
             throw APIException.badRequests.invalidParameterStorageProviderAlreadyRegistered(providerKey);
         }
 
@@ -228,7 +226,7 @@ public class StorageProviderService extends TaskResourceService{
         if (useSSL == null) {
             useSSL = StorageProviderCreateParam.USE_SSL_DEFAULT;
         }
-        
+
         StorageProvider provider = new StorageProvider();
         provider.setId(URIUtil.createId(StorageProvider.class));
         provider.setLabel(param.getName());
@@ -247,11 +245,11 @@ public class StorageProviderService extends TaskResourceService{
             // TODO: Validate the input?
             provider.addKey(StorageProvider.GlobalKeys.SIO_CLI.name(), param.getSioCLI());
         }
-        
+
         if (StorageProvider.InterfaceType.ibmxiv.name().equalsIgnoreCase(provider.getInterfaceType())) {
-            provider.setManufacturer("IBM");        
+            provider.setManufacturer("IBM");
         }
-        
+
         _dbClient.createObject(provider);
 
         auditOp(OperationTypeEnum.REGISTER_STORAGEPROVIDER, true, null,
@@ -260,11 +258,11 @@ public class StorageProviderService extends TaskResourceService{
 
         ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
         String taskId = UUID.randomUUID().toString();
-        tasks.add(new AsyncTask(StorageProvider.class,provider.getId(),taskId));
+        tasks.add(new AsyncTask(StorageProvider.class, provider.getId(), taskId));
 
         BlockController controller = getController(BlockController.class, provider.getInterfaceType());
-        log.debug("controller.getClass().getName() :{}",controller.getClass().getName());
-        log.debug("controller.getClass().getSimpleName() :{}",controller.getClass().getSimpleName());
+        log.debug("controller.getClass().getName() :{}", controller.getClass().getName());
+        log.debug("controller.getClass().getSimpleName() :{}", controller.getClass().getSimpleName());
         /**
          * Creates MonitoringJob token for vnxblock/vmax, hds, cinder and IBM XIV device on zooKeeper queue
          */
@@ -279,11 +277,11 @@ public class StorageProviderService extends TaskResourceService{
                     getSystemTypeByInterface(interfaceType));
         }
 
-        DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient,new ScanJobExec(controller));
+        DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient, new ScanJobExec(controller));
         TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
         return taskList.getTaskList().listIterator().next();
     }
-    
+
     private Type getSystemTypeByInterface(String interfaceType) {
         if (StorageProvider.InterfaceType.hicommand.name().equalsIgnoreCase(interfaceType)) {
             return StorageSystem.Type.hds;
@@ -297,15 +295,16 @@ public class StorageProviderService extends TaskResourceService{
         return null;
     }
 
-    /**     
+    /**
      * Scan all Storage providers.
+     * 
      * @brief Scan Storage providers
      * @return TasList of all created asynchronous tasks
      */
     @POST
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Path("/scan")
     public TaskList scanStorageProviders() {
         TaskList taskList = new TaskList();
@@ -314,51 +313,51 @@ public class StorageProviderService extends TaskResourceService{
          * TODO needs to remove hard code device type to fetch the controller instance
          */
         BlockController controller = getController(BlockController.class, "vnxblock");
-        DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient,new ScanJobExec(controller));
+        DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient, new ScanJobExec(controller));
         ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>();
-        if(providerURIList !=null){
-        	for(URI providerURI : providerURIList){
-        		String taskId = UUID.randomUUID().toString();
-        		tasks.add(new AsyncTask(StorageProvider.class,providerURI,taskId));
-        	}
-        	taskList = scheduler.scheduleAsyncTasks(tasks);
+        if (providerURIList != null) {
+            for (URI providerURI : providerURIList) {
+                String taskId = UUID.randomUUID().toString();
+                tasks.add(new AsyncTask(StorageProvider.class, providerURI, taskId));
+            }
+            taskList = scheduler.scheduleAsyncTasks(tasks);
         }
         return taskList;
     }
-    
+
     @POST
     @Path("/{id}/deactivate")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response deleteStorageProvider(@PathParam("id") URI id) {
         // Validate the provider
         ArgValidator.checkFieldUriType(id, StorageProvider.class, "id");
         StorageProvider provider = _dbClient.queryObject(StorageProvider.class, id);
         ArgValidator.checkEntityNotNull(provider, id, isIdEmbeddedInURL(id));
-     // Verify the provider can be removed without leaving "dangling" storages.
+        // Verify the provider can be removed without leaving "dangling" storages.
         StringSet providerStorageSystems = provider.getStorageSystems();
-        if (null!=providerStorageSystems && !providerStorageSystems.isEmpty()) {
-            // First we need to verify that all related storage systems has at least   2 providers
-            for(String system : providerStorageSystems) {
+        if (null != providerStorageSystems && !providerStorageSystems.isEmpty()) {
+            // First we need to verify that all related storage systems has at least 2 providers
+            for (String system : providerStorageSystems) {
                 StorageSystem storageSys = _dbClient.queryObject(StorageSystem.class, URI.create(system));
-                if(storageSys!=null && !storageSys.getInactive() && 
-                		storageSys.getProviders()!=null && storageSys.getProviders().size() == 1)  {
+                if (storageSys != null && !storageSys.getInactive() &&
+                        storageSys.getProviders() != null && storageSys.getProviders().size() == 1) {
                     throw APIException.badRequests.cannotDeleteProviderWithManagedStorageSystems(storageSys.getId());
                 }
             }
-            //Next we can clear this provider from storage systems.
-            for(String system : providerStorageSystems) {
+            // Next we can clear this provider from storage systems.
+            for (String system : providerStorageSystems) {
                 StorageSystem storageSys = _dbClient.queryObject(StorageSystem.class, URI.create(system));
-                provider.removeStorageSystem(_dbClient,storageSys);
+                provider.removeStorageSystem(_dbClient, storageSys);
             }
         }
 
         StringSet decommissionedSystems = provider.getDecommissionedSystems();
-        if ( null!=decommissionedSystems && !decommissionedSystems.isEmpty()) {
-            for(String decommissioned : decommissionedSystems) {
+        if (null != decommissionedSystems && !decommissionedSystems.isEmpty()) {
+            for (String decommissioned : decommissionedSystems) {
                 DecommissionedResource oldRes = _dbClient.queryObject(DecommissionedResource.class, URI.create(decommissioned));
-                if(oldRes != null){
+                if (oldRes != null) {
                     _dbClient.markForDeletion(oldRes);
                 }
             }
@@ -370,22 +369,21 @@ public class StorageProviderService extends TaskResourceService{
         auditOp(OperationTypeEnum.DELETE_STORAGEPROVIDER, true, null,
                 provider.getId().toString(), provider.getLabel(), provider.getIPAddress(),
                 provider.getPortNumber(), provider.getUserName(), provider.getInterfaceType());
-        
-        
+
         return Response.ok().build();
     }
-    
-    /**        
+
+    /**
      * Update the Storage Provider. This is useful when we move arrays to some other
      * provider.
-     *
+     * 
      * @param id the URN of a ViPR Storage Provider
      * @brief Update Storage provider
      * @return Updated Storage Provider information.
      */
     @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public StorageProviderRestRep updateStorageProvider(@PathParam("id") URI id,
@@ -395,18 +393,20 @@ public class StorageProviderService extends TaskResourceService{
         if (null == storageProvider || storageProvider.getInactive()) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         } else {
-            /* Usecase is not to remove the provider instead we can update the old storage provider with
-               new provider details. */
+            /*
+             * Usecase is not to remove the provider instead we can update the old storage provider with
+             * new provider details.
+             */
             if (param.getName() != null && !param.getName().equals("") && !param.getName().equalsIgnoreCase(storageProvider.getLabel())) {
                 checkForDuplicateName(param.getName(), StorageProvider.class);
                 storageProvider.setLabel(param.getName());
             }
 
-            //if the ip or port passed are different from the existing one
-            //check to ensure a provider does not exist with the new ip + port combo
+            // if the ip or port passed are different from the existing one
+            // check to ensure a provider does not exist with the new ip + port combo
             String existingIPAddress = storageProvider.getIPAddress();
             Integer existingPortNumber = storageProvider.getPortNumber();
-            if((param.getIpAddress() != null && !param.getIpAddress().equals(existingIPAddress)) ||
+            if ((param.getIpAddress() != null && !param.getIpAddress().equals(existingIPAddress)) ||
                     (param.getPortNumber() != null && !param.getPortNumber().equals(existingPortNumber))) {
                 String ipAddress = (param.getIpAddress() != null) ? param.getIpAddress() : existingIPAddress;
                 Integer portNumber = (param.getPortNumber() != null) ? param.getPortNumber() : existingPortNumber;
@@ -414,7 +414,7 @@ public class StorageProviderService extends TaskResourceService{
 
                 String providerKey = ipAddress + "-" + portNumber;
                 List<StorageProvider> providers = CustomQueryUtility.getActiveStorageProvidersByProviderId(_dbClient, providerKey);
-                if(providers != null && !providers.isEmpty()) {
+                if (providers != null && !providers.isEmpty()) {
                     throw APIException.badRequests.invalidParameterStorageProviderAlreadyRegistered(providerKey);
                 }
 
@@ -429,19 +429,19 @@ public class StorageProviderService extends TaskResourceService{
                 storageProvider.setIPAddress(ipAddress);
                 storageProvider.setPortNumber(portNumber);
             }
-            if (param.getUserName() != null &&  StringUtils.isNotBlank(param.getUserName())) {
+            if (param.getUserName() != null && StringUtils.isNotBlank(param.getUserName())) {
                 storageProvider.setUserName(param.getUserName());
             }
-            if (param.getPassword() != null &&  StringUtils.isNotBlank(param.getPassword())) {
+            if (param.getPassword() != null && StringUtils.isNotBlank(param.getPassword())) {
                 storageProvider.setPassword(param.getPassword());
             }
             if (param.getUseSSL() != null) {
                 storageProvider.setUseSSL(param.getUseSSL());
             }
-            
+
             if (param.getInterfaceType() != null) {
                 ArgValidator.checkFieldValueFromEnum(param.getInterfaceType(), "interface_type", EnumSet.of(
-                        StorageProvider.InterfaceType.hicommand,StorageProvider.InterfaceType.smis,StorageProvider.InterfaceType.scaleio,
+                        StorageProvider.InterfaceType.hicommand, StorageProvider.InterfaceType.smis, StorageProvider.InterfaceType.scaleio,
                         StorageProvider.InterfaceType.ibmxiv));
                 storageProvider.setInterfaceType(param.getInterfaceType());
             }
@@ -470,7 +470,7 @@ public class StorageProviderService extends TaskResourceService{
             Integer portNumber, String interfaceType) {
         log.info("Validating {} storage provider connection at {}.", interfaceType, ipAddress);
         if (StorageProvider.InterfaceType.vplex.name().equals(interfaceType)) {
-            VPlexController controller = 
+            VPlexController controller =
                     getController(VPlexController.class, DiscoveredDataObject.Type.vplex.toString());
             return controller.validateStorageProviderConnection(ipAddress, portNumber);
         } else {
@@ -479,33 +479,34 @@ public class StorageProviderService extends TaskResourceService{
         }
     }
 
-    /**     
+    /**
      * Get zone role assignments
+     * 
      * @brief List zone role assignments
      * @return Role assignment details
      */
     @GET
     @Path("/deactivated-systems")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
     public DecommissionedResources getDecommissionedResources() {
         List<URI> resList = _dbClient.queryByType(DecommissionedResource.class, true);
         DecommissionedResources results = new DecommissionedResources();
-        for(URI res : resList) {
-            DecommissionedResource resource = _dbClient.queryObject(DecommissionedResource.class,res);
-            if ("StorageSystem".equals(resource.getType()))  {
+        for (URI res : resList) {
+            DecommissionedResource resource = _dbClient.queryObject(DecommissionedResource.class, res);
+            if ("StorageSystem".equals(resource.getType())) {
                 results.addResource(map(resource));
             }
         }
         return results;
     }
-    
-    /**     
+
+    /**
      * Allows the user to get the id, name, and self link for all storage
      * systems visible to the provider with the passed id.
-     *
+     * 
      * @param id the URN of a ViPR Storage provider
-     *
+     * 
      * @brief List Storage provider storage systems
      * @return A StorageSystemList reference specifying the id, name, and self
      *         link for the storage systems visible to the provider.
@@ -521,14 +522,13 @@ public class StorageProviderService extends TaskResourceService{
         StorageProvider provider = _dbClient.queryObject(StorageProvider.class, id);
         ArgValidator.checkEntityNotNull(provider, id, isIdEmbeddedInURL(id));
 
-
         // Return the list of storage systems for the provider.
         StorageSystemList storageSystemsForProvider = new StorageSystemList();
         StringSet providerSystemURIStrs = provider.getStorageSystems();
         if (providerSystemURIStrs != null) {
             for (String providerSystemURIStr : providerSystemURIStrs) {
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
-                    URI.create(providerSystemURIStr));
+                        URI.create(providerSystemURIStr));
                 if (storageSystem != null) {
                     storageSystemsForProvider.getStorageSystems().add(toNamedRelatedResource(storageSystem));
                 }
@@ -538,23 +538,21 @@ public class StorageProviderService extends TaskResourceService{
         return storageSystemsForProvider;
     }
 
-
-
     /**
      * Allows the user to remove a storage system from the list of decommisioned resources
      * After that corresponding provider should be able to be rescanned and add this system back to the list of managed systems.
-     *
-     * @param id    id the URN of a ViPR Storage provider
+     * 
+     * @param id id the URN of a ViPR Storage provider
      * @param param The storage system details.
-     *
+     * 
      * @brief removes the storage system from the list of decommissioned systems and rescans the provider.
      * @return An asynchronous task corresponding to the scan job scheduled for the provider.
-     *
+     * 
      * @throws BadRequestException When the system type is not valid or a
-     *         storage system with the same native guid already exists.
+     *             storage system with the same native guid already exists.
      * @throws com.emc.storageos.db.exceptions.DatabaseException When an error occurs querying the database.
      * @throws ControllerException When an error occurs discovering the storage
-     *         system.
+     *             system.
      */
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -562,12 +560,12 @@ public class StorageProviderService extends TaskResourceService{
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/{id}/storage-systems")
     public TaskResourceRep addStorageSystem(@PathParam("id") URI id,
-                                            StorageSystemProviderRequestParam param) throws ControllerException  {
+            StorageSystemProviderRequestParam param) throws ControllerException {
         TaskResourceRep taskRep;
         URIQueryResultList list = new URIQueryResultList();
 
         ArgValidator.checkFieldNotEmpty(param.getSystemType(), "system_type");
-        if(!StorageSystem.Type.isProviderStorageSystem(DiscoveredDataObject.Type.valueOf(param.getSystemType()))) {
+        if (!StorageSystem.Type.isProviderStorageSystem(DiscoveredDataObject.Type.valueOf(param.getSystemType()))) {
             throw APIException.badRequests.cannotAddStorageSystemTypeToStorageProvider(param.getSystemType());
         }
 
@@ -580,14 +578,14 @@ public class StorageProviderService extends TaskResourceService{
                 param.getSerialNumber());
         // check for duplicate StorageSystem.
 
-        List<StorageSystem> systems = CustomQueryUtility.getActiveStorageSystemByNativeGuid(_dbClient,nativeGuid);
-        if(systems != null && !systems.isEmpty()) {
+        List<StorageSystem> systems = CustomQueryUtility.getActiveStorageSystemByNativeGuid(_dbClient, nativeGuid);
+        if (systems != null && !systems.isEmpty()) {
             throw APIException.badRequests.invalidParameterProviderStorageSystemAlreadyExists("nativeGuid", nativeGuid);
         }
 
         int cleared = DecommissionedResource.removeDecommissionedFlag(_dbClient, nativeGuid, StorageSystem.class);
-        if( cleared == 0) {
-            log.info("Cleared {} decommissioned systems",cleared);
+        if (cleared == 0) {
+            log.info("Cleared {} decommissioned systems", cleared);
         }
         else {
             log.info("Did not find any decommissioned systems to clear. Continue to scan.");
@@ -595,23 +593,23 @@ public class StorageProviderService extends TaskResourceService{
 
         ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
         String taskId = UUID.randomUUID().toString();
-        tasks.add(new AsyncTask(StorageProvider.class,provider.getId(),taskId));
+        tasks.add(new AsyncTask(StorageProvider.class, provider.getId(), taskId));
 
         BlockController controller = getController(BlockController.class, provider.getInterfaceType());
-        DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient,new ScanJobExec(controller));
+        DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient, new ScanJobExec(controller));
         TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
         return taskList.getTaskList().listIterator().next();
     }
 
-    /**     
+    /**
      * Allows the user to get data for the storage system with the passed system
      * id that is associated with the storage provider with the passed provider
      * id.
-     *
-     *
+     * 
+     * 
      * @param id the URN of a ViPR Storage provider
      * @param systemId The id of the storage system.
-     *
+     * 
      * @brief Show Storage provider storage system
      * @return A StorageSystemRestRep reference specifying the data for the
      *         storage system.
@@ -635,7 +633,7 @@ public class StorageProviderService extends TaskResourceService{
             for (String providerSystemURIStr : providerSystemURIStrs) {
                 if (providerSystemURIStr.equals(systemId.toString())) {
                     StorageSystem storageSystem = _dbClient.queryObject(
-                        StorageSystem.class, URI.create(providerSystemURIStr));
+                            StorageSystem.class, URI.create(providerSystemURIStr));
                     if (storageSystem != null) {
                         return map(storageSystem);
                     }

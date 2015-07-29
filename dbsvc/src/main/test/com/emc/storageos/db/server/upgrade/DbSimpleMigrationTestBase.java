@@ -22,11 +22,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *  The DB migration test base class 
+ * The DB migration test base class
  */
 public abstract class DbSimpleMigrationTestBase extends DbsvcTestBase {
     private static final Logger _log = LoggerFactory.getLogger(DbSimpleMigrationTestBase.class);
-    
+
     /**
      * @return the DB version upgraded from
      */
@@ -43,7 +43,7 @@ public abstract class DbSimpleMigrationTestBase extends DbsvcTestBase {
      * @throws Exception
      */
     protected abstract void prepareData() throws Exception;
-    
+
     /**
      * Implement this method to verify that your test data was properly migrated
      * 
@@ -70,23 +70,23 @@ public abstract class DbSimpleMigrationTestBase extends DbsvcTestBase {
     protected void runMigration() throws Exception {
         startDb(getTargetVersion(), null);
     }
-    
+
     protected static void alterSchema() {
         _log.debug("No implementation in base class; must be overridden if schema change is needed");
     }
-    
+
     public static void initialSetup(AlterSchema alterSchema) throws IOException {
         List<String> packages = new ArrayList<String>();
         packages.add("com.emc.storageos.db.client.model");
 
         String[] pkgsArray = packages.toArray(new String[packages.size()]);
-        
+
         DataObjectScanner scanner = new DataObjectScanner();
         scanner.setPackages(pkgsArray);
         scanner.init();
-        
+
         alterSchema.process();
-        
+
         _dbVersionInfo = new DbVersionInfo();
         _dbVersionInfo.setSchemaVersion("2.2");
         _dataDir = new File("./dbtest");
@@ -94,16 +94,17 @@ public abstract class DbSimpleMigrationTestBase extends DbsvcTestBase {
             cleanDirectory(_dataDir);
         }
         startDb(_dbVersionInfo.getSchemaVersion(), null, scanner);
-        
+
         scanner = null;
-        
+
     }
-    
+
     protected static abstract class AlterSchema {
         protected abstract void process();
 
         protected void replaceIndexCf(Class<? extends DataObject> clazz, String fieldName, String oldIndexCf) {
-            ColumnFamily<String, IndexColumnName> oldIndexCF = new ColumnFamily<String, IndexColumnName>(oldIndexCf, StringSerializer.get(),
+            ColumnFamily<String, IndexColumnName> oldIndexCF = new ColumnFamily<String, IndexColumnName>(oldIndexCf,
+                    StringSerializer.get(),
                     IndexColumnNameSerializer.get());
             DataObjectType doType = TypeMap.getDoType(clazz);
             if (doType != null) {

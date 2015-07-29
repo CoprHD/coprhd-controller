@@ -126,7 +126,6 @@ public class MeteringServiceTest {
         deleteIfExists(JsonTestOutputFile);
     }
 
-    
     private void deleteIfExists(String fname) {
         File f = new File(fname);
 

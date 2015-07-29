@@ -20,8 +20,6 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.backup.BackupFileSet;
@@ -50,7 +48,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     private static final Logger log = LoggerFactory.getLogger(BackupScheduler.class);
     private static final long SCHEDULE_BACKUP_RETRY_OFFSITE = 5 * 60 * 1000L;
     private volatile boolean isLeader = false;
-    
+
     private static volatile BackupScheduler singletonInstance;
 
     @Autowired
@@ -78,27 +76,27 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
     @Autowired
     private Service serviceinfo;
-    
+
     private SchedulerConfig cfg;
     private BackupExecutor backupExec;
     private UploadExecutor uploadExec;
 
     private ScheduledExecutorService service;
     private ScheduledFuture<?> scheduledTask;
-    
-    public BackupScheduler(){
+
+    public BackupScheduler() {
     }
 
     public static BackupScheduler getSingletonInstance() {
         return singletonInstance;
     }
 
-    private void cancelScheduledTask(){
+    private void cancelScheduledTask() {
         this.scheduledTask.cancel(false);
         log.info("Previous scheduled task cancelled");
         this.scheduledTask = null;
     }
-    
+
     /**
      * All scheduling adjustment should be done by scheduling this to scheduler thread pool,
      * so this is synchronized with scheduled executions.
@@ -144,7 +142,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
         long millisToSleep = coming.getTime() - System.currentTimeMillis();
         log.info("schedule next backup run at {}", coming);
-        this.scheduledTask = this.service.schedule((Runnable)this, millisToSleep, TimeUnit.MILLISECONDS);
+        this.scheduledTask = this.service.schedule((Runnable) this, millisToSleep, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -168,7 +166,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             }
         }
 
-        //Will retry every 5 min if schedule next run fail
+        // Will retry every 5 min if schedule next run fail
         while (isLeader && !service.isShutdown()) {
             try {
                 scheduleNextRun();
@@ -185,9 +183,9 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     }
 
     public void auditBackup(OperationTypeEnum auditType,
-                            String operationalStatus,
-                            String description,
-                            Object... descparams) {
+            String operationalStatus,
+            String description,
+            Object... descparams) {
         this.auditMgr.recordAuditLog(null, null,
                 BackupConstants.EVENT_SERVICE_TYPE,
                 auditType,
@@ -208,6 +206,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     /**
      * This method will scan this node's local /data/backup folder to get a rough list of
      * available backups
+     * 
      * @return
      */
     public Set<String> getNodeBackupTags() {
@@ -226,13 +225,13 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
     /**
      * Get a list of backup tags. A tag could represent an ongoing backup that's not fully completed.
+     * 
      * @param ignoreDownNodes
      * @return
      */
     public Set<String> getClusterBackupTags(boolean ignoreDownNodes) {
         return this.backupOps.listRawBackup(ignoreDownNodes).uniqueTags();
     }
-
 
     public BackupFileSet getDownloadFiles(String tag) {
         return this.backupService.getDownloadList(tag);
@@ -250,21 +249,23 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         int backupNodeCount = 0;
         for (int i = 0; i < allNodes.length; i++) {
             if (availableNodes.contains(allNodes[i])) {
-            	backupNodeCount++;
+                backupNodeCount++;
             }
         }
 
         return ScheduledBackupTag.toZipFileName(tag, nodeNames.size(), backupNodeCount);
     }
 
-    public List<String> getDescParams(final String tag){
+    public List<String> getDescParams(final String tag) {
         final String nodeName = this.serviceinfo.getNodeName();
-        return new ArrayList<String>(){{
-        	add(tag);
-        	add(nodeName);
-        }};
+        return new ArrayList<String>() {
+            {
+                add(tag);
+                add(nodeName);
+            }
+        };
     }
-    
+
     /**
      * Called when related system properties are changed, and we need to reschedule
      */
@@ -287,7 +288,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             log.info("Property change notification ignored because this node is no longer backup leader.");
         }
     }
-    
+
     /**
      * Called when initializing Spring bean, make sure only one node(leader node) performs backup job
      * */
@@ -297,30 +298,31 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             try {
                 Thread.sleep(BackupConstants.BACKUP_WAINT_BEFORE_RETRY_ZK_CONN);
             } catch (InterruptedException e) {
-                log.warn("Exception while sleeping,ignore",e);
+                log.warn("Exception while sleeping,ignore", e);
                 throw e;
             }
         }
 
         singletonInstance = this;
         this.cfg = new SchedulerConfig(this.coordinatorClient, this.encryptionProvider, this.dbClient);
-        
-        LeaderSelector leaderSelector = this.coordinatorClient.getLeaderSelector(BackupConstants.BACKUP_LEADER_PATH, new BackupLeaderSelectorListener());
+
+        LeaderSelector leaderSelector = this.coordinatorClient.getLeaderSelector(BackupConstants.BACKUP_LEADER_PATH,
+                new BackupLeaderSelectorListener());
         leaderSelector.autoRequeue();
         leaderSelector.start();
     }
-    
-    private class BackupLeaderSelectorListener extends LeaderSelectorListenerImpl{
+
+    private class BackupLeaderSelectorListener extends LeaderSelectorListenerImpl {
 
         @Override
         protected void startLeadership() throws Exception {
             log.info("This node is selected as backup leader, starting Backup Scheduler");
 
             isLeader = true;
-            
+
             service = new NamedScheduledThreadPoolExecutor("BackupScheduler", 1);
-            ((NamedScheduledThreadPoolExecutor)service).setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
-            service.schedule((Callable<Object>)BackupScheduler.this, 0L, TimeUnit.MICROSECONDS);
+            ((NamedScheduledThreadPoolExecutor) service).setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
+            service.schedule((Callable<Object>) BackupScheduler.this, 0L, TimeUnit.MICROSECONDS);
         }
 
         @Override
@@ -328,7 +330,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             log.info("give up leader, stop backup scheduler");
 
             isLeader = false;
-            
+
             // Stop scheduler thread
             service.shutdown();
             try {

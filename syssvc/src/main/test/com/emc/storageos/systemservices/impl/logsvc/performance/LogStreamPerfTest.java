@@ -204,7 +204,7 @@ public class LogStreamPerfTest {
         files.add(new File("/opt/storageos/logs/testData/controllersvc.log.20131120-163817.gz"));
         LogRequest req = new LogRequest.Builder().build();
         LogStatusInfo status = new LogStatusInfo();
-        LogFileStream stream = new LogFileStream("",files, req, status);
+        LogFileStream stream = new LogFileStream("", files, req, status);
         long startTime = 0;
         long endTime = 0;
         startTime = System.nanoTime();

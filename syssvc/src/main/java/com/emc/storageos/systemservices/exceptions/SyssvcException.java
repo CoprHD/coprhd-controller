@@ -9,7 +9,8 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
 public abstract class SyssvcException extends InternalException {
-    protected SyssvcException(final boolean retryable, final ServiceCode code, final Throwable cause, final String detailBase, final String detailKey, final Object[] detailParams) {
+    protected SyssvcException(final boolean retryable, final ServiceCode code, final Throwable cause, final String detailBase,
+            final String detailKey, final Object[] detailParams) {
         super(retryable, code, cause, detailBase, detailKey, detailParams);
     }
 

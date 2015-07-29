@@ -11,7 +11,7 @@ public class Resource1 extends DataObject {
     private StringMap res3Map;
 
     @IndexByKey
-    @RelationIndex(cf="TestRelationIndex", type = Resource3.class)
+    @RelationIndex(cf = "TestRelationIndex", type = Resource3.class)
     @Name("res3")
     public StringMap getRes3Map() {
         return res3Map;

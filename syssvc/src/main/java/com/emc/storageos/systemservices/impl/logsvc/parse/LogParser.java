@@ -38,7 +38,7 @@ public abstract class LogParser {
     // return 0 -- in time range
     // return -1 --later than end time
     protected int inTimeRange(int year, int month, int days, int hours, int mins,
-                            int secs, int msecs, LogRequest request) {
+            int secs, int msecs, LogRequest request) {
         logDate.set(year, (month - 1), days, hours, mins, secs);
         logDate.set(Calendar.MILLISECOND, msecs);
         return LogUtil.timeInRange(logDate.getTime(), request.getStartTime(),
@@ -47,7 +47,7 @@ public abstract class LogParser {
 
     // Returns the number of milliseconds
     protected long getTime(int year, int month, int days, int hours, int mins,
-                         int secs, int msecs) {
+            int secs, int msecs) {
         logDate.set(year, (month - 1), days, hours, mins, secs);
         logDate.set(Calendar.MILLISECOND, msecs);
         Date date = logDate.getTime();

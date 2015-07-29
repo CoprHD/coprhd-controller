@@ -14,7 +14,8 @@ import com.emc.storageos.apidiff.util.Pair;
  */
 class HtmlSerializerHelper {
 
-    private HtmlSerializerHelper() {}
+    private HtmlSerializerHelper() {
+    }
 
     static String buildHeader(final String title) {
         StringBuilder builder = new StringBuilder();
@@ -41,8 +42,9 @@ class HtmlSerializerHelper {
         StringBuilder builder = new StringBuilder();
         builder.append("    <CENTER>\n");
         builder.append("      <H1>").append(title).append("</H1>\n");
-        if (subTitle != null && subTitle.length() > 0)
+        if (subTitle != null && subTitle.length() > 0) {
             builder.append("      <H2>").append(subTitle).append("</H2>\n");
+        }
         builder.append("    </CENTER>\n");
         return builder.toString();
     }
@@ -63,8 +65,9 @@ class HtmlSerializerHelper {
         for (i = 0; i < columns.length; i++) {
             builder.append("        <TD ALIGN=\"LEFT\" VALIGN=\"TOP\" WIDTH=\"");
             builder.append(columns[i].getRight()).append("%\"");
-            if (i == columns.length - 1)
+            if (i == columns.length - 1) {
                 builder.append(" COLSPAN=\"").append(colSpan).append("\"");
+            }
             builder.append(">");
             builder.append("<FONT SIZE=\"+1\"><B>").append(columns[i].getLeft()).append("</B></FONT></TD>\n");
         }
@@ -91,8 +94,9 @@ class HtmlSerializerHelper {
             builder.append("          <TD ALIGN=\"LEFT\" VALIGN=\"TOP\" WIDTH=\"");
             builder.append(columns[i].getRight());
             builder.append("%\"");
-            if (i == columns.length - 1)
+            if (i == columns.length - 1) {
                 builder.append(" COLSPAN=\"").append(colSpan).append("\"");
+            }
             builder.append(">");
             builder.append(columns[i].getLeft()).append("</TD>\n");
         }
@@ -120,7 +124,6 @@ class HtmlSerializerHelper {
     static String buildLink(final String linkPage, final String content) {
         return String.format("<A HREF=\"%s\"> %s </A>", linkPage, content);
     }
-
 
     static String buildListHeader() {
         return "    <UL>\n";

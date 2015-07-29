@@ -29,24 +29,24 @@ public class LogLevelManager extends BaseLogManager {
 
     /**
      * Constructor.
-     *
+     * 
      * @param propertiesLoader A reference to the configurable properties loader.
      * @throws APIException When a null parameter is passed.
      */
     public LogLevelManager(LogLevelRequest logReqInfo, MediaType mediaType,
-                                   LogSvcPropertiesLoader propertiesLoader) {
+            LogSvcPropertiesLoader propertiesLoader) {
         super(logReqInfo, mediaType, propertiesLoader);
     }
 
     /**
-     *
+     * 
      * @throws APIException When an error occurs satisfying the log request.
      */
     public LogLevels process() {
         List<NodeInfo> nodeInfo;
         int expirInMin;
 
-        //Getting all nodes information
+        // Getting all nodes information
         if (_logReqInfo.getNodeIds().isEmpty()) {
             _log.debug("No nodes specified, assuming all nodes");
             nodeInfo = ClusterNodesUtil.getClusterNodeInfo();
@@ -56,8 +56,8 @@ public class LogLevelManager extends BaseLogManager {
         if (nodeInfo.isEmpty()) {
             throw APIException.internalServerErrors.noNodeAvailableError("update log levels");
         }
-         
-        LogLevelRequest logLevelReq = (LogLevelRequest)_logReqInfo;
+
+        LogLevelRequest logLevelReq = (LogLevelRequest) _logReqInfo;
         if (logLevelReq.getExpirInMin() == null) {
             _log.debug("No expiration specified, asuming default value");
             expirInMin = _propertiesLoader.getLogLevelExpiration();
@@ -65,9 +65,9 @@ public class LogLevelManager extends BaseLogManager {
             expirInMin = logLevelReq.getExpirInMin();
         }
 
-        //we will handle the empty logNames list inside the internal log level API.
+        // we will handle the empty logNames list inside the internal log level API.
 
-        return propagate(nodeInfo, _logReqInfo.getLogNames(), _logReqInfo.getSeverity(), 
+        return propagate(nodeInfo, _logReqInfo.getLogNames(), _logReqInfo.getSeverity(),
                 expirInMin, logLevelReq.getScope());
     }
 
@@ -86,9 +86,11 @@ public class LogLevelManager extends BaseLogManager {
                     _propertiesLoader.getNodeLogCollectorTimeout() * 1000,
                     _propertiesLoader.getNodeLogConnectionTimeout() * 1000);
             try {
-                LogLevelRequest nodeLogReqInfo = new LogLevelRequest(new ArrayList<String>() {{
+                LogLevelRequest nodeLogReqInfo = new LogLevelRequest(new ArrayList<String>() {
+                    {
                         add(node.getId());
-                    }}, logNames, severity, expirInMin, scope);
+                    }
+                }, logNames, severity, expirInMin, scope);
                 LogLevels nodeResp = sysClient.post(SysClientFactory.URI_LOG_LEVELS,
                         LogLevels.class, nodeLogReqInfo);
                 nodeLogLevels.getLogLevels().addAll(nodeResp.getLogLevels());

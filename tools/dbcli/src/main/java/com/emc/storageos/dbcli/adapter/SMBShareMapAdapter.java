@@ -21,22 +21,22 @@ public class SMBShareMapAdapter extends
     public static class AdaptedMap {
         public List<Entry> entry = new ArrayList<Entry>();
     }
-    
+
     public static class Entry {
         public String key;
         public SMBFileShare value;
     }
-    
+
     @Override
     public SMBShareMap unmarshal(AdaptedMap adaptedMap)
-          throws Exception {
+            throws Exception {
         SMBShareMap map = new SMBShareMap();
         for (Entry entry : adaptedMap.entry) {
             map.put(entry.key, entry.value);
         }
         return map;
     }
-    
+
     @Override
     public AdaptedMap marshal(SMBShareMap map) throws Exception {
         AdaptedMap adaptedMap = new AdaptedMap();

@@ -10,7 +10,7 @@ import com.emc.storageos.db.client.model.DataObject;
 
 /**
  * @author cgarber
- *
+ * 
  */
 @Cf("StorageDevice")
 public class StorageDevice extends DataObject {

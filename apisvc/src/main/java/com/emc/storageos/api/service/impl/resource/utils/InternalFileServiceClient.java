@@ -40,7 +40,7 @@ public class InternalFileServiceClient extends BaseServiceClient {
     private static final String RELEASE_UNDO = RELEASE + "/undo";
     private static final String TASK = "/tasks/";
 
-    private static final String SUB_DIRECTORY_QUERY_KEY = "subDirectory";        
+    private static final String SUB_DIRECTORY_QUERY_KEY = "subDirectory";
     private static final String TASK_QUERY_KEY = "task";
 
     final private Logger _log = LoggerFactory
@@ -54,6 +54,7 @@ public class InternalFileServiceClient extends BaseServiceClient {
 
     /**
      * Client with specific host
+     * 
      * @param server
      */
     public InternalFileServiceClient(String server) {
@@ -62,6 +63,7 @@ public class InternalFileServiceClient extends BaseServiceClient {
 
     /**
      * Make client associated with this api server host (IP)
+     * 
      * @param server IP
      */
     @Override
@@ -71,6 +73,7 @@ public class InternalFileServiceClient extends BaseServiceClient {
 
     /**
      * Create file system
+     * 
      * @param fileSystemParam
      * @param token user authentication token
      * @return
@@ -81,20 +84,21 @@ public class InternalFileServiceClient extends BaseServiceClient {
 
         WebResource rRoot = createRequest(INTERNAL_FILE_CREATE);
         WebResource.Builder requestBuilder = addSignature(rRoot);
-        TaskResourceRep resp = addToken(requestBuilder, token)                
+        TaskResourceRep resp = addToken(requestBuilder, token)
                 .post(TaskResourceRep.class, fileSystemParam);
         return resp;
     }
 
     /**
      * Export a file share
+     * 
      * @param fsId
      * @param exportParam
      * @return
      */
     public TaskResourceRep exportFileSystem(URI fsId, FileSystemExportParam exportParam) {
-        
-        WebResource rRoot = createRequest(INTERNAL_FILE_ROOT + fsId + EXPORTS);        
+
+        WebResource rRoot = createRequest(INTERNAL_FILE_ROOT + fsId + EXPORTS);
         TaskResourceRep resp = addSignature(rRoot)
                 .post(TaskResourceRep.class, exportParam);
         return resp;
@@ -102,27 +106,28 @@ public class InternalFileServiceClient extends BaseServiceClient {
 
     /**
      * Modify existing export for a file share
+     * 
      * @param fsId fileshare id
      * @param protocol protocol for the existing export
-     * @param securityType security type  for the existing export
+     * @param securityType security type for the existing export
      * @param permissions permissios for the existing export
      * @param rootUserMapping usermapping for the existing export
      * @param updateParam export update param, which contains a list of end points which needs to be added/removed for
-     *                    this export
+     *            this export
      * @return Task in
      */
     public TaskResourceRep modifyExports(URI fsId, String protocol,
-                                         String securityType, String permissions, String rootUserMapping,
-                                         FileExportUpdateParam updateParam) {
+            String securityType, String permissions, String rootUserMapping,
+            FileExportUpdateParam updateParam) {
 
         String modifyExportPath = String.format(MODIFYEXPORTS, fsId, protocol,
                 securityType, permissions, rootUserMapping);
-        WebResource rRoot = createRequest(modifyExportPath);        
+        WebResource rRoot = createRequest(modifyExportPath);
         TaskResourceRep resp = null;
         try {
             resp = addSignature(rRoot)
-                        .put(TaskResourceRep.class, updateParam);
-        }catch(UniformInterfaceException e){
+                    .put(TaskResourceRep.class, updateParam);
+        } catch (UniformInterfaceException e) {
             _log.warn("could not modify exports", e);
         }
         return resp;
@@ -131,6 +136,7 @@ public class InternalFileServiceClient extends BaseServiceClient {
 
     /**
      * Unexport a file share
+     * 
      * @param fsId
      * @param protocol
      * @param securityType
@@ -154,8 +160,8 @@ public class InternalFileServiceClient extends BaseServiceClient {
         TaskResourceRep resp = null;
         try {
             resp = addSignature(rRoot)
-                        .delete(TaskResourceRep.class);
-        }catch(UniformInterfaceException e){
+                    .delete(TaskResourceRep.class);
+        } catch (UniformInterfaceException e) {
             _log.warn("could not unexport", e);
         }
         return resp;
@@ -163,16 +169,17 @@ public class InternalFileServiceClient extends BaseServiceClient {
 
     /**
      * Delete file system (must be unexported first)
+     * 
      * @param fsId file system ID
      * @param token user authentication token
      * @param fileSystemDeleteParam parameter for file system deletion
      * @return
      */
     public TaskResourceRep deactivateFileSystem(URI fsId, String token,
-                                                FileSystemDeleteParam fileSystemDeleteParam) {
+            FileSystemDeleteParam fileSystemDeleteParam) {
 
-        WebResource rRoot = createRequest(INTERNAL_FILE_ROOT + fsId + DEACTIVATE); 
-        WebResource.Builder requestBuilder = addSignature(rRoot);        
+        WebResource rRoot = createRequest(INTERNAL_FILE_ROOT + fsId + DEACTIVATE);
+        WebResource.Builder requestBuilder = addSignature(rRoot);
         TaskResourceRep resp = addToken(requestBuilder, token)
                 .post(TaskResourceRep.class, fileSystemDeleteParam);
         return resp;
@@ -180,12 +187,13 @@ public class InternalFileServiceClient extends BaseServiceClient {
 
     /**
      * Get list of exports for this file system
+     * 
      * @param fsId file share ID
      * @return
      */
     public FileSystemExportList getFileSystemExportList(URI fsId) {
 
-        WebResource rRoot = createRequest(INTERNAL_FILE_ROOT + fsId + EXPORTS);        
+        WebResource rRoot = createRequest(INTERNAL_FILE_ROOT + fsId + EXPORTS);
         FileSystemExportList resp = addSignature(rRoot)
                 .get(FileSystemExportList.class);
         return resp;
@@ -193,13 +201,14 @@ public class InternalFileServiceClient extends BaseServiceClient {
 
     /**
      * Get the status of a file system task
+     * 
      * @param fsId file share ID
      * @param task task ID
      * @return
      */
     public TaskResourceRep getTaskStatus(URI fsId, String task) {
-        
-        WebResource rRoot = createRequest(INTERNAL_FILE_ROOT + fsId + TASK + task);        
+
+        WebResource rRoot = createRequest(INTERNAL_FILE_ROOT + fsId + TASK + task);
         TaskResourceRep resp = addSignature(rRoot)
                 .get(TaskResourceRep.class);
         return resp;
@@ -207,30 +216,32 @@ public class InternalFileServiceClient extends BaseServiceClient {
 
     /**
      * Release a ViPR file system for use by Object
+     * 
      * @param fileSystemParam
      * @param token user authentication token
      * @return a response object containing the previously set tenant and project
      */
-    public FileShareRestRep releaseFileSystem(URI fsId, StorageOSUser user){
-        
+    public FileShareRestRep releaseFileSystem(URI fsId, StorageOSUser user) {
+
         WebResource rRoot = createRequest(INTERNAL_FILE_ROOT + fsId + RELEASE);
         WebResource.Builder requestBuilder = addSignature(rRoot);
-        FileShareRestRep resp = addTokens(requestBuilder, user.getToken(), user.getProxyToken())                
+        FileShareRestRep resp = addTokens(requestBuilder, user.getToken(), user.getProxyToken())
                 .post(FileShareRestRep.class);
         return resp;
     }
-    
+
     /**
      * Release a ViPR file system for use by Object
+     * 
      * @param fileSystemParam
      * @return
-     * @throws Exception 
-     * @throws ClientHandlerException 
-     * @throws UniformInterfaceException 
+     * @throws Exception
+     * @throws ClientHandlerException
+     * @throws UniformInterfaceException
      */
     public FileShareRestRep undoReleaseFileSystem(URI fsId) {
         WebResource rRoot = createRequest(INTERNAL_FILE_ROOT + fsId + RELEASE_UNDO);
         FileShareRestRep resp = addSignature(rRoot).post(FileShareRestRep.class);
         return resp;
-    }    
+    }
 }

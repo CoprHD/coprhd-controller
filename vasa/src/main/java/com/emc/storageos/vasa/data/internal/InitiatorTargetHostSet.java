@@ -9,16 +9,16 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "InitiatorTargetHostSet")
 public class InitiatorTargetHostSet {
-	@XmlElement
-	String[] endpoints;
+    @XmlElement
+    String[] endpoints;
 
     @Override
-	public String toString(){
-    	String s = "";
-    	for (int i=0;i<endpoints.length;i++){
-    		s+="\t"+endpoints[i];
-    	}
-    	return s;
+    public String toString() {
+        String s = "";
+        for (int i = 0; i < endpoints.length; i++) {
+            s += "\t" + endpoints[i];
+        }
+        return s;
     }
 
 }

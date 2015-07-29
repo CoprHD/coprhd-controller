@@ -29,17 +29,19 @@ import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
  * for Networks.
  */
 public class NetworkConnectedVirtualArraysMigrationTest extends DbSimpleMigrationTestBase {
-    
+
     // The URI of the varray array assigned to the test Network.
     private VirtualArray connectedVarray;
     private VirtualArray connectedAndassignedVarray;
     private VirtualArray assignedVarray;
-    
+
     @BeforeClass
     public static void setup() throws IOException {
-        customMigrationCallbacks.put("1.1", new ArrayList<BaseCustomMigrationCallback>() {{
-            add(new NetworkConnectedVirtualArraysMigration());
-        }});
+        customMigrationCallbacks.put("1.1", new ArrayList<BaseCustomMigrationCallback>() {
+            {
+                add(new NetworkConnectedVirtualArraysMigration());
+            }
+        });
 
         DbsvcTestBase.setup();
     }
@@ -81,21 +83,21 @@ public class NetworkConnectedVirtualArraysMigrationTest extends DbSimpleMigratio
         networkAllNull.setId(URIUtil.createId(Network.class));
         networkAllNull.setLabel("networkAllNull");
         _dbClient.createObject(networkAllNull);
-        
+
         networkAssignedOnly = new Network();
         networkAssignedOnly.setId(URIUtil.createId(Network.class));
         networkAssignedOnly.setLabel("networkAssignedOnly");
         networkAssignedOnly.addAssignedVirtualArrays(
                 Collections.singletonList(assignedVarray.getId().toString()));
         _dbClient.createObject(networkAssignedOnly);
-        
+
         networkConnectedOnly = new Network();
         networkConnectedOnly.setId(URIUtil.createId(Network.class));
         networkConnectedOnly.setLabel("networkConnectedOnly");
         networkConnectedOnly.addConnectedVirtualArrays(
                 Collections.singletonList(connectedVarray.getId().toString()));
         _dbClient.createObject(networkConnectedOnly);
-        
+
         networkAssignedAndConnected = new Network();
         networkAssignedAndConnected.setId(URIUtil.createId(Network.class));
         networkAssignedAndConnected.setLabel("networkAssignedAndConnected");
@@ -121,7 +123,7 @@ public class NetworkConnectedVirtualArraysMigrationTest extends DbSimpleMigratio
             if (network.getLabel().equals("networkAllNull")) {
                 Assert.assertTrue(String.format("Network (label=%s) should have no assigned or connected varrays", networkLabel),
                         ((network.getAssignedVirtualArrays() == null) && (network.getConnectedVirtualArrays() == null)));
-            } else if (network.getLabel().equals("networkAssignedOnly")) { 
+            } else if (network.getLabel().equals("networkAssignedOnly")) {
                 Assert.assertTrue(String.format("Network (label=%s) should have 1 assigned and 1 connected varray", networkLabel),
                         ((network.getAssignedVirtualArrays().size() == 1) && (network.getConnectedVirtualArrays().size() == 1)));
                 Assert.assertTrue(String.format("Network (label=%s) should have the same varray in assigned and connected", networkLabel),
@@ -130,7 +132,7 @@ public class NetworkConnectedVirtualArraysMigrationTest extends DbSimpleMigratio
                 Assert.assertTrue(String.format("Network (label=%s) should have 'assignedVarray' in connected", networkLabel),
                         (assignedVarray.getId().toString().equals(
                                 network.getConnectedVirtualArrays().iterator().next())));
-            } else if (network.getLabel().equals("networkConnectedOnly")) { 
+            } else if (network.getLabel().equals("networkConnectedOnly")) {
                 Assert.assertTrue(String.format("Network (label=%s) should have no assigned varrays", networkLabel),
                         (network.getAssignedVirtualArrays() == null));
                 Assert.assertTrue(String.format("Network (label=%s) should have 1 connected varray", networkLabel),
@@ -138,7 +140,7 @@ public class NetworkConnectedVirtualArraysMigrationTest extends DbSimpleMigratio
                 Assert.assertTrue(String.format("Network (label=%s) should have 'connectedVarray' in connected", networkLabel),
                         (connectedVarray.getId().toString().equals(
                                 network.getConnectedVirtualArrays().iterator().next())));
-            } else if (network.getLabel().equals("networkAssignedAndConnected")) { 
+            } else if (network.getLabel().equals("networkAssignedAndConnected")) {
                 Assert.assertTrue(String.format("Network (label=%s) should have 2 assigned varrays", networkLabel),
                         (network.getAssignedVirtualArrays().size() == 2));
                 Assert.assertTrue(String.format("Network (label=%s) should have 3 connected varray", networkLabel),

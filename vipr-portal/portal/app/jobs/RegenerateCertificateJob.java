@@ -7,7 +7,6 @@ package jobs;
 import play.jobs.Job;
 
 import com.emc.vipr.client.core.Keystore;
-import com.emc.vipr.model.keystore.KeyAndCertificateChain;
 
 public class RegenerateCertificateJob extends Job {
     private final Keystore api;

@@ -6,8 +6,6 @@ package com.emc.storageos.db.server.upgrade.util.models.old;
 
 import com.emc.storageos.db.client.model.*;
 
-import java.net.URI;
-
 @Cf("Resource2")
 public class Resource2 extends DataObject {
     private NamedURI res1;

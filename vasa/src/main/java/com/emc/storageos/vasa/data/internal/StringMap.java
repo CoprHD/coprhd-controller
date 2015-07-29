@@ -9,18 +9,17 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "StringMap")
 public class StringMap {
-	
-	@XmlElement
-	Entry entry[];
+
+    @XmlElement
+    Entry entry[];
 
     @Override
-	public String toString(){
-    	String s = "";
-    	for (int i=0;i<entry.length;i++){
-    		s+="\t"+entry[i].toString();
-    	}
-    	return s;
+    public String toString() {
+        String s = "";
+        for (int i = 0; i < entry.length; i++) {
+            s += "\t" + entry[i].toString();
+        }
+        return s;
     }
-
 
 }

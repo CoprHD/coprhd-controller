@@ -14,7 +14,6 @@
  */
 package com.emc.storageos.plugins.metering.netapp;
 
-
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
@@ -29,7 +28,7 @@ public class NetAppFileCollectionException extends BaseCollectionException {
         return ERROR_CODE_NA_EXCEPTION;
     }
 
-    protected NetAppFileCollectionException(final boolean retryable,  final ServiceCode serviceCode,
+    protected NetAppFileCollectionException(final boolean retryable, final ServiceCode serviceCode,
             final Throwable cause, final String detailBase, final String detailKey,
             final Object[] detailParams) {
         super(retryable, serviceCode, cause, detailBase, detailKey, detailParams);

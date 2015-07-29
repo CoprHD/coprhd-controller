@@ -127,19 +127,19 @@ public class MonitoringServiceTest {
 
     @Test
     public void testEventRetriverNonSupportedType() {
-           EventRetriever eventRetriever = new DummyEventRetriever();
-          MonitoringService eventResource = new MonitoringService();
-            eventResource.setEventRetriever(eventRetriever);
-    
-            DummyHttpHeaders header = new DummyHttpHeaders(MediaType.TEXT_PLAIN_TYPE);
-    
-            Response r = eventResource
-                    .getEvents("2012-05-05T00", header);
-    
-            Assert.assertNotNull(r);
-            Assert.assertEquals(Status.OK.getStatusCode(), r.getStatus(), r.getStatus());
-       }
-   
+        EventRetriever eventRetriever = new DummyEventRetriever();
+        MonitoringService eventResource = new MonitoringService();
+        eventResource.setEventRetriever(eventRetriever);
+
+        DummyHttpHeaders header = new DummyHttpHeaders(MediaType.TEXT_PLAIN_TYPE);
+
+        Response r = eventResource
+                .getEvents("2012-05-05T00", header);
+
+        Assert.assertNotNull(r);
+        Assert.assertEquals(Status.OK.getStatusCode(), r.getStatus(), r.getStatus());
+    }
+
     private void deleteIfExists(String fname) {
         File f = new File(fname);
 

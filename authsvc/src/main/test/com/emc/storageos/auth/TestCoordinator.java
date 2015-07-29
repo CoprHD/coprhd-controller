@@ -32,15 +32,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-
 /**
- *  Stub coordinator class for use with unit tests
+ * Stub coordinator class for use with unit tests
  */
 public class TestCoordinator implements CoordinatorClient {
 
-    private ConcurrentHashMap<String, HashMap<String, Configuration> > configurations = 
-            new ConcurrentHashMap<String, HashMap<String, Configuration> >();
-    
+    private ConcurrentHashMap<String, HashMap<String, Configuration>> configurations =
+            new ConcurrentHashMap<String, HashMap<String, Configuration>>();
+
     @Override
     public <T> T locateService(Class<T> clazz, String name, String version,
             String tag, String endpointKey) throws CoordinatorException {
@@ -55,7 +54,6 @@ public class TestCoordinator implements CoordinatorClient {
         return null;
     }
 
-
     @Override
     public List<Service> locateAllSvcsAllVers(String name) throws CoordinatorException {
         return null;
@@ -65,7 +63,7 @@ public class TestCoordinator implements CoordinatorClient {
     public <T> DistributedQueue<T> getQueue(String name,
             DistributedQueueConsumer<T> consumer,
             QueueSerializer<T> serializer, int maxThreads, int maxItem)
-                    throws CoordinatorException {
+            throws CoordinatorException {
         // TODO Auto-generated method stub
         return null;
     }
@@ -104,11 +102,11 @@ public class TestCoordinator implements CoordinatorClient {
         return null;
     }
 
-    private HashMap<String,TestLock> _locks = new HashMap<String,TestLock>();
-    
+    private HashMap<String, TestLock> _locks = new HashMap<String, TestLock>();
+
     @Override
     public synchronized InterProcessLock getLock(String name) throws CoordinatorException {
-        if(_locks.containsKey(name)) {
+        if (_locks.containsKey(name)) {
             return _locks.get(name);
         } else {
             TestLock l = new TestLock();
@@ -141,14 +139,13 @@ public class TestCoordinator implements CoordinatorClient {
         return false;
     }
 
-
     @Override
     public void persistServiceConfiguration(Configuration... config)
             throws CoordinatorException {
         HashMap<String, Configuration> configMap = configurations.get(config[0].getKind());
         if (configMap == null) {
             configMap = new HashMap<String, Configuration>();
-        }        
+        }
         configMap.put(config[0].getId(), config[0]);
         configurations.put(config[0].getKind(), configMap);
     }
@@ -167,7 +164,7 @@ public class TestCoordinator implements CoordinatorClient {
     @Override
     public List<Configuration> queryAllConfiguration(String kind)
             throws CoordinatorException {
-        HashMap<String, Configuration> configMap = configurations.get(kind);       
+        HashMap<String, Configuration> configMap = configurations.get(kind);
         if (configMap != null) {
             Set<Entry<String, Configuration>> asSet = configMap.entrySet();
             ArrayList<Configuration> configs = new ArrayList<Configuration>();
@@ -183,7 +180,7 @@ public class TestCoordinator implements CoordinatorClient {
     public Configuration queryConfiguration(String kind, String id)
             throws CoordinatorException {
         HashMap<String, Configuration> configMap = configurations.get(kind);
-        if (configMap !=null) {
+        if (configMap != null) {
             return configMap.get(id);
         }
         return null;
@@ -216,7 +213,7 @@ public class TestCoordinator implements CoordinatorClient {
     }
 
     @Override
-    public CoordinatorClientInetAddressMap getInetAddessLookupMap() {    
+    public CoordinatorClientInetAddressMap getInetAddessLookupMap() {
         return null;
     }
 
@@ -225,7 +222,7 @@ public class TestCoordinator implements CoordinatorClient {
         private final String _updateTime = null;
         Properties _properties = new Properties();
         private String _kind = null;
-        private String _id = null;        
+        private String _id = null;
 
         @Override
         public String getKind() {
@@ -255,13 +252,13 @@ public class TestCoordinator implements CoordinatorClient {
         @Override
         public void setConfig(String key, String val) {
             _properties.setProperty(key, val);
-            return;     
+            return;
         }
 
         @Override
         public void removeConfig(String key) {
             _properties.remove(key);
-            return;     
+            return;
         }
 
         @Override
@@ -284,9 +281,9 @@ public class TestCoordinator implements CoordinatorClient {
 
         @Override
         public synchronized void acquire() throws Exception {
-            while(_isAcquired) {
+            while (_isAcquired) {
                 Thread.sleep(100);
-            }     
+            }
             _isAcquired = true;
             _threadId = Thread.currentThread().getId();
         }
@@ -298,7 +295,7 @@ public class TestCoordinator implements CoordinatorClient {
         }
 
         @Override
-        public  boolean isAcquiredInThisProcess() {
+        public boolean isAcquiredInThisProcess() {
             if (_threadId != Thread.currentThread().getId()) {
                 return false;
             }
@@ -346,7 +343,7 @@ public class TestCoordinator implements CoordinatorClient {
 
     @Override
     public DistributedDataManager createDistributedDataManager(String basePath,
-                                                               long maxNodes) throws CoordinatorException {
+            long maxNodes) throws CoordinatorException {
         // Pass in null instead ZK for tests only
         TestDistributedDataManager dataMgr = new TestDistributedDataManager(null, basePath, maxNodes);
         return dataMgr;
@@ -359,9 +356,9 @@ public class TestCoordinator implements CoordinatorClient {
     }
 
     @Override
-    public <T extends CoordinatorSerializable> T getNodeInfo(Service service, String nodeId, Class<T> clazz)         
+    public <T extends CoordinatorSerializable> T getNodeInfo(Service service, String nodeId, Class<T> clazz)
             throws Exception {
-        return null; 
+        return null;
     }
 
     @Override
@@ -375,24 +372,24 @@ public class TestCoordinator implements CoordinatorClient {
 
     @Override
     public <T extends CoordinatorSerializable> Map<Service,
-    T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter) throws Exception {
-        return null; 
+            T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter) throws Exception {
+        return null;
     }
 
     @Override
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws Exception {
-        return null; 
+        return null;
     }
 
     @Override
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
             throws Exception {
-        return null; 
+        return null;
     }
 
     @Override
     public String getUpgradeLockOwner(String lockId) {
-        return null; 
+        return null;
     }
 
     @Override
@@ -402,22 +399,22 @@ public class TestCoordinator implements CoordinatorClient {
 
     @Override
     public String getCurrentDbSchemaVersion() {
-        return null; 
+        return null;
     }
 
     @Override
     public String getTargetDbSchemaVersion() {
-        return null; 
+        return null;
     }
 
     @Override
     public MigrationStatus getMigrationStatus() {
-        return null; 
+        return null;
     }
 
     @Override
     public String getDbConfigPath(String serviceName) {
-        return null; 
+        return null;
     }
 
     @Override

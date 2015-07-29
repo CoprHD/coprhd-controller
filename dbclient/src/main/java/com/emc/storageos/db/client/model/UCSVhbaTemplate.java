@@ -8,39 +8,39 @@ import java.net.URI;
 
 @Cf("UCSVhbaTemplate")
 public class UCSVhbaTemplate extends DiscoveredSystemObject {
-	
-	private String name;
-	private URI computeSystem;
-	private String dn;
-	private String templateType;
 
-	/**
+    private String name;
+    private URI computeSystem;
+    private String dn;
+    private String templateType;
+
+    /**
      * Updating or non-updating
      */
     private Boolean updating;
 
+    @Name("name")
+    public String getName() {
+        return name;
+    }
 
+    public void setName(String name) {
+        this.name = name;
+        setChanged("name");
+    }
 
-	@Name("name")
-	public String getName() {
-		return name;
-	}
-	public void setName(String name) {
-		this.name = name;
-		setChanged("name");
-	}
-	
-	@RelationIndex(cf = "RelationIndex", type = ComputeSystem.class)
-	@Name("computeSystem")
-	public URI getComputeSystem() {
-		return computeSystem;
-	}
-	public void setComputeSystem(URI computeSystem) {
-		this.computeSystem = computeSystem;
-		setChanged("computeSystem");
-	}
-	
-	    @Name("dn")
+    @RelationIndex(cf = "RelationIndex", type = ComputeSystem.class)
+    @Name("computeSystem")
+    public URI getComputeSystem() {
+        return computeSystem;
+    }
+
+    public void setComputeSystem(URI computeSystem) {
+        this.computeSystem = computeSystem;
+        setChanged("computeSystem");
+    }
+
+    @Name("dn")
     public String getDn() {
         return dn;
     }
@@ -60,7 +60,7 @@ public class UCSVhbaTemplate extends DiscoveredSystemObject {
         setChanged("templateType");
     }
 
-	@Name("updating")
+    @Name("updating")
     public Boolean getUpdating() {
         return updating;
     }
@@ -69,5 +69,5 @@ public class UCSVhbaTemplate extends DiscoveredSystemObject {
         this.updating = updating;
         setChanged("updating");
     }
-	
+
 }

@@ -5,7 +5,6 @@
 
 package com.emc.storageos.api.service.utils;
 
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -25,9 +24,9 @@ import com.emc.storageos.db.client.model.Stat;
 /**
  * Implemation of StatRetriever to retrieve stats locally instead of getting from
  * Cassandra database.
- *
+ * 
  * @author rvobugar
- *
+ * 
  */
 public class DummyStatRetriever implements StatRetriever {
 
@@ -73,13 +72,13 @@ public class DummyStatRetriever implements StatRetriever {
                 try {
                     marshaller.marshall(stat, out);
                 } catch (Exception e) {
-                	_logger.error(e.getMessage(),e);
+                    _logger.error(e.getMessage(), e);
                 }
             } else if (mediaType == MediaType.APPLICATION_JSON_TYPE) {
                 try {
                     marshaller.marshall(stat, out);
                 } catch (Exception e) {
-                	_logger.error(e.getMessage(),e);
+                    _logger.error(e.getMessage(), e);
                 }
             }
         }

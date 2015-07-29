@@ -21,57 +21,57 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.google.common.base.Function;
 
-public class MapBlockConsistencyGroup implements Function<BlockConsistencyGroup,BlockConsistencyGroupRestRep> {
+public class MapBlockConsistencyGroup implements Function<BlockConsistencyGroup, BlockConsistencyGroupRestRep> {
     public static final MapBlockConsistencyGroup instance = new MapBlockConsistencyGroup();
-    
+
     // The DB client is required to query the list of volumes within a consistency group
     private DbClient dbClient;
 
     public static MapBlockConsistencyGroup getInstance(DbClient dbClient) {
-    	instance.setDBClient(dbClient);
+        instance.setDBClient(dbClient);
         return instance;
     }
 
     private MapBlockConsistencyGroup() {
     }
 
-    private void setDBClient(DbClient dbClient){
-    	this.dbClient = dbClient;
+    private void setDBClient(DbClient dbClient) {
+        this.dbClient = dbClient;
     }
-    
+
     @Override
     public BlockConsistencyGroupRestRep apply(BlockConsistencyGroup consistencyGroup) {
-    	// If no db client, we are unable to query for the volumes
-    	if(dbClient == null){
-    		return BlockMapper.map(consistencyGroup, null, null);
-    	}
-    	
-    	// Find all volumes assigned to the group
-    	final URIQueryResultList cgVolumesResults = new URIQueryResultList();
-    	dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()), cgVolumesResults);
-    	
-    	// If no volumes, just return the consistency group
-    	if (!cgVolumesResults.iterator().hasNext()) {
-    		return map(consistencyGroup, null, dbClient);
-    	}
-    	
-    	final Set<URI> volumes = new HashSet<URI>();
-    	final List<URI> cgVolumesURIs = new ArrayList<URI>();
-    		
-    	while (cgVolumesResults.iterator().hasNext()) {
-    		final URI volumeId = cgVolumesResults.iterator().next();
-    		cgVolumesURIs.add(volumeId);
-    	}
-    		
-    	final List<Volume> cgVolumes = dbClient.queryObject(Volume.class, cgVolumesURIs);
-    		
-    	// Only display active volumes
-    	for (Volume volume : cgVolumes) {
-    		if(!volume.getInactive()){
-    			volumes.add(volume.getId());
-    		}
-    	}
-    	
-    	return BlockMapper.map(consistencyGroup, volumes, dbClient);
+        // If no db client, we are unable to query for the volumes
+        if (dbClient == null) {
+            return BlockMapper.map(consistencyGroup, null, null);
+        }
+
+        // Find all volumes assigned to the group
+        final URIQueryResultList cgVolumesResults = new URIQueryResultList();
+        dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()), cgVolumesResults);
+
+        // If no volumes, just return the consistency group
+        if (!cgVolumesResults.iterator().hasNext()) {
+            return map(consistencyGroup, null, dbClient);
+        }
+
+        final Set<URI> volumes = new HashSet<URI>();
+        final List<URI> cgVolumesURIs = new ArrayList<URI>();
+
+        while (cgVolumesResults.iterator().hasNext()) {
+            final URI volumeId = cgVolumesResults.iterator().next();
+            cgVolumesURIs.add(volumeId);
+        }
+
+        final List<Volume> cgVolumes = dbClient.queryObject(Volume.class, cgVolumesURIs);
+
+        // Only display active volumes
+        for (Volume volume : cgVolumes) {
+            if (!volume.getInactive()) {
+                volumes.add(volume.getId());
+            }
+        }
+
+        return BlockMapper.map(consistencyGroup, volumes, dbClient);
     }
 }

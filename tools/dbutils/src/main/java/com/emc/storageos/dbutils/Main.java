@@ -45,17 +45,17 @@ public class Main {
     private static final String TYPE_EVENTS = "events";
     private static final String TYPE_STATS = "stats";
     private static final String TYPE_AUDITS = "audits";
-    
+
     private static final String LIST_ACTIVE = "-activeonly";
     private static final String LIST_LIMIT = "-limit";
-    
+
     public static final String RECOVER_DUMP = "-dump";
     public static final String RECOVER_LOAD = "-recover";
 
     public static final String DELETE_FILE = "-file";
-    
+
     public static final String BLACKLIST = "blacklist";
-    
+
     private static DBClient _client = null;
 
     private static final String LOG_FILE_PATH = "/opt/storageos/logs/dbutils.log";
@@ -68,55 +68,58 @@ public class Main {
      * Dump usage
      */
     private static void usage() {
-        System.out.printf("Usage: \n");
-        System.out.printf("\t%s [%s <n>] [%s] <Column Family Name>\n",
+        System.out.printf("Usage: %n");
+        System.out.printf("\t%s [%s <n>] [%s] <Column Family Name>%n",
                 Command.LIST.name().toLowerCase(), LIST_LIMIT, LIST_ACTIVE);
         System.out.printf("\t\t%s <n>\t List paginated with a limit of <n>, "
-                + "if <n> is missing, default is 100.\n", LIST_LIMIT);
-        System.out.printf("\t\t%s\t List exclude inactive object ids.\n", LIST_ACTIVE);
-        System.out.printf("\t%s <Column Family Name> <id>\n", Command.QUERY.name().toLowerCase());
-        System.out.printf("\t%s <%s/%s/%s> <file_prefix> [<YEAR/MONTH/DAY/HOUR>]\n",
+                + "if <n> is missing, default is 100.%n", LIST_LIMIT);
+        System.out.printf("\t\t%s\t List exclude inactive object ids.%n", LIST_ACTIVE);
+        System.out.printf("\t%s <Column Family Name> <id>%n", Command.QUERY.name().toLowerCase());
+        System.out.printf("\t%s <%s/%s/%s> <file_prefix> [<YEAR/MONTH/DAY/HOUR>]%n",
                 Command.LIST.name().toLowerCase(), TYPE_EVENTS, TYPE_STATS, TYPE_AUDITS);
-        System.out.printf("\t%s [-force] <Column Family Name> <id/-file file_path>\n", Command.DELETE.name().toLowerCase());
-        System.out.printf("\t\t%s\t<file_path>\tEvery single line in this file is an object id, multiple object ids should be separated to different line.\n", DELETE_FILE);
-        System.out.printf("\t%s [%s] <Column Family Name>\n",
+        System.out.printf("\t%s [-force] <Column Family Name> <id/-file file_path>%n", Command.DELETE.name().toLowerCase());
+        System.out
+                .printf("\t\t%s\t<file_path>\tEvery single line in this file is an object id, multiple object ids should be separated to different line.%n",
+                        DELETE_FILE);
+        System.out.printf("\t%s [%s] <Column Family Name>%n",
                 Command.COUNT.name().toLowerCase(), LIST_ACTIVE);
-        System.out.printf("\t\t%s\t Count exclude inactive object ids.\n", LIST_ACTIVE);
-        System.out.printf("\t%s <%s/%s/%s> <START TIME> <END TIME>[eg:2012/05/18/15]\n",
+        System.out.printf("\t\t%s\t Count exclude inactive object ids.%n", LIST_ACTIVE);
+        System.out.printf("\t%s <%s/%s/%s> <START TIME> <END TIME>[eg:2012/05/18/15]%n",
                 Command.GET_RECORDS.name().toLowerCase(), "Events", "Stats", "AuditLogs");
-        System.out.printf("\t%s %s %s %s %s %s\n",
+        System.out.printf("\t%s %s %s %s %s %s%n",
                 Command.GLOBALLOCK.name().toLowerCase(), "CREATE", "<lock name>", "<owner>", "(<mode>)", "(<timeout>)");
-        System.out.printf("\t\tNote: For <mode>, could be GL_NodeSvcShared_MODE or GL_VdcShared_MODE(default).\n");
-        System.out.printf("\t\t    : For <timeout>, unit is millisecond and 0 (default) means never expired.\n");
-        System.out.printf("\t%s %s %s \n",
+        System.out.printf("\t\tNote: For <mode>, could be GL_NodeSvcShared_MODE or GL_VdcShared_MODE(default).%n");
+        System.out.printf("\t\t    : For <timeout>, unit is millisecond and 0 (default) means never expired.%n");
+        System.out.printf("\t%s %s %s %n",
                 Command.GLOBALLOCK.name().toLowerCase(), "READ", "<lock name>");
-        System.out.printf("\t%s %s %s \n",
+        System.out.printf("\t%s %s %s %n",
                 Command.GLOBALLOCK.name().toLowerCase(), "DELETE", "<lock name>");
-        System.out.printf("\t%s <schema version> <dump filename>\n",
+        System.out.printf("\t%s <schema version> <dump filename>%n",
                 Command.DUMP_SCHEMA.name().toLowerCase());
-        System.out.printf("\t%s <dump filename>\n",
+        System.out.printf("\t%s <dump filename>%n",
                 Command.DUMP_SECRETKEY.name().toLowerCase());
-        System.out.printf("\t%s <restore filename>\n",
+        System.out.printf("\t%s <restore filename>%n",
                 Command.RESTORE_SECRETKEY.name().toLowerCase());
-        System.out.printf("\t%s [%s] [%s] Recover Vdc.\n",
+        System.out.printf("\t%s [%s] [%s] Recover Vdc.%n",
                 Command.RECOVER_VDC_CONFIG.name().toLowerCase(), RECOVER_DUMP, RECOVER_LOAD);
-        System.out.printf("\t%s [%s] [%s] Geodb blacklist.\n",
+        System.out.printf("\t%s [%s] [%s] Geodb blacklist.%n",
                 Command.GEOBLACKLIST.name().toLowerCase(), "-reset|set", "<vdc short id>");
-        System.out.printf("\t%s Check correctness for URI and serialize in db\n",
+        System.out.printf("\t%s Check correctness for URI and serialize in db%n",
                 Command.CHECK_DB.name().toLowerCase());
-        System.out.printf("\t%s -db|-geodb [-new] [-crossVdc]\n",
+        System.out.printf("\t%s -db|-geodb [-new] [-crossVdc]%n",
                 Command.REPAIR_DB.name().toLowerCase());
-        System.out.printf("\t\tNote: %s option can only be executed as %s user\n",
+        System.out.printf("\t\tNote: %s option can only be executed as %s user%n",
                 Command.REPAIR_DB.name().toLowerCase(), STORAGEOS_USER);
-        System.out.printf("\t -bypassMigrationCheck\n");
-        System.out.printf("\t\tNote: it's used with other commands together only when migration fail, dbutils still work even migration fail if you pass this option");
+        System.out.printf("\t -bypassMigrationCheck%n");
+        System.out
+                .printf("\t\tNote: it's used with other commands together only when migration fail, dbutils still work even migration fail if you pass this option");
     }
 
     /**
      * Stop client and exit
      */
     private static void stop() {
-        if (_client != null ) {
+        if (_client != null) {
             _client.stop();
         }
         System.exit(0);
@@ -130,7 +133,7 @@ public class Main {
                 delStatus = dbutilsPidFile.delete();
             }
         } catch (SecurityException e) {
-            if(delStatus == false) {
+            if (delStatus == false) {
                 log.warn("Failed to delete dbutils pid file: {}", dbutilsPidFile.getPath());
             }
         }
@@ -138,7 +141,7 @@ public class Main {
 
     private static void changeLogFileOwner() throws Exception {
         File f = new File(LOG_FILE_PATH);
-        if(f.exists()) {
+        if (f.exists()) {
             PosixFileAttributeView dbutilsLogFile = Files.getFileAttributeView(f.toPath(),
                     PosixFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
             UserPrincipalLookupService lookupService = FileSystems.getDefault().getUserPrincipalLookupService();
@@ -152,29 +155,29 @@ public class Main {
     public static void main(String[] args) throws Exception {
         deleteDbutilsPidFile();
         changeLogFileOwner();
-        if (args.length == 0 ) {
+        if (args.length == 0) {
             usage();
             return;
         }
 
-        boolean skipMigrationCheck = skipMigrationCheck(args); 
-        //it's a hack of passed arg since we already hard-coded 
-        //parameter position in args array.
-        if (skipMigrationCheck){
-        	args = removeMigrationCheckArg(args);
+        boolean skipMigrationCheck = skipMigrationCheck(args);
+        // it's a hack of passed arg since we already hard-coded
+        // parameter position in args array.
+        if (skipMigrationCheck) {
+            args = removeMigrationCheckArg(args);
         }
-        
+
         Command cmd;
         try {
             cmd = Command.valueOf(args[0].trim().toUpperCase());
-        }catch (IllegalArgumentException e) {
-            System.err.println("Invalid command "+args[0]); 
+        } catch (IllegalArgumentException e) {
+            System.err.println("Invalid command " + args[0]);
             usage();
             return;
         }
 
         if (cmd == Command.REPAIR_DB) {
-            if(!System.getProperty("user.name").equals(STORAGEOS_USER)) {
+            if (!System.getProperty("user.name").equals(STORAGEOS_USER)) {
                 System.err.println("Please su to storageos user to do \"db repair\" operation");
                 System.exit(1);
             }
@@ -182,16 +185,18 @@ public class Main {
         }
 
         try {
-            _client = new DBClient(skipMigrationCheck);
+            // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+            // This is a CLI application and main method will not be called by multiple threads
+            _client = new DBClient(skipMigrationCheck); // NOSONAR ("squid:S2444")
 
             CommandHandler handler = null;
             boolean result = false;
 
             switch (cmd) {
-                case LIST: 
+                case LIST:
                     _client.init();
                     handler = new ListHandler(args, _client);
-                     break;
+                    break;
                 case QUERY:
                     _client.init();
                     handler = new QueryHandler(args);
@@ -237,7 +242,7 @@ public class Main {
                     handler = new CheckDBHandler();
                     break;
                 default:
-                    throw new IllegalArgumentException("Invalid command "); 
+                    throw new IllegalArgumentException("Invalid command ");
             }
             handler.process(_client);
         } catch (Exception e) {
@@ -249,23 +254,23 @@ public class Main {
         }
     }
 
-	private static String[] removeMigrationCheckArg(String[] args) {
-		List<String> tmpArgs = new ArrayList<String>();
-		for (String arg : args) {
-			if (arg!=null && arg.equals(SKIP_MIGRATION_CHECK)) {
-				continue;
-			}
-			tmpArgs.add(arg);
-		}
-		return tmpArgs.toArray(new String[tmpArgs.size()]);
-	}
+    private static String[] removeMigrationCheckArg(String[] args) {
+        List<String> tmpArgs = new ArrayList<String>();
+        for (String arg : args) {
+            if (arg != null && arg.equals(SKIP_MIGRATION_CHECK)) {
+                continue;
+            }
+            tmpArgs.add(arg);
+        }
+        return tmpArgs.toArray(new String[tmpArgs.size()]);
+    }
 
-	private static boolean skipMigrationCheck(String[] args) {
-		for (String arg : args){
-			if (arg!=null && arg.equals(SKIP_MIGRATION_CHECK)) {
-				return true;
-			}
-		}
-		return false;
-	}
+    private static boolean skipMigrationCheck(String[] args) {
+        for (String arg : args) {
+            if (arg != null && arg.equals(SKIP_MIGRATION_CHECK)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

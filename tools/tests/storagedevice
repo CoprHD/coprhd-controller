@@ -1,0 +1,240 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+URI_SERVICES_BASE               = ''
+URI_STORAGEDEVICES              = URI_SERVICES_BASE   + '/vdc/storage-systems'
+URI_REGISTER_STORAGEDEVICE      = URI_SERVICES_BASE   + '/vdc/smis-providers/{0}/storage-systems/{1}/register'
+
+#----------------------------------------------------------------------
+# storage cli functions
+#----------------------------------------------------------------------
+
+def storagedevice_list(args):
+    bourne.connect(args.ip)
+    refs = bourne.storagedevice_list()
+    ss_display_hdr()
+    for ref in refs:
+        ss = bourne.storagedevice_show(ref['id'])
+        ss_display(ss)
+
+def storagedevice_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.storagedevice_query(args.name)
+    storage = bourne.storagedevice_show(uri)
+    bourne.pretty_print_json(storage)
+
+def storagedevice_update(args):
+    bourne.connect(args.ip)
+    uri = bourne.storagedevice_query(args.name)
+    storage = bourne.storagedevice_update(uri, args.max_resources)
+
+def storagedevice_query(args):
+    bourne.connect(args.ip)
+    print bourne.storagedevice_query(args.name)
+
+def storagedevice_create(args):
+    bourne.connect(args.ip)
+    s = bourne.storagedevice_create(args.label, args.type, args.devip, args.devport,
+                 args.username, args.password, args.serialno, args.smisip, args.smisport, args.smisuser, args.smispw, args.smisssl, URI_STORAGEDEVICES)
+    if (s['state'] == 'ready'):
+        print 'Device created with id ' + s['resource']['id']
+    else:
+        print 'Device create failed.'
+
+def storagedevice_discover_all(args):
+    bourne.connect(args.ip)
+    s = bourne.storagedevice_discover_all(args.ignore_error)
+    print s 
+
+def storagedevice_discover_namespace(args):
+    bourne.connect(args.ip)
+    s = bourne.storagedevice_discover_namespace(args.name, args.namespace, args.ignore_error)
+
+def storagedevice_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.storagedevice_query(args.name)
+    print uri;
+    res = bourne.storagedevice_delete(uri)
+    print res
+
+def discovered_storagedevice_register(args):
+    bourne.connect(args.ip)
+    provideruri = bourne.smisprovider_query(args.provider)
+    sysytemuri = bourne.storagedevice_query(args.name)
+    bourne.register_element(provideruri, systemuri, URI_REGISTER_STORAGEDEVICE)
+
+#
+# display storage system in list form
+#
+ss_display_fmt = '{0:8s} {1:28s} {2:10s} {3:12s} {4:s}'
+
+def ss_display_hdr():
+    print ss_display_fmt.format('type', 'guid', 'discovery', 'reg-status', 'id')
+
+def ss_display(ss):
+    try:
+        print ss_display_fmt.format(ss['system_type'], ss['native_guid'], ss['job_discovery_status'],
+            ss['registration_status'],  ss['id'])
+    except: 
+	print "there was an error"
+
+def storagedevice_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.storagedevice_query(args.name)
+    print 'Tagging storagedevice ', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+def storagedevice_search(args):
+    bourne.connect(args.ip)
+    if (args.scope != None):
+        # query tenant id from tenant name
+        args.scope = bourne.tenant_query(args.scope)
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching storagedevice with ' + args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# storage <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne CoS cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | update | createpool | listpools | discover_all | discover_namespace)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# storage create label
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('label',		help = 'label for storage device')
+create.add_argument('type',		help = 'storage device type')
+create.add_argument('devip',		help = 'storage device IP address')
+create.add_argument('devport',		help = 'storage device tcp port')
+create.add_argument('username',		help = 'storage device user name')
+create.add_argument('password',		help = 'storage device password')
+create.add_argument('--serialno',	help = 'storage device serial number')
+create.add_argument('--smisip',		help = 'SMIS provider IP address')
+create.add_argument('--smisport',	help = 'SMIS provider TCP port')
+create.add_argument('--smisuser',	help = 'SMIS provider user name')
+create.add_argument('--smispw',	help = 'SMIS provider password')
+create.add_argument('--smisssl',	help = 'SMIS provider use ssl true or false')
+
+# storage delete name
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',	help = 'Name of storage to be deleted')
+
+# storage show name
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name',	help = 'Name of storage')
+
+# storage update name
+update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+update.add_argument('name',	help = 'Name of storage')
+update.add_argument('max_resources',	help = 'Maximum number of resources allowed on the storage system')
+
+# storage query name
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name',	help = 'Name of storage')
+
+# storage list
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# storage register
+register = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+register.add_argument('name',	help = 'Name of storage')
+register.add_argument('provider',  help = 'Name of the SMI-S provider')
+
+# storage discover_all
+discover_all = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+discover_all.add_argument('--ignore_error', action='store_true', help='If specified, will ignore failure')
+
+# storage discover_namespace
+discover_namespace = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+discover_namespace.add_argument('name',      help = 'Name of storage')
+discover_namespace.add_argument('namespace',      help = 'Namespace name to discover')
+discover_namespace.add_argument('--ignore_error', action='store_true', help='If specified, will ignore failure')
+
+# tag 
+resource_type="storage_system"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching', default=None)
+search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag')
+search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        storagedevice_create(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        storagedevice_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        storagedevice_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        storagedevice_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        storagedevice_list(args)
+    elif (cmd == "register"):
+        args = register.parse_args()
+        discovered_storagedevice_register(args)
+    elif (cmd == "discover_all"):
+        args = discover_all.parse_args()
+        storagedevice_discover_all(args)
+    elif (cmd == "discover_namespace"):
+        args = discover_namespace.parse_args()
+        storagedevice_discover_namespace(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        storagedevice_tag(args)
+    elif(cmd == "search"):
+        args = search.parse_args()
+        storagedevice_search(args)
+    elif(cmd == "update"):
+        args = update.parse_args()
+        storagedevice_update(args)
+    else:
+        parser.print_help()
+except:
+    raise
+

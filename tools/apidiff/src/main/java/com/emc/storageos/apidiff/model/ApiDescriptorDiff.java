@@ -9,7 +9,7 @@ import com.emc.storageos.apidiff.util.Pair;
 
 /**
  * This class records differences of two API, including request parameter, body and response body.
- *
+ * 
  */
 public class ApiDescriptorDiff {
 
@@ -17,11 +17,12 @@ public class ApiDescriptorDiff {
     private Pair<String, String> requestElementDiff;
     private Pair<String, String> responseElementDiff;
 
-    public ApiDescriptorDiff() {}
+    public ApiDescriptorDiff() {
+    }
 
     public ApiDescriptorDiff(Pair<String, String> paramDiff,
-                             Pair<String, String> requestElementDiff,
-                             Pair<String, String> responseElementDiff) {
+            Pair<String, String> requestElementDiff,
+            Pair<String, String> responseElementDiff) {
         this.paramDiff = paramDiff;
         this.requestElementDiff = requestElementDiff;
         this.responseElementDiff = responseElementDiff;

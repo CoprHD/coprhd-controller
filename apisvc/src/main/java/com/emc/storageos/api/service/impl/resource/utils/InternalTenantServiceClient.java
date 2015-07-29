@@ -27,33 +27,36 @@ public class InternalTenantServiceClient extends BaseServiceClient {
     private static final String INTERNAL_TENANT_UNSET_NAMESPACE = INTERNAL_TENANT_ROOT + "/%s/namespace";
 
     final private Logger _log = LoggerFactory
-        .getLogger(InternalTenantServiceClient.class);
+            .getLogger(InternalTenantServiceClient.class);
 
     /**
      * Client without target hosts
      */
-    public InternalTenantServiceClient () {
+    public InternalTenantServiceClient() {
     }
 
     /**
      * Client with specific host
+     * 
      * @param server
      */
-    public InternalTenantServiceClient (String server) {
+    public InternalTenantServiceClient(String server) {
         setServer(server);
     }
 
     /**
      * Make client associated with this api server host (IP)
+     * 
      * @param server IP
      */
     @Override
     public void setServer(String server) {
-            setServiceURI(URI.create("https://" + server + ":8443"));
-        }
+        setServiceURI(URI.create("https://" + server + ":8443"));
+    }
 
     /**
      * Set namespace mapping info for tenant or subtenant
+     * 
      * @param tenantId the URN of a ViPR Tenant/Subtenant
      * @param namespace name of the target namespace the tenant will be mapped to
      * @return the updated Tenant/Subtenant instance
@@ -64,8 +67,8 @@ public class InternalTenantServiceClient extends BaseServiceClient {
         TenantOrgRestRep resp = null;
         try {
             resp = addSignature(rRoot)
-                .put(TenantOrgRestRep.class);
-        }catch(UniformInterfaceException e){
+                    .put(TenantOrgRestRep.class);
+        } catch (UniformInterfaceException e) {
             _log.warn("could not attach namespace to tenant {}. Err:{}", tenantId, e);
         }
         return resp;
@@ -73,8 +76,9 @@ public class InternalTenantServiceClient extends BaseServiceClient {
 
     /**
      * Get namespace of a tenant or subtenant
+     * 
      * @param tenantId the URN of a ViPR Tenant/Subtenant
-     * @return the TenantNamespaceInfo 
+     * @return the TenantNamespaceInfo
      */
     public TenantNamespaceInfo getTenantNamespace(URI tenantId) {
         String getNamespacePath = String.format(INTERNAL_TENANT_GET_NAMESPACE, tenantId.toString());
@@ -83,16 +87,15 @@ public class InternalTenantServiceClient extends BaseServiceClient {
         try {
             resp = addSignature(rRoot)
                     .get(TenantNamespaceInfo.class);
-        }catch(UniformInterfaceException e){
+        } catch (UniformInterfaceException e) {
             _log.warn("could not get namespace of tenant {}. Err:{}", tenantId, e);
         }
         return resp;
     }
 
-
     /**
      * Unset namespace mapping info from tenant or subtenant
-     *
+     * 
      * @param tenantId the URN of a ViPR Tenant/Subtenant
      * @prereq none
      * @brief unset namespace field
@@ -104,11 +107,10 @@ public class InternalTenantServiceClient extends BaseServiceClient {
         ClientResponse resp = null;
         try {
             resp = addSignature(rRoot)
-                .delete(ClientResponse.class);
-        }catch(UniformInterfaceException e){
+                    .delete(ClientResponse.class);
+        } catch (UniformInterfaceException e) {
             _log.warn("could not detach namespace from tenant {}. Err:{}", tenantId, e);
         }
         return resp;
     }
 }
-

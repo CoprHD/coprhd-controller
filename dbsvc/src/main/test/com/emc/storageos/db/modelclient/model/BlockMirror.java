@@ -9,7 +9,7 @@ import com.emc.storageos.db.client.model.Cf;
 
 /**
  * @author cgarber
- *
+ * 
  */
 @Cf("BlockMirror")
 public class BlockMirror extends Volume {

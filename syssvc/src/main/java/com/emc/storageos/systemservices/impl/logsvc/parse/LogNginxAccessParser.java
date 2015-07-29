@@ -17,7 +17,7 @@ import com.emc.vipr.model.sys.logging.LogRequest;
 /**
  * Parse nginx_access.log
  * A typical log message is like:
- *
+ * 
  * 10.10.191.121 - root [15/May/2014:06:16:21 +0000] "GET /login HTTP/1.1" 200 25 "-"
  * "python-requests/2.2.1 CPython/2.6.8 Linux/3.0.101-0.8-default"
  */
@@ -32,22 +32,21 @@ public class LogNginxAccessParser extends LogParser {
         Date date = null;
         String msg = null;
 
-
         String[] splitLine = line.split(" ");
-        if(splitLine.length < 10){
+        if (splitLine.length < 10) {
             return LogMessage.CONTINUATION_LOGMESSAGE;
         }
 
         // splitLine[3] is like "[15/May/2014:06:16:21"
         String timeStr = splitLine[3].substring(1);
-        if(timeStr.length() != TIME_LENGTH){
+        if (timeStr.length() != TIME_LENGTH) {
             return LogMessage.CONTINUATION_LOGMESSAGE;
         }
 
         DateFormat format = new SimpleDateFormat("dd/MMM/yyyy:HH:mm:ss");
-        try{
+        try {
             date = format.parse(timeStr);
-        } catch(Exception e){
+        } catch (Exception e) {
             return LogMessage.CONTINUATION_LOGMESSAGE;
         }
 
@@ -60,10 +59,12 @@ public class LogNginxAccessParser extends LogParser {
 
         int logOffset = line.indexOf(splitLine[5]);
         int timeBytesStartIndex = line.indexOf(splitLine[3]);
-        if (logOffset > Short.MAX_VALUE)
+        if (logOffset > Short.MAX_VALUE) {
             return LogMessage.CONTINUATION_LOGMESSAGE;
-        if (timeBytesStartIndex + 1 > Short.MAX_VALUE)
+        }
+        if (timeBytesStartIndex + 1 > Short.MAX_VALUE) {
             return LogMessage.CONTINUATION_LOGMESSAGE;
+        }
 
         LogMessage log = new LogMessage(date.getTime(), line.getBytes());
         log.setLogOffset(logOffset);
@@ -74,4 +75,4 @@ public class LogNginxAccessParser extends LogParser {
 
         return log;
     }
-} 
+}

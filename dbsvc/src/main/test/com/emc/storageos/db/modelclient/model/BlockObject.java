@@ -15,10 +15,10 @@ import com.emc.storageos.db.client.model.VirtualArray;
 
 /**
  * @author cgarber
- *
+ * 
  */
 public abstract class BlockObject extends DataObject {
-    
+
     // virtual array where this volume exists
     private URI _virtualArray;
     private VirtualArray _virtualArrayObj;
@@ -35,7 +35,7 @@ public abstract class BlockObject extends DataObject {
     }
 
     @Name("varrayObj")
-    @Relation(mappedBy="varray")
+    @Relation(mappedBy = "varray")
     public VirtualArray getVirtualArrayObj() {
         return _virtualArrayObj;
     }

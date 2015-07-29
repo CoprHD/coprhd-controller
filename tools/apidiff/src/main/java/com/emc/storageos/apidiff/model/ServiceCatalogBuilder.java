@@ -21,7 +21,8 @@ import java.util.Map;
  */
 public class ServiceCatalogBuilder {
 
-    private ServiceCatalogBuilder() {}
+    private ServiceCatalogBuilder() {
+    }
 
     public static ServiceCatalog build(final String filePath) {
         return build(new File(filePath));
@@ -29,27 +30,29 @@ public class ServiceCatalogBuilder {
 
     /**
      * Parses xml file to ServiceCatalog with Jdom
+     * 
      * @param xmlFile
-     *          The instance of xml file
+     *            The instance of xml file
      * @return instance of ServiceCatalog
      */
     public static ServiceCatalog build(final File xmlFile) {
 
         String fileName = xmlFile.getName().trim().toLowerCase();
         // remove suffix
-        if (fileName.endsWith(Constants.XML_FILE_SUFFIX))
-            fileName = fileName.substring(0, fileName.length()-Constants.XML_FILE_SUFFIX.length()-1);
-        else
-            throw new IllegalArgumentException("API file is not xml format: "+ fileName);
+        if (fileName.endsWith(Constants.XML_FILE_SUFFIX)) {
+            fileName = fileName.substring(0, fileName.length() - Constants.XML_FILE_SUFFIX.length() - 1);
+        } else {
+            throw new IllegalArgumentException("API file is not xml format: " + fileName);
+        }
 
         // filter name
         int separatorIndex = fileName.indexOf(Constants.NAME_STRING_SEPARATOR);
-        if (separatorIndex == -1)
+        if (separatorIndex == -1) {
             throw new IllegalArgumentException("API file name should split with "
                     + Constants.NAME_STRING_SEPARATOR + " actually: " + fileName);
+        }
         String serviceName = fileName.substring(0, separatorIndex);
-        String version = fileName.substring(separatorIndex+1, fileName.length());
-
+        String version = fileName.substring(separatorIndex + 1, fileName.length());
 
         Document document;
         try {
@@ -58,8 +61,9 @@ public class ServiceCatalogBuilder {
             throw new IllegalArgumentException("Invalid XML file:\n " + xmlFile.getAbsolutePath(), ex);
         }
 
-        if (document == null)
+        if (document == null) {
             return null;
+        }
 
         // Navigates to resource tag, it's a little tricky here, depends on structure of xml file completely.
         List<Element> resourceList = document.getRootElement()
@@ -79,13 +83,15 @@ public class ServiceCatalogBuilder {
 
     /**
      * Parses tag list <resource> to get REST API details
+     * 
      * @param resourceList
-     *          The list of resource tag
+     *            The list of resource tag
      * @return details of api resource
      */
     public static Map<ApiIdentifier, ApiDescriptor> parseResource(List<Element> resourceList) {
-        if (resourceList == null)
+        if (resourceList == null) {
             throw new NullPointerException("Please navigate to right resource tag before parse it");
+        }
         Map<ApiIdentifier, ApiDescriptor> resourceMap = new HashMap<ApiIdentifier, ApiDescriptor>();
 
         for (Element element : resourceList) {
@@ -99,20 +105,23 @@ public class ServiceCatalogBuilder {
             Element opInValue = opElement.getChild(Constants.OPERATION_INVALUE_NODE);
             if (opInValue != null) {
                 Element xmlElement = opInValue.getChild(Constants.XML_ELEMENT_NODE);
-                if (xmlElement != null && xmlElement.getAttributeValue(Constants.ATTRIBUTE_ELEMENT_NAME) != null)
+                if (xmlElement != null && xmlElement.getAttributeValue(Constants.ATTRIBUTE_ELEMENT_NAME) != null) {
                     apiResource.setRequestElement(xmlElement.getAttributeValue(Constants.ATTRIBUTE_ELEMENT_NAME).trim());
+                }
             }
 
             Element opOutValue = opElement.getChild(Constants.OPERATION_OUTVALUE_NODE);
             if (opOutValue != null) {
                 Element xmlElement = opOutValue.getChild(Constants.XML_ELEMENT_NODE);
-                if (xmlElement != null && xmlElement.getAttributeValue(Constants.ATTRIBUTE_ELEMENT_NAME) != null)
+                if (xmlElement != null && xmlElement.getAttributeValue(Constants.ATTRIBUTE_ELEMENT_NAME) != null) {
                     apiResource.setResponseElement(xmlElement.getAttributeValue(Constants.ATTRIBUTE_ELEMENT_NAME).trim());
+                }
             }
 
-            for (Element paramElement : opElement.getChildren(Constants.OPERATION_PARAMETER_NODE)){
-                if(paramElement.getAttributeValue(Constants.ATTRIBUTE_NAME) != null)
+            for (Element paramElement : opElement.getChildren(Constants.OPERATION_PARAMETER_NODE)) {
+                if (paramElement.getAttributeValue(Constants.ATTRIBUTE_NAME) != null) {
                     apiResource.getParameters().add(paramElement.getAttributeValue(Constants.ATTRIBUTE_NAME).trim());
+                }
             }
 
             resourceMap.put(apiIdentifier, apiResource);
@@ -123,13 +132,15 @@ public class ServiceCatalogBuilder {
 
     /**
      * Parses tag list <element> to get REST API details
+     * 
      * @param elementList
-     *          The list of element tag
+     *            The list of element tag
      * @return details of API element
      */
     public static Map<String, String> parseElement(List<Element> elementList) {
-        if (elementList == null)
+        if (elementList == null) {
             throw new NullPointerException("Please navigate to right element tag before parse it");
+        }
         Map<String, String> elmentMap = new HashMap<String, String>();
         for (Element element : elementList) {
             String exampleXml = filterExampleXml(element.getChildText(Constants.ELEMENT_EXAMPLE_XML_NODE).trim());
@@ -140,17 +151,20 @@ public class ServiceCatalogBuilder {
 
     /**
      * Helper method to filter example xml
+     * 
      * @param examplXml
-     *          The content of example xml
+     *            The content of example xml
      * @return the filtered example xml
      */
     private static String filterExampleXml(String examplXml) {
         int begin = 0;
         int end = examplXml.length();
-        if (examplXml.startsWith(Constants.EXAMLE_XML_HEADER))
-            begin = Constants.EXAMLE_XML_HEADER.length()-1;
-        if (examplXml.endsWith(Constants.EXAMLE_XML_TAILER))
+        if (examplXml.startsWith(Constants.EXAMLE_XML_HEADER)) {
+            begin = Constants.EXAMLE_XML_HEADER.length() - 1;
+        }
+        if (examplXml.endsWith(Constants.EXAMLE_XML_TAILER)) {
             end = end - Constants.EXAMLE_XML_TAILER.length();
+        }
 
         return examplXml.substring(begin, end);
     }

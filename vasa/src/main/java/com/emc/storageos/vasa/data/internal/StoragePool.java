@@ -9,91 +9,90 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "storage_pool")
 public class StoragePool {
-	@XmlElement
-	private String id;
-	@XmlElement
-	private String name;
-	@XmlElement
-	private boolean inactive;
+    @XmlElement
+    private String id;
+    @XmlElement
+    private String name;
+    @XmlElement
+    private boolean inactive;
 
-	@XmlElement(name = "operational_status")
-	private String operationStatus;
+    @XmlElement(name = "operational_status")
+    private String operationStatus;
 
-	@XmlElement(name = "percent_subscribed")
-	private Integer percentSubscribed;
+    @XmlElement(name = "percent_subscribed")
+    private Integer percentSubscribed;
 
-	@XmlElement(name = "percent_used")
-	private Integer percentUsed;
+    @XmlElement(name = "percent_used")
+    private Integer percentUsed;
 
-	@XmlElement(name = "subscribed_gb")
-	private Integer subscribedCapaityInGB;
+    @XmlElement(name = "subscribed_gb")
+    private Integer subscribedCapaityInGB;
 
-	@XmlElement(name = "usable_gb")
-	private Integer usableCapaityInGB;
+    @XmlElement(name = "usable_gb")
+    private Integer usableCapaityInGB;
 
-	@XmlElement(name = "used_gb")
-	private Integer usedCapaityInGB;
+    @XmlElement(name = "used_gb")
+    private Integer usedCapaityInGB;
 
-	public String getId() {
-		return id;
-	}
+    public String getId() {
+        return id;
+    }
 
-	public String getName() {
-		return name;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public boolean isInactive() {
-		return inactive;
-	}
+    public boolean isInactive() {
+        return inactive;
+    }
 
-	public String getOperationStatus() {
-		return operationStatus;
-	}
+    public String getOperationStatus() {
+        return operationStatus;
+    }
 
-	public Integer getPercentSubscribed() {
-		return percentSubscribed;
-	}
+    public Integer getPercentSubscribed() {
+        return percentSubscribed;
+    }
 
-	public Integer getPercentUsed() {
-		return percentUsed;
-	}
+    public Integer getPercentUsed() {
+        return percentUsed;
+    }
 
-	public Integer getSubscribedCapaityInGB() {
-		return subscribedCapaityInGB;
-	}
+    public Integer getSubscribedCapaityInGB() {
+        return subscribedCapaityInGB;
+    }
 
-	public Integer getUsableCapaityInGB() {
-		return usableCapaityInGB;
-	}
+    public Integer getUsableCapaityInGB() {
+        return usableCapaityInGB;
+    }
 
-	public Integer getUsedCapaityInGB() {
-		return usedCapaityInGB;
-	}
+    public Integer getUsedCapaityInGB() {
+        return usedCapaityInGB;
+    }
 
-	@Override
-	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("StoragePool [id=");
-		builder.append(id);
-		builder.append(", name=");
-		builder.append(name);
-		builder.append(", inactive=");
-		builder.append(inactive);
-		builder.append(", operationStatus=");
-		builder.append(operationStatus);
-		builder.append(", percentSubscribed=");
-		builder.append(percentSubscribed);
-		builder.append(", percentUsed=");
-		builder.append(percentUsed);
-		builder.append(", subscribedCapaityInGB=");
-		builder.append(subscribedCapaityInGB);
-		builder.append(", usableCapaityInGB=");
-		builder.append(usableCapaityInGB);
-		builder.append(", usedCapaityInGB=");
-		builder.append(usedCapaityInGB);
-		builder.append("]");
-		return builder.toString();
-	}
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("StoragePool [id=");
+        builder.append(id);
+        builder.append(", name=");
+        builder.append(name);
+        builder.append(", inactive=");
+        builder.append(inactive);
+        builder.append(", operationStatus=");
+        builder.append(operationStatus);
+        builder.append(", percentSubscribed=");
+        builder.append(percentSubscribed);
+        builder.append(", percentUsed=");
+        builder.append(percentUsed);
+        builder.append(", subscribedCapaityInGB=");
+        builder.append(subscribedCapaityInGB);
+        builder.append(", usableCapaityInGB=");
+        builder.append(usableCapaityInGB);
+        builder.append(", usedCapaityInGB=");
+        builder.append(usedCapaityInGB);
+        builder.append("]");
+        return builder.toString();
+    }
 
 }
-

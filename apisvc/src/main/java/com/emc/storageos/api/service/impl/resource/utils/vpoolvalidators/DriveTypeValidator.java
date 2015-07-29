@@ -14,15 +14,12 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
+public class DriveTypeValidator extends VirtualPoolValidator<BlockVirtualPoolParam, BlockVirtualPoolUpdateParam> {
 
-public class DriveTypeValidator extends VirtualPoolValidator<BlockVirtualPoolParam,BlockVirtualPoolUpdateParam> {
-
-   
-   
     @Override
     public void setNextValidator(VirtualPoolValidator validator) {
         _nextValidator = validator;
-        
+
     }
 
     @Override
@@ -41,21 +38,24 @@ public class DriveTypeValidator extends VirtualPoolValidator<BlockVirtualPoolPar
 
     @Override
     protected boolean isUpdateAttributeOn(BlockVirtualPoolUpdateParam updateParam) {
-        //validate DriveType always.
+        // validate DriveType always.
         return true;
-        
+
     }
 
     @Override
     protected void validateVirtualPoolCreateAttributeValue(
-        BlockVirtualPoolParam createParam, DbClient dbClient) {
-        if (null == SupportedDriveTypes.lookup(createParam.getDriveType()))
+            BlockVirtualPoolParam createParam, DbClient dbClient) {
+        if (null == SupportedDriveTypes.lookup(createParam.getDriveType())) {
             throw APIException.badRequests.invalidParameter("driveType", createParam.getDriveType());
+        }
     }
 
     @Override
     protected boolean isCreateAttributeOn(BlockVirtualPoolParam createParam) {
-        if (null != createParam.getDriveType() && !createParam.getDriveType().equalsIgnoreCase(NONE)) return true;
+        if (null != createParam.getDriveType() && !createParam.getDriveType().equalsIgnoreCase(NONE)) {
+            return true;
+        }
         return false;
     }
 }

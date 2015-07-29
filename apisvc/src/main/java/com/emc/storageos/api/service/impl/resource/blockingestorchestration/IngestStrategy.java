@@ -27,7 +27,7 @@ public class IngestStrategy {
 
     private DbClient _dbClient;
     private BlockIngestOrchestrator ingestResourceOrchestrator;
-    
+
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
     }
@@ -36,12 +36,16 @@ public class IngestStrategy {
         this.ingestResourceOrchestrator = ingestResourceOrchestrator;
     }
 
-    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache,StorageSystem system, UnManagedVolume unManagedVolume, 
-            VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant, List<UnManagedVolume> unManagedVolumesToBeDeleted, 
-            Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported, Class<T> clazz, 
+    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system,
+            UnManagedVolume unManagedVolume,
+            VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant,
+            List<UnManagedVolume> unManagedVolumesToBeDeleted,
+            Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
+            Class<T> clazz,
             Map<String, StringBuffer> taskStatusMap) {
-        return ingestResourceOrchestrator.ingestBlockObjects(systemCache, poolCache,system, unManagedVolume, vPool, virtualArray,
-                project, tenant, unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz, taskStatusMap);
+        return ingestResourceOrchestrator.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray,
+                project, tenant, unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz,
+                taskStatusMap);
 
     }
 }

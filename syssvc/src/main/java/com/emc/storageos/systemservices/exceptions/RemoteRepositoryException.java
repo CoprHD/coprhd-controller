@@ -11,7 +11,8 @@ public class RemoteRepositoryException extends SyssvcException {
 
     private static final long serialVersionUID = -6667892618447159300L;
 
-    protected RemoteRepositoryException(final ServiceCode code, final Throwable cause, final String detailBase, final String detailKey, final Object[] detailParams) {
+    protected RemoteRepositoryException(final ServiceCode code, final Throwable cause, final String detailBase, final String detailKey,
+            final Object[] detailParams) {
         super(false, code, cause, detailBase, detailKey, detailParams);
     }
 }

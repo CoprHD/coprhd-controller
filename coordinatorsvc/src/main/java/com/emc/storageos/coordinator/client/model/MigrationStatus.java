@@ -5,9 +5,10 @@
 
 package com.emc.storageos.coordinator.client.model;
 
-/** The status of DB migration
+/**
+ * The status of DB migration
  * which is triggered in upgrading
-*/
+ */
 public enum MigrationStatus {
     RUNNING, // migration is running
     FAILED,  // migration failed

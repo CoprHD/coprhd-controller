@@ -24,7 +24,7 @@ public abstract class AbstractSerializer {
         if (!folder.exists()) {
             folder.mkdirs();
         } else if (!folder.isDirectory()) {
-            throw new IllegalArgumentException("Output directory is not invalid: "+ folder.toString());
+            throw new IllegalArgumentException("Output directory is not invalid: " + folder.toString());
         }
     }
 

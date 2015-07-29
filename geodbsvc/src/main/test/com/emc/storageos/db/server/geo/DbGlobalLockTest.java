@@ -5,27 +5,12 @@
 
 package com.emc.storageos.db.server.geo;
 
-import java.io.IOException;
-import java.net.URI;
-import java.util.*;
-import java.util.concurrent.*;
-
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.TimeSeriesMetadata;
-import com.emc.storageos.db.client.TimeSeriesQueryResult;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.*;
 import com.emc.storageos.db.client.impl.DbClientImpl;
-import com.emc.storageos.db.client.impl.DataObjectType;
-import com.emc.storageos.db.client.impl.TimeSeriesType;
-import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.impl.GlobalLockImpl;
 import com.emc.storageos.db.client.model.*;
 
@@ -37,11 +22,11 @@ public class DbGlobalLockTest extends DbsvcGeoTestBase {
 
     @Test
     public void testNodesvcSharedGlobalLock() throws Exception {
-        // NodeSvcShared MODE 
+        // NodeSvcShared MODE
 
         _logger.info("Starting node/svc shared global lock test");
 
-        DbClientImpl dbClient = (DbClientImpl)getDbClient();
+        DbClientImpl dbClient = (DbClientImpl) getDbClient();
 
         boolean flag;
 
@@ -77,7 +62,7 @@ public class DbGlobalLockTest extends DbsvcGeoTestBase {
         flag = glock.release("vipr1");
         Assert.assertTrue(flag);
 
-        // 2. timeout test 
+        // 2. timeout test
         glock = new GlobalLockImpl(dbClient, lockname, GlobalLock.GL_Mode.GL_NodeSvcShared_MODE, 3000, vdc);
         // acquire the lock
         flag = glock.acquire("vipr1");
@@ -104,10 +89,10 @@ public class DbGlobalLockTest extends DbsvcGeoTestBase {
 
     @Test
     public void testVdcSharedGlobalLock() throws Exception {
-        // VdcShared MODE 
+        // VdcShared MODE
         _logger.info("Starting vdc shared global lock test");
 
-        DbClientImpl dbClient = (DbClientImpl)getDbClient();
+        DbClientImpl dbClient = (DbClientImpl) getDbClient();
 
         boolean flag;
 
@@ -143,7 +128,7 @@ public class DbGlobalLockTest extends DbsvcGeoTestBase {
         flag = glock2.release("vipr2");
         Assert.assertTrue(flag);
 
-        // get lock owner 
+        // get lock owner
         owner = glock.getOwner();
         Assert.assertEquals(owner, vdc);
 
@@ -156,4 +141,3 @@ public class DbGlobalLockTest extends DbsvcGeoTestBase {
         Assert.assertEquals(owner, null);
     }
 }
-

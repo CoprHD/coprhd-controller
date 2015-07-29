@@ -10,17 +10,16 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import java.security.KeyStore;
 import java.util.List;
 
-
 /**
  * Vdc Controller Interface
  */
 public interface VdcController {
     /**
      * Connect the vdc into current geo system.
-     *
+     * 
      */
     public void connectVdc(VirtualDataCenter vdc, String task, List<Object> taskParams) throws InternalException;
-    
+
     /**
      * Remove vdc from geo system
      */
@@ -28,19 +27,19 @@ public interface VdcController {
 
     /**
      * Update the vdc info
-     *
+     * 
      */
     public void updateVdc(VirtualDataCenter vdc, String task, List<Object> taskParams) throws Exception;
 
     /**
      * Disconnect the vdc info
-     *
+     * 
      */
     public void disconnectVdc(VirtualDataCenter vdc, String task, List<Object> taskParams) throws InternalException;
 
     /**
      * Reconnect the vdc info
-     *
+     * 
      */
     public void reconnectVdc(VirtualDataCenter vdc, String task, List<Object> taskParams) throws InternalException;
 

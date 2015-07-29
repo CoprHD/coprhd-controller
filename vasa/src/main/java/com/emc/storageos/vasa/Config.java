@@ -16,47 +16,46 @@ import com.emc.storageos.vasa.util.XmlParser;
 
 public class Config {
 
-	private static final Logger _log = Logger.getLogger(Config.class);
+    private static final Logger _log = Logger.getLogger(Config.class);
 
-	private static Config _config;
-	private XmlParser _configParser;
+    private static Config _config;
+    private XmlParser _configParser;
 
-	private Config() {
-		final String methodName = "Config(): ";
-		final String CONFIG_FILE_PATH = System.getProperty("vasa.config");
-		_configParser = new XmlParser();
-		try {
-			_log.debug(methodName + " loading config file: " + CONFIG_FILE_PATH);
-			_configParser.loadFile(CONFIG_FILE_PATH);
-		} catch (ParserConfigurationException e) {
-			_log.error(methodName + "Unable to parse XML content ", e);
-		} catch (SAXException e) {
-			_log.error(methodName + "Unable to parse XML content ", e);
-		} catch (IOException e) {
-			_log.error(methodName + "Unable to load file: " + CONFIG_FILE_PATH, e);
-		}
-	}
+    private Config() {
+        final String methodName = "Config(): ";
+        final String CONFIG_FILE_PATH = System.getProperty("vasa.config");
+        _configParser = new XmlParser();
+        try {
+            _log.debug(methodName + " loading config file: " + CONFIG_FILE_PATH);
+            _configParser.loadFile(CONFIG_FILE_PATH);
+        } catch (ParserConfigurationException e) {
+            _log.error(methodName + "Unable to parse XML content ", e);
+        } catch (SAXException e) {
+            _log.error(methodName + "Unable to parse XML content ", e);
+        } catch (IOException e) {
+            _log.error(methodName + "Unable to load file: " + CONFIG_FILE_PATH, e);
+        }
+    }
 
-	public static synchronized Config getInstance() {
+    public static synchronized Config getInstance() {
 
-		if (_config == null) {
-			_config = new Config();
-		}
-		return _config;
-	}
+        if (_config == null) {
+            _config = new Config();
+        }
+        return _config;
+    }
 
-	public String getConfigValue(String configName) {
+    public String getConfigValue(String configName) {
 
-		final String methodName = "getConfigValue(): ";
-		String value = null;
+        final String methodName = "getConfigValue(): ";
+        String value = null;
 
-		try {
-			value = _configParser.getString(configName, null);
-		} catch (XPathExpressionException e) {
-			_log.error(methodName + "Unable to resolve XPath: " + configName, e);
-		}
-		return value;
-	}
+        try {
+            value = _configParser.getString(configName, null);
+        } catch (XPathExpressionException e) {
+            _log.error(methodName + "Unable to resolve XPath: " + configName, e);
+        }
+        return value;
+    }
 
 }
-

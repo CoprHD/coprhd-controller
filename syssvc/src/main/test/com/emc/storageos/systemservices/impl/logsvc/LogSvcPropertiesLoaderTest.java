@@ -62,7 +62,7 @@ public class LogSvcPropertiesLoaderTest {
             pathsBuilder.append(pathsIter.next());
         }
         Assert.assertEquals(pathsBuilder.toString(),
-            s_logsvcProps.getProperty(LOG_FILE_PATHS_PROP));
+                s_logsvcProps.getProperty(LOG_FILE_PATHS_PROP));
     }
 
     /**
@@ -73,7 +73,7 @@ public class LogSvcPropertiesLoaderTest {
         Assert.assertNotNull(_logSvcPropertiesLoader);
         long nodeTimeout = _logSvcPropertiesLoader.getNodeLogCollectorTimeout();
         Assert.assertEquals(nodeTimeout,
-            Long.parseLong(s_logsvcProps.getProperty(NODE_COLLECTION_TO_PROP)));
+                Long.parseLong(s_logsvcProps.getProperty(NODE_COLLECTION_TO_PROP)));
     }
 
     /**
@@ -84,7 +84,7 @@ public class LogSvcPropertiesLoaderTest {
         Assert.assertNotNull(_logSvcPropertiesLoader);
         long logTimeout = _logSvcPropertiesLoader.getFileLogCollectorTimeout();
         Assert.assertEquals(logTimeout,
-            Long.parseLong(s_logsvcProps.getProperty(FILE_COLLECTION_TO_PROP)));
+                Long.parseLong(s_logsvcProps.getProperty(FILE_COLLECTION_TO_PROP)));
     }
 
     /**

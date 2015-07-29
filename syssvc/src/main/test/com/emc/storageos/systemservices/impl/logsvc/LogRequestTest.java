@@ -23,13 +23,13 @@ public class LogRequestTest {
     @Before
     public void before() {
         File path = new File(PATH);
-        if(!path.exists()){
+        if (!path.exists()) {
             path.mkdirs();
         }
     }
 
     @Test
-    public void testMarshal()  throws Exception {
+    public void testMarshal() throws Exception {
         System.out.println("Entering testMatshal()");
         LogRequest req = new LogRequest();
         List<String> baseNames = new ArrayList<String>();
@@ -47,10 +47,9 @@ public class LogRequestTest {
         marshaller.marshal(req, System.out);
         System.out.println("Done testMastshal()");
     }
-    
 
     @Test
-    public void testUnMarshal()  throws Exception {
+    public void testUnMarshal() throws Exception {
         System.out.println("Entering testUnMarshal()");
         File file = new File(PATH + File.separator + "file.xml");
         JAXBContext jc = JAXBContext.newInstance(LogRequest.class);
@@ -59,9 +58,9 @@ public class LogRequestTest {
         System.out.println(req);
         System.out.println("Done testUnMarshal()");
     }
-    
+
     @Test
-    public void testMarshalUnMarshal()  throws Exception {
+    public void testMarshalUnMarshal() throws Exception {
         System.out.println("Entering testMarshlUnMarshal()");
         LogRequest req = new LogRequest();
         List<String> baseNames = new ArrayList<String>();
@@ -79,11 +78,8 @@ public class LogRequestTest {
         Unmarshaller jaxbUnmarshaller = jc.createUnmarshaller();
         LogRequest reqNew = (LogRequest) jaxbUnmarshaller.unmarshal(file);
         assertTrue("The object after marshal and unMarshal should be the same with "
-                + "the origianl one",req.toString().equals(reqNew.toString()));
+                + "the origianl one", req.toString().equals(reqNew.toString()));
         System.out.println("Done testMarshlUnMarshal() ");
     }
 
 }
-
-
-

@@ -65,10 +65,10 @@ import com.emc.storageos.vplexcontroller.VPlexController;
  * The VPLEX storage system implementation for the block full copy API.
  */
 public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
-    
+
     // A reference to the tenants service or null.
-    private TenantsService _tenantsService = null; 
-    
+    private TenantsService _tenantsService = null;
+
     // A reference to a logger.
     private static final Logger s_logger = LoggerFactory.getLogger(VPlexBlockFullCopyApiImpl.class);
 
@@ -80,7 +80,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * @param scheduler A reference to a scheduler.
      */
     public VPlexBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator,
-        Scheduler scheduler, TenantsService tenantsService) {
+            Scheduler scheduler, TenantsService tenantsService) {
         super(dbClient, coordinator, scheduler);
         _tenantsService = tenantsService;
     }
@@ -90,12 +90,12 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      */
     @Override
     public List<BlockObject> getAllSourceObjectsForFullCopyRequest(BlockObject fcSourceObj) {
-        
+
         // Treats full copies of snapshots as is done in base class.
-        if (URIUtil.isType(fcSourceObj.getId(), BlockSnapshot.class)){
+        if (URIUtil.isType(fcSourceObj.getId(), BlockSnapshot.class)) {
             return super.getAllSourceObjectsForFullCopyRequest(fcSourceObj);
         }
-        
+
         // By default, if the passed volume is in a consistency group
         // all volumes in the consistency group should be copied.
         List<BlockObject> fcSourceObjList = new ArrayList<BlockObject>();
@@ -114,7 +114,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         } else {
             fcSourceObjList.add(fcSourceObj);
         }
-        
+
         return fcSourceObjList;
     }
 
@@ -123,35 +123,35 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      */
     @Override
     public Map<URI, Volume> getFullCopySetMap(BlockObject fcSourceObj,
-        Volume fullCopyVolume) {
+            Volume fullCopyVolume) {
         Map<URI, Volume> fullCopyMap = new HashMap<URI, Volume>();
-        
+
         // Get the source side backend volume of the VPLEX source Volume.
         Volume sourceVolume = (Volume) fcSourceObj;
         Volume srcBackendSrcVolume = VPlexUtil.getVPLEXBackendVolume(
-            sourceVolume, true, _dbClient, true);
+                sourceVolume, true, _dbClient, true);
 
         // Get the source side backend volume of the VPLEX volume copy.
         // This is the backend volume full copy.
         Volume fcBackendSrcVolume = VPlexUtil.getVPLEXBackendVolume(
-            fullCopyVolume, true, _dbClient, true);
-        
+                fullCopyVolume, true, _dbClient, true);
+
         // Get the backend full copy set.
         Map<URI, Volume> backendFullCopyMap = super.getFullCopySetMap(
-            srcBackendSrcVolume, fcBackendSrcVolume);
-        
+                srcBackendSrcVolume, fcBackendSrcVolume);
+
         // Now we need to get the VPLEX volumes for these backend volumes.
         // These will be the VPLEX full copy volumes in the set.
         Iterator<URI> backendCopyIter = backendFullCopyMap.keySet().iterator();
         while (backendCopyIter.hasNext()) {
             URIQueryResultList queryResults = new URIQueryResultList();
             _dbClient.queryByConstraint(
-                AlternateIdConstraint.Factory
-                    .getVolumeByAssociatedVolumesConstraint(backendCopyIter.next()
-                        .toString()), queryResults);
+                    AlternateIdConstraint.Factory
+                            .getVolumeByAssociatedVolumesConstraint(backendCopyIter.next()
+                                    .toString()), queryResults);
             URI vplexCopyVolumeURI = queryResults.iterator().next();
             fullCopyMap.put(vplexCopyVolumeURI,
-                _dbClient.queryObject(Volume.class, vplexCopyVolumeURI));
+                    _dbClient.queryObject(Volume.class, vplexCopyVolumeURI));
         }
 
         return fullCopyMap;
@@ -183,27 +183,27 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 for (BlockObject fcSourceObj : fcSourceObjList) {
                     Volume fcSourceVolume = (Volume) fcSourceObj;
                     StorageSystem system = _dbClient.queryObject(StorageSystem.class,
-                        fcSourceVolume.getStorageController());
+                            fcSourceVolume.getStorageController());
                     if (DiscoveredDataObject.Type.vplex.name().equals(system.getSystemType())) {
                         // If the volume is a VPLEX volume, then we need to be sure that
                         // storage pool of the source backend volume of the VPLEX volume,
                         // which is volume used to create the native full copy, supports
                         // full copy.
                         Volume srcBackendVolume = VPlexUtil.getVPLEXBackendVolume(
-                            fcSourceVolume, true, _dbClient, true);
+                                fcSourceVolume, true, _dbClient, true);
                         StoragePool storagePool = _dbClient.queryObject(StoragePool.class,
-                            srcBackendVolume.getPool());
+                                srcBackendVolume.getPool());
                         verifyFullCopySupportedForStoragePool(storagePool);
-                                       
+
                         // If the full copy source is itself a full copy, it is not
                         // detached, and the native full copy i.e., the source side
                         // backend volume, is VNX, then creating a full copy of the
                         // volume will fail. As such, we prevent it.
                         if ((BlockFullCopyUtils.isVolumeFullCopy(fcSourceVolume, _dbClient)) &&
-                            (!BlockFullCopyUtils.isFullCopyDetached(fcSourceVolume, _dbClient))) {
+                                (!BlockFullCopyUtils.isFullCopyDetached(fcSourceVolume, _dbClient))) {
                             URI backendSystemURI = srcBackendVolume.getStorageController();
                             StorageSystem backendSystem = _dbClient.queryObject(
-                                StorageSystem.class, backendSystemURI);
+                                    StorageSystem.class, backendSystemURI);
                             if (DiscoveredDataObject.Type.vnxblock.name().equals(backendSystem.getSystemType())) {
                                 throw APIException.badRequests.cantCreateFullCopyOfVPlexFullCopyUsingVNX();
                             }
@@ -213,13 +213,13 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             }
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-        String name, boolean createInactive, int count, String taskId) {
+            String name, boolean createInactive, int count, String taskId) {
 
         // Populate the descriptors list with all volumes required
         // to create the VPLEX volume copies.
@@ -235,30 +235,30 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 // Full copy of snapshots is not supported for VPLEX.
                 return super.create(sortedSourceObjectList, varray, name, createInactive, count, taskId);
             }
-            
+
             Volume vplexSrcVolume = (Volume) fcSourceObj;
             String copyName = name + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
-            
+
             // Create a volume descriptor for the source VPLEX volume being copied.
             // and add it to the descriptors list. Be sure to identify this VPLEX
             // volume as the source volume being copied.
             vplexSrcSystemId = fcSourceObj.getStorageController();
             VolumeDescriptor vplexSrcVolumeDescr = new VolumeDescriptor(
-                VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, vplexSrcSystemId, fcSourceURI,
-                null, null);
+                    VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, vplexSrcSystemId, fcSourceURI,
+                    null, null);
             Map<String, Object> descrParams = new HashMap<String, Object>();
             descrParams.put(VolumeDescriptor.PARAM_IS_COPY_SOURCE_ID, Boolean.TRUE);
             vplexSrcVolumeDescr.setParameters(descrParams);
             volumeDescriptors.add(vplexSrcVolumeDescr);
-    
+
             // Get some info about the VPLEX volume being copied and its storage
             // system.
             Project vplexSrcProject = BlockFullCopyUtils.queryFullCopySourceProject(fcSourceObj, _dbClient);
             StorageSystem vplexSrcSystem = _dbClient.queryObject(StorageSystem.class,
-                vplexSrcSystemId);
+                    vplexSrcSystemId);
             Project vplexSystemProject = VPlexBlockServiceApiImpl.getVplexProject(
-                vplexSrcSystem, _dbClient, _tenantsService);
-    
+                    vplexSrcSystem, _dbClient, _tenantsService);
+
             // For the VPLEX volume being copied, determine which of the associated
             // backend volumes is the primary and, for distributed volumes, which
             // is the HA volume. The primary volume will be natively copied and we
@@ -274,18 +274,18 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 URI assocVolumeURI = URI.create(assocVolumeURIsIter.next());
                 Volume assocVolume = _dbClient.queryObject(Volume.class, assocVolumeURI);
                 if (assocVolume.getVirtualArray().toString()
-                    .equals(varray.getId().toString())) {
+                        .equals(varray.getId().toString())) {
                     vplexSrcPrimaryVolume = assocVolume;
                 } else {
                     vplexSrcHAVolume = assocVolume;
                 }
             }
-    
+
             // Get the capabilities
             VirtualPool vpool = BlockFullCopyUtils.queryFullCopySourceVPool(fcSourceObj, _dbClient);
             VirtualPoolCapabilityValuesWrapper capabilities = getCapabilitiesForFullCopyCreate(
-                fcSourceObj, vpool, count);
-            
+                    fcSourceObj, vpool, count);
+
             // Get the number of copies to create and the size of the volumes.
             // Note that for the size, we must use the actual provisioned size
             // of the source side backend volume. The size passed in the
@@ -307,19 +307,19 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             // copy and for a distributed volume it then attaches as a remote
             // mirror the HA backend volume that is provisioned. If the HA volume
             // is slightly smaller, then this will fail on the VPLEX. So, we must
-            // ensure that HA side volume is big enough by using the provisioned 
+            // ensure that HA side volume is big enough by using the provisioned
             // capacity of the source side backend volume of the VPLEX volume being
             // copied.
             long size = vplexSrcPrimaryVolume.getProvisionedCapacity();
-    
+
             // Place and prepare a volume for each copy to serve as a native
             // copy of a VPLEX backend volume. The VPLEX backend volume that
             // is copied is the backend volume in the same virtual array as the
             // VPLEX volume i.e, the primary backend volume. Create
             // descriptors for these prepared volumes and add them to the list.
             List<Volume> vplexCopyPrimaryVolumes = prepareFullCopyPrimaryVolumes(copyName,
-                count, vplexSrcPrimaryVolume, capabilities, volumeDescriptors);
-    
+                    count, vplexSrcPrimaryVolume, capabilities, volumeDescriptors);
+
             // If the VPLEX volume being copied is distributed, then the VPLEX
             // HA volume should be non-null. We use the VPLEX scheduler to place
             // and then prepare volumes for the HA volumes of the VPLEX volume
@@ -329,10 +329,10 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             List<Volume> vplexCopyHAVolumes = new ArrayList<Volume>();
             if (vplexSrcHAVolume != null) {
                 vplexCopyHAVolumes.addAll(prepareFullCopyHAVolumes(copyName, count, size,
-                    vplexSrcSystem, vplexSystemProject, varray, vplexSrcHAVolume,
-                    taskId, volumeDescriptors));
+                        vplexSrcSystem, vplexSystemProject, varray, vplexSrcHAVolume,
+                        taskId, volumeDescriptors));
             }
-    
+
             // For each copy to be created, place and prepare a volume for the
             // primary backend volume copy. When copying a distributed VPLEX
             // volume, we also must place and prepare a volume for the HA
@@ -347,11 +347,11 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                     vplexCopyHAVolume = vplexCopyHAVolumes.get(i);
                 }
                 Volume vplexCopyVolume = prepareFullCopyVPlexVolume(copyName, count, i, size,
-                    vplexSrcVolume, vplexSrcProject, varray, vpool,
-                    vplexSrcSystemId, vplexCopyPrimaryVolume, vplexCopyHAVolume, taskId,
-                    volumeDescriptors);
+                        vplexSrcVolume, vplexSrcProject, varray, vpool,
+                        vplexSrcSystemId, vplexCopyPrimaryVolume, vplexCopyHAVolume, taskId,
+                        volumeDescriptors);
                 vplexCopyVolumes.add(vplexCopyVolume);
-    
+
                 // Create task for each copy.
                 Operation op = vplexCopyVolume.getOpStatus().get(taskId);
                 TaskResourceRep task = toTask(vplexCopyVolume, taskId, op);
@@ -363,7 +363,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         try {
             s_logger.info("Getting VPlex controller {}.", taskId);
             VPlexController controller = getController(VPlexController.class,
-                DiscoveredDataObject.Type.vplex.toString());
+                    DiscoveredDataObject.Type.vplex.toString());
             // TBD controller needs to be updated to handle CGs.
             controller.createFullCopy(vplexSrcSystemId, volumeDescriptors, taskId);
             s_logger.info("Successfully invoked controller.");
@@ -402,7 +402,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
         return taskList;
     }
-    
+
     /**
      * Places and prepares the HA volumes when copying a distributed VPLEX
      * volume.
@@ -420,8 +420,8 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * @return A list of the prepared HA volumes for the VPLEX volume copy.
      */
     private List<Volume> prepareFullCopyHAVolumes(String name, int copyCount, Long size,
-        StorageSystem vplexSystem, Project vplexSystemProject, VirtualArray srcVarray,
-        Volume srcHAVolume, String taskId, List<VolumeDescriptor> volumeDescriptors) {
+            StorageSystem vplexSystem, Project vplexSystemProject, VirtualArray srcVarray,
+            Volume srcHAVolume, String taskId, List<VolumeDescriptor> volumeDescriptors) {
 
         List<Volume> copyHAVolumes = new ArrayList<Volume>();
 
@@ -431,22 +431,22 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         vplexSystemURIS.add(vplexSystem.getId());
         VirtualArray haVarray = _dbClient.queryObject(VirtualArray.class, srcHAVolume.getVirtualArray());
         VirtualPool haVpool = _dbClient.queryObject(VirtualPool.class, srcHAVolume.getVirtualPool());
-        VirtualPoolCapabilityValuesWrapper haCapabilities = new 
-            VirtualPoolCapabilityValuesWrapper();
+        VirtualPoolCapabilityValuesWrapper haCapabilities = new
+                VirtualPoolCapabilityValuesWrapper();
         haCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, size);
         haCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, copyCount);
         VirtualPool vpool = BlockFullCopyUtils.queryFullCopySourceVPool(srcHAVolume, _dbClient);
         if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
-            vpool.getSupportedProvisioningType())) {
+                vpool.getSupportedProvisioningType())) {
             haCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
             // To guarantee that storage pool for a copy has enough physical
             // space to contain current allocated capacity of thin source volume
             haCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE,
-                BlockFullCopyUtils.getAllocatedCapacityForFullCopySource(srcHAVolume, _dbClient));
+                    BlockFullCopyUtils.getAllocatedCapacityForFullCopySource(srcHAVolume, _dbClient));
         }
         List<Recommendation> recommendations = ((VPlexScheduler) _scheduler)
-            .scheduleStorageForImport(srcVarray, vplexSystemURIS, haVarray, haVpool,
-                haCapabilities);
+                .scheduleStorageForImport(srcVarray, vplexSystemURIS, haVarray, haVpool,
+                        haCapabilities);
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageForHaVolumesForVplexVolumeCopies();
         }
@@ -466,24 +466,24 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
                 // Prepare the volume.
                 Volume volume = VPlexBlockServiceApiImpl.prepareVolumeForRequest(size,
-                    vplexSystemProject, haVarray, haVpool,
-                    haRecommendation.getSourceDevice(), haRecommendation.getSourcePool(),
-                    nameBuilder.toString(), null, taskId, _dbClient);
+                        vplexSystemProject, haVarray, haVpool,
+                        haRecommendation.getSourceDevice(), haRecommendation.getSourcePool(),
+                        nameBuilder.toString(), null, taskId, _dbClient);
                 volume.addInternalFlags(Flag.INTERNAL_OBJECT);
                 _dbClient.persistObject(volume);
                 copyHAVolumes.add(volume);
-                
+
                 // Create the volume descriptor and add it to the passed list.
                 VolumeDescriptor volumeDescriptor = new VolumeDescriptor(
-                    VolumeDescriptor.Type.BLOCK_DATA, volume.getStorageController(),
-                    volume.getId(), volume.getPool(), haCapabilities);
+                        VolumeDescriptor.Type.BLOCK_DATA, volume.getStorageController(),
+                        volume.getId(), volume.getPool(), haCapabilities);
                 volumeDescriptors.add(volumeDescriptor);
             }
         }
 
         return copyHAVolumes;
     }
-    
+
     /**
      * Prepares the VPLEX volume copies.
      * 
@@ -504,9 +504,9 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * @return A reference to the prepared VPLEX volume copy.
      */
     private Volume prepareFullCopyVPlexVolume(String name, int copyCount, int copyIndex,
-        long size, Volume srcVPlexVolume, Project srcProject, VirtualArray srcVarray,
-        VirtualPool srcVpool, URI srcSystemURI, Volume primaryVolume, Volume haVolume,
-        String taskId, List<VolumeDescriptor> volumeDescriptors) {
+            long size, Volume srcVPlexVolume, Project srcProject, VirtualArray srcVarray,
+            VirtualPool srcVpool, URI srcSystemURI, Volume primaryVolume, Volume haVolume,
+            String taskId, List<VolumeDescriptor> volumeDescriptors) {
 
         // Determine the VPLEX volume copy name.
         StringBuilder nameBuilder = new StringBuilder(name);
@@ -517,14 +517,14 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
         // Prepare the VPLEX volume copy.
         Volume vplexCopyVolume = VPlexBlockServiceApiImpl.prepareVolumeForRequest(size,
-            srcProject, srcVarray, srcVpool, srcSystemURI,
-            NullColumnValueGetter.getNullURI(), nameBuilder.toString(),
-            ResourceOperationTypeEnum.CREATE_VOLUME_FULL_COPY, taskId, _dbClient);
-        
+                srcProject, srcVarray, srcVpool, srcSystemURI,
+                NullColumnValueGetter.getNullURI(), nameBuilder.toString(),
+                ResourceOperationTypeEnum.CREATE_VOLUME_FULL_COPY, taskId, _dbClient);
+
         // Create a volume descriptor and add it to the passed list.
         VolumeDescriptor vplexCopyVolumeDescr = new VolumeDescriptor(
-            VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, srcSystemURI,
-            vplexCopyVolume.getId(), null, null);
+                VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, srcSystemURI,
+                vplexCopyVolume.getId(), null, null);
         volumeDescriptors.add(vplexCopyVolumeDescr);
 
         // Set the associated volumes for this new VPLEX volume copy to
@@ -536,19 +536,19 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         if (haVolume != null) {
             assocVolumes.add(haVolume.getId().toString());
         }
-        
+
         // Set the VPLEX source volume for the copy.
         vplexCopyVolume.setAssociatedSourceVolume(srcVPlexVolume.getId());
-        
+
         // Copies always created active.
         vplexCopyVolume.setSyncActive(Boolean.TRUE);
-        
+
         // Persist the copy.
         _dbClient.persistObject(vplexCopyVolume);
 
         return vplexCopyVolume;
-    } 
-    
+    }
+
     /**
      * Places and prepares the primary copy volumes when copying a VPLEX virtual
      * volume.
@@ -562,8 +562,8 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * @return A list of the prepared primary volumes for the VPLEX volume copy.
      */
     private List<Volume> prepareFullCopyPrimaryVolumes(String name, int copyCount,
-        Volume srcPrimaryVolume, VirtualPoolCapabilityValuesWrapper srcCapabilities,
-        List<VolumeDescriptor> volumeDescriptors) {
+            Volume srcPrimaryVolume, VirtualPoolCapabilityValuesWrapper srcCapabilities,
+            List<VolumeDescriptor> volumeDescriptors) {
 
         List<Volume> copyPrimaryVolumes = new ArrayList<Volume>();
 
@@ -571,9 +571,9 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         // Use the same method as is done for native volume copy.
         VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, srcPrimaryVolume.getVirtualArray());
         VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, srcPrimaryVolume.getVirtualPool());
-        List<VolumeRecommendation> recommendations = ((VPlexScheduler)_scheduler).getBlockScheduler()
-            .getRecommendationsForVolumeClones(vArray, vPool, srcPrimaryVolume,
-                srcCapabilities);
+        List<VolumeRecommendation> recommendations = ((VPlexScheduler) _scheduler).getBlockScheduler()
+                .getRecommendationsForVolumeClones(vArray, vPool, srcPrimaryVolume,
+                        srcCapabilities);
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageForPrimaryVolumesForVplexVolumeCopies();
         }
@@ -585,22 +585,22 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         int copyIndex = (copyCount > 1) ? 1 : 0;
         for (VolumeRecommendation recommendation : recommendations) {
             Volume volume = StorageScheduler.prepareFullCopyVolume(_dbClient,
-                nameBuilder.toString(), srcPrimaryVolume, recommendation, copyIndex++,
-                srcCapabilities);
+                    nameBuilder.toString(), srcPrimaryVolume, recommendation, copyIndex++,
+                    srcCapabilities);
             volume.addInternalFlags(Flag.INTERNAL_OBJECT);
             _dbClient.persistObject(volume);
             copyPrimaryVolumes.add(volume);
 
             // Create the volume descriptor and add it to the passed list.
             VolumeDescriptor volumeDescriptor = new VolumeDescriptor(
-                VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME, volume.getStorageController(),
-                volume.getId(), volume.getPool(), srcCapabilities);
+                    VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME, volume.getStorageController(),
+                    volume.getId(), volume.getPool(), srcCapabilities);
             volumeDescriptors.add(volumeDescriptor);
         }
 
         return copyPrimaryVolumes;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -610,7 +610,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         // and take the is already activated path.
         return super.activate(fcSourceObj, fullCopyVolume);
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -618,18 +618,18 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
     public TaskList detach(BlockObject fcSourceObj, Volume fullCopyVolume) {
         // If full copy volume is already detached or was never
         // activated, return detach action is completed successfully
-        // as done in base class. Otherwise, send detach full copy 
-        // request to controller.      
+        // as done in base class. Otherwise, send detach full copy
+        // request to controller.
         TaskList taskList = new TaskList();
         String taskId = UUID.randomUUID().toString();
         if ((BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient)) ||
-            (BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient))) {
+                (BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient))) {
             super.detach(fcSourceObj, fullCopyVolume);
         } else {
             // You cannot create a full copy of a VPLEX snapshot, so
             // the source will be a volume.
             Volume sourceVolume = (Volume) fcSourceObj;
-            
+
             // If the source is in a CG, then we will detach the corresponding
             // full copies for all the volumes in the CG. Since we did not allow
             // full copies for volumes or snaps in CGs prior to Jedi, there should
@@ -639,25 +639,25 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
             // Get the storage system for the source volume.
             StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class,
-                sourceVolume.getStorageController());
+                    sourceVolume.getStorageController());
             URI sourceSystemURI = sourceSystem.getId();
-            
+
             // Create the detach task on the full copy volumes.
             for (URI fullCopyURI : fullCopyURIs) {
                 Operation op = _dbClient.createTaskOpStatus(Volume.class, fullCopyURI,
-                    taskId, ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY);
+                        taskId, ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY);
                 fullCopyMap.get(fullCopyURI).getOpStatus().put(taskId, op);
                 TaskResourceRep fullCopyVolumeTask = TaskMapper.toTask(
-                    fullCopyMap.get(fullCopyURI), taskId, op);
+                        fullCopyMap.get(fullCopyURI), taskId, op);
                 taskList.getTaskList().add(fullCopyVolumeTask);
             }
-            
+
             // Invoke the controller.
             try {
                 VPlexController controller = getController(VPlexController.class,
-                    DiscoveredDataObject.Type.vplex.toString());
+                        DiscoveredDataObject.Type.vplex.toString());
                 controller.detachFullCopy(sourceSystemURI, new ArrayList<URI>(
-                    fullCopyURIs), taskId);
+                        fullCopyURIs), taskId);
             } catch (InternalException ie) {
                 s_logger.error("Controller error", ie);
 
@@ -682,7 +682,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         }
         return taskList;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -690,10 +690,10 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
     public TaskList restoreSource(Volume sourceVolume, Volume fullCopyVolume) {
         // Create the task list.
         TaskList taskList = new TaskList();
-        
+
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
-        
+
         // If the source is in a CG, then we will restore the corresponding
         // full copies for all the volumes in the CG. Since we did not allow
         // full copies for volumes or snaps in CGs prior to Jedi, there should
@@ -703,28 +703,28 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
         // Get the storage system for the source volume.
         StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class,
-            sourceVolume.getStorageController());
+                sourceVolume.getStorageController());
         URI sourceSystemURI = sourceSystem.getId();
-        
+
         // Create the restore task on the full copy volumes.
         // The controller expects the task to be on the full
         // copy even though the source is being restored.
         // Not really sure why.
         for (URI fullCopyURI : fullCopyURIs) {
             Operation op = _dbClient.createTaskOpStatus(Volume.class, fullCopyURI,
-                taskId, ResourceOperationTypeEnum.RESTORE_VOLUME_FULL_COPY);
+                    taskId, ResourceOperationTypeEnum.RESTORE_VOLUME_FULL_COPY);
             fullCopyMap.get(fullCopyURI).getOpStatus().put(taskId, op);
             TaskResourceRep fullCopyVolumeTask = TaskMapper.toTask(
-                fullCopyMap.get(fullCopyURI), taskId, op);
+                    fullCopyMap.get(fullCopyURI), taskId, op);
             taskList.getTaskList().add(fullCopyVolumeTask);
         }
-        
+
         // Invoke the controller.
         try {
             VPlexController controller = getController(VPlexController.class,
-                DiscoveredDataObject.Type.vplex.toString());
+                    DiscoveredDataObject.Type.vplex.toString());
             controller.restoreFromFullCopy(sourceSystemURI, new ArrayList<URI>(
-                fullCopyURIs), taskId);
+                    fullCopyURIs), taskId);
         } catch (InternalException ie) {
             s_logger.error("Controller error", ie);
 
@@ -756,10 +756,10 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
     public TaskList resynchronizeCopy(Volume sourceVolume, Volume fullCopyVolume) {
         // Create the task list.
         TaskList taskList = new TaskList();
-        
+
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
-        
+
         // If the source is in a CG, then we will resynchronize the corresponding
         // full copies for all the volumes in the CG. Since we did not allow
         // full copies for volumes or snaps in CGs prior to Jedi, there should
@@ -769,25 +769,25 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
         // Get the storage system for the source volume.
         StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class,
-            sourceVolume.getStorageController());
+                sourceVolume.getStorageController());
         URI sourceSystemURI = sourceSystem.getId();
-        
+
         // Create the resynchronize task on the full copy volumes.
         for (URI fullCopyURI : fullCopyURIs) {
             Operation op = _dbClient.createTaskOpStatus(Volume.class, fullCopyURI,
-                taskId, ResourceOperationTypeEnum.RESYNCHRONIZE_VOLUME_FULL_COPY);
+                    taskId, ResourceOperationTypeEnum.RESYNCHRONIZE_VOLUME_FULL_COPY);
             fullCopyMap.get(fullCopyURI).getOpStatus().put(taskId, op);
             TaskResourceRep fullCopyVolumeTask = TaskMapper.toTask(
-                fullCopyMap.get(fullCopyURI), taskId, op);
+                    fullCopyMap.get(fullCopyURI), taskId, op);
             taskList.getTaskList().add(fullCopyVolumeTask);
         }
-        
+
         // Invoke the controller.
         try {
             VPlexController controller = getController(VPlexController.class,
-                DiscoveredDataObject.Type.vplex.toString());
+                    DiscoveredDataObject.Type.vplex.toString());
             controller.resyncFullCopy(sourceSystemURI, new ArrayList<URI>(
-                fullCopyURIs), taskId);
+                    fullCopyURIs), taskId);
         } catch (InternalException ie) {
             s_logger.error("Controller error", ie);
 
@@ -817,23 +817,23 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      */
     @Override
     public VolumeRestRep checkProgress(URI sourceURI, Volume fullCopyVolume) {
-        // Get the native backend full copy volume for this VPLEX 
+        // Get the native backend full copy volume for this VPLEX
         // full copy volume.
         Volume nativeFullCopyVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume,
-            true, _dbClient);
-              
+                true, _dbClient);
+
         // Call super to check the progress of the backend full
         // copy volume.
         Integer percentSynced = getSyncPercentage(
-            nativeFullCopyVolume.getAssociatedSourceVolume(), nativeFullCopyVolume);
-        
+                nativeFullCopyVolume.getAssociatedSourceVolume(), nativeFullCopyVolume);
+
         // The synchronization progress of the VPLEX full copy is that
         // of the backend full copy.
         VolumeRestRep volumeRestRep = BlockMapper.map(_dbClient, fullCopyVolume);
         volumeRestRep.getProtection().getFullCopyRep().setPercentSynced(percentSynced);
         return volumeRestRep;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -844,20 +844,20 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         // volume.
         Volume fcSourceVolume = (Volume) fcSourceObj;
         Volume srcBackendVolume = VPlexUtil.getVPLEXBackendVolume(fcSourceVolume, true,
-            _dbClient, true);
-        //Verify if the source backend volume supports full copy
+                _dbClient, true);
+        // Verify if the source backend volume supports full copy
         URI systemURI = fcSourceObj.getStorageController();
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
         int maxCount = Integer.MAX_VALUE;
         if (system != null) {
             maxCount = BlockFullCopyManager.getMaxFullCopiesForSystemType
-                (system.getSystemType());
+                    (system.getSystemType());
         }
-        //If max count is 0, then the operation is not supported
-        if(maxCount == 0) {
+        // If max count is 0, then the operation is not supported
+        if (maxCount == 0) {
             throw APIException.badRequests.fullCopyNotSupportedByBackendSystem(fcSourceVolume.getId());
         }
-        
+
         BlockFullCopyUtils.validateActiveFullCopyCount(srcBackendVolume, count, _dbClient);
     }
 }

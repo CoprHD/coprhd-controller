@@ -9,14 +9,14 @@ import com.google.common.primitives.UnsignedLong;
 public class CPUStats {
 
     public CPUStats(UnsignedLong userMode, UnsignedLong systemMode,
-                    UnsignedLong idle, UnsignedLong iowait) {
+            UnsignedLong idle, UnsignedLong iowait) {
         this.userMode = userMode;
         this.systemMode = systemMode;
         this.idle = idle;
         this.iowait = iowait;
     }
 
-    private UnsignedLong userMode;  //system spent in user mode
+    private UnsignedLong userMode;  // system spent in user mode
     private UnsignedLong systemMode; // system mode
     private UnsignedLong idle; // idle task
     private UnsignedLong iowait;

@@ -24,7 +24,7 @@ public class ScheduleTimeRange {
         this.multiple = multiple;
 
         if (interval != ScheduleInterval.DISABLED) {
-            this.start = (Calendar)now.clone();
+            this.start = (Calendar) now.clone();
             adjustToIntervalLowerBound(this.start, interval, multiple);
         }
     }
@@ -46,7 +46,7 @@ public class ScheduleTimeRange {
     }
 
     public Date minuteOffset(int minutes) {
-        Calendar cal = (Calendar)this.start.clone();
+        Calendar cal = (Calendar) this.start.clone();
         cal.add(Calendar.MINUTE, minutes);
         return cal.getTime();
     }
@@ -58,11 +58,12 @@ public class ScheduleTimeRange {
 
     @Override
     public String toString() {
-        return String.format("%s@%s", this.interval.toString(), this.start == null ? "NA" : ScheduledBackupTag.toTimestamp(this.start.getTime()));
+        return String.format("%s@%s", this.interval.toString(),
+                this.start == null ? "NA" : ScheduledBackupTag.toTimestamp(this.start.getTime()));
     }
 
     public static Date getExpectedMostRecentBackupDateTime(Calendar now, ScheduleInterval interval, int multiple, int offset) {
-        Calendar expected = (Calendar)now.clone();
+        Calendar expected = (Calendar) now.clone();
         adjustToIntervalLowerBound(expected, interval, multiple);
 
         // Then add the start offset to the start boundary
@@ -84,7 +85,8 @@ public class ScheduleTimeRange {
     /**
      * Adjust the Calendar object to the start boundary of specified time interval that it's currently in.
      * NOTE: If the multiple parameter exceeded the next level interval, it will be same as specifying next
-     *       level interval with multiple = 1.
+     * level interval with multiple = 1.
+     * 
      * @param now
      * @param interval
      * @param multiple
@@ -130,7 +132,7 @@ public class ScheduleTimeRange {
     }
 
     private static Calendar shiftDate(Calendar cal, ScheduleInterval interval, int multiple) {
-        cal = (Calendar)cal.clone();
+        cal = (Calendar) cal.clone();
 
         adjustToIntervalLowerBound(cal, interval, multiple);
 

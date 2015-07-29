@@ -39,7 +39,7 @@ public class JSONStatMarshaller implements StatMarshaller {
     }
 
     @Override
-    public synchronized void  marshall(Stat stat, PrintWriter writer) {
+    public synchronized void marshall(Stat stat, PrintWriter writer) {
         if (stat == null) {
             _logger.warn("Null Stat received");
         } else {

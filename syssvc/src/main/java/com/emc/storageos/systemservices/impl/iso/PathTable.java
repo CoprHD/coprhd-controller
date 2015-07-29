@@ -18,8 +18,8 @@ public class PathTable {
     public short dirNumOfParentDirectory; // an index into the path table
     public int sectorSize;
 
-    //L-table LSB format
-    public void addToBufferLittleEndian(ByteBuffer byteBuffer){
+    // L-table LSB format
+    public void addToBufferLittleEndian(ByteBuffer byteBuffer) {
         byteBuffer.put(directoryIdentifierLength);
         byteBuffer.put(extendedAttrLength);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN).putInt(extentLocation);
@@ -27,8 +27,8 @@ public class PathTable {
         ISOUtil.padWithReserved(byteBuffer, sectorSize - 8);
     }
 
-    //M-table MSB format
-    public void addToBufferBigEndian(ByteBuffer byteBuffer){
+    // M-table MSB format
+    public void addToBufferBigEndian(ByteBuffer byteBuffer) {
         byteBuffer.put(directoryIdentifierLength);
         byteBuffer.put(extendedAttrLength);
         byteBuffer.order(ByteOrder.BIG_ENDIAN).putInt(extentLocation);

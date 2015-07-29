@@ -23,53 +23,56 @@ public class XmlDiff {
     /**
      * Compares two documents and outputs different part info.
      * <p>
-     *     1. ignore sequence
-     *     2. ignore element text value
-     *     3. ignore xml comment element
+     * 1. ignore sequence 2. ignore element text value 3. ignore xml comment element
      * </p>
+     * 
      * @param oldDocument
-     *          The old xml document
+     *            The old xml document
      * @param newDocument
-     *          The new xml document
+     *            The new xml document
      * @return
-     *          The instance of diff
+     *         The instance of diff
      */
     public static Pair<String, String> compareXml(Document oldDocument, Document newDocument) {
 
         Element oldRootElement = oldDocument.getRootElement();
         Element newRootElement = newDocument.getRootElement();
 
-        if (compareElement(oldRootElement, newRootElement))
+        if (compareElement(oldRootElement, newRootElement)) {
             return null;
+        }
 
         XMLOutputter xmlOutputter = new XMLOutputter(Format.getPrettyFormat());
 
         return new Pair<String, String>(xmlOutputter.outputString(oldRootElement),
-               xmlOutputter.outputString(newRootElement));
+                xmlOutputter.outputString(newRootElement));
     }
-
 
     /**
      * Compares two XML Elements and their children recursively
+     * 
      * @param oldElement
-     *          The old element to compare
+     *            The old element to compare
      * @param newElement
-     *          The new element to compare
-     * @return  true if two elements are same, else false
+     *            The new element to compare
+     * @return true if two elements are same, else false
      */
     public static boolean compareElement(Element oldElement, Element newElement) {
 
         // Check element name
-        if (!oldElement.getName().equals(newElement.getName()))
+        if (!oldElement.getName().equals(newElement.getName())) {
             return false;
+        }
 
         // Check attributes
-        if (!compareAttributes(oldElement.getAttributes(), newElement.getAttributes()))
+        if (!compareAttributes(oldElement.getAttributes(), newElement.getAttributes())) {
             return false;
+        }
 
         // Check children number
-        if (oldElement.getChildren().isEmpty() && newElement.getChildren().isEmpty())
+        if (oldElement.getChildren().isEmpty() && newElement.getChildren().isEmpty()) {
             return true;
+        }
 
         // Check non leaf element
         Iterator<Element> oldIter = oldElement.getChildren().iterator();
@@ -81,8 +84,9 @@ public class XmlDiff {
                 Element newChild = newIter.next();
                 if (newChild.getName().equals(oldChild.getName())) {
                     found = compareElement(oldChild, newChild);
-                    if (found)
+                    if (found) {
                         break;
+                    }
                 }
             }
             if (found) {
@@ -92,9 +96,9 @@ public class XmlDiff {
         }
 
         // Check children
-        if (oldElement.getChildren().isEmpty() && newElement.getChildren().isEmpty())
+        if (oldElement.getChildren().isEmpty() && newElement.getChildren().isEmpty()) {
             return true;
-        else if (oldElement.getChildren().size() != newElement.getChildren().size()) {
+        } else if (oldElement.getChildren().size() != newElement.getChildren().size()) {
             // Add comments to stand for same tags.
             if (!(oldElement.getContent(0) instanceof Comment)
                     && !(newElement.getContent(0) instanceof Comment)) {
@@ -107,10 +111,11 @@ public class XmlDiff {
 
     /**
      * Compares all attributes of old/new element
+     * 
      * @param oldAttributes
-     *          The old attribute list to compare
+     *            The old attribute list to compare
      * @param newAttributes
-     *          The new attribute list to compare
+     *            The new attribute list to compare
      * @return true if two lists are same, else false
      */
     public static boolean compareAttributes(List<Attribute> oldAttributes, List<Attribute> newAttributes) {

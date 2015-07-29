@@ -15,7 +15,6 @@
 
 package controllers.util;
 
-
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import org.slf4j.Logger;
@@ -35,12 +34,12 @@ public class CatalogAclListener implements NodeListener {
     /**
      * called when category/service acl changed from sasvc.
      * it will clear play.Cache entirely.
-     *
+     * 
      * since there are objects other than catalog list cached in play.Cache, this
      * may have some performance impact to VDC/Varray/license/userinfo. since all
      * other objects are live relative short and not that heavy, the impact should
      * small.
-     *
+     * 
      */
     @Override
     public void nodeChanged() {

@@ -16,7 +16,6 @@ import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import org.junit.Assert;
 import org.junit.Test;
 
-
 public class LocalRepositoryTest {
     @Test
     public void localRepositoryTest() throws Exception {

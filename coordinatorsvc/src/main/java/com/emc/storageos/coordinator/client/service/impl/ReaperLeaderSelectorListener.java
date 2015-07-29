@@ -8,10 +8,6 @@ package com.emc.storageos.coordinator.client.service.impl;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.state.ConnectionState;
-import org.apache.curator.utils.EnsurePath;
-import org.apache.curator.utils.ZKPaths;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
 import org.apache.curator.framework.recipes.locks.Reaper;
 import org.apache.curator.framework.recipes.locks.ChildReaper;
@@ -42,7 +38,7 @@ public class ReaperLeaderSelectorListener extends LeaderSelectorListenerImpl {
 
     public void stopLeadership() {
         try {
-            if(_mutexReaper != null) {
+            if (_mutexReaper != null) {
                 _mutexReaper.close();
                 _log.info("Child reaper stopped.");
             }
@@ -51,4 +47,3 @@ public class ReaperLeaderSelectorListener extends LeaderSelectorListenerImpl {
         }
     }
 }
-

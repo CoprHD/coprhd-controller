@@ -2,10 +2,9 @@
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
- 
+
 package com.emc.storageos.api.mapper.functions;
 
-import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.mapper.UserGroupMapper;
 import com.emc.storageos.db.client.model.UserGroup;
 import com.emc.storageos.model.usergroup.UserGroupRestRep;

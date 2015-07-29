@@ -18,14 +18,14 @@ import com.emc.vipr.model.sys.logging.LogRequest;
 
 public class LogNetworkWriter {
     private LogStreamMerger merger;
-    
+
     // Logger reference.
     private static final Logger logger = LoggerFactory.getLogger(LogNetworkWriter.class);
-    
-    public LogNetworkWriter(LogRequest req,LogSvcPropertiesLoader propertiesLoader){
+
+    public LogNetworkWriter(LogRequest req, LogSvcPropertiesLoader propertiesLoader) {
         this.merger = new LogStreamMerger(req, propertiesLoader);
     }
-    
+
     public void write(OutputStream outputStream) throws IOException {
         logger.trace("LogNetworkWriter.write()");
         LogMessage log;
@@ -33,12 +33,12 @@ public class LogNetworkWriter {
         try (BufferedOutputStream bos = new BufferedOutputStream(outputStream,
                 LogConstants.BUFFER_SIZE);
                 DataOutputStream dos = new DataOutputStream(bos)) {
-            while(true) {
-                if(!merger.getStatus().isEmpty()) {
+            while (true) {
+                if (!merger.getStatus().isEmpty()) {
                     LogStatusInfo status = merger.getStatus();
                     status.write(dos);
                 }
-                if((log = merger.readNextMergedLogMessage()) != null) {
+                if ((log = merger.readNextMergedLogMessage()) != null) {
                     dos.write(LogACKCode.ACK_LOG_ENTRY);
                     log.write(dos);
                     testLogCount++;

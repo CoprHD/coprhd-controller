@@ -10,7 +10,6 @@ import static org.junit.Assert.*;
 import java.beans.PropertyDescriptor;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -18,7 +17,6 @@ import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -49,7 +47,6 @@ import com.emc.storageos.db.client.constraint.impl.DecommissionedConstraintImpl;
 import com.emc.storageos.db.client.constraint.impl.LabelConstraintImpl;
 import com.emc.storageos.db.client.impl.AltIdDbIndex;
 import com.emc.storageos.db.client.impl.ColumnField;
-import com.emc.storageos.db.client.impl.ColumnField.ColumnType;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbIndex;
@@ -62,19 +59,13 @@ import com.emc.storageos.db.client.impl.ScopedLabelDbIndex;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.common.VdcUtil;
-import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.stream.JsonReader;
-
-import org.apache.cassandra.cli.CliParser.newColumnFamily_return;
 import org.apache.cassandra.io.sstable.Descriptor;
 import org.apache.cassandra.tools.NodeProbe;
 import org.apache.cassandra.tools.SSTableExport;
-import org.apache.cassandra.tools.NodeProbe;
-
 
 // RaceCondition test is to ensure even any rarely happens race condition do occur, DB is still left in an "acceptable" state
 // "acceptable" here means:
@@ -83,38 +74,37 @@ import org.apache.cassandra.tools.NodeProbe;
 //    3) no zombie index entries
 //    4) other
 
-
-
-
-abstract class ObjectModifier <T extends DataObject> implements Runnable
+@SuppressWarnings("pmd:ArrayIsStoredDirectly")
+abstract class ObjectModifier<T extends DataObject> implements Runnable
 {
-    // The synchronization object used by outside to communicate 
+    // The synchronization object used by outside to communicate
     private final DbClientTest.StepLock stepLock;
-    
+
     private Integer[] readySync;
     private DbClientTest.DbClientImplUnitTester dbClient;
     private Class<T> clazz;
     public volatile URI objId;
     protected Object context;
     protected DataObjectType doType;
-    
+
     public ObjectModifier() {
         this.stepLock = null;
     }
 
-    public ObjectModifier(Class<? extends DataObject> clazz, DbClientTest.DbClientImplUnitTester dbClient, Integer[] readySync, Object context) {
-        this.clazz = (Class<T>)clazz;
+    public ObjectModifier(Class<? extends DataObject> clazz, DbClientTest.DbClientImplUnitTester dbClient, Integer[] readySync,
+            Object context) {
+        this.clazz = (Class<T>) clazz;
         this.doType = TypeMap.getDoType(clazz);
 
         this.dbClient = dbClient;
         this.readySync = readySync;
         this.context = context;
-        
+
         this.stepLock = new DbClientTest.StepLock();
         this.stepLock.clientId = this.readySync[0]++;
         this.stepLock.step = DbClientTest.StepLock.Step.Pre;
     }
-    
+
     public void moveToState(DbClientTest.StepLock.Step step) {
         this.stepLock.moveToState(step);
     }
@@ -139,7 +129,7 @@ abstract class ObjectModifier <T extends DataObject> implements Runnable
             try {
                 // Now, load the object from DB
                 T obj = this.dbClient.queryObject(this.clazz, this.objId);
-                
+
                 this.stepLock.ackStep(DbClientTest.StepLock.Step.Read);
 
                 // Apply modification to object
@@ -157,35 +147,32 @@ abstract class ObjectModifier <T extends DataObject> implements Runnable
     public abstract void modify(T obj);
 }
 
-
 interface IndexVerifier {
     public void verify(Class<? extends DataObject> clazz, URI id, DbClient client);
 }
 
-
-
 class SingleFieldIndexVerifier implements IndexVerifier {
 
     String fieldName;
-    
+
     public SingleFieldIndexVerifier(String fieldName) {
         this.fieldName = fieldName;
     }
-    
+
     @Override
     public void verify(Class<? extends DataObject> clazz, URI id, DbClient client) {
-        
+
         // Get meta data about the object, field and index we're going to test
         DataObjectType doType = TypeMap.getDoType(clazz);
         ColumnField field = doType.getColumnField(fieldName);
-        if (field == null){
+        if (field == null) {
             throw new NullPointerException(String.format("Cannot find field %s from class %s", fieldName, clazz.getSimpleName()));
         }
         DbIndex index = field.getIndex();
 
         // Load object first
         DataObject obj = (DataObject) client.queryObject(clazz, id);
-        
+
         // Get current value of indexed field
         Object val = null;
         try {
@@ -218,7 +205,7 @@ class SingleFieldIndexVerifier implements IndexVerifier {
             System.out.printf("Unsupported index type %s\n", index.getClass().getSimpleName());
         }
     }
-    
+
     private void verifyContain(Constraint c, URI uri, int count, DbClient client) {
         URIQueryResultList list = new URIQueryResultList();
         client.queryByConstraint(c, list);
@@ -232,7 +219,7 @@ class SingleFieldIndexVerifier implements IndexVerifier {
                 found = true;
             }
         }
-        
+
         if (uri != null) {
             assertTrue(found);
         }
@@ -242,212 +229,214 @@ class SingleFieldIndexVerifier implements IndexVerifier {
         }
     }
 
-    
     private void verifyAltIdDbIndex(DataObject obj, ColumnField field, Object val, boolean indexByKey, DbClient client) {
         switch (field.getType()) {
-        case Primitive:
-            {
-                AlternateIdConstraint constraint = new AlternateIdConstraintImpl(field, (String)val);
+            case Primitive: {
+                AlternateIdConstraint constraint = new AlternateIdConstraintImpl(field, (String) val);
                 verifyContain(constraint, obj.getId(), -1, client);
             }
-            break;
-        case TrackingMap:
-            for (Map.Entry entry : ((AbstractChangeTrackingMap<?>)val).entrySet())
-            {
-                Object altId = indexByKey ? entry.getKey() : entry.getValue();
-                AlternateIdConstraint constraint = new AlternateIdConstraintImpl(field, (String)altId);
-                verifyContain(constraint, obj.getId(), -1, client);
-            }
-            break;
-        case TrackingSet:
-            for (String key : (AbstractChangeTrackingSet<String>)val)
-            {
-                AlternateIdConstraint constraint = new AlternateIdConstraintImpl(field, key);
-                verifyContain(constraint, obj.getId(), -1, client);
-            }
-            break;
-        case Id:
-        case NamedURI:
-        case NestedObject:
-        case TrackingSetMap:
-        default:
-            throw new IllegalArgumentException(String.format("Field type %s is not supported by AltIdDbIndex", field.getType().toString()));
+                break;
+            case TrackingMap:
+                for (Map.Entry entry : ((AbstractChangeTrackingMap<?>) val).entrySet())
+                {
+                    Object altId = indexByKey ? entry.getKey() : entry.getValue();
+                    AlternateIdConstraint constraint = new AlternateIdConstraintImpl(field, (String) altId);
+                    verifyContain(constraint, obj.getId(), -1, client);
+                }
+                break;
+            case TrackingSet:
+                for (String key : (AbstractChangeTrackingSet<String>) val)
+                {
+                    AlternateIdConstraint constraint = new AlternateIdConstraintImpl(field, key);
+                    verifyContain(constraint, obj.getId(), -1, client);
+                }
+                break;
+            case Id:
+            case NamedURI:
+            case NestedObject:
+            case TrackingSetMap:
+            default:
+                throw new IllegalArgumentException(String.format("Field type %s is not supported by AltIdDbIndex", field.getType()
+                        .toString()));
         }
 
     }
-    
+
     private void verifyRelationDbIndex(DataObject obj, ColumnField field, Object val, boolean indexByKey, DbClient client) {
         switch (field.getType()) {
-        case Primitive:
-            {
-                ContainmentConstraint constraint = new ContainmentConstraintImpl((URI)val, obj.getClass(), field);
+            case Primitive: {
+                ContainmentConstraint constraint = new ContainmentConstraintImpl((URI) val, obj.getClass(), field);
                 verifyContain(constraint, obj.getId(), -1, client);
             }
-            break;
-        case TrackingMap:
-            for (String key : ((AbstractChangeTrackingMap<String>)val).keySet())
-            {
-                ContainmentConstraint constraint = new ContainmentConstraintImpl(URI.create(key), obj.getClass(), field);
-                verifyContain(constraint, obj.getId(), -1, client);
-            }
-            break;
-        case TrackingSet:
-            for (String key : (AbstractChangeTrackingSet<String>)val)
-            {
-                ContainmentConstraint constraint = new ContainmentConstraintImpl(URI.create(key), obj.getClass(), field);
-                verifyContain(constraint, obj.getId(), -1, client);
-            }
-            break;
-        case Id:
-        case NamedURI:
-        case NestedObject:
-        case TrackingSetMap:
-        default:
-            throw new IllegalArgumentException(String.format("Field type %s is not supported by RelationDbIndex", field.getType().toString()));
+                break;
+            case TrackingMap:
+                for (String key : ((AbstractChangeTrackingMap<String>) val).keySet())
+                {
+                    ContainmentConstraint constraint = new ContainmentConstraintImpl(URI.create(key), obj.getClass(), field);
+                    verifyContain(constraint, obj.getId(), -1, client);
+                }
+                break;
+            case TrackingSet:
+                for (String key : (AbstractChangeTrackingSet<String>) val)
+                {
+                    ContainmentConstraint constraint = new ContainmentConstraintImpl(URI.create(key), obj.getClass(), field);
+                    verifyContain(constraint, obj.getId(), -1, client);
+                }
+                break;
+            case Id:
+            case NamedURI:
+            case NestedObject:
+            case TrackingSetMap:
+            default:
+                throw new IllegalArgumentException(String.format("Field type %s is not supported by RelationDbIndex", field.getType()
+                        .toString()));
         }
     }
 
     private void verifyNamedRelationDbIndex(DataObject obj, ColumnField field, Object val, boolean indexByKey, DbClient client) {
         switch (field.getType()) {
-        case NamedURI:
-            {
-                NamedURI namedUriVal = (NamedURI)val;
-                ContainmentLabelConstraintImpl constraint = new ContainmentLabelConstraintImpl(namedUriVal.getURI(), namedUriVal.getName(), field);
+            case NamedURI: {
+                NamedURI namedUriVal = (NamedURI) val;
+                ContainmentLabelConstraintImpl constraint = new ContainmentLabelConstraintImpl(namedUriVal.getURI(), namedUriVal.getName(),
+                        field);
                 verifyContain(constraint, obj.getId(), -1, client);
             }
-            break;
-        case Id:
-        case NestedObject:
-        case Primitive:
-        case TrackingMap:
-        case TrackingSet:
-        case TrackingSetMap:
-        default:
-            throw new IllegalArgumentException(String.format("Field type %s is not supported by NamedRelationDbIndex", field.getType().toString()));
+                break;
+            case Id:
+            case NestedObject:
+            case Primitive:
+            case TrackingMap:
+            case TrackingSet:
+            case TrackingSetMap:
+            default:
+                throw new IllegalArgumentException(String.format("Field type %s is not supported by NamedRelationDbIndex", field.getType()
+                        .toString()));
         }
     }
-    
+
     private void verifyPrefixDbIndex(DataObject obj, ColumnField field, Object val, boolean indexByKey, DbClient client) {
         switch (field.getType()) {
-        case Primitive:
-            {
-                LabelConstraintImpl constraint = new LabelConstraintImpl((String)val, field);
+            case Primitive: {
+                LabelConstraintImpl constraint = new LabelConstraintImpl((String) val, field);
                 verifyContain(constraint, obj.getId(), -1, client);
             }
-            break;
-        case Id:
-        case NestedObject:
-        case NamedURI:
-        case TrackingMap:
-        case TrackingSet:
-        case TrackingSetMap:
-        default:
-            throw new IllegalArgumentException(String.format("Field type %s is not supported by PrefixDbIndex", field.getType().toString()));
+                break;
+            case Id:
+            case NestedObject:
+            case NamedURI:
+            case TrackingMap:
+            case TrackingSet:
+            case TrackingSetMap:
+            default:
+                throw new IllegalArgumentException(String.format("Field type %s is not supported by PrefixDbIndex", field.getType()
+                        .toString()));
         }
     }
-    
+
     private void verifyDecommissionedDbIndex(DataObject obj, ColumnField field, Object val, boolean indexByKey, DbClient client) {
         switch (field.getType()) {
-        case Primitive:
-            {
-                DecommissionedConstraintImpl constraint = new DecommissionedConstraintImpl(obj.getClass(), field, (boolean)val);
+            case Primitive: {
+                DecommissionedConstraintImpl constraint = new DecommissionedConstraintImpl(obj.getClass(), field, (boolean) val);
                 verifyContain(constraint, obj.getId(), -1, client);
             }
-            break;
-        case Id:
-        case NamedURI:
-        case NestedObject:
-        case TrackingMap:
-        case TrackingSet:
-        case TrackingSetMap:
-        default:
-            throw new IllegalArgumentException(String.format("Field type %s is not supported by DecommissionedDbIndex", field.getType().toString()));
+                break;
+            case Id:
+            case NamedURI:
+            case NestedObject:
+            case TrackingMap:
+            case TrackingSet:
+            case TrackingSetMap:
+            default:
+                throw new IllegalArgumentException(String.format("Field type %s is not supported by DecommissionedDbIndex", field.getType()
+                        .toString()));
         }
     }
-    
+
     private void verifyPermissionsDbIndex(DataObject obj, ColumnField field, Object val, boolean indexByKey, DbClient client) {
         switch (field.getType()) {
-        case TrackingSetMap:
-            for (String key : ((AbstractChangeTrackingSetMap<String>)val).keySet())
-            {
-                ContainmentPermissionsConstraintImpl constraint = new ContainmentPermissionsConstraintImpl(key, field, obj.getClass());
-                
-                NamedElementQueryResultList results = new NamedElementQueryResultList();
-                client.queryByConstraint(constraint, results);
-                
-                HashSet<String> setFromIndex = new HashSet<String>();
-                for (NamedElementQueryResultList.NamedElement elem : results) {
-                    if (elem.getId().equals(obj.getId())) {
-                        setFromIndex.add(elem.getName());
-                    }
-                }
+            case TrackingSetMap:
+                for (String key : ((AbstractChangeTrackingSetMap<String>) val).keySet())
+                {
+                    ContainmentPermissionsConstraintImpl constraint = new ContainmentPermissionsConstraintImpl(key, field, obj.getClass());
 
-                AbstractChangeTrackingSet<String> values = ((AbstractChangeTrackingSetMap<String>)val).get(key);
-                assertTrue("The value set from index is not same as what is currently in object", setFromIndex.equals(values));
-            }
-            break;
-        case Id:
-        case NamedURI:
-        case NestedObject:
-        case Primitive:
-        case TrackingMap:
-        case TrackingSet:
-        default:
-            throw new IllegalArgumentException(String.format("Field type %s is not supported by PermissionsDbIndex", field.getType().toString()));
+                    NamedElementQueryResultList results = new NamedElementQueryResultList();
+                    client.queryByConstraint(constraint, results);
+
+                    HashSet<String> setFromIndex = new HashSet<String>();
+                    for (NamedElementQueryResultList.NamedElement elem : results) {
+                        if (elem.getId().equals(obj.getId())) {
+                            setFromIndex.add(elem.getName());
+                        }
+                    }
+
+                    AbstractChangeTrackingSet<String> values = ((AbstractChangeTrackingSetMap<String>) val).get(key);
+                    assertTrue("The value set from index is not same as what is currently in object", setFromIndex.equals(values));
+                }
+                break;
+            case Id:
+            case NamedURI:
+            case NestedObject:
+            case Primitive:
+            case TrackingMap:
+            case TrackingSet:
+            default:
+                throw new IllegalArgumentException(String.format("Field type %s is not supported by PermissionsDbIndex", field.getType()
+                        .toString()));
         }
     }
-    
-    
+
     private void verifyScopedLabelDbIndex(DataObject obj, ColumnField field, Object val, boolean indexByKey, DbClient client) {
         switch (field.getType()) {
-        case TrackingSet:
-            for (ScopedLabel scopedLabel : (AbstractChangeTrackingSet<ScopedLabel>)val)
-            {
-                LabelConstraintImpl constraint = new LabelConstraintImpl(URI.create(scopedLabel.getScope()), scopedLabel.getLabel(), field);
-                verifyContain(constraint, obj.getId(), -1, client);
-            }
-            break;
-        case Id:
-        case NamedURI:
-        case NestedObject:
-        case Primitive:
-        case TrackingMap:
-        case TrackingSetMap:
-        default:
-            throw new IllegalArgumentException(String.format("Field type %s is not supported by ScopedLabelDbIndex", field.getType().toString()));
+            case TrackingSet:
+                for (ScopedLabel scopedLabel : (AbstractChangeTrackingSet<ScopedLabel>) val)
+                {
+                    LabelConstraintImpl constraint = new LabelConstraintImpl(URI.create(scopedLabel.getScope()), scopedLabel.getLabel(),
+                            field);
+                    verifyContain(constraint, obj.getId(), -1, client);
+                }
+                break;
+            case Id:
+            case NamedURI:
+            case NestedObject:
+            case Primitive:
+            case TrackingMap:
+            case TrackingSetMap:
+            default:
+                throw new IllegalArgumentException(String.format("Field type %s is not supported by ScopedLabelDbIndex", field.getType()
+                        .toString()));
         }
     }
-    
+
 }
 
 // This class holds the simple test cases that blindly set predefined values to single field,
 // complex test cases please use ObjectModifier<> directly instead.
 
+@SuppressWarnings("pmd:ArrayIsStoredDirectly")
 class IndexTestData {
-    
-    
+
     public String name; // Name of the test case
     // Which object type to test
     public Class<? extends DataObject> clazz;
 
     // Initial state
     // Primitive
-    //   "field=", value
-    //   "field=", null
+    // "field=", value
+    // "field=", null
     // Set
-    //   "field<", key
-    //   "field>", key
+    // "field<", key
+    // "field>", key
     // Map
-    //   "field<", key, value
-    //   "field>", key
+    // "field<", key, value
+    // "field>", key
     // MapSet
-    //   "field<", key1, key2
-    //   "field>", key1, key2
+    // "field<", key1, key2
+    // "field>", key1, key2
     public Object[] initial;
 
     // Multiple concurrent changes
     public Object[][] modifiers;
-    
+
     public IndexVerifier verifier;
 
     public IndexTestData(String name, Class<? extends DataObject> clazz, Object[] initial, Object[][] modifiers, IndexVerifier verifier) {
@@ -457,25 +446,25 @@ class IndexTestData {
         this.modifiers = modifiers;
         this.verifier = verifier;
     }
-    
+
     public static boolean isEqual(DataObject obj, Object[] ops)
-             {
+    {
         DataObject shouldBe = createInitial(obj.getClass(), obj.getId(), ops);
 
         // Get DataObjectType
         DataObjectType doType = TypeMap.getDoType(obj.getClass());
-        
+
         for (ColumnField field : doType.getColumnFields()) {
             if (!shouldBe.isChanged(field.getName())) {
                 continue;
             }
-            
+
             Method readMethod = field.getPropertyDescriptor().getReadMethod();
-            
+
             try {
                 Object shouldBeVal = readMethod.invoke(shouldBe);
                 Object realVal = readMethod.invoke(obj);
-                
+
                 if (!equalsObject(realVal, shouldBeVal)) {
                     return false;
                 }
@@ -489,22 +478,22 @@ class IndexTestData {
 
         return true;
     }
-    
+
     public static boolean equalsObject(Object a, Object b) {
         if (a instanceof Map || b instanceof Map) {
-            return equalsMap((Map)a, (Map)b);
+            return equalsMap((Map) a, (Map) b);
         }
-        if (a instanceof Set && ((Set<?>) a).size() == 0) {
+        if (a instanceof Set && ((Set<?>) a).isEmpty()) {
             a = null;
         }
-        if (b instanceof Set && ((Set<?>) b).size() == 0) {
+        if (b instanceof Set && ((Set<?>) b).isEmpty()) {
             b = null;
         }
         return a == null || b == null ? a == b : a.equals(b);
     }
 
     // Compare two Maps, null values are treated as no such key
-    private static <K,V> boolean equalsMap(Map<K, V> a, Map<K, V> b) {
+    private static <K, V> boolean equalsMap(Map<K, V> a, Map<K, V> b) {
 
         if (a != null) {
             for (Map.Entry<K, V> entry : a.entrySet()) {
@@ -522,10 +511,10 @@ class IndexTestData {
                 }
             }
         }
-        
+
         return true;
     }
-    
+
     public static DataObject createInitial(Class<? extends DataObject> clazz, URI id, Object[] ops) {
         DataObject obj;
         try {
@@ -552,88 +541,90 @@ class IndexTestData {
                 if (!(ops[i] instanceof String)) {
                     throw new IllegalArgumentException();
                 }
-                
-                String op = (String)ops[i];
-                
+
+                String op = (String) ops[i];
+
                 // Get name of the field
                 String fieldName = op.substring(0, op.length() - 1);
                 op = op.substring(op.length() - 1, op.length());
-    
+
                 // Get type of the field
                 ColumnField field = doType.getColumnField(fieldName);
 
                 PropertyDescriptor propDesc = field.getPropertyDescriptor();
 
                 switch (field.getType()) {
-                case Primitive:
-                case NamedURI:
-                case Id:
-                case NestedObject:
-                    if (op.charAt(0) != '=') {
-                        throw new IllegalArgumentException();
-                    }
-                    propDesc.getWriteMethod().invoke(obj, ops[++i]);
-                    break;
-                case TrackingSet:
-                    if (op.charAt(0) == '<') {
-                        AbstractChangeTrackingSet set = (AbstractChangeTrackingSet)propDesc.getReadMethod().invoke(obj);
-                        if (set == null) {
-                            set = (AbstractChangeTrackingSet)propDesc.getPropertyType().getConstructor(new Class<?>[0]).newInstance(new Object[0]);
-                            propDesc.getWriteMethod().invoke(obj, set);
+                    case Primitive:
+                    case NamedURI:
+                    case Id:
+                    case NestedObject:
+                        if (op.charAt(0) != '=') {
+                            throw new IllegalArgumentException();
                         }
-                        set.add(ops[++i]);
-                    } else if (op.charAt(0) == '>') {
-                        AbstractChangeTrackingSet set = (AbstractChangeTrackingSet)propDesc.getReadMethod().invoke(obj);
-                        set.remove(ops[++i]);
-                    } else if (op.charAt(0) == '=') {
                         propDesc.getWriteMethod().invoke(obj, ops[++i]);
-                    }
-                    break;
-                case TrackingMap:
-                    if (op.charAt(0) == '<') {
-                        AbstractChangeTrackingMap map = (AbstractChangeTrackingMap)propDesc.getReadMethod().invoke(obj);
-                        if (map == null) {
-                            map = (AbstractChangeTrackingMap)propDesc.getPropertyType().getConstructor(new Class<?>[0]).newInstance(new Object[0]);
-                            propDesc.getWriteMethod().invoke(obj, map);
+                        break;
+                    case TrackingSet:
+                        if (op.charAt(0) == '<') {
+                            AbstractChangeTrackingSet set = (AbstractChangeTrackingSet) propDesc.getReadMethod().invoke(obj);
+                            if (set == null) {
+                                set = (AbstractChangeTrackingSet) propDesc.getPropertyType().getConstructor(new Class<?>[0])
+                                        .newInstance(new Object[0]);
+                                propDesc.getWriteMethod().invoke(obj, set);
+                            }
+                            set.add(ops[++i]);
+                        } else if (op.charAt(0) == '>') {
+                            AbstractChangeTrackingSet set = (AbstractChangeTrackingSet) propDesc.getReadMethod().invoke(obj);
+                            set.remove(ops[++i]);
+                        } else if (op.charAt(0) == '=') {
+                            propDesc.getWriteMethod().invoke(obj, ops[++i]);
                         }
-                        map.put((String)ops[i + 1], ops[i + 2]);
-                        i += 2;
-                    } else if (op.charAt(0) == '>') {
-                        AbstractChangeTrackingMap map = (AbstractChangeTrackingMap)propDesc.getReadMethod().invoke(obj);
-                        map.remove((String)ops[++i]);
-                    } else if (op.charAt(0) == '=') {
-                        propDesc.getWriteMethod().invoke(obj, ops[++i]);
-                    }
-                    break;
-                case TrackingSetMap:
-                    if (op.charAt(0) == '<') {
-                        AbstractChangeTrackingSetMap setMap = (AbstractChangeTrackingSetMap)propDesc.getReadMethod().invoke(obj);
-                        if (setMap == null) {
-                            setMap = (AbstractChangeTrackingSetMap)propDesc.getPropertyType().getConstructor(new Class<?>[0]).newInstance(new Object[0]);
-                            propDesc.getWriteMethod().invoke(obj, setMap);
+                        break;
+                    case TrackingMap:
+                        if (op.charAt(0) == '<') {
+                            AbstractChangeTrackingMap map = (AbstractChangeTrackingMap) propDesc.getReadMethod().invoke(obj);
+                            if (map == null) {
+                                map = (AbstractChangeTrackingMap) propDesc.getPropertyType().getConstructor(new Class<?>[0])
+                                        .newInstance(new Object[0]);
+                                propDesc.getWriteMethod().invoke(obj, map);
+                            }
+                            map.put((String) ops[i + 1], ops[i + 2]);
+                            i += 2;
+                        } else if (op.charAt(0) == '>') {
+                            AbstractChangeTrackingMap map = (AbstractChangeTrackingMap) propDesc.getReadMethod().invoke(obj);
+                            map.remove((String) ops[++i]);
+                        } else if (op.charAt(0) == '=') {
+                            propDesc.getWriteMethod().invoke(obj, ops[++i]);
                         }
-                        setMap.put((String)ops[i + 1], ops[i + 2]);
-                        i += 2;
-                    } else if (op.charAt(0) == '>') {
-                        AbstractChangeTrackingSetMap setMap = (AbstractChangeTrackingSetMap)propDesc.getReadMethod().invoke(obj);
-                        setMap.remove((String)ops[i + 1], ops[i + 2]);
-                        i += 2;
-                    } else if (op.charAt(0) == '=') {
-                        propDesc.getWriteMethod().invoke(obj, ops[++i]);
-                    }
-                    break;
-                default:
-                    break;
+                        break;
+                    case TrackingSetMap:
+                        if (op.charAt(0) == '<') {
+                            AbstractChangeTrackingSetMap setMap = (AbstractChangeTrackingSetMap) propDesc.getReadMethod().invoke(obj);
+                            if (setMap == null) {
+                                setMap = (AbstractChangeTrackingSetMap) propDesc.getPropertyType().getConstructor(new Class<?>[0])
+                                        .newInstance(new Object[0]);
+                                propDesc.getWriteMethod().invoke(obj, setMap);
+                            }
+                            setMap.put((String) ops[i + 1], ops[i + 2]);
+                            i += 2;
+                        } else if (op.charAt(0) == '>') {
+                            AbstractChangeTrackingSetMap setMap = (AbstractChangeTrackingSetMap) propDesc.getReadMethod().invoke(obj);
+                            setMap.remove((String) ops[i + 1], ops[i + 2]);
+                            i += 2;
+                        } else if (op.charAt(0) == '=') {
+                            propDesc.getWriteMethod().invoke(obj, ops[++i]);
+                        }
+                        break;
+                    default:
+                        break;
                 }
             }
-        
+
         } catch (IllegalArgumentException
-                | IllegalAccessException | InvocationTargetException | InstantiationException | NoSuchMethodException | SecurityException e
-                ) {
+                | IllegalAccessException | InvocationTargetException | InstantiationException | NoSuchMethodException | SecurityException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        
+
     }
 }
 
@@ -657,14 +648,14 @@ abstract class OperationSequenceGenerator {
         this.generatedSequence = new int[this.targetCount * 2];
         this.generatedCount = 0;
     }
-    
+
     public void generate() {
         // Choose each object as start
         for (int i = 0; i < this.objCount; i++) {
             if (this.nextOps[i] == this.opCount) {
                 continue;
             }
-            
+
             // Found one new operation, however, for read operations
             if (this.generatedCount > 0 && (this.readOnlyOpsMask & (1 << this.nextOps[i])) != 0) {
                 int prevObj = this.generatedSequence[this.generatedCount * 2 - 2];
@@ -673,8 +664,7 @@ abstract class OperationSequenceGenerator {
                     continue;
                 }
             }
-            
-            
+
             this.generatedSequence[this.generatedCount * 2 + 0] = i;
             this.generatedSequence[this.generatedCount * 2 + 1] = this.nextOps[i]++;
             if (++this.generatedCount == this.targetCount) { // Done one generation
@@ -682,7 +672,7 @@ abstract class OperationSequenceGenerator {
             } else {
                 generate();
             }
-            
+
             this.nextOps[i]--;
             this.generatedCount--;
         }
@@ -693,7 +683,7 @@ abstract class OperationSequenceGenerator {
 
 public class DbIndexTest extends DbsvcTestBase {
     private static final Logger _logger = LoggerFactory.getLogger(DbIndexTest.class);
-    
+
     private DbClientTest.DbClientImplUnitTester _dbClient;
 
     private NodeProbe probe;
@@ -709,7 +699,7 @@ public class DbIndexTest extends DbsvcTestBase {
         dbClient.setBypassMigrationLock(true);
         _encryptionProvider.setCoordinator(_coordinator);
         dbClient.setEncryptionProvider(_encryptionProvider);
-        
+
         DbClientContext localCtx = new DbClientContext();
         localCtx.setClusterName("Test");
         localCtx.setKeyspaceName("Test");
@@ -717,22 +707,22 @@ public class DbIndexTest extends DbsvcTestBase {
 
         return dbClient;
     }
-    
+
     @Before
     public void setupTest() throws IOException {
 
         DbClientTest.DbClientImplUnitTester dbClient = createClient();
-        
+
         VdcUtil.setDbClient(dbClient);
-        
+
         dbClient.setBypassMigrationLock(false);
         dbClient.start();
-        
+
         _dbClient = dbClient;
-        
-        //this.probe = new NodeProbe("127.0.0.1", 7199);
+
+        // this.probe = new NodeProbe("127.0.0.1", 7199);
     }
-    
+
     @After
     public void teardown() {
         if (_dbClient instanceof DbClientTest.DbClientImplUnitTester) {
@@ -740,42 +730,41 @@ public class DbIndexTest extends DbsvcTestBase {
         }
     }
 
-
     @SuppressWarnings("unchecked")
-    private void testRaceCondition(final IndexTestData test) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
-        
-        final Integer[] readySync = new Integer[] {0};
+    private void testRaceCondition(final IndexTestData test) throws InstantiationException, IllegalAccessException,
+            IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
+
+        final Integer[] readySync = new Integer[] { 0 };
 
         // Allocate threads
         final ObjectModifier[] modifiers = new ObjectModifier[test.modifiers.length];
         final Thread[] threads = new Thread[test.modifiers.length];
         for (int i = 0; i < test.modifiers.length; i++) {
-            modifiers[i] = new ObjectModifier(test.clazz, this._dbClient, readySync, (Object)test.modifiers[i]){
+            modifiers[i] = new ObjectModifier(test.clazz, this._dbClient, readySync, (Object) test.modifiers[i]) {
 
                 @Override
                 public void modify(DataObject obj) {
-                    Object[] ops = (Object[])this.context;
+                    Object[] ops = (Object[]) this.context;
                     IndexTestData.apply(obj, this.doType, ops);
-                }};
+                }
+            };
             threads[i] = new Thread(modifiers[i]);
         }
-        
+
         // Start each thread
         for (int i = 0; i < threads.length; i++) {
             threads[i].start();
         }
-        
+
         final DbClientTest.StepLock.Step[] steps = new DbClientTest.StepLock.Step[]
-            {
+        {
                 DbClientTest.StepLock.Step.Read,
                 DbClientTest.StepLock.Step.InsertNewColumns,
                 DbClientTest.StepLock.Step.FetchNewestColumns,
                 DbClientTest.StepLock.Step.CleanupOldColumns
-            };
-        
-        
+        };
 
-        OperationSequenceGenerator generator = new OperationSequenceGenerator(modifiers.length, steps.length, 9){
+        OperationSequenceGenerator generator = new OperationSequenceGenerator(modifiers.length, steps.length, 9) {
 
             @Override
             protected void onSequence(int index, int[] sequence) {
@@ -785,15 +774,13 @@ public class DbIndexTest extends DbsvcTestBase {
                         try {
                             readySync.wait();
                         } catch (InterruptedException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
+                            _logger.warn("Thread is interrupted", e);
                         }
                     }
-                    
+
                     readySync[0] = threads.length;
                     // Reset sync number for next round
                 }
-
 
                 // Create initial object
                 DataObject initObj = IndexTestData.createInitial(test.clazz, URIUtil.createId(test.clazz), test.initial);
@@ -803,7 +790,7 @@ public class DbIndexTest extends DbsvcTestBase {
                 for (int i = 0; i < modifiers.length; i++) {
                     modifiers[i].objId = initObj.getId();
                 }
-                
+
                 // Run the sequence
                 for (int i = 0; i < sequence.length / 2; i++) {
                     int objOrdinal = sequence[i * 2 + 0];
@@ -813,232 +800,232 @@ public class DbIndexTest extends DbsvcTestBase {
 
                 // Now, verify the object is consistent with its index
                 test.verifier.verify(initObj.getClass(), initObj.getId(), _dbClient);
-                
+
                 // TODO: Verify there's no other way to reach the object in same index
 
                 // Cleanup, delete the object
-                //_dbClient.removeObject(initObj);
-                
+                // _dbClient.removeObject(initObj);
+
                 // TODO: Verify the index CF is empty
-             }};
-        
-         generator.generate();
-         
-         // Notify all threads to quit
-         for (int i = 0; i < modifiers.length; i++) {
-             modifiers[i].moveToState(DbClientTest.StepLock.Step.Quit);
-         }
-         
-         for (int i = 0; i < threads.length; i++) {
-             try {
+            }
+        };
+
+        generator.generate();
+
+        // Notify all threads to quit
+        for (int i = 0; i < modifiers.length; i++) {
+            modifiers[i].moveToState(DbClientTest.StepLock.Step.Quit);
+        }
+
+        for (int i = 0; i < threads.length; i++) {
+            try {
                 threads[i].join();
             } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                _logger.warn("Thread is interrupted", e);
             }
-         }
+        }
     }
-    
+
     @Test
-    public void testIndexRaceCondition() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
-        
-        // We're going to need synchronize between threads calling into DbClient 
+    public void testIndexRaceCondition() throws InstantiationException, IllegalAccessException, IllegalArgumentException,
+            InvocationTargetException, NoSuchMethodException, SecurityException {
+
+        // We're going to need synchronize between threads calling into DbClient
         this._dbClient.threadStepLock = new ThreadLocal<DbClientTest.StepLock>();
-        
+
         URI vol1Uri = URIUtil.createId(Volume.class);
         URI varr1Uri = URIUtil.createId(VirtualArray.class);
-        
+
         IndexTestData[] tests = new IndexTestData[]
         {
-            new IndexTestData
-            (
-                "Test AltIdDbIndex on String field",
-                Volume.class,
-                new Object[] {"personality=", "abc"}, // Initial state
-                new Object[][]
-                {
-                    new Object[] {"personality=", "def"},
-                    new Object[] {"personality=", "ghi"},
-                },
-                new SingleFieldIndexVerifier("personality")
-            ),
-            new IndexTestData
-            (
-                "Test AltIdDbIndex on StringSet field",
-                AuthnProvider.class,
-                new Object[] {"domains<", "abc"}, // Initial state
-                new Object[][]
-                {
-                    new Object[] {"domains>", "abc"},
-                    new Object[] {"domains<", "def"},
-                },
-                new SingleFieldIndexVerifier("domains")
-            ),
-            new IndexTestData
-            (
-                "Test AltIdDbIndex on StringMap field",
-                Network.class,
-                new Object[] {"endpoints<", "abc", "123"}, // Initial state
-                new Object[][]
-                {
-                    new Object[] {"endpoints>", "abc"},
-                    new Object[] {"endpoints<", "def", "456"},
-                },
-                new SingleFieldIndexVerifier("endpoints")
-            ),
+                new IndexTestData
+                (
+                        "Test AltIdDbIndex on String field",
+                        Volume.class,
+                        new Object[] { "personality=", "abc" }, // Initial state
+                        new Object[][]
+                        {
+                                new Object[] { "personality=", "def" },
+                                new Object[] { "personality=", "ghi" },
+                        },
+                        new SingleFieldIndexVerifier("personality")
+                ),
+                new IndexTestData
+                (
+                        "Test AltIdDbIndex on StringSet field",
+                        AuthnProvider.class,
+                        new Object[] { "domains<", "abc" }, // Initial state
+                        new Object[][]
+                        {
+                                new Object[] { "domains>", "abc" },
+                                new Object[] { "domains<", "def" },
+                        },
+                        new SingleFieldIndexVerifier("domains")
+                ),
+                new IndexTestData
+                (
+                        "Test AltIdDbIndex on StringMap field",
+                        Network.class,
+                        new Object[] { "endpoints<", "abc", "123" }, // Initial state
+                        new Object[][]
+                        {
+                                new Object[] { "endpoints>", "abc" },
+                                new Object[] { "endpoints<", "def", "456" },
+                        },
+                        new SingleFieldIndexVerifier("endpoints")
+                ),
 
+                new IndexTestData
+                (
+                        "Test PrefixDbIndex",
+                        Cluster.class,
+                        new Object[] { "label=", "abc" }, // Initial state
+                        new Object[][]
+                        {
+                                new Object[] { "label=", "def" },
+                                new Object[] { "label=", "ghi" },
+                        },
+                        new SingleFieldIndexVerifier("label")
+                ),
 
-            new IndexTestData
-            (
-                "Test PrefixDbIndex",
-                Cluster.class,
-                new Object[] {"label=", "abc"}, // Initial state
-                new Object[][]
-                {
-                    new Object[] {"label=", "def"},
-                    new Object[] {"label=", "ghi"},
-                },
-                new SingleFieldIndexVerifier("label")
-            ),
+                new IndexTestData
+                (
+                        "Test RelationDbIndex on URI field",
+                        Host.class,
+                        new Object[] { "cluster=", URIUtil.createId(Cluster.class) }, // Initial state
+                        new Object[][]
+                        {
+                                new Object[] { "cluster=", URIUtil.createId(Cluster.class) },
+                                new Object[] { "cluster=", URIUtil.createId(Cluster.class) },
+                        },
+                        new SingleFieldIndexVerifier("cluster")
+                ),
+                new IndexTestData
+                (
+                        "Test RelationDbIndex on StringMap field",
+                        ExportGroup.class,
+                        new Object[] { "volumes<", vol1Uri.toString(), "111" }, // Initial state
+                        new Object[][]
+                        {
+                                new Object[] { "volumes>", vol1Uri.toString() },
+                                new Object[] { "volumes<", URIUtil.createId(Volume.class).toString(), "222" },
+                        },
+                        new SingleFieldIndexVerifier("volumes")
+                ),
+                new IndexTestData
+                (
+                        "Test RelationDbIndex on StringSet field",
+                        VirtualPool.class,
+                        new Object[] { "virtualArrays<", varr1Uri.toString() }, // Initial state
+                        new Object[][]
+                        {
+                                new Object[] { "virtualArrays>", varr1Uri.toASCIIString() },
+                                new Object[] { "virtualArrays<", URIUtil.createId(VirtualArray.class).toString() },
+                        },
+                        new SingleFieldIndexVerifier("virtualArrays")
+                ),
 
-            new IndexTestData
-            (
-                "Test RelationDbIndex on URI field",
-                Host.class,
-                new Object[] {"cluster=", URIUtil.createId(Cluster.class)}, // Initial state
-                new Object[][]
-                {
-                    new Object[] {"cluster=", URIUtil.createId(Cluster.class)},
-                    new Object[] {"cluster=", URIUtil.createId(Cluster.class)},
-                },
-                new SingleFieldIndexVerifier("cluster")
-            ),
-            new IndexTestData
-            (
-                "Test RelationDbIndex on StringMap field",
-                ExportGroup.class,
-                new Object[] {"volumes<", vol1Uri.toString(), "111"}, // Initial state
-                new Object[][]
-                {
-                    new Object[] {"volumes>", vol1Uri.toString()},
-                    new Object[] {"volumes<", URIUtil.createId(Volume.class).toString(), "222"},
-                },
-                new SingleFieldIndexVerifier("volumes")
-            ),
-            new IndexTestData
-            (
-                "Test RelationDbIndex on StringSet field",
-                VirtualPool.class,
-                new Object[] {"virtualArrays<", varr1Uri.toString()}, // Initial state
-                new Object[][]
-                {
-                    new Object[] {"virtualArrays>", varr1Uri.toASCIIString()},
-                    new Object[] {"virtualArrays<", URIUtil.createId(VirtualArray.class).toString()},
-                },
-                new SingleFieldIndexVerifier("virtualArrays")
-            ),
-            
-            new IndexTestData
-            (
-                "Test NamedRelationDbIndex",
-                BlockMirror.class,
-                new Object[] {"source=", new NamedURI(URIUtil.createId(Volume.class), "abcde")}, // Initial state
-                new Object[][]
-                {
-                    new Object[] {"source=", new NamedURI(URIUtil.createId(Volume.class), "fghij")},
-                    new Object[] {"source=", new NamedURI(URIUtil.createId(Volume.class), "klmno")},
-                },
-                new SingleFieldIndexVerifier("source")
-            ),
+                new IndexTestData
+                (
+                        "Test NamedRelationDbIndex",
+                        BlockMirror.class,
+                        new Object[] { "source=", new NamedURI(URIUtil.createId(Volume.class), "abcde") }, // Initial state
+                        new Object[][]
+                        {
+                                new Object[] { "source=", new NamedURI(URIUtil.createId(Volume.class), "fghij") },
+                                new Object[] { "source=", new NamedURI(URIUtil.createId(Volume.class), "klmno") },
+                        },
+                        new SingleFieldIndexVerifier("source")
+                ),
 
-//            new IndexTestData
-//            (
-//                "Test DecommissionedDbIndex",
-//                BlockMirror.class,
-//                new Object[] {"inactive=", false}, // Initial state
-//                new Object[][]
-//                {
-//                    new Object[] {"inactive=", true},
-//                    new Object[] {"inactive=", false},
-//                },
-//                new SingleFieldIndexVerifier("inactive")
-//            ),
+                // new IndexTestData
+                // (
+                // "Test DecommissionedDbIndex",
+                // BlockMirror.class,
+                // new Object[] {"inactive=", false}, // Initial state
+                // new Object[][]
+                // {
+                // new Object[] {"inactive=", true},
+                // new Object[] {"inactive=", false},
+                // },
+                // new SingleFieldIndexVerifier("inactive")
+                // ),
 
-            new IndexTestData
-            (
-                "Test PermissionsDbIndex",
-                VirtualDataCenter.class,
-                new Object[] {"role-assignment<", "user1", "role1"}, // Initial state
-                new Object[][]
-                {
-                    new Object[] {"role-assignment>", "user1", "role1"},
-                    new Object[] {"role-assignment<", "user2", "role1"},
-                },
-                new SingleFieldIndexVerifier("role-assignment")
-            ),
+                new IndexTestData
+                (
+                        "Test PermissionsDbIndex",
+                        VirtualDataCenter.class,
+                        new Object[] { "role-assignment<", "user1", "role1" }, // Initial state
+                        new Object[][]
+                        {
+                                new Object[] { "role-assignment>", "user1", "role1" },
+                                new Object[] { "role-assignment<", "user2", "role1" },
+                        },
+                        new SingleFieldIndexVerifier("role-assignment")
+                ),
 
-            new IndexTestData
-            (
-                "Test ScopedLabelDbIndex",
-                FCEndpoint.class,
-                new Object[] {"tags<", new ScopedLabel("scope1", "label1")}, // Initial state
-                new Object[][]
-                {
-                    new Object[] {"tags>", new ScopedLabel("scope1", "label1")},
-                    new Object[] {"tags<", new ScopedLabel("scope2", "label1")},
-                },
-                new SingleFieldIndexVerifier("tags")
-            ),
+                new IndexTestData
+                (
+                        "Test ScopedLabelDbIndex",
+                        FCEndpoint.class,
+                        new Object[] { "tags<", new ScopedLabel("scope1", "label1") }, // Initial state
+                        new Object[][]
+                        {
+                                new Object[] { "tags>", new ScopedLabel("scope1", "label1") },
+                                new Object[] { "tags<", new ScopedLabel("scope2", "label1") },
+                        },
+                        new SingleFieldIndexVerifier("tags")
+                ),
         };
 
         for (int i = 0; i < tests.length; i++) {
             testRaceCondition(tests[i]);
         }
     }
-    
+
     @Test
-    public void testInactive() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
-        
-        // We're going to need synchronize between threads calling into DbClient 
+    public void testInactive() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
+            NoSuchMethodException, SecurityException {
+
+        // We're going to need synchronize between threads calling into DbClient
         this._dbClient.threadStepLock = new ThreadLocal<DbClientTest.StepLock>();
-        
+
         URI vol1Uri = URIUtil.createId(Volume.class);
         URI varr1Uri = URIUtil.createId(VirtualArray.class);
-        
+
         IndexTestData[] tests = new IndexTestData[]
         {
-            new IndexTestData
-            (
-                "Test inactive with other index",
-                Volume.class,
-                new Object[] {"personality=", "abc"}, // Initial state
-                new Object[][]
-                {
-                    new Object[] {"inactive=", true},
-                    new Object[] {"personality=", "ghi"},
-                },
-                new IndexVerifier(){
+                new IndexTestData
+                (
+                        "Test inactive with other index",
+                        Volume.class,
+                        new Object[] { "personality=", "abc" }, // Initial state
+                        new Object[][]
+                        {
+                                new Object[] { "inactive=", true },
+                                new Object[] { "personality=", "ghi" },
+                        },
+                        new IndexVerifier() {
 
-                    @Override
-                    public void verify(Class<? extends DataObject> clazz, URI id, DbClient client) {
-                        Volume vol = (Volume)client.queryObject(clazz, id);
-                        String per = vol.getPersonality();
-                        
-                        DataObjectType doType = TypeMap.getDoType(clazz);
-                        
-                        
-                        AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField("personality"), per);
-                        
-                        URIQueryResultList list = new URIQueryResultList();
-                        client.queryByConstraint(constraint, list);
-                        
-                        for (URI elem : list) {
-                            assertTrue("The index of .personality should be removed", !elem.equals(id));
+                            @Override
+                            public void verify(Class<? extends DataObject> clazz, URI id, DbClient client) {
+                                Volume vol = (Volume) client.queryObject(clazz, id);
+                                String per = vol.getPersonality();
+
+                                DataObjectType doType = TypeMap.getDoType(clazz);
+
+                                AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField("personality"), per);
+
+                                URIQueryResultList list = new URIQueryResultList();
+                                client.queryByConstraint(constraint, list);
+
+                                for (URI elem : list) {
+                                    assertTrue("The index of .personality should be removed", !elem.equals(id));
+                                }
+                            }
+
                         }
-                    }
-                    
-                }
-            ),
+                ),
 
         };
 
@@ -1046,8 +1033,6 @@ public class DbIndexTest extends DbsvcTestBase {
             testRaceCondition(tests[i]);
         }
     }
-
-
 
     public enum Op {
         PrimitiveAdd,
@@ -1060,13 +1045,12 @@ public class DbIndexTest extends DbsvcTestBase {
         MapAdd,
         MapRemove,
         // Add+Remove, Remove+Add, Add+Modify, Add+ModifySame, ...
-         
+
         SetMapAdd, // Add a key to existing set
         SetMapRemove, // Remove entire set
     }
-    
 
-    
+    @SuppressWarnings("pmd:ArrayIsStoredDirectly")
     static class TestData {
         public String name; // Name of the test case
         public Object[] initial; // Initial state in DB that two threads will read
@@ -1080,7 +1064,7 @@ public class DbIndexTest extends DbsvcTestBase {
             this.rushIn = rushIn;
             this.primary = primary;
         }
-        
+
         public TestData(String name, Object[] initial, Object[] rushIn, Object[] primary, Object[] target) {
             this.name = name;
             this.initial = initial;
@@ -1089,205 +1073,205 @@ public class DbIndexTest extends DbsvcTestBase {
             this.target = target;
         }
     }
-    
-    static TestData[] testData = new TestData[]{
-        new TestData("Primitive add same",
-                null,
-                new Object[]{Op.PrimitiveAdd, "abc"},
-                new Object[]{Op.PrimitiveAdd, "abc"}
-                ),
-        new TestData("Primitive add diff",
-                null,
-                new Object[]{Op.PrimitiveAdd, "abc"},
-                new Object[]{Op.PrimitiveAdd, "def"}
-                ),
-        new TestData("Primitive upd same",
-                new Object[]{Op.PrimitiveAdd, "abc"},
-                new Object[]{Op.PrimitiveAdd, "def"},
-                new Object[]{Op.PrimitiveAdd, "def"}
-                ),
-        new TestData("Primitive upd diff",
-                new Object[]{Op.PrimitiveAdd, "abc"},
-                new Object[]{Op.PrimitiveAdd, "def"},
-                new Object[]{Op.PrimitiveAdd, "ghi"}
-                ),
-        new TestData("Primitive remove",
-                new Object[]{Op.PrimitiveAdd, "abc", Op.SetAdd, "ghi"},
-                null,
-                new Object[]{Op.PrimitiveRemove},
-                new Object[]{Op.PrimitiveAdd, "abc", Op.SetAdd, "ghi"}
-                ),
 
-        new TestData("Set add same",
-                null,
-                new Object[]{Op.SetAdd, "abc"},
-                new Object[]{Op.SetAdd, "abc"} // Should perform no change to DB
-                ),
-        new TestData("Set add diff",
-                null,
-                new Object[]{Op.SetAdd, "abc"},
-                new Object[]{Op.SetAdd, "def"}
-                ),
-        new TestData("Set upd same",
-                new Object[]{Op.SetAdd, "abc"},
-                null,
-                new Object[]{Op.SetAdd, "abc"} // Should perform no change to DB
-                ),
-        new TestData("Set remove same", 
-                new Object[]{Op.SetAdd, "abc", Op.SetAdd, "def"},
-                new Object[]{Op.SetRemove, "abc"},
-                new Object[]{Op.SetRemove, "abc"} // Should perform no change to DB
-                ),
-        new TestData("Set remove diff", // "abc" should not be added back 
-                new Object[]{Op.SetAdd, "abc", Op.SetAdd, "def", Op.SetAdd, "ghi"},
-                new Object[]{Op.SetRemove, "abc"},
-                new Object[]{Op.SetRemove, "def"}
-                ),
-        new TestData("Set remove last", 
-                new Object[]{Op.SetAdd, "abc"},
-                null,
-                new Object[]{Op.SetRemove, "abc"}
-                ),
+    static TestData[] testData = new TestData[] {
+            new TestData("Primitive add same",
+                    null,
+                    new Object[] { Op.PrimitiveAdd, "abc" },
+                    new Object[] { Op.PrimitiveAdd, "abc" }
+            ),
+            new TestData("Primitive add diff",
+                    null,
+                    new Object[] { Op.PrimitiveAdd, "abc" },
+                    new Object[] { Op.PrimitiveAdd, "def" }
+            ),
+            new TestData("Primitive upd same",
+                    new Object[] { Op.PrimitiveAdd, "abc" },
+                    new Object[] { Op.PrimitiveAdd, "def" },
+                    new Object[] { Op.PrimitiveAdd, "def" }
+            ),
+            new TestData("Primitive upd diff",
+                    new Object[] { Op.PrimitiveAdd, "abc" },
+                    new Object[] { Op.PrimitiveAdd, "def" },
+                    new Object[] { Op.PrimitiveAdd, "ghi" }
+            ),
+            new TestData("Primitive remove",
+                    new Object[] { Op.PrimitiveAdd, "abc", Op.SetAdd, "ghi" },
+                    null,
+                    new Object[] { Op.PrimitiveRemove },
+                    new Object[] { Op.PrimitiveAdd, "abc", Op.SetAdd, "ghi" }
+            ),
 
-        new TestData("Map add same key same value", 
-                null,
-                new Object[]{Op.MapAdd, "abc", "123"},
-                new Object[]{Op.MapAdd, "abc", "123"} // Should perform no change to DB
-                ),
-        new TestData("Map add same key diff value", 
-                null,
-                new Object[]{Op.MapAdd, "abc", "123"},
-                new Object[]{Op.MapAdd, "abc", "456"}
-                ),
-        new TestData("Map add diff key", 
-                null,
-                new Object[]{Op.MapAdd, "abc", "123"},
-                new Object[]{Op.MapAdd, "def", "456"}
-                ),
-        new TestData("Map upd same key same value", 
-                new Object[]{Op.MapAdd, "abc", "123", Op.MapAdd, "def", "456"},
-                new Object[]{Op.MapAdd, "abc", "789"},
-                new Object[]{Op.MapAdd, "abc", "789"}
-                ),
-        new TestData("Map upd same key diff value", 
-                new Object[]{Op.MapAdd, "abc", "123", Op.MapAdd, "def", "456"},
-                new Object[]{Op.MapAdd, "abc", "789"},
-                new Object[]{Op.MapAdd, "abc", "012"}
-                ),
-        new TestData("Map upd diff key", 
-                new Object[]{Op.MapAdd, "abc", "123", Op.MapAdd, "def", "456", Op.MapAdd, "ghi", "789"},
-                new Object[]{Op.MapAdd, "abc", "123"},
-                new Object[]{Op.MapAdd, "def", "456"}
-                ),
-        new TestData("Map del same key", 
-                new Object[]{Op.MapAdd, "abc", "123", Op.MapAdd, "def", "456"},
-                new Object[]{Op.MapRemove, "abc"},
-                new Object[]{Op.MapRemove, "abc"}
-                ),
-        new TestData("Map del diff key", 
-                new Object[]{Op.MapAdd, "abc", "123", Op.MapAdd, "def", "456", Op.MapAdd, "ghi", "789"},
-                new Object[]{Op.MapRemove, "abc"},
-                new Object[]{Op.MapRemove, "def"}
-                ),
-        new TestData("Map del last key", 
-                new Object[]{Op.MapAdd, "abc", "123"},
-                null,
-                new Object[]{Op.MapRemove, "abc"}
-                ),
+            new TestData("Set add same",
+                    null,
+                    new Object[] { Op.SetAdd, "abc" },
+                    new Object[] { Op.SetAdd, "abc" } // Should perform no change to DB
+            ),
+            new TestData("Set add diff",
+                    null,
+                    new Object[] { Op.SetAdd, "abc" },
+                    new Object[] { Op.SetAdd, "def" }
+            ),
+            new TestData("Set upd same",
+                    new Object[] { Op.SetAdd, "abc" },
+                    null,
+                    new Object[] { Op.SetAdd, "abc" } // Should perform no change to DB
+            ),
+            new TestData("Set remove same",
+                    new Object[] { Op.SetAdd, "abc", Op.SetAdd, "def" },
+                    new Object[] { Op.SetRemove, "abc" },
+                    new Object[] { Op.SetRemove, "abc" } // Should perform no change to DB
+            ),
+            new TestData("Set remove diff", // "abc" should not be added back
+                    new Object[] { Op.SetAdd, "abc", Op.SetAdd, "def", Op.SetAdd, "ghi" },
+                    new Object[] { Op.SetRemove, "abc" },
+                    new Object[] { Op.SetRemove, "def" }
+            ),
+            new TestData("Set remove last",
+                    new Object[] { Op.SetAdd, "abc" },
+                    null,
+                    new Object[] { Op.SetRemove, "abc" }
+            ),
 
-        new TestData("SetMap add same key same set", 
-                null,
-                new Object[]{Op.SetMapAdd, "abc", "123"},
-                new Object[]{Op.SetMapAdd, "abc", "123"}
-                ),
-        new TestData("SetMap add diff key same set", 
-                null,
-                new Object[]{Op.SetMapAdd, "abc", "123"},
-                new Object[]{Op.SetMapAdd, "abc", "456"}
-                ),
-        new TestData("SetMap add diff key diff set", 
-                null,
-                new Object[]{Op.SetMapAdd, "abc", "123"},
-                new Object[]{Op.SetMapAdd, "def", "456"}
-                ),
-        new TestData("SetMap remove same key same set", 
-                new Object[]{Op.SetMapAdd, "abc", "123", Op.SetMapAdd, "def", "456", Op.SetMapAdd, "ghi", "123"},
-                new Object[]{Op.SetMapRemove, "abc", "123"},
-                new Object[]{Op.SetMapRemove, "abc", "123"}
-                ),
-        new TestData("SetMap remove diff key same set", 
-                new Object[]{Op.SetMapAdd, "abc", "123", Op.SetMapAdd, "abc", "456", Op.SetMapAdd, "abc", "789"},
-                new Object[]{Op.SetMapRemove, "abc", "123"},
-                new Object[]{Op.SetMapRemove, "abc", "123"}
-                ),
-        new TestData("SetMap remove diff key diff set", 
-                new Object[]{Op.SetMapAdd, "abc", "123", Op.SetMapAdd, "abc", "456", Op.SetMapAdd, "abc", "789"},
-                new Object[]{Op.SetMapRemove, "abc", "123"},
-                new Object[]{Op.SetMapRemove, "abc", "123"}
-                ),
-        new TestData("SetMap remove diff key diff set", 
-                new Object[]{Op.SetMapAdd, "abc", "123", Op.SetMapAdd, "abc", "456", Op.SetMapAdd, "def", "789"},
-                new Object[]{Op.SetMapRemove, "abc", "123"},
-                new Object[]{Op.SetMapRemove, "def", "789"}
-                ),
-        new TestData("SetMap remove last", 
-                new Object[]{Op.SetMapAdd, "abc", "123"},
-                null,
-                new Object[]{Op.SetMapRemove, "abc", "123"}
-                ),
+            new TestData("Map add same key same value",
+                    null,
+                    new Object[] { Op.MapAdd, "abc", "123" },
+                    new Object[] { Op.MapAdd, "abc", "123" } // Should perform no change to DB
+            ),
+            new TestData("Map add same key diff value",
+                    null,
+                    new Object[] { Op.MapAdd, "abc", "123" },
+                    new Object[] { Op.MapAdd, "abc", "456" }
+            ),
+            new TestData("Map add diff key",
+                    null,
+                    new Object[] { Op.MapAdd, "abc", "123" },
+                    new Object[] { Op.MapAdd, "def", "456" }
+            ),
+            new TestData("Map upd same key same value",
+                    new Object[] { Op.MapAdd, "abc", "123", Op.MapAdd, "def", "456" },
+                    new Object[] { Op.MapAdd, "abc", "789" },
+                    new Object[] { Op.MapAdd, "abc", "789" }
+            ),
+            new TestData("Map upd same key diff value",
+                    new Object[] { Op.MapAdd, "abc", "123", Op.MapAdd, "def", "456" },
+                    new Object[] { Op.MapAdd, "abc", "789" },
+                    new Object[] { Op.MapAdd, "abc", "012" }
+            ),
+            new TestData("Map upd diff key",
+                    new Object[] { Op.MapAdd, "abc", "123", Op.MapAdd, "def", "456", Op.MapAdd, "ghi", "789" },
+                    new Object[] { Op.MapAdd, "abc", "123" },
+                    new Object[] { Op.MapAdd, "def", "456" }
+            ),
+            new TestData("Map del same key",
+                    new Object[] { Op.MapAdd, "abc", "123", Op.MapAdd, "def", "456" },
+                    new Object[] { Op.MapRemove, "abc" },
+                    new Object[] { Op.MapRemove, "abc" }
+            ),
+            new TestData("Map del diff key",
+                    new Object[] { Op.MapAdd, "abc", "123", Op.MapAdd, "def", "456", Op.MapAdd, "ghi", "789" },
+                    new Object[] { Op.MapRemove, "abc" },
+                    new Object[] { Op.MapRemove, "def" }
+            ),
+            new TestData("Map del last key",
+                    new Object[] { Op.MapAdd, "abc", "123" },
+                    null,
+                    new Object[] { Op.MapRemove, "abc" }
+            ),
+
+            new TestData("SetMap add same key same set",
+                    null,
+                    new Object[] { Op.SetMapAdd, "abc", "123" },
+                    new Object[] { Op.SetMapAdd, "abc", "123" }
+            ),
+            new TestData("SetMap add diff key same set",
+                    null,
+                    new Object[] { Op.SetMapAdd, "abc", "123" },
+                    new Object[] { Op.SetMapAdd, "abc", "456" }
+            ),
+            new TestData("SetMap add diff key diff set",
+                    null,
+                    new Object[] { Op.SetMapAdd, "abc", "123" },
+                    new Object[] { Op.SetMapAdd, "def", "456" }
+            ),
+            new TestData("SetMap remove same key same set",
+                    new Object[] { Op.SetMapAdd, "abc", "123", Op.SetMapAdd, "def", "456", Op.SetMapAdd, "ghi", "123" },
+                    new Object[] { Op.SetMapRemove, "abc", "123" },
+                    new Object[] { Op.SetMapRemove, "abc", "123" }
+            ),
+            new TestData("SetMap remove diff key same set",
+                    new Object[] { Op.SetMapAdd, "abc", "123", Op.SetMapAdd, "abc", "456", Op.SetMapAdd, "abc", "789" },
+                    new Object[] { Op.SetMapRemove, "abc", "123" },
+                    new Object[] { Op.SetMapRemove, "abc", "123" }
+            ),
+            new TestData("SetMap remove diff key diff set",
+                    new Object[] { Op.SetMapAdd, "abc", "123", Op.SetMapAdd, "abc", "456", Op.SetMapAdd, "abc", "789" },
+                    new Object[] { Op.SetMapRemove, "abc", "123" },
+                    new Object[] { Op.SetMapRemove, "abc", "123" }
+            ),
+            new TestData("SetMap remove diff key diff set",
+                    new Object[] { Op.SetMapAdd, "abc", "123", Op.SetMapAdd, "abc", "456", Op.SetMapAdd, "def", "789" },
+                    new Object[] { Op.SetMapRemove, "abc", "123" },
+                    new Object[] { Op.SetMapRemove, "def", "789" }
+            ),
+            new TestData("SetMap remove last",
+                    new Object[] { Op.SetMapAdd, "abc", "123" },
+                    null,
+                    new Object[] { Op.SetMapRemove, "abc", "123" }
+            ),
     };
-    
-    
+
     class IndexTestWorker extends TestWorker {
-        
-        public IndexTestWorker () {}
+
+        public IndexTestWorker() {
+        }
 
         @Override
         public void modify(Op op, String seed0, String seed1) {
 
             switch (op) {
-            case PrimitiveAdd:
-                this.pool.setLabel(seed0);
-                break;
-            case PrimitiveRemove:
-                this.pool.setLabel(null);
-                break;
+                case PrimitiveAdd:
+                    this.pool.setLabel(seed0);
+                    break;
+                case PrimitiveRemove:
+                    this.pool.setLabel(null);
+                    break;
 
-            case SetAdd:
-                if (this.pool.getVirtualArrays() == null) {
-                    this.pool.setVirtualArrays(new StringSet());
-                }
-                this.pool.getVirtualArrays().add(seed0);
-                break;
-            case SetRemove:
-                if (this.pool.getVirtualArrays() != null) {
-                    this.pool.getVirtualArrays().remove(seed0);
-                }
-                break;
+                case SetAdd:
+                    if (this.pool.getVirtualArrays() == null) {
+                        this.pool.setVirtualArrays(new StringSet());
+                    }
+                    this.pool.getVirtualArrays().add(seed0);
+                    break;
+                case SetRemove:
+                    if (this.pool.getVirtualArrays() != null) {
+                        this.pool.getVirtualArrays().remove(seed0);
+                    }
+                    break;
 
-            case MapAdd:
-                if (this.pool.getProtectionVarraySettings() == null) {
-                    this.pool.setProtectionVarraySettings(new StringMap());
-                }
-                this.pool.getProtectionVarraySettings().put(seed0, seed1);
-                break;
-            case MapRemove:
-                if (this.pool.getProtectionVarraySettings() != null) {
-                    this.pool.getProtectionVarraySettings().remove(seed0);
-                }
-                break;
+                case MapAdd:
+                    if (this.pool.getProtectionVarraySettings() == null) {
+                        this.pool.setProtectionVarraySettings(new StringMap());
+                    }
+                    this.pool.getProtectionVarraySettings().put(seed0, seed1);
+                    break;
+                case MapRemove:
+                    if (this.pool.getProtectionVarraySettings() != null) {
+                        this.pool.getProtectionVarraySettings().remove(seed0);
+                    }
+                    break;
 
-            case SetMapAdd:
-                if (this.pool.getAcls() == null) {
-                    this.pool.setAcls(new StringSetMap());
-                }
-                this.pool.getAcls().put(seed0, seed1);
-                break;
-            case SetMapRemove:
-                if (this.pool.getAcls() != null) {
-                    this.pool.getAcls().remove(seed0, seed1);
-                }
-                break;
+                case SetMapAdd:
+                    if (this.pool.getAcls() == null) {
+                        this.pool.setAcls(new StringSetMap());
+                    }
+                    this.pool.getAcls().put(seed0, seed1);
+                    break;
+                case SetMapRemove:
+                    if (this.pool.getAcls() != null) {
+                        this.pool.getAcls().remove(seed0, seed1);
+                    }
+                    break;
             }
         }
 
@@ -1296,26 +1280,32 @@ public class DbIndexTest extends DbsvcTestBase {
             VirtualPool p = shouldBe.pool;
 
             // Check the property values are correct
-            Assert.assertTrue(String.format("Volume.description does not match, case %s, \"%s\" != \"%s\"", caseName, p.getLabel(), this.pool.getLabel()), equalsObject(p.getLabel(), this.pool.getLabel()));
-            Assert.assertTrue(String.format("Volume.protocols does not match, case %s", caseName), equalsObject(p.getVirtualArrays(), this.pool.getVirtualArrays()));
-            Assert.assertTrue(String.format("Volume.haVarrayVpoolMap does not match, case %s", caseName), equalsMap(p.getProtectionVarraySettings(), this.pool.getProtectionVarraySettings()));
-            Assert.assertTrue(String.format("Volume.arrayInfo does not match, case %s", caseName), equalsMap(p.getAcls(), this.pool.getAcls()));
+            Assert.assertTrue(
+                    String.format("Volume.description does not match, case %s, \"%s\" != \"%s\"", caseName, p.getLabel(),
+                            this.pool.getLabel()), equalsObject(p.getLabel(), this.pool.getLabel()));
+            Assert.assertTrue(String.format("Volume.protocols does not match, case %s", caseName),
+                    equalsObject(p.getVirtualArrays(), this.pool.getVirtualArrays()));
+            Assert.assertTrue(String.format("Volume.haVarrayVpoolMap does not match, case %s", caseName),
+                    equalsMap(p.getProtectionVarraySettings(), this.pool.getProtectionVarraySettings()));
+            Assert.assertTrue(String.format("Volume.arrayInfo does not match, case %s", caseName),
+                    equalsMap(p.getAcls(), this.pool.getAcls()));
         }
     }
-    
+
     interface Factory<T> {
         T create();
     }
 
     class TestWorker {
         VirtualPool pool;
-        
-        public TestWorker() {}
+
+        public TestWorker() {
+        }
 
         public void create(URI id) {
             // Create a volume object for testing
             try {
-                this.pool = (VirtualPool)DataObject.createInstance(VirtualPool.class, id);
+                this.pool = (VirtualPool) DataObject.createInstance(VirtualPool.class, id);
                 this.pool.trackChanges();
             } catch (InstantiationException | IllegalAccessException e) {
                 e.printStackTrace();
@@ -1323,7 +1313,7 @@ public class DbIndexTest extends DbsvcTestBase {
         }
 
         public void load(URI id) {
-            this.pool = (VirtualPool)_dbClient.queryObject(VirtualPool.class, id);
+            this.pool = (VirtualPool) _dbClient.queryObject(VirtualPool.class, id);
             if (this.pool == null) {
                 create(id);
             }
@@ -1339,48 +1329,48 @@ public class DbIndexTest extends DbsvcTestBase {
         public void modify(Op op, String seed0, String seed1) {
 
             switch (op) {
-            case PrimitiveAdd:
-                this.pool.setDescription(seed0);
-                break;
-            case PrimitiveRemove:
-                this.pool.setDescription(null);
-                break;
+                case PrimitiveAdd:
+                    this.pool.setDescription(seed0);
+                    break;
+                case PrimitiveRemove:
+                    this.pool.setDescription(null);
+                    break;
 
-            case SetAdd:
-                if (this.pool.getProtocols() == null) {
-                    this.pool.setProtocols(new StringSet());
-                }
-                this.pool.getProtocols().add(seed0);
-                break;
-            case SetRemove:
-                if (this.pool.getProtocols() != null) {
-                    this.pool.getProtocols().remove(seed0);
-                }
-                break;
+                case SetAdd:
+                    if (this.pool.getProtocols() == null) {
+                        this.pool.setProtocols(new StringSet());
+                    }
+                    this.pool.getProtocols().add(seed0);
+                    break;
+                case SetRemove:
+                    if (this.pool.getProtocols() != null) {
+                        this.pool.getProtocols().remove(seed0);
+                    }
+                    break;
 
-            case MapAdd:
-                if (this.pool.getHaVarrayVpoolMap() == null) {
-                    this.pool.setHaVarrayVpoolMap(new StringMap());
-                }
-                this.pool.getHaVarrayVpoolMap().put(seed0, seed1);
-                break;
-            case MapRemove:
-                if (this.pool.getHaVarrayVpoolMap() != null) {
-                    this.pool.getHaVarrayVpoolMap().remove(seed0);
-                }
-                break;
+                case MapAdd:
+                    if (this.pool.getHaVarrayVpoolMap() == null) {
+                        this.pool.setHaVarrayVpoolMap(new StringMap());
+                    }
+                    this.pool.getHaVarrayVpoolMap().put(seed0, seed1);
+                    break;
+                case MapRemove:
+                    if (this.pool.getHaVarrayVpoolMap() != null) {
+                        this.pool.getHaVarrayVpoolMap().remove(seed0);
+                    }
+                    break;
 
-            case SetMapAdd:
-                if (this.pool.getArrayInfo() == null) {
-                    this.pool.setArrayInfo(new StringSetMap());
-                }
-                this.pool.getArrayInfo().put(seed0, seed1);
-                break;
-            case SetMapRemove:
-                if (this.pool.getArrayInfo() != null) {
-                    this.pool.getArrayInfo().remove(seed0, seed1);
-                }
-                break;
+                case SetMapAdd:
+                    if (this.pool.getArrayInfo() == null) {
+                        this.pool.setArrayInfo(new StringSetMap());
+                    }
+                    this.pool.getArrayInfo().put(seed0, seed1);
+                    break;
+                case SetMapRemove:
+                    if (this.pool.getArrayInfo() != null) {
+                        this.pool.getArrayInfo().remove(seed0, seed1);
+                    }
+                    break;
             }
         }
 
@@ -1390,17 +1380,17 @@ public class DbIndexTest extends DbsvcTestBase {
         }
 
         protected boolean equalsObject(Object a, Object b) {
-            if (a instanceof Set && ((Set<?>) a).size() == 0) {
+            if (a instanceof Set && ((Set<?>) a).isEmpty()) {
                 a = null;
             }
-            if (b instanceof Set && ((Set<?>) b).size() == 0) {
+            if (b instanceof Set && ((Set<?>) b).isEmpty()) {
                 b = null;
             }
             return a == null || b == null ? a == b : a.equals(b);
         }
 
         // Compare two Maps, null values are treated as no such key
-        protected <K,V> boolean equalsMap(Map<K, V> a, Map<K, V> b) {
+        protected <K, V> boolean equalsMap(Map<K, V> a, Map<K, V> b) {
 
             if (a != null) {
                 for (Map.Entry<K, V> entry : a.entrySet()) {
@@ -1418,7 +1408,7 @@ public class DbIndexTest extends DbsvcTestBase {
                     }
                 }
             }
-            
+
             return true;
         }
 
@@ -1426,32 +1416,37 @@ public class DbIndexTest extends DbsvcTestBase {
             VirtualPool p = shouldBe.pool;
 
             // Check the property values are correct
-            Assert.assertTrue(String.format("Volume.description does not match, case %s, \"%s\" != \"%s\"", caseName, p.getDescription(), this.pool.getDescription()), equalsObject(p.getDescription(), this.pool.getDescription()));
-            Assert.assertTrue(String.format("Volume.protocols does not match, case %s", caseName), equalsObject(p.getProtocols(), this.pool.getProtocols()));
-            Assert.assertTrue(String.format("Volume.haVarrayVpoolMap does not match, case %s", caseName), equalsMap(p.getHaVarrayVpoolMap(), this.pool.getHaVarrayVpoolMap()));
-            Assert.assertTrue(String.format("Volume.arrayInfo does not match, case %s", caseName), equalsMap(p.getArrayInfo(), this.pool.getArrayInfo()));
+            Assert.assertTrue(
+                    String.format("Volume.description does not match, case %s, \"%s\" != \"%s\"", caseName, p.getDescription(),
+                            this.pool.getDescription()), equalsObject(p.getDescription(), this.pool.getDescription()));
+            Assert.assertTrue(String.format("Volume.protocols does not match, case %s", caseName),
+                    equalsObject(p.getProtocols(), this.pool.getProtocols()));
+            Assert.assertTrue(String.format("Volume.haVarrayVpoolMap does not match, case %s", caseName),
+                    equalsMap(p.getHaVarrayVpoolMap(), this.pool.getHaVarrayVpoolMap()));
+            Assert.assertTrue(String.format("Volume.arrayInfo does not match, case %s", caseName),
+                    equalsMap(p.getArrayInfo(), this.pool.getArrayInfo()));
         }
     }
-    
+
     public static void applyOperations(TestWorker w, Object[] ops) {
         if (ops == null) {
             return;
         }
 
-        for (int i = 0; i < ops.length; ) {
-            Op op = (Op)ops[i++];
+        for (int i = 0; i < ops.length;) {
+            Op op = (Op) ops[i++];
             String seed0 = null;
             if (i < ops.length && !(ops[i] instanceof Op)) {
-                seed0 = (String)ops[i++];
+                seed0 = (String) ops[i++];
             }
             String seed1 = null;
             if (i < ops.length && !(ops[i] instanceof Op)) {
-                seed1 = (String)ops[i++];
+                seed1 = (String) ops[i++];
             }
             w.modify(op, seed0, seed1);
         }
     }
-    
+
     private void runTest(TestData[] tests, Factory<TestWorker> fac) throws InstantiationException, IllegalAccessException {
         for (TestData test : tests) {
             // Generate unique object ID for this test case, so it will not interact with other test cases
@@ -1468,7 +1463,7 @@ public class DbIndexTest extends DbsvcTestBase {
             // Load primary test worker
             TestWorker primary = fac.create();
             primary.load(id);
-            
+
             // Run rush-in worker if needed
             if (test.rushIn != null) {
                 TestWorker rushIn = fac.create();
@@ -1476,11 +1471,11 @@ public class DbIndexTest extends DbsvcTestBase {
                 applyOperations(rushIn, test.rushIn);
                 rushIn.save();
             }
-            
+
             // Do primary update and save
             applyOperations(primary, test.primary);
             primary.save();
-            
+
             // Load final result from DB
             TestWorker now = fac.create();
             now.load(id);
@@ -1501,37 +1496,38 @@ public class DbIndexTest extends DbsvcTestBase {
 
     @Test
     public void testFieldChangePersist() throws InstantiationException, IllegalAccessException {
-        runTest(testData, new Factory<TestWorker>(){
+        runTest(testData, new Factory<TestWorker>() {
 
             @Override
             public TestWorker create() {
                 return new TestWorker();
             }
-            
+
         });
     }
 
     @Test
     public void testIndexedFieldChangePersist() throws InstantiationException, IllegalAccessException, IllegalArgumentException {
-        runTest(testData, new Factory<TestWorker>(){
+        runTest(testData, new Factory<TestWorker>() {
 
             @Override
             public TestWorker create() {
                 return new IndexTestWorker();
             }
-            
+
         });
     }
-    
+
     private int getTombstoneCount(String cf, String label) throws IOException {
-        
+
         dumpSSTables(cf, label);
 
-        FileInputStream fis = new FileInputStream(String.format("%s/data/Test/%s/snapshots/%s/data.json", _dataDir.getAbsolutePath(), cf, label));
-        
+        FileInputStream fis = new FileInputStream(String.format("%s/data/Test/%s/snapshots/%s/data.json", _dataDir.getAbsolutePath(), cf,
+                label));
+
         JsonParser parser = new JsonParser();
         JsonArray arrRoot = parser.parse(new InputStreamReader(fis)).getAsJsonArray();
-        
+
         int tombstomes = 0;
         for (JsonElement elemFile : arrRoot) {
             for (JsonElement elemRow : elemFile.getAsJsonArray()) {
@@ -1544,33 +1540,34 @@ public class DbIndexTest extends DbsvcTestBase {
                 }
             }
         }
-        
+
         return tombstomes;
 
     }
-    
+
     private void dumpSSTables(String cf, String label) throws IOException {
         String dirPath = String.format("%s/data/Test/%s/snapshots/%s", _dataDir.getAbsolutePath(), cf, label);
         File dir = new File(dirPath);
         if (!dir.exists()) {
-            this.probe.takeSnapshot(label, cf, new String[]{"Test"});
+            this.probe.takeSnapshot(label, cf, new String[] { "Test" });
         }
 
         if (new File(String.format("%s/data.json", dirPath)).exists()) {
             return;
         }
 
-        String[] dataFiles = dir.list(new FilenameFilter(){
+        String[] dataFiles = dir.list(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
                 return name.endsWith("-Data.db");
-            }});
+            }
+        });
 
         String outFileName = String.format("%s/data.json", dirPath);
         PrintStream outs = new PrintStream(outFileName);
         outs.println("[");
         for (int i = 0; i < dataFiles.length; i++) {
-            String fileName = dataFiles[i]; 
+            String fileName = dataFiles[i];
             Descriptor desc = Descriptor.fromFilename(String.format("%s/%s", dirPath, fileName));
             SSTableExport.export(desc, outs, null);
             if (i + 1 < dataFiles.length) {
@@ -1581,7 +1578,7 @@ public class DbIndexTest extends DbsvcTestBase {
     }
 
     // Commented out for now as the required changed to DbSvcTestBase is not merged from release-2.1 now.
-    //@Test
+    // @Test
     public void testTombstoneCount() throws IOException {
 
         URI id = URIUtil.createId(VirtualPool.class);
@@ -1604,7 +1601,8 @@ public class DbIndexTest extends DbsvcTestBase {
 
             int newTombstoneCount = getTombstoneCount("VirtualPool", "ver1");
 
-            assertTrue(String.format("Expected tombstone count to be %d, but it's %d", tombstoneCount + 1, newTombstoneCount), newTombstoneCount == tombstoneCount + 1);
+            assertTrue(String.format("Expected tombstone count to be %d, but it's %d", tombstoneCount + 1, newTombstoneCount),
+                    newTombstoneCount == tombstoneCount + 1);
             tombstoneCount = newTombstoneCount;
         }
 
@@ -1617,24 +1615,26 @@ public class DbIndexTest extends DbsvcTestBase {
 
             int newTombstoneCount = getTombstoneCount("VirtualPool", "ver2");
 
-            assertTrue(String.format("Expected tombstone count to be %d, but it's %d", tombstoneCount + 1, newTombstoneCount), newTombstoneCount == tombstoneCount + 1);
+            assertTrue(String.format("Expected tombstone count to be %d, but it's %d", tombstoneCount + 1, newTombstoneCount),
+                    newTombstoneCount == tombstoneCount + 1);
             tombstoneCount = newTombstoneCount;
         }
-        
+
         {
             VirtualPool pool = _dbClient.queryObject(VirtualPool.class, id);
             pool.setLabel("changed");
             _dbClient.persistObject(pool);
             pool = _dbClient.queryObject(VirtualPool.class, id);
             assertTrue(pool.getLabel().equals("changed"));
-            
+
             int newTombstoneCount = getTombstoneCount("VirtualPool", "ver3");
 
-            assertTrue(String.format("Expected tombstone count to be %d, but it's %d", tombstoneCount + 1, newTombstoneCount), newTombstoneCount == tombstoneCount + 1);
+            assertTrue(String.format("Expected tombstone count to be %d, but it's %d", tombstoneCount + 1, newTombstoneCount),
+                    newTombstoneCount == tombstoneCount + 1);
             tombstoneCount = newTombstoneCount;
         }
     }
-    
+
     private void verifyContain(Constraint c, URI uri, int count) {
         URIQueryResultList list = new URIQueryResultList();
         _dbClient.queryByConstraint(c, list);
@@ -1648,7 +1648,7 @@ public class DbIndexTest extends DbsvcTestBase {
                 found = true;
             }
         }
-        
+
         if (uri != null) {
             assertTrue(found);
         }
@@ -1665,8 +1665,10 @@ public class DbIndexTest extends DbsvcTestBase {
         URI pid0 = URIUtil.createId(StorageSystem.class);
         URI pid1 = URIUtil.createId(StorageSystem.class);
 
-        ContainmentConstraint constraint0 = ContainmentConstraint.Factory.getContainedObjectsConstraint(pid0, StoragePool.class, "storageDevice");
-        ContainmentConstraint constraint1 = ContainmentConstraint.Factory.getContainedObjectsConstraint(pid1, StoragePool.class, "storageDevice");
+        ContainmentConstraint constraint0 = ContainmentConstraint.Factory.getContainedObjectsConstraint(pid0, StoragePool.class,
+                "storageDevice");
+        ContainmentConstraint constraint1 = ContainmentConstraint.Factory.getContainedObjectsConstraint(pid1, StoragePool.class,
+                "storageDevice");
 
         {
             StoragePool obj = new StoragePool();
@@ -1695,8 +1697,10 @@ public class DbIndexTest extends DbsvcTestBase {
         URI pid0 = URIUtil.createId(Snapshot.class);
         URI pid1 = URIUtil.createId(Snapshot.class);
 
-        ContainmentConstraint constraint0 = ContainmentConstraint.Factory.getContainedObjectsConstraint(pid0, ExportGroup.class, "snapshots");
-        ContainmentConstraint constraint1 = ContainmentConstraint.Factory.getContainedObjectsConstraint(pid1, ExportGroup.class, "snapshots");
+        ContainmentConstraint constraint0 = ContainmentConstraint.Factory.getContainedObjectsConstraint(pid0, ExportGroup.class,
+                "snapshots");
+        ContainmentConstraint constraint1 = ContainmentConstraint.Factory.getContainedObjectsConstraint(pid1, ExportGroup.class,
+                "snapshots");
 
         {
             ExportGroup obj = new ExportGroup();
@@ -1720,7 +1724,7 @@ public class DbIndexTest extends DbsvcTestBase {
 
         {
             ExportGroup obj = _dbClient.queryObject(ExportGroup.class, id);
-            //assertTrue(obj.getSnapshots() != null);
+            // assertTrue(obj.getSnapshots() != null);
             obj.getSnapshots().remove(pid0.toString());
             _dbClient.persistObject(obj);
         }
@@ -1780,7 +1784,6 @@ public class DbIndexTest extends DbsvcTestBase {
         String lbl0 = "abcd1234";
         String lbl1 = "efgh5678";
 
-
         Constraint constraint0 = ContainmentPrefixConstraint.Factory.getProjectUnderTenantConstraint(pid0, lbl0);
         Constraint constraint1 = ContainmentPrefixConstraint.Factory.getProjectUnderTenantConstraint(pid1, lbl1);
 
@@ -1791,7 +1794,7 @@ public class DbIndexTest extends DbsvcTestBase {
             obj.setTenantOrg(new NamedURI(pid0, lbl0));
             _dbClient.createObject(obj);
         }
-        
+
         verifyContain(constraint0, id, 1);
         verifyContain(constraint1, null, 0);
 
@@ -1956,7 +1959,7 @@ public class DbIndexTest extends DbsvcTestBase {
 
         verifyContain(constraint0, id, 1);
         verifyContain(constraint1, null, 0);
-        
+
         {
             Volume obj = _dbClient.queryObject(Volume.class, id);
             obj.setLabel(lbl1);
@@ -1970,26 +1973,26 @@ public class DbIndexTest extends DbsvcTestBase {
     @Test
     public void testPermissionIndex() {
         URI id = URIUtil.createId(TenantOrg.class);
-        
+
         String key0 = "abcd1234";
         String key1 = "efgh5678";
-        
+
         Constraint constraint0 = ContainmentPermissionsConstraint.Factory.getTenantsWithPermissionsConstraint(key0);
         Constraint constraint1 = ContainmentPermissionsConstraint.Factory.getTenantsWithPermissionsConstraint(key1);
-        
+
         {
             TenantOrg obj = new TenantOrg();
             obj.setId(id);
-            //obj.setLabel("test tenant");
+            // obj.setLabel("test tenant");
             obj.setRoleAssignments(new StringSetMap());
             obj.addRole(key0, "role1");
             obj.addRole(key0, "role2");
             _dbClient.createObject(obj);
         }
-        
+
         verifyContain(constraint0, id, 2);
         verifyContain(constraint1, null, 0);
-        
+
         {
             TenantOrg obj = _dbClient.queryObject(TenantOrg.class, id);
             obj.addRole(key1, "role3");
@@ -2007,13 +2010,13 @@ public class DbIndexTest extends DbsvcTestBase {
 
         verifyContain(constraint0, id, 1);
         verifyContain(constraint1, id, 1);
-        
+
         {
             TenantOrg obj = _dbClient.queryObject(TenantOrg.class, id);
             obj.removeRole(key0, "role2");
             _dbClient.persistObject(obj);
         }
-        
+
         verifyContain(constraint1, id, 1);
         verifyContain(constraint0, null, 0);
     }
@@ -2060,7 +2063,5 @@ public class DbIndexTest extends DbsvcTestBase {
         verifyContain(constraint1, id, 1);
         verifyContain(constraint0, null, 0);
     }
-    
+
 }
-
-

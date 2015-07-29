@@ -25,24 +25,22 @@ public class ExampleLoader {
 
         try {
             String content = IOUtils.toString(new FileInputStream(exampleFile));
-            content = content.replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll("\r","");
-            String[] splitContent =  content.split(RESPONSE_MARKER);
+            content = content.replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll("\r", "");
+            String[] splitContent = content.split(RESPONSE_MARKER);
             if (splitContent.length != 2) {
                 splitContent = content.split(RESPONSE_MARKER_LOWERCASE);
             }
 
             if (splitContent.length != 2) {
-                throw new RuntimeException("Unable to load example as Response marker not found: "+exampleFile);
+                throw new RuntimeException("Unable to load example as Response marker not found: " + exampleFile);
             }
-
 
             splitContent[0] = splitContent[0].trim();
             splitContent[1] = splitContent[1].trim();
 
             return splitContent;
-        }
-        catch (Exception e) {
-            throw new RuntimeException("Error reading example "+exampleFile,e);
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading example " + exampleFile, e);
         }
     }
 }

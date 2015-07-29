@@ -1,16 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
+
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
+
  */
 
 package com.emc.storageos.management.backup;
@@ -28,11 +20,12 @@ public class BackupContext {
     private File backupDir;
     private String nodeName;
     private List<String> vdcList;
-    
+
     /**
      * Sets local location which stores backup files
+     * 
      * @param backupDirParam
-     *      The new location path
+     *            The new location path
      */
     public void setBackupDir(final File backupDir) {
         if (backupDir == null) {
@@ -58,24 +51,25 @@ public class BackupContext {
 
     /**
      * Sets name of current node
+     * 
      * @param nodeNameParam
-     *          The name of node
+     *            The name of node
      */
     public void setNodeName(String nodeName) {
         Preconditions.checkArgument(nodeName != null && !nodeName.trim().isEmpty(),
                 "ViPR node name is invalid");
         this.nodeName = nodeName;
     }
-    
+
     public String getNodeName() {
-    	return this.nodeName;
+        return this.nodeName;
     }
 
     public void setVdcList(List<String> vdcList) {
         this.vdcList = vdcList;
     }
-    
+
     public List<String> getVdcList() {
-    	return this.vdcList;
+        return this.vdcList;
     }
 }

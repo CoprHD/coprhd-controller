@@ -14,7 +14,7 @@ import javax.servlet.http.HttpServletRequest;
  */
 public class AnonymousAccessFilter extends AbstractAuthenticationFilter {
     public static final String CLI_PATH = "/cli";
-    
+
     @Override
     protected AbstractRequestWrapperFilter.AbstractRequestWrapper authenticate(final ServletRequest servletRequest) {
         HttpServletRequest req = (HttpServletRequest) servletRequest;

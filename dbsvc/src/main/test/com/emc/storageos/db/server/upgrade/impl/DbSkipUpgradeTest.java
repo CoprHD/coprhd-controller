@@ -15,7 +15,7 @@ public class DbSkipUpgradeTest extends DbStepSkipUpgradeTestBase {
 
     @Test
     public void runSkipUpgradeTest() throws Exception {
-        
+
         // actual test run
         stopAll();
         setupDB(initalVersion, "com.emc.storageos.db.server.upgrade.util.models.old");

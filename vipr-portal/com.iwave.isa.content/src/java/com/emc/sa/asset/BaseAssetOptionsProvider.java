@@ -25,11 +25,11 @@ import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
 
 public class BaseAssetOptionsProvider extends AnnotatedAssetOptionsProvider {
-    
+
     private static Messages MESSAGES = new Messages("com.emc.sa.asset.AssetProviders");
-    
+
     private Logger log;
-    
+
     @Autowired
     private ClientConfig clientConfig;
 
@@ -47,11 +47,11 @@ public class BaseAssetOptionsProvider extends AnnotatedAssetOptionsProvider {
     protected ViPRCoreClient api(AssetOptionsContext context) {
         return new ViPRCoreClient(clientConfig).withAuthToken(context.getAuthToken());
     }
-    
+
     protected ModelClient models() {
         return modelClient;
     }
-    
+
     protected ModelClient models(AssetOptionsContext context) {
         return modelClient;
     }
@@ -114,21 +114,20 @@ public class BaseAssetOptionsProvider extends AnnotatedAssetOptionsProvider {
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }
-    
-    public static String getMessage(String key, Object...args) {
+
+    public static String getMessage(String key, Object... args) {
         try {
             String message = MESSAGES.get(key, args);
             if (StringUtils.isNotBlank(message)) {
                 return message;
             }
-        }
-        catch (MissingResourceException e) {
+        } catch (MissingResourceException e) {
             // fall out and return the original key
         }
         return key;
     }
-    
-    public static AssetOption newAssetOption(String key, String value, Object...args) {
+
+    public static AssetOption newAssetOption(String key, String value, Object... args) {
         String message = getMessage(value, args);
         if (StringUtils.isEmpty(message)) {
             message = String.format(value, args);
@@ -136,14 +135,14 @@ public class BaseAssetOptionsProvider extends AnnotatedAssetOptionsProvider {
         return new AssetOption(key, message);
     }
 
-    public static AssetOption newAssetOption(URI id, String value, Object...args) {
+    public static AssetOption newAssetOption(URI id, String value, Object... args) {
         return newAssetOption(id.toString(), value, args);
     }
 
     public static URI uri(String id) {
         return URI.create(id);
     }
-    
+
     protected final Logger getLog() {
         if (log == null) {
             log = Logger.getLogger(getClass());

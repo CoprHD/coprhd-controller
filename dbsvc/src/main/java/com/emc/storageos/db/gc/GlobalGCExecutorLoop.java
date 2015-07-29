@@ -22,7 +22,6 @@ class GlobalGCExecutorLoop extends GarbageCollectionExecutorLoop {
     private static final Logger log = LoggerFactory.getLogger(GlobalGCExecutorLoop.class);
     private static final String GeoLockName = "GeoGCLock";
 
-
     private GlobalLockItf glock = null;
     private boolean locked = false;
 
@@ -39,12 +38,12 @@ class GlobalGCExecutorLoop extends GarbageCollectionExecutorLoop {
         locked = false;
         try {
             String myVdcId = VdcUtil.getLocalShortVdcId();
-            glock = new GlobalLockImpl((DbClientImpl)dbClient, GeoLockName, GlobalLock.GL_Mode.GL_VdcShared_MODE,0,myVdcId);
+            glock = new GlobalLockImpl((DbClientImpl) dbClient, GeoLockName, GlobalLock.GL_Mode.GL_VdcShared_MODE, 0, myVdcId);
 
             log.info("Set global VdcShared lock owner to {} vdcId={}", dbServiceId, myVdcId);
             glock.acquire(dbServiceId);
             locked = true;
-        }catch(Exception e) {
+        } catch (Exception e) {
             log.error("Failed to generate the global Geo GC lock e=", e);
         }
 
@@ -53,11 +52,11 @@ class GlobalGCExecutorLoop extends GarbageCollectionExecutorLoop {
     }
 
     /**
-     *
+     * 
      * @param clazz the GC will run on
      * @param <T>
      * @return true if we can run GC on this class
-     *
+     * 
      **/
     @Override
     protected <T extends DataObject> boolean canRunGCOnClass(Class<T> clazz) {
@@ -66,6 +65,7 @@ class GlobalGCExecutorLoop extends GarbageCollectionExecutorLoop {
 
     /**
      * Generate the task to run GC on a class
+     * 
      * @param clazz the GC will run on
      * @return a GC task
      **/
@@ -87,4 +87,3 @@ class GlobalGCExecutorLoop extends GarbageCollectionExecutorLoop {
         }
     }
 }
-

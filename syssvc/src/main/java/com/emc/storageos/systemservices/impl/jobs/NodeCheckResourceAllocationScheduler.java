@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 public class NodeCheckResourceAllocationScheduler implements Runnable, JobConstants {
 
-    private static final Logger _log = LoggerFactory.getLogger(NodeCheckResourceAllocationScheduler .class);
+    private static final Logger _log = LoggerFactory.getLogger(NodeCheckResourceAllocationScheduler.class);
     private static final AlertsLogger _alertsLog = AlertsLogger.getAlertsLogger();
     private static final String PREFIX = "Resource allocation: ";
 
@@ -30,7 +30,7 @@ public class NodeCheckResourceAllocationScheduler implements Runnable, JobConsta
     /**
      * Sets up the scheduler.
      */
-    public NodeCheckResourceAllocationScheduler () {
+    public NodeCheckResourceAllocationScheduler() {
         _log.info("Initializing node balance check scheduler");
         ScheduledExecutorService service = new NamedScheduledThreadPoolExecutor("NodeResourceAllocationScheduler", 1);
         service.schedule(this, SERVICE_START_LAG, TimeUnit.SECONDS);

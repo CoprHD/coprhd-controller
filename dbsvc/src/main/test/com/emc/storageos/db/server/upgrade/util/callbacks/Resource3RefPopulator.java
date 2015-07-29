@@ -22,24 +22,24 @@ import org.junit.Assert;
  * Callback for populating Resource3 reference on Resource 2
  */
 public class Resource3RefPopulator extends BaseTestCustomMigrationCallback {
-    
+
     List<URI> expected = new ArrayList<URI>();
-    
+
     @Override
-    public void process(){
+    public void process() {
         DbClient dbClient = getDbClient();
         List<URI> res2Keys = dbClient.queryByType(Resource2.class, false);
         Iterator<Resource2> res2Objs =
                 dbClient.queryIterativeObjects(Resource2.class, res2Keys);
         while (res2Objs.hasNext()) {
             Resource2 res2 = res2Objs.next();
-            if (res2.getRes1() != null ) {
+            if (res2.getRes1() != null) {
                 Resource1 res1 = dbClient.queryObject(
                         Resource1.class, res2.getRes1().getURI());
                 if (res1 != null) {
                     StringMap map = res1.getRes3Map();
                     Set<String> keys = map.keySet();
-                    URI res3Id = URI.create((String)keys.toArray()[0]);
+                    URI res3Id = URI.create((String) keys.toArray()[0]);
                     res2.setRes3(res3Id);
                     dbClient.persistObject(res2);
                     expected.add(res3Id);
@@ -47,9 +47,9 @@ public class Resource3RefPopulator extends BaseTestCustomMigrationCallback {
             }
         }
     }
-    
+
     @Override
-    public void verify(){
+    public void verify() {
         DbClient dbClient = getDbClient();
         List<URI> res2Keys = dbClient.queryByType(Resource2.class, false);
         Iterator<Resource2> res2Objs =

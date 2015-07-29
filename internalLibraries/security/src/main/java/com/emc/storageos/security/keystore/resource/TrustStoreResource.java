@@ -92,7 +92,7 @@ public class TrustStoreResource {
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN} , block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, block_proxies = true)
     public TrustedCertificates getTrustedCertificates() {
 
         List<TrustedCertificate> trustedCertsList = new ArrayList<TrustedCertificate>();
@@ -129,7 +129,7 @@ public class TrustStoreResource {
     @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN} , block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, block_proxies = true)
     public TrustedCertificates addOrRemoveTrustedCertificate(
             TrustedCertificateChanges changes) {
         if (!coordinator.isClusterUpgradable()) {
@@ -169,8 +169,7 @@ public class TrustStoreResource {
                     } else {
                         failedToParse.add(certString);
                     }
-                }
-                catch (KeyStoreException e) {
+                } catch (KeyStoreException e) {
                     throw new IllegalStateException("keystore is not initialized", e);
                 } catch (CertificateException e) {
                     log.debug(e.getMessage(), e);
@@ -184,7 +183,7 @@ public class TrustStoreResource {
                 try {
                     cert =
                             KeyCertificatePairGenerator
-                            .getCertificateFromString(certString);
+                                    .getCertificateFromString(certString);
                     if (cert != null
                             && StringUtils.countMatches(certString,
                                     KeyCertificatePairGenerator.PEM_BEGIN_CERT) == 1) {
@@ -225,7 +224,7 @@ public class TrustStoreResource {
             }
             throw APIException.badRequests.truststoreUpdatePartialSuccess(failedToParse,
                     removeAliasDoesNotExist);
-        } else if(!CollectionUtils.isEmpty(added) || !CollectionUtils.isEmpty(removed)) {
+        } else if (!CollectionUtils.isEmpty(added) || !CollectionUtils.isEmpty(removed)) {
             // this is a complete success and some operations actually happened
             auditTruststore(OperationTypeEnum.UPDATE_TRUSTED_CERTIFICATES, changes);
         }
@@ -234,6 +233,7 @@ public class TrustStoreResource {
 
     /**
      * set a flag in zk if any change happened.
+     * 
      * @param added
      * @param removed
      */
@@ -268,11 +268,12 @@ public class TrustStoreResource {
     public TruststoreSettings updateTruststoreSettings(TruststoreSettingsChanges changes) {
         changeSettingInternal(changes);
 
-        /* todo temp comments out
-        if (!certificateVersionHelper.updateCertificateVersion()) {
-            throw SecurityException.fatals.failedRebootAfterKeystoreChange();
-        }
-        */
+        /*
+         * todo temp comments out
+         * if (!certificateVersionHelper.updateCertificateVersion()) {
+         * throw SecurityException.fatals.failedRebootAfterKeystoreChange();
+         * }
+         */
         return getTruststoreSettings();
     }
 
@@ -286,7 +287,7 @@ public class TrustStoreResource {
         }
         TruststoreSettings currentSettings = getTruststoreSettings();
 
-        //if current and changed settings are different
+        // if current and changed settings are different
         if ((changes.getAcceptAllCertificates() != null) &&
                 (currentSettings.isAcceptAllCertificates() ^ changes.getAcceptAllCertificates().booleanValue())) {
             try {
@@ -298,7 +299,7 @@ public class TrustStoreResource {
             auditTruststore(OperationTypeEnum.UPDATE_TRUSTSTORE_SETTINGS, changes);
         } else {
             throw APIException.badRequests
-            .mustHaveAtLeastOneChange(TrustedCertificateChanges.class.toString());
+                    .mustHaveAtLeastOneChange(TrustedCertificateChanges.class.toString());
         }
     }
 

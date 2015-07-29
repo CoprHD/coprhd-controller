@@ -29,75 +29,96 @@ import com.emc.vipr.model.sys.logging.LogSeverity;
 
 public class LogStreamTest {
     private static final Logger logger = LoggerFactory.getLogger(LogStreamTest.class);
-    private static final String HARD_CODE_PATH = File.separator +"data" + File.separator + "shared-logging" + 
-			File.separator + "internalLibraries" + File.separator + "logging";
+    private static final String HARD_CODE_PATH = File.separator + "data" + File.separator + "shared-logging" +
+            File.separator + "internalLibraries" + File.separator + "logging";
     private static final String PATH = File.separator + "opt" + File.separator + "storageos" + File.separator + "logs";
-   
+
     String timeStampFilePath = null;
     String timeRangeFilePath = null;
-    
+
     @Before
     public void before() {
-       String log1 = "2014-01-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
-       String log2 = "2014-01-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
-       String log3 = "2014-01-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
-       String log4 = "2014-01-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
-       String log5 = "2014-01-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
-       String log6 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
-       String log7 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
-       String log8 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
-       String log9 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
-       String log10 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
-       String log11 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
-       String log12 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
-       String log13 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
-       String log14 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
-       String log15 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
-       String log16 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
-       
-       String log17 = "2013-11-19 16:38:15,683 [pool-6-thread-1]  WARN  AlertsLogger.java (line 80) NTP: [CONFIGURED, INVALID].Details: network_ntpserver=128.221.12.10 [CONFIGURED, UNREACHABLE";
-       String log18 = "2013-11-21 16:38:15,683 [pool-6-thread-1]  WARN  AlertsLogger.java (line 80) NTP: [CONFIGURED, INVALID].Details: network_ntpserver=128.221.12.10 [CONFIGURED, UNREACHABLE";
-       String log19 = "2014-01-15 17:07:58,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
-       String log20 = "2014-01-17 17:07:59,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
-       
-       timeStampFilePath = PATH + File.separator + "timeStamp.log";
-       timeRangeFilePath = PATH + File.separator + "timeRange.log";
-       
-       //initialize log file
-       try(FileOutputStream fos = new FileOutputStream(timeStampFilePath);
-    		   OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF8");
-    		   BufferedWriter out  = new BufferedWriter(osw)) {
-    	   			out.write(log1); out.newLine();
-    	   			out.write(log2); out.newLine();
-    	   			out.write(log3); out.newLine();
-    	   			out.write(log4); out.newLine();
-    	   			out.write(log5); out.newLine();
-    	   			out.write(log6); out.newLine();
-    	   			out.write(log7); out.newLine();
-    	   			out.write(log8); out.newLine();
-    	   			out.write(log9); out.newLine();
-    	   			out.write(log10); out.newLine();
-    	   			out.write(log11); out.newLine();
-    	   			out.write(log12); out.newLine();
-    	   			out.write(log13); out.newLine();
-    	   			out.write(log14); out.newLine();
-    	   			out.write(log15); out.newLine();
-    	   			out.write(log16); out.flush();
-       } catch(Exception e) {
-    	   logger.error("Exception in writing nginx access log file for syssvc test", e);
-       }
-       
-       try(FileOutputStream fos = new FileOutputStream(timeRangeFilePath);
-    		   OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF8");
-    		   BufferedWriter out  = new BufferedWriter(osw)) {
-    	   			out.write(log17); out.newLine();
-    	   			out.write(log18); out.newLine();
-    	   			out.write(log19); out.newLine();
-    	   			out.write(log1); out.newLine();
-    	   			out.write(log20);out.flush();
-       } catch(Exception e) {
-    	   logger.error("Exception in writing nginx access log file for syssvc test", e);
-       }
+        String log1 = "2014-01-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
+        String log2 = "2014-01-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
+        String log3 = "2014-01-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
+        String log4 = "2014-01-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
+        String log5 = "2014-01-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
+        String log6 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
+        String log7 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
+        String log8 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
+        String log9 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
+        String log10 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
+        String log11 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
+        String log12 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
+        String log13 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
+        String log14 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
+        String log15 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
+        String log16 = "2014-02-16 17:07:57,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
+
+        String log17 = "2013-11-19 16:38:15,683 [pool-6-thread-1]  WARN  AlertsLogger.java (line 80) NTP: [CONFIGURED, INVALID].Details: network_ntpserver=128.221.12.10 [CONFIGURED, UNREACHABLE";
+        String log18 = "2013-11-21 16:38:15,683 [pool-6-thread-1]  WARN  AlertsLogger.java (line 80) NTP: [CONFIGURED, INVALID].Details: network_ntpserver=128.221.12.10 [CONFIGURED, UNREACHABLE";
+        String log19 = "2014-01-15 17:07:58,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
+        String log20 = "2014-01-17 17:07:59,561 [LogLevelResetter]  INFO  LoggingMBean.java (line 322) Starting log level config reset, lastResetTime = 0";
+
+        timeStampFilePath = PATH + File.separator + "timeStamp.log";
+        timeRangeFilePath = PATH + File.separator + "timeRange.log";
+
+        // initialize log file
+        try (FileOutputStream fos = new FileOutputStream(timeStampFilePath);
+                OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF8");
+                BufferedWriter out = new BufferedWriter(osw)) {
+            out.write(log1);
+            out.newLine();
+            out.write(log2);
+            out.newLine();
+            out.write(log3);
+            out.newLine();
+            out.write(log4);
+            out.newLine();
+            out.write(log5);
+            out.newLine();
+            out.write(log6);
+            out.newLine();
+            out.write(log7);
+            out.newLine();
+            out.write(log8);
+            out.newLine();
+            out.write(log9);
+            out.newLine();
+            out.write(log10);
+            out.newLine();
+            out.write(log11);
+            out.newLine();
+            out.write(log12);
+            out.newLine();
+            out.write(log13);
+            out.newLine();
+            out.write(log14);
+            out.newLine();
+            out.write(log15);
+            out.newLine();
+            out.write(log16);
+            out.flush();
+        } catch (Exception e) {
+            logger.error("Exception in writing nginx access log file for syssvc test", e);
+        }
+
+        try (FileOutputStream fos = new FileOutputStream(timeRangeFilePath);
+                OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF8");
+                BufferedWriter out = new BufferedWriter(osw)) {
+            out.write(log17);
+            out.newLine();
+            out.write(log18);
+            out.newLine();
+            out.write(log19);
+            out.newLine();
+            out.write(log1);
+            out.newLine();
+            out.write(log20);
+            out.flush();
+        } catch (Exception e) {
+            logger.error("Exception in writing nginx access log file for syssvc test", e);
+        }
     }
 
     /**
@@ -148,7 +169,7 @@ public class LogStreamTest {
     @Test
     @Ignore
     public void testGetFilePathNullTimeFilters() {
-    	String svcName = "controllersvc";
+        String svcName = "controllersvc";
         List<File> files = new ArrayList<File>();
         files.add(new File(HARD_CODE_PATH + "/src/main/data/streamData/controllersvc.log.20140110-231105.gz"));
         files.add(new File(HARD_CODE_PATH + "/src/main/data/streamData/controllersvc.log.20140114-151216.gz"));
@@ -158,7 +179,7 @@ public class LogStreamTest {
         files.add(new File(HARD_CODE_PATH + "/src/main/data/streamData/controllersvc.log.20140109-101159.gz"));
         LogRequest req = new LogRequest.Builder().build();
         LogStatusInfo status = new LogStatusInfo();
-        LogFileStream stream = new LogFileStream(svcName,files, req, status);
+        LogFileStream stream = new LogFileStream(svcName, files, req, status);
         List<String> paths = stream.getLogPaths();
         List<String> result = new ArrayList<String>();
         result.add(HARD_CODE_PATH + "/src/main/data/streamData/controllersvc.log.20140109-101159.gz");
@@ -183,15 +204,16 @@ public class LogStreamTest {
      * test if sizeCounter in LogStream can record count of total file size
      * correctly Test if fileCounter in LogStream can record file count
      * correctly
+     * 
      * @throws Exception
-     * This test can only be tested on root@10.10.191.121
+     *             This test can only be tested on root@10.10.191.121
      */
     @Test
     @Ignore
     public void testReadLineNoFilter() throws Exception {
         String svcName = "dbsvc-";
         // dbsvc-0.log + dbsvc-1.log + dbsvc-2.log
-        final long LINE_NUMBER = 500000 + 500000 + 10; 
+        final long LINE_NUMBER = 500000 + 500000 + 10;
         File f1 = new File(HARD_CODE_PATH + "/src/main/data/streamData/dbsvc-0.log");
         File f2 = new File(HARD_CODE_PATH + "/src/main/data/streamData/dbsvc-1.log");
         File f3 = new File(HARD_CODE_PATH + "/src/main/data/streamData/dbsvc-2.log");
@@ -202,7 +224,7 @@ public class LogStreamTest {
         final long TOTAL_BYTES = f1.length() + f2.length() + f3.length();
         LogStatusInfo status = new LogStatusInfo();
         LogRequest req = new LogRequest.Builder().build();
-        LogFileStream stream = new LogFileStream(svcName,files, req, status);
+        LogFileStream stream = new LogFileStream(svcName, files, req, status);
         // file count
         final int FILE_NUMBER = stream.getLogPaths().size();
         while (true) {
@@ -233,7 +255,7 @@ public class LogStreamTest {
         int count = 0;
         LogRequest req = new LogRequest.Builder().maxCont(maxCount).build();
         LogStatusInfo status = new LogStatusInfo();
-        LogFileStream stream = new LogFileStream("",files, req, status);
+        LogFileStream stream = new LogFileStream("", files, req, status);
         while (true) {
             LogMessage log = stream.readNextLogMessage();
             if (log == null) {
@@ -252,17 +274,17 @@ public class LogStreamTest {
     @Test
     @Ignore
     public void testReadNextLogMaxCountFilterGreaterThanMAXCOUNTOVERFLOW() throws Exception {
-    	List<File> files = new ArrayList<File>();
+        List<File> files = new ArrayList<File>();
         files.add(new File(timeStampFilePath));
         long maxCount = 10; // should get 16 log Messages
         int count = 0;
         LogRequest req = new LogRequest.Builder().maxCont(maxCount).build();
         LogStatusInfo status = new LogStatusInfo();
-        LogFileStream stream = new LogFileStream("",files, req, status);
+        LogFileStream stream = new LogFileStream("", files, req, status);
         while (true) {
             LogMessage log = stream.readNextLogMessage();
             if (log == null) {
-            	System.out.println("count=" + count);
+                System.out.println("count=" + count);
                 assertEquals("Total line number should match max count limit", 16, count);
                 break;
             }
@@ -275,9 +297,9 @@ public class LogStreamTest {
      */
     @Test
     public void testSmallFileTimeRangeFilter() throws Exception {
-    	File file = new File(timeRangeFilePath);
-    	List<File> files = new ArrayList<File>();
-        files.add(file);        
+        File file = new File(timeRangeFilePath);
+        List<File> files = new ArrayList<File>();
+        files.add(file);
         Calendar calendar = Calendar.getInstance();
         calendar.set(2013, 10, 20, 16, 38);
         Date startTime = calendar.getTime();
@@ -311,7 +333,7 @@ public class LogStreamTest {
     @Test
     @Ignore
     public void testMultipleFilesTimeRangeFilter() throws Exception {
-    	List<File> files = new ArrayList<File>();
+        List<File> files = new ArrayList<File>();
         files.add(new File(HARD_CODE_PATH + "/src/main/data/streamData/controllersvc.log.20140110-231105.gz"));
         files.add(new File(HARD_CODE_PATH + "/src/main/data/streamData/controllersvc.log.20140114-151216.gz"));
         files.add(new File(HARD_CODE_PATH + "/src/main/data/streamData/controllersvc.log.20140112-175108.gz"));
@@ -347,9 +369,9 @@ public class LogStreamTest {
      */
     @Test
     public void testSmallFilePatternFilter() throws Exception {
-    	File file = new File(timeRangeFilePath);
-    	List<File> files = new ArrayList<File>();
-    	files.add(file);
+        File file = new File(timeRangeFilePath);
+        List<File> files = new ArrayList<File>();
+        files.add(file);
         String pattern = "reset";
         LogRequest req = new LogRequest.Builder().regex(pattern).build();
         LogStatusInfo status = new LogStatusInfo();
@@ -369,9 +391,9 @@ public class LogStreamTest {
      */
     @Test
     public void testSmallFileLevelFilter() throws Exception {
-    	File file = new File(timeRangeFilePath);
-    	List<File> files = new ArrayList<File>();
-    	files.add(file);
+        File file = new File(timeRangeFilePath);
+        List<File> files = new ArrayList<File>();
+        files.add(file);
         int level = 5; // "WARN"
         LogRequest req = new LogRequest.Builder().logLevel(level).build();
         LogStatusInfo status = new LogStatusInfo();
@@ -386,25 +408,25 @@ public class LogStreamTest {
                     log.getLevel())) <= level);
         }
     }
-    
+
     @After
     public void after() {
         File timeStampFile = new File(timeStampFilePath);
         File timeRangeFile = new File(timeRangeFilePath);
-        
-        if(timeStampFile.exists()){
-        	timeStampFile.delete();
+
+        if (timeStampFile.exists()) {
+            timeStampFile.delete();
         }
 
-        if(timeRangeFile.exists()){
-        	timeRangeFile.delete();
+        if (timeRangeFile.exists()) {
+            timeRangeFile.delete();
         }
     }
-    
+
     /*
      * Only used for test
      */
-    public String toStringOriginalFormatStr(LogMessage msg){
+    public String toStringOriginalFormatStr(LogMessage msg) {
         StringBuilder sb = new StringBuilder();
 
         sb.append(new String(msg.getTimeBytes())).append(" ").append("[").append(new String(msg.getThreadName())).append("]")

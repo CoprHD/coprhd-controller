@@ -9,7 +9,6 @@ import static com.emc.storageos.systemservices.impl.eventhandler.connectemc.Call
 import static com.emc.storageos.systemservices.impl.eventhandler.connectemc.CallHomeConstants.SYMPTOM_CODE_REGISTRATION;
 import static com.emc.storageos.systemservices.impl.eventhandler.connectemc.CallHomeConstants.callHome;
 
-
 import java.util.ArrayList;
 
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
@@ -28,12 +27,12 @@ import com.emc.ema.event.objects.EventType;
 import javax.ws.rs.core.MediaType;
 
 public class SendRegistrationEvent extends SendEvent {
-    
+
     private static final Logger _log = LoggerFactory.getLogger(SendRegistrationEvent.class);
 
     public SendRegistrationEvent(ServiceImpl service, LogSvcPropertiesLoader logSvcPropertiesLoader,
-                          MediaType mediaType, LicenseInfoExt licenseInfo,
-                          CoordinatorClientExt coordinator) {
+            MediaType mediaType, LicenseInfoExt licenseInfo,
+            CoordinatorClientExt coordinator) {
         super(service, logSvcPropertiesLoader, mediaType, licenseInfo, coordinator);
     }
 
@@ -45,9 +44,9 @@ public class SendRegistrationEvent extends SendEvent {
 
         _log.info("Start SendRegistrationEvent::genAttachFiles");
         ArrayList<String> fileList = new ArrayList<String>();
-        try{
+        try {
             fileList.add(generateConfigFile());
-        } catch (Exception e){
+        } catch (Exception e) {
             _log.error("Error occurred while creating config file. {}", e);
         }
         _log.info("End SendRegistrationEvent::genAttachFiles");
@@ -71,7 +70,7 @@ public class SendRegistrationEvent extends SendEvent {
     @Override
     protected void overrideIdentifierData(EmaApiIdentifierType identifier)
             throws EmaException {
-        
+
         identifier.setEmbedLevel(EmaApi.EMA_EMBED_LEVEL_EXTERNAL_STR);
     }
 }

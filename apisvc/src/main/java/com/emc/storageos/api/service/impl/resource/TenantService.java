@@ -29,10 +29,11 @@ public class TenantService extends ResourceService {
     @Context
     SecurityContext sc;
 
-    /**     
+    /**
      * Get ID for caller's tenant.
      * The caller's ID is determined based on their token presented to the system during session initialization.
      * This is useful as a bootstrapping function to determine the ID to use for API calls such as creating a project or listing projects.
+     * 
      * @prereq none
      * @brief Show tenant id
      * @return Tenant Identifier
@@ -45,27 +46,26 @@ public class TenantService extends ResourceService {
         if (user.getTenantId() != null) {
             final TenantResponse resp = new TenantResponse();
             resp.setTenant(URI.create(user.getTenantId()));
-	    resp.setName(findTenantOrgName(resp.getTenant()));
-	    resp.setSelfLink(getSelfLink(resp.getTenant()));
+            resp.setName(findTenantOrgName(resp.getTenant()));
+            resp.setSelfLink(getSelfLink(resp.getTenant()));
             return resp;
         }
         throw APIException.badRequests.noTenantDefinedForUser(user == null ? "unknown" : user.getName());
     }
 
-    private String findTenantOrgName( URI tenantId ) {
-    	TenantOrg org = _permissionsHelper.getObjectById( tenantId, TenantOrg.class);
-    	if (org != null ) {
-    	    return org.getLabel();
-    	}
+    private String findTenantOrgName(URI tenantId) {
+        TenantOrg org = _permissionsHelper.getObjectById(tenantId, TenantOrg.class);
+        if (org != null) {
+            return org.getLabel();
+        }
 
         throw new ServiceCodeException(ServiceCode.DBSVC_ENTITY_NOT_FOUND, "No Tenant Org defined for  " + tenantId, null);
     }
 
     private RestLinkRep getSelfLink(URI tenantId) {
-        try   {
+        try {
             return new RestLinkRep("self", new URI("/tenants/" + tenantId.toString()));
-        }
-        catch (Exception ex)  {
+        } catch (Exception ex) {
             return new RestLinkRep("self", null);
         }
     }

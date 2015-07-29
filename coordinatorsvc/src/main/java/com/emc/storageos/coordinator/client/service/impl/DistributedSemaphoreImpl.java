@@ -38,7 +38,7 @@ public class DistributedSemaphoreImpl implements DistributedSemaphore {
     private final String _semaphorePath;
     private final int _maxPermits;
     private final ExecutorService _leaseCleanupExecutor;
-    private static final String POOL_NAME="DSCleaner";
+    private static final String POOL_NAME = "DSCleaner";
 
     /**
      * If there is any connection issue, we release the leases; else we risk leaking them.
@@ -63,7 +63,7 @@ public class DistributedSemaphoreImpl implements DistributedSemaphore {
                                         String.format("%1$s/%2$s", _semaphorePath, leaseNode));
                             }
                         }
-                        catch(Exception e) {
+                        catch (Exception e) {
                             _logger.warn("Problem while attempting to clean up lease nodes on reconnect.", e);
                         }
                     }
@@ -74,7 +74,7 @@ public class DistributedSemaphoreImpl implements DistributedSemaphore {
 
     /**
      * Constructor
-     *
+     * 
      * @param conn ZK connection
      * @param semaphorePath ZK path under which semaphore entrants are managed
      * @param maxPermits Maximum number of permits the semaphore grants (before clients block)
@@ -89,7 +89,7 @@ public class DistributedSemaphoreImpl implements DistributedSemaphore {
 
     @Override
     public synchronized void start() {
-        if(_semaphore != null) {
+        if (_semaphore != null) {
             return;
         }
         try {
@@ -104,7 +104,7 @@ public class DistributedSemaphoreImpl implements DistributedSemaphore {
 
     @Override
     public synchronized void stop() {
-        if(_semaphore == null) {
+        if (_semaphore == null) {
             return;
         }
         _zkClient.getConnectionStateListenable().removeListener(_connectionListener);

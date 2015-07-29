@@ -16,17 +16,17 @@ import com.emc.storageos.db.client.model.Operation;
 
 @XmlRootElement
 public class OpStatusMapAdapter extends
-           XmlAdapter<OpStatusMapAdapter.AdaptedMap, OpStatusMap> {
+        XmlAdapter<OpStatusMapAdapter.AdaptedMap, OpStatusMap> {
 
     public static class AdaptedMap {
         public List<Entry> entry = new ArrayList<Entry>();
     }
-    
+
     public static class Entry {
         public String key;
         public Operation value;
     }
-    
+
     @Override
     public OpStatusMap unmarshal(AdaptedMap adaptedMap)
             throws Exception {
@@ -36,7 +36,7 @@ public class OpStatusMapAdapter extends
         }
         return map;
     }
-    
+
     @Override
     public AdaptedMap marshal(OpStatusMap map) throws Exception {
         AdaptedMap adaptedMap = new AdaptedMap();

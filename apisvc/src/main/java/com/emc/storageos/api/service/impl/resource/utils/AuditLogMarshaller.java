@@ -8,7 +8,7 @@ import java.io.Writer;
 import com.emc.storageos.db.client.model.AuditLog;
 
 /**
- *         Interface to serialize an object to a Writer in a desired format
+ * Interface to serialize an object to a Writer in a desired format
  */
 public interface AuditLogMarshaller {
 
@@ -38,7 +38,7 @@ public interface AuditLogMarshaller {
     /**
      * set language for localization
      * 
-     * @param lang (e.g. en_US) 
+     * @param lang (e.g. en_US)
      */
     public void setLang(String lang);
 }

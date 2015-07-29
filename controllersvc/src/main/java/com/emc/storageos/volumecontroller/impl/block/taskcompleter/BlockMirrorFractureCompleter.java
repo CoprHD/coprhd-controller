@@ -44,13 +44,13 @@ public class BlockMirrorFractureCompleter extends BlockMirrorTaskCompleter {
             Volume volume = dbClient.queryObject(Volume.class, mirror.getSource());
 
             switch (status) {
-            case error:
-                dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
-                break;
-            default:
-                mirror.setSyncState(BlockMirror.SynchronizationState.FRACTURED.toString());
-                dbClient.persistObject(mirror);
-                dbClient.ready(Volume.class, volume.getId(), getOpId());
+                case error:
+                    dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
+                    break;
+                default:
+                    mirror.setSyncState(BlockMirror.SynchronizationState.FRACTURED.toString());
+                    dbClient.persistObject(mirror);
+                    dbClient.ready(Volume.class, volume.getId(), getOpId());
             }
             recordBlockMirrorOperation(dbClient, OperationTypeEnum.FRACTURE_VOLUME_MIRROR,
                     Status.ready, eventMessage(status, volume, mirror), mirror, volume);

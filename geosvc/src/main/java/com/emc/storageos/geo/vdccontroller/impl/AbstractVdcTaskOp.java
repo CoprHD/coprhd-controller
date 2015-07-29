@@ -18,7 +18,6 @@ import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.util.TaskUtils;
-import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.security.geo.exceptions.FatalGeoException;
 import com.emc.storageos.security.geo.GeoServiceJob;
 import com.emc.storageos.security.keystore.impl.KeystoreEngine;
@@ -56,7 +55,7 @@ public abstract class AbstractVdcTaskOp {
 
     private final static Logger log = LoggerFactory.getLogger(AbstractVdcTaskOp.class);
 
-    protected final static int DEFAULT_NODE_CHECK_TIMEOUT = 30*1000; // 30 seconds
+    protected final static int DEFAULT_NODE_CHECK_TIMEOUT = 30 * 1000; // 30 seconds
 
     protected VirtualDataCenter operatedVdc;
     protected VirtualDataCenter.ConnectionStatus operatedVdcStatus;
@@ -78,14 +77,14 @@ public abstract class AbstractVdcTaskOp {
 
     protected String errMsg;
 
-    private final static String VIPR_INVALID_VERSION_PREFIX="vipr-2.0";
+    private final static String VIPR_INVALID_VERSION_PREFIX = "vipr-2.0";
 
     protected final static SoftwareVersion vdcVersionCheckMinVer = new SoftwareVersion("2.3.0.0.*");
 
     // TODO we have so many constructor arguments here. refactor it later
-    protected AbstractVdcTaskOp(InternalDbClient dbClient, GeoClientCacheManager geoClientCache, 
-                VdcConfigHelper helper, Service serviceInfo, VirtualDataCenter vdc, 
-                String taskId, Properties vdcInfo, KeyStore keystore) {
+    protected AbstractVdcTaskOp(InternalDbClient dbClient, GeoClientCacheManager geoClientCache,
+            VdcConfigHelper helper, Service serviceInfo, VirtualDataCenter vdc,
+            String taskId, Properties vdcInfo, KeyStore keystore) {
 
         this.dbClient = dbClient;
         this.geoClientCache = geoClientCache;
@@ -95,7 +94,7 @@ public abstract class AbstractVdcTaskOp {
         operatedVdcStatus = vdc.getConnectionStatus();
         failedVdcStatus = getDefaultPrecheckFailedStatus();
         this.keystore = keystore;
-        if(vdcInfo == null){
+        if (vdcInfo == null) {
             vdcInfo = GeoServiceHelper.getVDCInfo(operatedVdc);
         }
         this.vdcInfo = vdcInfo;
@@ -113,7 +112,7 @@ public abstract class AbstractVdcTaskOp {
 
         boolean isolated = false;
         List<VirtualDataCenter> allOtherVdc = new ArrayList<>();
-        for (URI vdcId: vdcIdIter) {
+        for (URI vdcId : vdcIdIter) {
             VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, vdcId);
             if (vdc.getLocal()) {
                 myVdc = vdc;
@@ -126,15 +125,15 @@ public abstract class AbstractVdcTaskOp {
                     isolated = true;
                 }
             } else {
-                    allOtherVdc.add(vdc);
+                allOtherVdc.add(vdc);
             }
         }
 
         if (!isolated) {
             for (VirtualDataCenter vdc : allOtherVdc) {
-                if (vdc.getRepStatus() != VirtualDataCenter.GeoReplicationStatus.REP_NONE ) {
+                if (vdc.getRepStatus() != VirtualDataCenter.GeoReplicationStatus.REP_NONE) {
                     allVdc.add(vdc);
-                    if (vdc.getConnectionStatus() != VirtualDataCenter.ConnectionStatus.DISCONNECTED ) {
+                    if (vdc.getConnectionStatus() != VirtualDataCenter.ConnectionStatus.DISCONNECTED) {
                         connectedVdc.add(vdc);
                         toBeSyncedVdc.add(vdc);
                     }
@@ -159,7 +158,7 @@ public abstract class AbstractVdcTaskOp {
             }
         }
 
-        return  false;
+        return false;
     }
 
     protected String getMyVdcId() {
@@ -182,7 +181,7 @@ public abstract class AbstractVdcTaskOp {
         }
         return toBeSyncedVdc;
     }
- 
+
     protected void updateOpStatus(VirtualDataCenter.ConnectionStatus status) {
         operatedVdc.setConnectionStatus(status);
         dbClient.updateAndReindexObject(operatedVdc);
@@ -223,14 +222,12 @@ public abstract class AbstractVdcTaskOp {
                 cert = chain[0];
             }
             certsParam.setTargetVdcCert(KeyCertificatePairGenerator.getCertificateAsString(cert));
-        }
-        catch (KeyStoreException ex) {
+        } catch (KeyStoreException ex) {
             log.error("Failed to get key from the keyStore at VDC " + operatedVdc.getLabel());
-            throw GeoException.fatals.keyStoreFailure(operatedVdc.getLabel(),ex);
-        }
-        catch (CertificateException ex) {
+            throw GeoException.fatals.keyStoreFailure(operatedVdc.getLabel(), ex);
+        } catch (CertificateException ex) {
             log.error("Failed to get proper certificate on VDC " + operatedVdc.getLabel());
-            throw GeoException.fatals.connectVdcSyncCertFail(operatedVdc.getLabel(),ex);
+            throw GeoException.fatals.connectVdcSyncCertFail(operatedVdc.getLabel(), ex);
         }
 
         return certsParam;
@@ -250,13 +247,13 @@ public abstract class AbstractVdcTaskOp {
     }
 
     protected void syncCertForSingleVdc(VdcCertListParam certListParam, VirtualDataCenter vdc) {
-        if(myVdcId.equals(vdc.getId().toString())) {
+        if (myVdcId.equals(vdc.getId().toString())) {
             log.info("Skip syncing cert to the local vdc {}: already done.", vdc.getShortId());
             return;
         }
 
         if (vdc.getApiEndpoint() != null) {
-            geoClientCache.getGeoClient(vdc.getShortId()).syncVdcCerts(certListParam,vdc.getLabel());
+            geoClientCache.getGeoClient(vdc.getShortId()).syncVdcCerts(certListParam, vdc.getLabel());
             log.info("Sync vdc certs info succeed");
         } else {
             log.error("Fatal error: try to sync certs with a vdc without endpoint");
@@ -265,14 +262,14 @@ public abstract class AbstractVdcTaskOp {
 
     /**
      * Build parameter for SyncVdcConfig call
-     *
+     * 
      * @param vdcList
      * @return
      */
     protected VdcConfigSyncParam buildConfigParam(List<VirtualDataCenter> vdcList) {
         VdcConfigSyncParam syncParam = new VdcConfigSyncParam();
 
-        for(VirtualDataCenter vdc : vdcList) {
+        for (VirtualDataCenter vdc : vdcList) {
             syncParam.getVirtualDataCenters().add(helper.toConfigParam(vdc));
         }
 
@@ -291,34 +288,34 @@ public abstract class AbstractVdcTaskOp {
             fail(coded);
             throw e;
         } catch (Exception e) {
-            log.error("Vdc task failed e=",e);
+            log.error("Vdc task failed e=", e);
             String err = "An unexpected error happens:" + e;
-            coded = ServiceError.buildServiceError(ServiceCode.GEOSVC_INTERNAL_ERROR, err);            
+            coded = ServiceError.buildServiceError(ServiceCode.GEOSVC_INTERNAL_ERROR, err);
             fail(coded);
             throw e;
         }
     }
 
-    //process the task
+    // process the task
     protected abstract void process();
 
-    //changeType
+    // changeType
     public abstract VdcConfig.ConfigChangeType changeType();
 
-    //the callback if the task success
+    // the callback if the task success
     protected void success() {
         // update task status
         log.info("Task {}:{} success", this.getClass().getName(), operateTaskId);
         completeVdcAsyncTask(Operation.Status.ready, null);
     }
 
-    //the callback if the task failed
+    // the callback if the task failed
     protected void fail(ServiceCoded coded) {
         try {
-            log.error("Task {}:{} failed {}", new Object[]{this.getClass().getName(),
-                    operateTaskId, isPreCheckFailStatus() ? "during precheck" : ""});
+            log.error("Task {}:{} failed {}", new Object[] { this.getClass().getName(),
+                    operateTaskId, isPreCheckFailStatus() ? "during precheck" : "" });
 
-            if( operatedVdc != null ) {
+            if (operatedVdc != null) {
                 if (!isPreCheckFailStatus()) {
                     operatedVdc.setConnectionStatus(failedVdcStatus);
                 }
@@ -327,7 +324,7 @@ public abstract class AbstractVdcTaskOp {
                     // in the situation when connection status was used temporarily as a lock to prevent
                     // duplicate VDC procedures, replace the status with its original value
                     operatedVdc.setConnectionStatus(operatedVdcStatus);
-                 }
+                }
                 dbClient.updateAndReindexObject(operatedVdc);
             }
             if (coded != null) {
@@ -336,23 +333,24 @@ public abstract class AbstractVdcTaskOp {
                 completeVdcAsyncTask(Operation.Status.error, null);
             }
         } finally {
-            if (lockHelper != null)
+            if (lockHelper != null) {
                 lockHelper.release(vdcInfo.getProperty(GeoServiceJob.VDC_SHORT_ID));
+            }
         }
 
     }
 
     private boolean isPreCheckFailStatus() {
-        return
-                (failedVdcStatus == ConnectionStatus.CONNECT_PRECHECK_FAILED) ||
+        return (failedVdcStatus == ConnectionStatus.CONNECT_PRECHECK_FAILED) ||
                 (failedVdcStatus == ConnectionStatus.DISCONNECT_PRECHECK_FAILED) ||
                 (failedVdcStatus == ConnectionStatus.RECONNECT_PRECHECK_FAILED) ||
                 (failedVdcStatus == ConnectionStatus.UPDATE_PRECHECK_FAILED) ||
                 (failedVdcStatus == ConnectionStatus.REMOVE_PRECHECK_FAILED);
     }
-    
+
     /**
      * Send precheck request to target vdc.
+     * 
      * @param vdcProp - vdc properties
      * @return VdcPreCheckResponse from target vdc
      */
@@ -371,6 +369,7 @@ public abstract class AbstractVdcTaskOp {
 
     /**
      * Send precheck2 request to target vdc.
+     * 
      * @param targetVdc
      * @return VdcPreCheckResponse from target vdc
      */
@@ -385,45 +384,45 @@ public abstract class AbstractVdcTaskOp {
 
     /**
      * Make sure the living vdcs are stable.
+     * 
      * @param checkOperatedVdc
      * @param ignoreException
      * @return the unstable vdc otherwise null
      */
     protected URI checkAllVdcStable(boolean ignoreException, boolean checkOperatedVdc) {
-       	log.info("Checking to see if vdcs involved are stable.");
+        log.info("Checking to see if vdcs involved are stable.");
 
-        //check if the cluster is stable
-        if(!helper.isClusterStable()) {
-            log.error("the local vdc "+ myVdc.getShortId() +" is not stable.");
+        // check if the cluster is stable
+        if (!helper.isClusterStable()) {
+            log.error("the local vdc " + myVdc.getShortId() + " is not stable.");
             return myVdc.getId();
         }
 
-        if( changeType() != VdcConfig.ConfigChangeType.DISCONNECT_VDC &&
-            checkOperatedVdc &&
-            !checkVdcStable(vdcInfo, ignoreException) ){
+        if (changeType() != VdcConfig.ConfigChangeType.DISCONNECT_VDC &&
+                checkOperatedVdc &&
+                !checkVdcStable(vdcInfo, ignoreException)) {
             return URI.create(vdcInfo.getProperty(GeoServiceJob.OPERATED_VDC_ID));
         }
 
         // Go through the connected list
         for (VirtualDataCenter vdc : connectedVdc) {
-            if (vdc.getConnectionStatus() == VirtualDataCenter.ConnectionStatus.DISCONNECTED  ||
-                //skip the disconnected/disconnecting VDC
-                vdc.getId().toString().equals(vdcInfo.getProperty(GeoServiceJob.OPERATED_VDC_ID)) ||
-                // skip local
-                vdc.getId() == myVdc.getId()) {
+            if (vdc.getConnectionStatus() == VirtualDataCenter.ConnectionStatus.DISCONNECTED ||
+                    // skip the disconnected/disconnecting VDC
+                    vdc.getId().toString().equals(vdcInfo.getProperty(GeoServiceJob.OPERATED_VDC_ID)) ||
+                    // skip local
+                    vdc.getId() == myVdc.getId()) {
                 // skip remote / operated since it was validated already
                 continue;
 
             }
-            if( !checkVdcStable(GeoServiceHelper.getVDCInfo(vdc), ignoreException) ) {
+            if (!checkVdcStable(GeoServiceHelper.getVDCInfo(vdc), ignoreException)) {
                 return vdc.getId();
             }
         }
         return null;
     }
 
-
-    private boolean checkVdcStable(Properties info, boolean ignoreException){
+    private boolean checkVdcStable(Properties info, boolean ignoreException) {
         String shortId = info.getProperty(GeoServiceJob.VDC_SHORT_ID);
         try {
             return geoClientCache.getGeoClient(shortId).isVdcStable();
@@ -447,13 +446,18 @@ public abstract class AbstractVdcTaskOp {
         for (VirtualDataCenter vdc : connectedVdc) {
 
             if (vdc.getConnectionStatus() == VirtualDataCenter.ConnectionStatus.DISCONNECTED)
-                continue; //skip the disconnected VDC
+            {
+                continue; // skip the disconnected VDC
+            }
 
             if (vdc.getId().equals(operatedVdc.getId()))
-                continue; //skip the VDC to be disconnected
+            {
+                continue; // skip the VDC to be disconnected
+            }
 
             if (vdc.getLocal()) {
-                if (helper.areNodesReachable(vdc.getShortId(), operatedVdc.getHostIPv4AddressesMap(), operatedVdc.getHostIPv6AddressesMap(), true)) {
+                if (helper.areNodesReachable(vdc.getShortId(), operatedVdc.getHostIPv4AddressesMap(),
+                        operatedVdc.getHostIPv6AddressesMap(), true)) {
                     return true;
                 }
                 continue;
@@ -470,17 +474,17 @@ public abstract class AbstractVdcTaskOp {
 
             try {
                 VdcPreCheckResponse2 resp2 = sendVdcPrecheckRequest2(vdc, checkParam2, nodeCheckTimeout_ms);
-                if(!resp2.getIsAllNodesNotReachable()) {
-                    errMsg = String.format("The vdc %s to be disconnected is still reachable from %s", operatedVdc.getShortId(), vdc.getShortId());
+                if (!resp2.getIsAllNodesNotReachable()) {
+                    errMsg = String.format("The vdc %s to be disconnected is still reachable from %s", operatedVdc.getShortId(),
+                            vdc.getShortId());
                     log.error(errMsg);
                     return true;
                 }
             } catch (Exception e) {
                 log.error("Failed to check the operatedVdc {} on the vdc {} e=",
-                        new Object[] {operatedVdc.getShortId(), vdc.getShortId(),e});
+                        new Object[] { operatedVdc.getShortId(), vdc.getShortId(), e });
                 continue;
             }
-
 
         }
 
@@ -498,7 +502,7 @@ public abstract class AbstractVdcTaskOp {
 
         // Go through the connected list
         for (VirtualDataCenter vdc : connectedVdc) {
-            //Don't need to check if the target vdc is reachable with itself
+            // Don't need to check if the target vdc is reachable with itself
             if (vdc.getId().equals(targetVdc.getId())) {
                 continue;
             }
@@ -510,15 +514,14 @@ public abstract class AbstractVdcTaskOp {
                 resp = helper.sendVdcNodeCheckRequest(vdc, vdcs);
                 if (!resp.isNodesReachable()) {
                     log.error("the vdc {} can not be reached by target Vdc {}", vdc.getShortId(), targetVdc.getShortId());
-                    errMsg = String.format("The Vdc %s can not be reached by target Vdc %s", vdc.getId().toString(), targetVdc.getId().toString());
+                    errMsg = String.format("The Vdc %s can not be reached by target Vdc %s", vdc.getId().toString(), targetVdc.getId()
+                            .toString());
                     return false;
                 }
-            }
-            catch ( GeoException e) {
+            } catch (GeoException e) {
                 errMsg = e.getMessage();
                 return false;
-            }
-            catch ( IllegalStateException e) {
+            } catch (IllegalStateException e) {
                 errMsg = e.getMessage();
                 return false;
             }
@@ -534,12 +537,12 @@ public abstract class AbstractVdcTaskOp {
     protected boolean isVdcVersion20() {
         log.info("Checking to see if every living vdc's version is 2.0");
 
-        //get geoClientCache to get the version for each vdc
+        // get geoClientCache to get the version for each vdc
         for (VirtualDataCenter vdc : connectedVdc) {
-            if(vdc.getId().equals(operatedVdc.getId())) {
+            if (vdc.getId().equals(operatedVdc.getId())) {
                 continue;
             }
-            if(vdc.getConnectionStatus() == VirtualDataCenter.ConnectionStatus.CONNECTED) {
+            if (vdc.getConnectionStatus() == VirtualDataCenter.ConnectionStatus.CONNECTED) {
                 String viPRVersion = helper.getViPRVersion(vdc.getShortId());
                 if (viPRVersion.startsWith(VIPR_INVALID_VERSION_PREFIX)) {
                     errMsg = String.format("The vipr version for vdc %s is 2.0", vdc.getLabel());
@@ -553,12 +556,11 @@ public abstract class AbstractVdcTaskOp {
     }
 
     /*
-     *
+     * 
      * This function only used for reconnect and disconnect
      * Input parameter should be CONNECTED or DISCONNECTED
-     *
+     * 
      * @param isSyncOperatedVdc, only used for reconnect operation to sync operated vdc, it will trigger a node repair.
-     *
      */
     protected void updateVdcStatus(VirtualDataCenter.ConnectionStatus status, boolean isSyncOperatedVdc) {
         updateOpStatus(status);
@@ -577,7 +579,7 @@ public abstract class AbstractVdcTaskOp {
                 throw FatalGeoException.fatals.vdcWrongStatus(status.toString());
         }
 
-        for(VirtualDataCenter vdc : allVdc) {
+        for (VirtualDataCenter vdc : allVdc) {
             if (vdc.getId().equals(operatedVdc.getId()) && (configChangeType == VdcConfig.ConfigChangeType.RECONNECT_VDC)) {
                 vdc.setConnectionStatus(VirtualDataCenter.ConnectionStatus.CONNECTED);
                 break;
@@ -587,7 +589,7 @@ public abstract class AbstractVdcTaskOp {
         VdcConfigSyncParam syncParam = buildConfigParam(allVdc);
         syncParam.setAssignedVdcId(operatedVdc.getId().toString());
         List<VirtualDataCenter> vdcsToBeSynced = new ArrayList<>();
-        if(isSyncOperatedVdc) {
+        if (isSyncOperatedVdc) {
             VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, operatedVdc.getId());
             vdcsToBeSynced.add(vdc);
             log.info("Update vdc config for operated vdc {}", operatedVdc);
@@ -601,7 +603,7 @@ public abstract class AbstractVdcTaskOp {
             log.info("Update vdc status {} to connected vdcs={}", operatedVdc, vdcsToBeSynced);
         }
 
-        sendSyncVdcConfigMsg(vdcsToBeSynced,syncParam);
+        sendSyncVdcConfigMsg(vdcsToBeSynced, syncParam);
     }
 
     /*
@@ -622,8 +624,7 @@ public abstract class AbstractVdcTaskOp {
         for (VirtualDataCenter vdc : vdcList) {
             try {
                 geoClientCache.getGeoClient(vdc.getShortId()).syncVdcConfig(syncParam, vdc.getLabel());
-            }
-            catch ( Exception ex ) {
+            } catch (Exception ex) {
                 // TODO need to fix that
                 // Ignore sync vdc config error for reconnect vdc task, since it need to restart the remote vdc
                 // if there is any vdc config change. It will trigger socket read timeout exception.
@@ -649,10 +650,10 @@ public abstract class AbstractVdcTaskOp {
      * @param vdc
      * @throws Exception
      */
-    private void sendPostCheckMsg(VdcPostCheckParam checkParam, VirtualDataCenter vdc)  {
+    private void sendPostCheckMsg(VdcPostCheckParam checkParam, VirtualDataCenter vdc) {
         log.info("Loop vdc {}:{} to do the post check", vdc.getShortId(), vdc.getApiEndpoint());
         if (vdc.getApiEndpoint() != null) {
-            if (vdc.getId().equals(operatedVdc.getId())){
+            if (vdc.getId().equals(operatedVdc.getId())) {
                 checkParam.setFresher(true);
             } else {
                 checkParam.setFresher(false);
@@ -666,7 +667,7 @@ public abstract class AbstractVdcTaskOp {
     }
 
     protected void notifyPrecheckFailed() {
-        if( operatedVdc == null) {
+        if (operatedVdc == null) {
             return;
         }
         for (VirtualDataCenter vdc : connectedVdc) {
@@ -675,8 +676,9 @@ public abstract class AbstractVdcTaskOp {
             }
 
             try {
-                //BZ
-                // TODO need to have a different REST call to modify state of a remote VDC; PrecheckRequest2 should be used to check remote VDC.
+                // BZ
+                // TODO need to have a different REST call to modify state of a remote VDC; PrecheckRequest2 should be used to check remote
+                // VDC.
                 // TODO need to have a different locking mecanism to set lock against concurrent VDC operations.
                 VdcPreCheckParam2 param = new VdcPreCheckParam2();
                 param.setConfigChangeType(changeType());
@@ -686,14 +688,13 @@ public abstract class AbstractVdcTaskOp {
                 param.setPrecheckFailed(true);
                 param.setDefaultVdcState(operatedVdcStatus.toString());
                 sendVdcPrecheckRequest2(vdc, param, DEFAULT_NODE_CHECK_TIMEOUT);
-            }
-            catch (Exception ex){
+            } catch (Exception ex) {
                 log.error("Failed to notify vdc : {} that recheckFaled ", vdc.getShortId());
             }
         }
     }
 
-    protected VdcCertListParam genCertListParam(String cmd)  {
+    protected VdcCertListParam genCertListParam(String cmd) {
         log.info("generating certs sync parameter ...");
 
         VdcCertListParam certsParam = genCertOperationParam(cmd);
@@ -722,14 +723,12 @@ public abstract class AbstractVdcTaskOp {
                     certParam.setCertificate(KeyCertificatePairGenerator.getCertificateAsString(cert));
 
                     certs.add(certParam);
-                }
-                catch (KeyStoreException ex) {
+                } catch (KeyStoreException ex) {
                     log.error("Failed to get key from the keyStore at VDC " + vdc.getLabel());
-                    throw GeoException.fatals.keyStoreFailure(vdc.getLabel(),ex);
-                }
-                catch (CertificateException ex) {
+                    throw GeoException.fatals.keyStoreFailure(vdc.getLabel(), ex);
+                } catch (CertificateException ex) {
                     log.error("Failed to get proper certificate on VDC " + vdc.getLabel());
-                    throw GeoException.fatals.connectVdcSyncCertFail(vdc.getLabel(),ex);
+                    throw GeoException.fatals.connectVdcSyncCertFail(vdc.getLabel(), ex);
                 }
             }
         }
@@ -739,14 +738,13 @@ public abstract class AbstractVdcTaskOp {
     protected void removeVdcFromStrategyOption(boolean wait) {
         try {
             helper.removeStrategyOption(operatedVdc.getShortId(), wait);
-        }catch(Exception e) {
+        } catch (Exception e) {
             log.error("Failed to set strategy options e= ", e);
             throw GeoException.fatals.vdcStrategyFailed(e);
         }
     }
 
-
-    protected VirtualDataCenter.ConnectionStatus  getDefaultPrecheckFailedStatus() {
+    protected VirtualDataCenter.ConnectionStatus getDefaultPrecheckFailedStatus() {
         VdcConfig.ConfigChangeType changeType = changeType();
         switch (changeType) {
             case CONNECT_VDC:

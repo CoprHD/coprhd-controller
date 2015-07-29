@@ -7,28 +7,29 @@ package com.emc.storageos.api.service.impl.resource.utils;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 
 public class DefaultCapacityCalculator implements CapacityCalculator {
-	private String systemType = null;
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public Long calculateAllocatedCapacity(Long requestedCapacity) {
-		return requestedCapacity;
-	}
+    private String systemType = null;
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public Boolean capacitiesCanMatch(String storageSystemType) {
-		if (this.systemType.equalsIgnoreCase(DiscoveredDataObject.Type.vnxblock.toString())) {
-			return true;
-		}
-		return false;
-	}	
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Long calculateAllocatedCapacity(Long requestedCapacity) {
+        return requestedCapacity;
+    }
 
-	public void setSystemType(String systemType) {
-		this.systemType = systemType;
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Boolean capacitiesCanMatch(String storageSystemType) {
+        if (this.systemType.equalsIgnoreCase(DiscoveredDataObject.Type.vnxblock.toString())) {
+            return true;
+        }
+        return false;
+    }
+
+    public void setSystemType(String systemType) {
+        this.systemType = systemType;
+    }
 
 }

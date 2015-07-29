@@ -29,20 +29,20 @@ public abstract class BaseLogManager {
     // A reference to the configurable properties loader.
     protected LogSvcPropertiesLoader _propertiesLoader;
 
-    //Data specifying the parameters of the log request.
+    // Data specifying the parameters of the log request.
     protected LogRequestBase _logReqInfo;
 
-    //Request media type which is used to decide response media type.
+    // Request media type which is used to decide response media type.
     protected MediaType _mediaType;
 
     /**
      * Constructor.
-     *
+     * 
      * @param propertiesLoader A reference to the configurable properties loader.
      * @throws APIException When a null parameter is passed.
      */
     public BaseLogManager(LogRequestBase logReqInfo, MediaType mediaType,
-                                   LogSvcPropertiesLoader propertiesLoader) {
+            LogSvcPropertiesLoader propertiesLoader) {
         _logReqInfo = logReqInfo;
         _mediaType = mediaType;
         _propertiesLoader = propertiesLoader;
@@ -54,11 +54,11 @@ public abstract class BaseLogManager {
     /**
      * Gets a reference to the node info for the nodes in the Bourne cluster
      * with the passed nodes identifiers.
-     *
+     * 
      * @param nodeIds The ids of the desired cluster nodes.
      * @return A list containing the connection info for the desired nodes.
      * @throws APIException When an exception occurs trying to get the
-     *                               cluster nodes.
+     *             cluster nodes.
      */
     protected List<NodeInfo> getClusterNodesWithIds(List<String> nodeIds) {
         List<NodeInfo> matchingNodes = new ArrayList<NodeInfo>();

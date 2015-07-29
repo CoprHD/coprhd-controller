@@ -7,8 +7,6 @@ package com.emc.storageos.api.service.impl.resource.utils;
 import javax.ws.rs.core.MediaType;
 
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 
 public final class StatMarshallerFactory {
     private StatMarshallerFactory() {
@@ -21,7 +19,7 @@ public final class StatMarshallerFactory {
         } else if (MediaType.APPLICATION_XML_TYPE.equals(type)) {
             return new XMLStatMarshaller();
         } else {
-        	throw APIException.badRequests.unableToCreateMarshallerForMediaType(type.toString());  
+            throw APIException.badRequests.unableToCreateMarshallerForMediaType(type.toString());
         }
     }
 }

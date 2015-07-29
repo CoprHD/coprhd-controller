@@ -12,37 +12,34 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "Neighborhood")
 public class Neighborhood {
-	@XmlElement
-	String id;
     @XmlElement
-	boolean inactive;
-    @XmlElement(name="name")
-	String label;
-    
+    String id;
+    @XmlElement
+    boolean inactive;
+    @XmlElement(name = "name")
+    String label;
+
     @Override
-	public String toString(){
-    	String s = new String();
-    	
-    	s+= "Neighborhood"+"\n";
-    	s += "\tid: "+id+"\n";
-    	s += "\tinactive: "+Boolean.toString(inactive)+"\n";
-    	s += "\tlabel: "+label+"\n";
-    	return s;
+    public String toString() {
+        String s = new String();
+
+        s += "Neighborhood" + "\n";
+        s += "\tid: " + id + "\n";
+        s += "\tinactive: " + Boolean.toString(inactive) + "\n";
+        s += "\tlabel: " + label + "\n";
+        return s;
     }
-    
+
     @XmlRootElement(name = "neighborhoodList")
     public static class NeighborhoodList {
-    	
-    	@XmlElement(name="id")
+
+        @XmlElement(name = "id")
         private List<URI> ids;
-        
-        
-		public List<URI> getIds() {
-			return ids;
-		}
-        
-        
-        
+
+        public List<URI> getIds() {
+            return ids;
+        }
+
     }
 
 }

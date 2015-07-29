@@ -13,8 +13,8 @@ import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
- *  Authentication filter for internal api used from object
- *  uses HMAC signed request, with a key in coordinator
+ * Authentication filter for internal api used from object
+ * uses HMAC signed request, with a key in coordinator
  */
 public class ObjInternalHMACAuthFilter extends InterNodeHMACAuthFilter {
     @Override

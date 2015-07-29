@@ -19,15 +19,18 @@ public class DefaultNameGeneratorTest {
         expected = "GMC_2012Q3_d683ac10-5d2c-4462-9c79-6156cdaa74e7";
         Assert.assertEquals(expected, actual);
 
-        actual = nameGenerator.generate("GMC", " QuarterlyReport", "urn:storageos:TenantOrg:8d998de4-507d-448d-bbb6-6d4f3abe49b6:", '/', 255);
+        actual = nameGenerator.generate("GMC", " QuarterlyReport", "urn:storageos:TenantOrg:8d998de4-507d-448d-bbb6-6d4f3abe49b6:", '/',
+                255);
         expected = "GMC/QuarterlyReport/8d998de4-507d-448d-bbb6-6d4f3abe49b6";
         Assert.assertEquals(expected, actual);
 
-        actual = nameGenerator.generate("GMC", " This Name *()&& Shouldn't Have Special Characters", "urn:storageos:TenantOrg:8d998de4-507d-448d-bbb6-6d4f3abe49b6:", '/', 255);
+        actual = nameGenerator.generate("GMC", " This Name *()&& Shouldn't Have Special Characters",
+                "urn:storageos:TenantOrg:8d998de4-507d-448d-bbb6-6d4f3abe49b6:", '/', 255);
         expected = "GMC/ThisNameShouldntHaveSpecialCharacters/8d998de4-507d-448d-bbb6-6d4f3abe49b6";
         Assert.assertEquals(expected, actual);
 
-        actual = nameGenerator.generate("GMC", "abcdefghijklmnopqrstuvwxyz", "urn:storageos:TenantOrg:8d998de4-507d-448d-bbb6-6d4f3abe49b6:", '_', 64);
+        actual = nameGenerator.generate("GMC", "abcdefghijklmnopqrstuvwxyz",
+                "urn:storageos:TenantOrg:8d998de4-507d-448d-bbb6-6d4f3abe49b6:", '_', 64);
         expected = "GMC_abcdefghijklmnopqrstuvw_8d998de4-507d-448d-bbb6-6d4f3abe49b6";
         Assert.assertEquals(expected, actual);
     }
@@ -37,7 +40,8 @@ public class DefaultNameGeneratorTest {
         String expected;
         String actual;
         DefaultNameGenerator nameGenerator = new DefaultNameGenerator();
-        actual = nameGenerator.generate("tenant-abcdefghijklmnopqrstuvwxyz", "volume", "urn:storageos:TenantOrg:8d998de4-507d-448d-bbb6-6d4f3abe49b6:", '_', 64);
+        actual = nameGenerator.generate("tenant-abcdefghijklmnopqrstuvwxyz", "volume",
+                "urn:storageos:TenantOrg:8d998de4-507d-448d-bbb6-6d4f3abe49b6:", '_', 64);
         expected = "tenantabcdefghijklmn_volume_8d998de4-507d-448d-bbb6-6d4f3abe49b6";
         Assert.assertEquals(expected, actual);
     }
@@ -47,7 +51,8 @@ public class DefaultNameGeneratorTest {
         String expected;
         String actual;
         DefaultNameGenerator nameGenerator = new DefaultNameGenerator();
-        actual = nameGenerator.generate("tenant-abcdefghijklmnopqrstuvwxyz", "volume-abcdefghijklmnopqrstuvwxyz", "urn:storageos:TenantOrg:8d998de4-507d-448d-bbb6-6d4f3abe49b6:", '_', 64);
+        actual = nameGenerator.generate("tenant-abcdefghijklmnopqrstuvwxyz", "volume-abcdefghijklmnopqrstuvwxyz",
+                "urn:storageos:TenantOrg:8d998de4-507d-448d-bbb6-6d4f3abe49b6:", '_', 64);
         expected = "tenantabcdefg_volumeabcdefg_8d998de4-507d-448d-bbb6-6d4f3abe49b6";
         Assert.assertEquals(expected, actual);
     }
@@ -57,15 +62,20 @@ public class DefaultNameGeneratorTest {
         String expected;
         String actual;
         DefaultNameGenerator nameGenerator = new DefaultNameGenerator();
-        actual = nameGenerator.generate("tenant-abcdefghijklmnopqrstuvwxyz0000000000000000000000000000000000000000000", "MSTMT_I_1016_100_1694066731_347033891PI3_596075894_V725287082_23sadfadfasdfasdfadsfadfadsfasdfasdf", "urn:storageos:TenantOrg:8d998de4-507d-448d-bbb6-6d4f3abe49b6:", '_', 64);
+        actual = nameGenerator.generate("tenant-abcdefghijklmnopqrstuvwxyz0000000000000000000000000000000000000000000",
+                "MSTMT_I_1016_100_1694066731_347033891PI3_596075894_V725287082_23sadfadfasdfasdfadsfadfadsfasdfasdf",
+                "urn:storageos:TenantOrg:8d998de4-507d-448d-bbb6-6d4f3abe49b6:", '_', 64);
         expected = "tenantabcdefg_MSTMTI1016100_8d998de4-507d-448d-bbb6-6d4f3abe49b6";
         Assert.assertEquals(expected, actual);
 
-        actual = nameGenerator.generate("tenant-abcdefghijklmnopqrstuvwxyz0000000000000000000000000000000000000000000", "MSTMT_I_10", "urn:storageos:TenantOrg:8d998de4-507d-448d-bbb6-6d4f3abe49b6:", '_', 64);
+        actual = nameGenerator.generate("tenant-abcdefghijklmnopqrstuvwxyz0000000000000000000000000000000000000000000", "MSTMT_I_10",
+                "urn:storageos:TenantOrg:8d998de4-507d-448d-bbb6-6d4f3abe49b6:", '_', 64);
         expected = "tenantabcdefg_MSTMTI10_8d998de4-507d-448d-bbb6-6d4f3abe49b6";
         Assert.assertEquals(expected, actual);
 
-        actual = nameGenerator.generate("tenantA", "MSTMT_I_1016_100_1694066731_347033891PI3_596075894_V725287082_23sadfadfasdfasdfadsfadfadsfasdfasdf", "urn:storageos:TenantOrg:8d998de4-507d-448d-bbb6-6d4f3abe49b6:", '_', 64);
+        actual = nameGenerator.generate("tenantA",
+                "MSTMT_I_1016_100_1694066731_347033891PI3_596075894_V725287082_23sadfadfasdfasdfadsfadfadsfasdfasdf",
+                "urn:storageos:TenantOrg:8d998de4-507d-448d-bbb6-6d4f3abe49b6:", '_', 64);
         expected = "tenantA_MSTMTI1016100_8d998de4-507d-448d-bbb6-6d4f3abe49b6";
         Assert.assertEquals(expected, actual);
     }
@@ -75,7 +85,8 @@ public class DefaultNameGeneratorTest {
         String expected;
         String actual;
         DefaultNameGenerator nameGenerator = new DefaultNameGenerator();
-        actual = nameGenerator.generate("ProviderTenant", "VNXBlockSanity", "urn:storageos:ExportGroup:8d998de4-507d-448d-bbb6-6d4f3abe49b6:", '_', 60);
+        actual = nameGenerator.generate("ProviderTenant", "VNXBlockSanity",
+                "urn:storageos:ExportGroup:8d998de4-507d-448d-bbb6-6d4f3abe49b6:", '_', 60);
         expected = "ProviderTen_VNXBlockSan_8d998de4-507d-448d-bbb6-6d4f3abe49b6";
         Assert.assertEquals(expected, actual);
         Assert.assertTrue(actual.length() <= 60);

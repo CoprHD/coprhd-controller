@@ -32,10 +32,10 @@ public class EcomConnection extends CimConnection {
      * @param connectionInfo The bean containing the connection information.
      * @param listener The CIM indication listener for this connection.
      * @param filterMap The indication filters to be subscribed for this
-     *        connection.
+     *            connection.
      */
     public EcomConnection(CimConnectionInfo connectionInfo,
-        CimListener listener, CimFilterMap filterMap) throws Exception {
+            CimListener listener, CimFilterMap filterMap) throws Exception {
         super(connectionInfo, listener, filterMap);
     }
 

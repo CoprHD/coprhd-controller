@@ -9,7 +9,6 @@ import static com.emc.storageos.systemservices.impl.eventhandler.connectemc.Call
 import static com.emc.storageos.systemservices.impl.eventhandler.connectemc.CallHomeConstants.SYMPTOM_CODE_HEARTBEAT;
 import static com.emc.storageos.systemservices.impl.eventhandler.connectemc.CallHomeConstants.callHome;
 
-
 import java.util.ArrayList;
 
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
@@ -31,8 +30,8 @@ public class SendHeartbeatEvent extends SendEvent {
     private static final Logger _log = LoggerFactory.getLogger(SendHeartbeatEvent.class);
 
     public SendHeartbeatEvent(ServiceImpl service, LogSvcPropertiesLoader logSvcPropertiesLoader,
-                                 MediaType mediaType, LicenseInfoExt licenseInfo,
-                                 CoordinatorClientExt coordinator) {
+            MediaType mediaType, LicenseInfoExt licenseInfo,
+            CoordinatorClientExt coordinator) {
         super(service, logSvcPropertiesLoader, mediaType, licenseInfo, coordinator);
     }
 
@@ -44,9 +43,9 @@ public class SendHeartbeatEvent extends SendEvent {
 
         _log.info("Start SendHeartbeatEvent::genAttachFiles");
         ArrayList<String> fileList = new ArrayList<String>();
-        try{
+        try {
             fileList.add(generateConfigFile());
-        } catch (Exception e){
+        } catch (Exception e) {
             _log.error("Error occurred while creating config file. {}", e);
         }
         _log.info("End SendHeartbeatEvent::genAttachFiles");

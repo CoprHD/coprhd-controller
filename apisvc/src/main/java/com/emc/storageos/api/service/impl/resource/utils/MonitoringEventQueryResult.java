@@ -15,7 +15,7 @@ import com.emc.storageos.db.client.TimeSeriesQueryResult;
 import com.emc.storageos.db.client.model.Event;
 
 /**
- *  Implementation of DB time series based query result for monitoring events 
+ * Implementation of DB time series based query result for monitoring events
  */
 public class MonitoringEventQueryResult implements TimeSeriesQueryResult<Event> {
 

@@ -160,7 +160,7 @@ public class Models extends Controller {
         }
         return canAccessTenant(tenantId.toString());
     }
-    
+
     @Util
     public static boolean canAccessTenant(String tenantId) {
         UserInfo info = Security.getUserInfo();
@@ -169,7 +169,7 @@ public class Models extends Controller {
         }
         return info.containsTenant(tenantId);
     }
-    
+
     @Util
     private static boolean isAdministrator() {
         for (Role role : Security.getUserInfo().getRoles()) {

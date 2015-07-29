@@ -11,14 +11,14 @@ import java.io.InputStreamReader;
 
 public class SystemUtil {
 
-	public static int execCmd(String cmd) throws IOException {
-		Process p = Runtime.getRuntime().exec(cmd);
-		BufferedReader in = new BufferedReader(new InputStreamReader(
-				p.getInputStream()));
-		String line = null;
-		while ((line = in.readLine()) != null) {
-			System.out.println(line);
-		}
-		return 0;
-	}
+    public static int execCmd(String cmd) throws IOException {
+        Process p = Runtime.getRuntime().exec(cmd);
+        BufferedReader in = new BufferedReader(new InputStreamReader(
+                p.getInputStream()));
+        String line = null;
+        while ((line = in.readLine()) != null) {
+            System.out.println(line);
+        }
+        return 0;
+    }
 }

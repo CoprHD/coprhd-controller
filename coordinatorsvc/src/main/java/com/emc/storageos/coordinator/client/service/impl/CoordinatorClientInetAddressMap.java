@@ -136,7 +136,8 @@ public class CoordinatorClientInetAddressMap {
      *            - the DualInetAddress that has v4 and/or v6 ip
      */
     public void put(String nodeId, DualInetAddress value) {
-        _logger.info("Adding external node: "+ nodeId +" and DualInetAddress: " + dualInetAddress.toString() + " to CoordinatorClientInetAddressMap.");
+        _logger.info("Adding external node: " + nodeId + " and DualInetAddress: " + dualInetAddress.toString()
+                + " to CoordinatorClientInetAddressMap.");
         getExternalInetAddressLookupMap().put(nodeId, value);
     }
 
@@ -213,9 +214,10 @@ public class CoordinatorClientInetAddressMap {
                 if (address == null) {
                     address = ((CoordinatorClientImpl) coordinatorClient)
                             .loadInetAddressFromCoordinator(nodeId);
-                    if (address == null)
+                    if (address == null) {
                         throw CoordinatorException.fatals
                                 .notConnectableError("Node lookup failed: " + nodeId);
+                    }
                 }
             }
         }
@@ -233,6 +235,7 @@ public class CoordinatorClientInetAddressMap {
 
     /**
      * Check if specific node is a controller node.
+     * 
      * @return true if controller node map has it
      */
     public boolean isControllerNode() {
@@ -287,7 +290,7 @@ public class CoordinatorClientInetAddressMap {
      * Local node is used as a server to determine the coonnectable
      * address pair.
      * 
-     * @param client  the external client that is requesting a connection
+     * @param client the external client that is requesting a connection
      * @return the connectable ip address for external client.
      * @throws UnknownHostException
      */

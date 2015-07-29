@@ -3,7 +3,6 @@
  * All Rights Reserved
  */
 
-
 package com.emc.storageos.api.mapper.functions;
 
 import com.emc.storageos.api.mapper.BlockMapper;

@@ -45,10 +45,10 @@ public class GeoDependencyChecker {
         this.localDependencyChecker = localDependencyChecker;
     }
 
-
     /**
      * checks to see if any references exist for this uri
      * uses dependency list created from relational indices
+     * 
      * @param uri id of the DataObject
      * @param type DataObject class name
      * @param onlyActive if true, checks for active references only (expensive)
@@ -60,7 +60,7 @@ public class GeoDependencyChecker {
             return depMsg;
         }
 
-        //If there is any vdc under disconnect status, do not check dependency, return ""
+        // If there is any vdc under disconnect status, do not check dependency, return ""
         if (hasDisconnectedVdc()) {
             return "";
         }
@@ -70,7 +70,9 @@ public class GeoDependencyChecker {
         VirtualDataCenter vDC = null;
         for (URI vDCId : vDCIds) {
             if (vDCId.equals(VdcUtil.getLocalVdc().getId()))
-                continue; //skip local vDC
+             {
+                continue; // skip local vDC
+            }
 
             vDC = dbClient.queryObject(VirtualDataCenter.class, vDCId);
 
@@ -80,11 +82,11 @@ public class GeoDependencyChecker {
             try {
                 String dependency = client.checkDependencies(type, uri, true);
                 if (!dependency.isEmpty()) {
-                    log.info("Can't GC {} because depends on {} on {}", new Object[] {uri, dependency, vDCId});
+                    log.info("Can't GC {} because depends on {} on {}", new Object[] { uri, dependency, vDCId });
                     return dependency;
                 }
-            }catch(Exception e) {
-                log.error("Failed to query depenedency for {} on {} e=", new Object[] {uri, vDC.getShortId(), e});
+            } catch (Exception e) {
+                log.error("Failed to query depenedency for {} on {} e=", new Object[] { uri, vDC.getShortId(), e });
                 log.error("so assume it has dependency");
                 return "";
             }
@@ -101,7 +103,9 @@ public class GeoDependencyChecker {
         VirtualDataCenter vDC = null;
         for (URI vDCId : vDCIds) {
             if (vDCId.equals(VdcUtil.getLocalVdc().getId()))
-                continue; //skip local vDC
+             {
+                continue; // skip local vDC
+            }
 
             vDC = dbClient.queryObject(VirtualDataCenter.class, vDCId);
 

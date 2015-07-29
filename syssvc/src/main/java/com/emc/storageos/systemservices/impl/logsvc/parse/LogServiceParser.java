@@ -16,8 +16,9 @@ import com.emc.vipr.model.sys.logging.LogSeverity;
 
 /**
  * Parser class to parse lines from log file to LogMessage Objects
+ * 
  * @author siy
- *
+ * 
  */
 public class LogServiceParser extends LogParser {
     private static Calendar logDate = Calendar.getInstance();
@@ -26,6 +27,7 @@ public class LogServiceParser extends LogParser {
     private final int TIME_LENGTH = 25;
     // milliseconds since epoch, will remain 13 digits for another 2 hundred years
     private final int HEADER_TIMESTAMP_LENGTH = 13;
+
     /**
      * Parse line from file to LogMessage
      * If line does not match log format(it
@@ -42,7 +44,7 @@ public class LogServiceParser extends LogParser {
 
         if (lineLength == ViPRHeaderPatternLayout.HEADER_START_LENGTH + HEADER_TIMESTAMP_LENGTH) {
             boolean isHeaderStart = true;
-            for (int i = 0; i < ViPRHeaderPatternLayout.HEADER_START_LENGTH; i++ ) {
+            for (int i = 0; i < ViPRHeaderPatternLayout.HEADER_START_LENGTH; i++) {
                 if (line.charAt(i) != ViPRHeaderPatternLayout.HEADER_START_INDICATOR) {
                     isHeaderStart = false;
                     break;
@@ -63,7 +65,7 @@ public class LogServiceParser extends LogParser {
                 return header;
             }
         }
-        
+
         if (lineLength <= TIME_LENGTH || line.charAt(4) != '-'
                 || line.charAt(7) != '-' || line.charAt(10) != ' '
                 || line.charAt(13) != ':' || line.charAt(16) != ':'
@@ -172,7 +174,7 @@ public class LogServiceParser extends LogParser {
         int classNameStartIndex = fileNameStartIndex;
         int classNameEndIndex = fileNameEndIndex;
         if (line.charAt(fileNameEndIndex - 5) == '.') {
-            //remove the trailing .java
+            // remove the trailing .java
             classNameEndIndex -= 5;
         }
 
@@ -197,8 +199,9 @@ public class LogServiceParser extends LogParser {
             // in which case the first line is ""
             messageStartIndex = lineLength;
         }
-        if (messageStartIndex > Short.MAX_VALUE)
+        if (messageStartIndex > Short.MAX_VALUE) {
             return LogMessage.CONTINUATION_LOGMESSAGE;
+        }
 
         // test time filter
         // int inTime = inTimeRange(partsInt[0], partsInt[1], partsInt[2],
@@ -215,11 +218,12 @@ public class LogServiceParser extends LogParser {
         }
 
         final int lineNumberStartIndex = line.indexOf(' ', fileNameEndIndex + 1) + 1;
-        if (lineNumberStartIndex > Short.MAX_VALUE || rightParentheseIndex - lineNumberStartIndex > Short.MAX_VALUE)
+        if (lineNumberStartIndex > Short.MAX_VALUE || rightParentheseIndex - lineNumberStartIndex > Short.MAX_VALUE) {
             return LogMessage.CONTINUATION_LOGMESSAGE;
+        }
 
         LogMessage log = new LogMessage(getTime(year, month, day, hour, min, sec, ms), line.getBytes());
-        log.setLogOffset(messageStartIndex); 
+        log.setLogOffset(messageStartIndex);
         log.setTimeBytes(0, TIME_LENGTH - 2);
         log.setThreadName(TIME_LENGTH, endBracket - TIME_LENGTH);
         log.setLevel(level);

@@ -17,34 +17,34 @@ import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 
 @XmlRootElement
 public class StringSetMapAdapter extends
-     XmlAdapter<StringSetMapAdapter.AdaptedMap, StringSetMap> {
+        XmlAdapter<StringSetMapAdapter.AdaptedMap, StringSetMap> {
 
     public static class AdaptedMap {
         public List<Entry> entry = new ArrayList<Entry>();
     }
-    
+
     public static class Entry {
         public String key;
         public StringSet value;
     }
-    
+
     @Override
     public StringSetMap unmarshal(AdaptedMap adaptedMap)
-         throws Exception {
+            throws Exception {
         StringSetMap map = new StringSetMap();
         for (Entry entry : adaptedMap.entry) {
             map.put(entry.key, entry.value);
         }
         return map;
     }
-    
+
     @Override
     public AdaptedMap marshal(StringSetMap map) throws Exception {
         AdaptedMap adaptedMap = new AdaptedMap();
         for (Map.Entry<String, AbstractChangeTrackingSet<String>> mapEntry : map.entrySet()) {
             Entry entry = new Entry();
             entry.key = mapEntry.getKey();
-            entry.value = (StringSet)mapEntry.getValue();
+            entry.value = (StringSet) mapEntry.getValue();
             adaptedMap.entry.add(entry);
         }
         return adaptedMap;

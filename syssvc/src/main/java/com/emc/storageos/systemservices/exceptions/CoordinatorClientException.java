@@ -11,7 +11,8 @@ public class CoordinatorClientException extends SyssvcException {
 
     private static final long serialVersionUID = 193889319903229272L;
 
-    protected CoordinatorClientException(final ServiceCode code, final Throwable cause, final String detailBase, final String detailKey, final Object[] detailParams) {
+    protected CoordinatorClientException(final ServiceCode code, final Throwable cause, final String detailBase, final String detailKey,
+            final Object[] detailParams) {
         super(false, code, cause, detailBase, detailKey, detailParams);
     }
 }

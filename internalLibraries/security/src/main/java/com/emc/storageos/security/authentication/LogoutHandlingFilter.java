@@ -49,7 +49,7 @@ public class LogoutHandlingFilter extends AbstractRequestWrapperFilter {
 
     @Override
     public void doFilter(final ServletRequest servletRequest, final ServletResponse servletResponse,
-                         final FilterChain filterChain) throws IOException, ServletException {
+            final FilterChain filterChain) throws IOException, ServletException {
 
         HttpServletRequest req = (HttpServletRequest) servletRequest;
         if (!findLogoutPattern(req.getRequestURI())) {
@@ -65,7 +65,7 @@ public class LogoutHandlingFilter extends AbstractRequestWrapperFilter {
             }
             StringBuilder redirectURL = new StringBuilder(endpoint.toString());
             if (!InetAddresses.isInetAddress(endpoint.getHost()) ||
-                    RequestProcessingUtils.getTokenFromCookie(req) != null){
+                    RequestProcessingUtils.getTokenFromCookie(req) != null) {
                 // ok, then, keep them on the same node
                 redirectURL = RequestProcessingUtils.getOnNodeAuthsvcRedirectURL(req, endpoint);
             }
@@ -79,9 +79,10 @@ public class LogoutHandlingFilter extends AbstractRequestWrapperFilter {
             response.sendRedirect(redirectURL.toString());
         }
     }
-    
+
     /**
      * parses the input string to find matches for /logout, /logout.xml, /logout.json (case insensitive)
+     * 
      * @param input
      * @return true if found, false if not found.
      */

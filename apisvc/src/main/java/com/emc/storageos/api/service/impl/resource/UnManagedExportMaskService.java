@@ -40,7 +40,7 @@ public class UnManagedExportMaskService extends TaggedResource {
 
     private static final Logger _logger = LoggerFactory
             .getLogger(UnManagedExportMaskService.class);
-    
+
     @Override
     protected DataObject queryResource(URI id) {
         ArgValidator.checkUri(id);
@@ -58,18 +58,18 @@ public class UnManagedExportMaskService extends TaggedResource {
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.UNMANAGED_EXPORT_MASKS;
     }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public Class<UnManagedExportMask> getResourceClass() {
         return UnManagedExportMask.class;
     }
-    
-    /**   
+
+    /**
      * Show the details of an UnManagedExportMask.
      * 
      * @param id the URN of a ViPR UnManagedExportMask
-     * @return UnManagedExportMaskRestRep 
+     * @return UnManagedExportMaskRestRep
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -89,15 +89,14 @@ public class UnManagedExportMaskService extends TaggedResource {
     public UnManagedExportMaskBulkRep getBulkResources(BulkIdParam param) {
         return (UnManagedExportMaskBulkRep) super.getBulkResources(param);
     }
-    
-    
+
     @Override
     public UnManagedExportMaskBulkRep queryBulkResourceReps(List<URI> ids) {
         Iterator<UnManagedExportMask> _dbIterator = _dbClient.queryIterativeObjects(
                 UnManagedExportMask.class, ids);
         return new UnManagedExportMaskBulkRep(BulkList.wrapping(_dbIterator, MapUnmanagedExportMask.getInstance()));
     }
-    
+
     @Override
     public UnManagedExportMaskBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
         verifySystemAdmin();

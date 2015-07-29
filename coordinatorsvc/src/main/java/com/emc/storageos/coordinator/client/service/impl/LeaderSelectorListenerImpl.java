@@ -20,14 +20,14 @@ public abstract class LeaderSelectorListenerImpl implements LeaderSelectorListen
     private static final Log _log = LogFactory.getLog(LeaderSelectorListenerImpl.class);
 
     private boolean _isRunning = false;
-    
+
     protected CuratorFramework _curatorClient = null;
 
     /*
      * Start the leadership operation.
      * It would be invoked after getting leader role.
      * Note: The implemetation should lauch scheduled
-     *       thread at fixed interval in backgroud.
+     * thread at fixed interval in backgroud.
      */
     protected abstract void startLeadership() throws Exception;
 
@@ -35,7 +35,7 @@ public abstract class LeaderSelectorListenerImpl implements LeaderSelectorListen
      * Stop the leadership operation
      * It would cleanup itself and give up the leader role.
      * Note: The implemetation should cancel the backend thread
-     *       started via startLeadership()
+     * started via startLeadership()
      */
     protected abstract void stopLeadership();
 
@@ -49,11 +49,10 @@ public abstract class LeaderSelectorListenerImpl implements LeaderSelectorListen
             startLeadership();
 
             try {
-                while(_isRunning) {
+                while (_isRunning) {
                     wait();
                 }
-            } 
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 stopLeadership();
             }
             _log.info("Leader is stopped.");
@@ -63,12 +62,13 @@ public abstract class LeaderSelectorListenerImpl implements LeaderSelectorListen
 
     public void stateChanged(CuratorFramework client, ConnectionState newState) {
         _log.info("Connection state changes to " + newState.toString());
-        if ((newState == ConnectionState.SUSPENDED) 
-             || (newState == ConnectionState.LOST)) {
+        if ((newState == ConnectionState.SUSPENDED)
+                || (newState == ConnectionState.LOST)) {
             synchronized (this) {
-                if (!_isRunning)
+                if (!_isRunning) {
                     return;
-                
+                }
+
                 _log.info("Leader is stopping ...");
                 _isRunning = false;
 
@@ -79,4 +79,3 @@ public abstract class LeaderSelectorListenerImpl implements LeaderSelectorListen
         }
     }
 }
-

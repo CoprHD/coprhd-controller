@@ -12,7 +12,7 @@ import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
  * Since coordinator requires objects to be serialized before publishing and de-serialized after being read out
  * all subclasses that implements this interface have to implement these two methods
  * encodeAsString & decodeFromString.
- *
+ * 
  * Also, because coordinator needs subclass's identity,
  * subclasses are obligated to setup these information for coordinator.
  */

@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-
 /**
  * Main to drive Enunciator
  */
@@ -31,7 +30,7 @@ public class DocGenerator {
 
     /**
      * Collect java source code under a directory
-     *
+     * 
      * @param start
      * @param file
      */
@@ -67,7 +66,7 @@ public class DocGenerator {
 
         Enunciate e = new Enunciate(files.toArray(new String[] {}), config);
 
-        File buildDir = new File(args[0],"syssvc");
+        File buildDir = new File(args[0], "syssvc");
         if (!buildDir.exists()) {
             buildDir.mkdir();
         }

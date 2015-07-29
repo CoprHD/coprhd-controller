@@ -9,7 +9,6 @@ import com.emc.storageos.model.vpool.ManagedResourcesCapacity;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseType;
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
-import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.vipr.model.sys.licensing.License;
 
 public interface LicenseManager {
@@ -37,7 +36,7 @@ public interface LicenseManager {
     public void updateCoordinatorWithLicenseText(License license)
             throws CoordinatorClientException;
 
-    public void updateCoordinatorWithLicenseInfo(LicenseInfoExt licenseInfo) 
+    public void updateCoordinatorWithLicenseInfo(LicenseInfoExt licenseInfo)
             throws CoordinatorClientException;
 
     public boolean isLicenseExpired(LicenseInfoExt licenseInfo);

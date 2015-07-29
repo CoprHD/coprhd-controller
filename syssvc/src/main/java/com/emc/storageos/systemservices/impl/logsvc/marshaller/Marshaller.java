@@ -33,7 +33,6 @@ public abstract class Marshaller {
 
     abstract public void tail() throws IOException;
 
-
     public void flush() {
         try {
             outputStream.flush();

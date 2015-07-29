@@ -25,7 +25,7 @@ import java.util.List;
  */
 @XmlRootElement(name = "bulk_block_migrations")
 public class BlockMigrationBulkRep extends BulkRestRep {
-    
+
     // List of migration responses.
     private List<MigrationRestRep> migrations;
 
@@ -34,7 +34,7 @@ public class BlockMigrationBulkRep extends BulkRestRep {
      */
     public BlockMigrationBulkRep() {
     }
-    
+
     /**
      * Constructor takes the list of migration response instances.
      * 
@@ -49,7 +49,7 @@ public class BlockMigrationBulkRep extends BulkRestRep {
      * 
      * @valid none
      * 
-     * @return The list of migration response instances. 
+     * @return The list of migration response instances.
      */
     @XmlElement(name = "block_migration")
     public List<MigrationRestRep> getMigrations() {

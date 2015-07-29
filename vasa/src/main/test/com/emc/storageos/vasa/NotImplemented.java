@@ -12,36 +12,33 @@
 
 package com.emc.storageos.vasa;
 
-public class NotImplemented extends java.lang.Exception{
+public class NotImplemented extends java.lang.Exception {
 
     private static final long serialVersionUID = 1348562968787L;
-    
+
     private com.emc.storageos.vasa.VasaServiceStub.NotImplementedE faultMessage;
 
-    
-        public NotImplemented() {
-            super("NotImplemented");
-        }
-
-        public NotImplemented(java.lang.String s) {
-           super(s);
-        }
-
-        public NotImplemented(java.lang.String s, java.lang.Throwable ex) {
-          super(s, ex);
-        }
-
-        public NotImplemented(java.lang.Throwable cause) {
-            super(cause);
-        }
-    
-
-    public void setFaultMessage(com.emc.storageos.vasa.VasaServiceStub.NotImplementedE msg){
-       faultMessage = msg;
+    public NotImplemented() {
+        super("NotImplemented");
     }
-    
-    public com.emc.storageos.vasa.VasaServiceStub.NotImplementedE getFaultMessage(){
-       return faultMessage;
+
+    public NotImplemented(java.lang.String s) {
+        super(s);
+    }
+
+    public NotImplemented(java.lang.String s, java.lang.Throwable ex) {
+        super(s, ex);
+    }
+
+    public NotImplemented(java.lang.Throwable cause) {
+        super(cause);
+    }
+
+    public void setFaultMessage(com.emc.storageos.vasa.VasaServiceStub.NotImplementedE msg) {
+        faultMessage = msg;
+    }
+
+    public com.emc.storageos.vasa.VasaServiceStub.NotImplementedE getFaultMessage() {
+        return faultMessage;
     }
 }
-    

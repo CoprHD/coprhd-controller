@@ -28,8 +28,8 @@ public class SendCapacityExceededEvent extends SendEvent {
     private static final Logger _log = LoggerFactory.getLogger(SendCapacityExceededEvent.class);
 
     public SendCapacityExceededEvent(ServiceImpl service, LogSvcPropertiesLoader logSvcPropertiesLoader,
-                               MediaType mediaType, LicenseInfoExt licenseInfo,
-                               CoordinatorClientExt coordinator) {
+            MediaType mediaType, LicenseInfoExt licenseInfo,
+            CoordinatorClientExt coordinator) {
         super(service, logSvcPropertiesLoader, mediaType, licenseInfo, coordinator);
     }
 

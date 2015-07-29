@@ -9,15 +9,15 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "Entry")
 public class Entry {
-	@XmlElement
-	String key;
-	@XmlElement
-	String value;
+    @XmlElement
+    String key;
+    @XmlElement
+    String value;
 
-	@Override
-	public String toString() {
-		String s = "\t" + key + ":\t" + value + "\n";
-		return s;
-	}
+    @Override
+    public String toString() {
+        String s = "\t" + key + ":\t" + value + "\n";
+        return s;
+    }
 
 }

@@ -24,8 +24,9 @@ import org.junit.Test;
 
 public class StringSetTest {
     @Test
-    //Remove a StringSet entry from a StringSetMap
-    public void removeStringSet() {
+    // Remove a StringSet entry from a StringSetMap
+            public
+            void removeStringSet() {
 
         StringSetMap map = new StringSetMap();
 
@@ -39,12 +40,13 @@ public class StringSetTest {
 
         Set<String> removed = map.getChangedKeySet();
 
-        Assert.assertEquals(1, removed.size()); 
+        Assert.assertEquals(1, removed.size());
     }
 
     @Test
     // Test AbstractChangeTrackingSet.replace()
-    public void replaceStringSet() {
+            public
+            void replaceStringSet() {
 
         StringSetMap map = new StringSetMap();
         String newValue = "one one";
@@ -62,7 +64,7 @@ public class StringSetTest {
 
         set = map.get("1").getAddedSet();
         String[] values = set.toArray(new String[0]);
-        Assert.assertEquals(newValue, values[0]); 
+        Assert.assertEquals(newValue, values[0]);
     }
 
     @Test
@@ -89,13 +91,13 @@ public class StringSetTest {
 
         map.replace(newMap);
 
-        //Now the map should be: 
+        // Now the map should be:
         // ["1", []]
         // ["2", []]
         // ["3", []]
         // ["4", ["four", "five", "six"]]
 
-        Assert.assertEquals(4, map.size()); 
+        Assert.assertEquals(4, map.size());
 
         Assert.assertEquals(true, map.get("1").isEmpty());
         Assert.assertEquals(true, map.get("2").isEmpty());
@@ -128,11 +130,11 @@ public class StringSetTest {
 
         map.replace(newMap);
 
-        //Now the map should be: 
+        // Now the map should be:
         // ["1", []]
         // ["2", ["four", "five", "six"]]
         // ["3", []]
-        Assert.assertEquals(3, map.size()); 
+        Assert.assertEquals(3, map.size());
 
         Assert.assertEquals(true, map.get("1").isEmpty());
         Assert.assertEquals(true, map.get("3").isEmpty());
@@ -153,7 +155,7 @@ public class StringSetTest {
 
         map.clear();
 
-        Assert.assertEquals(0, map.size()); 
+        Assert.assertEquals(0, map.size());
     }
 
     @Test
@@ -175,10 +177,10 @@ public class StringSetTest {
 
         map.clear();
 
-        Assert.assertEquals(3, map.size()); 
+        Assert.assertEquals(3, map.size());
 
         Set<String> changedSet = map.getChangedKeySet();
-        Assert.assertEquals(3, changedSet.size()); 
+        Assert.assertEquals(3, changedSet.size());
     }
 
     @Test
@@ -196,7 +198,7 @@ public class StringSetTest {
         map.put("2", "two");
         map.put("3", "three");
 
-        Map<String, String>  newMap = new HashMap<String, String>();
+        Map<String, String> newMap = new HashMap<String, String>();
 
         // The newMap should be:
         // ["1", ["one one"]]
@@ -208,7 +210,7 @@ public class StringSetTest {
 
         map.replace(newMap);
 
-        Assert.assertEquals(3, map.size()); 
+        Assert.assertEquals(3, map.size());
 
         Assert.assertEquals(newValue1, map.get("1"));
         Assert.assertEquals(newValue2, map.get("2"));
@@ -229,9 +231,9 @@ public class StringSetTest {
 
         map.clear();
 
-        Assert.assertEquals(true, map.isEmpty()); 
+        Assert.assertEquals(true, map.isEmpty());
 
         Set<String> removedKeySet = map.getRemovedKeySet();
-        Assert.assertEquals(3, removedKeySet.size()); 
+        Assert.assertEquals(3, removedKeySet.size());
     }
 }

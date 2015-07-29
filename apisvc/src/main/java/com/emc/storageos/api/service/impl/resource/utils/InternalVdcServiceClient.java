@@ -17,24 +17,24 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.UniformInterfaceException;
 import com.sun.jersey.api.client.WebResource;
 
-public class InternalVdcServiceClient extends BaseServiceClient{
-	private static final String INTERNAL_VDC_ROOT = "/internal/vdc";
+public class InternalVdcServiceClient extends BaseServiceClient {
+    private static final String INTERNAL_VDC_ROOT = "/internal/vdc";
     private static final String INTERNAL_VDC_GET = INTERNAL_VDC_ROOT + "/%s";
     private static final String INTERNAL_VDC_SET_INUSE = INTERNAL_VDC_ROOT + "/%s?inuse=%s";
-    
 
     final private Logger _log = LoggerFactory
-        .getLogger(InternalTenantServiceClient.class);
+            .getLogger(InternalTenantServiceClient.class);
 
-    public InternalVdcServiceClient () {
+    public InternalVdcServiceClient() {
     }
 
-    public InternalVdcServiceClient (String server) {
+    public InternalVdcServiceClient(String server) {
         setServer(server);
     }
 
     /**
      * Make client associated with this api server host (IP)
+     * 
      * @param server IP
      */
     @Override
@@ -46,7 +46,7 @@ public class InternalVdcServiceClient extends BaseServiceClient{
      * Get config information for given vdc
      * 
      * @param vdcId - vdc uuid
-     * @return 
+     * @return
      */
     public VirtualDataCenterRestRep getVdc(URI vdcId) {
         String getVdcPath = String.format(INTERNAL_VDC_GET, vdcId.toString());
@@ -55,16 +55,16 @@ public class InternalVdcServiceClient extends BaseServiceClient{
         try {
             resp = addSignature(rRoot)
                     .get(VirtualDataCenterRestRep.class);
-        }catch(UniformInterfaceException e){
+        } catch (UniformInterfaceException e) {
             _log.warn("could not get information for vdc {}. Err:{}", vdcId, e);
         }
         return resp;
     }
-    
+
     /**
      * List all vdc uuid
      * 
-     * @return 
+     * @return
      */
     public VirtualDataCenterList listVdc() {
         WebResource rRoot = createRequest(INTERNAL_VDC_ROOT);
@@ -72,14 +72,14 @@ public class InternalVdcServiceClient extends BaseServiceClient{
         try {
             resp = addSignature(rRoot)
                     .get(VirtualDataCenterList.class);
-        }catch(UniformInterfaceException e){
-            _log.warn("could not list vdc. Err:{}",  e);
+        } catch (UniformInterfaceException e) {
+            _log.warn("could not list vdc. Err:{}", e);
         }
         return resp;
     }
-    
+
     /**
-     * Update vdc in use. If inUse state is true,  the vdc should not be removed from geo system
+     * Update vdc in use. If inUse state is true, the vdc should not be removed from geo system
      * 
      * @param vdcId - vdc uuid
      * @param inUse
@@ -91,7 +91,7 @@ public class InternalVdcServiceClient extends BaseServiceClient{
         ClientResponse resp = null;
         try {
             resp = addSignature(rRoot).put(ClientResponse.class);
-        }catch(UniformInterfaceException e){
+        } catch (UniformInterfaceException e) {
             _log.warn("could not set vdc inuse for {}. Err:{}", vdcId, e);
         }
         return resp;

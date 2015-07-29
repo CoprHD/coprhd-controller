@@ -9,7 +9,7 @@ import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.model.host.IpInterfaceRestRep;
 import com.google.common.base.Function;
 
-public class MapIpInterface implements Function<IpInterface, IpInterfaceRestRep>{
+public class MapIpInterface implements Function<IpInterface, IpInterfaceRestRep> {
 
     public static final MapIpInterface instance = new MapIpInterface();
 
@@ -19,7 +19,7 @@ public class MapIpInterface implements Function<IpInterface, IpInterfaceRestRep>
 
     private MapIpInterface() {
     }
-    
+
     @Override
     public IpInterfaceRestRep apply(IpInterface resource) {
         return HostMapper.map(resource);

@@ -27,36 +27,40 @@ public interface StatConstants {
     public static final String PROC_STAT = "/proc/stat";
     public static final String CPU_INFO = "/proc/cpuinfo";
     public static final String DF_COMMAND = "/bin/df";
-    public static final long DF_COMMAND_TIMEOUT = 120000; //2 min
+    public static final long DF_COMMAND_TIMEOUT = 120000; // 2 min
     public static final long HZ = 100;
     // the directories of services for which we wish to capture stats.
     public static final Set<String> ACCEPTABLE_PID_COMMAND_PREFIXES =
-            Collections.unmodifiableSet(new HashSet<String>() {{
-                add("/opt/storageos/bin/");
-            }});
+            Collections.unmodifiableSet(new HashSet<String>() {
+                {
+                    add("/opt/storageos/bin/");
+                }
+            });
     // These are the disks that we wish to gather stats for from /proc/diskstats.
     public static final Set<String> ACCEPTABLE_DISK_IDS =
-            Collections.unmodifiableSet(new HashSet<String>() {{
-                add("sda");
-                add("sdb");
-                add("sdc");
-            }});
+            Collections.unmodifiableSet(new HashSet<String>() {
+                {
+                    add("sda");
+                    add("sdb");
+                    add("sdc");
+                }
+            });
     // String split values for regular express splitting.
     public static final String NULL_VALUES = "\\x00";
     public static final String SPACE_VALUE = "\\s+";
     public static final String MONITOR_SVCNAME = "monitor";
     public static final String COVERAGE_SVCNAME_SUFFIX = "coverage";
     public static final String UNKNOWN = "unknown";
-    
+
     // for converting capacity unit
     public static int CAPACITY_CONVERSION_VALUE = 1024;
-    
-    public static int  STAT_PID = 0;
-    public static int  STAT_NUM_THREADS = 19;
-    public static int  STAT_STARTTIME = 21;
-    public static int  STAT_VSIZE = 22;
-    public static int  STAT_RSS = 23;
-    
+
+    public static int STAT_PID = 0;
+    public static int STAT_NUM_THREADS = 19;
+    public static int STAT_STARTTIME = 21;
+    public static int STAT_VSIZE = 22;
+    public static int STAT_RSS = 23;
+
     public static int DEFAULT_PAGE_SIZE = 4096;
-    
+
 }

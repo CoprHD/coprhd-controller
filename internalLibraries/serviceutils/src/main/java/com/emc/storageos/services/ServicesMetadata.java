@@ -54,7 +54,7 @@ public class ServicesMetadata implements InitializingBean {
         }
         return _serviceMetadataMap;
     }
-    
+
     public void setRoleMetadataMap(LinkedHashMap<String,
             RoleMetadata> roleMetadataMap) {
         if (_roleMetadataMap == null) {
@@ -78,7 +78,7 @@ public class ServicesMetadata implements InitializingBean {
             ImmutableList.Builder<String> listBuilder = new ImmutableList.Builder<>();
             for (ServiceMetadata serviceMetadata : _serviceMetadataMap.values()) {
                 Set<String> roles = Sets.newHashSet(splitter.split(serviceMetadata.getRoles()));
-                if(roles.contains(roleName)) {
+                if (roles.contains(roleName)) {
                     listBuilder.add(serviceMetadata.getName());
                 }
             }
@@ -86,7 +86,7 @@ public class ServicesMetadata implements InitializingBean {
         }
         _roleServiceIndex = ImmutableMap.copyOf(index);
     }
-    
+
     /**
      * Returns list of service names that are available for control node
      */
@@ -120,17 +120,17 @@ public class ServicesMetadata implements InitializingBean {
         }
         return extraNodeServices;
     }
-    
+
     public static List<String> getRoleServiceNames(String... role) {
         return getRoleServiceNames(Arrays.asList(role));
     }
-    
+
     public static List<String> getRoleServiceNames(Iterable<String> roles) {
         if (_roleServiceIndex == null) {
             throw new IllegalStateException("Role Index does not exist");
         }
         HashSet<String> names = new HashSet<>();
-        for(String role: roles) {
+        for (String role : roles) {
             names.addAll(_roleServiceIndex.get(role));
         }
         return ImmutableList.copyOf(names);

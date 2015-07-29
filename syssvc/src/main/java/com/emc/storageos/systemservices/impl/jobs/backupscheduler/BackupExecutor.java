@@ -77,27 +77,27 @@ public class BackupExecutor {
         ScheduleTimeRange curTimeRange = new ScheduleTimeRange(this.cfg.interval, this.cfg.intervalMultiple, now);
         Date expected = curTimeRange.minuteOffset(this.cfg.startOffsetMinutes);
         Date nowDate = now.getTime();
-        
-        log.info("Now is {} and expected run time is {}", 
-    			ScheduledBackupTag.toTimestamp(nowDate), 
-    			ScheduledBackupTag.toTimestamp(expected));
-        
-    	//if now is before target time && this is NOT first backup 
+
+        log.info("Now is {} and expected run time is {}",
+                ScheduledBackupTag.toTimestamp(nowDate),
+                ScheduledBackupTag.toTimestamp(expected));
+
+        // if now is before target time && this is NOT first backup
         if (nowDate.before(expected) && !this.cfg.retainedBackups.isEmpty()) {
             return false;
         }
-        
+
         Date lastBackupDateTime = this.cfg.retainedBackups.isEmpty() ? null :
-            ScheduledBackupTag.parseBackupTag(this.cfg.retainedBackups.last());
+                ScheduledBackupTag.parseBackupTag(this.cfg.retainedBackups.last());
 
         log.info("Last backup is {}, expected is {}", lastBackupDateTime == null ? "N/A" :
-            ScheduledBackupTag.toTimestamp(lastBackupDateTime),
-            ScheduledBackupTag.toTimestamp(expected));
+                ScheduledBackupTag.toTimestamp(lastBackupDateTime),
+                ScheduledBackupTag.toTimestamp(expected));
 
-        if ( lastBackupDateTime != null && curTimeRange.contains(lastBackupDateTime) ){
-        	return false;
+        if (lastBackupDateTime != null && curTimeRange.contains(lastBackupDateTime)) {
+            return false;
         }
-        
+
         while (!this.cfg.isAllowBackup()) {
             log.warn("Wait {} ms for the cluster is not allowed to do backup now.",
                     BackupConstants.SCHEDULER_SLEEP_TIME_FOR_UPGRADING);
@@ -111,7 +111,7 @@ public class BackupExecutor {
         String tag = null;
         Exception lastException = null;
         int retryCount = 0;
-        List<String> descParams = null; 
+        List<String> descParams = null;
         while (shouldDoBackup()) {
             try {
                 Date backupTime = this.cfg.now().getTime();
@@ -122,7 +122,7 @@ public class BackupExecutor {
 
                 this.cfg.retainedBackups.add(tag);
                 this.cfg.persist();
-                
+
                 descParams = this.cli.getDescParams(tag);
                 this.cli.auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
                 return;
@@ -131,17 +131,17 @@ public class BackupExecutor {
                 log.error(String.format("Exception when creating backup %s (retry #%d)",
                         tag, retryCount), e);
             }
-            
+
             if (retryCount == BackupConstants.BACKUP_RETRY_COUNT) {
                 break;
             }
             retryCount++;
             Thread.sleep(BackupConstants.SCHEDULER_SLEEP_TIME_FOR_UPGRADING);
         }
-        
+
         if (lastException != null) {
             descParams = this.cli.getDescParams(tag);
-        	descParams.add(lastException.getLocalizedMessage());
+            descParams.add(lastException.getLocalizedMessage());
             this.cli.auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
             this.cfg.sendBackupFailureToRoot(tag, lastException.getMessage());
         }
@@ -162,7 +162,7 @@ public class BackupExecutor {
 
         // Actually delete backups from disk that not in master list
         // NOTE: Down nodes are ignored, because once quorum nodes agree a backup is deleted, it is deleted even it still exists
-        //       in minority nodes.
+        // in minority nodes.
         for (String tag : ScheduledBackupTag.pickScheduledBackupTags(this.cli.getClusterBackupTags(true))) {
             if (!this.cfg.retainedBackups.contains(tag)) {
                 try {

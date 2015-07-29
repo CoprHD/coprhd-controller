@@ -40,14 +40,14 @@ public class NodeDataCollector {
         private String _acceptType;
 
         public NodeAPICaller(NodeInfo nodeInfo, URI callURI,
-                             Action action, Object requestObj,
-                             Class<T> returnType, MediaType acceptType) {
+                Action action, Object requestObj,
+                Class<T> returnType, MediaType acceptType) {
             _nodeInfo = nodeInfo;
             _callURI = callURI;
             _action = action;
             _requestObj = requestObj;
             _returnType = returnType;
-            _acceptType = acceptType!=null?acceptType.getType():null;
+            _acceptType = acceptType != null ? acceptType.getType() : null;
         }
 
         public NodeInfo getNodeInfo() {
@@ -67,7 +67,7 @@ public class NodeDataCollector {
                     return sysClient.get(_callURI, _returnType, _acceptType);
                 default:
                     _log.error("Action not supported: {}", _action);
-                    throw SyssvcException.syssvcExceptions.sysClientError("Action not supported: "+_action);
+                    throw SyssvcException.syssvcExceptions.sysClientError("Action not supported: " + _action);
             }
         }
     }
@@ -77,7 +77,7 @@ public class NodeDataCollector {
      * each call and returns the results as a map with node id as key.
      * If node is not reachable or we have exceeded the MAX_TASK_WAIT_MIN time the return map
      * will not contain the corresponding node results.
-     *
+     * 
      * @param nodeInfoList List of nodes on which the URI is called
      * @param callURI URI to call on the nodes
      * @param action URI action - GET, POST
@@ -87,9 +87,9 @@ public class NodeDataCollector {
      * @return Returns a Map<NodeId, returnObj>
      */
     public static <T> Map<String, T> getDataFromNodes(List<NodeInfo> nodeInfoList,
-                                               String callURI, Action action,
-                                               Object requestObj, Class<T> returnType,
-                                               MediaType acceptType) {
+            String callURI, Action action,
+            Object requestObj, Class<T> returnType,
+            MediaType acceptType) {
         _log.info("Collecting data from URI {}", callURI);
         Map<String, Future<T>> futures = new HashMap<String, Future<T>>();
         // Submit all tasks, collect future objects by node
@@ -101,13 +101,12 @@ public class NodeDataCollector {
 
         // Get results from future objects
         Map<String, T> nodeDataMap = new HashMap<String, T>();
-        for (Map.Entry<String, Future<T>> entry: futures.entrySet()) {
+        for (Map.Entry<String, Future<T>> entry : futures.entrySet()) {
             Future<T> future = entry.getValue();
-            try{
+            try {
                 nodeDataMap.put(entry.getKey(), future.get(MAX_TASK_WAIT_MIN, TimeUnit.MINUTES));
-            }
-            catch (Exception e){
-                if(future != null && !future.isDone()){
+            } catch (Exception e) {
+                if (future != null && !future.isDone()) {
                     _log.error("Error occurred while getting data from URI {} on node {}: " +
                             e, callURI, entry.getKey());
                     future.cancel(false);

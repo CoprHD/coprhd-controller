@@ -22,17 +22,17 @@ public class Resource5Initializer extends BaseTestCustomMigrationCallback {
     public static final int COUNT = 10;
 
     @Override
-    public void process(){
+    public void process() {
         DbClient dbClient = getDbClient();
-        for (int i=0; i <COUNT ; i++) {
+        for (int i = 0; i < COUNT; i++) {
             Resource5 res5 = new Resource5();
             res5.setId(URIUtil.createId(Resource5.class));
             dbClient.createObject(res5);
         }
     }
-    
+
     @Override
-    public void verify(){
+    public void verify() {
         DbClient dbClient = getDbClient();
         List<URI> res5Ids = dbClient.queryByType(Resource5.class, false);
         Iterator<Resource5> res5Objs =
@@ -46,4 +46,3 @@ public class Resource5Initializer extends BaseTestCustomMigrationCallback {
         Assert.assertEquals(COUNT, count);
     }
 }
-

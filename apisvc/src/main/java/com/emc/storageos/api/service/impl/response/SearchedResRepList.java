@@ -38,7 +38,6 @@ public class SearchedResRepList extends ResRepList<SearchResultResourceRep> {
         return r;
     }
 
-
     @Override
     public SearchResultResourceRep createQueryHit(URI uri, String match, UUID timestamp) {
         RestLinkRep selfLink = new RestLinkRep("self", RestLinkFactory.newLink(_type, uri));
@@ -46,4 +45,3 @@ public class SearchedResRepList extends ResRepList<SearchResultResourceRep> {
     }
 
 }
-

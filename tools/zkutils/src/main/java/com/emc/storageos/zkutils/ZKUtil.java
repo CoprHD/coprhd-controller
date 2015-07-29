@@ -8,7 +8,6 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
-
 public class ZKUtil {
 
     public static final String ZKUTI_CONF = "/zkutils-conf.xml";

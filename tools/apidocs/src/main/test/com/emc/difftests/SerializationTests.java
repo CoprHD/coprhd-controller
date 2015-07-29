@@ -14,7 +14,7 @@ public class SerializationTests {
     public static void main(String[] args) throws Exception {
 
         ApiService service = new ApiService();
-        service.javaClassName  = "Dave";
+        service.javaClassName = "Dave";
         service.path = "/wobble";
 
         ApiMethod method = new ApiMethod();
@@ -30,6 +30,6 @@ public class SerializationTests {
         System.out.println(asJson);
 
         ApiService back = gson.fromJson(asJson, ApiService.class);
-        System.out.println(back.getFqJavaClassName()+ " "+back.methods.size());
+        System.out.println(back.getFqJavaClassName() + " " + back.methods.size());
     }
 }

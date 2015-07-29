@@ -28,16 +28,17 @@ public class CliService {
 
     /**
      * Get ViPR cli
+     * 
      * @brief Get ViPR CLI
      * @prereq none
      * @return cli details.
      */
     @GET
     @Produces({ MediaType.APPLICATION_OCTET_STREAM })
-    public Response getCli() throws FileNotFoundException{
+    public Response getCli() throws FileNotFoundException {
         _log.debug("getCli(): start");
 
         final InputStream in = new FileInputStream(_filePath);
-        return Response.ok(in).header("content-disposition","attachment; filename = ViPR-cli.tar.gz").build();
+        return Response.ok(in).header("content-disposition", "attachment; filename = ViPR-cli.tar.gz").build();
     }
 }

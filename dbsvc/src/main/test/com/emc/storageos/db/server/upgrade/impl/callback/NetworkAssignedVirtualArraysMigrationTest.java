@@ -28,15 +28,17 @@ import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
  * for Networks.
  */
 public class NetworkAssignedVirtualArraysMigrationTest extends DbSimpleMigrationTestBase {
-    
+
     // The URI of the varray array assigned to the test Network.
-    private static URI varrayURI = null;
-    
+    private static volatile URI varrayURI = null;
+
     @BeforeClass
     public static void setup() throws IOException {
-        customMigrationCallbacks.put("1.0", new ArrayList<BaseCustomMigrationCallback>() {{
-            add(new NetworkAssignedVirtualArraysInitializer());
-        }});
+        customMigrationCallbacks.put("1.0", new ArrayList<BaseCustomMigrationCallback>() {
+            {
+                add(new NetworkAssignedVirtualArraysInitializer());
+            }
+        });
 
         DbsvcTestBase.setup();
     }
@@ -54,23 +56,23 @@ public class NetworkAssignedVirtualArraysMigrationTest extends DbSimpleMigration
     @SuppressWarnings("deprecation")
     @Override
     protected void prepareData() throws Exception {
-        
+
         // Create a virtual array.
         VirtualArray varray = new VirtualArray();
         varrayURI = URIUtil.createId(VirtualArray.class);
         varray.setId(varrayURI);
         _dbClient.createObject(varray);
-        
+
         // Create a network and set the virtual array.
         Network network = new Network();
         network.setId(URIUtil.createId(Network.class));
         network.setLabel("NetworkWithVarray");
         network.setVirtualArray(varrayURI);
         _dbClient.createObject(network);
-        
+
         // Create another network without a virtual array.
         network = new Network();
-        network.setId(URIUtil.createId(Network.class)); 
+        network.setId(URIUtil.createId(Network.class));
         network.setLabel("NetworkWithoutVArray");
         _dbClient.createObject(network);
     }
@@ -85,7 +87,8 @@ public class NetworkAssignedVirtualArraysMigrationTest extends DbSimpleMigration
             String networkId = network.getId().toString();
             StringSet assignedVArrayIds = network.getAssignedVirtualArrays();
             if (network.getLabel().equals("NetworkWithVarray")) {
-                Assert.assertTrue(String.format("Network (id=%s) should have an assigned virtual array", networkId), ((assignedVArrayIds != null) && (!assignedVArrayIds.isEmpty())));
+                Assert.assertTrue(String.format("Network (id=%s) should have an assigned virtual array", networkId),
+                        ((assignedVArrayIds != null) && (!assignedVArrayIds.isEmpty())));
                 int count = 0;
                 for (String assignedVArrayId : assignedVArrayIds) {
                     Assert.assertTrue("Network has unexpected varray assignment", assignedVArrayId.equals(varrayURI.toString()));
@@ -93,7 +96,8 @@ public class NetworkAssignedVirtualArraysMigrationTest extends DbSimpleMigration
                 }
                 Assert.assertTrue("Network has incorrect varray count", count == 1);
             } else {
-                Assert.assertTrue(String.format("Network (id=%s) should NOT have an assigned virtual array", networkId), ((assignedVArrayIds == null) || (assignedVArrayIds.isEmpty())));
+                Assert.assertTrue(String.format("Network (id=%s) should NOT have an assigned virtual array", networkId),
+                        ((assignedVArrayIds == null) || (assignedVArrayIds.isEmpty())));
             }
         }
     }

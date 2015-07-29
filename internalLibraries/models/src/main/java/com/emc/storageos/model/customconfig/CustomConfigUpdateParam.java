@@ -17,24 +17,24 @@ package com.emc.storageos.model.customconfig;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
 
 /**
- * Parameter for custom config update.  
+ * Parameter for custom config update.
  */
 @XmlRootElement(name = "config_update")
 public class CustomConfigUpdateParam {
     private String value;
-    
-    public CustomConfigUpdateParam() {}
-    
+
+    public CustomConfigUpdateParam() {
+    }
+
     public CustomConfigUpdateParam(String value) {
         this.value = value;
     }
-    
+
     /**
      * The config value to be changed
-     *
+     * 
      * @valid none
      */
     @XmlElement
@@ -45,7 +45,5 @@ public class CustomConfigUpdateParam {
     public void setValue(String value) {
         this.value = value;
     }
-    
-    
 
 }

@@ -3,18 +3,8 @@
  * All Rights Reserved
  */
 package com.emc.storageos.systemservices.impl.audit;
-import java.net.*;
-import java.io.*;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
+import java.io.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +16,6 @@ import java.net.NetworkInterface;
 import java.net.InetAddress;
 
 import com.emc.storageos.security.audit.AuditLogManager;
-import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.services.OperationTypeEnum;
 
@@ -37,15 +26,17 @@ public class SystemAudit implements Runnable {
     private static String _auditlogCPfile = "/var/log/auth.checkpoint";
     private static int _scanInterval = 120 * 1000; // 2m
 
-    /* Here are pattern of system logs we are going to audit.
-       There are only one kind of auditlog we recorded for now.  
-       1. ssh login/execution log.  Format is like following.
-       For password failure:
-       "2013-03-05 04:47:52 [auth] err sshd[8824]: error: PAM: Authentication failure for root from localhost"
-       For incorrect pkcs key
-       "2013-08-01 05:12:04 [auth] err sshd[22030]: error: key_read: uudecode aaaAAAAB3NzaC1yc2EAA...BMQfrbasOGYeu1Kjv root@lglw2020\n failed"
-    */
-    private static Pattern auditlogPattern = Pattern.compile("([0-9-:\\s]{19}) (\\[auth\\]) (info|err) (sshd.*:|logger.*:) (Accepted.*|error.*|[0-9-:\\s]{19}.*) (for|key_read: uudecode \\S+) (.*)( from |@)([\\p{Alnum}\\.]+)[\\p{Alnum}\\s]*");
+    /*
+     * Here are pattern of system logs we are going to audit.
+     * There are only one kind of auditlog we recorded for now.
+     * 1. ssh login/execution log. Format is like following.
+     * For password failure:
+     * "2013-03-05 04:47:52 [auth] err sshd[8824]: error: PAM: Authentication failure for root from localhost"
+     * For incorrect pkcs key
+     * "2013-08-01 05:12:04 [auth] err sshd[22030]: error: key_read: uudecode aaaAAAAB3NzaC1yc2EAA...BMQfrbasOGYeu1Kjv root@lglw2020\n failed"
+     */
+    private static Pattern auditlogPattern = Pattern
+            .compile("([0-9-:\\s]{19}) (\\[auth\\]) (info|err) (sshd.*:|logger.*:) (Accepted.*|error.*|[0-9-:\\s]{19}.*) (for|key_read: uudecode \\S+) (.*)( from |@)([\\p{Alnum}\\.]+)[\\p{Alnum}\\s]*");
 
     private AuditLogManager _auditMgr = null;
 
@@ -53,7 +44,7 @@ public class SystemAudit implements Runnable {
         _log.info("SystemAudit initialized");
 
         _auditMgr = new AuditLogManager();
-        _auditMgr.setDbClient(dbClient);        
+        _auditMgr.setDbClient(dbClient);
     }
 
     public void setScanInterval(int interval) {
@@ -61,20 +52,24 @@ public class SystemAudit implements Runnable {
     }
 
     public void run() {
-        // Endlessly monitor system logs (only "auth" for now) and 
+        // Endlessly monitor system logs (only "auth" for now) and
         // persistent them into cassandra db for audit
-        while(true) {
+        while (true) {
 
             String host = null;
             try {
                 Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
-                while (interfaces.hasMoreElements()){
+                while (interfaces.hasMoreElements()) {
                     NetworkInterface current = interfaces.nextElement();
-                    if (!current.isUp() || current.isLoopback() || current.isVirtual()) continue;
+                    if (!current.isUp() || current.isLoopback() || current.isVirtual()) {
+                        continue;
+                    }
                     Enumeration<InetAddress> addresses = current.getInetAddresses();
-                    while (addresses.hasMoreElements()){
+                    while (addresses.hasMoreElements()) {
                         InetAddress current_addr = addresses.nextElement();
-                        if (current_addr.isLoopbackAddress()) continue;
+                        if (current_addr.isLoopbackAddress()) {
+                            continue;
+                        }
                         host = current_addr.getHostAddress();
                     }
                 }
@@ -86,19 +81,19 @@ public class SystemAudit implements Runnable {
             RandomAccessFile logCPfile = null;
             BufferedReader br = null;
             try {
-                _log.info("Scanning log message for system audit in {} seconds ...", 
-                        _scanInterval/1000);
+                _log.info("Scanning log message for system audit in {} seconds ...",
+                        _scanInterval / 1000);
                 Thread.sleep(_scanInterval);
 
                 // 1. read last audited log from checkpoint file
                 logCPfile = new RandomAccessFile(_auditlogCPfile, "rw");
                 long lastAuditedlogTime = 0;
                 String lastAuditedlog = logCPfile.readLine();
-                if(lastAuditedlog != null) {
+                if (lastAuditedlog != null) {
                     Matcher m = auditlogPattern.matcher(lastAuditedlog);
-                    if (m.find()){
+                    if (m.find()) {
                         Timestamp lastAuditedlogTimestamp = Timestamp.valueOf(m.group(1));
-                        lastAuditedlogTime = lastAuditedlogTimestamp.getTime(); 
+                        lastAuditedlogTime = lastAuditedlogTimestamp.getTime();
                     }
                 }
 
@@ -110,7 +105,7 @@ public class SystemAudit implements Runnable {
                 Timestamp currlogTimestamp = null;
                 while ((line = br.readLine()) != null) {
                     m = auditlogPattern.matcher(line);
-                    if (m.find()){
+                    if (m.find()) {
                         currlogTimestamp = Timestamp.valueOf(m.group(1));
                         if (currlogTimestamp.getTime() < lastAuditedlogTime) {
                             continue;
@@ -147,7 +142,7 @@ public class SystemAudit implements Runnable {
                 try {
                     br.close();
                     logCPfile.close();
-                } catch(Exception e) {
+                } catch (Exception e) {
                     _log.warn("Problem while releasing file resources", e.toString());
                 }
             }
@@ -158,7 +153,7 @@ public class SystemAudit implements Runnable {
             long logTime,
             String operationalStatus,
             String description,
-            Object... descparams)  {        
+            Object... descparams) {
         _auditMgr.recordAuditLog(null, null,
                 EVENT_SERVICE_TYPE,
                 auditType,

@@ -10,17 +10,16 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "protections")
 public class Protection {
 
-     @XmlElement
-        String[] protections;
+    @XmlElement
+    String[] protections;
 
-        @Override
-        public String toString(){
-            String s = "";
-            for (int i=0;i<protections.length;i++){
-                s+="\t"+protections[i];
-            }
-            return s;
+    @Override
+    public String toString() {
+        String s = "";
+        for (int i = 0; i < protections.length; i++) {
+            s += "\t" + protections[i];
         }
-
+        return s;
+    }
 
 }

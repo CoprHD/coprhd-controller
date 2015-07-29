@@ -12,9 +12,9 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang.StringUtils;
 
 public class FindPowerpathBlockDevicesCommand extends LinuxResultsCommand<List<String>> {
-    
+
     private String powerPathDevice;
-    
+
     public FindPowerpathBlockDevicesCommand(String powerPathDevice) {
         this.powerPathDevice = powerPathDevice;
         StringBuilder sb = new StringBuilder();
@@ -28,12 +28,12 @@ public class FindPowerpathBlockDevicesCommand extends LinuxResultsCommand<List<S
         Pattern pattern = Pattern.compile("(\\w+)\\s.*");
         Matcher matcher = pattern.matcher(getOutput().getStdout());
         this.results = new ArrayList<String>();
-        while(matcher.find()) {
+        while (matcher.find()) {
             String blockDevice = matcher.group(1);
             if (!StringUtils.equalsIgnoreCase(this.powerPathDevice, blockDevice)) {
                 this.results.add(blockDevice);
             }
         }
     }
-    
+
 }

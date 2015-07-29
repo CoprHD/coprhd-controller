@@ -28,8 +28,8 @@ public class SendExpirationEvent extends SendEvent {
     private static final Logger _log = LoggerFactory.getLogger(SendExpirationEvent.class);
 
     public SendExpirationEvent(ServiceImpl service, LogSvcPropertiesLoader logSvcPropertiesLoader,
-                              MediaType mediaType, LicenseInfoExt licenseInfo,
-                              CoordinatorClientExt coordinator) {
+            MediaType mediaType, LicenseInfoExt licenseInfo,
+            CoordinatorClientExt coordinator) {
         super(service, logSvcPropertiesLoader, mediaType, licenseInfo, coordinator);
     }
 
@@ -48,6 +48,7 @@ public class SendExpirationEvent extends SendEvent {
         event.setCallHome(callHome);
         return event;
     }
+
     /**
      * Set specific embed level for this event in CallHome Identifier section.
      */

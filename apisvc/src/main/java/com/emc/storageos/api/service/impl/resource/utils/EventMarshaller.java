@@ -10,7 +10,7 @@ import java.io.Writer;
 import com.emc.storageos.db.client.model.Event;
 
 /**
- *         Interface to serialize an Event object to a Writer
+ * Interface to serialize an Event object to a Writer
  */
 public interface EventMarshaller {
 
@@ -18,7 +18,7 @@ public interface EventMarshaller {
      * output a header if needed to the writer
      * 
      * @param writer
-     * @throws MarshallingExcetion 
+     * @throws MarshallingExcetion
      */
     public void header(Writer writer) throws MarshallingExcetion;
 
@@ -27,7 +27,7 @@ public interface EventMarshaller {
      * 
      * @param event
      * @param writer
-     * @throws MarshallingExcetion 
+     * @throws MarshallingExcetion
      */
     public void marshal(Event event, Writer writer) throws MarshallingExcetion;
 
@@ -35,7 +35,7 @@ public interface EventMarshaller {
      * output a tailer if needed to the writer
      * 
      * @param writer
-     * @throws MarshallingExcetion 
+     * @throws MarshallingExcetion
      */
     public void tailer(Writer writer) throws MarshallingExcetion;
 }

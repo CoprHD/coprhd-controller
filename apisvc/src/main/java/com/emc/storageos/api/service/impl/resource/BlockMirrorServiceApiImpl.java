@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
-import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockMirror;
@@ -70,12 +69,13 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
 
     /**
      * {@inheritDoc}
-     *
+     * 
      * @throws ControllerException
      */
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray neighborhood, VirtualPool cos,
-                                  List<Recommendation> volRecommendations, String task, VirtualPoolCapabilityValuesWrapper cosCapabilities) throws ControllerException {
+            List<Recommendation> volRecommendations, String task, VirtualPoolCapabilityValuesWrapper cosCapabilities)
+            throws ControllerException {
 
         return _defaultBlockServiceApi.createVolumes(param, project, neighborhood, cos, volRecommendations, task,
                 cosCapabilities);
@@ -88,7 +88,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
      */
     @Override
     public void deleteVolumes(final URI systemURI, final List<URI> volumeURIs,
-        final String deletionType, final String task) throws InternalException {
+            final String deletionType, final String task) throws InternalException {
         _log.info("Request to delete {} volume(s) with Mirror Protection", volumeURIs.size());
         super.deleteVolumes(systemURI, volumeURIs, deletionType, task);
     }
@@ -100,8 +100,8 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
 
     @Override
     public TaskList startNativeContinuousCopies(StorageSystem storageSystem, Volume sourceVolume,
-                                                VirtualPool sourceVirtualPool, VirtualPoolCapabilityValuesWrapper capabilities,
-                                                NativeContinuousCopyCreate param, String taskId)
+            VirtualPool sourceVirtualPool, VirtualPoolCapabilityValuesWrapper capabilities,
+            NativeContinuousCopyCreate param, String taskId)
             throws ControllerException {
 
         validateNotAConsistencyGroupVolume(sourceVolume, sourceVirtualPool);
@@ -141,13 +141,13 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
                 null, volumeCounter, volumeLabel,
                 preparedVolumes, capabilities, false);
 
-        for (Volume volume:preparedVolumes){
-			Operation op = _dbClient.createTaskOpStatus(BlockMirror.class, volume.getId(), 
-					taskId, ResourceOperationTypeEnum.ATTACH_BLOCK_MIRROR);
-			volume.getOpStatus().put(taskId,op);
-			TaskResourceRep volumeTask = toTask(volume, taskId, op);
+        for (Volume volume : preparedVolumes) {
+            Operation op = _dbClient.createTaskOpStatus(BlockMirror.class, volume.getId(),
+                    taskId, ResourceOperationTypeEnum.ATTACH_BLOCK_MIRROR);
+            volume.getOpStatus().put(taskId, op);
+            TaskResourceRep volumeTask = toTask(volume, taskId, op);
             taskList.getTaskList().add(volumeTask);
-		}
+        }
 
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
 
@@ -172,13 +172,13 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
 
     @Override
     public TaskList stopNativeContinuousCopies(StorageSystem storageSystem, Volume sourceVolume,
-                                               List<URI> mirrors,
-                                               String taskId) throws ControllerException {
+            List<URI> mirrors,
+            String taskId) throws ControllerException {
         TaskList taskList = new TaskList();
         List<BlockMirror> blockMirrors = null;
-        if(mirrors != null){
+        if (mirrors != null) {
             blockMirrors = new ArrayList<BlockMirror>();
-            for(URI mirrorURI : mirrors){
+            for (URI mirrorURI : mirrors) {
                 BlockMirror blockMirror = _dbClient.queryObject(BlockMirror.class, mirrorURI);
                 blockMirrors.add(blockMirror);
             }
@@ -188,8 +188,8 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         removeIf(copiesToStop, isMirrorInactivePredicate());
 
         String mirrorTargetCommaDelimList = Joiner.on(',').join(copiesToStop);
-        Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId, 
-        		ResourceOperationTypeEnum.DETACH_BLOCK_MIRROR, mirrorTargetCommaDelimList); 
+        Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId,
+                ResourceOperationTypeEnum.DETACH_BLOCK_MIRROR, mirrorTargetCommaDelimList);
 
         List<BlockMirror> copies =
                 _dbClient.queryObject(BlockMirror.class, copiesToStop);
@@ -231,8 +231,8 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
             v.setProject(new NamedURI(copy.getProject().getURI(), copy.getProject().getName()));
             v.setTenant(new NamedURI(copy.getTenant().getURI(), copy.getTenant().getName()));
             _dbClient.createObject(v);
-            Operation op = _dbClient.createTaskOpStatus(Volume.class, v.getId(), opId, 
-            		ResourceOperationTypeEnum.PROMOTE_COPY_TO_VOLUME, copy.getId().toString());
+            Operation op = _dbClient.createTaskOpStatus(Volume.class, v.getId(), opId,
+                    ResourceOperationTypeEnum.PROMOTE_COPY_TO_VOLUME, copy.getId().toString());
             taskList.getTaskList().add(toTask(v, Arrays.asList(copy), opId, op));
             promotedVolumes.add(v.getId());
         }
@@ -241,12 +241,13 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
 
     /**
      * {@inheritDoc}
+     * 
      * @throws ControllerException
      */
     @Override
     public TaskResourceRep pauseNativeContinuousCopies(StorageSystem storageSystem, Volume sourceVolume,
-                                                       List<BlockMirror> blockMirrors, Boolean sync,
-                                                       String taskId) throws ControllerException {
+            List<BlockMirror> blockMirrors, Boolean sync,
+            String taskId) throws ControllerException {
         Operation op = null;
         List<URI> mirrorUris = new ArrayList<URI>();
 
@@ -260,16 +261,18 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         }
 
         List<BlockMirror> pausedMirrors = new ArrayList<BlockMirror>();
-        for (BlockMirror mirror : blockMirrors) {        	
+        for (BlockMirror mirror : blockMirrors) {
 
             if (mirrorIsResumable(mirror)) {
                 // extract mirrors that are in "paused" state
                 pausedMirrors.add(mirror);
             } else if (!mirrorIsPausable(mirror)) {
-                //  if there is a mirror is not in paused state, and not pausable, throw exception
-                throw APIException.badRequests.cannotPauseContinuousCopyWithSyncState(mirror.getId(),mirror.getSyncState(),sourceVolume.getId());
+                // if there is a mirror is not in paused state, and not pausable, throw exception
+                throw APIException.badRequests.cannotPauseContinuousCopyWithSyncState(mirror.getId(), mirror.getSyncState(),
+                        sourceVolume.getId());
             } else if (mirrorIsResynchronizing(mirror)) {
-                throw APIException.badRequests.cannotPauseContinuousCopyWhileResynchronizing(mirror.getId(),mirror.getSyncState(),sourceVolume.getId());                
+                throw APIException.badRequests.cannotPauseContinuousCopyWhileResynchronizing(mirror.getId(), mirror.getSyncState(),
+                        sourceVolume.getId());
             } else {
                 // otherwise, place mirror a list... get ready to pause
                 mirrorUris.add(mirror.getId());
@@ -282,10 +285,10 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
          */
         if (!pausedMirrors.isEmpty() && mirrorUris.isEmpty()) {
             // If the mirrors is already paused, there would be no need to queue another request to activate it again.
-        	op = new Operation();
-        	op.ready();
-        	op.setResourceType(ResourceOperationTypeEnum.FRACTURE_VOLUME_MIRROR);
-        	op.setMessage("The continuous copies are already paused");
+            op = new Operation();
+            op.ready();
+            op.setResourceType(ResourceOperationTypeEnum.FRACTURE_VOLUME_MIRROR);
+            op.setMessage("The continuous copies are already paused");
             _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId, op);
             return toTask(sourceVolume, taskId, op);
         } else {
@@ -293,7 +296,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
                     Collections2.transform(blockMirrors, FCTN_VOLUME_URI_TO_STR);
             String mirrorTargetCommaDelimList = Joiner.on(',').join(mirrorTargetIds);
             op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId,
-                       ResourceOperationTypeEnum.FRACTURE_VOLUME_MIRROR, mirrorTargetCommaDelimList);
+                    ResourceOperationTypeEnum.FRACTURE_VOLUME_MIRROR, mirrorTargetCommaDelimList);
 
             try {
                 BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
@@ -304,10 +307,10 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
                 _dbClient.error(Volume.class, sourceVolume.getId(), taskId, e);
             }
 
-            return toTask(sourceVolume, blockMirrors,taskId, op);
-        	
+            return toTask(sourceVolume, blockMirrors, taskId, op);
+
         }
-        
+
     }
 
     /**
@@ -315,8 +318,8 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
      */
     @Override
     public TaskResourceRep resumeNativeContinuousCopies(StorageSystem storageSystem, Volume sourceVolume,
-                                                        List<BlockMirror> blockMirrors,
-                                                        String taskId) throws ControllerException {
+            List<BlockMirror> blockMirrors,
+            String taskId) throws ControllerException {
         _log.info("START resume native continuous copies");
         Operation op = null;
 
@@ -328,15 +331,16 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
                 blockMirrors.add(mirror);
             }
         }
-        
+
         List<URI> resumedMirrors = new ArrayList<URI>();
         List<URI> mirrorURIs = new ArrayList<URI>();
         for (BlockMirror mirror : blockMirrors) {
             if (mirrorIsPausable(mirror) || mirrorIsResynchronizing(mirror)) {
                 // extract mirrors that are in resume state or resynchronizing
-            	resumedMirrors.add(mirror.getId());
+                resumedMirrors.add(mirror.getId());
             } else if (!mirrorIsResumable(mirror)) {
-            	throw APIException.badRequests.cannotResumeContinuousCopyWithSyncState(mirror.getId(), mirror.getSyncState(), sourceVolume.getId());
+                throw APIException.badRequests.cannotResumeContinuousCopyWithSyncState(mirror.getId(), mirror.getSyncState(),
+                        sourceVolume.getId());
             } else {
                 mirrorURIs.add(mirror.getId());
             }
@@ -347,27 +351,27 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
          */
         if (!resumedMirrors.isEmpty() && mirrorURIs.isEmpty()) {
             // If the mirrors is already resumed or resynchronizing, there would be no need to queue another request to resume it again.
-        	op = new Operation();
-        	op.setResourceType(ResourceOperationTypeEnum.RESUME_VOLUME_MIRROR);
-        	op.setAssociatedResourcesField(Joiner.on(',').join(resumedMirrors));
-        	op.ready("The continuous copies are already resumed or resynchronizing");
-            _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId, op);            		         
+            op = new Operation();
+            op.setResourceType(ResourceOperationTypeEnum.RESUME_VOLUME_MIRROR);
+            op.setAssociatedResourcesField(Joiner.on(',').join(resumedMirrors));
+            op.ready("The continuous copies are already resumed or resynchronizing");
+            _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId, op);
 
             return toTask(sourceVolume, taskId, op);
         } else {
-	        Collection<String> mirrorTargetIds = Collections2.transform(blockMirrors, FCTN_VOLUME_URI_TO_STR);
-	        String mirrorTargetCommaDelimList = Joiner.on(',').join(mirrorTargetIds);
-	        op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId,
-	                         ResourceOperationTypeEnum.RESUME_VOLUME_MIRROR, mirrorTargetCommaDelimList);
-	
-	        try {
-	            BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-	            controller.resumeNativeContinuousCopies(storageSystem.getId(), mirrorURIs, taskId);
-	        } catch (ControllerException e) {
-	            String errorMsg = format("Failed to resume continuous copies for source volume %s", sourceVolume.getId());
-	            _log.error(errorMsg, e);
-	            _dbClient.error(Volume.class, sourceVolume.getId(), taskId, e);
-	        }
+            Collection<String> mirrorTargetIds = Collections2.transform(blockMirrors, FCTN_VOLUME_URI_TO_STR);
+            String mirrorTargetCommaDelimList = Joiner.on(',').join(mirrorTargetIds);
+            op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId,
+                    ResourceOperationTypeEnum.RESUME_VOLUME_MIRROR, mirrorTargetCommaDelimList);
+
+            try {
+                BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
+                controller.resumeNativeContinuousCopies(storageSystem.getId(), mirrorURIs, taskId);
+            } catch (ControllerException e) {
+                String errorMsg = format("Failed to resume continuous copies for source volume %s", sourceVolume.getId());
+                _log.error(errorMsg, e);
+                _dbClient.error(Volume.class, sourceVolume.getId(), taskId, e);
+            }
         }
 
         return toTask(sourceVolume, blockMirrors, taskId, op);
@@ -375,6 +379,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
 
     /**
      * {@inheritDoc}
+     * 
      * @throws ControllerException
      */
     @Override
@@ -384,7 +389,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, mirrorURI);
         Volume sourceVolume = _dbClient.queryObject(Volume.class, mirror.getSource().getURI());
         Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId,
-                	ResourceOperationTypeEnum.DEACTIVATE_VOLUME_MIRROR, mirror.getId().toString());
+                ResourceOperationTypeEnum.DEACTIVATE_VOLUME_MIRROR, mirror.getId().toString());
         try {
             BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
             controller.deactivateMirror(storageSystem.getId(), mirror.getId(), taskId);
@@ -397,11 +402,10 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         return toTask(sourceVolume, Arrays.asList(mirror), taskId, op);
     }
 
-
     @Override
     public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool virtualPool,
-                                        VirtualPoolChangeParam cosChangeParam,
-                                        String taskId) throws ControllerException {
+            VirtualPoolChangeParam cosChangeParam,
+            String taskId) throws ControllerException {
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
         String systemType = storageSystem.getSystemType();
 
@@ -471,18 +475,18 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         return !mirror.getInactive() &&
                 SynchronizationState.FRACTURED.toString().equals(mirror.getSyncState());
     }
-    
+
     private boolean mirrorIsResynchronizing(BlockMirror mirror) {
         return !mirror.getInactive() &&
                 SynchronizationState.RESYNCHRONIZING.toString().equals(mirror.getSyncState());
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
-        List<URI> volumeURIs) {
+            List<URI> volumeURIs) {
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
         for (URI volumeURI : volumeURIs) {
             VolumeDescriptor desc = new VolumeDescriptor(
@@ -493,13 +497,13 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         }
         return volumeDescriptors;
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     protected List<VirtualPoolChangeOperationEnum> getVirtualPoolChangeAllowedOperations(Volume volume, VirtualPool volumeVirtualPool,
-                                                          VirtualPool newVirtualPool, StringBuffer notSuppReasonBuff) {                 
+            VirtualPool newVirtualPool, StringBuffer notSuppReasonBuff) {
         return _defaultBlockServiceApi.getVirtualPoolChangeAllowedOperations(volume, volumeVirtualPool, newVirtualPool, notSuppReasonBuff);
     }
 

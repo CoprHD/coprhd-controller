@@ -12,25 +12,25 @@ import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
 public class DDPaging {
-	
+
     @SerializedName("current_page")
-    @JsonProperty(value="current_page")
+    @JsonProperty(value = "current_page")
     private int currentPage;
-	
+
     @SerializedName("page_entries")
-    @JsonProperty(value="page_entries")
+    @JsonProperty(value = "page_entries")
     private int pageEntries;
-	
+
     @SerializedName("total_entries")
-    @JsonProperty(value="total_entries")
+    @JsonProperty(value = "total_entries")
     private int totalEntries;
-	
+
     @SerializedName("page_size")
-    @JsonProperty(value="page_size")
+    @JsonProperty(value = "page_size")
     private int pageSize;
-	
+
     @SerializedName("page_links")
-    @JsonProperty(value="page_links")
+    @JsonProperty(value = "page_links")
     private List<DDRestLinkRep> pageLinks;
 
     public int getCurrentPage() {
@@ -64,7 +64,7 @@ public class DDPaging {
     public void setPageSize(int pageSize) {
         this.pageSize = pageSize;
     }
-    
+
     public List<DDRestLinkRep> getPageLinks() {
         return pageLinks;
     }
@@ -78,4 +78,3 @@ public class DDPaging {
     }
 
 }
-

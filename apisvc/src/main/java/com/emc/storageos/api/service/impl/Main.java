@@ -9,7 +9,6 @@ import com.emc.storageos.api.service.ProvisioningService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
-import org.springframework.context.support.FileSystemXmlApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
 
 /**
@@ -28,9 +27,9 @@ public class Main {
             ctx.load(args);
             ctx.refresh();
 
-            ProvisioningService apiservice = (ProvisioningService)ctx.getBean(SERVICE_BEAN);
+            ProvisioningService apiservice = (ProvisioningService) ctx.getBean(SERVICE_BEAN);
             apiservice.start();
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.error("failed to start {}:", SERVICE_BEAN, e);
             System.exit(1);
         }

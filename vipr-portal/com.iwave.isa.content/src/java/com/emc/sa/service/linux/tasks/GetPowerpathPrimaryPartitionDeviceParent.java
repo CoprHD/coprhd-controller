@@ -14,11 +14,11 @@ import com.iwave.ext.linux.command.FindParentPowerpathDeviceNameCommand;
 public class GetPowerpathPrimaryPartitionDeviceParent extends LinuxExecutionTask<String> {
 
     private final String device;
-    
+
     public GetPowerpathPrimaryPartitionDeviceParent(String device) {
         this.device = device;
     }
-    
+
     @Override
     public String executeTask() throws Exception {
         String partitionDeviceName = StringUtils.substringAfterLast(device, "/");
@@ -26,7 +26,7 @@ public class GetPowerpathPrimaryPartitionDeviceParent extends LinuxExecutionTask
         if (StringUtils.isBlank(parentDeviceName)) {
             throw stateException("GetPowerpathPrimaryPartitionDeviceParent.illegalState.unableToFindDevice", device);
         }
-        return StringUtils.substringBeforeLast(device, "/")+"/"+parentDeviceName;
+        return StringUtils.substringBeforeLast(device, "/") + "/" + parentDeviceName;
     }
-    
+
 }

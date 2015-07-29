@@ -36,15 +36,15 @@ public class ApiMethodChanges {
 
     public boolean containsChanges() {
         return !newRoles.isEmpty() ||
-               !removedRoles.isEmpty() ||
-               !newPrerequists.isEmpty() ||
-               !removedPrerequists.isEmpty() ||
+                !removedRoles.isEmpty() ||
+                !newPrerequists.isEmpty() ||
+                !removedPrerequists.isEmpty() ||
                 requestHeadersChanged ||
                 responseHeadersChanged ||
-               pathParametersChanged ||
-               queryParametersChanged ||
-               requestPayloadChanged ||
-               responsePayloadChanged;
+                pathParametersChanged ||
+                queryParametersChanged ||
+                requestPayloadChanged ||
+                responsePayloadChanged;
     }
 
 }

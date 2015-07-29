@@ -24,9 +24,10 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "bulk_config_types")
 public class CustomConfigTypeBulkRep {
     private List<CustomConfigTypeRep> configTypes;
-    
-    public CustomConfigTypeBulkRep() {}
-    
+
+    public CustomConfigTypeBulkRep() {
+    }
+
     public CustomConfigTypeBulkRep(List<CustomConfigTypeRep> configs) {
         this.configTypes = configs;
     }
@@ -42,6 +43,5 @@ public class CustomConfigTypeBulkRep {
     public void setCustomConfigs(List<CustomConfigTypeRep> configs) {
         this.configTypes = configs;
     }
-    
 
 }

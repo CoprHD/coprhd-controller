@@ -47,7 +47,7 @@ public class VNXStoragePoolProcessor extends VNXFileProcessor {
      */
     private final Logger _logger = LoggerFactory
             .getLogger(VNXStoragePoolProcessor.class);
-    
+
     @Override
     public void processResult(Operation operation, Object resultObj,
             Map<String, Object> keyMap) throws BaseCollectionException {
@@ -65,12 +65,12 @@ public class VNXStoragePoolProcessor extends VNXFileProcessor {
                 List<VNXStoragePool> storagePools = new ArrayList<VNXStoragePool>();
                 while (queryRespItr.hasNext()) {
                     Object responseObj = queryRespItr.next();
-                    _logger.info("{}",responseObj);
+                    _logger.info("{}", responseObj);
                     if (responseObj instanceof StoragePool) {
-                        
+
                         VNXStoragePool vnxPool = new VNXStoragePool();
                         StoragePool storagePool = (StoragePool) responseObj;
-                        
+
                         vnxPool.setName(storagePool.getName());
                         vnxPool.setPoolId(storagePool.getPool());
                         vnxPool.setSize(String.valueOf(storagePool.getSize()));
@@ -83,9 +83,9 @@ public class VNXStoragePoolProcessor extends VNXFileProcessor {
                             String dynamic = String.valueOf(data.isDynamic());
                             vnxPool.setDynamic(dynamic);
                         }
-                
-                        _logger.info("VNX Pool Information {}",vnxPool.toString());
-                
+
+                        _logger.info("VNX Pool Information {}", vnxPool.toString());
+
                         storagePools.add(vnxPool);
                     }
                 }

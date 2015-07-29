@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +22,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  * The Openstack storage system implementation for the block full copy API.
  */
 public class OpenstackBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
-    
+
     /**
      * Constructor
      * 
@@ -32,7 +31,7 @@ public class OpenstackBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      * @param scheduler A reference to a scheduler.
      */
     public OpenstackBlockFullCopyApiImpl(DbClient dbClient,
-        CoordinatorClient coordinator, Scheduler scheduler) {
+            CoordinatorClient coordinator, Scheduler scheduler) {
         super(dbClient, coordinator, scheduler);
     }
 
@@ -60,12 +59,12 @@ public class OpenstackBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-        String name, boolean createInactive, int count, String taskId) {
+            String name, boolean createInactive, int count, String taskId) {
         // Setting createInactive to true for openstack as it is not
         // needed to wait for synchronization to complete and detach.
         return super.create(fcSourceObjList, varray, name, true, count, taskId);
     }
-   
+
     /**
      * {@inheritDoc}
      */
@@ -80,7 +79,7 @@ public class OpenstackBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     @Override
     public TaskList detach(BlockObject fcSourceObj, Volume fullCopyVolume) {
         return super.detach(fcSourceObj, fullCopyVolume);
-    }    
+    }
 
     /**
      * {@inheritDoc}
@@ -97,12 +96,12 @@ public class OpenstackBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     public TaskList resynchronizeCopy(Volume sourceVolume, Volume fullCopyVolume) {
         throw APIException.methodNotAllowed.notSupportedForOpenstack();
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public VolumeRestRep checkProgress(URI sourceURI, Volume fullCopyVolume) {
         return super.checkProgress(sourceURI, fullCopyVolume);
-    }    
+    }
 }

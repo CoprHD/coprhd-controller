@@ -25,7 +25,7 @@ import com.emc.storageos.db.server.upgrade.util.callbacks2.Resource3NewFlagsInit
 /**
  * test migration checkpoint
  */
-public class DbMigrationCheckpointTest extends DbStepSkipUpgradeTestBase{
+public class DbMigrationCheckpointTest extends DbStepSkipUpgradeTestBase {
     private static final Logger log = LoggerFactory.getLogger(DbMigrationCheckpointTest.class);
 
     private String getCheckpoint(String version) {
@@ -38,6 +38,7 @@ public class DbMigrationCheckpointTest extends DbStepSkipUpgradeTestBase{
 
     /**
      * reset migration status
+     * 
      * @param version
      */
     private void resetMigrationStatus(String version) {
@@ -53,12 +54,12 @@ public class DbMigrationCheckpointTest extends DbStepSkipUpgradeTestBase{
 
     /**
      * Verify if migration checkpoint information is saved to ZK
-     *
+     * 
      * @param version target schema version for migration
      */
     private void verifyMigrationFailed(String version) {
         CoordinatorClient coordinator = getCoordinator();
-        Assert.assertEquals (MigrationStatus.FAILED, coordinator.getMigrationStatus());
+        Assert.assertEquals(MigrationStatus.FAILED, coordinator.getMigrationStatus());
 
         String checkpoint = getCheckpoint(version);
         log.info("Current migration checkpoint: {}", checkpoint);
@@ -68,13 +69,13 @@ public class DbMigrationCheckpointTest extends DbStepSkipUpgradeTestBase{
     }
 
     /**
-     * Verify if migration checkpoint information is saved to ZK 
+     * Verify if migration checkpoint information is saved to ZK
      * 
      * @param version target schema version for migration
      */
     private void verifyMigrationInterrupted(String version) {
         CoordinatorClient coordinator = getCoordinator();
-        Assert.assertEquals (MigrationStatus.RUNNING, coordinator.getMigrationStatus());
+        Assert.assertEquals(MigrationStatus.RUNNING, coordinator.getMigrationStatus());
 
         String checkpoint = getCheckpoint(version);
         log.info("Current migration checkpoint: {}", checkpoint);
@@ -82,20 +83,20 @@ public class DbMigrationCheckpointTest extends DbStepSkipUpgradeTestBase{
         String failedCallbackName = com.emc.storageos.db.server.upgrade.util.callbacks2.Resource3NewFlagsInitializer.class.getSimpleName();
         Assert.assertNotSame(failedCallbackName, checkpoint);
     }
-    
+
     /**
-     * Verify if migration checkpoint information is cleared after migration done 
+     * Verify if migration checkpoint information is cleared after migration done
      * 
      * @param version target schema version for migration
      */
     private void verifyMigrationDone(String version) {
         CoordinatorClient coordinator = getCoordinator();
-        Assert.assertEquals (MigrationStatus.DONE, coordinator.getMigrationStatus());
+        Assert.assertEquals(MigrationStatus.DONE, coordinator.getMigrationStatus());
 
         String checkpoint = getCheckpoint(version);
         Assert.assertNull(checkpoint);
     }
-    
+
     /**
      * Simulate migration failure by injecting a fault. Test if migration could restart from checkpoint
      * 
@@ -105,7 +106,7 @@ public class DbMigrationCheckpointTest extends DbStepSkipUpgradeTestBase{
     public void runMigrationCheckpointTest() throws Exception {
         final String targetVersion = secondUpgradeVersion;
         String targetDoPackage = "com.emc.storageos.db.server.upgrade.util.models.updated2";
-        
+
         // prepare data for version 1.2
         stopAll();
         setupDB(initalVersion, "com.emc.storageos.db.server.upgrade.util.models.old");

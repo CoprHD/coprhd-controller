@@ -143,7 +143,7 @@ public class NamedThreadPoolExecutor extends ThreadPoolExecutor {
         super(corePoolSize, maximumPoolSize, keepAliveTime, unit, queue, new NamedThreadFactory(
                 poolName, factory));
         setPoolName(poolName);
-   }
+    }
 
     /**
      * Creates a new ThreadPoolExecutor with the given parameters.
@@ -179,7 +179,7 @@ public class NamedThreadPoolExecutor extends ThreadPoolExecutor {
         super(corePoolSize, maximumPoolSize, keepAliveTime, unit, queue, new NamedThreadFactory(
                 poolName, factory));
         setPoolName(poolName);
-   }
+    }
 
     /**
      * Changes executing thread name to append the task name if appendTaskName

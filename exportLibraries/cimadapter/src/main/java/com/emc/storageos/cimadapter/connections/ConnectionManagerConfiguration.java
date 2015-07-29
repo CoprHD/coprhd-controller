@@ -26,7 +26,7 @@ public class ConnectionManagerConfiguration {
 
     // A reference to the list of Celerra message specifications.
     private CelerraMessageSpecList _celerraMessageSpecs;
-    
+
     // The key that is used in the filter and handler names for the subscriptions
     // created when a connection is made to an CIM provider.
     private String _subscriptionsIdentifier = null;
@@ -35,7 +35,7 @@ public class ConnectionManagerConfiguration {
     // to delete stale subscriptions on a CIM provider when a new connection
     // is made to that provider.
     private boolean _deleteStaleSubscriptionsOnConnect = false;
-    
+
     /**
      * Default Constructor.
      */
@@ -113,7 +113,7 @@ public class ConnectionManagerConfiguration {
     public void setCelerraMessageSpecs(CelerraMessageSpecList celerraMessageSpecs) {
         _celerraMessageSpecs = celerraMessageSpecs;
     }
-    
+
     /**
      * Getter for the subscriptions identifier.
      * 
@@ -130,8 +130,8 @@ public class ConnectionManagerConfiguration {
      */
     public void setSubscriptionsIdentifier(String subscriptionsIdentifier) {
         _subscriptionsIdentifier = subscriptionsIdentifier;
-    }    
-    
+    }
+
     /**
      * Getter for the delete stale subscriptions on connect flag.
      * 
@@ -145,9 +145,9 @@ public class ConnectionManagerConfiguration {
      * Setter for the delete stale subscriptions on connect flag.
      * 
      * @param deleteStaleSubscriptionsOnConnect The value for the delete stale
-     *        subscriptions on connect flag.
+     *            subscriptions on connect flag.
      */
     public void setDeleteStaleSubscriptionsOnConnect(boolean deleteStaleSubscriptionsOnConnect) {
         _deleteStaleSubscriptionsOnConnect = deleteStaleSubscriptionsOnConnect;
-    }    
+    }
 }

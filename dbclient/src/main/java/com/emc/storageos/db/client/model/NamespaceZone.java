@@ -28,6 +28,7 @@ public class NamespaceZone extends AbstractSerializableNestedObject {
     public String getTenant() {
         return getStringField(_TENANT);
     }
+
     public void setTenant(String tenant) {
         setField(_TENANT, tenant);
     }

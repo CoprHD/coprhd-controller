@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.model.block.VolumeExportIngestParam;
 import com.google.common.collect.Collections2;
+
 /*
  * MASK_PER_HOST :
  * Arrays whose existing masking containers cannot be modeled as export mask in ViPR DB
@@ -58,8 +59,9 @@ public class MaskPerHostIngestOrchestrator extends BlockIngestExportOrchestrator
         for (URI ini : initiatorUris) {
             List<URI> exportMaskUris = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getExportMaskInitiatorConstraint(ini.toString()));
-            if (null == exportMaskUris)
+            if (null == exportMaskUris) {
                 return eMask;
+            }
             for (URI eMaskUri : exportMaskUris) {
                 eMask = _dbClient.queryObject(ExportMask.class, eMaskUri);
                 if (eMask.getStorageDevice().equals(mask.getStorageSystemUri())) {
@@ -70,8 +72,9 @@ public class MaskPerHostIngestOrchestrator extends BlockIngestExportOrchestrator
                     _logger.info("Found Mask {} with matching initiator and unmatched Storage System. Skipping mask", eMaskUri);
                 }
             }
-            if (maskFound)
+            if (maskFound) {
                 break;
+            }
         }
         return eMask;
     }

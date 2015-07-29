@@ -10,5 +10,6 @@ package com.emc.vipr.client.impl.jersey;
  */
 public interface TokenAccess {
     public void setToken(String token);
+
     public String getToken();
 }

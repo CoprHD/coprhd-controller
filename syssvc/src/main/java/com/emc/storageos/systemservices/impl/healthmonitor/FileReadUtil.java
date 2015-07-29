@@ -21,7 +21,7 @@ public class FileReadUtil {
     /**
      * Read a file by it's full filePath. Log the exceptions if encountered and return
      * an empty string. Let the caller check for null/empty return.
-     *
+     * 
      * @return String
      */
     public static String[] readLines(final String filePath) throws IOException,

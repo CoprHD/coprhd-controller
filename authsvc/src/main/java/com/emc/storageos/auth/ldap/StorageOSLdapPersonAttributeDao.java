@@ -16,7 +16,6 @@ import com.emc.storageos.model.usergroup.UserAttributeParam;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMapping;
 import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMappingAttribute;
-import com.emc.storageos.security.exceptions.*;
 import com.emc.storageos.security.exceptions.SecurityException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.collect.Lists;
@@ -125,6 +124,7 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
 
     /**
      * Sets the LdapTemplate, and thus the ContextSource (implicitly).
+     * 
      * @param ldapTemplate
      *            the LdapTemplate to query the LDAP server from. CANNOT be
      *            NULL.
@@ -158,16 +158,16 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
 
     public void setFilter(String filter) {
         _filter = filter;
-    } 
+    }
 
-    public void setMaxPageSize(int maxPageSize ) {
+    public void setMaxPageSize(int maxPageSize) {
         _maxPageSize = maxPageSize;
     }
 
     public void setProviderType(ProvidersType type) {
         _type = type;
     }
-    
+
     public Set<String> getGroupObjectClasses() {
         return _groupObjectClasses;
     }
@@ -189,19 +189,13 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
      * 
      * The byte array structure is (according to MSDN):
      * <ol>
-     * <li>First element - one byte - revision of the SID structure (currently
-     * must be set to 0x01; the field name is Revision)
-     * <li>Second element - one byte - is the number of sub authorities in that
-     * SID (this field name is SubAuthorityCount )
-     * <li>The third element - 6 bytes - is identifying the authority under
-     * which the SID was created (field name is IdentifierAuthority).
-     * <li>The fourth is a variable length array of unsigned 32 bits integers
-     * identifies a principal relative to the IdentifierAuthority - the length
-     * of the array is determine by SubAuthorityCount (this field name is
-     * SubAuthority). Notice that the each sub authority is an integer, It is
-     * important to remember that Microsoft Windows is built around little
-     * endian and this is why the code below reads each sub authority 4 bytes
-     * from the high to the low byte.
+     * <li>First element - one byte - revision of the SID structure (currently must be set to 0x01; the field name is Revision)
+     * <li>Second element - one byte - is the number of sub authorities in that SID (this field name is SubAuthorityCount )
+     * <li>The third element - 6 bytes - is identifying the authority under which the SID was created (field name is IdentifierAuthority).
+     * <li>The fourth is a variable length array of unsigned 32 bits integers identifies a principal relative to the IdentifierAuthority -
+     * the length of the array is determine by SubAuthorityCount (this field name is SubAuthority). Notice that the each sub authority is an
+     * integer, It is important to remember that Microsoft Windows is built around little endian and this is why the code below reads each
+     * sub authority 4 bytes from the high to the low byte.
      * </ol>
      * 
      * @param sid
@@ -283,38 +277,42 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
     @Override
     public boolean isGroupValid(final String groupId,
             ValidationFailureReason[] failureReason) {
-        String group = groupId.substring(0,groupId.lastIndexOf("@"));
-        String domain = groupId.substring(groupId.lastIndexOf("@")+1);
+        String group = groupId.substring(0, groupId.lastIndexOf("@"));
+        String domain = groupId.substring(groupId.lastIndexOf("@") + 1);
         // only one result is needed
         final long countLimit = 1L;
         // Check if the group is on the whitelist
-        if( isGroupOnWhiteList(group) ) {
+        if (isGroupOnWhiteList(group)) {
             // If the group is on the whitelist search AD/LDAP to see if it is valid
             final AndFilter queryBuilder = new AndFilter();
-            
+
             final Filter groupObjClassfilter = createGroupObjectClassFilter();
-            if (groupObjClassfilter == null){
-            	_log.error("Group {} could not be searched in LDAP due to missing or empty LDAP Group properties of Authentication Provider. "
-            			+ "In order to work on groups in LDAP, kindly add the LDAP Group properties in Authentication Provider configuration.", groupId);
+            if (groupObjClassfilter == null) {
+                _log.error(
+                        "Group {} could not be searched in LDAP due to missing or empty LDAP Group properties of Authentication Provider. "
+                                + "In order to work on groups in LDAP, kindly add the LDAP Group properties in Authentication Provider configuration.",
+                        groupId);
                 failureReason[0] = ValidationFailureReason.LDAP_CANNOT_SEARCH_GROUP_IN_LDAP_MODE;
                 return false;
             }
-            
+
             final Filter groupAttributeFilter = new EqualsFilter(_groupWhiteList.getType(), group);
             queryBuilder.and(groupObjClassfilter);
             queryBuilder.and(groupAttributeFilter);
-            
-            String[] returnAttributes = {_groupWhiteList.getType(), COMMON_NAME, getDistinguishedNameAttribute()};
-            
+
+            String[] returnAttributes = { _groupWhiteList.getType(), COMMON_NAME, getDistinguishedNameAttribute() };
+
             List<List<GroupAttribute>> queryGroupResults = null;
-	        try{
-		        queryGroupResults = searchAuthProvider(queryBuilder, returnAttributes, countLimit,
-						 new GroupsMapper(_groupWhiteList.getType(), getDistinguishedNameAttribute()), failureReason);
-	        }catch(SizeLimitExceededException e){
-	        	_log.error("Multiple entries for group {} are found in AD/LDAP. Please use other group attributes such as objectSid or objectGUID to uniquely identify the group.", groupId);
+            try {
+                queryGroupResults = searchAuthProvider(queryBuilder, returnAttributes, countLimit,
+                        new GroupsMapper(_groupWhiteList.getType(), getDistinguishedNameAttribute()), failureReason);
+            } catch (SizeLimitExceededException e) {
+                _log.error(
+                        "Multiple entries for group {} are found in AD/LDAP. Please use other group attributes such as objectSid or objectGUID to uniquely identify the group.",
+                        groupId);
                 failureReason[0] = ValidationFailureReason.USER_OR_GROUP_NOT_FOUND_FOR_TENANT;
                 return false;
-	        }
+            }
             if (!CollectionUtils.isEmpty(queryGroupResults)) {
                 // validate if group DN match input group domain,
                 // this could be different in AD forest scenario.
@@ -370,15 +368,15 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
     @Override
     public StorageOSUserDAO getStorageOSUser(final Credentials credentials,
             ValidationFailureReason[] failureReason) {
-        final String username = ((UsernamePasswordCredentials)credentials).getUserName();  
+        final String username = ((UsernamePasswordCredentials) credentials).getUserName();
         UserAndTenants userAndTenants = getStorageOSUserAndTenants(username,
                 failureReason);
-        if( null != userAndTenants ) {
+        if (null != userAndTenants) {
             StorageOSUserDAO user = userAndTenants._user;
             Map<URI, UserMapping> tenants = userAndTenants._tenants;
-            if( null == tenants || tenants.isEmpty()) {
+            if (null == tenants || tenants.isEmpty()) {
                 _log.error("User {} did not match any tenant", username);
-            } else if(tenants.keySet().size() > 1) {
+            } else if (tenants.keySet().size() > 1) {
                 _log.error("User {} mapped to tenants {}", username, tenants.keySet().toArray());
             } else {
                 user.setTenantId(tenants.keySet().iterator().next().toString());
@@ -394,7 +392,7 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
      */
     @Override
     public StorageOSUserDAO getStorageOSUser(final Credentials credentials) {
-        final String username = ((UsernamePasswordCredentials)credentials).getUserName();
+        final String username = ((UsernamePasswordCredentials) credentials).getUserName();
 
         ValidationFailureReason[] failureReason = new ValidationFailureReason[1];
 
@@ -416,12 +414,12 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         StorageOSUserDAO user = userAndTenants._user;
         Map<URI, UserMapping> tenants = userAndTenants._tenants;
 
-        if( null == tenants || tenants.isEmpty()) {
+        if (null == tenants || tenants.isEmpty()) {
             _log.error("User {} did not match any tenant", username);
             throw APIException.forbidden.userDoesNotMapToAnyTenancy(user.getUserName());
         }
 
-        if(tenants.keySet().size() > 1) {
+        if (tenants.keySet().size() > 1) {
             _log.error("User {} mapped to tenants {}", username, tenants.keySet().toArray());
             throw APIException.forbidden.userBelongsToMultiTenancy(user.getUserName(), tenantName(tenants.keySet()));
         }
@@ -445,28 +443,27 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         ValidationFailureReason[] failureReason = new ValidationFailureReason[1];
         UserAndTenants userAndTenants = getStorageOSUserAndTenants(username,
                 failureReason);
-        if( null != userAndTenants ) {
+        if (null != userAndTenants) {
             return userAndTenants._tenants;
-        } 
+        }
         return null;
     }
-
 
     @Override
     public Map<URI, UserMapping> peekUserTenants(String username, URI tenantURI, List<UserMapping> userMapping) {
         ValidationFailureReason[] failureReason = new ValidationFailureReason[1];
         UserAndTenants userAndTenants = getStorageOSUserAndTenants(username,
                 failureReason, tenantURI, userMapping);
-        if( null != userAndTenants ) {
+        if (null != userAndTenants) {
             return userAndTenants._tenants;
         }
         return null;
     }
 
-
     /**
      * Search for the user in LDAP and create a StorageOSUserDAO and also
      * Map the user to tenant(s)
+     * 
      * @param username name of the user
      * @return an object containing the StorageOSUserDao and a list of tenants
      */
@@ -476,12 +473,12 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
     }
 
     private UserAndTenants getStorageOSUserAndTenants(String username,
-                                             ValidationFailureReason[] failureReason,
-                                             URI tenantURI, List<UserMapping> usermapping) {
+            ValidationFailureReason[] failureReason,
+            URI tenantURI, List<UserMapping> usermapping) {
         BasePermissionsHelper permissionsHelper = new BasePermissionsHelper(_dbClient, false);
 
         final String[] userDomain = username.split("@");
-        if(userDomain.length < 2) {
+        if (userDomain.length < 2) {
             _log.error("Illegal username {} missing domain", username);
             failureReason[0] = ValidationFailureReason.USER_OR_GROUP_NOT_FOUND_FOR_TENANT;
             return null;
@@ -494,9 +491,9 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
             return null;
         }
 
-        List<String> attrs = new ArrayList<String>(); 
+        List<String> attrs = new ArrayList<String>();
         Map<URI, List<UserMapping>> tenantToMappingMap = permissionsHelper.getAllUserMappingsForDomain(domain);
-        if( _searchControls.getReturningAttributes() != null ) {
+        if (_searchControls.getReturningAttributes() != null) {
             Collections.addAll(attrs, _searchControls.getReturningAttributes());
         }
 
@@ -506,22 +503,22 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
 
         printTenantToMappingMap(tenantToMappingMap);
 
-        // Add attributes that need to be released for tenant mapping           
-        for( List<UserMapping> mappings : tenantToMappingMap.values()) {
+        // Add attributes that need to be released for tenant mapping
+        for (List<UserMapping> mappings : tenantToMappingMap.values()) {
             if (mappings == null) {
                 continue;
             }
 
-            for(UserMapping mapping : mappings) {
-                if(mapping.getAttributes() != null && !mapping.getAttributes().isEmpty()) {
-                    for( UserMappingAttribute mappingAttribute : mapping.getAttributes() ) {
+            for (UserMapping mapping : mappings) {
+                if (mapping.getAttributes() != null && !mapping.getAttributes().isEmpty()) {
+                    for (UserMappingAttribute mappingAttribute : mapping.getAttributes()) {
                         attrs.add(mappingAttribute.getKey());
                     }
                 }
             }
         }
 
-        //Now get the returning attributes from the userGroup table.
+        // Now get the returning attributes from the userGroup table.
         getReturningAttributesFromUserGroups(permissionsHelper, domain, attrs);
 
         // Create search controls with the additional attributes to return
@@ -536,50 +533,52 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         @SuppressWarnings("unchecked")
         final List<StorageOSUserDAO> storageOSUsers = safeLdapSearch(_baseDN, ldapQuery,
                 dnSearchControls, userMapper, failureReason);
-        if( null == storageOSUsers ) {
+        if (null == storageOSUsers) {
             _log.error("Query for user {} failed", username);
             return null;
         }
 
         StorageOSUserDAO storageOSUser = null;
         try {
-            storageOSUser = DataAccessUtils.requiredUniqueResult(storageOSUsers);  
+            storageOSUser = DataAccessUtils.requiredUniqueResult(storageOSUsers);
             if (null == storageOSUser) {
                 _log.error("Query for user {} yielded no results", username);
                 failureReason[0] = ValidationFailureReason.USER_OR_GROUP_NOT_FOUND_FOR_TENANT;
                 return null;
             }
-        } catch(IncorrectResultSizeDataAccessException ex) {
+        } catch (IncorrectResultSizeDataAccessException ex) {
             _log.error("Query for user {} yielded incorrect number of results.", username, ex);
             failureReason[0] = ValidationFailureReason.USER_OR_GROUP_NOT_FOUND_FOR_TENANT;
             return null;
         }
 
         // If the type is AD then fetch the users tokenGroups
-        if (_type==AuthnProvider.ProvidersType.ad) {
+        if (_type == AuthnProvider.ProvidersType.ad) {
             List<String> groups = queryTokenGroups(ldapQuery, storageOSUser);
             StringBuilder groupsString = new StringBuilder("[ ");
-            for( String group : groups ) { 
-                groupsString.append(group+" ");
+            for (String group : groups) {
+                groupsString.append(group + " ");
                 storageOSUser.addGroup(group);
             }
             groupsString.append("]");
             _log.debug("User {} adding groups {}", username, groupsString);
-        }else{
-        	if(!updateGroupsAndRootGroupsInLDAPByMemberAttribute(storageOSUser, failureReason)){
-            	// null means Exception has been thrown and error logged already, empty means no group found in LDAP/AD
+        } else {
+            if (!updateGroupsAndRootGroupsInLDAPByMemberAttribute(storageOSUser, failureReason)) {
+                // null means Exception has been thrown and error logged already, empty means no group found in LDAP/AD
                 _log.info("User {} is not in any AD/LDAP groups.", storageOSUser.getDistinguishedName());
             }
         }
 
-        //Add the user's group based on the attributes.
-        AddUserGroupsToUserGroupList(permissionsHelper, domain, storageOSUser);
+        // Add the user's group based on the attributes.
+        addUserGroupsToUserGroupList(permissionsHelper, domain, storageOSUser);
 
-        return new UserAndTenants(storageOSUser, mapUserToTenant(domain, storageOSUser, userMappingAttributes, tenantToMappingMap, failureReason));
+        return new UserAndTenants(storageOSUser, mapUserToTenant(domain, storageOSUser, userMappingAttributes, tenantToMappingMap,
+                failureReason));
     }
 
     /**
      * Match the user to one and only one tenant if found user there attributes/groups
+     * 
      * @param domain
      * @param storageOSUser
      * @param attributeKeyValuesMap
@@ -588,10 +587,10 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
     private Map<URI, UserMapping> mapUserToTenant(String domain, StorageOSUserDAO storageOSUser,
             Map<String, List<String>> attributeKeyValuesMap, Map<URI,
             List<UserMapping>> tenantToMappingMap, ValidationFailureReason[] failureReason) {
-        Map<URI, UserMapping> tenants = new HashMap<URI,UserMapping>();
+        Map<URI, UserMapping> tenants = new HashMap<URI, UserMapping>();
         List<UserMappingAttribute> userMappingAttributes = new ArrayList<UserMappingAttribute>();
 
-        for( Entry<String, List<String>> attributeKeyValues : attributeKeyValuesMap.entrySet() ) {
+        for (Entry<String, List<String>> attributeKeyValues : attributeKeyValuesMap.entrySet()) {
             UserMappingAttribute userMappingAttribute = new UserMappingAttribute();
             userMappingAttribute.setKey(attributeKeyValues.getKey());
             userMappingAttribute.setValues(attributeKeyValues.getValue());
@@ -599,28 +598,28 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         }
 
         List<String> userMappingGroups = new ArrayList<String>();
-        if( null != storageOSUser.getGroups()) {
-            for( String group : storageOSUser.getGroups() ) {
+        if (null != storageOSUser.getGroups()) {
+            for (String group : storageOSUser.getGroups()) {
                 userMappingGroups.add((group.split("@")[0]).toUpperCase());
                 _log.debug("Adding user's group {} to usermapping group ", (group.split("@")[0]).toUpperCase());
             }
         }
-        
-        for(Entry<URI, List<UserMapping>> tenantToMappingMapEntry : tenantToMappingMap.entrySet()) {
+
+        for (Entry<URI, List<UserMapping>> tenantToMappingMapEntry : tenantToMappingMap.entrySet()) {
             if (tenantToMappingMapEntry == null || tenantToMappingMapEntry.getValue() == null) {
                 continue;
             }
 
-            for(UserMapping userMapping : tenantToMappingMapEntry.getValue()) {                
-                if( userMapping.isMatch(domain, userMappingAttributes, userMappingGroups )) {
+            for (UserMapping userMapping : tenantToMappingMapEntry.getValue()) {
+                if (userMapping.isMatch(domain, userMappingAttributes, userMappingGroups)) {
                     tenants.put(tenantToMappingMapEntry.getKey(), userMapping);
                 }
-            }            
+            }
         }
 
         // if no tenant was found then set it to the root tenant
         // unless the root tenant is restricted by a mapping
-        if(tenants.isEmpty()) {
+        if (tenants.isEmpty()) {
 
             BasePermissionsHelper permissionsHelper = new BasePermissionsHelper(_dbClient, false);
             TenantOrg rootTenant = permissionsHelper.getRootTenant();
@@ -633,23 +632,26 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
                 // check if the change is to remove all user-mapping from provider tenant.
                 // if yes, set user map to provider tenant.
                 if (CollectionUtils.isEmpty(rootUserMapping)) {
-                    _log.debug("User {} did not match a tenant.  Assigning to root tenant since root does not have any attribute mappings", storageOSUser.getUserName());
+                    _log.debug("User {} did not match a tenant.  Assigning to root tenant since root does not have any attribute mappings",
+                            storageOSUser.getUserName());
                     tenants.put(rootTenant.getId(), null);
                 }
 
-            // provider tenant is not in UserMapping parameter, means no change to its user-mapping in this request,
-            // need to check if its original user-mapping is empty or not.
-            } else if( rootTenant.getUserMappings() == null || rootTenant.getUserMappings().isEmpty() ) {
-                _log.debug("User {} did not match a tenant.  Assigning to root tenant since root does not have any attribute mappings", storageOSUser.getUserName());
+                // provider tenant is not in UserMapping parameter, means no change to its user-mapping in this request,
+                // need to check if its original user-mapping is empty or not.
+            } else if (rootTenant.getUserMappings() == null || rootTenant.getUserMappings().isEmpty()) {
+                _log.debug("User {} did not match a tenant.  Assigning to root tenant since root does not have any attribute mappings",
+                        storageOSUser.getUserName());
                 tenants.put(rootTenant.getId(), null);
             }
-        } 
+        }
         return tenants;
     }
 
     /**
-     * Do the Ldap search and catch any connection errors. 
+     * Do the Ldap search and catch any connection errors.
      * Return null for caught exceptions, empty list for empty search result.
+     * 
      * @param base the search base
      * @param ldapQuery the search query
      * @param searchControls the LDAP search controls
@@ -663,8 +665,9 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
     }
 
     /**
-     * Do the Ldap search and catch any connection errors. 
+     * Do the Ldap search and catch any connection errors.
      * Return null for caught exceptions, empty list for empty search result.
+     * 
      * @param base the search base
      * @param ldapQuery the search query
      * @param searchControls the LDAP search controls
@@ -678,7 +681,7 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
             ValidationFailureReason[] failureReason) {
         try {
             return _ldapTemplate.search(base, ldapQuery, searchControls, mapper);
-        } catch(CommunicationException e) {
+        } catch (CommunicationException e) {
             // all caught exceptions must return null. Spring LDAP returns empty list for empty search result.
             _log.error("Caught communication exception connecting to ldap server", e);
             failureReason[0] = ValidationFailureReason.LDAP_CONNECTION_FAILED;
@@ -691,9 +694,10 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
     }
 
     /**
-     * Get the user's token groups from AD.  The groups returned will be on the 
-     * whitelist that is configured for this authN provider.  Also the group name
-     * in the list will be the configured user attribute. 
+     * Get the user's token groups from AD. The groups returned will be on the
+     * whitelist that is configured for this authN provider. Also the group name
+     * in the list will be the configured user attribute.
+     * 
      * @param ldapQuery Configured LDAP query to search for the user
      * @param storageOSUser The storageOSUser to get tokenGroups for
      * @return the names of the white listed groups for the user.
@@ -712,16 +716,16 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
 
         @SuppressWarnings("unchecked")
         List<List<String>> tokenGroupSids =
-        safeLdapSearch(dn, ldapQuery, dnSearchControls, new TokenGroupsMapper());
-        if( null == tokenGroupSids ) {
+                safeLdapSearch(dn, ldapQuery, dnSearchControls, new TokenGroupsMapper());
+        if (null == tokenGroupSids) {
             _log.debug("No groups found for user: ", storageOSUser.getUserName());
             return groups;
         }
 
         List<String> unFilteredGroups = resolveGroups(tokenGroupSids.get(0));
         for (String groupName : unFilteredGroups) {
-            String groupNameWithoutDomain = groupName.substring(0,groupName.lastIndexOf("@"));
-            if (isGroupOnWhiteList(groupNameWithoutDomain)){
+            String groupNameWithoutDomain = groupName.substring(0, groupName.lastIndexOf("@"));
+            if (isGroupOnWhiteList(groupNameWithoutDomain)) {
                 groups.add(groupName);
             }
         }
@@ -730,6 +734,7 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
 
     /**
      * Given a list of group SIDs do an LDAP search to get the configured group attribute
+     * 
      * @param groupSids List of group object SIDs
      * @return a list of groups resolved using the group sids
      */
@@ -738,39 +743,40 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         List<String> resolvedGroups = new ArrayList<String>();
         List<List<String>> partitionedGroupSids = Lists.partition(groupSids, _maxPageSize);
         _log.debug("User is in {} number of token groups", groupSids.size());
-        if( partitionedGroupSids.size() > 1 ) {
+        if (partitionedGroupSids.size() > 1) {
             _log.info("Partitioning group query into {} lists since max results is {}", partitionedGroupSids.size(), _maxPageSize);
-        }    
-        for( List<String> groupSidPartition : partitionedGroupSids ) {
+        }
+        for (List<String> groupSidPartition : partitionedGroupSids) {
             SearchControls groupSearchControls = new SearchControls(
                     SearchControls.SUBTREE_SCOPE,
                     _maxPageSize, _searchControls.getTimeLimit(),
                     null, _searchControls.getReturningObjFlag(),
                     _searchControls.getDerefLinkFlag());
 
-            final String groupSidLdapQuery = getGroupSidQueryFilter(OBJECT_SID, groupSidPartition);       
+            final String groupSidLdapQuery = getGroupSidQueryFilter(OBJECT_SID, groupSidPartition);
             if (groupSidLdapQuery == null) {
                 _log.error("Group sid query filter was null when trying to resolve groups");
                 return resolvedGroups;
             }
             @SuppressWarnings("unchecked")
             final List<List<GroupAttribute>> resolvedGroupAttributeList = safeLdapSearch(_baseDN, groupSidLdapQuery,
-                    groupSearchControls, new GroupsMapper(_groupWhiteList.getType()));        
-            if( null == resolvedGroupAttributeList ) {
+                    groupSearchControls, new GroupsMapper(_groupWhiteList.getType()));
+            if (null == resolvedGroupAttributeList) {
                 _log.error("Query to resolve groups returned no results");
                 return resolvedGroups;
-            } 
-            for( List<GroupAttribute> resolvedGroupAttribute : resolvedGroupAttributeList ) {
-                if ( !resolvedGroupAttribute.isEmpty() ) {
+            }
+            for (List<GroupAttribute> resolvedGroupAttribute : resolvedGroupAttributeList) {
+                if (!resolvedGroupAttribute.isEmpty()) {
                     resolvedGroups.add(resolvedGroupAttribute.get(0).getGroupNameWithDomain());
                 }
-            } 
+            }
         }
         return resolvedGroups;
     }
 
     /**
      * Check if a group is on the whitelist for this authN provider
+     * 
      * @param groupId ID of the group to check
      * @return true if the group is on the white list false otherwise
      */
@@ -779,7 +785,7 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         if (patterns != null && patterns.length > 0) {
             for (Pattern pattern : patterns) {
                 if (pattern.matcher(groupId).matches()) {
-                    return true;                    
+                    return true;
                 }
             }
         } else {
@@ -792,13 +798,13 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
      * Add the user group to the storageos user's
      * group list if the storageos user's attributes and values matches
      * with the user group configs.
-     *
+     * 
      * @param permissionsHelper to find and match the db objects.
      * @param domain to find all the userMappings for the domain.
      * @param storageOSUser to be updated with the list of user
-     *                      group to the storageos user's group list.
+     *            group to the storageos user's group list.
      */
-    private void AddUserGroupsToUserGroupList(BasePermissionsHelper permissionsHelper, String domain, StorageOSUserDAO storageOSUser) {
+    private void addUserGroupsToUserGroupList(BasePermissionsHelper permissionsHelper, String domain, StorageOSUserDAO storageOSUser) {
         if (StringUtils.isBlank(domain)) {
             _log.error("Invalid domain {} to search user group", domain);
             return;
@@ -825,11 +831,11 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
     /**
      * Get the list of returning attributes AD or LDAP servers
      * based on the configured user group.
-     *
+     * 
      * @param permissionsHelper to find and match the db objects.
      * @param domain to find all the configured user group for the domain.
      * @param attrs out param, to be updated with the list of attributes
-     *              to be returned from the AD or LDAP servers.
+     *            to be returned from the AD or LDAP servers.
      */
     private void getReturningAttributesFromUserGroups(BasePermissionsHelper permissionsHelper, String domain, List<String> attrs) {
         if (StringUtils.isBlank(domain)) {
@@ -865,93 +871,94 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
             }
         }
     }
-    
+
     /**
-	 * Checks whether searching groups in LDAP can be done or not. This is done based on
-	 * the authentication provider's configuration. If the Authentication provider mode is
-	 * LDAP, it should have LDAP Group properties like group object classes and group
-	 * member attributes in order to search for the groups in LDAP.
-	 * 
-	 * @return - return true if the authentication provider's configuration contains valid
-	 *           group object classes and group member attributes otherwise false.
-	 * 
-	 */
-	private boolean shouldSearchGroupInLDAP() {
-		
-		boolean continueToGroupSearch = false;
-		if (!CollectionUtils.isEmpty(this._groupObjectClasses) &&
-                !CollectionUtils.isEmpty(this._groupMemberAttributes)){
-			continueToGroupSearch = true;
-		}
-		
-		return continueToGroupSearch;
-	}
-	
-     /**
-	 * Creates the objectClass filter for the AD or LDAP search. For AD, the only possible
-	 * objectClass filter is "group" for LDAP, it can be any of "groupOfNames", "groupOfUniqueNames",
-	 * "posixGroup", "organizationalRole". These are inputs from API payload. The default is "groupOfNames".
-	 * 
-	 * @return - returns the objectClass filter based on the type of the authn provider.
-	 *           null for the ldap authn provider if authn provider configuration does not 
-	 *           contain any ldap group search properties like object classes and group
-	 *           member attributes.
-	 * 
-	 */
-	private Filter createGroupObjectClassFilter() {
-		
-		OrFilter groupObjectClassFilter = null;
-		if( _type == ProvidersType.ad){
-			groupObjectClassFilter = new OrFilter();
-			final Filter localObjectClassFilter = new EqualsFilter("objectClass", "group");
-			groupObjectClassFilter.or(localObjectClassFilter);
-		}else{
-			if (shouldSearchGroupInLDAP()){
-				groupObjectClassFilter = new OrFilter();
-				for(String objectClass : this._groupObjectClasses){
-					final Filter localObjectClassFilter = new EqualsFilter("objectClass", objectClass);
-					groupObjectClassFilter.or(localObjectClassFilter);
-				}
-			}
-		}
-		
-		return groupObjectClassFilter;
-	}
-	/**
-	 * Returns the distinguished name's attribute type name based on the
-	 * authentication provider type.
-	 * 
-	 * @return - returns the DN attributeType name based on the authn
-	 *           provider type.
-	 *           
-	 */
-	private String getDistinguishedNameAttribute() {
-		String distinguishedNameAttr;
-        if( _type == ProvidersType.ad) {
+     * Checks whether searching groups in LDAP can be done or not. This is done based on
+     * the authentication provider's configuration. If the Authentication provider mode is
+     * LDAP, it should have LDAP Group properties like group object classes and group
+     * member attributes in order to search for the groups in LDAP.
+     * 
+     * @return - return true if the authentication provider's configuration contains valid
+     *         group object classes and group member attributes otherwise false.
+     * 
+     */
+    private boolean shouldSearchGroupInLDAP() {
+
+        boolean continueToGroupSearch = false;
+        if (!CollectionUtils.isEmpty(this._groupObjectClasses) &&
+                !CollectionUtils.isEmpty(this._groupMemberAttributes)) {
+            continueToGroupSearch = true;
+        }
+
+        return continueToGroupSearch;
+    }
+
+    /**
+     * Creates the objectClass filter for the AD or LDAP search. For AD, the only possible
+     * objectClass filter is "group" for LDAP, it can be any of "groupOfNames", "groupOfUniqueNames",
+     * "posixGroup", "organizationalRole". These are inputs from API payload. The default is "groupOfNames".
+     * 
+     * @return - returns the objectClass filter based on the type of the authn provider.
+     *         null for the ldap authn provider if authn provider configuration does not
+     *         contain any ldap group search properties like object classes and group
+     *         member attributes.
+     * 
+     */
+    private Filter createGroupObjectClassFilter() {
+
+        OrFilter groupObjectClassFilter = null;
+        if (_type == ProvidersType.ad) {
+            groupObjectClassFilter = new OrFilter();
+            final Filter localObjectClassFilter = new EqualsFilter("objectClass", "group");
+            groupObjectClassFilter.or(localObjectClassFilter);
+        } else {
+            if (shouldSearchGroupInLDAP()) {
+                groupObjectClassFilter = new OrFilter();
+                for (String objectClass : this._groupObjectClasses) {
+                    final Filter localObjectClassFilter = new EqualsFilter("objectClass", objectClass);
+                    groupObjectClassFilter.or(localObjectClassFilter);
+                }
+            }
+        }
+
+        return groupObjectClassFilter;
+    }
+
+    /**
+     * Returns the distinguished name's attribute type name based on the
+     * authentication provider type.
+     * 
+     * @return - returns the DN attributeType name based on the authn
+     *         provider type.
+     * 
+     */
+    private String getDistinguishedNameAttribute() {
+        String distinguishedNameAttr;
+        if (_type == ProvidersType.ad) {
             distinguishedNameAttr = AD_DISTINGUISHED_NAME;
         } else {
             distinguishedNameAttr = LDAP_DISTINGUISHED_NAME;
         }
-		return distinguishedNameAttr;
-	}
-	
-	/**
-	 * Finds the group based on one of (either groupOfNames, groupOfUniqueNames, posixGroup, organizationalRole)
-	 * objectClass and one of these attribute (either member, uniqueMember, memberUid, roleOccupant) attributes
-	 * from LDAP. 
-	 * This function finds multiple level user's group membership in the given search base.
-	 * 
-	 * @param storageOSUser - A domain user whose group member is being found.
-	 * @param failureReason - A string to be updated with failure reason if there is any failure.
-	 * 
-	 * @return - true if the search is successful (or if the authentication provider is not in ldap mode).
-	 *           otherwise false.
-	 * 
-	 */
-	private boolean updateGroupsAndRootGroupsInLDAPByMemberAttribute(StorageOSUserDAO storageOSUser,
-						          ValidationFailureReason[] failureReason) {
-		boolean foundUserGroups = false;
-		if (_type != ProvidersType.ldap) {
+        return distinguishedNameAttr;
+    }
+
+    /**
+     * Finds the group based on one of (either groupOfNames, groupOfUniqueNames, posixGroup, organizationalRole)
+     * objectClass and one of these attribute (either member, uniqueMember, memberUid, roleOccupant) attributes
+     * from LDAP.
+     * This function finds multiple level user's group membership in the given search base.
+     * 
+     * @param storageOSUser - A domain user whose group member is being found.
+     * @param failureReason - A string to be updated with failure reason if there is any failure.
+     * 
+     * @return - true if the search is successful (or if the authentication provider is not in ldap mode).
+     *         otherwise false.
+     * 
+     */
+    private boolean updateGroupsAndRootGroupsInLDAPByMemberAttribute(StorageOSUserDAO storageOSUser,
+            ValidationFailureReason[] failureReason) {
+        boolean foundUserGroups = false;
+        if (_type != ProvidersType.ldap) {
             return foundUserGroups;
         }
 
@@ -959,7 +966,7 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         Set<String> allGroupsOfUser = new HashSet<String>();
         findGroupsInLDAPByMemberAttribute(memberEntryDN, allGroupsOfUser, failureReason);
 
-        if(CollectionUtils.isEmpty(allGroupsOfUser)) {
+        if (CollectionUtils.isEmpty(allGroupsOfUser)) {
             return foundUserGroups;
         }
 
@@ -971,22 +978,21 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
             }
         }
         return foundUserGroups;
-	}
+    }
 
-
-	/**
-	 * Finds the group based on one of (ex., groupOfNames, groupOfUniqueNames, posixGroup, organizationalRole)
-	 * objectClass and one of these attribute (ex., member, uniqueMember, memberUid, roleOccupant) attributes
-	 * from LDAP.
-	 * 
-	 * @param memberEntryDN - A value to be searched in the values of any of the given group's attribute.
+    /**
+     * Finds the group based on one of (ex., groupOfNames, groupOfUniqueNames, posixGroup, organizationalRole)
+     * objectClass and one of these attribute (ex., member, uniqueMember, memberUid, roleOccupant) attributes
+     * from LDAP.
+     * 
+     * @param memberEntryDN - A value to be searched in the values of any of the given group's attribute.
      * @param allGroupsOfUserWithDomain - An out param. Set all the groups with domain suffix to which the user is member off.
-	 * @param failureReason - A string to be updated with failure reason if there is any failure.
-	 * 
-	 */
-	private void findGroupsInLDAPByMemberAttribute(String memberEntryDN, Set<String> allGroupsOfUserWithDomain,
-                                                          ValidationFailureReason[] failureReason) {
-        if (_type != ProvidersType.ldap){
+     * @param failureReason - A string to be updated with failure reason if there is any failure.
+     * 
+     */
+    private void findGroupsInLDAPByMemberAttribute(String memberEntryDN, Set<String> allGroupsOfUserWithDomain,
+            ValidationFailureReason[] failureReason) {
+        if (_type != ProvidersType.ldap) {
             _log.info("Non ldap authn provider.");
             return;
         }
@@ -996,8 +1002,8 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         }
 
         final Filter groupObjectClassFilter = createGroupObjectClassFilter();
-        if (groupObjectClassFilter == null){
-            //Empty LDAP group search properties. Just return true.
+        if (groupObjectClassFilter == null) {
+            // Empty LDAP group search properties. Just return true.
             _log.info("Empty ldap group object classes or attributes.");
             return;
         }
@@ -1007,18 +1013,18 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         final OrFilter groupMemberAttributeFilter = new OrFilter();
 
         for (String groupMemberAttribute : this._groupMemberAttributes) {
-            //Create or filter based on all the group member attributes given
-            //the user in either portal or API.
+            // Create or filter based on all the group member attributes given
+            // the user in either portal or API.
             final Filter localGroupMemberAttributeFilter = new EqualsFilter(groupMemberAttribute, memberEntryDN);
             groupMemberAttributeFilter.or(localGroupMemberAttributeFilter);
         }
 
-        //Query filter is based on the given objectClasses, member attributes.
+        // Query filter is based on the given objectClasses, member attributes.
         queryBuilder.and(groupObjectClassFilter);
         queryBuilder.and(groupMemberAttributeFilter);
 
-        //Expecting the attributes from the search results that can be used to construct
-        //the GroupAttribute object.
+        // Expecting the attributes from the search results that can be used to construct
+        // the GroupAttribute object.
         Set<String> returnAttributesSet = new HashSet<String>(this._groupMemberAttributes);
         returnAttributesSet.add(COMMON_NAME);
         returnAttributesSet.add(OBJECT_CLASS);
@@ -1050,85 +1056,86 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
             }
 
             for (GroupAttribute groupAttr : groupAttrResults) {
-                String groupDN =  groupAttr.getGroupDistinguishedName();
+                String groupDN = groupAttr.getGroupDistinguishedName();
                 allGroupsOfUserWithDomain.add(groupAttr.getGroupNameWithDomain());
 
                 _log.debug("Finding the higher level group of {}", groupDN);
                 findGroupsInLDAPByMemberAttribute(groupAttr.getGroupDistinguishedName(), allGroupsOfUserWithDomain, failureReason);
             }
         }
-	}
-
-	/**
-	 * Searches the Authentication Provider (either LDAP or AD) based on the given
-	 * search controls and required return attributes and return count limit.
-	 * 
-	 * @param queryBuilder - A query to be used to search in authn provider.
-	 * @param returnAttributes - An array of attributes to be returned from the search.
-	 * @param countLimit - number of expected objects to be returns that matches the
-	 *                     search query. 
-	 * @param mapper - An attribute mapper used to extract the required values from
-	 *                 the search.
-	 * @param failureReason - A string to be updated with failure reason if there is any failure.
-	 * 
-	 * @return - Returns the list of GroupAttribute that matches the search criteria.
-	 * 
-	 */
-	@SuppressWarnings("unchecked")
-	private List<List<GroupAttribute>> searchAuthProvider(
-			Filter queryBuilder, String[] returnAttributes, 
-			final long countLimit,
-			AttributesMapper mapper, ValidationFailureReason[] failureReason) throws SizeLimitExceededException {
-		
-		SearchControls groupSearchControls = new SearchControls(
-		        SearchControls.SUBTREE_SCOPE,
-		        countLimit, _searchControls.getTimeLimit(),
-		        returnAttributes, _searchControls.getReturningObjFlag(),
-		        _searchControls.getDerefLinkFlag());
-		
-		List<List<GroupAttribute>> queryGroupResults = null;
-		queryGroupResults = safeLdapSearch(_baseDN, queryBuilder.encode(), groupSearchControls, mapper, failureReason);
-	
-		return queryGroupResults;
-	}
+    }
 
     /**
-     *  Class to implement map tokenGroups attribute to a list of SID strings
+     * Searches the Authentication Provider (either LDAP or AD) based on the given
+     * search controls and required return attributes and return count limit.
+     * 
+     * @param queryBuilder - A query to be used to search in authn provider.
+     * @param returnAttributes - An array of attributes to be returned from the search.
+     * @param countLimit - number of expected objects to be returns that matches the
+     *            search query.
+     * @param mapper - An attribute mapper used to extract the required values from
+     *            the search.
+     * @param failureReason - A string to be updated with failure reason if there is any failure.
+     * 
+     * @return - Returns the list of GroupAttribute that matches the search criteria.
+     * 
+     */
+    @SuppressWarnings("unchecked")
+    private List<List<GroupAttribute>> searchAuthProvider(
+            Filter queryBuilder, String[] returnAttributes,
+            final long countLimit,
+            AttributesMapper mapper, ValidationFailureReason[] failureReason) throws SizeLimitExceededException {
+
+        SearchControls groupSearchControls = new SearchControls(
+                SearchControls.SUBTREE_SCOPE,
+                countLimit, _searchControls.getTimeLimit(),
+                returnAttributes, _searchControls.getReturningObjFlag(),
+                _searchControls.getDerefLinkFlag());
+
+        List<List<GroupAttribute>> queryGroupResults = null;
+        queryGroupResults = safeLdapSearch(_baseDN, queryBuilder.encode(), groupSearchControls, mapper, failureReason);
+
+        return queryGroupResults;
+    }
+
+    /**
+     * Class to implement map tokenGroups attribute to a list of SID strings
      */
     private class TokenGroupsMapper implements AttributesMapper {
         @Override
         public Object mapFromAttributes(Attributes attributes) throws NamingException {
             List<String> tokenGroupSids = new ArrayList<String>();
             Attribute tokenGroupsAttr = attributes.get(TOKEN_GROUPS);
-            if( null != tokenGroupsAttr ) {
+            if (null != tokenGroupsAttr) {
                 NamingEnumeration<?> tokenGroups = tokenGroupsAttr.getAll();
-                while( tokenGroups.hasMoreElements() ) {
+                while (tokenGroups.hasMoreElements()) {
                     byte[] bytes = (byte[]) tokenGroups.nextElement();
-                    if( null != bytes ) {
+                    if (null != bytes) {
                         tokenGroupSids.add(getSidAsString(bytes));
                     }
                 }
             }
             return tokenGroupSids;
-        }        
+        }
     }
 
     /**
-     *   Class to map a group Attributes to a string list of groups 
+     * Class to map a group Attributes to a string list of groups
      */
     private class GroupsMapper implements AttributesMapper {
         private final String _groupAttribute;
         private final String _groupDNAttributeTypeName;
-        
+
         public GroupsMapper(String groupAttribute) {
-        	this(groupAttribute, AD_DISTINGUISHED_NAME);
+            this(groupAttribute, AD_DISTINGUISHED_NAME);
         }
-        
+
         public GroupsMapper(String groupAttribute, String distinguishedNameId) {
             super();
             _groupAttribute = groupAttribute;
             _groupDNAttributeTypeName = distinguishedNameId;
         }
+
         @Override
         public Object mapFromAttributes(Attributes attributes) throws NamingException {
             List<GroupAttribute> groups = new ArrayList<GroupAttribute>();
@@ -1137,13 +1144,13 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
             Attribute dnAttr = attributes.get(_groupDNAttributeTypeName);
             String dn = null;
             if (null != dnAttr) {
-                dn = (String)dnAttr.get();
+                dn = (String) dnAttr.get();
             }
-            
+
             Attribute cnAttribute = attributes.get("cn");
             String cn = null;
-            if (cnAttribute != null){
-            	cn = (String)cnAttribute.get();
+            if (cnAttribute != null) {
+                cn = (String) cnAttribute.get();
             }
 
             Attribute groupAttr = attributes.get(_groupAttribute);
@@ -1172,8 +1179,8 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
 
     /**
      * group attribute returns from ldap search, it contains
-     *  1. the attribute value specified by the search,
-     *  2. and distinguishName of the group object, which will be used for domain validation.
+     * 1. the attribute value specified by the search,
+     * 2. and distinguishName of the group object, which will be used for domain validation.
      */
     private class GroupAttribute {
         private String groupAttributeValue;
@@ -1181,7 +1188,7 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         private String groupCommonName;
         private String groupDomain;
 
-		public void setGroupAttributeValue(String value) {
+        public void setGroupAttributeValue(String value) {
             groupAttributeValue = value;
         }
 
@@ -1196,37 +1203,37 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         public String getGroupDistinguishedName() {
             return groupDistinguishedName;
         }
-        
+
         public String getGroupCommonName() {
-			return groupCommonName;
-		}
+            return groupCommonName;
+        }
 
-		public void setGroupCommonName(String groupCommonName) {
-			this.groupCommonName = groupCommonName;
-		}
-		
-		public String getGroupDomain() {
-			return groupDomain;
-		}
+        public void setGroupCommonName(String groupCommonName) {
+            this.groupCommonName = groupCommonName;
+        }
 
-		public void setGroupDomain(String groupDomain) {
-			this.groupDomain = groupDomain;
-		}
+        public String getGroupDomain() {
+            return groupDomain;
+        }
+
+        public void setGroupDomain(String groupDomain) {
+            this.groupDomain = groupDomain;
+        }
 
         /**
          * validate if the group object match the specified domain
-         *
-         * @param domain  format as "vipr.com"
+         * 
+         * @param domain format as "vipr.com"
          * @return
          */
         public boolean domainMatch(String domain) {
             if (domain == null || groupDistinguishedName == null) {
                 return false;
             }
-            
-            if (StringUtils.isBlank(this.groupDomain)){
-        		this.groupDomain = getDomainFromDN();
-        	}
+
+            if (StringUtils.isBlank(this.groupDomain)) {
+                this.groupDomain = getDomainFromDN();
+            }
 
             if (domain.equalsIgnoreCase(this.groupDomain)) {
                 return true;
@@ -1237,8 +1244,8 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
 
         /**
          * construct domain from group's distinguish name,
-         *
-         * @return domain  extract DC parts from dn, formatted as "vipr.com"
+         * 
+         * @return domain extract DC parts from dn, formatted as "vipr.com"
          */
         public String getDomainFromDN() {
             if (groupDistinguishedName == null) {
@@ -1266,16 +1273,16 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
          * construct group name with domain name
          */
         public String getGroupNameWithDomain() {
-        	if (StringUtils.isBlank(this.groupDomain)){
-        		this.groupDomain = getDomainFromDN();
-        	}
+            if (StringUtils.isBlank(this.groupDomain)) {
+                this.groupDomain = getDomainFromDN();
+            }
             return groupAttributeValue + "@" + this.groupDomain;
         }
     }
 
     /**
-     *  Private class to be a container for a StorageOSUserDAO
-     *  And their tenants
+     * Private class to be a container for a StorageOSUserDAO
+     * And their tenants
      */
     private class UserAndTenants {
         public UserAndTenants(StorageOSUserDAO user,
@@ -1288,14 +1295,15 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         private final Map<URI, UserMapping> _tenants;
     }
 
-
     private void printTenantToMappingMap(Map<URI, List<UserMapping>> maps) {
         Iterator<URI> keys = maps.keySet().iterator();
 
         _log.debug("user mapping: ");
         while (keys.hasNext()) {
             URI key = keys.next();
-            if (maps.get(key) != null) _log.debug(key + " = " + maps.get(key).toString());
+            if (maps.get(key) != null) {
+                _log.debug(key + " = " + maps.get(key).toString());
+            }
         }
     }
 }

@@ -25,7 +25,7 @@ import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.db.common.DbConfigConstants;
 
 /**
- * Custom seed provider that uses coordinator cluster.  This is used by Cassandra
+ * Custom seed provider that uses coordinator cluster. This is used by Cassandra
  * to located other nodes to discover cluster information when joining
  */
 public class SeedProviderImpl implements SeedProvider {
@@ -38,14 +38,14 @@ public class SeedProviderImpl implements SeedProvider {
     private CoordinatorClientImpl _client;
 
     /**
-     * This constructor's argument is from cassandral's yaml configuration.   Here is an example
+     * This constructor's argument is from cassandral's yaml configuration. Here is an example
      * seed_provider:
-     *  - class_name: com.emc.storageos.db.server.impl.SeedProviderImpl
-     *  parameters:
-     *    - coordinators: "coordinator://127.0.0.1:2181, coordinator://127.0.0.1:3181, coordinator://127.0.0.1:4181"
-     *      id: "db-one
-     *
-     *
+     * - class_name: com.emc.storageos.db.server.impl.SeedProviderImpl
+     * parameters:
+     * - coordinators: "coordinator://127.0.0.1:2181, coordinator://127.0.0.1:3181, coordinator://127.0.0.1:4181"
+     * id: "db-one
+     * 
+     * 
      * @param args
      * @throws Exception
      */
@@ -79,11 +79,11 @@ public class SeedProviderImpl implements SeedProvider {
         CoordinatorClientImpl client = new CoordinatorClientImpl();
         client.setZkConnection(connection);
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/nodeaddrmap-var.xml");
-        CoordinatorClientInetAddressMap inetAddressMap = (CoordinatorClientInetAddressMap)ctx.getBean("inetAddessLookupMap");
+        CoordinatorClientInetAddressMap inetAddressMap = (CoordinatorClientInetAddressMap) ctx.getBean("inetAddessLookupMap");
         if (inetAddressMap == null) {
-        	_logger.error("CoordinatorClientInetAddressMap is not initialized. Node address lookup will fail.");
+            _logger.error("CoordinatorClientInetAddressMap is not initialized. Node address lookup will fail.");
         }
-        client.setInetAddessLookupMap(inetAddressMap); //HARCODE FOR NOW
+        client.setInetAddessLookupMap(inetAddressMap); // HARCODE FOR NOW
         client.start();
         _client = client;
     }

@@ -17,14 +17,13 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
-
 /**
  * The VMAX3 storage system implementation for the block full copy API,
  * which has some additional platform restrictions that do not apply
  * for older VMAX arrays.
  */
 public class VMAX3BlockFullCopyApiImpl extends VMAXBlockFullCopyApiImpl {
-    
+
     private static final String FULLCOPIES = "Full Copies";
 
     /**
@@ -35,10 +34,10 @@ public class VMAX3BlockFullCopyApiImpl extends VMAXBlockFullCopyApiImpl {
      * @param scheduler A reference to a scheduler.
      */
     public VMAX3BlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator,
-        Scheduler scheduler) {
+            Scheduler scheduler) {
         super(dbClient, coordinator, scheduler);
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -46,7 +45,7 @@ public class VMAX3BlockFullCopyApiImpl extends VMAXBlockFullCopyApiImpl {
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
         // Call super first.
         super.validateFullCopyCreateRequest(fcSourceObjList, count);
-        
+
         // For VMAX3 you cannot have active snap and full copy sessions,
         // so verify there are no active snapshots for the volume. Note
         // that we know the source is a volume, because full copies are
@@ -56,7 +55,7 @@ public class VMAX3BlockFullCopyApiImpl extends VMAXBlockFullCopyApiImpl {
             BlockServiceUtils.validateVMAX3ActiveSnapSessionsExists(fcSourceObj.getId(), _dbClient, FULLCOPIES);
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -66,9 +65,9 @@ public class VMAX3BlockFullCopyApiImpl extends VMAXBlockFullCopyApiImpl {
         // so verify there are no active full copies for the volume.
         for (Volume volumeToSnap : volumesToSnap) {
             // Check if the volume to snap is an active full copy.
-            if ((BlockFullCopyUtils.isVolumeFullCopy(volumeToSnap, _dbClient)) && 
-                (!BlockFullCopyUtils.isFullCopyDetached(volumeToSnap, _dbClient)) &&
-                (!BlockFullCopyUtils.isFullCopyInactive(volumeToSnap, _dbClient))) {
+            if ((BlockFullCopyUtils.isVolumeFullCopy(volumeToSnap, _dbClient)) &&
+                    (!BlockFullCopyUtils.isFullCopyDetached(volumeToSnap, _dbClient)) &&
+                    (!BlockFullCopyUtils.isFullCopyInactive(volumeToSnap, _dbClient))) {
                 throw APIException.badRequests.NoSnapshotsForVMAX3VolumeWithActiveFullCopy();
             }
 
@@ -76,20 +75,20 @@ public class VMAX3BlockFullCopyApiImpl extends VMAXBlockFullCopyApiImpl {
             // that has active full copies.
             StringSet fullCopyIds = volumeToSnap.getFullCopies();
             if ((fullCopyIds != null) && (!fullCopyIds.isEmpty())) {
-                Iterator<String>fullCopyIdsIter = fullCopyIds.iterator();
+                Iterator<String> fullCopyIdsIter = fullCopyIds.iterator();
                 while (fullCopyIdsIter.hasNext()) {
                     URI fullCopyURI = URI.create(fullCopyIdsIter.next());
                     Volume fullCopyVolume = _dbClient.queryObject(Volume.class, fullCopyURI);
-                    if ((fullCopyVolume != null) && (!fullCopyVolume.getInactive()) && 
-                        (!BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient)) &&
-                        (!BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient))) {
+                    if ((fullCopyVolume != null) && (!fullCopyVolume.getInactive()) &&
+                            (!BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient)) &&
+                            (!BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient))) {
                         throw APIException.badRequests.NoSnapshotsForVMAX3VolumeWithActiveFullCopy();
                     }
                 }
             }
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */

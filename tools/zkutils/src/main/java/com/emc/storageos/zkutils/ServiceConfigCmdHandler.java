@@ -11,11 +11,8 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.db.common.DbConfigConstants;
-import com.emc.storageos.db.common.DbServiceStatusChecker;
 
 /**
  * Handle service information configuration

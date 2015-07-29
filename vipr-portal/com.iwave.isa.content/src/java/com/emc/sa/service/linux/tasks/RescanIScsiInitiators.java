@@ -7,7 +7,7 @@ package com.emc.sa.service.linux.tasks;
 import com.iwave.ext.linux.command.iscsi.RescanIScsiTargetsCommand;
 
 public class RescanIScsiInitiators extends LinuxExecutionTask<Void> {
-    
+
     public RescanIScsiInitiators() {
     }
 
@@ -15,5 +15,5 @@ public class RescanIScsiInitiators extends LinuxExecutionTask<Void> {
     public void execute() throws Exception {
         executeCommand(new RescanIScsiTargetsCommand(), SHORT_TIMEOUT);
     }
-    
+
 }

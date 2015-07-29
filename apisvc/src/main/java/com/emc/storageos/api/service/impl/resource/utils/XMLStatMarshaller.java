@@ -25,7 +25,7 @@ public class XMLStatMarshaller implements StatMarshaller {
         try {
             _context = JAXBContext.newInstance(Stat.class);
         } catch (JAXBException e) {
-        	throw APIException.internalServerErrors.jaxbContextError(e.getMessage(),e);
+            throw APIException.internalServerErrors.jaxbContextError(e.getMessage(), e);
         }
     }
 

@@ -29,7 +29,8 @@ public class ExportMaskNameGeneratorTest {
         String expected = alternate + "_" + cluster + "_" + hostname;
         assertEquals(expected, generatedName);
 
-        System.out.println(String.format("testAllNamesProvidedShort - Generated name '%s', length is %d", generatedName, generatedName.length()));
+        System.out.println(String.format("testAllNamesProvidedShort - Generated name '%s', length is %d", generatedName,
+                generatedName.length()));
     }
 
     @Test
@@ -46,7 +47,8 @@ public class ExportMaskNameGeneratorTest {
         String expected = alternate + "_" + cluster.substring(0, truncate) + "_" + hostname;
         assertEquals(expected, generatedName);
 
-        System.out.println(String.format("testAllNamesProvidedLongClusterName - Generated name '%s', length is %d", generatedName, generatedName.length()));
+        System.out.println(String.format("testAllNamesProvidedLongClusterName - Generated name '%s', length is %d", generatedName,
+                generatedName.length()));
     }
 
     @Test
@@ -63,7 +65,8 @@ public class ExportMaskNameGeneratorTest {
         String expected = alternate.substring(0, truncate) + "_" + cluster + "_" + hostname;
         assertEquals(expected, generatedName);
 
-        System.out.println(String.format("testAllNamesProvidedLongAlternateName - Generated name '%s', length is %d", generatedName, generatedName.length()));
+        System.out.println(String.format("testAllNamesProvidedLongAlternateName - Generated name '%s', length is %d", generatedName,
+                generatedName.length()));
     }
 
     @Test
@@ -79,7 +82,8 @@ public class ExportMaskNameGeneratorTest {
         String expected = hostname.substring(0, MAXLENGTH);
         assertEquals(expected, generatedName);
 
-        System.out.println(String.format("testAllNamesProvidedLongHostName - Generated name '%s', length is %d", generatedName, generatedName.length()));
+        System.out.println(String.format("testAllNamesProvidedLongHostName - Generated name '%s', length is %d", generatedName,
+                generatedName.length()));
     }
 
     @Test
@@ -95,7 +99,8 @@ public class ExportMaskNameGeneratorTest {
         String expected = hostname.substring(0, MAXLENGTH);
         assertEquals(expected, generatedName);
 
-        System.out.println(String.format("testAllNamesProvidedAllLong - Generated name '%s', length is %d", generatedName, generatedName.length()));
+        System.out.println(String.format("testAllNamesProvidedAllLong - Generated name '%s', length is %d", generatedName,
+                generatedName.length()));
     }
 
     @Test
@@ -140,11 +145,12 @@ public class ExportMaskNameGeneratorTest {
         assertTrue(String.format("Generated name '%s' is longer than max characters. Length is %d",
                 generatedName, generatedName.length()), generatedName.length() <= MAXLENGTH);
 
-        int truncate = MAXLENGTH - (hostname.length() +  1);
+        int truncate = MAXLENGTH - (hostname.length() + 1);
         String expected = cluster.substring(0, truncate) + "_" + hostname;
         assertEquals(expected, generatedName);
 
-        System.out.println(String.format("testNoAlternateNameLongClusterName - Generated name '%s', length is %d", generatedName, generatedName.length()));
+        System.out.println(String.format("testNoAlternateNameLongClusterName - Generated name '%s', length is %d", generatedName,
+                generatedName.length()));
     }
 
     @Test
@@ -161,6 +167,7 @@ public class ExportMaskNameGeneratorTest {
         String expected = alternate.substring(0, truncate) + "_" + hostname;
         assertEquals(expected, generatedName);
 
-        System.out.println(String.format("testNoClusterNameLongAlternateName - Generated name '%s', length is %d", generatedName, generatedName.length()));
+        System.out.println(String.format("testNoClusterNameLongAlternateName - Generated name '%s', length is %d", generatedName,
+                generatedName.length()));
     }
 }

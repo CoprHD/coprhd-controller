@@ -66,21 +66,21 @@ public class DbSvcRunner {
     protected static String GEOSVC_ID = "geodb-standalone"; // svc id defined in
                                                             // geodb-var.xml
 
-    protected static String DBSVC_ID = "db-standalone"; 
-    
+    protected static String DBSVC_ID = "db-standalone";
+
     private static String GEODB_DIR = "geodbtest"; // db dir defined in
                                                    // geodb-test.yaml
     private static String LOCALDB_DIR = "dbtest"; // db dir defined in
                                                   // db-test.yaml
     private static String ZK_DIR = "/data/zk"; // zk data dir defined in
-    
+
     private File dataDir;
 
     private String configFile;
     private String serviceName;
 
     private Process process;
-    
+
     public DbSvcRunner(String configFile, String serviceName) {
         this.configFile = configFile;
         this.serviceName = serviceName;
@@ -94,14 +94,15 @@ public class DbSvcRunner {
         final String[] args = new String[] { getFullConfigFilePath(configFile) };
         log.info("Starting " + DBSVC_MAIN + " with config file : " + args[0]);
         File dir = new File(GEODB_DIR);
-        if (dir.exists())
+        if (dir.exists()) {
             cleanDirectory(dir);
+        }
         Thread inProcRunnerThread = new Thread(new Runnable() {
             public void run() {
                 main(args);
-                log.info(DBSVC_MAIN+"Thread has stopped");
+                log.info(DBSVC_MAIN + "Thread has stopped");
             }
-        }, DBSVC_MAIN+"Thread");
+        }, DBSVC_MAIN + "Thread");
         inProcRunnerThread.start();
     }
 
@@ -128,15 +129,16 @@ public class DbSvcRunner {
      */
     public void startCoordinator() {
         File dir = new File(ZK_DIR);
-        if (dir.exists())
+        if (dir.exists()) {
             cleanDirectory(dir);
+        }
         Thread coordThread = new Thread(new Runnable() {
             public void run() {
                 try {
                     final String[] args = new String[] { "classpath:" + COORDINATORSVC_CONFIG };
-                    log.info("Starting Coordinator with config file : {}" , args[0]);
+                    log.info("Starting Coordinator with config file : {}", args[0]);
                     FileSystemXmlApplicationContext ctx = new FileSystemXmlApplicationContext(args);
-                    Coordinator coordinator = (Coordinator)ctx.getBean("coordinatorsvc");
+                    Coordinator coordinator = (Coordinator) ctx.getBean("coordinatorsvc");
                     coordinator.start();
                     log.info("CoordinatorThread has stopped");
                 } catch (Exception ex) {
@@ -146,13 +148,13 @@ public class DbSvcRunner {
         }, "CoordinatorThread");
         coordThread.start();
     }
-    
+
     private String getFullConfigFilePath(String fileName) {
         String confFile = Thread.currentThread().getContextClassLoader()
                 .getResource(fileName).getFile();
         return confFile;
     }
-    
+
     /**
      * Start a thread to fork new java process
      * 
@@ -219,7 +221,7 @@ public class DbSvcRunner {
     private int startProcess(String main, String conf) throws Exception {
         String classPath = System.getProperty("java.class.path");
         ProcessBuilder processBuilder = new ProcessBuilder("java",
-                "-Djava.net.preferIPv4Stack=true",  main, conf);
+                "-Djava.net.preferIPv4Stack=true", main, conf);
         processBuilder.environment().put("CLASSPATH", classPath);
         processBuilder.redirectErrorStream(true);
         processBuilder.directory(dataDir);
@@ -335,6 +337,7 @@ public class DbSvcRunner {
         try {
             Thread.sleep(1000 * seconds);
         } catch (InterruptedException ex) {
+            // Ignore this exception.
         }
 
     }
@@ -356,19 +359,21 @@ public class DbSvcRunner {
             zkConn.setTimeoutMs(10000);
             zkConn.build();
 
-            coordinator = new CoordinatorClientImpl();
+            // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+            // Junit test will be called in single thread by default, it's safe to ignore this violation
+            coordinator = new CoordinatorClientImpl(); // NOSONAR ("squid:S2444")
             coordinator.setZkConnection(zkConn);
             coordinator.setSysSvcName("syssvc");
             coordinator.setSysSvcVersion("1");
             coordinator.setNodeCount(1);
 
             ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("nodeaddrmap-var.xml");
-            CoordinatorClientInetAddressMap inetAddressMap = (CoordinatorClientInetAddressMap)ctx.getBean("inetAddessLookupMap");
+            CoordinatorClientInetAddressMap inetAddressMap = (CoordinatorClientInetAddressMap) ctx.getBean("inetAddessLookupMap");
             if (inetAddressMap == null) {
                 log.error("CoordinatorClientInetAddressMap is not initialized. Node address lookup will fail.");
             }
             Map<String, DualInetAddress> controlNodes = inetAddressMap.getControllerNodeIPLookupMap();
-            coordinator.setInetAddessLookupMap(inetAddressMap); //HARCODE FOR NOW
+            coordinator.setInetAddessLookupMap(inetAddressMap); // HARCODE FOR NOW
 
             DbVersionInfo dbVersionInfo = new DbVersionInfo();
             dbVersionInfo.setSchemaVersion(SVC_VERSION);
@@ -378,16 +383,17 @@ public class DbSvcRunner {
 
         return coordinator;
     }
-    
+
     public static void main(String args[]) {
         try {
             String ctxFile = args[0];
             FileSystemXmlApplicationContext ctx = new FileSystemXmlApplicationContext("file:" + ctxFile);
-            DbService dbsvc = (DbService)ctx.getBean("dbsvc");
+            DbService dbsvc = (DbService) ctx.getBean("dbsvc");
             dbsvc.start();
             log.info("dbsvc is started");
-            while (true)
+            while (true) {
                 ;
+            }
         } catch (Exception ex) {
             log.error("Exception ", ex);
         }
@@ -399,7 +405,7 @@ public class DbSvcRunner {
             try {
                 file.createNewFile();
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error("Exception: ", e);
             }
         }
         File file2 = new File("/etc/ovfenv.properties");
@@ -407,7 +413,7 @@ public class DbSvcRunner {
             try {
                 file2.createNewFile();
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error("Exception: ", e);
             }
         }
     }

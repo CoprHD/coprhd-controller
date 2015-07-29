@@ -98,9 +98,9 @@ public class DbClientTest extends DbsvcTestBase {
     private static final Logger _logger = LoggerFactory.getLogger(DbClientTest.class);
 
     private int pageSize = 3;
-    
+
     private DbClient _dbClient;
-    
+
     @Before
     public void setupTest() {
         DbClientImplUnitTester dbClient = new DbClientImplUnitTester();
@@ -109,20 +109,20 @@ public class DbClientTest extends DbsvcTestBase {
         dbClient.setBypassMigrationLock(true);
         _encryptionProvider.setCoordinator(_coordinator);
         dbClient.setEncryptionProvider(_encryptionProvider);
-        
+
         DbClientContext localCtx = new DbClientContext();
         localCtx.setClusterName("Test");
         localCtx.setKeyspaceName("Test");
         dbClient.setLocalContext(localCtx);
 
         VdcUtil.setDbClient(dbClient);
-        
+
         dbClient.setBypassMigrationLock(false);
         dbClient.start();
-        
+
         _dbClient = dbClient;
     }
-    
+
     @After
     public void teardown() {
         if (_dbClient instanceof DbClientImplUnitTester) {
@@ -181,7 +181,7 @@ public class DbClientTest extends DbsvcTestBase {
         for (int i = 0; i < count; i++) {
             VirtualArray varray = new VirtualArray();
             varray.setId(URIUtil.createId(VirtualArray.class));
-            varray.setLabel(labelPrefix+i);
+            varray.setLabel(labelPrefix + i);
             _dbClient.createObject(varray);
             varrays.add(varray);
         }
@@ -193,7 +193,7 @@ public class DbClientTest extends DbsvcTestBase {
         List<Project> projects = new ArrayList<>(count);
 
         for (int i = 0; i < count; i++) {
-            Project pj =  new Project();
+            Project pj = new Project();
             pj.setId(URIUtil.createId(Project.class));
             String label = String.format("%1$d :/#$#@$\\: Test Label", i);
             pj.setLabel(label);
@@ -285,24 +285,25 @@ public class DbClientTest extends DbsvcTestBase {
 
     @Test
     public void testDecommisionedConstraintWithPageinate() throws Exception {
-        int objCount =10;
+        int objCount = 10;
         List<VirtualArray> varrays = createVirtualArrays(10, "foo");
         List<URI> ids = _dbClient.queryByType(VirtualArray.class, true);
-        int count = 0;       
-        for (@SuppressWarnings("unused") URI ignore : ids) {
+        int count = 0;
+        for (@SuppressWarnings("unused")
+        URI ignore : ids) {
             count++;
         }
-        
+
         Assert.assertEquals(objCount, count);
 
         testQueryByType(VirtualArray.class, true, objCount);
         testQueryByType(VirtualArray.class, false, objCount);
 
-        //delete two virtual arrays
+        // delete two virtual arrays
         _dbClient.markForDeletion(varrays.get(0));
         _dbClient.markForDeletion(varrays.get(1));
 
-        testQueryByType(VirtualArray.class, true, objCount-2);
+        testQueryByType(VirtualArray.class, true, objCount - 2);
         testQueryByType(VirtualArray.class, false, objCount);
 
     }
@@ -312,18 +313,20 @@ public class DbClientTest extends DbsvcTestBase {
         int count = 0;
         List<URI> ids;
 
-        while(true) {
+        while (true) {
             ids = _dbClient.queryByType(clazz, activeOnly, nextId, pageSize);
 
             if (ids.isEmpty())
+            {
                 break; // reach the end
+            }
 
             count += ids.size();
-            nextId = ids.get(ids.size()-1);
+            nextId = ids.get(ids.size() - 1);
         }
 
         Assert.assertEquals(objCount, count);
-    } 
+    }
 
     @Test
     public void testPrefixPaginateConstraint() throws Exception {
@@ -416,23 +419,25 @@ public class DbClientTest extends DbsvcTestBase {
 
     private <T extends QueryResultList<URI>> void queryInPaginate(Constraint constraint, Class<T> clazz, int objCount, int pageCount)
             throws IllegalAccessException, InstantiationException {
-        queryInPaginate(constraint, clazz, objCount, pageCount, objCount/pageCount+1);
+        queryInPaginate(constraint, clazz, objCount, pageCount, objCount / pageCount + 1);
     }
 
-    private <T extends QueryResultList<URI>> void queryInPaginate(Constraint constraint, Class<T> clazz, int objCount, int pageCount, int times)
+    private <T extends QueryResultList<URI>> void queryInPaginate(Constraint constraint, Class<T> clazz, int objCount, int pageCount,
+            int times)
             throws IllegalAccessException, InstantiationException {
         int queryTimes = 0;
         int count = 0;
         URI nextId = null;
 
         while (true) {
-            T result = (T)clazz.newInstance();
+            T result = (T) clazz.newInstance();
             _dbClient.queryByConstraint(constraint, result, nextId, pageCount);
 
             Iterator<URI> it = result.iterator();
 
-            if (! it.hasNext())
+            if (!it.hasNext()) {
                 break;
+            }
 
             queryTimes++;
             while (it.hasNext()) {
@@ -476,12 +481,12 @@ public class DbClientTest extends DbsvcTestBase {
         Assert.assertEquals(set.size(), 1);
         Assert.assertEquals(set.contains("test2"), true);
     }
-    
+
     @Test
     public void testStringSetMapRemove() throws Exception {
-        
+
         // shows behavior of AbstractChangeTrackingMapSet.clear()
-        
+
         _logger.info("Starting StringSetMap3 test");
 
         DbClient dbClient = _dbClient;
@@ -500,18 +505,18 @@ public class DbClientTest extends DbsvcTestBase {
         set2.add("test6");
         set2.add("test7");
         set2.add("test8");
-        
+
         String key1 = "key1";
         String key2 = "key2";
 
         StringSetMap sMap = new StringSetMap();
         sMap.put(key1, set1);
         sMap.put(key2, set2);
-        
+
         ps.setSiteInitiators(sMap);
-        
+
         dbClient.createObject(ps);
-        
+
         ProtectionSystem ps1 = dbClient.queryObject(ProtectionSystem.class, ps.getId());
 
         StringSet set3 = new StringSet();
@@ -525,18 +530,18 @@ public class DbClientTest extends DbsvcTestBase {
         set4.add("test14");
         set4.add("test15");
         set4.add("test16");
-        
+
         String key4 = "key4";
         String key3 = "key3";
-        
+
         StringSetMap sMap2 = new StringSetMap();
         sMap2.put(key3, set3);
         sMap2.put(key4, set4);
-        
+
         ps1.getSiteInitiators().remove(key1);
         ps1.getSiteInitiators().remove(key2);
         ps1.getSiteInitiators().putAll(sMap2);
-        
+
         Assert.assertTrue(ps1.getSiteInitiators().containsKey(key1));
         Assert.assertTrue(ps1.getSiteInitiators().get(key1).isEmpty());
         Assert.assertTrue(ps1.getSiteInitiators().containsKey(key2));
@@ -545,26 +550,25 @@ public class DbClientTest extends DbsvcTestBase {
         Assert.assertFalse(ps1.getSiteInitiators().get(key3).isEmpty());
         Assert.assertTrue(ps1.getSiteInitiators().containsKey(key4));
         Assert.assertFalse(ps1.getSiteInitiators().get(key4).isEmpty());
-        
+
         dbClient.persistObject(ps1);
-        
+
         ProtectionSystem ps2 = dbClient.queryObject(ProtectionSystem.class, ps.getId());
-        
+
         Assert.assertFalse(ps2.getSiteInitiators().containsKey(key1));
         Assert.assertFalse(ps2.getSiteInitiators().containsKey(key2));
         Assert.assertTrue(ps2.getSiteInitiators().containsKey(key3));
         Assert.assertFalse(ps2.getSiteInitiators().get(key3).isEmpty());
         Assert.assertTrue(ps2.getSiteInitiators().containsKey(key4));
         Assert.assertFalse(ps2.getSiteInitiators().get(key4).isEmpty());
-        
-        
+
     }
-    
+
     @Test
     public void testStringSetMapClear() throws Exception {
-        
+
         // shows behavior of AbstractChangeTrackingMapSet.clear()
-        
+
         _logger.info("Starting StringSetMap3 test");
 
         DbClient dbClient = _dbClient;
@@ -583,18 +587,18 @@ public class DbClientTest extends DbsvcTestBase {
         set2.add("test6");
         set2.add("test7");
         set2.add("test8");
-        
+
         String key1 = "key1";
         String key2 = "key2";
 
         StringSetMap sMap = new StringSetMap();
         sMap.put(key1, set1);
         sMap.put(key2, set2);
-        
+
         ps.setSiteInitiators(sMap);
-        
+
         dbClient.createObject(ps);
-        
+
         ProtectionSystem ps1 = dbClient.queryObject(ProtectionSystem.class, ps.getId());
 
         StringSet set3 = new StringSet();
@@ -608,17 +612,17 @@ public class DbClientTest extends DbsvcTestBase {
         set4.add("test14");
         set4.add("test15");
         set4.add("test16");
-        
+
         String key4 = "key4";
         String key3 = "key3";
-        
+
         StringSetMap sMap2 = new StringSetMap();
         sMap2.put(key3, set3);
         sMap2.put(key4, set4);
-        
+
         ps1.getSiteInitiators().clear();
         ps1.getSiteInitiators().putAll(sMap2);
-        
+
         Assert.assertTrue(ps1.getSiteInitiators().containsKey(key1));
         Assert.assertTrue(ps1.getSiteInitiators().get(key1).isEmpty());
         Assert.assertTrue(ps1.getSiteInitiators().containsKey(key2));
@@ -627,26 +631,25 @@ public class DbClientTest extends DbsvcTestBase {
         Assert.assertFalse(ps1.getSiteInitiators().get(key3).isEmpty());
         Assert.assertTrue(ps1.getSiteInitiators().containsKey(key4));
         Assert.assertFalse(ps1.getSiteInitiators().get(key4).isEmpty());
-        
+
         dbClient.persistObject(ps1);
-        
+
         ProtectionSystem ps2 = dbClient.queryObject(ProtectionSystem.class, ps.getId());
-        
+
         Assert.assertFalse(ps2.getSiteInitiators().containsKey(key1));
         Assert.assertFalse(ps2.getSiteInitiators().containsKey(key2));
         Assert.assertTrue(ps2.getSiteInitiators().containsKey(key3));
         Assert.assertFalse(ps2.getSiteInitiators().get(key3).isEmpty());
         Assert.assertTrue(ps2.getSiteInitiators().containsKey(key4));
         Assert.assertFalse(ps2.getSiteInitiators().get(key4).isEmpty());
-        
-        
+
     }
-    
+
     @Test
     public void testStringSetMapReplace() throws Exception {
-        
+
         // shows behavior of AbstractChangeTrackingMapSet.clear()
-        
+
         _logger.info("Starting StringSetMapReplace test");
 
         DbClient dbClient = _dbClient;
@@ -665,18 +668,18 @@ public class DbClientTest extends DbsvcTestBase {
         set2.add("test6");
         set2.add("test7");
         set2.add("test8");
-        
+
         String key1 = "key1";
         String key2 = "key2";
 
         StringSetMap sMap = new StringSetMap();
         sMap.put(key1, set1);
         sMap.put(key2, set2);
-        
+
         ps.setSiteInitiators(sMap);
-        
+
         dbClient.createObject(ps);
-        
+
         ProtectionSystem ps1 = dbClient.queryObject(ProtectionSystem.class, ps.getId());
 
         StringSet set3 = new StringSet();
@@ -690,16 +693,16 @@ public class DbClientTest extends DbsvcTestBase {
         set4.add("test14");
         set4.add("test15");
         set4.add("test16");
-        
+
         String key4 = "key4";
         String key3 = "key3";
-        
+
         StringSetMap sMap2 = new StringSetMap();
         sMap2.put(key3, set3);
         sMap2.put(key4, set4);
-        
+
         ps1.getSiteInitiators().replace(sMap2);
-        
+
         Assert.assertTrue(ps1.getSiteInitiators().containsKey(key1));
         Assert.assertTrue(ps1.getSiteInitiators().get(key1).isEmpty());
         Assert.assertTrue(ps1.getSiteInitiators().containsKey(key2));
@@ -708,9 +711,9 @@ public class DbClientTest extends DbsvcTestBase {
         Assert.assertFalse(ps1.getSiteInitiators().get(key3).isEmpty());
         Assert.assertTrue(ps1.getSiteInitiators().containsKey(key4));
         Assert.assertFalse(ps1.getSiteInitiators().get(key4).isEmpty());
-        
+
         dbClient.persistObject(ps1);
-        
+
         ProtectionSystem ps2 = dbClient.queryObject(ProtectionSystem.class, ps.getId());
         Assert.assertFalse(ps2.getSiteInitiators().containsKey(key1));
         Assert.assertFalse(ps2.getSiteInitiators().containsKey(key2));
@@ -718,8 +721,7 @@ public class DbClientTest extends DbsvcTestBase {
         Assert.assertFalse(ps2.getSiteInitiators().get(key3).isEmpty());
         Assert.assertTrue(ps2.getSiteInitiators().containsKey(key4));
         Assert.assertFalse(ps2.getSiteInitiators().get(key4).isEmpty());
-        
-        
+
     }
 
     @Test
@@ -794,17 +796,17 @@ public class DbClientTest extends DbsvcTestBase {
             good = true;
         }
         Assert.assertTrue(good);
-        
+
         // set encryption back so that the objects can be deleted
         queried.setSecondKey("");
         dbClient.persistObject(queried);
-        
+
         _logger.info("Ended encryption test");
     }
 
     @Test
     public void testConfigOverride() {
-        final int newTtl =  1234;
+        final int newTtl = 1234;
 
         TypeMap.DataObjectFieldConfiguration doConfig = new TypeMap.DataObjectFieldConfiguration();
         doConfig.setDoClass(FileShare.class);
@@ -1002,7 +1004,7 @@ public class DbClientTest extends DbsvcTestBase {
 
     /**
      * Tests object lookup by alias
-     *
+     * 
      * @throws IOException
      */
     @Test
@@ -1072,90 +1074,91 @@ public class DbClientTest extends DbsvcTestBase {
 
         // list all storage devices (verifies that alternate ID's are stored in separate CF)
         List<URI> device = dbClient.queryByType(StorageSystem.class, true);
-        int count = 0;       
-        for (@SuppressWarnings("unused") URI ignore : device) {
+        int count = 0;
+        for (@SuppressWarnings("unused")
+        URI ignore : device) {
             count++;
         }
         Assert.assertEquals(3, count);
     }
-    
+
     @Test
     public void testCfWithMutipleRelationIndex() {
         _logger.info("Starting testCompareIndexes");
         DbClient dbClient = _dbClient;
-        
+
         URI varrayId1 = URIUtil.createId(VirtualArray.class);
         VirtualArray varray1 = new VirtualArray();
         varray1.setId(varrayId1);
         varray1.setLabel("varray1");
         dbClient.createObject(varray1);
-         
+
         Network nw1 = new Network();
         nw1.setId(URIUtil.createId(Network.class));
         nw1.setLabel("networkObj");
-        
+
         StringSet varrayStrSet1 = new StringSet();
         varrayStrSet1.add(varrayId1.toString());
         nw1.setAssignedVirtualArrays(varrayStrSet1);
         dbClient.createObject(nw1);
-        
+
         List<Network> assignedNetworks = CustomQueryUtility.queryActiveResourcesByRelation(
                 dbClient, varrayId1, Network.class, "assignedVirtualArrays");
-        
+
         Assert.assertTrue(assignedNetworks.iterator().hasNext());
         Assert.assertEquals(assignedNetworks.size(), 1);
-        
+
         List<Network> connectedNetworks = CustomQueryUtility.queryActiveResourcesByRelation(
                 dbClient, varrayId1, Network.class, "connectedVirtualArrays");
-        
+
         Assert.assertFalse(connectedNetworks.iterator().hasNext());
-        
+
         URI varrayId2 = URIUtil.createId(VirtualArray.class);
         VirtualArray varray2 = new VirtualArray();
         varray2.setId(varrayId2);
         varray2.setLabel("varray2");
         dbClient.createObject(varray2);
-        
+
         StringSet varrayStrSet2 = new StringSet();
         varrayStrSet2.add(varrayId1.toString());
         varrayStrSet2.add(varrayId2.toString());
-        
+
         nw1.setConnectedVirtualArrays(varrayStrSet2);
-        
+
         dbClient.persistObject(nw1);
-        
+
         assignedNetworks.clear();
         assignedNetworks = CustomQueryUtility.queryActiveResourcesByRelation(
                 dbClient, varrayId1, Network.class, "assignedVirtualArrays");
-        
+
         Assert.assertTrue(assignedNetworks.iterator().hasNext());
         Assert.assertEquals(assignedNetworks.size(), 1);
-        
+
         connectedNetworks.clear();
         connectedNetworks = CustomQueryUtility.queryActiveResourcesByRelation(
                 dbClient, varrayId2, Network.class, "connectedVirtualArrays");
-        
+
         Assert.assertTrue(connectedNetworks.iterator().hasNext());
         Assert.assertEquals(connectedNetworks.size(), 1);
-        
+
         connectedNetworks.clear();
         connectedNetworks = CustomQueryUtility.queryActiveResourcesByRelation(
                 dbClient, varrayId1, Network.class, "connectedVirtualArrays");
-        
+
         Assert.assertTrue(connectedNetworks.iterator().hasNext());
         Assert.assertEquals(connectedNetworks.size(), 1);
-        
+
         assignedNetworks.clear();
         assignedNetworks = CustomQueryUtility.queryActiveResourcesByRelation(
                 dbClient, varrayId2, Network.class, "assignedVirtualArrays");
-        
+
         Assert.assertFalse(assignedNetworks.iterator().hasNext());
-        
+
     }
 
     /**
      * Tests object lookup by alias
-     *
+     * 
      * @throws IOException
      */
     @Test
@@ -1179,16 +1182,16 @@ public class DbClientTest extends DbsvcTestBase {
         AuthnProvider stdQueryResult = dbClient.queryObject(AuthnProvider.class, provider.getId());
         Assert.assertTrue(stdQueryResult.getId().equals(provider.getId()));
         Assert.assertTrue(stdQueryResult.getLabel().equals(provider.getLabel()));
-        
-        Assert.assertEquals(stdQueryResult.getDomains().size(),provider.getDomains().size());
-        for (String domain: domains) {
+
+        Assert.assertEquals(stdQueryResult.getDomains().size(), provider.getDomains().size());
+        for (String domain : domains) {
             Assert.assertTrue(stdQueryResult.getDomains().contains(domain));
         }
 
         // query by altid
-        for (String domain: domains) {
+        for (String domain : domains) {
             URIQueryResultList altIdResult = new URIQueryResultList();
-            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getAuthnProviderDomainConstraint(domain), altIdResult );
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getAuthnProviderDomainConstraint(domain), altIdResult);
             Assert.assertTrue(altIdResult.iterator().hasNext());
         }
 
@@ -1205,11 +1208,11 @@ public class DbClientTest extends DbsvcTestBase {
         // query by altid
         for (String domain : domains) {
             URIQueryResultList altIdResult = new URIQueryResultList();
-            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getAuthnProviderDomainConstraint(domain), altIdResult );
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getAuthnProviderDomainConstraint(domain), altIdResult);
             Assert.assertTrue(altIdResult.iterator().hasNext());
         }
         URIQueryResultList altIdResult = new URIQueryResultList();
-        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getAuthnProviderDomainConstraint("test-subtenant"), altIdResult );
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getAuthnProviderDomainConstraint("test-subtenant"), altIdResult);
         Assert.assertFalse(altIdResult.iterator().hasNext());
     }
 
@@ -1221,7 +1224,7 @@ public class DbClientTest extends DbsvcTestBase {
         Assert.assertEquals(md.getSupportedQueryGranularity().size(), 3);
         Assert.assertArrayEquals(md.getSupportedQueryGranularity().toArray(),
                 new TimeSeriesMetadata.TimeBucket[] { TimeSeriesMetadata.TimeBucket.SECOND,
-                        TimeSeriesMetadata.TimeBucket.MINUTE, TimeSeriesMetadata.TimeBucket.HOUR});
+                        TimeSeriesMetadata.TimeBucket.MINUTE, TimeSeriesMetadata.TimeBucket.HOUR });
     }
 
     @Test
@@ -1267,7 +1270,6 @@ public class DbClientTest extends DbsvcTestBase {
         _logger.info("Insertion throughput with batch size {} is {} records per second", batchCount,
                 (perThreadCount * numThreads) / (duration / 1000f));
 
-
         // read at default granularity
         executor = Executors.newFixedThreadPool(numThreads);
         CountDownLatch latch = new CountDownLatch(numThreads * perThreadCount);
@@ -1310,7 +1312,7 @@ public class DbClientTest extends DbsvcTestBase {
 
     @Test
     public void testTimeSeriesWithTimestamp() throws Exception {
-    	//org.apache.log4j.Logger.getRootLogger().setLevel(org.apache.log4j.Level.INFO);
+        // org.apache.log4j.Logger.getRootLogger().setLevel(org.apache.log4j.Level.INFO);
         _logger.info("Starting testTimeSeriesWithTimestamp");
         final int perThreadCount = 10;
         final int numThreads = 5;
@@ -1327,18 +1329,18 @@ public class DbClientTest extends DbsvcTestBase {
         e.setSeverity("REALLY BAD");
         e.setUserId(URI.create("urn:storageos:User:foobar"));
         e.setTimeInMillis(-1);
-        // Given time for data points of time series 
+        // Given time for data points of time series
         final DateTime dateTime = new DateTime(2000, 1, 1, 0, 0, DateTimeZone.UTC);
 
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         long duration = System.currentTimeMillis();
         for (int threadIndex = 0; threadIndex < numThreads; threadIndex++) {
-        	final int threadId = threadIndex;
+            final int threadId = threadIndex;
             executor.submit(new Callable<Object>() {
                 @Override
                 public Object call() throws Exception {
-                    for (int index = 0; index < perThreadCount ; index++) {
-                        long millis = dateTime.getMillis() + (long)((perThreadCount) * threadId + index) * 1000;
+                    for (int index = 0; index < perThreadCount; index++) {
+                        long millis = dateTime.getMillis() + (long) ((perThreadCount) * threadId + index) * 1000;
                         DateTime time = new DateTime(millis, DateTimeZone.UTC);
                         dbClient.insertTimeSeries(EventTimeSeries.class, time, e);
                     }
@@ -1364,7 +1366,7 @@ public class DbClientTest extends DbsvcTestBase {
         _logger.info("Read throughput(HOUR) is {} records per second",
                 (perThreadCount * numThreads) / (duration / 1000f));
 
-         _logger.info("Finished testTimeSeriesWithTimestamp");
+        _logger.info("Finished testTimeSeriesWithTimestamp");
     }
 
     @Test
@@ -1383,7 +1385,7 @@ public class DbClientTest extends DbsvcTestBase {
         system1.setInactive(true);
         system1.setOpStatus(status);
 
-        StorageSystem system2 = new StorageSystem();        
+        StorageSystem system2 = new StorageSystem();
         system2.setId(URIUtil.createId(StorageSystem.class));
         system2.setLabel(label);
         system2.setInactive(true);
@@ -1393,7 +1395,7 @@ public class DbClientTest extends DbsvcTestBase {
 
         List<URI> uris = new ArrayList<URI>();
         uris.add(system1.getId());
-        uris.add(system2.getId());        
+        uris.add(system2.getId());
         List<StorageSystem> systems = dbClient.queryObjectField(StorageSystem.class, "label", uris);
         Assert.assertEquals(2, systems.size());
         Assert.assertTrue(systems.get(0).getLabel().equals(label));
@@ -1490,7 +1492,7 @@ public class DbClientTest extends DbsvcTestBase {
                 fShares.next();
                 fsIds.add(URI.create("DUMMY_STRING"));
             }
-        }catch (ConcurrentModificationException e) {
+        } catch (ConcurrentModificationException e) {
             Assert.assertTrue(e != null);
         }
 
@@ -1590,11 +1592,13 @@ public class DbClientTest extends DbsvcTestBase {
         while (fShares.hasNext()) {
             sumCnt++;
             FileShare fShare = fShares.next();
-            if(fShare.getLabel().equals("GOLDEN"))
+            if (fShare.getLabel().equals("GOLDEN"))
+            {
                 checkFsIds.remove(fShare.getId());
-            // System.out.println("Id: " + fShare.getId() + " vpool: " +
-            // fShare.getCos()
-            // + " Capacity: " + fShare.getCapacity());
+                // System.out.println("Id: " + fShare.getId() + " vpool: " +
+                // fShare.getCos()
+                // + " Capacity: " + fShare.getCapacity());
+            }
         }
         Assert.assertEquals(sumCnt, 110);
         Assert.assertEquals(checkFsIds.size(), 10);
@@ -1617,38 +1621,38 @@ public class DbClientTest extends DbsvcTestBase {
         }
         Assert.assertEquals(copperCnt, 256);
         Assert.assertEquals(checkFsIds.size(), 0);
-        
+
     }
-    
+
     private List<URI> createDummyFileSharesinDB(DbClient dbClient, long size,
-			String label, int count) throws Exception {
+            String label, int count) throws Exception {
         VirtualPool vpool = new VirtualPool();
         vpool.setId(URIUtil.createId(VirtualPool.class));
         vpool.setLabel("GOLD");
         vpool.setType("file");
         vpool.setProtocols(new StringSet());
-		dbClient.persistObject(vpool);
+        dbClient.persistObject(vpool);
 
-		List<URI> fsIds = new ArrayList<URI>();
-		for (int i = 0; i < count; i++) {
-			FileShare fs = new FileShare();
-			fs.setId(URIUtil.createId(FileShare.class));
-                        if(label ==  null){
-   			    fs.setLabel("fileshare" + System.nanoTime());
-                        }else{
-                            fs.setLabel(label);
-                        }
-			fs.setCapacity(size);
-			fs.setVirtualPool(vpool.getId());
-			fs.setOpStatus(new OpStatusMap());
-			Operation op = new Operation();
-			op.setStatus(Operation.Status.pending.name());
-			fs.getOpStatus().put("filesharereq", op);
-			dbClient.persistObject(fs);
-			fsIds.add(fs.getId());
-		}
-		return fsIds;
-	}
+        List<URI> fsIds = new ArrayList<URI>();
+        for (int i = 0; i < count; i++) {
+            FileShare fs = new FileShare();
+            fs.setId(URIUtil.createId(FileShare.class));
+            if (label == null) {
+                fs.setLabel("fileshare" + System.nanoTime());
+            } else {
+                fs.setLabel(label);
+            }
+            fs.setCapacity(size);
+            fs.setVirtualPool(vpool.getId());
+            fs.setOpStatus(new OpStatusMap());
+            Operation op = new Operation();
+            op.setStatus(Operation.Status.pending.name());
+            fs.getOpStatus().put("filesharereq", op);
+            dbClient.persistObject(fs);
+            fsIds.add(fs.getId());
+        }
+        return fsIds;
+    }
 
     @Test
     public void testCreationTime() throws Exception {
@@ -1664,8 +1668,8 @@ public class DbClientTest extends DbsvcTestBase {
         Calendar now = Calendar.getInstance();
         Calendar then = hit.getCreationTime();
         Assert.assertNotNull(then);
-        Assert.assertTrue(then instanceof Calendar);
-        Assert.assertTrue(String.format("then(%s) is not before now(%s), should be %s", then.toString(), now.toString(), system.getCreationTime().toString()), then.before(now));
+        Assert.assertTrue(String.format("then(%s) is not before now(%s), should be %s", then.toString(), now.toString(), system
+                .getCreationTime().toString()), then.before(now));
 
         system.setLabel("Update");
         dbClient.persistObject(system);
@@ -1673,7 +1677,6 @@ public class DbClientTest extends DbsvcTestBase {
         hit = dbClient.queryObject(StorageSystem.class, system.getId());
         Calendar thenAgain = hit.getCreationTime();
         Assert.assertNotNull(thenAgain);
-        Assert.assertTrue(thenAgain instanceof Calendar);
         Assert.assertEquals(thenAgain, then);
 
         _logger.info("Finished testing CreationTime");
@@ -1683,7 +1686,7 @@ public class DbClientTest extends DbsvcTestBase {
     public void testQueryByType() {
         DbClient dbClient = _dbClient;
         List<URI> expected = new ArrayList<URI>();
-        for (int i=0; i< 10; i ++) {
+        for (int i = 0; i < 10; i++) {
             AuthnProvider provider = new AuthnProvider();
             provider.setId(URIUtil.createId(AuthnProvider.class));
             provider.setLabel("provider" + i);
@@ -1692,7 +1695,7 @@ public class DbClientTest extends DbsvcTestBase {
         }
 
         List<AuthnProvider> providerList = new ArrayList<AuthnProvider>();
-        for (int i=10; i< 120; i ++) {
+        for (int i = 10; i < 120; i++) {
             AuthnProvider provider = new AuthnProvider();
             provider.setId(URIUtil.createId(AuthnProvider.class));
             provider.setLabel("provider" + i);
@@ -1713,12 +1716,12 @@ public class DbClientTest extends DbsvcTestBase {
             Assert.assertTrue(match.contains(uri));
             match.remove(uri);
         }
-        Assert.assertEquals(apCnt,120);
+        Assert.assertEquals(apCnt, 120);
         Assert.assertEquals(match.size(), 0);
 
-        //query with active flag
+        // query with active flag
         List<URI> activeOnly = new ArrayList<URI>(expected);
-        for (int i=0; i<5; i++) {
+        for (int i = 0; i < 5; i++) {
             AuthnProvider provider = new AuthnProvider();
             provider.setId(expected.get(i));
             provider.setInactive(true);
@@ -1777,7 +1780,7 @@ public class DbClientTest extends DbsvcTestBase {
 
         dbClient.persistObject(vpool);
 
-        VirtualPool queriedVPool = dbClient.queryObject(VirtualPool.class,  vpool.getId());
+        VirtualPool queriedVPool = dbClient.queryObject(VirtualPool.class, vpool.getId());
 
         Assert.assertEquals(3, queriedVPool.getHaVarrayVpoolMap().size());
         Assert.assertEquals(oldValue1, queriedVPool.getHaVarrayVpoolMap().get("1"));
@@ -1791,81 +1794,81 @@ public class DbClientTest extends DbsvcTestBase {
 
         dbClient.persistObject(queriedVPool);
 
-        VirtualPool queriedVPool2 = dbClient.queryObject(VirtualPool.class,  vpool.getId());
+        VirtualPool queriedVPool2 = dbClient.queryObject(VirtualPool.class, vpool.getId());
 
         Assert.assertEquals(3, queriedVPool2.getHaVarrayVpoolMap().size());
         Assert.assertEquals(oldValue1, queriedVPool2.getHaVarrayVpoolMap().get("1"));
         Assert.assertEquals(newValue2, queriedVPool2.getHaVarrayVpoolMap().get("2"));
         Assert.assertEquals(oldValue3, queriedVPool2.getHaVarrayVpoolMap().get("3"));
     }
-    
+
     @Test
     public void testDeactivate() {
-        
+
         List<TenantOrg> tenants = createTenants(1, "tenant", "tenantIndex");
         List<Project> projects = createProjects(1, tenants.iterator().next());
-        
+
         Project project = projects.iterator().next();
-        
+
         String msg = checkForDelete(project);
-        
+
         _logger.info(msg);
-        
+
         Assert.assertNull(msg);
-        
+
         _dbClient.markForDeletion(project);
-        
+
         List<URI> projectIds = new ArrayList<URI>();
         projectIds.add(project.getId());
-        
+
         List<Project> queriedProjects = _dbClient.queryObject(Project.class, projectIds, true);
-        
+
         Assert.assertFalse(queriedProjects.iterator().hasNext());
-        
+
     }
 
     @Test
     public void testAggregate() {
 
         VirtualPool curPool = null;
-        Map<URI,Volume> curVols = null;
+        Map<URI, Volume> curVols = null;
         URI curVolId = null;
         Volume volume = null;
-        Map<URI,Map<URI,Volume>> volumes = new HashMap<>();
-        Map<URI,List<URI>> volumeIds = new HashMap<>();
-        Map<URI,Volume> allVolumes = new HashMap<>();
+        Map<URI, Map<URI, Volume>> volumes = new HashMap<>();
+        Map<URI, List<URI>> volumeIds = new HashMap<>();
+        Map<URI, Volume> allVolumes = new HashMap<>();
         List<VirtualPool> pools = new ArrayList<>();
-        for(int jj = 0; jj < 2; jj++){
+        for (int jj = 0; jj < 2; jj++) {
             URI poolId = URIUtil.createId(VirtualPool.class);
             VirtualPool pool = new VirtualPool();
             pool.setId(poolId);
             _dbClient.createObject(pool);
             pools.add(pool);
-            Map<URI,Volume> volMap = new HashMap<>();
+            Map<URI, Volume> volMap = new HashMap<>();
             List<URI> volIds = new ArrayList<>();
-            for(int ii = 0; ii < 4; ii++) {
+            for (int ii = 0; ii < 4; ii++) {
                 volume = new Volume();
                 volume.setId(URIUtil.createId(Volume.class));
-                String label = String.format("%1$d.%1$d : Test Label", jj,ii);
+                String label = String.format("%1$d.%2$d : Test Label", jj, ii);
                 volume.setLabel(label);
-                int mult = (int)Math.round(Math.pow(10,jj));
+                int mult = (int) Math.round(Math.pow(10, jj));
                 volume.setCapacity(2000L * (ii + 1) * mult);
-                volume.setProvisionedCapacity(3000L * (ii + 1)* mult);
-                volume.setAllocatedCapacity(1000L * (ii+1)* mult);
+                volume.setProvisionedCapacity(3000L * (ii + 1) * mult);
+                volume.setAllocatedCapacity(1000L * (ii + 1) * mult);
                 volume.setVirtualPool(poolId);
                 _dbClient.createObject(volume);
-                volMap.put(volume.getId(),volume);
+                volMap.put(volume.getId(), volume);
                 volIds.add(volume.getId());
-                allVolumes.put(volume.getId(),volume);
+                allVolumes.put(volume.getId(), volume);
             }
-            volumes.put(poolId,volMap);
-            volumeIds.put(poolId,volIds);
+            volumes.put(poolId, volMap);
+            volumeIds.put(poolId, volIds);
         }
         checkAggregatedValues("provisionedCapacity", Volume.class, allVolumes);
         curPool = pools.get(0);
-        checkAggregatedValues( "virtualPool",curPool.getId().toString(),"provisionedCapacity",Volume.class,volumes.get(curPool.getId()) );
+        checkAggregatedValues("virtualPool", curPool.getId().toString(), "provisionedCapacity", Volume.class, volumes.get(curPool.getId()));
         curPool = pools.get(1);
-        checkAggregatedValues( "virtualPool",curPool.getId().toString(),"provisionedCapacity",Volume.class,volumes.get(curPool.getId()) );
+        checkAggregatedValues("virtualPool", curPool.getId().toString(), "provisionedCapacity", Volume.class, volumes.get(curPool.getId()));
 
         //
         // change capacity of one of the volume and check that results do match...
@@ -1879,10 +1882,10 @@ public class DbClientTest extends DbsvcTestBase {
         volume.setAllocatedCapacity(3456L);
         volume.setLabel("Test Label: capacity modified");
         // Do not need to set pool. Pool should be set by the framework during persist.
-        //volume.setVirtualPool( curPool.getId());
+        // volume.setVirtualPool( curPool.getId());
         _dbClient.persistObject(volume);
-        allVolumes.put(volume.getId(),volume);
-        curVols.put(volume.getId(),volume);
+        allVolumes.put(volume.getId(), volume);
+        curVols.put(volume.getId(), volume);
         curPool = pools.get(1);
         curVols = volumes.get(curPool.getId());
         volume = new Volume();
@@ -1892,15 +1895,15 @@ public class DbClientTest extends DbsvcTestBase {
         volume.setAllocatedCapacity(67890L);
         volume.setLabel("Test Label: capacity modified");
         // verify that by setting pool, nothing get broken
-        volume.setVirtualPool( curPool.getId());
+        volume.setVirtualPool(curPool.getId());
         _dbClient.persistObject(volume);
-        allVolumes.put(volume.getId(),volume);
-        curVols.put(volume.getId(),volume);
-        checkAggregatedValues("provisionedCapacity",Volume.class, allVolumes );
+        allVolumes.put(volume.getId(), volume);
+        curVols.put(volume.getId(), volume);
+        checkAggregatedValues("provisionedCapacity", Volume.class, allVolumes);
         curPool = pools.get(0);
-        checkAggregatedValues( "virtualPool",curPool.getId().toString(),"provisionedCapacity",Volume.class,volumes.get(curPool.getId()) );
+        checkAggregatedValues("virtualPool", curPool.getId().toString(), "provisionedCapacity", Volume.class, volumes.get(curPool.getId()));
         curPool = pools.get(1);
-        checkAggregatedValues( "virtualPool",curPool.getId().toString(),"provisionedCapacity",Volume.class,volumes.get(curPool.getId()) );
+        checkAggregatedValues("virtualPool", curPool.getId().toString(), "provisionedCapacity", Volume.class, volumes.get(curPool.getId()));
 
         //
         // modify pool for one of the volume and check results
@@ -1915,19 +1918,19 @@ public class DbClientTest extends DbsvcTestBase {
         volume.setId(curVolId);
         volume.setVirtualPool(curPool.getId());
         // Do not need to set pool. Pool should be set by the framework during persist.
-        //volume.setCapacity(...);
-        //volume.setProvisionedCapacity(...);
-        //volume.setAllocatedCapacity(...);
+        // volume.setCapacity(...);
+        // volume.setProvisionedCapacity(...);
+        // volume.setAllocatedCapacity(...);
         volume.setLabel("Test Label: pool modified");
         _dbClient.persistObject(volume);
         volumeIds.get(curPool.getId()).add(volume.getId());
-        volumes.get(curPool.getId()).put(volume.getId(),volume);
-        allVolumes.put(volume.getId(),volume);
+        volumes.get(curPool.getId()).put(volume.getId(), volume);
+        allVolumes.put(volume.getId(), volume);
         checkAggregatedValues("provisionedCapacity", Volume.class, allVolumes);
         curPool = pools.get(0);
-        checkAggregatedValues( "virtualPool",curPool.getId().toString(),"provisionedCapacity",Volume.class,volumes.get(curPool.getId()) );
+        checkAggregatedValues("virtualPool", curPool.getId().toString(), "provisionedCapacity", Volume.class, volumes.get(curPool.getId()));
         curPool = pools.get(1);
-        checkAggregatedValues( "virtualPool",curPool.getId().toString(),"provisionedCapacity",Volume.class,volumes.get(curPool.getId()) );
+        checkAggregatedValues("virtualPool", curPool.getId().toString(), "provisionedCapacity", Volume.class, volumes.get(curPool.getId()));
 
         //
         // delete one of the entries and validate that results match
@@ -1938,8 +1941,8 @@ public class DbClientTest extends DbsvcTestBase {
         volume = curVols.remove(curVolId);
         allVolumes.remove(curVolId);
         _dbClient.removeObject(volume);
-        checkAggregatedValues("provisionedCapacity",Volume.class, allVolumes );
-        checkAggregatedValues( "virtualPool",curPool.getId().toString(),"provisionedCapacity",Volume.class,curVols );
+        checkAggregatedValues("provisionedCapacity", Volume.class, allVolumes);
+        checkAggregatedValues("virtualPool", curPool.getId().toString(), "provisionedCapacity", Volume.class, curVols);
 
         _logger.info("finish aggregator");
     }
@@ -1948,7 +1951,7 @@ public class DbClientTest extends DbsvcTestBase {
     public void testAggregationEfficiency() {
         int NN = 100000;
 
-        for(int ii = 0; ii < NN; ii++) {
+        for (int ii = 0; ii < NN; ii++) {
             Volume volume = new Volume();
             volume.setId(URIUtil.createId(Volume.class));
             String label = String.format("%1$d : Test Label", ii);
@@ -1957,78 +1960,78 @@ public class DbClientTest extends DbsvcTestBase {
             volume.setProvisionedCapacity(3000L);
             volume.setAllocatedCapacity(1000L);
             _dbClient.createObject(volume);
-            if( (ii + 1) % 50000 == 0 ) {
+            if ((ii + 1) % 50000 == 0) {
                 _logger.info("Created " + (ii + 1) + " volumes in the database");
             }
         }
         _logger.info("Waiting for 20 sec  for the DB to do its job. ");
         try {
             Thread.currentThread().sleep(20000);
-        } catch (Exception ex ){}
+        } catch (Exception ex) {
+            _logger.warn("Thread is interrupted", ex);
+        }
         _logger.info("DB should be set by now. Starting the efficiency test ");
         long start = System.currentTimeMillis();
         CustomQueryUtility.AggregatedValue aggregatedValue =
-                CustomQueryUtility.aggregatedPrimitiveField(_dbClient,Volume.class,"allocatedCapacity");
+                CustomQueryUtility.aggregatedPrimitiveField(_dbClient, Volume.class, "allocatedCapacity");
         long endNew = System.currentTimeMillis();
         long newTime = endNew - start;
         _logger.info("Aggregation by Agg index: " + aggregatedValue.getValue() +
-                     "; time : " + newTime );
+                "; time : " + newTime);
         long startOld = System.currentTimeMillis();
-        Iterator<URI> volIter = _dbClient.queryByType(Volume.class,false).iterator();
+        Iterator<URI> volIter = _dbClient.queryByType(Volume.class, false).iterator();
         SumPrimitiveFieldAggregator agg = CustomQueryUtility.aggregateActiveObject(
-                                _dbClient, Volume.class,new String[] {"allocatedCapacity"},volIter);
+                _dbClient, Volume.class, new String[] { "allocatedCapacity" }, volIter);
         long endOld = System.currentTimeMillis();
         long oldTime = endOld - startOld;
-        _logger.info("Aggregation by CF : " +  agg.getAggregate("allocatedCapacity") +
-                     "; time : " + oldTime );
-
+        _logger.info("Aggregation by CF : " + agg.getAggregate("allocatedCapacity") +
+                "; time : " + oldTime);
 
         _logger.info("Aggregation byCF : " + oldTime + "msec; by AggregatedIdx : " + newTime +
                 "msec.");
 
-        Assert.assertTrue(aggregatedValue.getValue()== agg.getAggregate("allocatedCapacity"));
+        Assert.assertTrue((long) aggregatedValue.getValue() == agg.getAggregate("allocatedCapacity"));
     }
 
-    private void checkAggregatedValues(String groupBy,String groupByValue,
-                                       String field,
-                                       Class<? extends DataObject> clazz,
-                                       Map<URI,? extends DataObject> validatedObj ){
+    private void checkAggregatedValues(String groupBy, String groupByValue,
+            String field,
+            Class<? extends DataObject> clazz,
+            Map<URI, ? extends DataObject> validatedObj) {
         _logger.info("Checking aggregated index for class : " + clazz.getSimpleName() + "; field : " + field +
-                      ";  groupField = " + groupBy + "; groupValue : " + groupByValue);
+                ";  groupField = " + groupBy + "; groupValue : " + groupByValue);
         AggregationQueryResultList queryResults = new AggregationQueryResultList();
-        _dbClient.queryByConstraint(AggregatedConstraint.Factory.getAggregationConstraint(clazz,groupBy,groupByValue,field),
-                                    queryResults);
+        _dbClient.queryByConstraint(AggregatedConstraint.Factory.getAggregationConstraint(clazz, groupBy, groupByValue, field),
+                queryResults);
         Iterator<AggregationQueryResultList.AggregatedEntry> it = queryResults.iterator();
-        checkAggregatedQuery(it,clazz,field,validatedObj);
+        checkAggregatedQuery(it, clazz, field, validatedObj);
     }
 
     private void checkAggregatedValues(String field,
-                                       Class<? extends DataObject> clazz,
-                                       Map<URI,? extends DataObject> validatedObj ){
-        _logger.info("Checking aggregated index for class : " + clazz.getSimpleName() + "; field : " + field );
+            Class<? extends DataObject> clazz,
+            Map<URI, ? extends DataObject> validatedObj) {
+        _logger.info("Checking aggregated index for class : " + clazz.getSimpleName() + "; field : " + field);
         AggregationQueryResultList queryResults = new AggregationQueryResultList();
-        _dbClient.queryByConstraint(AggregatedConstraint.Factory.getAggregationConstraint(clazz,field),
+        _dbClient.queryByConstraint(AggregatedConstraint.Factory.getAggregationConstraint(clazz, field),
                 queryResults);
         Iterator<AggregationQueryResultList.AggregatedEntry> it = queryResults.iterator();
-        checkAggregatedQuery(it,clazz,field,validatedObj);
+        checkAggregatedQuery(it, clazz, field, validatedObj);
     }
 
-
     private void checkAggregatedQuery(Iterator<AggregationQueryResultList.AggregatedEntry> it,
-                                        Class<? extends DataObject> clazz,
-                                        String field,
-                                        Map<URI,? extends DataObject> validatedObj){
+            Class<? extends DataObject> clazz,
+            String field,
+            Map<URI, ? extends DataObject> validatedObj) {
         int count = 0;
-        while( it.hasNext()){
+        while (it.hasNext()) {
             AggregationQueryResultList.AggregatedEntry entry = it.next();
             _logger.info("         " + entry.getId() + ";  capacity = " + entry.getValue().toString());
             DataObject obj = validatedObj.get(entry.getId());
             DataObjectType doType = TypeMap.getDoType(clazz);
-            Object value = ColumnField.getFieldValue(doType.getColumnField(field),obj);
-            Assert.assertEquals(value,entry.getValue());
+            Object value = ColumnField.getFieldValue(doType.getColumnField(field), obj);
+            Assert.assertEquals(value, entry.getValue());
             count++;
         }
-        Assert.assertEquals(count,validatedObj.size());
+        Assert.assertEquals(count, validatedObj.size());
 
     }
 
@@ -2043,9 +2046,9 @@ public class DbClientTest extends DbsvcTestBase {
 
         return object.canBeDeleted();
     }
-    
+
     private int size(QueryResultList<URI> list) {
-        int count=0;
+        int count = 0;
         Iterator<URI> itr = list.iterator();
         while (itr.hasNext()) {
             itr.next();
@@ -2053,7 +2056,7 @@ public class DbClientTest extends DbsvcTestBase {
         }
         return count;
     }
-    
+
     @Test
     public void testRemoveIndex() {
         StoragePool pool = createStoragePools(1, "storagepool").iterator().next();
@@ -2061,9 +2064,9 @@ public class DbClientTest extends DbsvcTestBase {
         Constraint constraint = ContainmentConstraint.Factory.getVirtualPoolVolumeConstraint(pool.getId());
         URIQueryResultList results = new URIQueryResultList();
         _dbClient.queryByConstraint(constraint, results);
-        
+
         Assert.assertEquals(size(results), 3);
-        
+
         // delete the index records
         if (InternalDbClient.class.isAssignableFrom(_dbClient.getClass())) {
             ((InternalDbClient) _dbClient).removeFieldIndex(Volume.class, "pool", "RelationIndex");
@@ -2073,9 +2076,9 @@ public class DbClientTest extends DbsvcTestBase {
         } else {
             Assert.fail("testRemoveIndex requires InternalDbClient");
         }
-        
+
     }
-    
+
     public static class StepLock {
         public enum Step
         {
@@ -2097,15 +2100,14 @@ public class DbClientTest extends DbsvcTestBase {
                     try {
                         this.wait();
                     } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
+                        _logger.warn("Thread is interrupted", e);
                     }
                 }
-                
+
                 return true;
             }
         }
-        
+
         public boolean ackStep(Step targetStep) {
             synchronized (this) {
                 if (this.step != targetStep || this.feedback == targetStep) {
@@ -2115,10 +2117,10 @@ public class DbClientTest extends DbsvcTestBase {
                 this.feedback = targetStep;
                 this.notify();
             }
-            
+
             return true;
         }
-        
+
         public void drain(Step targetStep) {
             synchronized (this) {
 
@@ -2127,41 +2129,39 @@ public class DbClientTest extends DbsvcTestBase {
                         this.feedback = this.step;
                         this.notify();
                     }
-                    
+
                     if (this.step == targetStep) {
                         return;
                     }
-                    
+
                     try {
                         this.wait();
                     } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
+                        _logger.warn("Thread is interrupted", e);
                     }
                 }
             }
         }
-        
+
         public void moveToState(Step targetStep) {
             synchronized (this) {
-                
+
                 this.step = targetStep;
-                
+
                 // If any thread is currently in .wait(), wake them up (threads not in .wait() are all outside of the lock)
                 this.notify();
-                
+
                 while (this.feedback != targetStep) {
                     try {
                         this.wait(); // Release lock and wait for notification
                     } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
+                        _logger.warn("Thread is interrupted", e);
                     }
                 }
             }
         }
     }
-        
+
     private static class NoBgIndexCleaner extends IndexCleaner {
         @Override
         public void cleanIndexAsync(final RowMutator mutator,
@@ -2172,72 +2172,75 @@ public class DbClientTest extends DbsvcTestBase {
     }
 
     public static class DbClientImplUnitTester extends InternalDbClient {
-        
+
         // Id for this client that in a race-condition test
         public int clientId;
-        
+
         public ThreadLocal<StepLock> threadStepLock;
 
         private Map<Class<? extends DataObject>, Set<URI>> objMap = new HashMap<Class<? extends DataObject>, Set<URI>>();
-        
+
         @Override
         public <T extends DataObject> void createObject(Collection<T> dataobjects)
                 throws DatabaseException {
             addToMap(dataobjects);
             super.createObject(dataobjects);
         }
+
         @Override
         public <T extends DataObject> void persistObject(Collection<T> dataobjects)
                 throws DatabaseException {
             addToMap(dataobjects);
             super.persistObject(dataobjects);
         }
+
         @Override
         public <T extends DataObject> void persistObject(T object) throws DatabaseException {
             addToMap(object);
             super.persistObject(object);
         }
+
         @Override
         public <T extends DataObject> void persistObject(T... objects) throws DatabaseException {
             addToMap(objects);
             super.persistObject(objects);
         }
-        
+
         public void removeAll() {
             for (Entry<Class<? extends DataObject>, Set<URI>> entry : objMap.entrySet()) {
                 List<URI> inUris = new ArrayList<URI>(entry.getValue());
                 Iterator<? extends DataObject> objs = super.queryIterativeObjects(entry.getKey(), inUris);
-                while(objs.hasNext()){
+                while (objs.hasNext()) {
                     super.removeObject(objs.next());
                 }
             }
         }
-        
+
         private <T extends DataObject> void addToMap(T... objects) {
             addToMap(Arrays.asList(objects));
         }
-        
+
         private <T extends DataObject> void addToMap(Collection<T> dataobjects) {
             for (T object : dataobjects) {
                 if (objMap.get(object.getClass()) == null) {
                     objMap.put(object.getClass(), new HashSet<URI>());
                 }
                 objMap.get(object.getClass()).add(object.getId());
-            }            
+            }
         }
-        
+
         public void disableAsyncIndexCleanup() {
             this._indexCleaner = new NoBgIndexCleaner();
         }
-        
+
         @Override
         protected <T extends DataObject> List<URI> insertNewColumns(Keyspace ks, Collection<T> dataobjects)
                 throws DatabaseException {
             StepLock stepLock = this.threadStepLock == null ? null : this.threadStepLock.get();
             if (stepLock != null) {
                 stepLock.waitForStep(StepLock.Step.InsertNewColumns);
-    }
-            
+            }
+
             try {
                 return super.insertNewColumns(ks, dataobjects);
             } finally {
@@ -2246,9 +2249,10 @@ public class DbClientTest extends DbsvcTestBase {
                 }
             }
         }
-        
+
         @Override
-        protected <T extends DataObject> Rows<String, CompositeColumnName> fetchNewest(Class<? extends T> clazz, Keyspace ks, List<URI> objectsToCleanup)
+        protected <T extends DataObject> Rows<String, CompositeColumnName> fetchNewest(Class<? extends T> clazz, Keyspace ks,
+                List<URI> objectsToCleanup)
                 throws DatabaseException {
             StepLock stepLock = this.threadStepLock == null ? null : this.threadStepLock.get();
             if (stepLock != null) {
@@ -2266,13 +2270,13 @@ public class DbClientTest extends DbsvcTestBase {
 
         // Override default implementation to
         @Override
-        protected <T extends DataObject> void cleanupOldColumns(Class<? extends T> clazz, Keyspace ks, Rows<String, CompositeColumnName> rows)
+        protected <T extends DataObject> void cleanupOldColumns(Class<? extends T> clazz, Keyspace ks,
+                Rows<String, CompositeColumnName> rows)
                 throws DatabaseException {
             StepLock stepLock = this.threadStepLock == null ? null : this.threadStepLock.get();
             if (stepLock != null) {
                 stepLock.waitForStep(StepLock.Step.CleanupOldColumns);
             }
-
 
             try {
                 super.cleanupOldColumns(clazz, ks, rows);
@@ -2283,6 +2287,5 @@ public class DbClientTest extends DbsvcTestBase {
             }
         }
     }
-
 
 }

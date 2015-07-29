@@ -12,11 +12,11 @@ import com.emc.storageos.db.client.model.Relation;
 
 /**
  * @author cgarber
- *
+ * 
  */
 @Cf("ClassB")
 public class ClassBOneToOne extends DataObject {
-    
+
     private ClassAOneToOne ainstance;
 
     @Relation(type = ClassAOneToOne.class, mappedBy = "bId")

@@ -36,7 +36,7 @@ import com.sun.jersey.api.core.ResourceConfig;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
 
 /**
- *  Main class for authentication service
+ * Main class for authentication service
  */
 public class AuthenticationServerImpl extends AbstractSecuredWebServer {
     private final String AUTH_DOCUMENT_ROOT = "storageos-authsvc/docs";
@@ -48,7 +48,7 @@ public class AuthenticationServerImpl extends AbstractSecuredWebServer {
     private ServiceBeacon _svcBeacon;
 
     @Autowired
-    private AuthSvcEndPointLocator _authSvcEndPointLocator; 
+    private AuthSvcEndPointLocator _authSvcEndPointLocator;
 
     @Autowired
     private CoordinatorClient _coordinator;
@@ -83,7 +83,6 @@ public class AuthenticationServerImpl extends AbstractSecuredWebServer {
         _svcBeacon.start();
         _invalidLoginManager.init();
     }
-
 
     public synchronized void stop() throws Exception {
         _server.stop();
@@ -121,7 +120,7 @@ public class AuthenticationServerImpl extends AbstractSecuredWebServer {
         rootHandler.setContextPath("/");
         HandlerCollection handlerCollection = new HandlerCollection();
         handlerCollection.setHandlers(new Handler[] { resourceHandler, rootHandler });
-        _server.setHandler(handlerCollection);     
+        _server.setHandler(handlerCollection);
         ((AbstractSessionManager) rootHandler.getSessionHandler().getSessionManager()).setUsingCookies(false);
 
         final FilterHolder securityFilterHolder = new FilterHolder(new DelegatingFilterProxy(_secFilters));

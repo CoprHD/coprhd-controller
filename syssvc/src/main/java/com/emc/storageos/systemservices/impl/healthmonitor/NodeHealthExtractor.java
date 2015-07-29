@@ -12,7 +12,6 @@ import com.emc.storageos.systemservices.impl.healthmonitor.models.Status;
 import com.emc.vipr.model.sys.healthmonitor.ServiceHealth;
 import com.emc.vipr.model.sys.healthmonitor.ServiceStats;
 
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,10 +25,8 @@ import java.util.List;
  * UNAVAILABLE - when node is not reachable
  * DEGRADED - when node is reachable and any of its service is UNAVAILABLE/DEGRADED
  * <p/>
- * Service health status:
- * GOOD - when a service is up and running
- * UNAVAILABLE - when a service is not running but is registered in coordinator
- * RESTARTED - when service is restarting
+ * Service health status: GOOD - when a service is up and running UNAVAILABLE - when a service is not running but is registered in
+ * coordinator RESTARTED - when service is restarting
  */
 public class NodeHealthExtractor implements StatConstants {
 
@@ -39,7 +36,7 @@ public class NodeHealthExtractor implements StatConstants {
      * Method that populates list of services with its health.
      * List of available services are retrieved from coordinator while list of active
      * services are taken from service statistics.
-     *
+     * 
      * @return Overall service status. This is used to calculate node status.
      *         GOOD if all services are GOOD.
      *         DEGRADED if any of the service is UNAVAILABLE.
@@ -47,7 +44,7 @@ public class NodeHealthExtractor implements StatConstants {
      */
     public static List<ServiceHealth> getServiceHealth(
             List<ServiceStats> serviceStatsList, CoordinatorClient coordinator, String nodeId, String nodeIP) {
-        //Get running services from stats service
+        // Get running services from stats service
         if (serviceStatsList != null) {
             List<ServiceHealth> serviceHealthList = new ArrayList<ServiceHealth>();
             for (ServiceStats serviceStats : serviceStatsList) {
@@ -70,18 +67,18 @@ public class NodeHealthExtractor implements StatConstants {
      * RESTARTED if service uptime is less than or equal to 0.
      * DEGRADED if the service process is fine by corresponding service beacon is not found in ZK.
      * GOOD otherwise
-     *
+     * 
      * @param serviceStats service statistics
      * @return service status
      */
     private static Status getServiceStatusFromStats(ServiceStats serviceStats, CoordinatorClient coordinator, String nodeId, String nodeIP) {
         String svcName = serviceStats.getServiceName();
-        //If service status is not available..
+        // If service status is not available..
         if (serviceStats.getProcessStatus() == null || serviceStats.getProcessStatus()
                 .getStartTime() == 0 || serviceStats.getProcessStatus()
                 .getUpTime() == 0) {
             return Status.UNAVAILABLE;
-        } 
+        }
         else if (Constants.DBSVC_NAME.equals(svcName) || Constants.GEODBSVC_NAME.equals(svcName)) {
             // Check service beacon to know service status. make it work for dbsvc/geodbsvc first, then rest of other
             // after we unified beacon format
@@ -99,7 +96,8 @@ public class NodeHealthExtractor implements StatConstants {
             // because we still see its process as GOOD
             Status status = Status.DEGRADED;
             for (Service svc : svcs) {
-                if (svc.getEndpoint(null).getHost().equals(nodeId) || svc.getEndpoint(endpointName).getHost().equals(nodeIP)) { // Found our service
+                if (svc.getEndpoint(null).getHost().equals(nodeId) || svc.getEndpoint(endpointName).getHost().equals(nodeIP)) { // Found our
+                                                                                                                                // service
                     status = Status.GOOD;
                 }
             }
@@ -107,8 +105,8 @@ public class NodeHealthExtractor implements StatConstants {
         }
         else {
             // Check service status based on process id
-            return serviceStats.getProcessStatus().getUpTime()  <= 0 ? Status.RESTARTED : Status.GOOD;
+            return serviceStats.getProcessStatus().getUpTime() <= 0 ? Status.RESTARTED : Status.GOOD;
         }
-        
-     }
+
+    }
 }

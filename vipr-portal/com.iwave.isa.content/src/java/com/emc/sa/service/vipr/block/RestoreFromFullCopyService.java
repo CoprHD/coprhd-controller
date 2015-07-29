@@ -15,7 +15,7 @@ public class RestoreFromFullCopyService extends ViPRService {
 
     @Param(COPIES)
     protected String copyId;
-    
+
     @Override
     public void execute() throws Exception {
         BlockStorageUtils.restoreFromFullCopy(uri(copyId));

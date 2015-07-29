@@ -30,31 +30,33 @@ import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
  * 
  * Here's the basic execution flow for the test case:
  * - setup() runs, bringing up a "pre-migration" version
- *   of the database, using the DbSchemaScannerInterceptor
- *   you supply to hide your new field or column family
- *   when generating the "before" schema. 
+ * of the database, using the DbSchemaScannerInterceptor
+ * you supply to hide your new field or column family
+ * when generating the "before" schema.
  * - Your implementation of prepareData() is called, allowing
- *   you to use the internal _dbClient reference to create any 
- *   needed pre-migration test data.
+ * you to use the internal _dbClient reference to create any
+ * needed pre-migration test data.
  * - The database is then shutdown and restarted (without using
- *   the interceptor this time), so the full "after" schema
- *   is available.
+ * the interceptor this time), so the full "after" schema
+ * is available.
  * - The dbsvc detects the diffs in the schema and executes the
- *   migration callbacks as part of the startup process.
+ * migration callbacks as part of the startup process.
  * - Your implementation of verifyResults() is called to
- *   allow you to confirm that the migration of your prepared
- *   data went as expected.
+ * allow you to confirm that the migration of your prepared
+ * data went as expected.
  * 
  */
 public class DbHostInterfaceRegistrationStatusMigrationTest extends DbSimpleMigrationTestBase {
-    
+
     private final int INSTANCES_TO_CREATE = 10;
-    
+
     @BeforeClass
     public static void setup() throws IOException {
-        customMigrationCallbacks.put("1.0", new ArrayList<BaseCustomMigrationCallback>() {{
-            add(new HostInterfaceRegistrationStatusMigration());
-        }});
+        customMigrationCallbacks.put("1.0", new ArrayList<BaseCustomMigrationCallback>() {
+            {
+                add(new HostInterfaceRegistrationStatusMigration());
+            }
+        });
 
         DbsvcTestBase.setup();
     }
@@ -90,17 +92,19 @@ public class DbHostInterfaceRegistrationStatusMigrationTest extends DbSimpleMigr
             hostInterface.setRegistrationStatus("UNDEFINED");
             _dbClient.createObject(hostInterface);
         }
-        
+
         List<URI> keys = _dbClient.queryByType(clazz, false);
-        int count = 0;       
-        for (@SuppressWarnings("unused") URI ignore : keys) {
+        int count = 0;
+        for (@SuppressWarnings("unused")
+        URI ignore : keys) {
             count++;
         }
-        Assert.assertTrue("Expected " + INSTANCES_TO_CREATE + " prepared " + clazz.getSimpleName() + ", found only " + count, count == INSTANCES_TO_CREATE); 
+        Assert.assertTrue("Expected " + INSTANCES_TO_CREATE + " prepared " + clazz.getSimpleName() + ", found only " + count,
+                count == INSTANCES_TO_CREATE);
     }
 
     private void verifyHostInterfaceData(Class<? extends HostInterface> clazz) throws Exception {
-        
+
         List<URI> keys = _dbClient.queryByType(clazz, false);
         int count = 0;
         Iterator<? extends HostInterface> objs =
@@ -112,6 +116,7 @@ public class DbHostInterfaceRegistrationStatusMigrationTest extends DbSimpleMigr
             Assert.assertEquals("RegistrationStatus should equal REGISTERED", RegistrationStatus.REGISTERED.toString(),
                     hostInterface.getRegistrationStatus());
         }
-        Assert.assertTrue("We should still have " + INSTANCES_TO_CREATE + " " + clazz.getSimpleName() + " after migration, not " + count, count == INSTANCES_TO_CREATE);        
+        Assert.assertTrue("We should still have " + INSTANCES_TO_CREATE + " " + clazz.getSimpleName() + " after migration, not " + count,
+                count == INSTANCES_TO_CREATE);
     }
 }

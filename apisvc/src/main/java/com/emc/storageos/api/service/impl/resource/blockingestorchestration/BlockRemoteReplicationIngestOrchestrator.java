@@ -35,22 +35,24 @@ import com.google.common.base.Joiner;
 /**
  * Remote Replication Ingestion
  * S1 - Source Volume ,T1 - Target Volume
- * S1 under ViPR control  & T1 not yet
+ * S1 under ViPR control & T1 not yet
  * ****************************************
  * If user tries to ingest volumes of S1, S1 will be ingested with usable flag bit set to false.
- * usable bit set to false indicates, that this volume cannot be used for any provisioning operations 
+ * usable bit set to false indicates, that this volume cannot be used for any provisioning operations
  * If we find S1 as source for multiple protected volumes, check whether ALL expected target volumes are already ingested.
- * If found true, then create ViPR SRDF links between source and targets, by making them as if these source and targets are created via ViPR using SRDF protected VirtualPool, and set usable bit ot TRUE.
+ * If found true, then create ViPR SRDF links between source and targets, by making them as if these source and targets are created via ViPR
+ * using SRDF protected VirtualPool, and set usable bit ot TRUE.
  * If not, usable bit remains in false state.
  * T1 under ViPR control and S1 not yet
- * **************************************** 
+ * ****************************************
  * If user tries to ingest volumes of T1, T1 will be ingested with usable flag bit set to false.
- * usable bit set to false indicates, that this volume cannot be used for any provisioning operations 
- * If we find T1 as target for  a source volume, check whether source volume and ALL its expected target volumes are already ingested, exclusing the target which we work on. 
- * If found true, then create ViPR SRDF links between source and targets, by making them as if these source and targets are created via ViPR using SRDF protected VirtualPool, and set usable bit ot TRUE.
+ * usable bit set to false indicates, that this volume cannot be used for any provisioning operations
+ * If we find T1 as target for a source volume, check whether source volume and ALL its expected target volumes are already ingested,
+ * exclusing the target which we work on.
+ * If found true, then create ViPR SRDF links between source and targets, by making them as if these source and targets are created via ViPR
+ * using SRDF protected VirtualPool, and set usable bit ot TRUE.
  * If not, usable bit remains in false state.
  */
-
 
 public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestOrchestrator {
 
@@ -62,9 +64,12 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
     }
 
     @Override
-    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache,StorageSystem system, UnManagedVolume unManagedVolume, 
-            VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant, List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed, 
-            Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported, Class<T> clazz, 
+    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system,
+            UnManagedVolume unManagedVolume,
+            VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant,
+            List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed,
+            Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
+            Class<T> clazz,
             Map<String, StringBuffer> taskStatusMap) throws IngestionException {
         String volumeNativeGuid = unManagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
                 VolumeIngestionUtil.VOLUME);
@@ -79,8 +84,9 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
 
         if (null == blockObject) {
             blockObject = super.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray, project, tenant,
-                    unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz, taskStatusMap);
-        
+                    unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz,
+                    taskStatusMap);
+
             if (null == blockObject) {
                 _logger.warn("SRDF Volume ingestion failed for unmanagedVolume {}", unManagedVolume.getNativeGuid());
                 throw IngestionException.exceptions.unmanagedVolumeMasksNotIngested(unManagedVolume.getNativeGuid());
@@ -107,7 +113,7 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
 
         return clazz.cast(blockObject);
     }
-	
+
     @Override
     protected void validateAutoTierPolicy(String autoTierPolicyId, UnManagedVolume unManagedVolume, VirtualPool vPool) {
         super.validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
@@ -162,7 +168,7 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
             throw IngestionException.exceptions.unmanagedVolumeRDFGroupMismatch(unManagedVolume.getNativeGuid(),
                     rdfGroup.getLabel(), project.getLabel());
         }
-        
+
         String type = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.REMOTE_VOLUME_TYPE.toString(), unManagedVolumeInformation);
         if (null == type) {
@@ -217,12 +223,12 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
                     }
                 }
             }
-            
+
         } else if (RemoteMirrorObject.Types.TARGET.toString().equalsIgnoreCase(type)) {
             rdfGroupId = URI.create(PropertySetterUtil.extractValueFromStringSet(
                     SupportedVolumeInformation.REMOTE_MIRROR_RDF_GROUP.toString(), unManagedVolumeInformation));
         }
-        
+
         return rdfGroupId;
     }
 

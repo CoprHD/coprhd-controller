@@ -17,11 +17,11 @@ import javax.ws.rs.core.MultivaluedMap;
 public class DummyHttpHeaders implements HttpHeaders {
 
     private MediaType _acceptable;
-    
+
     public DummyHttpHeaders(MediaType acceptable) {
         _acceptable = acceptable;
     }
-    
+
     @Override
     public List<Locale> getAcceptableLanguages() {
         // TODO Auto-generated method stub

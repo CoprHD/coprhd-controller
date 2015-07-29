@@ -25,18 +25,18 @@ import java.util.Map;
 public class StorageOSUserMapper implements AttributesMapper {
 
     private static final Logger _log = LoggerFactory.getLogger(StorageOSUserMapper.class);
-    
+
     private String _username;
     private String _distinguishedNameAttribute;
     private Map<String, List<String>> _attrKeyValueMap;
-    
+
     public StorageOSUserMapper(String username, String distinguishedNameAttribute, Map<String, List<String>> attrKeyValueMap) {
         super();
         _username = username;
         _attrKeyValueMap = attrKeyValueMap;
         _distinguishedNameAttribute = distinguishedNameAttribute;
     }
-    
+
     /*
      * @see org.springframework.ldap.core.AttributesMapper#mapFromAttributes(javax.naming.directory.Attributes)
      * creates StorageOSUserDAO from attributes
@@ -46,21 +46,21 @@ public class StorageOSUserMapper implements AttributesMapper {
         StorageOSUserDAO storageOSUser = new StorageOSUserDAO();
         storageOSUser.setUserName(_username);
         NamingEnumeration<? extends Attribute> attributesEnumeration = attributes.getAll();
-        while(attributesEnumeration.hasMoreElements()) {
+        while (attributesEnumeration.hasMoreElements()) {
             Attribute attribute = attributesEnumeration.nextElement();
             NamingEnumeration<?> attributeValues = attribute.getAll();
-            if( attribute.getID().equals(_distinguishedNameAttribute)) {
-                if( null != attribute.get(0) ) {
+            if (attribute.getID().equals(_distinguishedNameAttribute)) {
+                if (null != attribute.get(0)) {
                     storageOSUser.setDistinguishedName(attribute.get(0).toString());
                 }
             }
             List<String> values = new ArrayList<String>();
-            while( attributeValues.hasMoreElements()) {
-                values.add(attributeValues.nextElement().toString()); 
+            while (attributeValues.hasMoreElements()) {
+                values.add(attributeValues.nextElement().toString());
             }
             _attrKeyValueMap.put(attribute.getID(), values);
 
-            //Add the returned attributes from the AD/LDAP to the user.
+            // Add the returned attributes from the AD/LDAP to the user.
             UserAttributeParam userAttributeParam = new UserAttributeParam(attribute.getID(), new HashSet(values));
             String attributeString = userAttributeParam.toString();
             storageOSUser.addAttribute(attributeString);

@@ -8,6 +8,6 @@ import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.server.upgrade.util.models.old.Resource3;
 
 @Cf("Resource6")
-public class Resource6 extends Resource3{
+public class Resource6 extends Resource3 {
 
 }

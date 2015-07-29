@@ -18,19 +18,20 @@ import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.hds.xmlgen.XMLConstants;
 
 public class Modify {
-    
+
     private String target;
-    
+
     private boolean isWaitOption;
-    
+
     private String option;
-    
-    public Modify() {}
-    
+
+    public Modify() {
+    }
+
     public Modify(String target) {
         this.target = target;
     }
-    
+
     public Modify(String target, boolean isWaitOption) {
         this.target = target;
         this.isWaitOption = isWaitOption;
@@ -49,14 +50,14 @@ public class Modify {
     public void setTarget(String target) {
         this.target = target;
     }
-    
-    public String getOption() {
-		return option;
-	}
 
-	public void setOption(String option) {
-		this.option = option;
-	}
+    public String getOption() {
+        return option;
+    }
+
+    public void setOption(String option) {
+        this.option = option;
+    }
 
     public String toXMLString() {
         StringBuilder xmlString = new StringBuilder();
@@ -74,7 +75,5 @@ public class Modify {
         }
         return xmlString.toString();
     }
-
-	
 
 }

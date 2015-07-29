@@ -19,16 +19,16 @@ public class ChainedList<T> implements List<T> {
 
         @Override
         public boolean hasNext() {
-            
-        	if (_currentIt.hasNext()) {
+
+            if (_currentIt.hasNext()) {
                 return true;
             }
-            
+
             while (_iterators.hasNext()) {
-               _currentIt = _iterators.next();
-               if(_currentIt.hasNext()){
-            	   return true;
-               }
+                _currentIt = _iterators.next();
+                if (_currentIt.hasNext()) {
+                    return true;
+                }
             }
             return false;
         }
@@ -44,7 +44,7 @@ public class ChainedList<T> implements List<T> {
         }
     }
 
-    public ChainedList(Iterator<T> ...iterator) {
+    public ChainedList(Iterator<T>... iterator) {
         _iterators = Arrays.asList(iterator).iterator();
         _chained = new ChainedIterator();
     }

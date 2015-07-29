@@ -6,7 +6,6 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.io.Writer;
-import java.io.PrintWriter;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
@@ -16,7 +15,7 @@ import com.emc.storageos.db.client.TimeSeriesQueryResult;
 import com.emc.storageos.db.client.model.AuditLog;
 
 /**
- *  Implementation of DB time series based query result for audit logs
+ * Implementation of DB time series based query result for audit logs
  */
 public class AuditLogQueryResult implements TimeSeriesQueryResult<AuditLog> {
 

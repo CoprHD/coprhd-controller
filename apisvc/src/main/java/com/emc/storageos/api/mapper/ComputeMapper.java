@@ -34,31 +34,31 @@ public class ComputeMapper {
         to.setVersion(from.getVersion());
         to.setOsInstallNetwork(from.getOsInstallNetwork());
 
-		// sort vlans as numbers
-		List<Integer> vlanIds = new ArrayList<Integer>();
+        // sort vlans as numbers
+        List<Integer> vlanIds = new ArrayList<Integer>();
         if (from.getVlans() != null) {
             for (String vlan : from.getVlans()) {
-			    try {
-				    vlanIds.add(Integer.parseInt(vlan));
-			    } catch (NumberFormatException e) {
-				// skip
-			    }
-		    }
-		}
-		Collections.sort(vlanIds);
-		StringBuilder vlanStr = null;
-		for (int vlanId : vlanIds) {
-			if (vlanStr == null) {
-				vlanStr = new StringBuilder();
-			} else {
-				vlanStr.append(",");
-			}
-			vlanStr.append(vlanId);
-		}
-        if (vlanStr != null) {  //cannot set null
+                try {
+                    vlanIds.add(Integer.parseInt(vlan));
+                } catch (NumberFormatException e) {
+                    // skip
+                }
+            }
+        }
+        Collections.sort(vlanIds);
+        StringBuilder vlanStr = null;
+        for (int vlanId : vlanIds) {
+            if (vlanStr == null) {
+                vlanStr = new StringBuilder();
+            } else {
+                vlanStr.append(",");
+            }
+            vlanStr.append(vlanId);
+        }
+        if (vlanStr != null) {  // cannot set null
             to.setVlans(vlanStr.toString());
         }
-		return to;
+        return to;
     }
 
     public static ComputeElementRestRep map(ComputeElement from) {
@@ -66,7 +66,7 @@ public class ComputeMapper {
             return null;
         }
         ComputeElementRestRep to = new ComputeElementRestRep();
-        mapDiscoveredSystemObjectFields(from,to);
+        mapDiscoveredSystemObjectFields(from, to);
         to.setRam(from.getRam());
         to.setNumOfCores(from.getNumOfCores());
         to.setNumOfProcessors(from.getNumberOfProcessors());
@@ -80,7 +80,7 @@ public class ComputeMapper {
         to.setRegistrationStatus(from.getRegistrationStatus());
         return to;
     }
-    
+
     public static ComputeImageRestRep map(ComputeImage from) {
         if (from == null) {
             return null;

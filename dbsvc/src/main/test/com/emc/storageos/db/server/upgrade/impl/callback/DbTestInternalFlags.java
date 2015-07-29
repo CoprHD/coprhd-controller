@@ -9,13 +9,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.server.upgrade.DbMigrationTest;
 import com.emc.storageos.db.server.upgrade.util.DbSchemaChanger;
 
 /**
- *  Prepare data for adding new fields test 
+ * Prepare data for adding new fields test
  */
 public class DbTestInternalFlags extends DbMigrationTest {
     private static final Logger log = LoggerFactory.getLogger(DbTestInternalFlags.class);
@@ -32,17 +31,17 @@ public class DbTestInternalFlags extends DbMigrationTest {
 
     @Override
     public void changeSourceSchema() throws Exception {
-            removeInternalFlags();
+        removeInternalFlags();
     }
 
     private void removeInternalFlags() throws Exception {
-        //Remove 'DataObject.internalFlags' which is added in version 1.1
+        // Remove 'DataObject.internalFlags' which is added in version 1.1
         changer = new DbSchemaChanger("com.emc.storageos.db.client.model.DataObject");
         changer.verifyBeanPropertyExist("_internalFlags");
-       
+
         changer.beginChange()
-               .removeBeanProperty("_internalFlags")
-               .endChange();
+                .removeBeanProperty("_internalFlags")
+                .endChange();
     }
 
     @Override
@@ -54,7 +53,7 @@ public class DbTestInternalFlags extends DbMigrationTest {
     @Override
     public void changeTargetSchema() throws Exception {
         changer.restoreClass();
-    } 
+    }
 
     @Override
     protected void verifyTargetSchema() throws Exception {
@@ -65,12 +64,12 @@ public class DbTestInternalFlags extends DbMigrationTest {
     @Override
     public void prepareData() throws Exception {
         createFileShare();
-    } 
+    }
 
     private void createFileShare() {
         // prepare FileShare objects for migration
         FileShare fs = new FileShare();
- 
+
         fs.setId(URIUtil.createId(FileShare.class));
         fs.setLabel("fileshare test");
 

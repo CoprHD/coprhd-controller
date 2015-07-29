@@ -15,8 +15,7 @@ public class CheckForPowerPath extends AixExecutionTask<Boolean> {
         try {
             executeCommand(command, SHORT_TIMEOUT);
             return true;
-        }
-        catch (PowerPathException e) {
+        } catch (PowerPathException e) {
             return false;
         }
     }

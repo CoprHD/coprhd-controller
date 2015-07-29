@@ -15,7 +15,7 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public class HighAvailabilityValidator extends VirtualPoolValidator<BlockVirtualPoolParam, BlockVirtualPoolUpdateParam> {
-   
+
     @Override
     public void setNextValidator(VirtualPoolValidator validator) {
         _nextValidator = validator;
@@ -24,25 +24,26 @@ public class HighAvailabilityValidator extends VirtualPoolValidator<BlockVirtual
     @Override
     protected void validateVirtualPoolUpdateAttributeValue(
             VirtualPool virtualPool, BlockVirtualPoolUpdateParam updateParam, DbClient dbClient) {
-    	validateHighAvailabilityTypeForUpdate(virtualPool, updateParam);
-    	validateDistributedHighAvailabilityForUpdate(virtualPool, updateParam, dbClient);
+        validateHighAvailabilityTypeForUpdate(virtualPool, updateParam);
+        validateDistributedHighAvailabilityForUpdate(virtualPool, updateParam, dbClient);
     }
 
     @Override
     protected boolean isUpdateAttributeOn(BlockVirtualPoolUpdateParam updateParam) {
-        if (null != updateParam && updateParam.getHighAvailability() != null)
+        if (null != updateParam && updateParam.getHighAvailability() != null) {
             return true;
+        }
         return false;
     }
 
     @Override
     protected void validateVirtualPoolCreateAttributeValue(BlockVirtualPoolParam createParam, DbClient dbClient) {
-        // Validations similar to the update ones in this class are currently defined 
-    	// in the BlockVirtualPoolService.createBlockVirtualPool() - for create.  These 
-    	// should be moved over here.  Validations for mixed protection are done in the 
-    	// ProtectionValidator so no need to have them in this class.
+        // Validations similar to the update ones in this class are currently defined
+        // in the BlockVirtualPoolService.createBlockVirtualPool() - for create. These
+        // should be moved over here. Validations for mixed protection are done in the
+        // ProtectionValidator so no need to have them in this class.
     }
-    
+
     /**
      * Validates that the high availability type is one of the required
      * values.
@@ -51,14 +52,14 @@ public class HighAvailabilityValidator extends VirtualPoolValidator<BlockVirtual
      * @param updateParam The paramater containing the updates
      */
     public void validateHighAvailabilityTypeForUpdate(
-    		VirtualPool virtualPool, BlockVirtualPoolUpdateParam updateParam){
-    	// If the type is null high availability is attempting to be removed so skip the validation.
-    	if (updateParam.getHighAvailability().getType() != null) {
-    		final boolean condition = updateParam.specifiesHighAvailability();
-    		if(!condition) {
-    		    throw APIException.badRequests.invalidParameterHighAvailabilityType(updateParam.getHighAvailability().getType());
-    		}
-    	}
+            VirtualPool virtualPool, BlockVirtualPoolUpdateParam updateParam) {
+        // If the type is null high availability is attempting to be removed so skip the validation.
+        if (updateParam.getHighAvailability().getType() != null) {
+            final boolean condition = updateParam.specifiesHighAvailability();
+            if (!condition) {
+                throw APIException.badRequests.invalidParameterHighAvailabilityType(updateParam.getHighAvailability().getType());
+            }
+        }
     }
 
     /**
@@ -69,38 +70,39 @@ public class HighAvailabilityValidator extends VirtualPoolValidator<BlockVirtual
      * @param dbClient The dbclient
      */
     public void validateDistributedHighAvailabilityForUpdate(
-    		VirtualPool virtualPool, BlockVirtualPoolUpdateParam updateParam, DbClient dbClient) {
-        // If the high availability type is distributed, then the user must also specify the high 
-    	// availability varray. The user may also specify the high availability VirtualPool.
+            VirtualPool virtualPool, BlockVirtualPoolUpdateParam updateParam, DbClient dbClient) {
+        // If the high availability type is distributed, then the user must also specify the high
+        // availability varray. The user may also specify the high availability VirtualPool.
         if (VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(
                 updateParam.getHighAvailability().getType())) {
-            
-            if((updateParam.getHighAvailability().getHaVirtualArrayVirtualPool() == null) 
-            		|| updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualArray() == null 
-            		|| String.valueOf(updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualArray()).isEmpty()) {
-                throw APIException.badRequests.invalidParameterHighAvailabilityVirtualArrayRequiredForType(updateParam.getHighAvailability().getType());
+
+            if ((updateParam.getHighAvailability().getHaVirtualArrayVirtualPool() == null)
+                    || updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualArray() == null
+                    || String.valueOf(updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualArray()).isEmpty()) {
+                throw APIException.badRequests.invalidParameterHighAvailabilityVirtualArrayRequiredForType(updateParam
+                        .getHighAvailability().getType());
             }
 
             // High availability varray must be specified and valid.
             _logger.debug("HA varray VirtualPool map specifies the HA varray {}",
-            		updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualArray());
+                    updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualArray());
             VirtualArray haVirtualArray = dbClient.queryObject(VirtualArray.class,
-            		updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualArray());
+                    updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualArray());
             ArgValidator.checkEntity(haVirtualArray,
-            		updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualArray(), false);
+                    updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualArray(), false);
             String haVirtualArrayId = updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualArray()
                     .toString();
 
             // Check the HA varray VirtualPool, which is not required.
             String haNhVirtualPoolId = null;
             if (updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualPool() != null &&
-            		!String.valueOf(updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualPool()).isEmpty()) {
+                    !String.valueOf(updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualPool()).isEmpty()) {
                 _logger.debug("HA varray VirtualPool map specifies the HA vpool {}",
-                		updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualPool());
+                        updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualPool());
                 VirtualPool haVirtualPool = dbClient.queryObject(VirtualPool.class,
-                		updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualPool());
+                        updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualPool());
                 ArgValidator.checkEntity(haVirtualPool,
-                		updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualPool(), false);
+                        updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualPool(), false);
                 haNhVirtualPoolId = updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualPool()
                         .toString();
 
@@ -108,26 +110,29 @@ public class HighAvailabilityValidator extends VirtualPoolValidator<BlockVirtual
                 // specified high availability varray.
                 StringSet haVirtualPoolNHs = haVirtualPool.getVirtualArrays();
                 if ((haVirtualPoolNHs != null) && (!haVirtualPoolNHs.isEmpty())) {
-                    if(!haVirtualPoolNHs.contains(haVirtualArrayId)) {
-                        throw APIException.badRequests.invalidParameterHighAvailabilityVirtualPoolNotValidForVirtualArray(haNhVirtualPoolId, haVirtualArrayId);
+                    if (!haVirtualPoolNHs.contains(haVirtualArrayId)) {
+                        throw APIException.badRequests.invalidParameterHighAvailabilityVirtualPoolNotValidForVirtualArray(
+                                haNhVirtualPoolId, haVirtualArrayId);
                     }
                 }
-            } 
-        } else if (updateParam.getHighAvailability().getType() != null 
-        		&& !String.valueOf(updateParam.getHighAvailability().getType()).isEmpty()) {
-            if(updateParam.getHighAvailability().getHaVirtualArrayVirtualPool() != null 
-                    && (updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualArray() != null 
-                    && !String.valueOf(updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualArray()).isEmpty())) {
-                throw APIException.badRequests.invalidParameterVirtualArrayAndVirtualPoolDoNotApplyForType(updateParam.getHighAvailability().getType());
             }
-                     
+        } else if (updateParam.getHighAvailability().getType() != null
+                && !String.valueOf(updateParam.getHighAvailability().getType()).isEmpty()) {
+            if (updateParam.getHighAvailability().getHaVirtualArrayVirtualPool() != null
+                    && (updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualArray() != null
+                    && !String.valueOf(updateParam.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualArray()).isEmpty())) {
+                throw APIException.badRequests.invalidParameterVirtualArrayAndVirtualPoolDoNotApplyForType(updateParam
+                        .getHighAvailability().getType());
+            }
+
         }
     }
 
-	@Override
-	protected boolean isCreateAttributeOn(BlockVirtualPoolParam createParam) {
-        if (null != createParam && createParam.getHighAvailability() != null)
+    @Override
+    protected boolean isCreateAttributeOn(BlockVirtualPoolParam createParam) {
+        if (null != createParam && createParam.getHighAvailability() != null) {
             return true;
+        }
         return false;
-	}
+    }
 }

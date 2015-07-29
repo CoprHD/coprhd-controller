@@ -12,7 +12,7 @@ public class DbVersionInfo {
     private String version;
 
     public String getSchemaVersion() {
-        return version; 
+        return version;
     }
 
     public void setSchemaVersion(String version) {

@@ -54,10 +54,11 @@ public class JSONMarshaller extends Marshaller {
 
     @Override
     public void marshall(LogMessage log) throws IOException {
-        if (firstLog)
+        if (firstLog) {
             firstLog = false;
-        else
+        } else {
             outputStream.write(COMMA);
+        }
 
         final byte[] firstLine = log.getFirstLine();
 
@@ -93,8 +94,9 @@ public class JSONMarshaller extends Marshaller {
         outputStream.write(COMMA);
         if (log.getTimeBytesOffset() == -1 || log.getTimeBytesLen() == 0) {
             writeFakeTimeStr(log);
-        } else
+        } else {
             writeEntry(TIME, firstLine, log.getTimeBytesOffset(), log.getTimeBytesLen(), true);
+        }
         outputStream.write(COMMA);
         writeEntry(TIME_MS, String.valueOf(log.getTime()).getBytes(), false);
         outputStream.write(RETURN);
@@ -104,10 +106,11 @@ public class JSONMarshaller extends Marshaller {
 
     @Override
     public void marshall(String msg, LogMessage prevMsg) throws IOException {
-        if (firstLog)
+        if (firstLog) {
             firstLog = false;
-        else
+        } else {
             outputStream.write(COMMA);
+        }
 
         outputStream.write(RETURN);
         outputStream.write(TAB);
@@ -135,11 +138,13 @@ public class JSONMarshaller extends Marshaller {
         outputStream.write(QUOTE);
         outputStream.write(COLON);
         outputStream.write(SPACE);
-        if (isStr)
+        if (isStr) {
             outputStream.write(QUOTE);
+        }
         outputStream.write(value);
-        if (isStr)
+        if (isStr) {
             outputStream.write(QUOTE);
+        }
     }
 
     private void writeFakeTimeStr(LogMessage log) throws IOException {
@@ -157,7 +162,7 @@ public class JSONMarshaller extends Marshaller {
     }
 
     private void writeEntry(byte[] key, byte[] firstLine, int valueOffset, int valueLength,
-                            boolean isStr) throws IOException {
+            boolean isStr) throws IOException {
         outputStream.write(RETURN);
         outputStream.write(TAB);
         outputStream.write(TAB);
@@ -166,57 +171,62 @@ public class JSONMarshaller extends Marshaller {
         outputStream.write(QUOTE);
         outputStream.write(COLON);
         outputStream.write(SPACE);
-        if (isStr)
+        if (isStr) {
             outputStream.write(QUOTE);
-        if (valueOffset == -1 || valueLength == 0)
+        }
+        if (valueOffset == -1 || valueLength == 0) {
             outputStream.write(isStr ? "null".getBytes() : "-1".getBytes());
-        else
+        } else {
             outputStream.write(firstLine, valueOffset, valueLength);
-        if (isStr)
+        }
+        if (isStr) {
             outputStream.write(QUOTE);
+        }
     }
 
     /**
      * Escape the ", / and \ char from JSON string
+     * 
      * @param msg
      * @throws IOException
      */
     private void escapeJSONChars(byte[] msg) throws IOException {
         int mark = 0;
-        for (int i = 0; i < msg.length; i ++ ) {
+        for (int i = 0; i < msg.length; i++) {
             if (msg[i] == (byte) '"' || msg[i] == (byte) '\\' || msg[i] == (byte) '/') {
                 outputStream.write(msg, mark, i - mark);
-                outputStream.write((char)'\\');
+                outputStream.write((char) '\\');
                 mark = i;
-            }else if (msg[i] == (byte) '\r') {
+            } else if (msg[i] == (byte) '\r') {
                 outputStream.write(msg, mark, i - mark);
-                outputStream.write((char)'\\');
-                outputStream.write((char)'r');
+                outputStream.write((char) '\\');
+                outputStream.write((char) 'r');
                 mark = i + 1;
-            }else if (msg[i] == (byte) '\n') {
+            } else if (msg[i] == (byte) '\n') {
                 outputStream.write(msg, mark, i - mark);
-                outputStream.write((char)'\\');
-                outputStream.write((char)'n');
+                outputStream.write((char) '\\');
+                outputStream.write((char) 'n');
                 mark = i + 1;
-            }else if (msg[i] == (byte) '\b') {
+            } else if (msg[i] == (byte) '\b') {
                 outputStream.write(msg, mark, i - mark);
-                outputStream.write((char)'\\');
-                outputStream.write((char)'b');
+                outputStream.write((char) '\\');
+                outputStream.write((char) 'b');
                 mark = i + 1;
-            }else if (msg[i] == (byte) '\f') {
+            } else if (msg[i] == (byte) '\f') {
                 outputStream.write(msg, mark, i - mark);
-                outputStream.write((char)'\\');
-                outputStream.write((char)'f');
+                outputStream.write((char) '\\');
+                outputStream.write((char) 'f');
                 mark = i + 1;
-            }else if (msg[i] == (byte) '\t') {
+            } else if (msg[i] == (byte) '\t') {
                 outputStream.write(msg, mark, i - mark);
-                outputStream.write((char)'\\');
-                outputStream.write((char)'t');
+                outputStream.write((char) '\\');
+                outputStream.write((char) 't');
                 mark = i + 1;
             }
         }
-        if (mark == msg.length)
+        if (mark == msg.length) {
             return;
+        }
         outputStream.write(msg, mark, msg.length - mark);
     }
 }

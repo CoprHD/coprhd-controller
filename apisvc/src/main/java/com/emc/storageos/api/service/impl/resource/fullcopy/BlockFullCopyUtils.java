@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,7 +36,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  * Utilities class for processing fully copy request
  */
 public class BlockFullCopyUtils {
-    
+
     /**
      * Returns the volume or block snapshot instance for the passed URI.
      * 
@@ -49,11 +48,11 @@ public class BlockFullCopyUtils {
      * @return A reference to the block object.
      */
     public static BlockObject queryFullCopyResource(URI fcResourceURI, UriInfo uriInfo,
-        boolean isSource, DbClient dbClient) {
+            boolean isSource, DbClient dbClient) {
         ArgValidator.checkUri(fcResourceURI);
         if (isSource) {
             if ((!URIUtil.isType(fcResourceURI, Volume.class))
-                && (!URIUtil.isType(fcResourceURI, BlockSnapshot.class))) {
+                    && (!URIUtil.isType(fcResourceURI, BlockSnapshot.class))) {
                 throw APIException.badRequests.invalidFullCopySource(fcResourceURI.toString());
             }
         } else if (!URIUtil.isType(fcResourceURI, Volume.class)) {
@@ -61,10 +60,10 @@ public class BlockFullCopyUtils {
         }
         BlockObject blockObj = BlockObject.fetch(dbClient, fcResourceURI);
         ArgValidator.checkEntity(blockObj, fcResourceURI,
-            BlockServiceUtils.isIdEmbeddedInURL(fcResourceURI, uriInfo), true);
+                BlockServiceUtils.isIdEmbeddedInURL(fcResourceURI, uriInfo), true);
         return blockObj;
     }
-    
+
     /**
      * Returns the project for the full copy source.
      * 
@@ -79,17 +78,17 @@ public class BlockFullCopyUtils {
         if (URIUtil.isType(fcSourceURI, Volume.class)) {
             projectURI = ((Volume) fcSourceObj).getProject().getURI();
         } else if (URIUtil.isType(fcSourceURI, BlockSnapshot.class)) {
-            projectURI = ((BlockSnapshot) fcSourceObj).getProject().getURI();            
+            projectURI = ((BlockSnapshot) fcSourceObj).getProject().getURI();
         }
-        
+
         if (projectURI == null) {
             throw APIException.badRequests.invalidFullCopySource(fcSourceURI.toString());
         }
-        
+
         Project project = dbClient.queryObject(Project.class, projectURI);
         return project;
     }
-    
+
     /**
      * Returns the vpool for the full copy source.
      * 
@@ -108,15 +107,15 @@ public class BlockFullCopyUtils {
             Volume parentVolume = dbClient.queryObject(Volume.class, parentVolURI);
             vpoolURI = parentVolume.getVirtualPool();
         }
-        
+
         if (vpoolURI == null) {
             throw APIException.badRequests.invalidFullCopySource(fcSourceURI.toString());
         }
-        
+
         VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolURI);
         return vpool;
     }
-    
+
     /**
      * Returns the vpool for the full copy source.
      * 
@@ -137,15 +136,15 @@ public class BlockFullCopyUtils {
         } else {
             throw APIException.badRequests.invalidFullCopySource(fcSourceURI.toString());
         }
-        
+
         StoragePool storagePool = null;
-        if (!NullColumnValueGetter.isNullURI(poolURI)) {    
+        if (!NullColumnValueGetter.isNullURI(poolURI)) {
             storagePool = dbClient.queryObject(StoragePool.class, poolURI);
         }
-        
+
         return storagePool;
     }
-    
+
     /**
      * Returns the capacity of the source object. The snap implementation used
      * provisioned capacity, while the volume implementation used the user specified
@@ -168,7 +167,7 @@ public class BlockFullCopyUtils {
             throw APIException.badRequests.invalidFullCopySource(fcSourceURI.toString());
         }
     }
-    
+
     /**
      * Returns the capacity of the source object. The snap implementation used
      * provisioned capacity, while the volume implementation used the user specified
@@ -191,7 +190,7 @@ public class BlockFullCopyUtils {
             throw APIException.badRequests.invalidFullCopySource(fcSourceURI.toString());
         }
     }
-    
+
     /**
      * Gets the SRDF copy mode of the passed volume.
      * 
@@ -211,13 +210,13 @@ public class BlockFullCopyUtils {
                     }
                 }
             }
-            
+
             return volume.getSrdfCopyMode();
         }
-        
+
         return null;
     }
-    
+
     /**
      * Verifies the passed source and full copy URIs for a requested full
      * copy operation.
@@ -230,18 +229,18 @@ public class BlockFullCopyUtils {
      * @return The map containing references to the source and full copy.
      */
     public static Map<URI, BlockObject> verifySourceAndFullCopy(
-        URI sourceURI, URI fullCopyURI, UriInfo uriInfo, DbClient dbClient) {
-        
+            URI sourceURI, URI fullCopyURI, UriInfo uriInfo, DbClient dbClient) {
+
         // Verify passed URIs.
         BlockObject fcSourceObj = queryFullCopyResource(sourceURI, uriInfo, true, dbClient);
         Volume fullCopyVolume = (Volume) queryFullCopyResource(fullCopyURI, uriInfo, false, dbClient);
-        
+
         // Verify the full copy volume is actually a full copy.
         verifyVolumeIsFullCopy(fullCopyVolume);
-        
+
         // Verify the copy is for the source.
         verifyCopyIsForSource(fullCopyVolume, sourceURI);
-        
+
         // Add the volumes to the volume map.
         Map<URI, BlockObject> resourceMap = new HashMap<URI, BlockObject>();
         resourceMap.put(sourceURI, fcSourceObj);
@@ -269,9 +268,9 @@ public class BlockFullCopyUtils {
      */
     public static void verifyCopyIsForSource(Volume fullCopyVolume, URI fcSourceURI) {
         if (!fullCopyVolume.getAssociatedSourceVolume().toString()
-            .equals(fcSourceURI.toString())) {
+                .equals(fcSourceURI.toString())) {
             throw APIException.badRequests.protectionVolumeNotFullCopyOfVolume(
-                fullCopyVolume.getId(), fcSourceURI);
+                    fullCopyVolume.getId(), fcSourceURI);
         }
     }
 
@@ -294,7 +293,7 @@ public class BlockFullCopyUtils {
             while (fullCopyIdsIter.hasNext()) {
                 String fullCopyId = fullCopyIdsIter.next();
                 Volume fullCopyVolume = dbClient.queryObject(Volume.class,
-                    URI.create(fullCopyId));
+                        URI.create(fullCopyId));
                 if (!isFullCopyDetached(fullCopyVolume, dbClient)) {
                     detached = false;
                 }
@@ -303,8 +302,7 @@ public class BlockFullCopyUtils {
 
         return detached;
     }
-    
-    
+
     /**
      * Check if the full copy volume could be restored.
      * 
@@ -324,7 +322,7 @@ public class BlockFullCopyUtils {
         }
         return result;
     }
-    
+
     /**
      * Check if the full copy volume could be resynchronized.
      * 
@@ -344,7 +342,7 @@ public class BlockFullCopyUtils {
         }
         return result;
     }
-    
+
     /**
      * Check if the full copy is detached.
      * 
@@ -364,7 +362,7 @@ public class BlockFullCopyUtils {
         }
         return result;
     }
-    
+
     /**
      * Check if the full copy is inactive.
      * 
@@ -384,7 +382,7 @@ public class BlockFullCopyUtils {
         }
         return result;
     }
-    
+
     /**
      * Determines if the passed volume is a full copy.
      * 
@@ -407,10 +405,10 @@ public class BlockFullCopyUtils {
                 isFullCopy = true;
             }
         }
-        
+
         return isFullCopy;
     }
-    
+
     /**
      * Determine if the passed volume is a source volume
      * for any full copies.
@@ -429,14 +427,14 @@ public class BlockFullCopyUtils {
                 URI fullCopyURI = URI.create(fullCopyIdsIter.next());
                 Volume fullCopyVolume = dbClient.queryObject(Volume.class, fullCopyURI);
                 if ((fullCopyVolume != null) && (!fullCopyVolume.getInactive())) {
-                   isFullCopySource = true;
+                    isFullCopySource = true;
                 }
             }
         }
-        
+
         return isFullCopySource;
     }
-    
+
     /**
      * Determines if the passed volume has an active full copy session.
      * 
@@ -448,7 +446,7 @@ public class BlockFullCopyUtils {
     public static boolean volumeHasFullCopySession(Volume volume, DbClient dbClient) {
         boolean hasFcSession = false;
         if (((isVolumeFullCopy(volume, dbClient)) && (!isFullCopyDetached(volume, dbClient))) ||
-            ((isVolumeFullCopySource(volume, dbClient)) && (!volumeDetachedFromFullCopies(volume, dbClient)))) {
+                ((isVolumeFullCopySource(volume, dbClient)) && (!volumeDetachedFromFullCopies(volume, dbClient)))) {
             // The volume is a full copy and it is not detached
             // from its source or it is a full copy source volume
             // and it is not detached from one or more of its full
@@ -458,7 +456,7 @@ public class BlockFullCopyUtils {
 
         return hasFcSession;
     }
-    
+
     /**
      * Determines if the active full count is violated when a request
      * is made for the passed number of full copies for the source
@@ -471,10 +469,10 @@ public class BlockFullCopyUtils {
      * @param dbClient A reference to a database client.
      */
     public static void validateActiveFullCopyCount(BlockObject fcSourceObj,
-        int numRequested, DbClient dbClient) {
+            int numRequested, DbClient dbClient) {
         validateActiveFullCopyCount(fcSourceObj, numRequested, 0, dbClient);
     }
-    
+
     /**
      * Determines if the active full count is violated when a request
      * is made for the passed number of full copies for the source
@@ -488,23 +486,23 @@ public class BlockFullCopyUtils {
      * @param dbClient A reference to a database client.
      */
     public static void validateActiveFullCopyCount(BlockObject fcSourceObj,
-        int numRequested, int otherCount, DbClient dbClient) {
+            int numRequested, int otherCount, DbClient dbClient) {
         List<Volume> undetachedFullCopies = getUndetachedFullCopiesForSource(fcSourceObj,
-            dbClient);
+                dbClient);
         int currentCount = undetachedFullCopies.size() + otherCount;
         URI systemURI = fcSourceObj.getStorageController();
         StorageSystem system = dbClient.queryObject(StorageSystem.class, systemURI);
         int maxCount = Integer.MAX_VALUE;
         if (system != null) {
             maxCount = BlockFullCopyManager.getMaxFullCopiesForSystemType
-                (system.getSystemType());
+                    (system.getSystemType());
         }
-        
+
         if ((numRequested + currentCount) > maxCount) {
             throw APIException.badRequests.maxFullCopySessionLimitExceeded(
-                fcSourceObj.getId(), maxCount - currentCount);
+                    fcSourceObj.getId(), maxCount - currentCount);
         }
-    }    
+    }
 
     /**
      * Gets a list of the full copies for passed full copy source
@@ -516,19 +514,19 @@ public class BlockFullCopyUtils {
      * @return A list of the undetached full copies for the source.
      */
     public static List<Volume> getUndetachedFullCopiesForSource(BlockObject fcSourceObj,
-        DbClient dbClient) {
+            DbClient dbClient) {
         ArrayList<Volume> undetachedFullCopies = new ArrayList<Volume>();
         URI fcSourceURI = fcSourceObj.getId();
         List<Volume> fullCopies = CustomQueryUtility.queryActiveResourcesByConstraint(
-            dbClient, Volume.class, ContainmentConstraint.Factory
-                .getAssociatedSourceVolumeConstraint(fcSourceURI));
+                dbClient, Volume.class, ContainmentConstraint.Factory
+                        .getAssociatedSourceVolumeConstraint(fcSourceURI));
         Iterator<Volume> fullCopiesIter = fullCopies.iterator();
         while (fullCopiesIter.hasNext()) {
             Volume fullCopy = fullCopiesIter.next();
             String fullCopyReplicaState = fullCopy.getReplicaState();
             if ((!fullCopy.getInactive())
-                && (!Volume.ReplicationState.DETACHED.name().equals(
-                    fullCopyReplicaState))) {
+                    && (!Volume.ReplicationState.DETACHED.name().equals(
+                            fullCopyReplicaState))) {
                 undetachedFullCopies.add(fullCopy);
             }
         }

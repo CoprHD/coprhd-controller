@@ -42,16 +42,16 @@ public class GeoSeedProviderImpl implements SeedProvider {
 
     private CoordinatorClient coordinator;
     private List<String> seeds = new ArrayList<>();
-    
+
     /**
      * 
      * @param args
      * @throws Exception
      */
     public GeoSeedProviderImpl(Map<String, String> args) throws Exception {
-        initCoordinatorClient(args); 
+        initCoordinatorClient(args);
         initSeedList(args);
-        log.info("Geo seed provider initialized successfully with seeds {}", 
+        log.info("Geo seed provider initialized successfully with seeds {}",
                 StringUtils.join(seeds.toArray(), ","));
     }
 
@@ -66,7 +66,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
                 }
             }
 
-            log.info("Seeds list {}",  StringUtils.join(result.toArray(), ","));
+            log.info("Seeds list {}", StringUtils.join(result.toArray(), ","));
             return result;
         } catch (Exception e) {
             throw new IllegalStateException(e);
@@ -75,7 +75,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
 
     /**
      * Construct coordinator client from argument. Seed provider instance is created by cassandra
-     * on demand. Not from spring context. 
+     * on demand. Not from spring context.
      * 
      * @param args
      */
@@ -100,17 +100,17 @@ public class GeoSeedProviderImpl implements SeedProvider {
         CoordinatorClientImpl client = new CoordinatorClientImpl();
         client.setZkConnection(connection);
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/nodeaddrmap-var.xml");
-        CoordinatorClientInetAddressMap inetAddressMap = (CoordinatorClientInetAddressMap)ctx.getBean("inetAddessLookupMap");
+        CoordinatorClientInetAddressMap inetAddressMap = (CoordinatorClientInetAddressMap) ctx.getBean("inetAddessLookupMap");
         if (inetAddressMap == null) {
             log.error("CoordinatorClientInetAddressMap is not initialized. Node address lookup will fail.");
         }
-        client.setInetAddessLookupMap(inetAddressMap); //HARCODE FOR NOW
+        client.setInetAddessLookupMap(inetAddressMap); // HARCODE FOR NOW
         client.start();
         coordinator = client;
     }
-    
+
     /**
-     * Initialize seed list 
+     * Initialize seed list
      * 
      * @param args
      */
@@ -120,8 +120,8 @@ public class GeoSeedProviderImpl implements SeedProvider {
         String[] seedIPs = null;
         if (seedsArg != null && !seedsArg.trim().isEmpty()) {
             seedIPs = seedsArg.split(",", -1);
-        } 
-        
+        }
+
         if (seedIPs != null) {
             // multiple site - assume seeds in other site is available
             // so just pick from config file
@@ -130,11 +130,11 @@ public class GeoSeedProviderImpl implements SeedProvider {
             }
         }
         // add local seed(s):
-        // -For fresh install and upgraded system from 1.1, 
-        //  get the first started node via the AUTOBOOT flag.
+        // -For fresh install and upgraded system from 1.1,
+        // get the first started node via the AUTOBOOT flag.
         // -For geodb restore/recovery,
-        //  get the active nodes by checking geodbsvc beacon in zk,
-        //  successfully booted node will register geodbsvc beacon in zk and remove the REINIT flag.
+        // get the active nodes by checking geodbsvc beacon in zk,
+        // successfully booted node will register geodbsvc beacon in zk and remove the REINIT flag.
         List<Configuration> configs = getAllConfigZNodes();
         if (hasRecoveryReinitFlag(configs)) {
             seeds.addAll(getAllActiveNodes(configs));
@@ -150,8 +150,9 @@ public class GeoSeedProviderImpl implements SeedProvider {
 
         // filter out non config ZNodes: 2.0 and global
         for (Configuration config : configs) {
-            if (isConfigZNode(config))
+            if (isConfigZNode(config)) {
                 result.add(config);
+            }
         }
         return result;
     }
@@ -179,7 +180,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
             if (isAutoBootNode(config)) {
                 continue;
             }
-                
+
             return getIpAddrFromConfig(config);
         }
         throw new IllegalStateException("Cannot find a node with autoboot set to false");
@@ -219,7 +220,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
         String value = config.getConfig(Constants.STARTUPMODE_RESTORE_REINIT);
         return value != null && Boolean.parseBoolean(value);
     }
- 
+
     private boolean isHibernateMode() {
         String modeType = getDbStartupMode();
         return Constants.STARTUPMODE_HIBERNATE.equalsIgnoreCase(modeType);

@@ -21,7 +21,7 @@ import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMappin
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
- *  Attribute repository class for local users. 
+ * Attribute repository class for local users.
  */
 public class StorageOSLocalPersonAttributeDao implements StorageOSPersonAttributeDao {
 
@@ -42,8 +42,8 @@ public class StorageOSLocalPersonAttributeDao implements StorageOSPersonAttribut
     @Override
     public StorageOSUserDAO getStorageOSUser(final Credentials credentials,
             ValidationFailureReason[] failureReason) {
-        String uid = ((UsernamePasswordCredentials)credentials).getUserName();
-        if( uid == null ) {
+        String uid = ((UsernamePasswordCredentials) credentials).getUserName();
+        if (uid == null) {
             throw APIException.badRequests.theParametersAreNotValid(Credentials.class
                     .getName());
         }
@@ -66,7 +66,7 @@ public class StorageOSLocalPersonAttributeDao implements StorageOSPersonAttribut
      */
     @Override
     public Map<URI, UserMapping> getUserTenants(String username) {
-        return Collections.singletonMap( _permissionsHelper.getRootTenant().getId(), null);
+        return Collections.singletonMap(_permissionsHelper.getRootTenant().getId(), null);
     }
 
     @Override

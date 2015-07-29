@@ -109,7 +109,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         try {
             client = getXtremIOClient(storage);
             URI projectUri = volumes.get(0).getProject().getURI();
-            String volumesFolderName = client.createFoldersForVolumeAndSnaps(client, getVolumeFolderName(projectUri, storage)).
+            String volumesFolderName = client.createFoldersForVolumeAndSnaps(getVolumeFolderName(projectUri, storage)).
             		get(XtremIOConstants.VOLUME_KEY);
             Random randomNumber = new Random();
             for (Volume volume : volumes) {
@@ -410,56 +410,15 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
             Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("SnapShot Creation..... Started");
-        try {
-            List<BlockSnapshot> failedSnapshots = new ArrayList<BlockSnapshot>();
-            StringBuffer errorMsg = new StringBuffer();
-            XtremIOClient client = getXtremIOClient(storage);
-            BlockSnapshot snap = null;
-            for (URI snapUri : snapshotList) {
-                try {
-                    snap = dbClient.queryObject(BlockSnapshot.class, snapUri);
-                    Volume parentVolume = dbClient.queryObject(Volume.class, snap.getParent().getURI());
-                    URI projectUri = snap.getProject().getURI();
-                    String snapFolderName = client.createFoldersForVolumeAndSnaps(client, getVolumeFolderName(projectUri, storage))
-                    		.get(XtremIOConstants.SNAPSHOT_KEY);
-                    String generatedLabel = _nameGenerator.generate("", snap.getLabel(), "",
-                            '_', XtremIOConstants.XTREMIO_MAX_VOL_LENGTH);
-                    snap.setLabel(generatedLabel);
-                    client.createSnapshot(parentVolume.getLabel(), generatedLabel, snapFolderName);
-                    XtremIOVolume createdSnap = client.getSnapShotDetails(snap.getLabel());
-                    snap.setNativeId(createdSnap.getVolInfo().get(0));
-                    snap.setWWN(createdSnap.getVolInfo().get(0));
-                    //if created nsap wwn is not empty then update the wwn
-                    if (!createdSnap.getWwn().isEmpty()) {
-                        snap.setWWN(createdSnap.getWwn());
-                    } 
-
-                    String nativeGuid = NativeGUIDGenerator.getNativeGuidforSnapshot(storage, storage.getSerialNumber(), snap.getNativeId());
-                    snap.setNativeGuid(nativeGuid);
-                    snap.setIsSyncActive(true);
-                    dbClient.persistObject(snap);
-                }catch(Exception e) {
-                    _log.error("Snapshot creation failed",e);
-                    snap.setInactive(true);
-                    failedSnapshots.add(snap);
-                    errorMsg.append("Failed to create snapshot:").append(snap.getLabel()).
-                        append(e.getMessage()).append("\n");
-                }
-            }
-            if (!failedSnapshots.isEmpty()) {
-                dbClient.persistObject(failedSnapshots);
-                ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errorMsg.toString(), null);
-                taskCompleter.error(dbClient, serviceError);
-                return;
-            }
-            taskCompleter.ready(dbClient);
-            _log.info("SnapShot Creation..... End");
-        } catch (Exception e) {
-            _log.error("Create Snapshot Operations failed :", e);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            taskCompleter.error(dbClient, serviceError);
+        List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, snapshotList);
+        if(ControllerUtils.inReplicationGroup(snapshots, dbClient)){
+        	snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive, readOnly, taskCompleter);
+        } else {
+        	URI snapshot = snapshots.get(0).getId();
+            snapshotOperations.createSingleVolumeSnapshot(storage, snapshot, createInactive,
+            		readOnly, taskCompleter);
         }
-
+        _log.info("SnapShot Creation..... End");
     }
 
     @Override

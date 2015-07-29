@@ -560,7 +560,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
             Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
             throws DeviceControllerException {
     	// CG support is not yet implemented for HDS
-    	snapshotOperations.createSingleVolumeSnapshot(storage, snapshotList.get(0), createInactive, taskCompleter);
+    	snapshotOperations.createSingleVolumeSnapshot(storage, snapshotList.get(0), createInactive, readOnly, taskCompleter);
     }
 
     /* (non-Javadoc)

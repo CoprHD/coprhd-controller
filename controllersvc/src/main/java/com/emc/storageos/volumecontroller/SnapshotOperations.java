@@ -38,10 +38,11 @@ public interface SnapshotOperations {
      * @param storage       [required] - StorageSystem object representing the array
      * @param snapshot      [required] - BlockSnapshot URI representing the previously created
      *                      snap for the volume
+     * @param readOnly 		create snapshot as read only or writable.
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      * @throws DeviceControllerException
      */
-    void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
+    void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
      * Should implement create of a snapshot from a source volume that is part of a
@@ -50,10 +51,11 @@ public interface SnapshotOperations {
      * @param storage       [required] - StorageSystem object representing the array
      * @param snapshotList      [required] - BlockSnapshot URI representing the previously created
      *                      snap for the volume
+     * @param readOnly TODO
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      * @throws DeviceControllerException
      */
-    void createGroupSnapshots(StorageSystem storage, List<URI> snapshotList, Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
+    void createGroupSnapshots(StorageSystem storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
      * This interface is for the snapshot active. The createSnapshot may have done

@@ -233,7 +233,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      */
     @Override
-    public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
         // List of target device ids
         List<String> targetDeviceIds = null;
         try {
@@ -307,7 +307,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      */
     @Override
     public void createGroupSnapshots(StorageSystem storage, List<URI> snapshotList,
-                                     Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+                                     Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
 
     	// Target group CIM Path
     	CIMObjectPath targetGroupPath = null;

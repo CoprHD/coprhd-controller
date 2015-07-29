@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Project;
@@ -38,66 +39,91 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
     
 	@Override
 	public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot,
-			Boolean createInactive, TaskCompleter taskCompleter)
+			Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
 			throws DeviceControllerException {
-
-        XtremIOClient client = getXtremIOClient(storage);
-        BlockSnapshot snap = dbClient.queryObject(BlockSnapshot.class, snapshot);
-        
-		if(client.isVersion2()) {
-			
-		} else {
-			createV1Snapshot(client, storage, snap, taskCompleter);
-		}
-
-	}
+		
+		BlockSnapshot snap = dbClient.queryObject(BlockSnapshot.class, snapshot);
+		try {
+	        XtremIOClient client = getXtremIOClient(storage);
+	        String generatedLabel = nameGenerator.generate("", snap.getLabel(), "",
+	                '_', XtremIOConstants.XTREMIO_MAX_VOL_LENGTH);
+	        snap.setLabel(generatedLabel);
+	        XtremIOVolume createdSnap;
+			if(client.isVersion2()) {
+				createdSnap = createV2Snapshot(client, storage, snap, generatedLabel, readOnly, taskCompleter);
+			} else {
+				createdSnap = createV1Snapshot(client, storage, snap, generatedLabel, taskCompleter);
+			}
+			if(createdSnap != null) {
+				snap.setWWN(createdSnap.getVolInfo().get(0));
+		        //if created snap wwn is not empty then update the wwn
+		        if (!createdSnap.getWwn().isEmpty()) {
+		            snap.setWWN(createdSnap.getWwn());
+		        } 
 	
-	private void createV1Snapshot(XtremIOClient client, StorageSystem storage, BlockSnapshot snap, TaskCompleter taskCompleter) 
-			throws DeviceControllerException {
-		try {
-        	Volume parentVolume = dbClient.queryObject(Volume.class, snap.getParent().getURI());
-            URI projectUri = snap.getProject().getURI();
-            String snapFolderName = client.createFoldersForVolumeAndSnaps(client, getVolumeFolderName(projectUri, storage))
-            		.get(XtremIOConstants.SNAPSHOT_KEY);
-            String generatedLabel = nameGenerator.generate("", snap.getLabel(), "",
-                    '_', XtremIOConstants.XTREMIO_MAX_VOL_LENGTH);
-            snap.setLabel(generatedLabel);
-            client.createSnapshot(parentVolume.getLabel(), generatedLabel, snapFolderName);
-            XtremIOVolume createdSnap = client.getSnapShotDetails(snap.getLabel());
-            snap.setNativeId(createdSnap.getVolInfo().get(0));
-            snap.setWWN(createdSnap.getVolInfo().get(0));
-            //if created nsap wwn is not empty then update the wwn
-            if (!createdSnap.getWwn().isEmpty()) {
-                snap.setWWN(createdSnap.getWwn());
-            } 
-
-            String nativeGuid = NativeGUIDGenerator.getNativeGuidforSnapshot(storage, storage.getSerialNumber(), snap.getNativeId());
-            snap.setNativeGuid(nativeGuid);
-            snap.setIsSyncActive(true);
-            dbClient.persistObject(snap);
-        }catch(Exception e) {
-            _log.error("Snapshot creation failed",e);
-            snap.setInactive(true);
-        }
-	}
-
-	private void createV2Snapshot(XtremIOClient client, StorageSystem storage, BlockSnapshot snap, TaskCompleter taskCompleter) 
-			throws DeviceControllerException {
-		try {
-			Volume parentVolume = dbClient.queryObject(Volume.class, snap.getParent().getURI());
-	        URI projectUri = snap.getProject().getURI();
-	        String snapFolderName = client.createTagsForVolumeAndSnaps(client, getVolumeFolderName(projectUri, storage)).get(XtremIOConstants.SNAPSHOT_KEY);
+		        snap.setNativeId(createdSnap.getVolInfo().get(0));
+		        String nativeGuid = NativeGUIDGenerator.getNativeGuidforSnapshot(storage, storage.getSerialNumber(), snap.getNativeId());
+		        snap.setNativeGuid(nativeGuid);
+		        snap.setIsSyncActive(true);
+			}
+			
+	        dbClient.persistObject(snap);
 		} catch(Exception e) {
             _log.error("Snapshot creation failed",e);
             snap.setInactive(true);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            taskCompleter.error(dbClient, serviceError);
         }
+
+	}
+	
+	private XtremIOVolume createV1Snapshot(XtremIOClient client, StorageSystem storage, BlockSnapshot snap, String snapLabel, 
+			TaskCompleter taskCompleter) throws Exception {
+		Volume parentVolume = dbClient.queryObject(Volume.class, snap.getParent().getURI());
+        URI projectUri = snap.getProject().getURI();
+        String snapFolderName = client.createFoldersForVolumeAndSnaps(getVolumeFolderName(projectUri, storage))
+        		.get(XtremIOConstants.SNAPSHOT_KEY);
+        
+        client.createSnapshot(parentVolume.getLabel(), snapLabel, snapFolderName);
+        XtremIOVolume createdSnap = client.getSnapShotDetails(snap.getLabel());
+        
+        return createdSnap;
+	}
+
+	private XtremIOVolume createV2Snapshot(XtremIOClient client, StorageSystem storage, BlockSnapshot snap, String snapLabel, 
+			Boolean readOnly, TaskCompleter taskCompleter) throws Exception {
+		Volume parentVolume = dbClient.queryObject(Volume.class, snap.getParent().getURI());
+        URI projectUri = snap.getProject().getURI();
+        String snapTagName = client.createTagsForVolumeAndSnaps(getVolumeFolderName(projectUri, storage)).get(XtremIOConstants.SNAPSHOT_KEY);
+        List<String> snapshotTags = new ArrayList<String>();
+        List<String> volumeList = new ArrayList<String>();
+        snapshotTags.add(snapTagName);
+        volumeList.add(parentVolume.getLabel());
+	    String snapshotType = readOnly ? XtremIOConstants.XTREMIO_READ_ONLY_TYPE : XtremIOConstants.XTREMIO_REGULAR_TYPE;
+	    client.createV2Snapshot(null, null, null, "", snapLabel, snapshotType, snapshotTags, volumeList);
+	    XtremIOVolume createdSnap = client.getSnapShotDetails(snapLabel);
+	    
+	    return createdSnap;
+		
 	}
 	
 	@Override
 	public void createGroupSnapshots(StorageSystem storage,
 			List<URI> snapshotList, Boolean createInactive,
-			TaskCompleter taskCompleter) throws DeviceControllerException {
-		
+			Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
+	
+		try {
+			URI snapshot = snapshotList.get(0);
+	        BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
+			URI cgId = snapshotObj.getConsistencyGroup();
+	        if (cgId != null) {
+	            BlockConsistencyGroup group = dbClient.queryObject(BlockConsistencyGroup.class, cgId);
+	        }
+		} catch(Exception e) {
+            _log.error("Snapshot creation failed",e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            taskCompleter.error(dbClient, serviceError);
+        }
 
 	}
 
@@ -105,15 +131,13 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
 	public void activateSingleVolumeSnapshot(StorageSystem storage,
 			URI snapshot, TaskCompleter taskCompleter)
 			throws DeviceControllerException {
-		// TODO Auto-generated method stub
-
+		throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 	}
 
 	@Override
 	public void activateGroupSnapshots(StorageSystem storage, URI snapshot,
 			TaskCompleter taskCompleter) throws DeviceControllerException {
-		// TODO Auto-generated method stub
-
+		throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 	}
 
 	@Override
@@ -149,24 +173,21 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
 	@Override
 	public void copySnapshotToTarget(StorageSystem storage, URI snapshot,
 			TaskCompleter taskCompleter) throws DeviceControllerException {
-		// TODO Auto-generated method stub
-
+		throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 	}
 
 	@Override
 	public void copyGroupSnapshotsToTarget(StorageSystem storage,
 			List<URI> snapshotList, TaskCompleter taskCompleter)
 			throws DeviceControllerException {
-		// TODO Auto-generated method stub
-
+		throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 	}
 
 	@Override
 	public void terminateAnyRestoreSessions(StorageSystem storage,
 			BlockObject from, URI volume, TaskCompleter taskCompleter)
 			throws Exception {
-		// TODO Auto-generated method stub
-
+		throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 	}
 	
 	private String getVolumeFolderName(URI projectURI, StorageSystem storage) {

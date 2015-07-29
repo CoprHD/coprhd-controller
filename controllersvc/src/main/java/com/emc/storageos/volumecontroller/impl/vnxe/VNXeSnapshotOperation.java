@@ -60,7 +60,7 @@ public class VNXeSnapshotOperation extends VNXeOperations implements SnapshotOpe
 	@Override
 	public void createGroupSnapshots(StorageSystem storage,
 			List<URI> snapshotList, Boolean createInactive,
-			TaskCompleter taskCompleter) throws DeviceControllerException {
+			Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
 		try {
 			URI snapshot = snapshotList.get(0);
 	        BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
@@ -253,7 +253,7 @@ public class VNXeSnapshotOperation extends VNXeOperations implements SnapshotOpe
 
 	@Override
 	public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot,
-			Boolean createInactive, TaskCompleter taskCompleter)
+			Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
 			throws DeviceControllerException {
 		
 		try {

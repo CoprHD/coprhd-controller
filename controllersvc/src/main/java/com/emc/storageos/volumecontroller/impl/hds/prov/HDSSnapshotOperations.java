@@ -74,7 +74,7 @@ public class HDSSnapshotOperations implements SnapshotOperations {
 	 */
 	@Override
 	public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot,
-			Boolean createInactive, TaskCompleter taskCompleter)
+			Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
 			throws DeviceControllerException {
 		log.info("Create Single Volume Snapshot Started");
 		
@@ -242,7 +242,7 @@ public class HDSSnapshotOperations implements SnapshotOperations {
 	@Override
 	public void createGroupSnapshots(StorageSystem storage,
 			List<URI> snapshotList, Boolean createInactive,
-			TaskCompleter taskCompleter) throws DeviceControllerException {
+			Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
 		// TODO Auto-generated method stub
 
 	}

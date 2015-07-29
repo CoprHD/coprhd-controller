@@ -631,11 +631,11 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                     BlockSnapshot.class, snapshotList);
             if (inReplicationGroup(snapshots)) {
                 _snapshotOperations.createGroupSnapshots(storage, snapshotList,
-                        createInactive, taskCompleter);
+                        createInactive, readOnly, taskCompleter);
             } else {
                 URI snapshot = snapshots.get(0).getId();
                 _snapshotOperations.createSingleVolumeSnapshot(storage,
-                        snapshot, createInactive, taskCompleter);
+                        snapshot, createInactive, readOnly, taskCompleter);
             }
         } catch (DatabaseException e) {
             String message = String

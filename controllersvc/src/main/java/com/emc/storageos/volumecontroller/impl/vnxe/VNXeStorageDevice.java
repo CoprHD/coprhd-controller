@@ -1217,11 +1217,11 @@ public class VNXeStorageDevice extends VNXeOperations
     	List<BlockSnapshot> snapshots = _dbClient
                 .queryObject(BlockSnapshot.class, snapshotList);
         if(ControllerUtils.inReplicationGroup(snapshots, _dbClient)){
-        	_snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive, taskCompleter);
+        	_snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive, readOnly, taskCompleter);
         } else {
         	URI snapshot = snapshots.get(0).getId();
             _snapshotOperations.createSingleVolumeSnapshot(storage, snapshot, createInactive,
-                    taskCompleter);
+            		readOnly, taskCompleter);
         	
         }
         _logger.info("{} doCreateSnapshot END ...", storage.getSerialNumber());

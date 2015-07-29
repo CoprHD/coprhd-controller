@@ -416,11 +416,11 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, snapshotList);
             if (inReplicationGroup(dbClient, snapshots)) {
                 snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive,
-                        taskCompleter);
+                		readOnly, taskCompleter);
             } else {
                 URI snapshot = snapshots.get(0).getId();
                 snapshotOperations.createSingleVolumeSnapshot(storage, snapshot, createInactive,
-                        taskCompleter);
+                		readOnly, taskCompleter);
             }
         } catch (DatabaseException e) {
             String message = String.format("IO exception when trying to create snapshot(s) on array %s",

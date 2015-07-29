@@ -874,11 +874,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     .queryObject(BlockSnapshot.class, snapshotList);
             if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
                 _snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive,
-                        taskCompleter);
+                		readOnly, taskCompleter);
             } else {
                 URI snapshot = snapshots.get(0).getId();
                 _snapshotOperations.createSingleVolumeSnapshot(storage, snapshot, createInactive,
-                        taskCompleter);
+                		readOnly, taskCompleter);
             }
         } catch (DatabaseException e) {
             String message = String.format(

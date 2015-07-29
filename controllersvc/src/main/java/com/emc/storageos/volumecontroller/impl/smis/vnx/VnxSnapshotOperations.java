@@ -228,13 +228,13 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
      * consistency group.
      *
      * @param storage       [required] - StorageSystem object representing the array
+     * @param taskCompleter - TaskCompleter object used for the updating operation status.
      * @param snapshot      [required] - BlockSnapshot URI representing the previously created
      *                      snap for the volume
-     * @param taskCompleter - TaskCompleter object used for the updating operation status.
      * @throws DeviceControllerException 
      */
     @Override
-    public void createGroupSnapshots(StorageSystem storage, List<URI> snapshotList, Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void createGroupSnapshots(StorageSystem storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
         	URI snapshot = snapshotList.get(0);
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);

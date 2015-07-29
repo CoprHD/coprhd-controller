@@ -126,8 +126,10 @@ public class VolumeIngestionUtil {
                         dbClient, unManagedVolumeUri);
             }
             
-            checkVPoolValidForGivenUnManagedVolumeUris(unManagedVolumeInformation, unManagedVolume,
-                    vPool.getId());
+            if (!isVplexBackendVolume(unManagedVolume)) {
+                checkVPoolValidForGivenUnManagedVolumeUris(unManagedVolumeInformation, unManagedVolume,
+                        vPool.getId());
+            }
         }
     }
     
@@ -147,7 +149,8 @@ public class VolumeIngestionUtil {
         // cannot ingest volumes other than VPlex virtual volumes into VPlex virtual pools.
         boolean haEnabledVpool = VirtualPool.vPoolSpecifiesHighAvailability(vpool);
         boolean isVplexVolume = VolumeIngestionUtil.isVplexVolume(unManagedVolume);
-        if (haEnabledVpool && !isVplexVolume) {
+        boolean isVplexBackendVolume = VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume);
+        if (haEnabledVpool && !isVplexVolume && !isVplexBackendVolume) {
             throw IngestionException.exceptions.cannotIngestNonVplexVolumeIntoVplexVpool(unManagedVolume.getLabel());
         }
 
@@ -621,22 +624,38 @@ public class VolumeIngestionUtil {
 		}
 		return totalUnManagedVolumeCapacity.longValue();
 	}
-	
-	/**
-	 * Returns true if the UnManagedVolume represents a VPLEX virtual volume.
-	 * 
-	 * @param volume the UnManagedVolume in question
-	 * @return true if the volume is a VPLEX virtual volume
-	 */
-	public static boolean isVplexVolume(UnManagedVolume volume) {
-	    if (null == volume.getVolumeCharacterstics()) {
-	        return false;
-	    }
-	    
+    
+    /**
+     * Returns true if the UnManagedVolume represents a VPLEX virtual volume.
+     * 
+     * @param volume the UnManagedVolume in question
+     * @return true if the volume is a VPLEX virtual volume
+     */
+    public static boolean isVplexVolume(UnManagedVolume volume) {
+        if (null == volume.getVolumeCharacterstics()) {
+            return false;
+        }
+        
         String status = volume.getVolumeCharacterstics()
                 .get(SupportedVolumeCharacterstics.IS_VPLEX_VOLUME.toString());
         return TRUE.equals(status);
-	}
+    }
+    
+    /**
+     * Returns true if the UnManagedVolume represents a VPLEX virtual volume.
+     * 
+     * @param volume the UnManagedVolume in question
+     * @return true if the volume is a VPLEX virtual volume
+     */
+    public static boolean isVplexBackendVolume(UnManagedVolume volume) {
+        if (null == volume.getVolumeCharacterstics()) {
+            return false;
+        }
+        
+        String status = volume.getVolumeCharacterstics()
+                .get(SupportedVolumeCharacterstics.IS_VPLEX_BACKEND_VOLUME.toString());
+        return TRUE.equals(status);
+    }
 	
 	public static boolean isSnapshot(UnManagedVolume volume) {
         if (null == volume.getVolumeCharacterstics()) {
@@ -1350,7 +1369,8 @@ public class VolumeIngestionUtil {
             List<Initiator> initiators =  CustomQueryUtility.iteratorToList(dbModelClient.find(Initiator.class, 
                     StringSetUtil.stringSetToUriList(hostInitiatorsUri)));
             if (hasFCInitiators (initiators)) {
-                return verifyHostNumPath(pathParams, initiators, zoningMap);
+                // TODO: revert, just for testing
+                // return verifyHostNumPath(pathParams, initiators, zoningMap);
             }
         }
         return true;

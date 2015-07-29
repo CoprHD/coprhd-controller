@@ -13,17 +13,16 @@
  */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
-import static com.emc.storageos.api.mapper.TaskMapper.toTask;
-
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.Map.Entry;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,28 +31,31 @@ import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
-import com.emc.storageos.model.ResourceOperationTypeEnum;
-import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.VolumeExportIngestParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
@@ -115,9 +117,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 Map<String, BlockObject> vplexCreatedObjectMap = new HashMap<String, BlockObject>();
                 Map<String, List<DataObject>> vplexUpdatedObjectMap = new HashMap<String, List<DataObject>>();
                 
-                for (URI associatedVolumeUri : associatedVolumeUris) {
-                    UnManagedVolume associatedVolume = _dbClient.queryObject(UnManagedVolume.class,
-                            associatedVolumeUri);
+                List<UnManagedVolume> associatedVolumes = _dbClient.queryObject(UnManagedVolume.class,
+                        associatedVolumeUris, true);
+                for (UnManagedVolume associatedVolume : associatedVolumes) {
                     _logger.info("Ingestion started for exported vplex backend unmanagedvolume {}", associatedVolume.getNativeGuid());
                     
                     
@@ -148,13 +150,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         if (null == blockObject)  {
                             
                             // TODO: handle this by not ingesting any backend vols; leave a nice message in success response
-                            continue;
-//                            throw IngestionException.exceptions.generalVolumeException(
-//                                    associatedVolume.getLabel(), "check the logs for more details");
+                            throw IngestionException.exceptions.generalVolumeException(
+                                    associatedVolume.getLabel(), "check the logs for more details");
                         }
                         
                         //TODO come up with a common response object to hold snaps/mirrors/clones
-                        createdObjectMap.put(blockObject.getNativeGuid(), blockObject);
+                        vplexCreatedObjectMap.put(blockObject.getNativeGuid(), blockObject);
                         processedUnManagedVolumeMap.put(associatedVolume.getNativeGuid(), associatedVolume);
                     } catch ( APIException ex ) {
                         _logger.warn(ex.getLocalizedMessage(), ex);
@@ -175,13 +176,11 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 
                 
                 
-                // TODO figure out how to create export group
-                boolean exportGroupCreated = false;
-                ExportGroup exportGroup = null; 
-
                 List<BlockObject> ingestedObjects = new ArrayList<BlockObject>();
+                _logger.info("about to ingest export masks");
                 
                 for(String unManagedVolumeGUID: processedUnManagedVolumeMap.keySet()) {
+                    _logger.info("ingesting export masks");
                     String objectGUID = unManagedVolumeGUID.replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
                     BlockObject processedBlockObject = vplexCreatedObjectMap.get(objectGUID);
                     UnManagedVolume processedUnManagedVolume = processedUnManagedVolumeMap.get(unManagedVolumeGUID);
@@ -190,9 +189,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     try {
                         if(processedBlockObject == null) {
                             _logger.warn("The ingested block object is null. Skipping ingestion of export masks for unmanaged volume {}", unManagedVolumeGUID);
-                            continue;
-//                            throw IngestionException.exceptions.generalVolumeException(
-//                                    processedUnManagedVolume.getLabel(), "check the logs for more details");
+                            throw IngestionException.exceptions.generalVolumeException(
+                                    processedUnManagedVolume.getLabel(), "check the logs for more details");
                         }
                         
                         URI storageSystemUri = processedUnManagedVolume.getStorageSystemUri();
@@ -200,14 +198,41 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         //Build the Strategy , which contains reference to Block object & export orchestrators
                         IngestExportStrategy ingestStrategy =  ingestStrategyFactory.buildIngestExportStrategy(processedUnManagedVolume);
                         
+                        // TODO happy path would just be one, but may need to account for more than one UEM
+                        String uemUri = processedUnManagedVolume.getUnmanagedExportMasks().iterator().next();
+                        UnManagedExportMask uem = _dbClient.queryObject(UnManagedExportMask.class, URI.create(uemUri)); 
+                        
+                        List<URI> initUris = new ArrayList<URI>();
+                        for (String uri : uem.getKnownInitiatorUris()) {
+                            initUris.add(URI.create(uri));
+                        }
+                        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initUris);
+                        
+                        ExportGroup exportGroup = this.createExportGroup(system, associatedSystem, initiators, 
+                                virtualArray.getId(), project.getId(), tenant.getId(), 4, uem); 
+                        boolean exportGroupCreated = exportGroup != null;
+                        
                         VolumeExportIngestParam exportIngestParam = new VolumeExportIngestParam();
                         exportIngestParam.setProject(project.getId());
                         exportIngestParam.setUnManagedVolumes(associatedVolumeUris);
                         exportIngestParam.setVarray(virtualArray.getId());
                         exportIngestParam.setVpool(vPool.getId());
                         
-                        // TODO: figure out how to set VPLEX as host
-                        // exportIngestParam.setHost(host);
+                        // TODO: figure out how to set VPLEX as host --- 
+                        //       this is obviously total hackage
+                        Initiator init = initiators.iterator().next();
+                        Host host = new Host();
+                        host.setId(URIUtil.createId(Host.class));
+                        host.setHostName(init.getHostName());
+                        host.setTenant(tenant.getId());
+                        host.setProject(project.getId());
+                        _dbClient.createObject(host);
+                        for (Initiator initl : initiators) {
+                            initl.setHost(host.getId());
+                        }
+                        _dbClient.persistObject(initiators);
+                        exportIngestParam.setHost(host.getId());
+
                         
                         BlockObject blockObject = ingestStrategy.ingestExportMasks(processedUnManagedVolume, exportIngestParam, exportGroup, 
                                 processedBlockObject, unManagedVolumesToBeDeleted, associatedSystem, exportGroupCreated);
@@ -271,15 +296,104 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         }
         
         // TODO obviously remove this
-        boolean tickles = true;
-        if (tickles) {
-            throw IngestionException.exceptions.generalException("throwing exception to stop ingestion during testing!!!!!");
-        }
+//        boolean tickles = true;
+//        if (tickles) {
+//            throw IngestionException.exceptions.generalException("throwing exception to stop ingestion during testing!!!!!");
+//        }
         
         return super.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray, project, tenant,
                 unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz, taskStatusMap);
     }
 
+    
+    
+    
+    
+    // THE FOLLOWING TWO METHODS ARE BASICALLY COPIED FROM VplexBackendManager, should be consolidated
+    
+    /**
+     * Create an ExportGroup.
+     * @param vplex -- VPLEX StorageSystem
+     * @param array -- Array StorageSystem
+     * @param initiators -- Collection<Initiator> representing VPLEX back-end ports.
+     * @param virtualArrayURI
+     * @param projectURI
+     * @param tenantURI
+     * @param numPaths Value of maxPaths to be put in ExportGroup
+     * @param exportMask IFF non-null, will add the exportMask to the Export Group.
+     * @return newly created ExportGroup persisted in DB.
+     */
+    ExportGroup createExportGroup(StorageSystem vplex,
+            StorageSystem array, Collection<Initiator> initiators, 
+            URI virtualArrayURI,
+            URI projectURI, URI tenantURI, int numPaths, 
+            UnManagedExportMask exportMask) {
+        String groupName = getExportGroupName(vplex, array) 
+                + "_" + UUID.randomUUID().toString().substring(28);
+        if (exportMask != null) {
+            String arrayName = array.getSystemType().replace("block", "") 
+                    + array.getSerialNumber().substring(array.getSerialNumber().length()-4);
+            groupName = exportMask.getMaskName() + "_" + arrayName;
+        }
+        
+        // No existing group has the mask, let's create one.
+        ExportGroup exportGroup = new ExportGroup();
+        exportGroup.setId(URIUtil.createId(ExportGroup.class));
+        exportGroup.setLabel(groupName);
+        exportGroup.setProject(new NamedURI(projectURI, exportGroup.getLabel()));
+        exportGroup.setVirtualArray(vplex.getVirtualArray());
+        exportGroup.setTenant(new NamedURI(tenantURI, exportGroup.getLabel()));
+        exportGroup.setGeneratedName(groupName);
+        exportGroup.setVolumes(new StringMap());
+        exportGroup.setOpStatus(new OpStatusMap());
+        exportGroup.setVirtualArray(virtualArrayURI);
+        exportGroup.setNumPaths(numPaths);
+
+        // Add the initiators into the ExportGroup.
+        for (Initiator initiator : initiators) {
+            exportGroup.addInitiator(initiator);
+        }
+
+//        // If we have an Export Mask, add it into the Export Group.
+//        if (exportMask != null) {
+//            exportGroup.addExportMask(exportMask.getId());
+//        }
+        
+        // Persist the ExportGroup
+        _dbClient.createObject(exportGroup);  // TODO probably want to be able to roll back
+        _logger.info(String.format("Returning new ExportGroup %s", exportGroup.getLabel()));
+        return exportGroup;
+        
+    }
+    
+    /**
+     * Returns the ExportGroup name to be used between a particular VPlex and underlying Storage Array.
+     * It is based on the serial numbers of the Vplex and Array. Therefore the same ExportGroup name
+     * will always be used, and it always starts with "VPlex".
+     * @param vplex
+     * @param array
+     * @return
+     */
+    private String getExportGroupName(StorageSystem vplex, StorageSystem array) {
+        // Unfortunately, using the full VPlex serial number with the Array serial number
+        // proves to be quite lengthy! We can run into issues on SMIS where
+        // max length (represented as STOR_DEV_GROUP_MAX_LEN) is 64 characters.
+        // Not to mention, other steps append to this name too.
+        // So lets chop everything but the last 4 digits from both serial numbers.
+        // This should be unique enough.
+        int endIndex = vplex.getSerialNumber().length();
+        int beginIndex = endIndex - 4;
+        String modfiedVPlexSerialNumber = vplex.getSerialNumber().substring(beginIndex, endIndex);
+        
+        endIndex = array.getSerialNumber().length();
+        beginIndex = endIndex - 4;
+        String modfiedArraySerialNumber = array.getSerialNumber().substring(beginIndex, endIndex);
+        
+        return String.format("VPlex_%s_%s", modfiedVPlexSerialNumber, modfiedArraySerialNumber);
+    }
+
+    
+    
     private List<URI> getAssociatedVolumes(UnManagedVolume unManagedVolume) {
         String deviceName = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.VPLEX_SUPPORTING_DEVICE_NAME.toString(),

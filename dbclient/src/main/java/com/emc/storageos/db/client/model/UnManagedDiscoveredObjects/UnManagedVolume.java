@@ -289,7 +289,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
         this.storagePortUris = storagePortUris;
     }
 
-    @AlternateId("AltIdIndex")
+    @AlternateId("UnManagedVolumeWwnIndex")
     @Name("wwn")
     public String getWwn() {
         return _wwn;

@@ -6,7 +6,9 @@ package com.emc.sa.asset.providers;
 
 import java.net.URI;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.stereotype.Component;
 
@@ -16,9 +18,12 @@ import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
+import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ConsistencyGroupFilter;
 import com.emc.vipr.model.catalog.AssetOption;
 
@@ -32,10 +37,7 @@ public class ConsistencyGroupProvider extends BaseAssetOptionsProvider {
 		List<BlockConsistencyGroupRestRep> consistencyGroups = api(ctx).blockConsistencyGroups().search().byProject(projectId).run();
 		List<BlockConsistencyGroupRestRep> filtered = Collections.emptyList();
 		for(BlockConsistencyGroupRestRep consistencyGroup : consistencyGroups ) {
-			URI virtualPoolId = consistencyGroup.getVirtualArray().getId();
-			BlockVirtualPoolRestRep vpool = api(ctx).blockVpools().get(virtualPoolId);
-	        // Only provide consistency groups if the selected VPool supports it
-	        if (isSupported(vpool)) {
+	        if (isSupportedConsistencyGroup(api(ctx), consistencyGroup)) {
 	        	filtered.add(consistencyGroup);
 	        }
 		}
@@ -54,7 +56,7 @@ public class ConsistencyGroupProvider extends BaseAssetOptionsProvider {
         BlockVirtualPoolRestRep vpool = api(ctx).blockVpools().get(virtualPoolId);
 
         // Only provide consistency groups if the selected VPool supports it
-        if (isSupported(vpool)) {
+        if (isSupportedVPool(vpool)) {
             return createBaseResourceOptions(api(ctx).blockConsistencyGroups().search().byProject(projectId).run());
         } else {
             return Collections.emptyList();
@@ -69,7 +71,7 @@ public class ConsistencyGroupProvider extends BaseAssetOptionsProvider {
         if (virtualPoolChangeOperation.equals(VirtualPoolChangeOperationEnum.RP_PROTECTED.name())) {
             BlockVirtualPoolRestRep vpool = api(ctx).blockVpools().get(virtualPoolId);
             // Only provide consistency groups if the selected VPool supports it
-            if (isSupported(vpool)) {
+            if (isSupportedVPool(vpool)) {
                 return createBaseResourceOptions(api(ctx).blockConsistencyGroups().search().byProject(projectId)
                         .filter(new ConsistencyGroupFilter(BlockConsistencyGroup.Types.RP.toString(), true)).run());
             }
@@ -77,7 +79,25 @@ public class ConsistencyGroupProvider extends BaseAssetOptionsProvider {
         return Collections.emptyList();
     }
     
-    private boolean isSupported(BlockVirtualPoolRestRep vpool) {
+    private boolean isSupportedConsistencyGroup(ViPRCoreClient client, BlockConsistencyGroupRestRep consistencyGroup) {
+    	if(consistencyGroup.getVolumes() != null && consistencyGroup.getVolumes().isEmpty()){
+    		return false;
+    	}
+    	Set<RelatedResourceRep> vpools = new HashSet<>();
+    	client.blockVolumes().getByRefs( consistencyGroup.getVolumes() );
+    	for(VolumeRestRep volume : client.blockVolumes().getByRefs( consistencyGroup.getVolumes() )){
+    		vpools.add(volume.getVirtualPool());
+    	}
+    	for(BlockVirtualPoolRestRep vpool : client.blockVpools().getByRefs(vpools)){
+    		if(!isSupportedVPool(vpool)){
+        		return false;
+        	}
+    	}
+    	return true;
+    }
+    
+    private boolean isSupportedVPool(BlockVirtualPoolRestRep vpool) {
 		return vpool != null && vpool.getMultiVolumeConsistent() != null && vpool.getMultiVolumeConsistent();
 	}
+
 }

@@ -65,9 +65,6 @@ final class ConsistencyUtils {
 	}
 	
 	public static Tasks<BlockConsistencyGroupRestRep> removeSnapshot(URI consistencyGroupId, URI snapshotId) {
-		Tasks<BlockConsistencyGroupRestRep> tasks = execute( new DeactivateConsistencyGroupSnapshot(consistencyGroupId, snapshotId) );
-		removeBlockResources(Collections.singletonList(snapshotId), VolumeDeleteTypeEnum.FULL);
-		return tasks;
+		return execute( new DeactivateConsistencyGroupSnapshot(consistencyGroupId, snapshotId) );
 	}
-	
 }

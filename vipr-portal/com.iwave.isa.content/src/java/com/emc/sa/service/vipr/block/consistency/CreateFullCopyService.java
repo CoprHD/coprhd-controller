@@ -1,7 +1,3 @@
-/*
- * Copyright 2012-2015 iWave Software LLC
- * All Rights Reserved
- */
 package com.emc.sa.service.vipr.block.consistency;
 
 import static com.emc.sa.service.ServiceParams.CONSISTENCY_GROUP;
@@ -19,6 +15,7 @@ import com.emc.vipr.client.Tasks;
 
 @Service("ConsistencyGroupCreateFullCopy")
 public class CreateFullCopyService extends ViPRService {
+	
     @Param(CONSISTENCY_GROUP)
     protected URI consistencyGroupId;
 

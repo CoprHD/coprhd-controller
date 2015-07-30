@@ -10,14 +10,15 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.model.BulkIdParam;
-import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.block.BlockConsistencyGroupBulkRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupCreate;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.storageos.model.block.BlockConsistencyGroupUpdate;
+import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -74,58 +75,79 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      *            the create configuration.
      * @return tasks for monitoring the progress of the operation(s).
      */
-    public Tasks<BlockConsistencyGroupRestRep> createFullCopy(URI id, VolumeFullCopyCreateParam input) {
+    public Tasks<BlockConsistencyGroupRestRep> createFullCopy(URI consistencyGroupId, VolumeFullCopyCreateParam input) {
     	final String url = getIdUrl() + "/protection/full-copies";
-    	return postTasks(input, url, id);
+    	return postTasks(input, url, consistencyGroupId);
     }
     
-    public Tasks<BlockConsistencyGroupRestRep> activateFullCopy(URI consistencyGroup, URI fullCopy){
+    public List<BlockConsistencyGroupRestRep> getFullCopies(URI consistencyGroupId) {
+        return getByRefs(listFullCopies(consistencyGroupId));
+    }
+    
+    private List<NamedRelatedResourceRep> listFullCopies(URI consistencyGroupId) {
+    	final String url = getIdUrl() + "/protection/full-copies";
+        NamedVolumesList response = client.get(NamedVolumesList.class, url, consistencyGroupId);
+        return defaultList(response.getVolumes());
+    }
+    
+    public Tasks<BlockConsistencyGroupRestRep> activateFullCopy(URI consistencyGroupId, URI fullCopyId){
     	final String url = getIdUrl() + "/protection/full-copies/{fcid}/activate";
-    	return postTasks(url, consistencyGroup, fullCopy);
+    	return postTasks(url, consistencyGroupId, fullCopyId);
     }
     
-    public Tasks<BlockConsistencyGroupRestRep> detachFullCopy(URI consistencyGroup, URI fullCopy){
+    public Tasks<BlockConsistencyGroupRestRep> detachFullCopy(URI consistencyGroupId, URI fullCopyId){
     	final String url = getIdUrl() + "/protection/full-copies/{fcid}/detach";
-    	return postTasks(url, consistencyGroup, fullCopy);
+    	return postTasks(url, consistencyGroupId, fullCopyId);
     }
     
-    public Tasks<BlockConsistencyGroupRestRep> restoreFullCopy(URI consistencyGroup, URI fullCopy){
+    public Tasks<BlockConsistencyGroupRestRep> restoreFullCopy(URI consistencyGroupId, URI fullCopyId){
     	final String url = getIdUrl() + "/protection/full-copies/{fcid}/restore";
-    	return postTasks(url, consistencyGroup, fullCopy);
+    	return postTasks(url, consistencyGroupId, fullCopyId);
     }
     
-    public Tasks<BlockConsistencyGroupRestRep> resynchronizeFullCopy(URI consistencyGroup, URI fullCopy){
+    public Tasks<BlockConsistencyGroupRestRep> resynchronizeFullCopy(URI consistencyGroupId, URI fullCopyId){
     	final String url = getIdUrl() + "/protection/full-copies/{fcid}/resynchronize";
-    	return postTasks(url, consistencyGroup, fullCopy);
+    	return postTasks(url, consistencyGroupId, fullCopyId);
     }
     
-    public Tasks<BlockConsistencyGroupRestRep> deactivateFullCopy(URI consistencyGroup, URI fullCopy){
+    public Tasks<BlockConsistencyGroupRestRep> deactivateFullCopy(URI consistencyGroupId, URI fullCopyId){
     	final String url = getIdUrl() + "/protection/full-copies/{fcid}/deactivate";
-    	return postTasks(url, consistencyGroup, fullCopy);
+    	return postTasks(url, consistencyGroupId, fullCopyId);
     }
     
     /*
      * TODO
      * Snapshots
      */
-    public Tasks<BlockConsistencyGroupRestRep> createSnapshot(URI id, BlockConsistencyGroupSnapshotCreate input) {
+    
+    public List<BlockConsistencyGroupRestRep> getSnapshots(URI consistencyGroupId) {
+        return getByRefs(listSnapshots(consistencyGroupId));
+    }
+    
+    private List<NamedRelatedResourceRep> listSnapshots(URI consistencyGroupId) {
     	final String url = getIdUrl() + "/protection/snapshots";
-    	return postTasks(input, url, id);
+    	SnapshotList response = client.get(SnapshotList.class, url, consistencyGroupId);
+        return response.getSnapList();
     }
     
-    public Task<BlockConsistencyGroupRestRep> activateSnapshot(URI consistencyGroup, URI snapshot){
+    public Tasks<BlockConsistencyGroupRestRep> createSnapshot(URI consistencyGroupId, BlockConsistencyGroupSnapshotCreate input) {
+    	final String url = getIdUrl() + "/protection/snapshots";
+    	return postTasks(input, url, consistencyGroupId);
+    }
+    
+    public Task<BlockConsistencyGroupRestRep> activateSnapshot(URI consistencyGroupId, URI snapshotId){
     	final String url = getIdUrl() + "/protection/snapshots/{fcid}/activate";
-    	return postTask(url, consistencyGroup, snapshot);
+    	return postTask(url, consistencyGroupId, snapshotId);
     }
     
-    public Tasks<BlockConsistencyGroupRestRep> deactivateSnapshot(URI consistencyGroup, URI snapshot){
+    public Tasks<BlockConsistencyGroupRestRep> deactivateSnapshot(URI consistencyGroupId, URI snapshotId){
     	final String url = getIdUrl() + "/protection/snapshots/{fcid}/deactivate";
-    	return postTasks(url, consistencyGroup, snapshot);
+    	return postTasks(url, consistencyGroupId, snapshotId);
     }
     
-    public Task<BlockConsistencyGroupRestRep> restoreSnapshot(URI consistencyGroup, URI snapshot){
+    public Task<BlockConsistencyGroupRestRep> restoreSnapshot(URI consistencyGroupId, URI snapshotId){
     	final String url = getIdUrl() + "/protection/snapshots/{fcid}/restore";
-    	return postTask(url, consistencyGroup, snapshot);
+    	return postTask(url, consistencyGroupId, snapshotId);
     }
     
     

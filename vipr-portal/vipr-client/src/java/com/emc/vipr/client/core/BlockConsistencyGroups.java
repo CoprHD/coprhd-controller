@@ -11,6 +11,7 @@ import java.util.List;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.block.BlockConsistencyGroupBulkRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupCreate;
@@ -80,11 +81,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
     	return postTasks(input, url, consistencyGroupId);
     }
     
-    public List<BlockConsistencyGroupRestRep> getFullCopies(URI consistencyGroupId) {
-        return getByRefs(listFullCopies(consistencyGroupId));
-    }
-    
-    private List<NamedRelatedResourceRep> listFullCopies(URI consistencyGroupId) {
+    public List<NamedRelatedResourceRep> getFullCopies(URI consistencyGroupId) {
     	final String url = getIdUrl() + "/protection/full-copies";
         NamedVolumesList response = client.get(NamedVolumesList.class, url, consistencyGroupId);
         return defaultList(response.getVolumes());
@@ -120,11 +117,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * Snapshots
      */
     
-    public List<BlockConsistencyGroupRestRep> getSnapshots(URI consistencyGroupId) {
-        return getByRefs(listSnapshots(consistencyGroupId));
-    }
-    
-    private List<NamedRelatedResourceRep> listSnapshots(URI consistencyGroupId) {
+    public List<NamedRelatedResourceRep> getSnapshots(URI consistencyGroupId) {
     	final String url = getIdUrl() + "/protection/snapshots";
     	SnapshotList response = client.get(SnapshotList.class, url, consistencyGroupId);
         return response.getSnapList();

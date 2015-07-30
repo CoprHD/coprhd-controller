@@ -1,0 +1,19 @@
+{
+  baseKey:"ConsistencyGroupResynchronizeFullCopy.Consistency",
+  serviceId:"ConsistencyGroupResynchronizeFullCopy",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    consistencyGroup:{
+            type:"assetType.vipr.consistencyGroupByProject"
+    },
+    
+    copies:{
+      type:"assetType.vipr.consistencyGroupFullCopy",
+      select: "many"
+    }
+  }
+}

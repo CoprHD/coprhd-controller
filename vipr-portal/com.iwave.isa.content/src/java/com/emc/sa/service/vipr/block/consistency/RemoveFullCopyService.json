@@ -1,6 +1,6 @@
 {
-  baseKey:"ConsistencyGroupCreateFullCopy.Block",
-  serviceId:"ConsistencyGroupCreateFullCopy",
+  baseKey:"ConsistencyGroupRemoveFullCopy",
+  serviceId:"ConsistencyGroupRemoveFullCopy",
   fields:{
     project:{
       type:"assetType.vipr.project",

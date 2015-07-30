@@ -1,5 +1,5 @@
 {
-  baseKey:"ConsistencyGroupCreateFullCopy.Block",
+  baseKey:"ConsistencyGroupCreateFullCopy",
   serviceId:"ConsistencyGroupCreateFullCopy",
   fields:{
     project:{

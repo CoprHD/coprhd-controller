@@ -1,0 +1,19 @@
+{
+  baseKey:"ConsistencyGroupRestoreSnapshot.Consistency",
+  serviceId:"ConsistencyGroupRestoreSnapshot",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    consistencyGroup:{
+            type:"assetType.vipr.consistencyGroupByProject"
+    },
+    
+    snapshots:{
+      type:"assetType.vipr.consistencyGroupSnapshot",
+      select: "many"
+    }
+  }
+}

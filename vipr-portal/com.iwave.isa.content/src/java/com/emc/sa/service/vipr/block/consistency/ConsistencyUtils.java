@@ -9,12 +9,16 @@ import java.util.Collections;
 
 import com.emc.sa.service.vipr.block.consistency.tasks.ActivateConsistencyGroupFullCopy;
 import com.emc.sa.service.vipr.block.consistency.tasks.CreateConsistencyGroupFullCopy;
+import com.emc.sa.service.vipr.block.consistency.tasks.CreateConsistencyGroupSnapshot;
 import com.emc.sa.service.vipr.block.consistency.tasks.DeactivateConsistencyGroupFullCopy;
+import com.emc.sa.service.vipr.block.consistency.tasks.DeactivateConsistencyGroupSnapshot;
 import com.emc.sa.service.vipr.block.consistency.tasks.DetachConsistencyGroupFullCopy;
 import com.emc.sa.service.vipr.block.consistency.tasks.RestoreConsistencyGroupFullCopy;
+import com.emc.sa.service.vipr.block.consistency.tasks.RestoreConsistencyGroupSnapshot;
 import com.emc.sa.service.vipr.block.consistency.tasks.ResynchronizeConsistencyGroupFullCopy;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
+import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 
 final class ConsistencyUtils {
@@ -52,5 +56,18 @@ final class ConsistencyUtils {
 		return execute( new DeactivateConsistencyGroupFullCopy(consistencyGroupId, fullCopyId) );
 	}
 	
+	public static Tasks<BlockConsistencyGroupRestRep> createSnapshot(URI consistencyGroupId, String snapshotName) {
+		return execute( new CreateConsistencyGroupSnapshot(consistencyGroupId, snapshotName) );
+	}
+	
+	public static Task<BlockConsistencyGroupRestRep> restoreSnapshot(URI consistencyGroupId, URI snapshotId) {
+		return execute( new RestoreConsistencyGroupSnapshot(consistencyGroupId, snapshotId) );
+	}
+	
+	public static Tasks<BlockConsistencyGroupRestRep> removeSnapshot(URI consistencyGroupId, URI snapshotId) {
+		Tasks<BlockConsistencyGroupRestRep> tasks = execute( new DeactivateConsistencyGroupSnapshot(consistencyGroupId, snapshotId) );
+		removeBlockResources(Collections.singletonList(snapshotId), VolumeDeleteTypeEnum.FULL);
+		return tasks;
+	}
 	
 }

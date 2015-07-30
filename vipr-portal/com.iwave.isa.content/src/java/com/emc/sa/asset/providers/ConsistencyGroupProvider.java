@@ -51,6 +51,12 @@ public class ConsistencyGroupProvider extends BaseAssetOptionsProvider {
         return createNamedResourceOptions(api(ctx).blockConsistencyGroups().getFullCopies(consistencyGroupId));
     }
 	
+	@Asset("consistencyGroupSnapshot")
+    @AssetDependencies("consistencyGroupByProject")
+    public List<AssetOption> getSnapshots(AssetOptionsContext ctx, URI consistencyGroupId) {
+        return createNamedResourceOptions(api(ctx).blockConsistencyGroups().getSnapshots(consistencyGroupId));
+    }
+	
     @Asset("consistencyGroup")
     @AssetDependencies({ "project", "blockVirtualPool" })
     public List<AssetOption> getConsistencyGroups(AssetOptionsContext ctx, URI projectId, URI virtualPoolId) {

@@ -23,7 +23,6 @@ public class PropertyListDataObject extends DataObject {
 
     private StringMap _resourceData;
     private String _type;
-    private String _storagesystemModel;
 
     @Name("resourceData")
     public StringMap getResourceData() {
@@ -46,16 +45,5 @@ public class PropertyListDataObject extends DataObject {
     public void setResourceType(String type) {
         _type = type;
         setChanged("resourceType");
-    }
-
-    @Name("storagesystemModel")
-    @AlternateId("AltIdIndex")
-    public String getStorageSystemModel() {
-        return _storagesystemModel;
-    }
-
-    public void setStorageSystemModel(String storagesystemModel) {
-        _storagesystemModel = storagesystemModel;
-        setChanged("storagesystemModel");
     }
 }

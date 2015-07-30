@@ -213,31 +213,37 @@ public class ManagedCapacityImpl implements Runnable {
     }
 
     /**
-     * get storage system models' managed capacity and update it to DB
+     * get storage system models' managed capacity and update it to DB (PropertyListDataObject CF)
      * @throws InterruptedException
      */
     public void refreshStorageSystemModelsManagedCapacity() throws InterruptedException {
+        log.info("Refreshing current StorageSystemModels managed arrays' capacity and count ...");
+
         StorageSystemModelsManagedCapacity modelsManagedCapacity = getStorageSystemModelsManagedCapacity();
         Map<String, StorageSystemModelManagedCapacity> modelCapacityMap = modelsManagedCapacity.getModelCapacityMap();
         for (Map.Entry<String, StorageSystemModelManagedCapacity> entry : modelCapacityMap.entrySet()) {
 
-            /* TODO
+            // Here the resource type is a specific storage system model
+            // while the resource data is its managed arrays' total capacity and count info
+            String resourceType = entry.getKey();
+            StorageSystemModelManagedCapacity resourceData = entry.getValue();
+
+            PropertyListDataObject resourceObj = map(resourceData, resourceType);
             List<URI> dataResourcesURI = dbClient.queryByConstraint(
                     AlternateIdConstraint.Factory.getConstraint(PropertyListDataObject.class,
-                            "storagesystemModel", entry.getKey()));
+                            "resourceType", resourceType));
             if (dataResourcesURI.size() > 0) {
-                resource.setId(dataResourcesURI.get(0));
-                resource.setCreationTime(Calendar.getInstance());
-                dbClient.updateAndReindexObject(resource);
+                resourceObj.setId(dataResourcesURI.get(0));
+                resourceObj.setCreationTime(Calendar.getInstance());
+                dbClient.updateAndReindexObject(resourceObj);
             }
             else {
-                resource.setId(URIUtil.createId(PropertyListDataObject.class));
-                dbClient.createObject(resource);
+                resourceObj.setId(URIUtil.createId(PropertyListDataObject.class));
+                dbClient.createObject(resourceObj);
             }
-            */
-
         }
 
+        log.info("Finished to refresh current StorageSystemModels managed arrays' capacity and count.");
     }
 
     /**

@@ -1,11 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.descriptor;
 
 import static com.emc.sa.util.ArrayUtil.safeArrayCopy;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

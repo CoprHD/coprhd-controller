@@ -15,10 +15,9 @@
 
 package com.emc.storageos.db.client.model;
 
-import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
-import com.emc.storageos.model.valid.EnumType;
-
 import java.net.URI;
+
+import com.emc.storageos.model.valid.EnumType;
 
 /**
  * Storage port data object, represents a port of storage device.

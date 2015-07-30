@@ -15,9 +15,11 @@
 
 package com.emc.storageos.protectioncontroller.impl.recoverpoint;
 
-import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getRpSourceVolumeByTarget;
+import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getRpJournalVolumeParent;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getSecondaryRpJournalVolumeParent;
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -29,6 +31,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -39,7 +42,9 @@ import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
@@ -63,14 +68,12 @@ import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
 import com.emc.storageos.recoverpoint.utils.RecoverPointClientFactory;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.google.common.base.Joiner;
-
-import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
-import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getRpSourceVolumeByTarget;
 
 /**
  * RecoverPoint specific helper bean
@@ -1360,5 +1363,33 @@ public class RPHelper {
      */
     public static boolean isVPlexVolume(Volume volume) {              
         return (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty());
+    }    
+
+    /**
+     * Returns a set of all RP ports as their related Initiator URIs.
+     * 
+     * @param dbClient - database client instance
+     * @return a Set of Initiator URIs
+     */
+    public static Set<URI> getBackendPortInitiators(DbClient dbClient) {
+        _log.info("Finding backend port initiators for all RP systems");
+        Set<URI> initiators = new HashSet<URI>();
+        
+        List<URI> rpSystemUris = dbClient.queryByType(ProtectionSystem.class, true);
+        List<ProtectionSystem> rpSystems = dbClient.queryObject(ProtectionSystem.class, rpSystemUris);
+        for (ProtectionSystem rpSystem : rpSystems ) {
+        	for (Entry<String, AbstractChangeTrackingSet<String>> rpSitePorts : rpSystem.getSiteInitiators().entrySet()) {
+        		for (String port : rpSitePorts.getValue()) {
+        			Initiator initiator = ExportUtils.getInitiator(port, dbClient);
+        			if (initiator != null) {
+        				// Review: OK to reduce to debug level
+        				_log.info("Adding initiator " + initiator.getId() + " with port: " + port);
+        				initiators.add(initiator.getId());
+        			}
+        		}
+        	}
+        }
+        
+        return initiators;
     }    
 }

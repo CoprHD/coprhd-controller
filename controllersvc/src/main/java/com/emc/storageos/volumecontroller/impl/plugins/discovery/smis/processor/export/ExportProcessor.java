@@ -28,7 +28,6 @@ import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
 import javax.cim.UnsignedInteger32;
 import javax.wbem.CloseableIterator;
-import javax.wbem.WBEMException;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
@@ -38,7 +37,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
@@ -49,9 +47,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.client.util.iSCSIUtility;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
@@ -60,15 +55,13 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.plugins.common.Processor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 
 /**
  * Processor used for retrieving masking constructs and creating UnManagedExportMask objects.
@@ -79,6 +72,7 @@ public class ExportProcessor extends Processor {
     private Logger _logger = LoggerFactory.getLogger(ExportProcessor.class);
     protected Map<String, Object> _keyMap;
     protected Set<URI> _vplexPortInitiators;
+    protected Set<URI> _rpPortInitiators;
     protected DbClient _dbClient;
     protected List<Object> _args;
 
@@ -123,6 +117,13 @@ public class ExportProcessor extends Processor {
             _keyMap.put(Constants.UNMANAGED_EXPORT_MASKS_VPLEX_INITS_SET, _vplexPortInitiators);
         }
 
+        _rpPortInitiators = 
+                (Set<URI>) _keyMap.get(Constants.UNMANAGED_EXPORT_MASKS_RECOVERPOINT_INITS_SET);
+        if (_rpPortInitiators == null) {
+            _rpPortInitiators = RPHelper.getBackendPortInitiators(_dbClient);
+            _keyMap.put(Constants.UNMANAGED_EXPORT_MASKS_RECOVERPOINT_INITS_SET, _rpPortInitiators);
+        }
+        
     }
     
     /* (non-Javadoc)
@@ -197,7 +198,8 @@ public class ExportProcessor extends Processor {
             updateZoningMap(mask, matchedInitiators, matchedPorts);
 
             updateVplexBackendVolumes(mask, matchedInitiators);
-            
+
+            updateRecoverPointVolumes(mask, matchedInitiators);
         } catch (Exception e) {
             _logger.error("something failed", e);
         } finally {
@@ -272,6 +274,45 @@ public class ExportProcessor extends Processor {
         }
     }
 
+    /**
+     * Marks any RecoverPoint volumes as such by look at the initiators
+     * and determining if any of them represent RPA front-end ports
+     *  
+     * @param mask - the UnManagedExportMask
+     * @param initiators - the initiators to test for RPA ports status
+     */
+    private void updateRecoverPointVolumes(UnManagedExportMask mask, List<Initiator> initiators) {
+        StringBuilder nonRecoverPointInitiators = new StringBuilder();
+        int rpPortInitiatorCount = 0;
+        for (Initiator init : initiators) {
+            if (this._rpPortInitiators.contains(init.getId())) {
+                _logger.info("export mask {} contains RPA initiator {}", 
+                        mask.getMaskName(), init.getInitiatorPort());
+                rpPortInitiatorCount++;
+            } else {
+                nonRecoverPointInitiators.append(init.getInitiatorPort()).append(" ");
+            }
+        }
+        
+        if (rpPortInitiatorCount > 0) {
+            _logger.info("export mask {} contains {} RPA initiators", 
+                    mask.getMaskName(), rpPortInitiatorCount);
+            if (rpPortInitiatorCount > initiators.size()) {
+                _logger.warn("   there are some ports in this mask that are not "
+                        + "RPA initiators: " + nonRecoverPointInitiators);
+            }
+            
+            Set<String> unmanagedRecoverPointMasks = 
+                    (Set<String>) _keyMap.get(Constants.UNMANAGED_RECOVERPOINT_MASKS_SET);
+            if (unmanagedRecoverPointMasks == null) {
+                unmanagedRecoverPointMasks = new HashSet<String>();
+                _keyMap.put(Constants.UNMANAGED_RECOVERPOINT_MASKS_SET, unmanagedRecoverPointMasks);
+            }
+            _logger.info("adding mask {} to unmanaged RP masks list", mask.getMaskName());
+            unmanagedRecoverPointMasks.add(mask.getId().toString());
+        }
+    }
+    
     /**
      * Returns an UnManagedExportMask if it exists for the requested
      * CIMObjectPath, or creates a new one if none exists.

@@ -5,12 +5,12 @@
      
      @author Bill Elliott IV
 -->
-<project name="controllersvc" default="CreateJar">
+<project name="discoveryplugins" default="CreateJar">
     
-  <property name="jarfile" value="controllersvc" />
+  <property name="jarfile" value="discoveryplugins" />
     
   <!-- <target name="CreateJar" description="Creates Jar file" depends="DetermineOS, SetProperties,StopServices,CreateJarFile,StartServices" />  -->
-  <target name="CreateJar" description="Creates Jar file" depends="DetermineOS, SetProperties, ChangePermissionJar, CreateJarFile, KillSingleService" />  
+  <target name="CreateJar" description="Creates Jar file" depends="DetermineOS, StopServices, SetProperties, ChangePermissionJar, CreateJarFile, StartServices" />  
     
   <target name="DetermineOS" description="Determines the OS.">
     <condition property="isMac">
@@ -60,7 +60,7 @@
 
   <target name="KillSingleService" description="Kill a single server and the monitor will restart it.">
     <!--  Start the services -->
-    <sshexec host="${storageos.ip}" username="root" password="${storageos.password}" command="/workspace/killservice.sh controllersvc" trust="true"/>
+    <sshexec host="${storageos.ip}" username="root" password="${storageos.password}" command="/workspace/killservice.sh discoveryplugins" trust="true"/>
   </target> 
 
 </project>

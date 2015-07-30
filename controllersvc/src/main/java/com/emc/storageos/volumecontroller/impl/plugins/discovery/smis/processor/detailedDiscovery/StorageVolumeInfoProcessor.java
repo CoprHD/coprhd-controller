@@ -304,9 +304,24 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                                         path);
                             }
                             
+                            // Check if this volume is in an RP mask, and mark it as an RP
+                            // volume if it is.
+                            Object o = keyMap.get(Constants.UNMANAGED_RECOVERPOINT_MASKS_SET);
+                            if (o != null) {
+                                Set<String> unmanagedRecoverPointMasks = (Set<String>) o;
+                                if (!unmanagedRecoverPointMasks.isEmpty()) {
+                                    if (unmanagedRecoverPointMasks.contains(uem.getId().toString())) {
+                                        _logger.info("unmanaged volume {} is an RP volume", unManagedVolume.getLabel());
+                                        unManagedVolume.putVolumeCharacterstics(
+                                                SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(),
+                                                "true");
+                                    }
+                                }
+                            }
+                            
                             // check if this volume is in a vplex backend mask
                             // and mark it as such if it is
-                            Object o = keyMap.get(Constants.UNMANAGED_VPLEX_BACKEND_MASKS_SET);
+                            o = keyMap.get(Constants.UNMANAGED_VPLEX_BACKEND_MASKS_SET);
                             if (o != null) {
                                 Set<String> unmanagedVplexBackendMasks = (Set<String>) o;
                                 if (!unmanagedVplexBackendMasks.isEmpty()) {

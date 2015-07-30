@@ -438,7 +438,44 @@
 	    {	      
 	      "image": "icon_compute_cluster_vcenter_update.png",
 	      "baseService": "UpdateVcenterCluster"	      	      	    	    
-	    }
+	    },
+    {
+    "title": "consistencygroup.title",
+    "image": "icon_compute_cluster.png",
+    "description": "consistencygroup.description",
+    "services": [
+      {
+        "image": "icon_compute_cluster_remove.png",
+        "baseService": "ConsistencyGroupCreateFullCopy"
+      },
+      {
+        "image": "icon_compute_cluster_remove.png",
+        "baseService": "ConsistencyGroupDetachFullCopy"
+      },
+      {
+        "image": "icon_compute_cluster_remove.png",
+        "baseService": "ConsistencyGroupRemoveFullCopy"                   
+      },          
+      {
+        "image": "icon_compute_cluster_remove.png",
+        "baseService": "ConsistencyGroupRestoreFullCopy"                    
+      },    
+      {       
+        "image": "icon_compute_cluster_remove.png",
+        "baseService": "ConsistencyGroupResynchronizeFullCopy"                           
+      },
+      {
+        "image": "icon_compute_cluster_add.png",
+        "baseService": "ConsistencyGroupCreateSnapshot"                   
+      },
+      {
+        "image": "icon_compute_cluster_add.png",
+        "baseService": "ConsistencyGroupRemoveSnapshot"
+      },    
+      {       
+        "image": "icon_compute_cluster_add.png",
+        "baseService": "ConsistencyGroupRestoreSnapshot"                           
+      }
 	  ]
 	}
   ]

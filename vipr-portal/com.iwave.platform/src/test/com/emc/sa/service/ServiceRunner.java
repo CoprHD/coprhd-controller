@@ -33,9 +33,9 @@ import com.emc.storageos.services.util.LoggingUtils;
 import com.google.common.collect.Maps;
 
 public class ServiceRunner {
-    private static ExecutionEngine ENGINE;
-    private static ModelClient MODELS;
-    private static ClassPathXmlApplicationContext CONTEXT;
+    private static volatile ExecutionEngine ENGINE;
+    private static volatile ModelClient MODELS;
+    private static volatile ClassPathXmlApplicationContext CONTEXT;
 
     private static void initLogging() {
         LoggingUtils.configureIfNecessary("sasvc-log4j.properties");
@@ -154,7 +154,7 @@ public class ServiceRunner {
         List<ExecutionLog> logs = load(state.getLogIds(), ExecutionLog.class);
         Collections.sort(logs, LOG_COMPARATOR);
 
-        if (logs.size() > 0) {
+        if (!logs.isEmpty()) {
             print("  Logs");
             for (ExecutionLog log : logs) {
                 print("    - %s\t%s\t%s", log.getDate(), log.getLevel(), log.getMessage());
@@ -163,7 +163,7 @@ public class ServiceRunner {
 
         List<ExecutionTaskLog> taskLogs = load(state.getTaskLogIds(), ExecutionTaskLog.class);
         Collections.sort(taskLogs, LOG_COMPARATOR);
-        if (taskLogs.size() > 0) {
+        if (!taskLogs.isEmpty()) {
             print("  Task Logs");
             for (ExecutionTaskLog log : taskLogs) {
                 print("    - %s\t%s\t%s\t%s", log.getDate(), log.getLevel(), log.getMessage(), log.getDetail());

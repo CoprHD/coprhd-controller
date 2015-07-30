@@ -18,6 +18,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.net.ssl.SSLContext;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -73,7 +74,7 @@ public class StorageApiWebServer {
 
     @Required
     public void setCiphers(String[] ciphers) {
-        this.ciphers = ciphers;
+        this.ciphers = (ciphers != null) ? Arrays.copyOf(ciphers, ciphers.length) : null;
     }
 
     @Required

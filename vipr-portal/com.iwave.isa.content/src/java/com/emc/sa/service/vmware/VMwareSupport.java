@@ -214,7 +214,7 @@ public class VMwareSupport {
                 hostDisks.put(host, disk);
             }
 
-            if (hostDisks.size() > 0) {
+            if (!hostDisks.isEmpty()) {
                 execute(new SetMultipathPolicy(hostDisks, multipathPolicy));
             }
         }

@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import com.iwave.ext.text.TextParserTest.DiskUtilVolume.DiskUtilVolumeParser;
@@ -23,6 +24,7 @@ import com.iwave.ext.text.TextParserTest.DiskUtilVolume.DiskUtilVolumeParser;
 public class TextParserTest {
 
     private static final String DISKUTIL_FILENAME = "diskutil_list";
+    private Logger log = Logger.getLogger(TextParser.class);
 
     @Test
     public void diskUtilTest() {
@@ -262,8 +264,7 @@ public class TextParserTest {
         try {
             IOUtils.copy(diskUtilFile, writer);
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            log.error(e);
             throw new RuntimeException(e);
         }
         String text = writer.toString();

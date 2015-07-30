@@ -3,6 +3,7 @@ package com.emc.sa.service.vipr.block.consistency;
 import static com.emc.sa.service.ServiceParams.CONSISTENCY_GROUP;
 import static com.emc.sa.service.ServiceParams.COUNT;
 import static com.emc.sa.service.ServiceParams.NAME;
+import static com.emc.sa.service.vipr.block.consistency.ConsistencyUtils.createFullCopy;
 
 import java.net.URI;
 
@@ -27,7 +28,7 @@ public class CreateFullCopyService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        Tasks<BlockConsistencyGroupRestRep> copies = ConsistencyUtils.createFullCopy(consistencyGroupId, name, count);
+        Tasks<BlockConsistencyGroupRestRep> copies = createFullCopy(consistencyGroupId, name, count);
         for (Task<BlockConsistencyGroupRestRep> copy : copies.getTasks()) {
             logInfo("create.full.copy.service", copy.getResource().getName(), copy.getResource().getId());
         }

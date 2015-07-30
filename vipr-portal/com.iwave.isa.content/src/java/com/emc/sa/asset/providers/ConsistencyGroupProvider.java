@@ -5,21 +5,29 @@
 package com.emc.sa.asset.providers;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
+import com.emc.sa.asset.AssetOptionsUtils;
 import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
+import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ConsistencyGroupFilter;
 import com.emc.vipr.model.catalog.AssetOption;
+import com.google.common.collect.Lists;
 
 @Component
 @AssetNamespace("vipr")
@@ -34,9 +42,9 @@ public class ConsistencyGroupProvider extends BaseAssetOptionsProvider {
 	@Asset("consistencyGroupFullCopy")
     @AssetDependencies("consistencyGroupByProject")
     public List<AssetOption> getFullCopies(AssetOptionsContext ctx, URI consistencyGroupId) {
-        return createBaseResourceOptions(api(ctx).blockConsistencyGroups().getFullCopies(consistencyGroupId));
+        return createNamedResourceOptions(api(ctx).blockConsistencyGroups().getFullCopies(consistencyGroupId));
     }
-
+	
     @Asset("consistencyGroup")
     @AssetDependencies({ "project", "blockVirtualPool" })
     public List<AssetOption> getConsistencyGroups(AssetOptionsContext ctx, URI projectId, URI virtualPoolId) {

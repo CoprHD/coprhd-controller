@@ -16,7 +16,6 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.scaleio.ScaleIOException;
 import com.emc.storageos.scaleio.api.ScaleIOAttributes;
-import com.emc.storageos.scaleio.api.ScaleIOCLI;
 import com.emc.storageos.scaleio.api.ScaleIOContants;
 import com.emc.storageos.scaleio.api.ScaleIOHandle;
 import com.emc.storageos.scaleio.api.ScaleIOQueryAllCommand;
@@ -242,10 +241,10 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                             continue;
                         }
                         if (usingAPI) {
-                            String availableCapacityString = queryAllResult.getStoragePoolProperty(protectionDomain, storagePool, 
+                            String availableCapacityString = queryAllResult.getStoragePoolProperty(protectionDomain, storagePool,
                                     ScaleIOQueryAllCommand.POOL_AVAILABLE_CAPACITY);
                             pool.setFreeCapacity(Long.parseLong(availableCapacityString));
-                            String totalCapacityString = queryAllResult.getStoragePoolProperty(protectionDomain, storagePool, 
+                            String totalCapacityString = queryAllResult.getStoragePoolProperty(protectionDomain, storagePool,
                                     ScaleIOQueryAllCommand.SCALEIO_TOTAL_CAPACITY);
                             pool.setTotalCapacity(Long.parseLong(totalCapacityString));
                         } else {

@@ -16,6 +16,11 @@ import java.util.Map;
 import com.emc.storageos.scaleio.ScaleIOException;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 
+/**
+ * ScaleIO operations interface 
+ * 
+ *
+ */
 public interface ScaleIOHandle {
 
     ScaleIOQueryAllResult queryAll() throws Exception;

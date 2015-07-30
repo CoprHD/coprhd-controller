@@ -62,7 +62,7 @@ public class ScaleIOCLI implements ScaleIOHandle {
      * SIO 1.30 requires an MDM user + password for running SIO CLI
      */
     private String mdmPassword;
-    
+
     private Boolean isInitialized;
 
     private ScaleIOCLICommand.ScaleIOCommandSemantics commandSemantics;
@@ -223,7 +223,7 @@ public class ScaleIOCLI implements ScaleIOHandle {
     }
 
     public ScaleIOAddVolumeResult addVolume(String protectionDomainName, String storagePoolName,
-                                            String volumeName, String volumeSize) {
+            String volumeName, String volumeSize) {
         ScaleIOAddVolumeCommand command =
                 new ScaleIOAddVolumeCommand(protectionDomainName, storagePoolName, volumeName, volumeSize);
         command.useCustomInvocationIfSet(customInvocation);
@@ -232,7 +232,7 @@ public class ScaleIOCLI implements ScaleIOHandle {
     }
 
     public ScaleIOAddVolumeResult addVolume(String protectionDomainName, String storagePoolName,
-                                            String volumeName, String volumeSize, boolean thinProvisioned) {
+            String volumeName, String volumeSize, boolean thinProvisioned) {
         ScaleIOAddVolumeCommand command =
                 new ScaleIOAddVolumeCommand(commandSemantics, protectionDomainName, storagePoolName, volumeName, volumeSize,
                         thinProvisioned);
@@ -262,7 +262,7 @@ public class ScaleIOCLI implements ScaleIOHandle {
         return command.getResults();
     }
 
-    public ScaleIOSnapshotMultiVolumeResult snapshotMultiVolume(Map<String,String> id2snapshot, String systemId) {
+    public ScaleIOSnapshotMultiVolumeResult snapshotMultiVolume(Map<String, String> id2snapshot, String systemId) {
         ScaleIOSnapshotMultiVolumeCommand command = new ScaleIOSnapshotMultiVolumeCommand(id2snapshot);
         command.useCustomInvocationIfSet(customInvocation);
         executeCommand(command);
@@ -342,7 +342,7 @@ public class ScaleIOCLI implements ScaleIOHandle {
         // TODO Auto-generated method stub
         return null;
     }
-    
+
     public void checkIfInitWasCalled() {
         if (isInitialized == null || !isInitialized) {
             log.error("ScaleIO CLI was not initialized before use");

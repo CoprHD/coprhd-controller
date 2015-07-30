@@ -15,8 +15,6 @@ import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.scaleio.api.ScaleIOAttributes;
 import com.emc.storageos.scaleio.api.ScaleIOCLI;
 import com.emc.storageos.scaleio.api.ScaleIOHandle;
-import com.emc.storageos.scaleio.api.ScaleIOQueryAllCommand;
-import com.emc.storageos.scaleio.api.ScaleIOQueryAllResult;
 import com.emc.storageos.scaleio.api.ScaleIOQueryAllVolumesResult;
 import com.emc.storageos.scaleio.api.ScaleIOSnapshotVolumeResult;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
@@ -48,7 +46,7 @@ public class ScaleIOCloneOperations implements CloneOperations {
 
     @Override
     public void createSingleClone(StorageSystem storageSystem, URI sourceVolume, URI cloneVolume, Boolean createInactive,
-                                  TaskCompleter taskCompleter) {
+            TaskCompleter taskCompleter) {
         try {
             ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(dbClient).getCLI(storageSystem);
 
@@ -102,7 +100,6 @@ public class ScaleIOCloneOperations implements CloneOperations {
     }
 
     private void updateCloneFromQueryAllVolumes(ScaleIOHandle scaleIOHandle, Volume cloneObj) throws Exception {
-        
 
         try {
             if (scaleIOHandle instanceof ScaleIOCLI) {
@@ -113,67 +110,67 @@ public class ScaleIOCloneOperations implements CloneOperations {
                 cloneObj.setProvisionedCapacity(l);
             } else {
                 ScaleIOVolume vol = scaleIOHandle.queryVolume(cloneObj.getNativeId());
-                long size = Long.parseLong(vol.getSizeInKb())*1024L;
+                long size = Long.parseLong(vol.getSizeInKb()) * 1024L;
                 cloneObj.setAllocatedCapacity(size);
                 cloneObj.setProvisionedCapacity(size);
             }
         } catch (Exception e) {
             log.warn("Failed to update full copy {} with size information: {}", cloneObj.getId(),
-                        e.getMessage());
+                    e.getMessage());
             throw e;
         }
     }
-    
+
     @Override
     public void restoreFromSingleClone(StorageSystem storageSystem, URI clone, TaskCompleter completer) {
-        //no support
-        
+        // no support
+
     }
-    
+
     @Override
-    public void fractureSingleClone(StorageSystem storageSystem, URI sourceVolume, 
+    public void fractureSingleClone(StorageSystem storageSystem, URI sourceVolume,
             URI clone, TaskCompleter completer) {
-        //no support
+        // no support
     }
-    
+
     @Override
     public void resyncSingleClone(StorageSystem storageSystem, URI clone, TaskCompleter completer) {
-        //no support
+        // no support
     }
-    
+
     @Override
     public void createGroupClone(StorageSystem storage, List<URI> cloneList,
-                                  Boolean createInactive, TaskCompleter taskCompleter) {
+            Boolean createInactive, TaskCompleter taskCompleter) {
     }
 
     @Override
     public void activateGroupClones(StorageSystem storage, List<URI> clone, TaskCompleter taskCompleter) {
-      //no support
-        
+        // no support
+
     }
 
     @Override
-    public void restoreGroupClones(StorageSystem storageSystem, List<URI>clones, TaskCompleter completer) {
-      //no support
-        
+    public void restoreGroupClones(StorageSystem storageSystem, List<URI> clones, TaskCompleter completer) {
+        // no support
+
     }
 
     @Override
-    public void fractureGroupClones(StorageSystem storageSystem, List<URI>clones, TaskCompleter completer) {
-      //no support
-        
+    public void fractureGroupClones(StorageSystem storageSystem, List<URI> clones, TaskCompleter completer) {
+        // no support
+
     }
 
     @Override
-    public void resyncGroupClones(StorageSystem storageSystem, List<URI>clones, TaskCompleter completer) {
-      //no support
-        
+    public void resyncGroupClones(StorageSystem storageSystem, List<URI> clones, TaskCompleter completer) {
+        // no support
+
     }
 
     @Override
-    public void detachGroupClones(StorageSystem storageSystem, List<URI>clones,TaskCompleter completer) {
-      //no support
-        
+    public void detachGroupClones(StorageSystem storageSystem, List<URI> clones, TaskCompleter completer) {
+        // no support
+
     }
-    
+
 }

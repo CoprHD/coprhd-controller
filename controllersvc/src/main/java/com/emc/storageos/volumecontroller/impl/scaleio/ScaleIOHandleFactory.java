@@ -46,9 +46,7 @@ public class ScaleIOHandleFactory {
         this.scaleIORestClientFactory = scaleIORestClientFactory;
     }
 
-
-
-    public ScaleIOHandle getCLI(StorageSystem storageSystem)  throws Exception{
+    public ScaleIOHandle getCLI(StorageSystem storageSystem) throws Exception {
         ScaleIOHandle handle;
         synchronized (syncObject) {
             URI activeProviderURI = storageSystem.getActiveProviderURI();
@@ -82,7 +80,8 @@ public class ScaleIOHandleFactory {
         } else {
             if (handle == null) {
                 URI baseURI = URI.create(ScaleIOContants.getAPIBaseURI(provider.getIPAddress(), provider.getPortNumber()));
-                handle = (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI, provider.getUserName(), provider.getPassword(), true);
+                handle = (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI, provider.getUserName(),
+                        provider.getPassword(), true);
                 ScaleIORestClient client = (ScaleIORestClient) handle;
                 String version = client.init();
                 scaleIOCLIMap.put(provider.getProviderID(), client);
@@ -98,7 +97,7 @@ public class ScaleIOHandleFactory {
         }
         return handle;
     }
-    
+
     public ScaleIOHandleFactory using(DbClient dbClient) {
         setDbClient(dbClient);
         return this;

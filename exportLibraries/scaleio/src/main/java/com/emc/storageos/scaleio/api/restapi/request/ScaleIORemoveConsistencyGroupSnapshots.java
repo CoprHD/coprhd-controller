@@ -10,9 +10,13 @@
  */
 package com.emc.storageos.scaleio.api.restapi.request;
 
+/**
+ * Parameters to remove consistency group snapshot
+ * 
+ */
 public class ScaleIORemoveConsistencyGroupSnapshots {
     private String snapGroupId;
-    
+
     public String getSnapGroupId() {
         return snapGroupId;
     }
@@ -20,6 +24,5 @@ public class ScaleIORemoveConsistencyGroupSnapshots {
     public void setSnapGroupId(String snapGroupId) {
         this.snapGroupId = snapGroupId;
     }
-    
 
 }

@@ -10,21 +10,28 @@
  */
 package com.emc.storageos.scaleio.api.restapi.request;
 
+/**
+ * Parameters to unmap volume
+ * 
+ */
 public class ScaleIOUnmapVolumeToSDC {
     private String sdcId;
     private String ignoreScsiInitiators;
+
     public String getSdcId() {
         return sdcId;
     }
+
     public void setSdcId(String sdcId) {
         this.sdcId = sdcId;
     }
+
     public String getIgnoreScsiInitiators() {
         return ignoreScsiInitiators;
     }
+
     public void setIgnoreScsiInitiators(String ignoreScsiInitiators) {
         this.ignoreScsiInitiators = ignoreScsiInitiators;
     }
-    
-    
+
 }

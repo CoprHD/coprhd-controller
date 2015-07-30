@@ -12,6 +12,13 @@ package com.emc.storageos.scaleio.api.restapi.response;
 
 import java.util.List;
 
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+
+/**
+ * SDS attributes
+ *
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ScaleIOSds {
     private String id;
     private List<Ip> ipList;

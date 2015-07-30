@@ -14,7 +14,11 @@ import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 import com.emc.storageos.scaleio.api.ScaleIOQueryStoragePoolResult;
 
-@JsonIgnoreProperties(ignoreUnknown=true)
+/**
+ * Storage pool attributes
+ * 
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ScaleIOStoragePool {
     private String protectionDomainId;
     private String name;
@@ -22,45 +26,56 @@ public class ScaleIOStoragePool {
     private String capacityAvailableForVolumeAllocationInKb;
     private String maxCapacityInKb;
     private String numOfVolumes;
-    
+
     public String getProtectionDomainId() {
         return protectionDomainId;
     }
+
     public void setProtectionDomainId(String protectionDomainId) {
         this.protectionDomainId = protectionDomainId;
     }
+
     public String getName() {
         return name;
     }
+
     public void setName(String name) {
         this.name = name;
     }
+
     public String getId() {
         return id;
     }
+
     public void setId(String id) {
         this.id = id;
     }
+
     public String getCapacityAvailableForVolumeAllocationInKb() {
         return capacityAvailableForVolumeAllocationInKb;
     }
+
     public void setCapacityAvailableForVolumeAllocationInKb(
             String capacityAvailableForVolumeAllocationInKb) {
         this.capacityAvailableForVolumeAllocationInKb = capacityAvailableForVolumeAllocationInKb;
     }
+
     public String getMaxCapacityInKb() {
         return maxCapacityInKb;
     }
+
     public void setMaxCapacityInKb(String maxCapacityInKb) {
         this.maxCapacityInKb = maxCapacityInKb;
     }
+
     public String getNumOfVolumes() {
         return numOfVolumes;
     }
+
     public void setNumOfVolumes(String numOfVolumes) {
         this.numOfVolumes = numOfVolumes;
     }
-    
+
     public ScaleIOQueryStoragePoolResult toQueryStoragePoolResult() {
         ScaleIOQueryStoragePoolResult result = new ScaleIOQueryStoragePoolResult();
         result.setAvailableCapacity(capacityAvailableForVolumeAllocationInKb);
@@ -68,6 +83,6 @@ public class ScaleIOStoragePool {
         result.setTotalCapacity(maxCapacityInKb);
         result.setVolumeCount(numOfVolumes);
         return result;
-        
+
     }
 }

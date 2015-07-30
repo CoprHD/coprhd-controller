@@ -12,20 +12,28 @@ package com.emc.storageos.scaleio.api.restapi.response;
 
 import java.util.List;
 
+/**
+ * Create volume snapshot response
+ * 
+ */
 public class ScaleIOSnapshotVolumeResponse {
     private List<String> volumeIdList;
     private String snapshotGroupId;
+
     public List<String> getVolumeIdList() {
         return volumeIdList;
     }
+
     public void setVolumeIdList(List<String> volumeIdList) {
         this.volumeIdList = volumeIdList;
     }
+
     public String getSnapshotGroupId() {
         return snapshotGroupId;
     }
+
     public void setSnapshotGroupId(String snapshotGroupId) {
         this.snapshotGroupId = snapshotGroupId;
     }
-    
+
 }

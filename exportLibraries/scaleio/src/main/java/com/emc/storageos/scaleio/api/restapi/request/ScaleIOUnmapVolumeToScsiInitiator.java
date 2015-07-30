@@ -10,6 +10,10 @@
  */
 package com.emc.storageos.scaleio.api.restapi.request;
 
+/**
+ * Parameters to unmap volume
+ * 
+ */
 public class ScaleIOUnmapVolumeToScsiInitiator {
     private String scsiInitiatorId;
 
@@ -20,6 +24,5 @@ public class ScaleIOUnmapVolumeToScsiInitiator {
     public void setScsiInitiatorId(String scsiInitiatorId) {
         this.scsiInitiatorId = scsiInitiatorId;
     }
-    
 
 }

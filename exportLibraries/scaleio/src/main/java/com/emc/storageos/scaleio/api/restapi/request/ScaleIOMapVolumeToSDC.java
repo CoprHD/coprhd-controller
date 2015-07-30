@@ -10,20 +10,28 @@
  */
 package com.emc.storageos.scaleio.api.restapi.request;
 
+/**
+ * Parameters to map a volume to SDC
+ * 
+ */
 public class ScaleIOMapVolumeToSDC {
     private String sdcId;
     private String allowMultipleMappings;
+
     public String getSdcId() {
         return sdcId;
     }
+
     public void setSdcId(String sdcId) {
         this.sdcId = sdcId;
     }
+
     public String getAllowMultipleMappings() {
         return allowMultipleMappings;
     }
+
     public void setAllowMultipleMappings(String allowMultipleMappings) {
         this.allowMultipleMappings = allowMultipleMappings;
     }
-    
+
 }

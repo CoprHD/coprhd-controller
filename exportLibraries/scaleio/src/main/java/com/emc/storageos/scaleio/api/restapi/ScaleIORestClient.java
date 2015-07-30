@@ -45,7 +45,6 @@ import com.emc.storageos.scaleio.api.ScaleIOSnapshotVolumeResult;
 import com.emc.storageos.scaleio.api.ScaleIOUnMapVolumeFromSCSIInitiatorResult;
 import com.emc.storageos.scaleio.api.ScaleIOUnMapVolumeToSDCResult;
 import com.emc.storageos.services.restutil.StandardRestClient;
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
@@ -76,12 +75,16 @@ import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 
 import com.google.gson.Gson;
 
-public class ScaleIORestClient extends StandardRestClient implements ScaleIOHandle{
+/**
+ * This class implements interfaces for calling ScaleIO REST API.
+ */
+
+public class ScaleIORestClient extends StandardRestClient implements ScaleIOHandle {
 
     private static Logger log = LoggerFactory.getLogger(ScaleIORestClient.class);
     ScaleIORestClientFactory factory;
     private Map<String, String> protectionDomainMap = new HashMap<String, String>();
-    
+
     /**
      * Constructor
      * 
@@ -100,16 +103,16 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
         _authToken = "";
         this.factory = factory;
     }
-    
-    public void setUsername (String username) {
+
+    public void setUsername(String username) {
         _username = username;
     }
-    
+
     public void setPassword(String password) {
         _password = password;
     }
-    
-    public String init() throws Exception{
+
+    public String init() throws Exception {
         String version = getVersion();
         List<ScaleIOProtectionDomain> domains = getProtectionDomains();
         for (ScaleIOProtectionDomain domain : domains) {
@@ -117,10 +120,11 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
         }
         return version;
     }
+
     @Override
     public ScaleIOQueryAllResult queryAll() throws Exception {
         ScaleIOSystem system = getSystem();
-        
+
         List<ScaleIOProtectionDomain> domains = getProtectionDomains();
         ScaleIOQueryAllResult result = new ScaleIOQueryAllResult();
         result.setProperty(ScaleIOQueryAllCommand.SCALEIO_INSTALLATION_ID, system.getInstallId());
@@ -139,7 +143,7 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
                         poolResult.getCapacityAvailableForVolumeAllocationInKb());
                 result.addStoragePoolProperty(domainName, id, ScaleIOQueryAllCommand.SCALEIO_TOTAL_CAPACITY,
                         poolResult.getMaxCapacityInKb());
-                result.addStoragePoolProperty(domainName,id, ScaleIOQueryAllCommand.POOL_ALLOCATED_VOLUME_COUNT,
+                result.addStoragePoolProperty(domainName, id, ScaleIOQueryAllCommand.POOL_ALLOCATED_VOLUME_COUNT,
                         poolResult.getNumOfVolumes());
                 result.addStoragePoolProperty(domainName, id, ScaleIOContants.NAME, poolName);
             }
@@ -150,31 +154,31 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
     @Override
     public ScaleIOQueryAllSDCResult queryAllSDC() throws JSONException {
         ClientResponse response = get(URI.create(ScaleIOContants.GET_SDC_URI));
-        List<ScaleIOSdc> sdcList= getResponseObjects(ScaleIOSdc.class, response);
+        List<ScaleIOSdc> sdcList = getResponseObjects(ScaleIOSdc.class, response);
         ScaleIOQueryAllSDCResult result = new ScaleIOQueryAllSDCResult();
-        for (ScaleIOSdc sdc : sdcList) {           
+        for (ScaleIOSdc sdc : sdcList) {
             result.addClient(sdc.getId(), sdc.getSdcIp(), sdc.getMdmConnectionState(), sdc.getSdcGuid());
         }
         return result;
     }
 
     @Override
-    public ScaleIOQueryAllSDSResult queryAllSDS() throws Exception{
+    public ScaleIOQueryAllSDSResult queryAllSDS() throws Exception {
         log.info("Discoverying all SDS.");
         ClientResponse response = get(URI.create(ScaleIOContants.GET_SDS_URI));
-        List<ScaleIOSds> sdsList= getResponseObjects(ScaleIOSds.class, response);
+        List<ScaleIOSds> sdsList = getResponseObjects(ScaleIOSds.class, response);
         ScaleIOQueryAllSDSResult result = new ScaleIOQueryAllSDSResult();
         for (ScaleIOSds sds : sdsList) {
             List<Ip> ips = sds.getIpList();
             String sdsIp = null;
-            if (ips != null && ips.size()>0) {
+            if (ips != null && ips.size() > 0) {
                 sdsIp = ips.get(0).getIp();
             }
             String domainId = sds.getProtectionDomainId();
             String domainName = protectionDomainMap.get(domainId);
             result.addProtectionDomain(domainId, domainName);
             result.addSDS(sds.getProtectionDomainId(), sds.getId(), sds.getName(), sdsIp, sds.getPort());
-            
+
         }
         return result;
     }
@@ -184,7 +188,7 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
         ClientResponse response = get(URI.create(ScaleIOContants.GET_SYSTEMS_URI));
         List<ScaleIOSystem> systemsInfo = getResponseObjects(ScaleIOSystem.class,
                 response);
-        ScaleIOSystem system= systemsInfo.get(0);
+        ScaleIOSystem system = systemsInfo.get(0);
         return system.toQueryClusterResult();
     }
 
@@ -203,7 +207,7 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
     public ScaleIOAddVolumeResult addVolume(String protectionDomainId,
             String storagePoolId, String volumeName, String volumeSize) throws Exception {
         ScaleIOCreateVolume volume = new ScaleIOCreateVolume();
-        Long sizeInKb = Long.parseLong(volumeSize)/1024L;
+        Long sizeInKb = Long.parseLong(volumeSize) / 1024L;
         volume.setVolumeSizeInKb(sizeInKb.toString());
         volume.setStoragePoolId(storagePoolId);
         volume.setName(volumeName);
@@ -219,7 +223,7 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
         result.setRequestedSize(volumeSize);
         result.setIsThinlyProvisioned(vol.isThinProvisioned());
         return result;
-        
+
     }
 
     @Override
@@ -227,7 +231,7 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
             String storagePoolId, String volumeName, String volumeSize,
             boolean thinProvisioned) throws Exception {
         ScaleIOCreateVolume volume = new ScaleIOCreateVolume();
-        Long sizeInKb = Long.parseLong(volumeSize)/1024L;
+        Long sizeInKb = Long.parseLong(volumeSize) / 1024L;
         volume.setVolumeSizeInKb(sizeInKb.toString());
         volume.setStoragePoolId(storagePoolId);
         volume.setName(volumeName);
@@ -242,7 +246,7 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
         ScaleIOVolume vol = queryVolume(createdVol.getId());
         ScaleIOAddVolumeResult result = new ScaleIOAddVolumeResult();
         String size = vol.getSizeInKb();
-        Long sizeInGB = Long.parseLong(size)/(1024L*1024L);
+        Long sizeInGB = Long.parseLong(size) / (1024L * 1024L);
         result.setActualSize(sizeInGB.toString());
         result.setId(vol.getId());
         result.setIsSuccess(true);
@@ -301,19 +305,19 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
         result.setIsSuccess(true);
         result.setConsistencyGroupId(snapVolumeInfo.getSnapshotGroupId());
         for (Map.Entry<String, String> entry : snapshotMap.entrySet()) {
-            ScaleIOSnapshotVolumeResult snapResult= new ScaleIOSnapshotVolumeResult();
+            ScaleIOSnapshotVolumeResult snapResult = new ScaleIOSnapshotVolumeResult();
             snapResult.setId(entry.getValue());
             snapResult.setName(entry.getKey());
             snapResult.setSuccess(true);
             result.addResult(snapResult);
-            
+
         }
         return result;
     }
 
     @Override
     public ScaleIOQueryAllVolumesResult queryAllVolumes() throws Exception {
-        
+
         return null;
     }
 
@@ -354,7 +358,7 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
             String consistencyGroupId) throws Exception {
         String systemId = getSystemId();
         String uri = ScaleIOContants.getRemoveConsistencyGroupSnapshotsURI(systemId);
-        ScaleIORemoveConsistencyGroupSnapshots parm = new  ScaleIORemoveConsistencyGroupSnapshots();
+        ScaleIORemoveConsistencyGroupSnapshots parm = new ScaleIORemoveConsistencyGroupSnapshots();
         parm.setSnapGroupId(consistencyGroupId);
         post(URI.create(uri), getJsonForEntity(parm));
         ScaleIORemoveConsistencyGroupSnapshotsResult result = new ScaleIORemoveConsistencyGroupSnapshotsResult();
@@ -366,10 +370,10 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
     public ScaleIOQueryAllSCSIInitiatorsResult queryAllSCSIInitiators() throws JSONException {
         log.info("Discovery all SCSI Initiators");
         ClientResponse response = get(URI.create(ScaleIOContants.GET_SCSI_INITIATOR_URI));
-        List<ScaleIOScsiInitiator> initList= getResponseObjects(ScaleIOScsiInitiator.class, response);
+        List<ScaleIOScsiInitiator> initList = getResponseObjects(ScaleIOScsiInitiator.class, response);
         ScaleIOQueryAllSCSIInitiatorsResult result = new ScaleIOQueryAllSCSIInitiatorsResult();
         if (initList != null && !initList.isEmpty()) {
-            for (ScaleIOScsiInitiator init : initList) {           
+            for (ScaleIOScsiInitiator init : initList) {
                 result.addInitiator(init.getId(), init.getName(), "", init.getIqn());
             }
         }
@@ -387,7 +391,7 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
             mapParm.setAllowMultipleMapp("TRUE");
             post(URI.create(uri), getJsonForEntity(mapParm));
             result.setIsSuccess(true);
-        }catch (ScaleIOException e) {
+        } catch (ScaleIOException e) {
             result.setErrorString(e.getMessage());
             result.setIsSuccess(false);
         }
@@ -413,7 +417,7 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
         try {
             List<ScaleIOSystem> systemsInfo = getResponseObjects(ScaleIOSystem.class,
                     response);
-            ScaleIOSystem system= systemsInfo.get(0);
+            ScaleIOSystem system = systemsInfo.get(0);
             result = system.getVersion();
         } catch (Exception e) {
             log.error("Exception while getting version", e);
@@ -422,7 +426,7 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
     }
 
     @Override
-    protected Builder setResourceHeaders(WebResource resource) { 
+    protected Builder setResourceHeaders(WebResource resource) {
         return resource.getRequestBuilder();
     }
 
@@ -452,7 +456,7 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
         } catch (Exception e) {
             ScaleIOException.exceptions.authenticationFailure(_base.toString());
         }
-        
+
     }
 
     @Override
@@ -481,14 +485,12 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
         }
     }
 
-
-
     private <T> List<T> getResponseObjects(Class<T> clazz, ClientResponse response) throws JSONException {
         JSONArray resp = response.getEntity(JSONArray.class);
         List<T> result = null;
-        if (resp != null && resp.length()>0) { 
+        if (resp != null && resp.length() > 0) {
             result = new ArrayList<T>();
-            for (int i=0; i<resp.length();i++) {
+            for (int i = 0; i < resp.length(); i++) {
                 JSONObject entry = resp.getJSONObject(i);
                 T respObject = new Gson().fromJson(entry.toString(), clazz);
                 result.add(respObject);
@@ -496,49 +498,49 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
         }
         return result;
     }
-    
+
     private ScaleIOSystem getSystem() throws Exception {
         ClientResponse response = get(URI.create(ScaleIOContants.GET_SYSTEMS_URI));
         List<ScaleIOSystem> systemsInfo = getResponseObjects(ScaleIOSystem.class, response);
         return systemsInfo.get(0);
     }
-    
+
     private List<ScaleIOProtectionDomain> getProtectionDomains() throws JSONException {
         ClientResponse response = get(URI.create(ScaleIOContants.GET_PROTECTION_DOMAIN_URI));
         return getResponseObjects(ScaleIOProtectionDomain.class, response);
     }
-    
+
     private List<ScaleIOStoragePool> getProtectionDomainStoragePools(String pdId) throws JSONException {
         ClientResponse response = get(URI.create(ScaleIOContants.getProtectionDomainStoragePoolURI(pdId)));
         return getResponseObjects(ScaleIOStoragePool.class, response);
     }
-    
+
     private ScaleIOStoragePool getStoragePoolStats(String poolId) throws Exception {
         ClientResponse response = get(URI.create(ScaleIOContants.getStoragePoolStatsURI(poolId)));
         ScaleIOStoragePool pool = getResponseObject(ScaleIOStoragePool.class, response);
         pool.setId(poolId);
         return pool;
     }
-    
+
     @Override
     public String getSystemId() throws Exception {
         ClientResponse response = get(URI.create(ScaleIOContants.GET_SYSTEMS_URI));
         List<ScaleIOSystem> systemsInfo = getResponseObjects(ScaleIOSystem.class, response);
         return systemsInfo.get(0).getId();
     }
-    
+
     @Override
     public ScaleIOVolume queryVolume(String volId) throws Exception {
         ClientResponse response = get(URI.create(ScaleIOContants.getVolumeURI(volId)));
         return getResponseObject(ScaleIOVolume.class, response);
     }
-    
+
     public Map<String, String> getVolumes(List<String> volumeIds) throws Exception {
         Map<String, String> result = new HashMap<String, String>();
         ScaleIOVolumeList parm = new ScaleIOVolumeList();
         parm.setIds(volumeIds);
         ClientResponse response = post(URI.create(ScaleIOContants.GET_VOLUMES_BYIDS_URI), getJsonForEntity(parm));
-        List<ScaleIOVolume> volumes= getResponseObjects(ScaleIOVolume.class, response);
+        List<ScaleIOVolume> volumes = getResponseObjects(ScaleIOVolume.class, response);
         for (ScaleIOVolume volume : volumes) {
             result.put(volume.getName(), volume.getId());
         }

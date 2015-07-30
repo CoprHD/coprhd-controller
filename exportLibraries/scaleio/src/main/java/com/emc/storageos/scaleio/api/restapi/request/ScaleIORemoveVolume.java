@@ -10,6 +10,10 @@
  */
 package com.emc.storageos.scaleio.api.restapi.request;
 
+/**
+ * Parameters to remove a volume
+ * 
+ */
 public class ScaleIORemoveVolume {
     private String removeMode = "ONLY_ME";
 
@@ -20,7 +24,5 @@ public class ScaleIORemoveVolume {
     public void setRemoveMode(String removeMode) {
         this.removeMode = removeMode;
     }
-    
-    
 
 }

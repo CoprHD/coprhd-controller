@@ -12,6 +12,10 @@ package com.emc.storageos.scaleio.api.restapi.request;
 
 import java.util.List;
 
+/**
+ * A list of volume ids
+ * 
+ */
 public class ScaleIOVolumeList {
     private List<String> ids;
 
@@ -22,7 +26,5 @@ public class ScaleIOVolumeList {
     public void setIds(List<String> ids) {
         this.ids = ids;
     }
-    
-    
 
 }

@@ -10,6 +10,10 @@
  */
 package com.emc.storageos.scaleio.api.restapi.request;
 
+/**
+ * Parameters to expand a volume
+ * 
+ */
 public class ScaleIOModifyVolumeSize {
     private String sizeInGB;
 
@@ -19,6 +23,6 @@ public class ScaleIOModifyVolumeSize {
 
     public void setSizeInGB(String sizeInGB) {
         this.sizeInGB = sizeInGB;
-    } 
-    
+    }
+
 }

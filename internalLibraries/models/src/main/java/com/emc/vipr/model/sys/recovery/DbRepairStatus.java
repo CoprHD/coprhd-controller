@@ -41,10 +41,11 @@ public class DbRepairStatus implements Serializable {
     public DbRepairStatus() {
     }
 
-    public DbRepairStatus(Status status) {
+    public DbRepairStatus(Status status, Date startTime, int progress) {
         this.status = status;
+        this.startTime = startTime;
+        this.progress = progress;
     }
-
     public DbRepairStatus(Status status, Date startTime, Date endTime, int progress) {
         this.status = status;
         this.startTime = startTime;

@@ -834,7 +834,7 @@ public class RecoveryManager implements Runnable {
         		repairStatus = getSingleProgressStatus(geoDbState, localDbState, nodeRecovery, true);
         	} else if (localDbState.getStatus()==Status.FAILED || geoDbState.getStatus()==Status.FAILED) {
         		log.info("local or geo db repair failed");
-        		repairStatus = new DbRepairStatus(Status.FAILED); 
+                repairStatus = getFailStatus(localDbState, geoDbState);
         	} else if (localDbState.getStatus()==Status.SUCCESS && geoDbState.getStatus()==Status.SUCCESS) {
         		log.info("local and geo db repair failed");
         		repairStatus = getSuccessStatus(localDbState, geoDbState);
@@ -848,6 +848,18 @@ public class RecoveryManager implements Runnable {
         }
         log.info("Repair status is: {}", repairStatus.toString());
         return repairStatus;
+    }
+
+    private DbRepairStatus getFailStatus(DbRepairStatus localDbState, DbRepairStatus geoDbState) {
+        Date startTime;
+        if (localDbState.getStatus() == Status.FAILED && geoDbState.getStatus() == Status.FAILED) {
+            startTime = getOldestTime(localDbState.getStartTime(), geoDbState.getStartTime());
+        } else if (localDbState.getStatus() == Status.FAILED) {
+            startTime = localDbState.getStartTime();
+        } else {
+            startTime = geoDbState.getStartTime();
+        }
+        return new DbRepairStatus(Status.FAILED, startTime, 100);
     }
 
 	private DbRepairStatus getSuccessStatus(DbRepairStatus localDbState, DbRepairStatus geoDbState) {

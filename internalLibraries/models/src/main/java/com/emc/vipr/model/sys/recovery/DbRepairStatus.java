@@ -38,6 +38,11 @@ public class DbRepairStatus implements Serializable {
         FAILED,
     }
 
+    private Status status;
+    private Date lastCompletionTime;
+    private Date startTime;
+    private int progress;
+
     public DbRepairStatus() {
     }
 
@@ -46,6 +51,7 @@ public class DbRepairStatus implements Serializable {
         this.startTime = startTime;
         this.progress = progress;
     }
+
     public DbRepairStatus(Status status, Date startTime, Date endTime, int progress) {
         this.status = status;
         this.startTime = startTime;
@@ -53,11 +59,13 @@ public class DbRepairStatus implements Serializable {
         this.progress = progress;
     }
 
-    private Status status;
-    private Date lastCompletionTime;
-    private Date startTime;
-    private int progress;
-
+    /**
+     * The status of db repair
+     * @valid NOT_STARTED = db repair has not started yet
+     * @valid IN_PROGRESS = db repair is in progress
+     * @valid SUCCESS = db repair succeed
+     * @valid FAILED = db repair failed
+     */
     @XmlElement(name = "status")
     public Status getStatus() {
         return this.status;
@@ -67,6 +75,10 @@ public class DbRepairStatus implements Serializable {
         this.status = status;
     }
 
+    /**
+     * The completion time of lastest successful db repair
+     * @valid none
+     */
     @XmlElement(name = "last_completion_time")
     public Date getLastCompletionTime() {
         return this.lastCompletionTime;
@@ -76,6 +88,10 @@ public class DbRepairStatus implements Serializable {
         this.lastCompletionTime = endTime;
     }
 
+    /**
+     * The start time of current db repair
+     * @valid none
+     */
     @XmlElement(name = "start_time")
     public Date getStartTime() {
         return this.startTime;
@@ -85,6 +101,10 @@ public class DbRepairStatus implements Serializable {
         this.startTime = startTime;
     }
 
+    /**
+     * The progress of current db repair
+     * @valid 0-100, this value just for reference
+     */
     @XmlElement(name = "progress")
     public int getProgress() {
         return this.progress;

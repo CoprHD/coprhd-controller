@@ -600,7 +600,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 // Consolidate all VPLEX and non-VPLEX targets
                 List<URI> allPrimaryTargetVarrayURIs = new ArrayList<URI>();    
                 allPrimaryTargetVarrayURIs.addAll(primaryRecommendation.getVirtualArrayProtectionMap().keySet());    
-                //allPrimaryTargetVarrayURIs.addAll(primaryRecommendation.getVarrayVPlexProtection().keySet());  
+                  
                 _log.info(String.format("Creating target copies and corresponding journals on %s", Joiner.on("--").join(allPrimaryTargetVarrayURIs)));
                     
                 for (URI tgtVirtualArrayURI : allPrimaryTargetVarrayURIs) {                 
@@ -752,8 +752,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 if (metroPointEnabled && metroPointType != MetroPointType.SINGLE_REMOTE) {                                          
                     // Consolidate all VPLEX and non-VPLEX targets
                     List<URI> allSecondaryTargetVarrayURIs = new ArrayList<URI>();    
-                    allSecondaryTargetVarrayURIs.addAll(secondaryRecommendation.getVirtualArrayProtectionMap().keySet());    
-                    //allSecondaryTargetVarrayURIs.addAll(secondaryRecommendation.getVarrayVPlexProtection().keySet());    
+                    allSecondaryTargetVarrayURIs.addAll(secondaryRecommendation.getVirtualArrayProtectionMap().keySet());  
                     
                     for (URI tgtVirtualArrayURI : allSecondaryTargetVarrayURIs) {       
                         // Skip over protection targets that have already been created as part of the 
@@ -1665,10 +1664,16 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             break;
         }
 
+        if (true) {
+        //TODO BBB remove
+        _log.error("STOP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+        throw new WebApplicationException(Response
+                .status(Response.Status.INTERNAL_SERVER_ERROR).entity(taskList).build());
+        }
+        
         return taskList;
     }
     
-
     /**
      * {@inheritDoc}
      * 

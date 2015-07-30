@@ -57,10 +57,11 @@ public class SysClientFactory {
     // URI for retrieving managed capacity for provisioning in apisvc
     public static final URI _URI_PROVISIONING_MANAGED_CAPACITY = URI.create
             ("/internal/system/managed-capacity");
-    // URI for retrieving managed capacity for unstructured, waiting from data service team
-    // for the new url
-    public static final URI _URI_UNSTRUCTURED_MANAGED_CAPACITY = URI.create
-            ("/internal/object/managed-objCapacity");
+
+    // URI for retrieving storage system models managed capacity for provisioning in apisvc
+    public static final URI _URI_STORAGESYSTEMMODELS_MANAGED_CAPACITY = URI.create
+            ("/internal/system/storagesystemmodels-managed-capacity");
+
 
     /**
      * Coordinator client

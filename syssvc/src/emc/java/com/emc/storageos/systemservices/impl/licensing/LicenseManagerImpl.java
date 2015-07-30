@@ -30,6 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.emc.storageos.model.systems.StorageSystemModelsManagedCapacity;
 import com.emc.storageos.model.vpool.ManagedResourcesCapacity;
 import com.emc.storageos.model.vpool.ManagedResourcesCapacity.ManagedResourceCapacity;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -690,15 +691,40 @@ public class LicenseManagerImpl implements LicenseManager {
      */
     private double getTotalControllerCapacity() throws InternalServerErrorException {
         _log.info("Getting controller total capacity");
-        ManagedResourcesCapacity resourceCapacities = getControllerCapacity();
-        double total = 0;
-        for (ManagedResourceCapacity cap : resourceCapacities.getResourceCapacityList()) {
-            _log.debug("{} capacity is {}", cap.getType(), cap.getResourceCapacity());
-            total += cap.getResourceCapacity();
-        }
-        _log.info("Controller total capacity is {}", total);
-        return total;
+        // TODO: add license check here.
+        StorageSystemModelsManagedCapacity storageSystemModelsManagedCapacity = getStorageSystemModelsManagedCapacity();
+
+        return 0;
     }
+
+    /**
+     * Gets storage system models managed capacity from controller.
+     * @return map of storagesystemmodel - { capacity, count }
+     * @throws InternalServerErrorException
+     */
+    public StorageSystemModelsManagedCapacity getStorageSystemModelsManagedCapacity() throws InternalServerErrorException {
+        _log.info("Getting storage system models managed capacity");
+        List<Service> services = _coordinator.locateAllServices(
+                LicenseConstants.API_SVC_LOOKUP_KEY,
+                LicenseConstants.SERVICE_LOOKUP_VERSION, null, null);
+        for (Service service : services) {
+            try {
+                // service could be null, if so get next service.
+                if (service != null) {
+                    return getClient(service).get(SysClientFactory._URI_STORAGESYSTEMMODELS_MANAGED_CAPACITY,
+                            StorageSystemModelsManagedCapacity.class, null);
+                }
+            } catch (SysClientException exception) {
+                _log.error("Failed to get storage system models managed capacity. Cannot connect to host: {}"
+                        , service.getEndpoint().toString());
+            }
+        }
+        // if capacity cannot be retrieved
+        _log.error("Storage system models managed capacity could not be retrieved");
+        throw APIException.internalServerErrors.getObjectError("controller capacity",
+                null);
+    }
+
 
     /**
      * Get a instance of the SysClient for the base url.

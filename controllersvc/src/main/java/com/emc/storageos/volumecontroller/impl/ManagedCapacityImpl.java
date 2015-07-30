@@ -219,7 +219,7 @@ public class ManagedCapacityImpl implements Runnable {
     public void refreshStorageSystemModelsManagedCapacity() throws InterruptedException {
         log.info("Refreshing current StorageSystemModels managed arrays' capacity and count ...");
 
-        StorageSystemModelsManagedCapacity modelsManagedCapacity = getStorageSystemModelsManagedCapacity();
+        StorageSystemModelsManagedCapacity modelsManagedCapacity = getStorageSystemModelsManagedCapacity(dbClient);
         Map<String, StorageSystemModelManagedCapacity> modelCapacityMap = modelsManagedCapacity.getModelCapacityMap();
         for (Map.Entry<String, StorageSystemModelManagedCapacity> entry : modelCapacityMap.entrySet()) {
 
@@ -251,7 +251,7 @@ public class ManagedCapacityImpl implements Runnable {
      * @return
      * @throws InterruptedException
      */
-    public StorageSystemModelsManagedCapacity getStorageSystemModelsManagedCapacity() throws InterruptedException {
+    public static StorageSystemModelsManagedCapacity getStorageSystemModelsManagedCapacity(DbClient dbClient) throws InterruptedException {
         log.info("Getting StorageSystemModels managed capacity");
         StorageSystemModelsManagedCapacity modelsManagedCapacity = new StorageSystemModelsManagedCapacity();
 
@@ -260,7 +260,7 @@ public class ManagedCapacityImpl implements Runnable {
         Iterator<URI> storageIter = dbClient.queryByType(StorageSystem.class,true).iterator();
         while(storageIter.hasNext()) {
             URI storageId = storageIter.next();
-            double managedCapacity = getStorageSystemManagedCapacity(storageId);
+            double managedCapacity = getStorageSystemManagedCapacity(dbClient, storageId);
 
             StorageSystem storagesystem = dbClient.queryObject(StorageSystem.class, storageId);
 
@@ -313,7 +313,7 @@ public class ManagedCapacityImpl implements Runnable {
         return modelsManagedCapacity;
     }
 
-    public double getStorageSystemManagedCapacity(URI storageId) throws InterruptedException{
+    public static double getStorageSystemManagedCapacity(DbClient dbClient, URI storageId) throws InterruptedException{
         // Get managed capacity from all the volumes of the storage system
         String groupBy = "storageDevice";
         String groupByValue = storageId.toString();

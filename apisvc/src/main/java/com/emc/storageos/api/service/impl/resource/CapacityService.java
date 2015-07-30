@@ -29,7 +29,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.PropertyListDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.model.systems.StorageSystemModelsManagedCapacity;
-import com.emc.storageos.model.systems.StorageSystemModelsManagedCapacity.StorageSystemModelManagedCapacity
+import com.emc.storageos.model.systems.StorageSystemModelsManagedCapacity.StorageSystemModelManagedCapacity;
 import com.emc.storageos.model.vpool.ManagedResourcesCapacity;
 import com.emc.storageos.model.vpool.ManagedResourcesCapacity.ManagedResourceCapacity;
 import com.emc.storageos.model.vpool.ManagedResourcesCapacity.CapacityResourceType;

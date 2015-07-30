@@ -773,7 +773,7 @@ public class VPlexApiTest {
 
             String migrationName = _properties.getProperty(MIGRATION_NAME_PROP_KEY);
             List<VPlexMigrationInfo> migrationInfoList = _client.migrateVirtualVolume(
-                migrationName, vvName, nativeVolumeInfoList, false, false, false, true, null);
+                    migrationName, vvName, nativeVolumeInfoList, false, false, false, true, null);
 
             Assert.assertEquals(migrationInfoList.size(), 1);
 
@@ -856,8 +856,8 @@ public class VPlexApiTest {
             vvNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
             String migrationName = _properties.getProperty(MIGRATION_NAME_PROP_KEY);
             List<VPlexMigrationInfo> migrationInfoList = _client.migrateVirtualVolume(
-                migrationName, vvName, nativeVolumeInfoList, false, false, false,
-                true, null);
+                    migrationName, vvName, nativeVolumeInfoList, false, false, false,
+                    true, null);
             Assert.assertEquals(migrationInfoList.size(), 2);
 
             // Wait until migrations complete and commit the migrations with

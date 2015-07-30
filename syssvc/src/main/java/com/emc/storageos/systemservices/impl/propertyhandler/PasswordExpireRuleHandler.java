@@ -1,20 +1,9 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.systemservices.impl.propertyhandler;
-
 
 import com.emc.storageos.model.property.PropertyInfoRestRep;
 import com.emc.storageos.security.password.Constants;
@@ -32,6 +21,7 @@ public class PasswordExpireRuleHandler implements UpdateHandler {
     private String _propertyName = Constants.PASSWORD_EXPIRE_DAYS;
 
     private LocalPasswordHandler _passwordHandler;
+
     public void setPasswordHandler(LocalPasswordHandler passwordHandler) {
         _passwordHandler = passwordHandler;
     }
@@ -42,14 +32,14 @@ public class PasswordExpireRuleHandler implements UpdateHandler {
 
     /**
      * check if new password_expire_days value is in range [grace_days, 365], if not fail the property update.
-     *
+     * 
      * it also calculate new values for properties below:
-     *     system_root_expiry_date
-     *     system_svcuser_expiry_date
+     * system_root_expiry_date
+     * system_svcuser_expiry_date
      * and add the properties in newProps, so they can be updated along with password_expire_days property.
-     *
+     * 
      * above 2 properties is used for genenating /etc/shadow file to set expire days for root and svcuser.
-     *
+     * 
      * @param oldProps
      * @param newProps
      */
@@ -98,7 +88,7 @@ public class PasswordExpireRuleHandler implements UpdateHandler {
             _log.info("turn off expire rule, update, update root and svcuser's expiry_date properties accordingly");
             _log.info("updating  root/svcuser expiry_days properties to 0");
             newProps.addProperty(rootExpirydaysProperty, "0");
-            newProps.addProperty(svcuserExpirydaysProperty,"0");
+            newProps.addProperty(svcuserExpirydaysProperty, "0");
 
         } else {  // change expire rule
             _log.info("re-configure expire days from " + oldDays + " to " + newDays);
@@ -116,7 +106,7 @@ public class PasswordExpireRuleHandler implements UpdateHandler {
 
     /**
      * adjust all local user's expire date in PasswordHistory CF, according to the new value of password_expire_days.
-     *
+     * 
      * @param oldProps
      * @param newProps
      */
@@ -126,7 +116,7 @@ public class PasswordExpireRuleHandler implements UpdateHandler {
 
         _log.info("old value: " + oldValue + ", newValue: " + newValue);
         // doesn't change expire rule config, skip this handler.
-        if (newValue == null ) {
+        if (newValue == null) {
             return;
         }
 
@@ -156,7 +146,5 @@ public class PasswordExpireRuleHandler implements UpdateHandler {
             _passwordHandler.getPasswordUtils().adjustExpireTime(newDays);
         }
     }
-
-
 
 }

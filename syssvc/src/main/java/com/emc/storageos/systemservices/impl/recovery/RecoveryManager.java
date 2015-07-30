@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.systemservices.impl.recovery;
@@ -101,7 +91,7 @@ public class RecoveryManager implements Runnable {
      */
     @Override
     public void run() {
-        while(isLeader.get()) {
+        while (isLeader.get()) {
             try {
                 checkRecoveryStatus();
                 checkClusterStatus();
@@ -161,7 +151,7 @@ public class RecoveryManager implements Runnable {
      * Check if cluster is recovering
      */
     private boolean isRecovering(RecoveryStatus status) {
-        boolean recovering =  (status.getStatus() == RecoveryStatus.Status.PREPARING
+        boolean recovering = (status.getStatus() == RecoveryStatus.Status.PREPARING
                 || status.getStatus() == RecoveryStatus.Status.REPAIRING
                 || status.getStatus() == RecoveryStatus.Status.SYNCING);
         return recovering;
@@ -189,13 +179,16 @@ public class RecoveryManager implements Runnable {
                 log.info("status map entry: {}-{}", statusEntry.getKey(), statusEntry.getValue());
                 String nodeId = statusEntry.getKey();
                 if (statusEntry.getValue().equals(Boolean.TRUE)) {
-                    if (!aliveNodes.contains(nodeId))
+                    if (!aliveNodes.contains(nodeId)) {
                         aliveNodes.add(nodeId);
+                    }
                 } else {
-                    if (!corruptedNodes.contains(nodeId))
+                    if (!corruptedNodes.contains(nodeId)) {
                         corruptedNodes.add(nodeId);
-                    if (aliveNodes.contains(nodeId))
+                    }
+                    if (aliveNodes.contains(nodeId)) {
                         aliveNodes.remove(nodeId);
+                    }
                 }
             }
         }
@@ -211,7 +204,7 @@ public class RecoveryManager implements Runnable {
             markRecoveryCancelled();
             log.warn("All nodes are alive, no need to do recovery");
             throw new IllegalStateException("No need to do recovery");
-        } else if (aliveNodes.size() < (nodeCount/2 + 1)) {
+        } else if (aliveNodes.size() < (nodeCount / 2 + 1)) {
             markRecoveryCancelled();
             log.warn("This procedure doesn't support majority nodes corrupted scenario");
             throw new IllegalStateException("Majority nodes are corrupted");
@@ -288,7 +281,7 @@ public class RecoveryManager implements Runnable {
         try {
             Iterator serviceIter = serviceNames.iterator();
             while (serviceIter.hasNext()) {
-                DbManagerOps dbManagerOps = new DbManagerOps((String)serviceIter.next());
+                DbManagerOps dbManagerOps = new DbManagerOps((String) serviceIter.next());
                 dbManagerOps.removeNodes(corruptedNodes);
                 dbManagerOps.startNodeRepairAndWaitFinish(true, false);
             }
@@ -352,7 +345,7 @@ public class RecoveryManager implements Runnable {
     private List<String> getHibernateNodes() {
         List<String> hibernateNodes = new ArrayList<String>();
         for (int i = 1; i <= nodeCount; i++) {
-            String nodeId = "vipr"+i;
+            String nodeId = "vipr" + i;
             if (aliveNodes.contains(nodeId)) {
                 log.debug("No need to check {} which is not a redeployed node", nodeId);
                 continue;
@@ -374,7 +367,7 @@ public class RecoveryManager implements Runnable {
             try {
                 DbManagerOps dbManagerOps = new DbManagerOps(serviceName);
                 Map<String, Boolean> statusMap = dbManagerOps.getNodeStates();
-                if (!statusMap.keySet().contains(nodeId)){
+                if (!statusMap.keySet().contains(nodeId)) {
                     log.debug("Node({}) is still hibernating", nodeId);
                     return true;
                 }
@@ -392,7 +385,7 @@ public class RecoveryManager implements Runnable {
     private List<String> getUnavailableNodes() {
         List<String> unavailableNodes = new ArrayList<String>();
         for (int i = 1; i <= nodeCount; i++) {
-            String nodeId = "vipr"+i;
+            String nodeId = "vipr" + i;
             if (!isNodeAvailable(nodeId)) {
                 unavailableNodes.add(nodeId);
             }
@@ -459,7 +452,7 @@ public class RecoveryManager implements Runnable {
      * Check if platform is supported
      */
     private void validatePlatform() {
-        if (PlatformUtils.isVMwareVapp()){
+        if (PlatformUtils.isVMwareVapp()) {
             log.warn("Platform(vApp) is unsupported for node recovery");
             throw new UnsupportedOperationException("Platform(vApp) is unsupported for node recovery");
         }
@@ -560,7 +553,7 @@ public class RecoveryManager implements Runnable {
      * Persist recovery status to ZK
      */
     private void persistNodeRecoveryStatus(RecoveryStatus status) {
-        log.info("Set node recovery status: {}" , status);
+        log.info("Set node recovery status: {}", status);
         if (status == null) {
             return;
         }
@@ -623,7 +616,7 @@ public class RecoveryManager implements Runnable {
                 throw new IllegalStateException("Unable to get recovery lock");
             }
         } catch (Exception e) {
-            log.error("Get recovery lock failed",  e);
+            log.error("Get recovery lock failed", e);
             throw APIException.internalServerErrors.getLockFailed();
         }
         log.info("Got recovery lock");
@@ -648,6 +641,7 @@ public class RecoveryManager implements Runnable {
 
     /**
      * Poweroff specific nodes
+     * 
      * @param nodeIds a list of node id (e.g. vipr1)
      */
     public void poweroff(List<String> nodeIds) {
@@ -672,7 +666,7 @@ public class RecoveryManager implements Runnable {
      * Poweroff local node
      */
     public void poweroff() {
-         localRepository.poweroff();
+        localRepository.poweroff();
     }
 
     /**
@@ -732,13 +726,13 @@ public class RecoveryManager implements Runnable {
     /**
      * Use leader selector to make sure only one node(leader node) start recovery manager
      */
-    private void startRecoveryLeaderSelector(){
-        while(!coordinator.getCoordinatorClient().isConnected()){
+    private void startRecoveryLeaderSelector() {
+        while (!coordinator.getCoordinatorClient().isConnected()) {
             log.info("Waiting for connecting to zookeeper");
             try {
                 Thread.sleep(RecoveryConstants.RECOVERY_CONNECT_INTERVAL);
             } catch (InterruptedException e) {
-                log.warn("Exception while sleeping, ignore",e);
+                log.warn("Exception while sleeping, ignore", e);
             }
         }
         LeaderSelector leaderSelector = coordinator.getCoordinatorClient().getLeaderSelector(
@@ -770,20 +764,21 @@ public class RecoveryManager implements Runnable {
     private void start() {
         recoveryExecutor = new NamedThreadPoolExecutor("Recovery manager", 1);
         recoveryExecutor.execute(this);
-   }
+    }
 
     private void stop() {
         recoveryExecutor.shutdown();
         wakeupRecoveryThread();
     }
 
-    private boolean isNodeRecoveryDbRepairInProgress(){
-    	RecoveryStatus recoveryStatus = queryNodeRecoveryStatus();
-    	if (recoveryStatus!=null && recoveryStatus.getStatus()!=null) {
-    		return recoveryStatus.getStatus()==RecoveryStatus.Status.REPAIRING;
-    	}
-    	return false;
+    private boolean isNodeRecoveryDbRepairInProgress() {
+        RecoveryStatus recoveryStatus = queryNodeRecoveryStatus();
+        if (recoveryStatus != null && recoveryStatus.getStatus() != null) {
+            return recoveryStatus.getStatus() == RecoveryStatus.Status.REPAIRING;
+        }
+        return false;
     }
+
     /**
      * Get node repair status(have combine db repair status and geodb repair status)
      * it's trick to combine local db and geo db repair together since they can be triggered
@@ -792,19 +787,19 @@ public class RecoveryManager implements Runnable {
      * hence we can use the IN_PROGRESS here to determine if there is other pending db repair,
      * so we can determine whether we can merge them together or not. For db repair triggered by scheduler,
      * geo db repair doesn't know if there is local db finished it's work or not since IN_PROGRESS will be
-     * set to DONE (which means geo db repair is not aware of it is triggered by restart geo service alone 
+     * set to DONE (which means geo db repair is not aware of it is triggered by restart geo service alone
      * or node restart), we use INTERVAL_TIME_IN_MINUTES to make the decision.
      * Generally we follow the below rules:
-     * 1. node recovery: always merge the result such as: local db repair progress 50% itself, 25% will 
-     * 					 be returned, geo db repair progress 50% itself, 75% will be returned. please
-     * 					 be aware of local db repair always come first.
-     * 2. node restart:  always merge the result, be aware of geo db repair by using IN_PROGRESS flag in
-     * 					 local db repair; be aware of local db repair by checking lastCompletionTime of 
-     * 					 geo db repair against 3 hours
-     * 3. restart one db service alone: if you restart db serivce alone, we will return local db repair 
-     * 					 progress directly without any merge. 
+     * 1. node recovery: always merge the result such as: local db repair progress 50% itself, 25% will
+     * be returned, geo db repair progress 50% itself, 75% will be returned. please
+     * be aware of local db repair always come first.
+     * 2. node restart: always merge the result, be aware of geo db repair by using IN_PROGRESS flag in
+     * local db repair; be aware of local db repair by checking lastCompletionTime of
+     * geo db repair against 3 hours
+     * 3. restart one db service alone: if you restart db serivce alone, we will return local db repair
+     * progress directly without any merge.
      * 
-     * Note: we use local db repair as the first instance to grap DB_REPAIR lock, the geo db repair is 
+     * Note: we use local db repair as the first instance to grap DB_REPAIR lock, the geo db repair is
      * the second one to run for simply introduction even if it's by chance to get DB_REPAIR lock based
      * on which one bootup first, but it doesn't affect the result.
      */
@@ -817,34 +812,34 @@ public class RecoveryManager implements Runnable {
                 (localDbState == null) ? localDbState : localDbState.toString(),
                 (geoDbState == null) ? geoDbState : geoDbState.toString());
         log.info("db repair running in node recovery? {}", nodeRecovery);
-        
-        if (localDbState==null && geoDbState==null) {
-        	repairStatus.setStatus(DbRepairStatus.Status.NOT_STARTED);
-        	return repairStatus;
+
+        if (localDbState == null && geoDbState == null) {
+            repairStatus.setStatus(DbRepairStatus.Status.NOT_STARTED);
+            return repairStatus;
         }
-        if (localDbState!=null && geoDbState!=null) {
-        	if (localDbState.getStatus()==Status.IN_PROGRESS && geoDbState.getStatus()==Status.IN_PROGRESS) {
-        		log.info("local/geo db repair are in progress both");
-        		repairStatus = getDualProgressStatus(localDbState, geoDbState);
-        	} else if (localDbState.getStatus() == Status.IN_PROGRESS) {
-        		log.info("local db repair is in progress");
-        		repairStatus = getSingleProgressStatus(localDbState, geoDbState, nodeRecovery, false);
-        	} else if (geoDbState.getStatus() == Status.IN_PROGRESS) {
-        		log.info("geo db repair is in progress");
-        		repairStatus = getSingleProgressStatus(geoDbState, localDbState, nodeRecovery, true);
-        	} else if (localDbState.getStatus()==Status.FAILED || geoDbState.getStatus()==Status.FAILED) {
-        		log.info("local or geo db repair failed");
+        if (localDbState != null && geoDbState != null) {
+            if (localDbState.getStatus() == Status.IN_PROGRESS && geoDbState.getStatus() == Status.IN_PROGRESS) {
+                log.info("local/geo db repair are in progress both");
+                repairStatus = getDualProgressStatus(localDbState, geoDbState);
+            } else if (localDbState.getStatus() == Status.IN_PROGRESS) {
+                log.info("local db repair is in progress");
+                repairStatus = getSingleProgressStatus(localDbState, geoDbState, nodeRecovery, false);
+            } else if (geoDbState.getStatus() == Status.IN_PROGRESS) {
+                log.info("geo db repair is in progress");
+                repairStatus = getSingleProgressStatus(geoDbState, localDbState, nodeRecovery, true);
+            } else if (localDbState.getStatus() == Status.FAILED || geoDbState.getStatus() == Status.FAILED) {
+                log.info("local or geo db repair failed");
                 repairStatus = getFailStatus(localDbState, geoDbState);
-        	} else if (localDbState.getStatus()==Status.SUCCESS && geoDbState.getStatus()==Status.SUCCESS) {
-        		log.info("local and geo db repair failed");
-        		repairStatus = getSuccessStatus(localDbState, geoDbState);
-        	} 
+            } else if (localDbState.getStatus() == Status.SUCCESS && geoDbState.getStatus() == Status.SUCCESS) {
+                log.info("local and geo db repair failed");
+                repairStatus = getSuccessStatus(localDbState, geoDbState);
+            }
         }
-        
+
         if (localDbState == null) {
-        	repairStatus = geoDbState;
+            repairStatus = geoDbState;
         } else if (geoDbState == null) {
-        	repairStatus = localDbState;
+            repairStatus = localDbState;
         }
         log.info("Repair status is: {}", repairStatus.toString());
         return repairStatus;
@@ -862,75 +857,76 @@ public class RecoveryManager implements Runnable {
         return new DbRepairStatus(Status.FAILED, startTime, 100);
     }
 
-	private DbRepairStatus getSuccessStatus(DbRepairStatus localDbState, DbRepairStatus geoDbState) {
-		Date completionTime = null;
-		if (localDbState.getLastCompletionTime() == null) {
-			completionTime = geoDbState.getLastCompletionTime();
-		} else if (geoDbState.getLastCompletionTime() == null) {
-			completionTime = localDbState.getLastCompletionTime();
-		} else {
-			completionTime = getLatestTime(localDbState.getLastCompletionTime(), geoDbState.getLastCompletionTime());
-		}
-		
-		Date startTime = getOldestTime(localDbState.getStartTime(), geoDbState.getStartTime());
-		return new DbRepairStatus(Status.SUCCESS, startTime, completionTime, 100);
+    private DbRepairStatus getSuccessStatus(DbRepairStatus localDbState, DbRepairStatus geoDbState) {
+        Date completionTime = null;
+        if (localDbState.getLastCompletionTime() == null) {
+            completionTime = geoDbState.getLastCompletionTime();
+        } else if (geoDbState.getLastCompletionTime() == null) {
+            completionTime = localDbState.getLastCompletionTime();
+        } else {
+            completionTime = getLatestTime(localDbState.getLastCompletionTime(), geoDbState.getLastCompletionTime());
+        }
 
-	}
+        Date startTime = getOldestTime(localDbState.getStartTime(), geoDbState.getStartTime());
+        return new DbRepairStatus(Status.SUCCESS, startTime, completionTime, 100);
 
-	/*
-	 * it's tricky to check isNodeRecovery and isGeoDb, we need this to 
-	 * merge progress in different way between node recovery and normal db repair
-	 * */ 
-	private DbRepairStatus getSingleProgressStatus(DbRepairStatus status, DbRepairStatus otherStatus, boolean isNodeRecovery, boolean isGeoDb) {
-		Date completionTime = null;
-		if (status.getLastCompletionTime()!=null && otherStatus.getLastCompletionTime()!=null) {
-			completionTime = getLatestTime(status.getLastCompletionTime(), otherStatus.getLastCompletionTime());
-		}
-		int progress = status.getProgress();
-		Date startTime = status.getStartTime();
-		if (isNodeRecovery) {
-			progress = isGeoDb? (status.getProgress()+100)/2 : status.getProgress()/2;
-			startTime = isGeoDb? otherStatus.getStartTime() : startTime;
-		} else if (needMergeWith(otherStatus.getLastCompletionTime())){
-			progress = (status.getProgress()+100)/2;
-			startTime = otherStatus.getStartTime();
-		}
-		
-		return new DbRepairStatus(Status.IN_PROGRESS, startTime, completionTime, progress);
-	}
+    }
 
-	/*
-	 * we check if db repair need to merge with the other(the other means that geo db if it's a local db)
-	 * we use 3 hours as the minimum interval, so we view the other as the whole progress of db repair if
-	 * happened within 3 hours.
-	 * */
-	private boolean needMergeWith(Date otherCompletionTime) {
-		if (otherCompletionTime == null) {
-			return false;
-		}
-		Calendar cal = Calendar.getInstance();
-		cal.add(Calendar.MINUTE,  -DbRepairRunnable.INTERVAL_TIME_IN_MINUTES);
-		return cal.getTime().before(otherCompletionTime);
-	}
+    /*
+     * it's tricky to check isNodeRecovery and isGeoDb, we need this to
+     * merge progress in different way between node recovery and normal db repair
+     */
+    private DbRepairStatus getSingleProgressStatus(DbRepairStatus status, DbRepairStatus otherStatus, boolean isNodeRecovery,
+            boolean isGeoDb) {
+        Date completionTime = null;
+        if (status.getLastCompletionTime() != null && otherStatus.getLastCompletionTime() != null) {
+            completionTime = getLatestTime(status.getLastCompletionTime(), otherStatus.getLastCompletionTime());
+        }
+        int progress = status.getProgress();
+        Date startTime = status.getStartTime();
+        if (isNodeRecovery) {
+            progress = isGeoDb ? (status.getProgress() + 100) / 2 : status.getProgress() / 2;
+            startTime = isGeoDb ? otherStatus.getStartTime() : startTime;
+        } else if (needMergeWith(otherStatus.getLastCompletionTime())) {
+            progress = (status.getProgress() + 100) / 2;
+            startTime = otherStatus.getStartTime();
+        }
 
-	private DbRepairStatus getDualProgressStatus(DbRepairStatus localStatus, DbRepairStatus geoStatus) {
-		Date completionTime = null;
-		if (localStatus.getLastCompletionTime()!=null && geoStatus.getLastCompletionTime()!=null) {
-			completionTime = getLatestTime(localStatus.getLastCompletionTime(), geoStatus.getLastCompletionTime());
-		}
-		Date startTime = getOldestTime(localStatus.getStartTime(), geoStatus.getStartTime());
-		int progress = (localStatus.getProgress()+geoStatus.getProgress())/2;
-		return new DbRepairStatus(Status.IN_PROGRESS, startTime, completionTime, progress);
-	}
+        return new DbRepairStatus(Status.IN_PROGRESS, startTime, completionTime, progress);
+    }
 
-	private Date getOldestTime(Date one, Date another) {
-		return one.before(another)? one : another;
-	}
+    /*
+     * we check if db repair need to merge with the other(the other means that geo db if it's a local db)
+     * we use 3 hours as the minimum interval, so we view the other as the whole progress of db repair if
+     * happened within 3 hours.
+     */
+    private boolean needMergeWith(Date otherCompletionTime) {
+        if (otherCompletionTime == null) {
+            return false;
+        }
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.MINUTE, -DbRepairRunnable.INTERVAL_TIME_IN_MINUTES);
+        return cal.getTime().before(otherCompletionTime);
+    }
 
-	private Date getLatestTime(Date one, Date another) {
-		return one.after(another)? one : another;
-		
-	}
+    private DbRepairStatus getDualProgressStatus(DbRepairStatus localStatus, DbRepairStatus geoStatus) {
+        Date completionTime = null;
+        if (localStatus.getLastCompletionTime() != null && geoStatus.getLastCompletionTime() != null) {
+            completionTime = getLatestTime(localStatus.getLastCompletionTime(), geoStatus.getLastCompletionTime());
+        }
+        Date startTime = getOldestTime(localStatus.getStartTime(), geoStatus.getStartTime());
+        int progress = (localStatus.getProgress() + geoStatus.getProgress()) / 2;
+        return new DbRepairStatus(Status.IN_PROGRESS, startTime, completionTime, progress);
+    }
+
+    private Date getOldestTime(Date one, Date another) {
+        return one.before(another) ? one : another;
+    }
+
+    private Date getLatestTime(Date one, Date another) {
+        return one.after(another) ? one : another;
+
+    }
 
     /**
      * Query repair status of dbsvc or geodbsvc from DB
@@ -961,7 +957,7 @@ public class RecoveryManager implements Runnable {
             progress = (progress == -1) ? repairState.getProgress() : progress;
             status = (status == null) ? repairState.getStatus() : status;
             startTime = (startTime == null) ? repairState.getStartTime() : startTime;
-            endTime = (endTime == null) ? repairState.getLastCompletionTime(): endTime;
+            endTime = (endTime == null) ? repairState.getLastCompletionTime() : endTime;
         }
 
         if (status != null) {

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
@@ -21,10 +11,10 @@ import java.util.List;
  * Info for a VPlex distributed device.
  */
 public class VPlexDistributedDeviceInfo extends VPlexResourceInfo {
-    
+
     // The local devices which comprise the distributed device.
     List<VPlexDeviceInfo> localDeviceInfoList = new ArrayList<VPlexDeviceInfo>();
-    
+
     /**
      * Getter for the local device info for the device.
      * 
@@ -33,7 +23,7 @@ public class VPlexDistributedDeviceInfo extends VPlexResourceInfo {
     public List<VPlexDeviceInfo> getLocalDeviceInfo() {
         return localDeviceInfoList;
     }
-    
+
     /**
      * Setter for the local device info for the device.
      * 
@@ -42,9 +32,9 @@ public class VPlexDistributedDeviceInfo extends VPlexResourceInfo {
     public void setLocalDeviceInfo(List<VPlexDeviceInfo> infoList) {
         localDeviceInfoList = infoList;
     }
-    
+
     /**
-     * Returns the cluster id for the distributed device. 
+     * Returns the cluster id for the distributed device.
      * The cluster for either local device can be returned.
      * 
      * @return The id of the cluster for the distributed device.
@@ -54,10 +44,10 @@ public class VPlexDistributedDeviceInfo extends VPlexResourceInfo {
             return localDeviceInfoList.get(0).getClusterId();
         } else {
             throw new VPlexApiException(String.format(
-                "Can't find cluster id for distributed device %s", getName()));
+                    "Can't find cluster id for distributed device %s", getName()));
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -71,7 +61,7 @@ public class VPlexDistributedDeviceInfo extends VPlexResourceInfo {
             str.append(localDeviceInfo.toString());
         }
         str.append(" )");
-        
+
         return str.toString();
     }
 }

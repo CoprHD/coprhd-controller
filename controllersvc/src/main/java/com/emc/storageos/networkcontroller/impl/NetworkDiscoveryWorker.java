@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.networkcontroller.impl;
@@ -311,11 +311,11 @@ public class NetworkDiscoveryWorker {
      */
     private boolean checkAttributeChanged(String existing, String current) {
         if (existing == null && current == null)
-         {
+        {
             return false; // Both null, no change
         }
         if ((existing == null) ^ (current == null))
-         {
+        {
             return true; // One null, a change
         }
         return (!existing.equalsIgnoreCase(current));

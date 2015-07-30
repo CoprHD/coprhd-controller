@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.keystore.impl;
 
@@ -32,7 +22,8 @@ public class KeyCertificateEntry implements Serializable {
     private Date creationDate;
 
     // Not a real issue as no write in class
-    public KeyCertificateEntry(byte[] key, Certificate[] certificateChain) { // NOSONAR ("Suppressing: The user-supplied array is stored directly.")
+    public KeyCertificateEntry(byte[] key, Certificate[] certificateChain) { // NOSONAR
+                                                                             // ("Suppressing: The user-supplied array is stored directly.")
         this.key = Base64.encodeBase64(key);
         this.certificateChain = certificateChain;
     }
@@ -68,7 +59,7 @@ public class KeyCertificateEntry implements Serializable {
     }
 
     /**
-     * @param key  the key to set
+     * @param key the key to set
      */
     public void setKey(byte[] key) {
         this.key = Base64.encodeBase64(key);
@@ -87,7 +78,8 @@ public class KeyCertificateEntry implements Serializable {
      *            the certificateChain to set
      */
     // Not a real issue as no write in class
-    public void setCertificateChain(Certificate[] certificateChain) {  // NOSONAR ("Suppressing: The user-supplied array is stored directly.")
+    public void setCertificateChain(Certificate[] certificateChain) {  // NOSONAR
+                                                                      // ("Suppressing: The user-supplied array is stored directly.")
         this.certificateChain = certificateChain;
     }
 

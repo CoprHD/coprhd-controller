@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.server;
@@ -327,7 +317,7 @@ public class DbClientTest extends DbsvcTestBase {
             ids = _dbClient.queryByType(clazz, activeOnly, nextId, pageSize);
 
             if (ids.isEmpty())
-             {
+            {
                 break; // reach the end
             }
 
@@ -1603,11 +1593,11 @@ public class DbClientTest extends DbsvcTestBase {
             sumCnt++;
             FileShare fShare = fShares.next();
             if (fShare.getLabel().equals("GOLDEN"))
-             {
+            {
                 checkFsIds.remove(fShare.getId());
-            // System.out.println("Id: " + fShare.getId() + " vpool: " +
-            // fShare.getCos()
-            // + " Capacity: " + fShare.getCapacity());
+                // System.out.println("Id: " + fShare.getId() + " vpool: " +
+                // fShare.getCos()
+                // + " Capacity: " + fShare.getCapacity());
             }
         }
         Assert.assertEquals(sumCnt, 110);

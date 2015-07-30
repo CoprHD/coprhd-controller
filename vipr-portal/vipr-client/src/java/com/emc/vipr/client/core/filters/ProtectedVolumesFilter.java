@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core.filters;
@@ -13,6 +13,6 @@ public class ProtectedVolumesFilter extends DefaultResourceFilter<VolumeRestRep>
     @Override
     public boolean accept(VolumeRestRep item) {
         return item.getProtection() != null && item.getProtection().getRpRep() != null &&
-            "source".equalsIgnoreCase(item.getProtection().getRpRep().getPersonality());
+                "source".equalsIgnoreCase(item.getProtection().getRpRep().getPersonality());
     }
 }

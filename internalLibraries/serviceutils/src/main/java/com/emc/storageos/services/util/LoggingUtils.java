@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.services.util;
@@ -16,7 +16,7 @@ public class LoggingUtils {
      * log4j.configuration property is not already set.
      * 
      * @param resourceName
-     *        the name of the resource to use if logging is not configured.
+     *            the name of the resource to use if logging is not configured.
      */
     public static void configureIfNecessary(String resourceName) {
         // Only configure logging if a log4j.configuration was not specified in

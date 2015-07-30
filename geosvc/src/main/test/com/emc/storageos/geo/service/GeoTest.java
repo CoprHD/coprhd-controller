@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.geo.service;
@@ -252,7 +242,7 @@ public class GeoTest extends ApiTestBase {
             ids = geoClient.queryByType(VirtualArray.class, true, startId, 3);
 
             if (ids.isEmpty())
-             {
+            {
                 break; // reach the end
             }
             count += ids.size();
@@ -348,7 +338,7 @@ public class GeoTest extends ApiTestBase {
             Iterator<URI> it = ret.iterator();
 
             if (!it.hasNext())
-             {
+            {
                 break; // reach the end
             }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.catalog;
@@ -15,11 +15,11 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Base class for all resources types that support bulk operations. This overrides the
- * {@link #getByIds(java.util.Collection)} method to query through the bulk API for improved performance.
- *
+ * Base class for all resources types that support bulk operations. This overrides the {@link #getByIds(java.util.Collection)} method to
+ * query through the bulk API for improved performance.
+ * 
  * @param <T>
- *        the type of resource.
+ *            the type of resource.
  */
 public abstract class AbstractBulkResources<T extends ModelInfo> extends AbstractResources<T> {
 
@@ -58,11 +58,11 @@ public abstract class AbstractBulkResources<T extends ModelInfo> extends Abstrac
      * cleared.
      * 
      * @param id
-     *        the ID to add.
+     *            the ID to add.
      * @param input
-     *        the bulk input.
+     *            the bulk input.
      * @param results
-     *        the result list to add to if a chunk is fetched.
+     *            the result list to add to if a chunk is fetched.
      */
     private void addId(String id, BulkIdParam input, List<T> results) {
         input.getIds().add(URI.create(id));
@@ -76,9 +76,9 @@ public abstract class AbstractBulkResources<T extends ModelInfo> extends Abstrac
      * Fetches a chunk and filters (if required).
      * 
      * @param input
-     *        the bulk input.
+     *            the bulk input.
      * @param results
-     *        the result list to add to.
+     *            the result list to add to.
      */
     private void fetchChunk(BulkIdParam input, List<T> results) {
         List<T> items = getBulkResources(input);
@@ -91,7 +91,7 @@ public abstract class AbstractBulkResources<T extends ModelInfo> extends Abstrac
      * Performs a bulk fetch of the IDs in the input.
      * 
      * @param input
-     *        the bulk input.
+     *            the bulk input.
      * @return the results.
      */
     protected abstract List<T> getBulkResources(BulkIdParam input);

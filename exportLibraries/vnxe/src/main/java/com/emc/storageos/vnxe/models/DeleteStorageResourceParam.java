@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.vnxe.models;
@@ -19,16 +9,14 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class DeleteStorageResourceParam extends ParamBase {
-	private boolean forceSnapDeletion;
+    private boolean forceSnapDeletion;
 
-	public boolean getForceSnapDeletion() {
-		return forceSnapDeletion;
-	}
+    public boolean getForceSnapDeletion() {
+        return forceSnapDeletion;
+    }
 
-	public void setForceSnapDeletion(boolean forceSnapDeletion) {
-		this.forceSnapDeletion = forceSnapDeletion;
-	}
-	
-	
+    public void setForceSnapDeletion(boolean forceSnapDeletion) {
+        this.forceSnapDeletion = forceSnapDeletion;
+    }
 
 }

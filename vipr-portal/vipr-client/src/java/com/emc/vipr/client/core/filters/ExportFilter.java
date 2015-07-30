@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core.filters;
@@ -10,11 +10,11 @@ import java.net.URI;
 
 /**
  */
-public class ExportFilter extends DefaultResourceFilter<ExportGroupRestRep>{
+public class ExportFilter extends DefaultResourceFilter<ExportGroupRestRep> {
     private final URI projectId;
     private final URI varrayId;
 
-    public ExportFilter(URI projectId, URI varrayId ) {
+    public ExportFilter(URI projectId, URI varrayId) {
         this.projectId = projectId;
         this.varrayId = varrayId;
     }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.systemservices.impl.security;
@@ -166,10 +156,11 @@ public class SecretsManager extends AbstractManager {
         }
 
         /**
-         * Different from PropertyInfoExt, if masking property output only depends on the flag withMask 
-		 * and regardless to global metadata.  
+         * Different from PropertyInfoExt, if masking property output only depends on the flag withMask
+         * and regardless to global metadata.
+         * 
          * @param withMask if true, replace all encrypted string with HIDDEN_TEXT_MASK,
-         *                 otherwise always print the real content.
+         *            otherwise always print the real content.
          * @return
          */
         @Override
@@ -181,7 +172,7 @@ public class SecretsManager extends AbstractManager {
                 // Hide encrypted string in audit log
                 if (entry.getKey().equals(ConfigService.CERTIFICATE_VERSION)) {
                     sb.append(entry.getValue());
-                } else if (withMask){
+                } else if (withMask) {
                     sb.append(HIDDEN_TEXT_MASK);
                 } else {
                     sb.append(entry.getValue());
@@ -192,4 +183,3 @@ public class SecretsManager extends AbstractManager {
         }
     }
 }
-

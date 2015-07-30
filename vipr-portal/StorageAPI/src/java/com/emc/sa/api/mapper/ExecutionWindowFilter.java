@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.api.mapper;
@@ -12,7 +12,7 @@ import com.emc.storageos.api.service.impl.response.BulkList.TenantResourceFilter
 import com.emc.storageos.security.authentication.StorageOSUser;
 
 public class ExecutionWindowFilter
-    extends TenantResourceFilter<ExecutionWindow> {
+        extends TenantResourceFilter<ExecutionWindow> {
 
     public ExecutionWindowFilter(StorageOSUser user,
             PermissionsHelper permissionsHelper) {
@@ -21,6 +21,6 @@ public class ExecutionWindowFilter
 
     @Override
     public boolean isAccessible(ExecutionWindow resource) {
-            return isTenantResourceAccessible(uri(resource.getTenant()));
+        return isTenantResourceAccessible(uri(resource.getTenant()));
     }
 }

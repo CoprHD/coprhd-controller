@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.helpers;
 
@@ -77,7 +67,7 @@ public class UserInfoHelper {
 
                     final ClientResponse response =
                             authSvcClientItr
-                            .get(URI.create(_URI_GET_USER_GROUPS + param));
+                                    .get(URI.create(_URI_GET_USER_GROUPS + param));
                     final int status = response.getStatus();
 
                     _log.debug("Status: {}", status);
@@ -87,7 +77,7 @@ public class UserInfoHelper {
                     } else if (status == ClientResponse.Status.BAD_REQUEST
                             .getStatusCode()
                             || status == ClientResponse.Status.INTERNAL_SERVER_ERROR
-                            .getStatusCode()) {
+                                    .getStatusCode()) {
                         ServiceErrorRestRep errorXml =
                                 response.getEntity(ServiceErrorRestRep.class);
                         error.append(errorXml.getDetailedMessage());

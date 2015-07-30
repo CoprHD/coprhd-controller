@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.geo;
 
@@ -37,9 +27,9 @@ public class GeoServiceJob implements Serializable {
     public enum JobType {
         VDC_CONNECT_JOB(ResourceOperationTypeEnum.ADD_VDC),
         VDC_UPDATE_JOB(ResourceOperationTypeEnum.UPDATE_VDC),
-        VDC_DISCONNECT_JOB (ResourceOperationTypeEnum.DISCONNECT_VDC),
-        VDC_RECONNECT_JOB (ResourceOperationTypeEnum.RECONNECT_VDC),
-        VDC_REMOVE_JOB (ResourceOperationTypeEnum.REMOVE_VDC);
+        VDC_DISCONNECT_JOB(ResourceOperationTypeEnum.DISCONNECT_VDC),
+        VDC_RECONNECT_JOB(ResourceOperationTypeEnum.RECONNECT_VDC),
+        VDC_REMOVE_JOB(ResourceOperationTypeEnum.REMOVE_VDC);
 
         private final ResourceOperationTypeEnum rtype;
 
@@ -52,7 +42,7 @@ public class GeoServiceJob implements Serializable {
         }
     }
 
-    private URI    _vdcId;
+    private URI _vdcId;
     private VirtualDataCenter _vdc;
     private String _task;
     private JobType _type;
@@ -72,7 +62,7 @@ public class GeoServiceJob implements Serializable {
 
     public URI getVdcId() {
         return _vdcId;
-    } 
+    }
 
     public VirtualDataCenter getVdc() {
         return _vdc;

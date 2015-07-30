@@ -25,6 +25,7 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ConsistencyGroupFilter;
+import com.emc.vipr.client.core.filters.DefaultResourceFilter;
 import com.emc.vipr.model.catalog.AssetOption;
 
 @Component
@@ -33,15 +34,15 @@ public class ConsistencyGroupProvider extends BaseAssetOptionsProvider {
 	
 	@Asset("consistencyGroupByProject")
 	@AssetDependencies({ "project" })
-    public List<AssetOption> getAllConsistencyGroups(AssetOptionsContext ctx, URI projectId) {
-		List<BlockConsistencyGroupRestRep> consistencyGroups = api(ctx).blockConsistencyGroups().search().byProject(projectId).run();
-		List<BlockConsistencyGroupRestRep> filtered = Collections.emptyList();
-		for(BlockConsistencyGroupRestRep consistencyGroup : consistencyGroups ) {
-	        if (isSupportedConsistencyGroup(api(ctx), consistencyGroup)) {
-	        	filtered.add(consistencyGroup);
-	        }
-		}
-		return createBaseResourceOptions( filtered );
+    public List<AssetOption> getAllConsistencyGroups(final AssetOptionsContext ctx, URI projectId) {
+		List<BlockConsistencyGroupRestRep> consistencyGroups = api(ctx).blockConsistencyGroups().search().byProject(projectId)
+				.filter(new DefaultResourceFilter<BlockConsistencyGroupRestRep>() {
+			@Override
+			public boolean accept(BlockConsistencyGroupRestRep item) {
+				return isSupportedConsistencyGroup(api(ctx), item);
+			}
+		}).run();
+		return createBaseResourceOptions( consistencyGroups );
     }
 	
 	@Asset("consistencyGroupFullCopy")

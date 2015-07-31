@@ -269,7 +269,7 @@ _genconfig_system_init() {
     # add these back to unblock upgrade from 1.1 to 2.0
     # tmp fix for geodb dir setup
     if [ ! -d "/data/geodb" ]; then
-       _genconfig_mkdir 755 storageos:storageos /data/geodb
+       _genconfig_mkdir 750 storageos:storageos /data/geodb
     fi
 
     # tmp fix for backup dir setup
@@ -290,6 +290,10 @@ _genconfig_system_init() {
     _genconfig_create 640 root:root '/var/log/btmp'
     _genconfig_create 640 root:root '/var/log/wtmp'
     _genconfig_create 640 root:root '/var/log/lastlog'  
+	
+    #only owner and group user can access db folder
+    chmod 750 "/data/db"
+    chmod 750 "/data/geodb"
 }
 
 _genconfig_exec_scripts() {

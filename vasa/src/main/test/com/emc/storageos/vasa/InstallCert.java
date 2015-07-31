@@ -193,7 +193,8 @@ public class InstallCert {
 
         public void checkServerTrusted(X509Certificate[] chain, String authType)
                 throws CertificateException {
-            this.chain = chain; //NOSONAR Suppressing sonar violation for Array is stored directly. Test class
+            // This is just a test class and it is ok to use chain by reference
+            this.chain = chain; // NOSONAR(Array is stored directly)
             tm.checkServerTrusted(chain, authType);
         }
     }

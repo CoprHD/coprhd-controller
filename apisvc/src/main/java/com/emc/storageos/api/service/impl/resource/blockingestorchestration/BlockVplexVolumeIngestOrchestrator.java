@@ -27,6 +27,8 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.TenantsService;
+import com.emc.storageos.api.service.impl.resource.VPlexBlockServiceApiImpl;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
@@ -39,7 +41,6 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -74,14 +75,20 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
     // maps each virtual array's URI to the cluster id (1 or 2) it connects to
     private Map<String, String> varrayToClusterIdMap = new HashMap<String, String>();
-    
+
     // maps storage system URIs to StorageSystem objects
     private Map<String, StorageSystem> systemMap = new HashMap<String, StorageSystem>();
-    
+
     private IngestStrategyFactory ingestStrategyFactory;
-    
+
     public void setIngestStrategyFactory(IngestStrategyFactory ingestStrategyFactory) {
         this.ingestStrategyFactory = ingestStrategyFactory;
+    }
+
+    private TenantsService _tenantsService;
+
+    public void setTenantsService(TenantsService tenantsService) {
+        _tenantsService = tenantsService;
     }
 
     @Override
@@ -119,6 +126,10 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         
         
         
+        Map<String, UnManagedVolume> processedUnManagedVolumeMap = new HashMap<String, UnManagedVolume>();
+        Map<String, BlockObject> vplexCreatedObjectMap = new HashMap<String, BlockObject>();
+        Map<String, List<DataObject>> vplexUpdatedObjectMap = new HashMap<String, List<DataObject>>();
+        
         try {
             List<URI> associatedVolumeUris = getAssociatedVolumes(unManagedVolume);
             
@@ -126,10 +137,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
                 validateAssociatedVolumes(vPool, project, tenant, associatedVolumeUris);
 
-                Map<String, UnManagedVolume> processedUnManagedVolumeMap = new HashMap<String, UnManagedVolume>();
-                Map<String, BlockObject> vplexCreatedObjectMap = new HashMap<String, BlockObject>();
-                Map<String, List<DataObject>> vplexUpdatedObjectMap = new HashMap<String, List<DataObject>>();
-
+                _logger.info("About to ingest the backend volumes: " + associatedVolumeUris);
                 ingestBackendVolumes(systemCache, poolCache, vPool,
                         virtualArray, project, tenant,
                         unManagedVolumesToBeDeleted, taskStatusMap,
@@ -155,8 +163,19 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         }
 
         _logger.info("About to ingest the actual VPLEX virtual volume...");
-        return super.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray, project, tenant,
+        T virtualVolume = super.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray, project, tenant,
                 unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz, taskStatusMap);
+        
+        if (null != virtualVolume && virtualVolume instanceof Volume) {
+            Collection<BlockObject> associatedVols = vplexCreatedObjectMap.values();
+            StringSet vols = new StringSet();
+            for (BlockObject vol : associatedVols) {
+                vols.add(vol.getId().toString());
+            }
+            ((Volume) virtualVolume).setAssociatedVolumes(vols);
+        }
+        
+        return virtualVolume;
     }
 
     private List<URI> getAssociatedVolumes(UnManagedVolume unManagedVolume) {
@@ -197,7 +216,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
     private void validateAssociatedVolumes(VirtualPool vPool, Project project,
             TenantOrg tenant, List<URI> associatedVolumes) throws Exception {
-        // TODO validation
+        _logger.info("validating the backend volumes: " + associatedVolumes);
+        
+        // TODO more validation
         // check if selected vpool can contain all the backend volumes
         // check quotas
         
@@ -299,33 +320,20 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 }
                 List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initUris);
                 
+                Project vplexProject = VPlexBlockServiceApiImpl.getVplexProject(system, _dbClient, _tenantsService);
+                
                 ExportGroup exportGroup = this.createExportGroup(system, associatedSystem, initiators, 
-                        virtualArray.getId(), project.getId(), tenant.getId(), 4, uem); 
+                        virtualArray.getId(), vplexProject.getId(), tenant.getId(), 4, uem); 
                 boolean exportGroupCreated = exportGroup != null;
                 
                 VolumeExportIngestParam exportIngestParam = new VolumeExportIngestParam();
-                exportIngestParam.setProject(project.getId());
+                exportIngestParam.setProject(vplexProject.getId());
                 exportIngestParam.setUnManagedVolumes(associatedVolumeUris);
                 exportIngestParam.setVarray(virtualArray.getId());
                 exportIngestParam.setVpool(vPool.getId());
-                
-                // TODO: figure out how to set VPLEX as host --- 
-                //       this is obviously total hackage
-                Initiator init = initiators.iterator().next();
-                Host host = new Host();
-                host.setId(URIUtil.createId(Host.class));
-                host.setHostName(init.getHostName());
-                host.setTenant(tenant.getId());
-                host.setProject(project.getId());
-                _dbClient.createObject(host);
-                for (Initiator initl : initiators) {
-                    initl.setHost(host.getId());
-                }
-                _dbClient.persistObject(initiators);
-                exportIngestParam.setHost(host.getId());
 
                 BlockObject blockObject = ingestStrategy.ingestExportMasks(processedUnManagedVolume, exportIngestParam, exportGroup, 
-                        processedBlockObject, unManagedVolumesToBeDeleted, associatedSystem, exportGroupCreated);
+                        processedBlockObject, unManagedVolumesToBeDeleted, associatedSystem, exportGroupCreated, initiators);
                 if (null == blockObject)  {
                     _logger.error("blockObject was null");
                     throw IngestionException.exceptions.generalVolumeException(

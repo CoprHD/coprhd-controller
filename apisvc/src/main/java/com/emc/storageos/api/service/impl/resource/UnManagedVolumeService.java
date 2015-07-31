@@ -477,7 +477,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 // Build the Strategy , which contains reference to Block object & export orchestrators
                 IngestExportStrategy ingestStrategy = ingestStrategyFactory.buildIngestExportStrategy(processedUnManagedVolume);
                 BlockObject blockObject = ingestStrategy.ingestExportMasks(processedUnManagedVolume, exportIngestParam, exportGroup,
-                        processedBlockObject, unManagedVolumesToBeDeleted, system, exportGroupCreated);
+                        processedBlockObject, unManagedVolumesToBeDeleted, system, exportGroupCreated, null);
                 if (null == blockObject) {
                     throw IngestionException.exceptions.generalVolumeException(
                             processedUnManagedVolume.getLabel(), "check the logs for more details");

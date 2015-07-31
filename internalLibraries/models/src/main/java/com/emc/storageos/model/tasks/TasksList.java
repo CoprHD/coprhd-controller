@@ -25,7 +25,7 @@ public class TasksList {
      * List of projects
      * 
      * @valid none
-     * @return
+     * @return Tasks 
      */
     @XmlElement(name = "task")
     public List<NamedRelatedResourceRep> getTasks() {

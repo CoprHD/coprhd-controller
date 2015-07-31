@@ -821,6 +821,8 @@ public class TenantsService extends TaggedResource {
     /**
      * Creates a new host for the tenant organization. Discovery is initiated
      * after the host is created.
+     * <p>
+     * This method is deprecated. Use /compute/hosts instead
      * 
      * @param tid
      *            the tenant organization id
@@ -856,6 +858,8 @@ public class TenantsService extends TaggedResource {
 
     /**
      * Lists the id and name for all the hosts that belong to the given tenant organization.
+     * <p>
+     * This method is deprecated. Use /compute/hosts instead
      * 
      * @param id the URN of a ViPR tenant organization
      * @prereq none

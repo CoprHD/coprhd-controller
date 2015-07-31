@@ -763,43 +763,33 @@ function GenerateDisk4($currentNodeId, $ovfProperties) {
 }
 
 function UploadCommonDisks() {
-	try {
-		# 0. connect to local scvmm server
-		$hostname = hostname
-		get-scvmmserver -ComputerName $hostname
+	# 0. connect to local scvmm server
+	$hostname = hostname
+	get-scvmmserver -ComputerName $hostname
 
-		# 1. Import the Vipr disk images to library
-		for($i=1; $i -le 3; $i++) {
-			$diskname = "${product_name}-" + $Script:releaseversion + "-disk" + $i +".vhdx";
-			if (-not $Script:librarypath.EndsWith("\")) {
-                $Script:librarypath=$Script:librarypath+"\"
-            }
-            $importPath=$Script:librarypath+$diskname
-            if (Test-Path $importPath) {
-                Write-Host "$diskname is already exist, skip import ..."
-            }
-            else {
-				Write-Host "importing $diskname to $librarypath ..."
-				Import-SCLibraryPhysicalResource -SourcePath "$PSScriptRoot\$diskname" -SharePath $Script:librarypath  -OverwriteExistingFiles
-			}
+	# 1. Import the Vipr disk images to library
+	for($i=1; $i -le 3; $i++) {
+		$diskname = "${product_name}-" + $Script:releaseversion + "-disk" + $i +".vhdx";
+		if (-not $Script:librarypath.EndsWith("\")) {
+			$Script:librarypath=$Script:librarypath+"\"
 		}
-	}
-	catch {
-		throw "Upload common disks failed"
+		$importPath=$Script:librarypath+$diskname
+		if (Test-Path $importPath) {
+			Write-Host "$diskname is already exist, skip import ..."
+		}
+		else {
+			Write-Host "importing $diskname to $librarypath ..."
+			Import-SCLibraryPhysicalResource -SourcePath "$PSScriptRoot\$diskname" -SharePath $Script:librarypath  -OverwriteExistingFiles
+		}
 	}
 }
 
 function UploadDisk4($currentNodeId) {
-	try {
-		$hostname = hostname
-		get-scvmmserver -ComputerName $hostname
-		$diskname=$disk4NamePrefix+$currentNodeId+".vhdx"    
-		Write-Host "importing $diskname to $librarypath ..."
-		Import-SCLibraryPhysicalResource -SourcePath "$PSScriptRoot\$diskname" -SharePath $Script:librarypath  -OverwriteExistingFiles
-	}
-	catch {
-		throw "Upload $currentNodeId disk4 failed"
-	}
+	$hostname = hostname
+	get-scvmmserver -ComputerName $hostname
+	$diskname=$disk4NamePrefix+$currentNodeId+".vhdx"
+	Write-Host "importing $diskname to $librarypath ..."
+	Import-SCLibraryPhysicalResource -SourcePath "$PSScriptRoot\$diskname" -SharePath $Script:librarypath  -OverwriteExistingFiles
 }
 
 function CreateSubfolderAndMoveFiles($currentNodeId) {
@@ -872,85 +862,80 @@ function SaveUserSettings() {
 
 function CreateVM($currentNodeId) {
 	$vmname=$Script:vmName
-	
-	try{
-		# 0. connect to local scvmm server
-		$hostname = hostname
-		Write-Host "Connecting to local scvmm server ...";
-		get-scvmmserver -ComputerName $hostname
 
-		# 1. Get the info of all vipr disks 
-		$viprdisks = @()
-		for($i=1; $i -le 3; $i++) {
-			$diskname = "${product_name}-" + $releaseversion +  "-disk" + $i +".vhdx";
-			$tmpdiskifo = Get-SCVirtualHardDisk -Name $diskname
-			$viprdisks += $tmpdiskifo;
-		}
+	# 0. connect to local scvmm server
+	$hostname = hostname
+	Write-Host "Connecting to local scvmm server ...";
+	get-scvmmserver -ComputerName $hostname
 
-		$disk4Name=$disk4NamePrefix+$currentNodeId+".vhdx";
-		$tmpDisk4Info=Get-SCVirtualHardDisk -Name $disk4Name
-		$viprdisks+=$tmpDisk4Info
+	# 1. Get the info of all vipr disks
+	$viprdisks = @()
+	for($i=1; $i -le 3; $i++) {
+		$diskname = "${product_name}-" + $releaseversion +  "-disk" + $i +".vhdx";
+		$tmpdiskifo = Get-SCVirtualHardDisk -Name $diskname
+		$viprdisks += $tmpdiskifo;
+	}
 
-		# 2. Get an available backend hyper-V host 
-		Write-Host "Getting VM host info from $vmhostname ...";
-		$VMHost = Get-SCVMHost -ComputerName $Script:vmhostname
+	$disk4Name=$disk4NamePrefix+$currentNodeId+".vhdx";
+	$tmpDisk4Info=Get-SCVirtualHardDisk -Name $disk4Name
+	$viprdisks+=$tmpDisk4Info
 
-		# 3. Get network info
-		Write-Host "Fetching virtual switch ($Script:vSwitch) info...";
-		$VirtualSwitch = Get-SCVirtualNetwork -name $Script:vSwitch -VMHost $VMHost
+	# 2. Get an available backend hyper-V host
+	Write-Host "Getting VM host info from $vmhostname ...";
+	$VMHost = Get-SCVMHost -ComputerName $Script:vmhostname
 
-		Write-Host "Fetching VM network ($Script:net) info...";
-		$VmNetwork = Get-SCVMNetwork -VMMServer $hostname -Name $Script:net
+	# 3. Get network info
+	Write-Host "Fetching virtual switch ($Script:vSwitch) info...";
+	$VirtualSwitch = Get-SCVirtualNetwork -name $Script:vSwitch -VMHost $VMHost
 
-		# 4. create virtual machine(s)
-		Write-Host "Creating virtual machine ($vmname) ...";
-		$cpuCountInt=[Convert]::ToInt32($Script:cpuCount, 10)
-		$memoryInt=[Convert]::ToInt32($Script:memory, 10)
-		
-		New-SCVirtualMachine -Name $vmname -VirtualHardDisk $viprdisks[0] -VMHost $VMHost -CPUCount $cpuCountInt -MemoryMB $memoryInt -Path $Script:vmpath -DynamicMemoryEnabled $true -DynamicMemoryMaximumMB $memoryInt
+	Write-Host "Fetching VM network ($Script:net) info...";
+	$VmNetwork = Get-SCVMNetwork -VMMServer $hostname -Name $Script:net
 
-		# 4.1. Attach more disks (disk2/3/4) to the VM.    
-		Write-Host "Attaching disk 2 (cow disk) to the virtual machine";
-		New-SCVirtualDiskDrive -Bus 0 -IDE -LUN 1 -VirtualHardDisk $viprdisks[1] -VM $vmname
-		Write-Host "Attaching disk 3 (data disk)to the virtual machine";
-		New-SCVirtualDiskDrive -Bus 1 -IDE -LUN 0 -VirtualHardDisk $viprdisks[2] -VM $vmname
-		Write-Host "Attaching disk 4 (ovf-env disk)to the virtual machine";
-		New-SCVirtualDiskDrive -Bus 1 -IDE -LUN 1 -VirtualHardDisk $viprdisks[3] -VM $vmname
+	# 4. create virtual machine(s)
+	Write-Host "Creating virtual machine ($vmname) ...";
+	$cpuCountInt=[Convert]::ToInt32($Script:cpuCount, 10)
+	$memoryInt=[Convert]::ToInt32($Script:memory, 10)
 
-		# Convert the disks to fixed typeif the disktype, no nee to convert the ovf-env disk because we don't change its content
-		if ( $disktype -eq "fixed" ) {
-			Write-Host "Chose thick provisioning, need to convert the first 3 disks from dynamic to fixed";
-			$VirtDiskDrive = Get-SCVirtualDiskDrive -VM (Get-SCVirtualMachine -Name $vmname)
-			Write-Host "Converting disk 1 (bootfs disk) to fixed size";
-			Convert-SCVirtualDiskDrive -VirtualDiskDrive $VirtDiskDrive[0] -Fixed
-			Write-Host "Converting disk 2 (cow disk) to fixed size";
-			Convert-SCVirtualDiskDrive -VirtualDiskDrive $VirtDiskDrive[1] -Fixed
-			Write-Host "Converting disk 3 (data disk) to fixed size, will expand it to 500GB, it will take some time to finish";
-			Convert-SCVirtualDiskDrive -VirtualDiskDrive $VirtDiskDrive[2] -Fixed
-		}
+	New-SCVirtualMachine -Name $vmname -VirtualHardDisk $viprdisks[0] -VMHost $VMHost -CPUCount $cpuCountInt -MemoryMB $memoryInt -Path $Script:vmpath -DynamicMemoryEnabled $true -DynamicMemoryMaximumMB $memoryInt
 
-		# 4.2. Create virtual adapter and attach it to the VM and the virtual network
-		$vlanidInt=[Convert]::ToInt32($Script:vlanid, 10)
-		if ($vlanidInt -eq -1) {
-			Write-Host "Creating virtual network adapter (no vlanid) and attaching to VM ...";
-			New-SCVirtualNetworkAdapter -VirtualNetwork $VirtualSwitch -VM $vmname -Synthetic -VMNetwork $VmNetwork
-		} else {
-			Write-Host "Creating virtual network adapter with vlanid ($vlanid) and attaching to VM ...";
-			New-SCVirtualNetworkAdapter -VirtualNetwork $VirtualSwitch -VM $vmname -VLANEnabled $true -VLANID $vlanidInt -Synthetic -VMNetwork $VmNetwork
-		}
+	# 4.1. Attach more disks (disk2/3/4) to the VM.
+	Write-Host "Attaching disk 2 (cow disk) to the virtual machine";
+	New-SCVirtualDiskDrive -Bus 0 -IDE -LUN 1 -VirtualHardDisk $viprdisks[1] -VM $vmname
+	Write-Host "Attaching disk 3 (data disk)to the virtual machine";
+	New-SCVirtualDiskDrive -Bus 1 -IDE -LUN 0 -VirtualHardDisk $viprdisks[2] -VM $vmname
+	Write-Host "Attaching disk 4 (ovf-env disk)to the virtual machine";
+	New-SCVirtualDiskDrive -Bus 1 -IDE -LUN 1 -VirtualHardDisk $viprdisks[3] -VM $vmname
 
-		# 4.3 disable time sync service
-		Write-Host "Disabling hyper-v built-in time synchronization ...";
-		Set-SCVirtualMachine -VM $vmname -EnableTimeSync $false
+	# Convert the disks to fixed typeif the disktype, no nee to convert the ovf-env disk because we don't change its content
+	if ( $disktype -eq "fixed" ) {
+		Write-Host "Chose thick provisioning, need to convert the first 3 disks from dynamic to fixed";
+		$VirtDiskDrive = Get-SCVirtualDiskDrive -VM (Get-SCVirtualMachine -Name $vmname)
+		Write-Host "Converting disk 1 (bootfs disk) to fixed size";
+		Convert-SCVirtualDiskDrive -VirtualDiskDrive $VirtDiskDrive[0] -Fixed
+		Write-Host "Converting disk 2 (cow disk) to fixed size";
+		Convert-SCVirtualDiskDrive -VirtualDiskDrive $VirtDiskDrive[1] -Fixed
+		Write-Host "Converting disk 3 (data disk) to fixed size, will expand it to 500GB, it will take some time to finish";
+		Convert-SCVirtualDiskDrive -VirtualDiskDrive $VirtDiskDrive[2] -Fixed
+	}
 
-		if ($Script:powerOn) {
-			# 5 start virtual machine
-			Write-Host "Starting virtual machine";
-			Start-SCVirtualMachine -VM $vmname
-		}
-	} 
-	catch {
-		throw "create VM $vmname failed"
+	# 4.2. Create virtual adapter and attach it to the VM and the virtual network
+	$vlanidInt=[Convert]::ToInt32($Script:vlanid, 10)
+	if ($vlanidInt -eq -1) {
+		Write-Host "Creating virtual network adapter (no vlanid) and attaching to VM ...";
+		New-SCVirtualNetworkAdapter -VirtualNetwork $VirtualSwitch -VM $vmname -Synthetic -VMNetwork $VmNetwork
+	} else {
+		Write-Host "Creating virtual network adapter with vlanid ($vlanid) and attaching to VM ...";
+		New-SCVirtualNetworkAdapter -VirtualNetwork $VirtualSwitch -VM $vmname -VLANEnabled $true -VLANID $vlanidInt -Synthetic -VMNetwork $VmNetwork
+	}
+
+	# 4.3 disable time sync service
+	Write-Host "Disabling hyper-v built-in time synchronization ...";
+	Set-SCVirtualMachine -VM $vmname -EnableTimeSync $false
+
+	if ($Script:powerOn) {
+		# 5 start virtual machine
+		Write-Host "Starting virtual machine";
+		Start-SCVirtualMachine -VM $vmname
 	}
 }
 

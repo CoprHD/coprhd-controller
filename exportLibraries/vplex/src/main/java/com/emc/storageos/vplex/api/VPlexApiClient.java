@@ -528,7 +528,7 @@ public class VPlexApiClient {
      *            exported and need to be discovered by the VPlex.
      * @param startNow true to start the migration now, else migration is
      *            created in a paused state.
-     * 
+     * @param transferSize The transfer size for migration
      * @return A reference to the migration(s) started to migrate the virtual
      *         volume.
      * 
@@ -538,10 +538,10 @@ public class VPlexApiClient {
     public List<VPlexMigrationInfo> migrateVirtualVolume(String migrationName,
             String virtualVolumeName, List<VolumeInfo> nativeVolumeInfoList,
             boolean isRemote, boolean useDeviceMigration, boolean discoveryRequired,
-            boolean startNow) throws VPlexApiException {
+            boolean startNow, String transferSize) throws VPlexApiException {
         s_logger.info("Request for virtual volume migration on VPlex at {}", _baseURI);
         return _migrationMgr.migrateVirtualVolume(migrationName, virtualVolumeName,
-                nativeVolumeInfoList, isRemote, useDeviceMigration, discoveryRequired, startNow);
+                nativeVolumeInfoList, isRemote, useDeviceMigration, discoveryRequired, startNow, transferSize);
     }
 
     /**

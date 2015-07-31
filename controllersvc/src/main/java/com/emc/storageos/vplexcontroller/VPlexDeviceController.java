@@ -265,6 +265,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     // Miscellaneous Constants
     private static final String HYPHEN_OPERATOR = "-";
 
+    // migration speed to transfer size map
+    private static final Map<String, String> mgirationSpeedToTransferSizeMap;
+    static {
+        mgirationSpeedToTransferSizeMap = new HashMap<String, String>();
+        mgirationSpeedToTransferSizeMap.put("Lowest", "128KB");
+        mgirationSpeedToTransferSizeMap.put("Low", "2MB");
+        mgirationSpeedToTransferSizeMap.put("Medium", "8MB");
+        mgirationSpeedToTransferSizeMap.put("High", "16MB");
+        mgirationSpeedToTransferSizeMap.put("Highest", "32MB");
+    }
     // Volume restore step data keys
     private static final String REATTACH_MIRROR = "reattachMirror";
     private static final String ADD_BACK_TO_CG = "addToCG";
@@ -4807,6 +4817,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexSystem, _dbClient);
             _log.info("Got VPlex API client for VPlex {}", vplexURI);
 
+            // Get the configured migration speed
+            String speed = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.MIGRATION_SPEED,
+                    vplexSystem.getSystemType(), null);
+            _log.info("Migration speed is {}", speed);
+            String transferSize = mgirationSpeedToTransferSizeMap.get(speed);
             // Make a call to the VPlex API client to migrate the virtual
             // volume. Note that we need to do a remote migration when a
             // local virtual volume is being migrated to the other VPlex
@@ -4819,7 +4834,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Boolean useDeviceMigration = migration.getSource() == null;
             List<VPlexMigrationInfo> migrationInfoList = client.migrateVirtualVolume(
                     migrationName, virtualVolumeName, Arrays.asList(nativeVolumeInfo),
-                    isRemoteMigration, useDeviceMigration, true, true);
+                    isRemoteMigration, useDeviceMigration, true, true, transferSize);
             _log.info("Started VPlex migration");
 
             // We store step data indicating that the migration was successfully

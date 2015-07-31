@@ -162,6 +162,7 @@ public class VPlexApiConstants {
     public static final String ARG_UNCLAIM = "--unclaim-storage-volumes";
     public static final String ARG_APPC = "--appc";
     public static final String ARG_THIN_REBUILD = "--thin-rebuild";
+    public static final String ARG_TRANSFER_SIZE = "--transfer-size";
 
     // Constants related to claimed storage volumes.
     public static final String VOLUME_NAME_PREFIX = "V";

@@ -223,7 +223,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         _logger.info("Only 1 mask {} found for cluster {}", eligibleMasks.get(0).toString(), cluster.getId());
 
                         VolumeIngestionUtil.createExportMask(eligibleMasks.get(0), system, unManagedVolume, exportGroup, blockObject,
-                                _dbClient, hosts, cluster);
+                                _dbClient, hosts, cluster, cluster.getLabel());
                         uemsToPersist.add(eligibleMasks.get(0));
                         masksIngestedCount.increment();
 
@@ -233,7 +233,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         // 1 MV per Cluster Node
                         for (UnManagedExportMask eligibleMask : eligibleMasks) {
                             VolumeIngestionUtil.createExportMask(eligibleMask, system, unManagedVolume, exportGroup, blockObject,
-                                    _dbClient, hosts, cluster);
+                                    _dbClient, hosts, cluster, cluster.getLabel());
                             uemsToPersist.add(eligibleMask);
                             masksIngestedCount.increment();
                         }
@@ -255,7 +255,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     }
                     for (UnManagedExportMask eligibleMask : eligibleMasks) {
                         VolumeIngestionUtil.createExportMask(eligibleMask, system, unManagedVolume, exportGroup, blockObject,
-                                _dbClient, hosts, cluster);
+                                _dbClient, hosts, cluster, host.getHostName());
                         uemsToPersist.add(eligibleMask);
                         masksIngestedCount.increment();
 
@@ -280,7 +280,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     }
                     for (UnManagedExportMask eligibleMask : eligibleMasks) {
                         VolumeIngestionUtil.createExportMask(eligibleMask, system, unManagedVolume, exportGroup, blockObject,
-                                _dbClient, hosts, cluster);
+                                _dbClient, hosts, cluster, deviceInitiators.get(0).getHostName());
                         uemsToPersist.add(eligibleMask);
                         masksIngestedCount.increment();
                     }

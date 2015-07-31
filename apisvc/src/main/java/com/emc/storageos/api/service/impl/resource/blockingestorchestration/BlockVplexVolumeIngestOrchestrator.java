@@ -126,17 +126,19 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             
             if (null != associatedVolumeUris && !associatedVolumeUris.isEmpty()) {
 
-                validateAssociatedVolumes(vPool, project, tenant, associatedVolumeUris);
+                Project vplexProject = VPlexBlockServiceApiImpl.getVplexProject(system, _dbClient, _tenantsService);
+                
+                validateAssociatedVolumes(vPool, vplexProject, tenant, associatedVolumeUris);
 
                 ingestBackendVolumes(systemCache, poolCache, vPool,
-                        virtualArray, project, tenant,
+                        virtualArray, vplexProject, tenant,
                         unManagedVolumesToBeDeleted, taskStatusMap,
                         associatedVolumeUris, processedUnManagedVolumeMap,
                         vplexCreatedObjectMap, vplexUpdatedObjectMap);
 
                 List<BlockObject> ingestedObjects = new ArrayList<BlockObject>();
 
-                ingestBackendExportMasks(system, vPool, virtualArray, project,
+                ingestBackendExportMasks(system, vPool, virtualArray, vplexProject,
                         tenant, unManagedVolumesToBeDeleted, updatedObjectMap,
                         taskStatusMap, associatedVolumeUris,
                         processedUnManagedVolumeMap, vplexCreatedObjectMap,
@@ -220,7 +222,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
     private void ingestBackendVolumes(List<URI> systemCache,
             List<URI> poolCache, VirtualPool vPool, VirtualArray virtualArray,
-            Project project, TenantOrg tenant,
+            Project vplexProject, TenantOrg tenant,
             List<UnManagedVolume> unManagedVolumesToBeDeleted,
             Map<String, StringBuffer> taskStatusMap,
             List<URI> associatedVolumeUris,
@@ -247,7 +249,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 @SuppressWarnings("unchecked")
                 BlockObject blockObject = ingestStrategy.ingestBlockObjects(systemCache, poolCache, 
                         associatedSystem, associatedVolume, vPool, virtualArray, 
-                        project, tenant, unManagedVolumesToBeDeleted, vplexCreatedObjectMap, 
+                        vplexProject, tenant, unManagedVolumesToBeDeleted, vplexCreatedObjectMap, 
                         vplexUpdatedObjectMap, true, VolumeIngestionUtil.getBlockObjectClass(associatedVolume), taskStatusMap);
                 
                 _logger.info("Ingestion ended for exported unmanagedvolume {}", associatedVolume.getNativeGuid());
@@ -271,7 +273,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     }
 
     private void ingestBackendExportMasks(StorageSystem system,
-            VirtualPool vPool, VirtualArray virtualArray, Project project,
+            VirtualPool vPool, VirtualArray virtualArray, Project vplexProject,
             TenantOrg tenant,
             List<UnManagedVolume> unManagedVolumesToBeDeleted,
             Map<String, List<DataObject>> updatedObjectMap,
@@ -308,8 +310,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     initUris.add(URI.create(uri));
                 }
                 List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initUris);
-                
-                Project vplexProject = VPlexBlockServiceApiImpl.getVplexProject(system, _dbClient, _tenantsService);
                 
                 ExportGroup exportGroup = this.createExportGroup(system, associatedSystem, initiators, 
                         virtualArray.getId(), vplexProject.getId(), tenant.getId(), 4, uem); 

@@ -953,7 +953,7 @@ public class VolumeIngestionUtil {
      */
     public static <T extends BlockObject> void createExportMask(UnManagedExportMask eligibleMask, StorageSystem system,
             UnManagedVolume unManagedVolume,
-            ExportGroup exportGroup, T volume, DbClient dbClient, List<Host> hosts, Cluster cluster) throws Exception {
+            ExportGroup exportGroup, T volume, DbClient dbClient, List<Host> hosts, Cluster cluster, String exportMaskLabel) throws Exception {
         _logger.info("Creating ExportMask for unManaged Mask {}", eligibleMask.getMaskName());
         List<URI> initiatorUris = new ArrayList<URI>(Collections2.transform(
                 eligibleMask.getKnownInitiatorUris(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
@@ -964,7 +964,6 @@ public class VolumeIngestionUtil {
 
         List<URI> storagePortUris = new ArrayList<URI>(Collections2.transform(
                 eligibleMask.getKnownStoragePortUris(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
-        String exportMaskLabel = (null != cluster) ? cluster.getLabel() : hosts.get(0).getHostName();
         // update ZoneMappings and HLU's later if needed, now pass null
         ExportMaskUtils.initializeExportMaskWithVolumes(system, exportGroup, eligibleMask.getMaskName(), exportMaskLabel, allInitiators,
                 null, storagePortUris, eligibleMask.getZoningMap(), volume, eligibleMask.getUnmanagedInitiatorNetworkIds(),

@@ -54,8 +54,7 @@ public class IngestExportStrategy {
                 MutableInt masksIngestedCount = new MutableInt(0);
                 // Ingest Associated Masks
                 ingestExportOrchestrator.ingestExportMasks(unManagedVolume, unManagedMasks, exportIngestParam, exportGroup, blockObject,
-                        system,
-                        exportGroupCreated, masksIngestedCount);
+                        system, exportGroupCreated, masksIngestedCount, null);
                 // If the internal flags are set, return the block object
                 if (blockObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
                     // check if none of the export masks are ingested

@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -47,8 +48,8 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
     @Override
     public <T extends BlockObject> void ingestExportMasks(UnManagedVolume unManagedVolume,
             List<UnManagedExportMask> unManagedMasks, VolumeExportIngestParam param, ExportGroup exportGroup, T volume,
-            StorageSystem system, boolean exportGroupCreated, MutableInt masksIngestedCount) throws IngestionException {
-        super.ingestExportMasks(unManagedVolume, unManagedMasks, param, exportGroup, volume, system, exportGroupCreated, masksIngestedCount);
+            StorageSystem system, boolean exportGroupCreated, MutableInt masksIngestedCount, List<Initiator> deviceInitiators) throws IngestionException {
+        super.ingestExportMasks(unManagedVolume, unManagedMasks, param, exportGroup, volume, system, exportGroupCreated, masksIngestedCount, deviceInitiators);
     }
 
     @Override

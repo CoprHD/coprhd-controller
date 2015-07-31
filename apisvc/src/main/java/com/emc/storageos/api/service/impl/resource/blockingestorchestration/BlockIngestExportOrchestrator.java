@@ -30,6 +30,7 @@ import com.emc.storageos.api.service.impl.resource.ResourceService;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
@@ -70,10 +71,12 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
      * @param system StorageSystem of unmanaged volume
      * @param exportGroupCreated boolean indicating whether exportGroup is created/reused
      * @param masksIngestedCount number of export masks ingested
+     * @param deviceInitiators collection of initiators from a device 
+     *                         (such as VPLEX) rather than a Host or Cluster
      */
     protected <T extends BlockObject> void ingestExportMasks(UnManagedVolume unManagedVolume,
             List<UnManagedExportMask> unManagedMasks, VolumeExportIngestParam param, ExportGroup exportGroup, T blockObject,
-            StorageSystem system, boolean exportGroupCreated, MutableInt masksIngestedCount)
+            StorageSystem system, boolean exportGroupCreated, MutableInt masksIngestedCount, List<Initiator> deviceInitiators)
             throws IngestionException {
         try {
             _logger.info("Starting with unmanaged masks {} for unmanaged volume {}",
@@ -95,24 +98,38 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                 hosts.addAll(getHostsOfCluster(param.getCluster()));
                 exportGroupType = ExportGroupType.Cluster.name();
             }
-            // update the ExportGroupType in UnManagedVolume. This will be used to place the
-            // volume in the right ExportGroup based on the ExportGroupType.
-            updateExportTypeInUnManagedVolume(unManagedVolume, exportGroupType);
-            // In cluster/Host , if we don't find atleast 1 initiator in
+
+            // In cluster/Host , if we don't find at least 1 initiator in
             // registered state, then skip this volume from ingestion.
-            Set<URI> initiatorUris = new HashSet<URI>();
             for (Host hostObj : hosts) {
                 Set<String> initiatorSet = getInitiatorsOfHost(hostObj.getId());
-                initiatorUris = new HashSet<URI>(Collections2.transform(initiatorSet,
+                Set<URI> initiatorUris = new HashSet<URI>(Collections2.transform(initiatorSet,
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
                 List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorUris);
 
                 if (!VolumeIngestionUtil.validateInitiatorPortsRegistered(initiators)) {
                     // logs already inside the above method.
-                    _logger.info("Host skipped {} as we can't find atleast 1 initiator in registered status", hostObj.getLabel());
+                    _logger.warn("Host skipped {} as we can't find at least 1 initiator in registered status", hostObj.getLabel());
                     return;
                 }
             }
+
+            if (null != deviceInitiators && !deviceInitiators.isEmpty()) {
+                // note: ViPR-generated greenfield VPLEX export groups 
+                // actually have no export group type set
+                exportGroupType = ExportGroupType.Host.name();
+                
+                if (!VolumeIngestionUtil.validateInitiatorPortsRegistered(deviceInitiators)) {
+                    _logger.warn("Device with initiators {} skipped as we can't "
+                               + "find at least 1 initiator in registered status", deviceInitiators);
+                    return;
+                }
+            }
+
+            // update the ExportGroupType in UnManagedVolume. This will be used to place the
+            // volume in the right ExportGroup based on the ExportGroupType.
+            updateExportTypeInUnManagedVolume(unManagedVolume, exportGroupType);
+
             // If we find an existing export mask in DB, with the expected set of initiators,
             // then add this unmanaged volume to the mask.
             while (itr.hasNext()) {
@@ -194,9 +211,8 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
 
             List<UnManagedExportMask> eligibleMasks = null;
             if (!unManagedMasks.isEmpty()) {
-                if (null != param.getCluster()) {
+                if (null != cluster) {
                     _logger.info("Processing Cluster {} with label {}", cluster.getId(), cluster.getLabel());
-                    cluster = _dbClient.queryObject(Cluster.class, param.getCluster());
 
                     // get Hosts for Cluster & get Initiators by Host Name
                     // TODO handle multiple Hosts in one call
@@ -233,8 +249,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                             masksIngestedCount.increment();
                         }
                     }
-                } else {
-                    host = _dbClient.queryObject(Host.class, param.getHost());
+                } else if (null != host){
                     _logger.info("Processing Host {} with label {}", host.getId(), host.getLabel());
                     Set<String> initiatorSet = getInitiatorsOfHost(param.getHost());
                     boolean hostPartOfCluster = (!NullColumnValueGetter.isNullURI(host.getCluster()));
@@ -256,8 +271,33 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         masksIngestedCount.increment();
 
                     }
+                } else if (null != deviceInitiators && !deviceInitiators.isEmpty()) {
+                    _logger.info("Processing device initiators {}", deviceInitiators);
+                    Set<String> initiatorSet = new HashSet<String>();
+                    for (Initiator init : deviceInitiators) {
+                        initiatorSet.add(init.getId().toString());
+                    }
+                    boolean hostPartOfCluster = false;
+
+                    Map<String, Set<String>> iniByProtocol = VolumeIngestionUtil.groupInitiatorsByProtocol(initiatorSet,
+                            _dbClient);
+                    eligibleMasks = VolumeIngestionUtil.findMatchingExportMaskForHost(blockObject, unManagedMasks, initiatorSet,
+                            iniByProtocol, _dbClient, param.getVarray(), param.getVpool(), hostPartOfCluster,
+                            getInitiatorsOfCluster(null, hostPartOfCluster), null);
+                    if (!eligibleMasks.isEmpty()) {
+                        _logger.info("Eligible masks {} found for device initiators {}", Joiner.on(",").join(eligibleMasks), deviceInitiators);
+                    } else {
+                        _logger.info("No eligible unmanaged export masks found for device initiators {}", deviceInitiators);
+                    }
+                    for (UnManagedExportMask eligibleMask : eligibleMasks) {
+                        VolumeIngestionUtil.createExportMask(eligibleMask, system, unManagedVolume, exportGroup, blockObject,
+                                _dbClient, hosts, cluster);
+                        uemsToPersist.add(eligibleMask);
+                        masksIngestedCount.increment();
+                    }
                 }
             }
+            
             // partial ingestion of volumes allowed, hence persisting to DB here itself.
             _dbClient.updateAndReindexObject(unManagedVolume);
             if (exportGroupCreated) {

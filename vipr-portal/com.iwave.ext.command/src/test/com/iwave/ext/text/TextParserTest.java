@@ -262,7 +262,8 @@ public class TextParserTest {
         try {
             IOUtils.copy(diskUtilFile, writer);
         } catch (IOException e) {
-            System.out.println("readFile method: " + e);
+            // This is a test class, it is ok to do a exception printStackTrace()
+            e.printStackTrace(); // NOSONAR (Throwable.printStackTrace(...) should not be called)
             throw new RuntimeException(e);
         }
         String text = writer.toString();

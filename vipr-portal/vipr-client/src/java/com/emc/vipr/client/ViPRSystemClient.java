@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client;
@@ -12,7 +12,7 @@ public class ViPRSystemClient {
 
     /**
      * Convenience method for calling constructor with new ClientConfig().withHost(host)
-     *
+     * 
      * @param host Hostname or IP address for the Virtual IP of the target environment.
      */
     public ViPRSystemClient(String host) {
@@ -21,7 +21,7 @@ public class ViPRSystemClient {
 
     /**
      * Convenience method for calling constructor with new ClientConfig().withHost(host).withIgnoringCertificates(ignoreCertificates)
-     *
+     * 
      * @param host Hostname or IP address for the Virtual IP of the target environment.
      * @param ignoreCertificates True if SSL certificates should be ignored.
      */
@@ -32,19 +32,19 @@ public class ViPRSystemClient {
     public ViPRSystemClient(ClientConfig config) {
         this.client = config.newClient();
     }
-    
+
     /**
      * Sets the authentication token to be used for this client.
-     *
+     * 
      * @param authToken The authentication token to set.
      */
     public void setAuthToken(String authToken) {
         client.setAuthToken(authToken);
     }
-    
+
     /**
      * Sets the authentication token and returns the updated client.
-     *
+     * 
      * @see #setAuthToken(String)
      * @param token The authentication token to set.
      * @return The updated client.
@@ -53,10 +53,10 @@ public class ViPRSystemClient {
         setAuthToken(token);
         return this;
     }
-    
+
     /**
      * Performs an authentication login and returns the updated client.
-     *
+     * 
      * @see AuthClient#login(String, String)
      * @param username The username.
      * @param password The password.

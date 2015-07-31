@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
@@ -33,16 +23,16 @@ import com.emc.storageos.model.valid.EnumType;
  */
 @Cf("Network")
 public class Network extends DiscoveredDataObject {
-    
+
     // device native ID
     private String _nativeId;
-    
+
     // Varray this network is part of
     private URI _virtualArray;
 
     // Virtual arrays to which this network is explicitly assigned.
     private StringSet _assignedVArrays;
-    
+
     // Virtual arrays the network is associated with either by assignment ,
     // of the network to the virtual array, by assignment of ports from
     // the network to the virtual array, or by being routed to a network
@@ -58,13 +48,13 @@ public class Network extends DiscoveredDataObject {
 
     // Holds all the networks that are routed to this network if any
     private StringSet _routedNetworks;
-    
+
     // Indicates whether the TransportZone was automatically discovered by Bourne vs. manually created via an external API.
     private Boolean _discovered;
 
-    //Holds all the network systems that can manage this network
+    // Holds all the network systems that can manage this network
     private StringSet _networkSystems;
-    
+
     private String _registrationStatus = RegistrationStatus.REGISTERED.toString();
 
     @RelationIndex(cf = "RelationIndex", type = VirtualArray.class)
@@ -93,7 +83,7 @@ public class Network extends DiscoveredDataObject {
     public StringSet retrieveEndpoints() {
         return new StringSet(_endpointsMap.keySet());
     }
-    
+
     @Name("endpoints")
     @AlternateId("EndpointIndex")
     @IndexByKey
@@ -105,7 +95,7 @@ public class Network extends DiscoveredDataObject {
         this._endpointsMap = _endpointsMap;
         setChanged("endpoints");
     }
-    
+
     @XmlElement
     @Name("discovered")
     public Boolean getDiscovered() {
@@ -119,65 +109,67 @@ public class Network extends DiscoveredDataObject {
 
     @RelationIndex(cf = "RelationIndex", type = NetworkSystem.class, deactivateIfEmpty = true)
     @IndexByKey
-	@Name("networkSystems")
+    @Name("networkSystems")
     public StringSet getNetworkSystems() {
-		return _networkSystems;
-	}
+        return _networkSystems;
+    }
 
-	public void setNetworkSystems(StringSet _networkSystems) {
-		this._networkSystems = _networkSystems;
-		setChanged("networkSystems");
-	}
-	
-	public void addNetworkSystems(List<String> networkSystems) {
-		if (_networkSystems == null) {
-			_networkSystems = new StringSet();
-		}
-		_networkSystems.addAll(networkSystems);
-		setChanged("networkSystems");
-	}
-	
-	public boolean removeNetworkSystems(List<String> networkSystems) {
-		boolean removed = _networkSystems != null &&
-						_networkSystems.removeAll(networkSystems);
-		if (removed)
-			setChanged("networkSystems");
-		return removed;
-	}
+    public void setNetworkSystems(StringSet _networkSystems) {
+        this._networkSystems = _networkSystems;
+        setChanged("networkSystems");
+    }
+
+    public void addNetworkSystems(List<String> networkSystems) {
+        if (_networkSystems == null) {
+            _networkSystems = new StringSet();
+        }
+        _networkSystems.addAll(networkSystems);
+        setChanged("networkSystems");
+    }
+
+    public boolean removeNetworkSystems(List<String> networkSystems) {
+        boolean removed = _networkSystems != null &&
+                _networkSystems.removeAll(networkSystems);
+        if (removed) {
+            setChanged("networkSystems");
+        }
+        return removed;
+    }
 
     @RelationIndex(cf = "SecondaryRelationIndex", type = VirtualArray.class, deactivateIfEmpty = false)
     @IndexByKey
-	@Name("assignedVirtualArrays")
+    @Name("assignedVirtualArrays")
     public StringSet getAssignedVirtualArrays() {
-		return _assignedVArrays;
-	}
+        return _assignedVArrays;
+    }
 
-	public void setAssignedVirtualArrays(StringSet varrays) {
-		_assignedVArrays = varrays;
-		setChanged("assignedVirtualArrays");
-	}
-	
-	public void addAssignedVirtualArrays(Collection<String> varrays) {
-		if (_assignedVArrays == null) {
-		    _assignedVArrays = new StringSet();
-		}
-		_assignedVArrays.addAll(varrays);
-		setChanged("assignedVirtualArrays");
-	}
-	
-	public boolean removeAssignedVirtualArrays(Collection<String> varrays) {
+    public void setAssignedVirtualArrays(StringSet varrays) {
+        _assignedVArrays = varrays;
+        setChanged("assignedVirtualArrays");
+    }
+
+    public void addAssignedVirtualArrays(Collection<String> varrays) {
+        if (_assignedVArrays == null) {
+            _assignedVArrays = new StringSet();
+        }
+        _assignedVArrays.addAll(varrays);
+        setChanged("assignedVirtualArrays");
+    }
+
+    public boolean removeAssignedVirtualArrays(Collection<String> varrays) {
         boolean removed = _assignedVArrays != null
-            && _assignedVArrays.removeAll(new HashSet<String>(varrays));
+                && _assignedVArrays.removeAll(new HashSet<String>(varrays));
         if (removed) {
             setChanged("assignedVirtualArrays");
         }
-		
-		return removed;
-	}
-	
+
+        return removed;
+    }
+
     /**
-     * Returns the virtual arrays to which this network is connected. A network can be 
-     * connected to a virtual array when one of three conditions exist:<ol>
+     * Returns the virtual arrays to which this network is connected. A network can be
+     * connected to a virtual array when one of three conditions exist:
+     * <ol>
      * <li>The network is assigned to the virtual array</li>
      * <li>The network has one or more storage ports assigned to the virtual array</li>
      * <li>The network is routed to a network that is connected to the virtual array</li>
@@ -198,7 +190,7 @@ public class Network extends DiscoveredDataObject {
         _connectedVArrays = varrays;
         setChanged("connectedVirtualArrays");
     }
-    
+
     public void addConnectedVirtualArrays(Collection<String> varrays) {
         if (_connectedVArrays == null) {
             _connectedVArrays = new StringSet();
@@ -206,17 +198,17 @@ public class Network extends DiscoveredDataObject {
         _connectedVArrays.addAll(varrays);
         setChanged("connectedVirtualArrays");
     }
-    
+
     public boolean removeConnectedVirtualArrays(Collection<String> varrays) {
         boolean removed = _connectedVArrays != null
-            && _connectedVArrays.removeAll(new HashSet<String>(varrays));
+                && _connectedVArrays.removeAll(new HashSet<String>(varrays));
         if (removed) {
             setChanged("connectedVirtualArrays");
         }
-        
+
         return removed;
     }
-    
+
     public void replaceConnectedVirtualArrays(Set<String> varrays) {
         if (_connectedVArrays == null) {
             _connectedVArrays = new StringSet();
@@ -225,7 +217,7 @@ public class Network extends DiscoveredDataObject {
         setChanged("connectedVirtualArrays");
     }
 
-	/**
+    /**
      * Add an endpoint to the transport zone.
      * 
      * @param endpoints
@@ -237,15 +229,16 @@ public class Network extends DiscoveredDataObject {
         getEndpointsMap().putAll(endpoints);
         setChanged("endpoints");
     }
-    
+
     /**
      * Add an endpoint to the transport zone.
+     * 
      * @param endpoints String (required)
      * @param isDiscovered boolean (required)
      */
     public void addEndpoints(List<String> endpoints, boolean isDiscovered) {
-    	Map<String, String> endpointMap = makeEndpointMap(EndpointUtility.changeCase(endpoints), isDiscovered);
-    	addEndpoints(endpointMap);
+        Map<String, String> endpointMap = makeEndpointMap(EndpointUtility.changeCase(endpoints), isDiscovered);
+        addEndpoints(endpointMap);
     }
 
     public boolean hasEndpoint(String endpoint) {
@@ -254,45 +247,54 @@ public class Network extends DiscoveredDataObject {
 
     /**
      * Remove an endpoint from the transport zone.
+     * 
      * @param endpoints
      * @return
      */
     public Collection<String> removeEndpoints(List<String> endpoints) {
         List<String> removed = new ArrayList<String>();
-    	if (getEndpointsMap() == null) return removed;
-    	for (String key : EndpointUtility.changeCase(endpoints)) {
-    		if (getEndpointsMap().containsKey(key)) {
-    			getEndpointsMap().remove(key);
-    			removed.add(key);
-    		}
-    	}
-    	if (!removed.isEmpty()) setChanged("endpoints");
-    	return removed;
+        if (getEndpointsMap() == null) {
+            return removed;
+        }
+        for (String key : EndpointUtility.changeCase(endpoints)) {
+            if (getEndpointsMap().containsKey(key)) {
+                getEndpointsMap().remove(key);
+                removed.add(key);
+            }
+        }
+        if (!removed.isEmpty()) {
+            setChanged("endpoints");
+        }
+        return removed;
     }
-    
+
     /**
      * Converts a list of endpoints to a StringMap with the value being the isDiscovered flag
+     * 
      * @param paramEndpoints
      * @param isDiscovered
      * @return
      */
     private StringMap makeEndpointMap(List<String> paramEndpoints, boolean isDiscovered) {
-    	StringMap map = new StringMap();
-    	for (String ep : paramEndpoints) {
-    		map.put(ep, new Boolean(isDiscovered).toString());
-    	}
-    	return map;
+        StringMap map = new StringMap();
+        for (String ep : paramEndpoints) {
+            map.put(ep, new Boolean(isDiscovered).toString());
+        }
+        return map;
     }
-    
+
     /**
      * Returns true if the endpoint specified was discovered
+     * 
      * @param key endpoint value in String, e.g. WWN
      * @return true if discovered, false if no entry or not discovered
      */
     public boolean endpointIsDiscovered(String key) {
-    	String value = getEndpointsMap().get(key.toUpperCase());
-    	if (value == null) return false;
-    	return new Boolean(value);
+        String value = getEndpointsMap().get(key.toUpperCase());
+        if (value == null) {
+            return false;
+        }
+        return new Boolean(value);
     }
 
     @AlternateId("AltIdIndex")
@@ -305,7 +307,7 @@ public class Network extends DiscoveredDataObject {
         this._nativeId = nativeId;
         setChanged("nativeId");
     }
-	
+
     public void setRegistrationStatus(String registrationStatus) {
         _registrationStatus = registrationStatus;
         setChanged("registrationStatus");
@@ -316,15 +318,15 @@ public class Network extends DiscoveredDataObject {
     public String getRegistrationStatus() {
         return _registrationStatus;
     }
-    
+
     public boolean inAssignedVarray(URI varrayURI) {
-    	return getAssignedVirtualArrays() != null && getAssignedVirtualArrays().contains(varrayURI.toString());
+        return getAssignedVirtualArrays() != null && getAssignedVirtualArrays().contains(varrayURI.toString());
     }
-    
+
     public boolean assignedToVarray() {
-    	return getAssignedVirtualArrays() != null && !getAssignedVirtualArrays().isEmpty();
+        return getAssignedVirtualArrays() != null && !getAssignedVirtualArrays().isEmpty();
     }
-    
+
     public boolean registered() {
         return RegistrationStatus.REGISTERED.name().equals(_registrationStatus);
     }

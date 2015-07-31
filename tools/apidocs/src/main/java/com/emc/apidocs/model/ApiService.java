@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.apidocs.model;
@@ -31,29 +31,30 @@ public class ApiService {
     public void addMethod(ApiMethod method) {
         methods.add(method);
     }
-    
+
     public String getFqJavaClassName() {
-        return packageName+"."+javaClassName;
+        return packageName + "." + javaClassName;
     }
 
     public String getOverviewFileName() {
-        return javaClassName.replaceAll("\\.","_")+"_"+getPackageHash()+"_overview.html";
+        return javaClassName.replaceAll("\\.", "_") + "_" + getPackageHash() + "_overview.html";
     }
 
     public String getNewMethodsFileName() {
-        return javaClassName.replaceAll("\\.","_")+"_"+getPackageHash()+"_newMethodsOverview.html";
+        return javaClassName.replaceAll("\\.", "_") + "_" + getPackageHash() + "_newMethodsOverview.html";
     }
 
     public String getRemovedMethodsFileName() {
-        return javaClassName.replaceAll("\\.","_")+"_"+getPackageHash()+"_removedMethodsOverview.html";
+        return javaClassName.replaceAll("\\.", "_") + "_" + getPackageHash() + "_removedMethodsOverview.html";
     }
 
     public String getModifiedMethodsFileName() {
-        return javaClassName.replaceAll("\\.","_")+"_"+getPackageHash()+"_modifiedMethodsOverview.html";
+        return javaClassName.replaceAll("\\.", "_") + "_" + getPackageHash() + "_modifiedMethodsOverview.html";
     }
 
     public String getModifiedMethodFileName(String methodName) {
-        return javaClassName.replaceAll("\\.","_")+"_"+getPackageHash()+"_modifiedMethod_"+methodName.replaceAll("\\.","_")+".html";
+        return javaClassName.replaceAll("\\.", "_") + "_" + getPackageHash() + "_modifiedMethod_" + methodName.replaceAll("\\.", "_")
+                + ".html";
     }
 
     public String getPackageHash() {
@@ -62,17 +63,17 @@ public class ApiService {
 
     public String getTitle() {
         if (titleOverride != null) {
-            return  titleOverride;
+            return titleOverride;
         }
 
         String splitCamel = Utils.splitCamelCase(javaClassName);
 
         // Fix common prefix issues caused by camel splitting
         if (splitCamel.startsWith("S 3")) {
-            splitCamel = "S3"+splitCamel.substring(3);
+            splitCamel = "S3" + splitCamel.substring(3);
         }
         else if (splitCamel.startsWith("Un ")) {
-            splitCamel = "Un"+splitCamel.substring(3);
+            splitCamel = "Un" + splitCamel.substring(3);
         }
 
         // Strip off Service
@@ -102,14 +103,21 @@ public class ApiService {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ApiService that = (ApiService) o;
 
-        if (javaClassName != null ? !javaClassName.equals(that.javaClassName) : that.javaClassName != null)
+        if (javaClassName != null ? !javaClassName.equals(that.javaClassName) : that.javaClassName != null) {
             return false;
-        if (packageName != null ? !packageName.equals(that.packageName) : that.packageName != null) return false;
+        }
+        if (packageName != null ? !packageName.equals(that.packageName) : that.packageName != null) {
+            return false;
+        }
 
         return true;
     }

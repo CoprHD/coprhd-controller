@@ -1,12 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.util;
 
 import java.util.MissingFormatArgumentException;
-import java.util.MissingResourceException;
-
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -35,7 +33,7 @@ public class MessagesTest {
         // Message that is not in the parent, only in the child
         parent.get("child");
         Assert.fail("Parent bundle should not have contained 'child' key");
-       
+
         Assert.assertEquals("Child", child.get("child"));
 
         // Messages that is in the parent, not in the child but accessible through parent

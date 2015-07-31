@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.geo.vdccontroller.impl;
@@ -64,10 +54,10 @@ public class DisconnectVdcTaskOp extends AbstractVdcTaskOp {
 
         checkDisconnectingConcurrency();
 
-        //TODO: use updateVdcStatus()
+        // TODO: use updateVdcStatus()
         updateOpStatus(ConnectionStatus.DISCONNECTING);
 
-        URI unstable =  checkAllVdcStable(true, true);
+        URI unstable = checkAllVdcStable(true, true);
         if (unstable != null) {
             notifyPrecheckFailed();
             log.error("The 'disconnect vdc operation' should not be triggered because vdc {} is unstable", unstable.toString());
@@ -121,8 +111,7 @@ public class DisconnectVdcTaskOp extends AbstractVdcTaskOp {
             VdcPreCheckResponse2 resp2 = null;
             try {
                 resp2 = sendVdcPrecheckRequest2(vdc, param, DEFAULT_NODE_CHECK_TIMEOUT);
-            }
-            catch( Exception ex ) {
+            } catch (Exception ex) {
                 log.error("Precheck the reconnected vdc {} failed: {}", operatedVdc.getShortId(), ex);
                 notifyPrecheckFailed();
                 throw ex;
@@ -164,17 +153,15 @@ public class DisconnectVdcTaskOp extends AbstractVdcTaskOp {
         try {
             dbClient.removeVdcNodes(operatedVdc);
             dbClient.addVdcNodesToBlacklist(operatedVdc);
-        }
-        catch( Exception e ){
+        } catch (Exception e) {
             log.error("Failed to remove nodes from GeoDB : {}", e);
             throw GeoException.fatals.vdcStrategyFailed(e);
         }
     }
 
     @Override
-    public VdcConfig.ConfigChangeType changeType(){
+    public VdcConfig.ConfigChangeType changeType() {
         return VdcConfig.ConfigChangeType.DISCONNECT_VDC;
     }
 
 }
-

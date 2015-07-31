@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.svcs.errorhandling.utils;
@@ -23,7 +13,6 @@ import java.lang.reflect.Array;
 import java.text.MessageFormat;
 import java.util.*;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.WordUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +22,6 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 public class Messages {
     private static final Logger _logger = LoggerFactory.getLogger(Messages.class);
 
-
     private Messages() {
         // nothing to do
     }
@@ -42,9 +30,8 @@ public class Messages {
         try {
             final ResourceBundle bundle = bundleForClass(ServiceCode.class, locale);
             return bundle.getString(code.name());
-        }
-        catch(MissingResourceException e) {
-            _logger.error("Unable to find resource for ServiceCode "+code.name(),e);
+        } catch (MissingResourceException e) {
+            _logger.error("Unable to find resource for ServiceCode " + code.name(), e);
             return WordUtils.capitalize(code.name().replaceAll("_", " ").toLowerCase());
         }
     }

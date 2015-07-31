@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.apidocs.generating;
@@ -59,7 +59,7 @@ public class PageGenerator {
 
         generateChanges(apiDifferences, apiServices);
 
-        for (ApiService apiService :  apiServices) {
+        for (ApiService apiService : apiServices) {
             generateServiceOverViewPage(apiService, apiDifferences.getChange(apiService.javaClassName));
 
             for (ApiMethod apiMethod : apiService.methods) {
@@ -68,23 +68,22 @@ public class PageGenerator {
         }
     }
 
-
     /** Generates all the static pages that just need formatting */
     public void generateStaticPages(StaticPageIndex staticPageIndex) {
 
         // Generate Static HTML pages
-        for (StaticPageIndex.PageFile file : staticPageIndex.getAllStaticPages())  {
+        for (StaticPageIndex.PageFile file : staticPageIndex.getAllStaticPages()) {
             Map<String, Object> parameters = new HashMap<String, Object>();
             parameters.put("content", file.content);
             parameters.put("title", file.title);
-            parameters.put("folderId",file.parentFolder.getId());
+            parameters.put("folderId", file.parentFolder.getId());
             parameters.put("pageFile", file.getGeneratedFileName());
 
             addCommonTemplateParameters(parameters);
 
             TemplateEngine.generateFileFromTemplate(KnownPaths.getTemplateFile(STATIC_PAGE_TEMPLATE),
-                                                    KnownPaths.getHtmlOutputFile(file.getGeneratedFileName()),
-                                                    parameters);
+                    KnownPaths.getHtmlOutputFile(file.getGeneratedFileName()),
+                    parameters);
         }
 
         // Copy Artifacts
@@ -92,14 +91,13 @@ public class PageGenerator {
         artifactsDir.mkdir();
         for (File artifact : staticPageIndex.getAllArtifacts()) {
             try {
-                FileOutputStream outputFile = new FileOutputStream(artifactsDir.getAbsolutePath()+"/"+artifact.getName());
+                FileOutputStream outputFile = new FileOutputStream(artifactsDir.getAbsolutePath() + "/" + artifact.getName());
                 FileInputStream inputFile = new FileInputStream(artifact);
 
                 IOUtils.copy(inputFile, outputFile);
                 IOUtils.closeQuietly(inputFile);
-            }
-            catch (Exception e) {
-                throw new RuntimeException("Error processing artifact "+artifact.getAbsolutePath(),e);
+            } catch (Exception e) {
+                throw new RuntimeException("Error processing artifact " + artifact.getAbsolutePath(), e);
             }
         }
     }
@@ -114,25 +112,25 @@ public class PageGenerator {
         // Assign a unique Index Search Keys to all methods
         int key = 0;
         for (ApiMethod method : allMethods) {
-            method.indexKey = ""+key++;
+            method.indexKey = "" + key++;
         }
 
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("apiMethods", allMethods);
-        parameters.put("title","API Reference Search");
+        parameters.put("title", "API Reference Search");
 
         addCommonTemplateParameters(parameters);
 
         TemplateEngine.generateFileFromTemplate(KnownPaths.getTemplateFile(SEARCH_TEMPLATE),
-                                                KnownPaths.getHtmlOutputFile(SEARCH_TEMPLATE),
-                                                parameters);
+                KnownPaths.getHtmlOutputFile(SEARCH_TEMPLATE),
+                parameters);
     }
 
     /** Generates the search page */
     public void generateErrorCodes(List<ApiErrorCode> serviceCodes) {
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("errorCodes", serviceCodes);
-        parameters.put("title","Error Codes");
+        parameters.put("title", "Error Codes");
 
         addCommonTemplateParameters(parameters);
 
@@ -154,8 +152,8 @@ public class PageGenerator {
 
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("services", services);
-        parameters.put("staticPageIndex",staticPageIndex);
-        parameters.put("serviceGrouping",grouping.organizeServices(services));
+        parameters.put("staticPageIndex", staticPageIndex);
+        parameters.put("serviceGrouping", grouping.organizeServices(services));
         parameters.put("serviceDiff", getServiceDiff(grouping));
         parameters.put("apiDifferences", apiDifferences);
 
@@ -168,25 +166,28 @@ public class PageGenerator {
         });
 
         return TemplateEngine.generateStringFromTemplate(KnownPaths.getTemplateFile(TOC_TEMPLATE),
-                                                         parameters);
+                parameters);
     }
 
     /**
      * Gets map of API Differences
+     * 
      * @param grouping
-     *          The instance of ApiReferenceTocOrganizer
+     *            The instance of ApiReferenceTocOrganizer
      * @return the API Differences map which exists
      */
     private Map<String, String> getServiceDiff(ApiReferenceTocOrganizer grouping) {
         List<String> allList = grouping.groups.get(API_DIFFERENCES);
-        if (allList == null || allList.size() ==0)
+        if (allList == null || allList.size() == 0) {
             return null;
+        }
         Map<String, String> diffMap = new HashMap<String, String>();
         for (String item : allList) {
             String pageLink = item.replaceAll(" ", "") + "_diff.html";
             File file = KnownPaths.getApiDiffFile(pageLink);
-            if (file.exists())
+            if (file.exists()) {
                 diffMap.put(item, pageLink);
+            }
         }
         return diffMap;
     }
@@ -200,24 +201,24 @@ public class PageGenerator {
         addCommonTemplateParameters(parameters);
 
         TemplateEngine.generateFileFromTemplate(KnownPaths.getTemplateFile(SERVICE_OVERVIEW_TEMPLATE),
-                                                KnownPaths.getHtmlOutputFile(apiService.getOverviewFileName()),
-                                                parameters);
+                KnownPaths.getHtmlOutputFile(apiService.getOverviewFileName()),
+                parameters);
     }
 
     public void generateMethodDetailPage(ApiMethod apiMethod, ApiDifferences.Change change) {
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("apiMethod", apiMethod);
-        parameters.put("title", apiMethod.apiService.getTitle()+":"+apiMethod.getTitle());
+        parameters.put("title", apiMethod.apiService.getTitle() + ":" + apiMethod.getTitle());
         parameters.put("change", change);
 
         addCommonTemplateParameters(parameters);
 
         try {
             TemplateEngine.generateFileFromTemplate(KnownPaths.getTemplateFile(METHOD_DETAIL_TEMPLATE),
-                                                    KnownPaths.getHtmlOutputFile(apiMethod.getDetailFileName()),
-                                                    parameters);
-        }catch(Exception e) {
-            throw new RuntimeException("Error generating details for :"+apiMethod.getQualifiedName(),e);
+                    KnownPaths.getHtmlOutputFile(apiMethod.getDetailFileName()),
+                    parameters);
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating details for :" + apiMethod.getQualifiedName(), e);
         }
     }
 
@@ -259,8 +260,8 @@ public class PageGenerator {
             TemplateEngine.generateFileFromTemplate(KnownPaths.getTemplateFile(ALL_NEW_SERVICES_OVERVIEW),
                     KnownPaths.getHtmlOutputFile(ALL_NEW_SERVICES_OVERVIEW),
                     parameters);
-        }catch(Exception e) {
-            throw new RuntimeException("Error generating all Changes File",e);
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating all Changes File", e);
         }
     }
 
@@ -281,8 +282,8 @@ public class PageGenerator {
             TemplateEngine.generateFileFromTemplate(KnownPaths.getTemplateFile(ALL_MODIFIED_METHODS_OVERVIEW),
                     KnownPaths.getHtmlOutputFile(ALL_MODIFIED_METHODS_OVERVIEW),
                     parameters);
-        }catch(Exception e) {
-            throw new RuntimeException("Error generating all Changes File",e);
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating all Changes File", e);
         }
     }
 
@@ -304,8 +305,8 @@ public class PageGenerator {
             TemplateEngine.generateFileFromTemplate(KnownPaths.getTemplateFile(ALL_REMOVED_METHODS_OVERVIEW),
                     KnownPaths.getHtmlOutputFile(ALL_REMOVED_METHODS_OVERVIEW),
                     parameters);
-        }catch(Exception e) {
-            throw new RuntimeException("Error generating all Changes File",e);
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating all Changes File", e);
         }
     }
 
@@ -326,8 +327,8 @@ public class PageGenerator {
             TemplateEngine.generateFileFromTemplate(KnownPaths.getTemplateFile(ALL_ADDED_METHODS_OVERVIEW),
                     KnownPaths.getHtmlOutputFile(ALL_ADDED_METHODS_OVERVIEW),
                     parameters);
-        }catch(Exception e) {
-            throw new RuntimeException("Error generating all Changes File",e);
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating all Changes File", e);
         }
     }
 
@@ -357,8 +358,8 @@ public class PageGenerator {
             TemplateEngine.generateFileFromTemplate(KnownPaths.getTemplateFile(ALL_DEPRECATED_METHODS_OVERVIEW),
                     KnownPaths.getHtmlOutputFile(ALL_DEPRECATED_METHODS_OVERVIEW),
                     parameters);
-        }catch(Exception e) {
-            throw new RuntimeException("Error generating all Deprecated File",e);
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating all Deprecated File", e);
         }
     }
 
@@ -373,8 +374,8 @@ public class PageGenerator {
             TemplateEngine.generateFileFromTemplate(KnownPaths.getTemplateFile(ALL_REMOVED_SERVICES_OVERVIEW),
                     KnownPaths.getHtmlOutputFile(ALL_REMOVED_SERVICES_OVERVIEW),
                     parameters);
-        }catch(Exception e) {
-            throw new RuntimeException("Error generating all Changes File",e);
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating all Changes File", e);
         }
     }
 
@@ -382,16 +383,16 @@ public class PageGenerator {
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("apiService", apiService);
         parameters.put("apiMethods", newMethods);
-        parameters.put("title", "New Methods in "+apiService.getTitle());
+        parameters.put("title", "New Methods in " + apiService.getTitle());
 
         addCommonTemplateParameters(parameters);
 
         try {
             TemplateEngine.generateFileFromTemplate(KnownPaths.getTemplateFile(SERVICE_NEW_METHODS_OVERVIEW),
-                                                    KnownPaths.getHtmlOutputFile(apiService.getNewMethodsFileName()),
-                                                    parameters);
-        }catch(Exception e) {
-            throw new RuntimeException("Error generating New Methods File",e);
+                    KnownPaths.getHtmlOutputFile(apiService.getNewMethodsFileName()),
+                    parameters);
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating New Methods File", e);
         }
     }
 
@@ -399,7 +400,7 @@ public class PageGenerator {
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("apiService", apiService);
         parameters.put("apiMethods", removedMethods);
-        parameters.put("title", "Methods Removed from "+apiService.getTitle());
+        parameters.put("title", "Methods Removed from " + apiService.getTitle());
 
         addCommonTemplateParameters(parameters);
 
@@ -407,8 +408,8 @@ public class PageGenerator {
             TemplateEngine.generateFileFromTemplate(KnownPaths.getTemplateFile(SERVICE_REMOVED_METHODS_OVERVIEW),
                     KnownPaths.getHtmlOutputFile(apiService.getRemovedMethodsFileName()),
                     parameters);
-        }catch(Exception e) {
-            throw new RuntimeException("Error generating Removed Methods File",e);
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating Removed Methods File", e);
         }
     }
 
@@ -416,7 +417,7 @@ public class PageGenerator {
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("apiService", apiService);
         parameters.put("methodChanges", methodChanges);
-        parameters.put("title", "Methods Changed in "+apiService.getTitle());
+        parameters.put("title", "Methods Changed in " + apiService.getTitle());
 
         addCommonTemplateParameters(parameters);
 
@@ -424,8 +425,8 @@ public class PageGenerator {
             TemplateEngine.generateFileFromTemplate(KnownPaths.getTemplateFile(SERVICE_MODIFIED_METHODS_OVERVIEW),
                     KnownPaths.getHtmlOutputFile(apiService.getModifiedMethodsFileName()),
                     parameters);
-        }catch(Exception e) {
-            throw new RuntimeException("Error generating Removed Methods File",e);
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating Removed Methods File", e);
         }
     }
 
@@ -434,7 +435,7 @@ public class PageGenerator {
         parameters.put("apiService", apiService);
         parameters.put("apiMethod", methodChanges.method);
         parameters.put("methodChanges", methodChanges);
-        parameters.put("title", "Methods Changed in "+apiService.getTitle());
+        parameters.put("title", "Methods Changed in " + apiService.getTitle());
 
         addCommonTemplateParameters(parameters);
 
@@ -442,8 +443,8 @@ public class PageGenerator {
             TemplateEngine.generateFileFromTemplate(KnownPaths.getTemplateFile(MODIFIED_METHOD_DETAIL),
                     KnownPaths.getHtmlOutputFile(apiService.getModifiedMethodFileName(methodChanges.method.javaMethodName)),
                     parameters);
-        }catch(Exception e) {
-            throw new RuntimeException("Error generating Removed Methods File",e);
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating Removed Methods File", e);
         }
     }
 

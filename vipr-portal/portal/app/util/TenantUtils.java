@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -58,8 +58,7 @@ public class TenantUtils {
     public static TenantOrgRestRep getTenant(String tenantId) {
         try {
             return getViprClient().tenants().get(uri(tenantId));
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
@@ -77,8 +76,8 @@ public class TenantUtils {
 
     public static boolean isRootTenant(URI tenantId) {
         return isRootTenant(getViprClient().tenants().get(tenantId));
-    }    
-    
+    }
+
     public static boolean isRootTenant(TenantOrgRestRep tenant) {
         return tenant != null && tenant.getParentTenant() == null;
     }
@@ -108,7 +107,6 @@ public class TenantUtils {
         return getViprClient().tenants().updateQuota(uri(id), new QuotaUpdateParam(false, null));
     }
 
-
     public static boolean deactivate(URI tenantId) {
         if (tenantId != null) {
             if (!isRootTenant(tenantId)) {
@@ -125,14 +123,14 @@ public class TenantUtils {
         TenantOrgRestRep userTenant = getViprClient().tenants().get(uri(Security.getUserInfo().getTenant()));
         options.add(createTenantOption(userTenant));
 
-        for(TenantOrgRestRep tenant : getViprClient().tenants().getAllSubtenants(uri(Security.getUserInfo().getTenant()))) {
+        for (TenantOrgRestRep tenant : getViprClient().tenants().getAllSubtenants(uri(Security.getUserInfo().getTenant()))) {
             options.add(createTenantOption(tenant));
         }
         Collections.sort(options);
-        
+
         return options;
     }
-    
+
     public static TenantOrgRestRep getUserTenant() {
         return getViprClient().tenants().get(uri(Security.getUserInfo().getTenant()));
     }
@@ -145,7 +143,7 @@ public class TenantUtils {
             options.add(createTenantOption(userTenant));
         }
 
-        for(TenantOrgRestRep tenant : getViprClient().tenants().getByIds(Security.getUserInfo().getSubTenants())) {
+        for (TenantOrgRestRep tenant : getViprClient().tenants().getByIds(Security.getUserInfo().getSubTenants())) {
             options.add(createTenantOption(tenant));
         }
 

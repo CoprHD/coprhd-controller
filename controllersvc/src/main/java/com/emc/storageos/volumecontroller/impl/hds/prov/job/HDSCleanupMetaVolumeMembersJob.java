@@ -1,19 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.hds.prov.job;
-
 
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -35,14 +24,14 @@ public class HDSCleanupMetaVolumeMembersJob extends HDSJob {
     URI storageSystemURI;
     URI volumeURI;
 
-    public HDSCleanupMetaVolumeMembersJob(String asyncMessageId, URI storageSystemURI, URI volumeURI, CleanupMetaVolumeMembersCompleter cleanupCompleter) {
+    public HDSCleanupMetaVolumeMembersJob(String asyncMessageId, URI storageSystemURI, URI volumeURI,
+            CleanupMetaVolumeMembersCompleter cleanupCompleter) {
 
         super(asyncMessageId, storageSystemURI, cleanupCompleter, "CleanupMetaVolumeMembers");
         this.cleanupCompleter = cleanupCompleter;
         this.storageSystemURI = storageSystemURI;
         this.volumeURI = volumeURI;
     }
-
 
     @Override
     public void updateStatus(JobContext jobContext) throws Exception {
@@ -61,7 +50,7 @@ public class HDSCleanupMetaVolumeMembersJob extends HDSJob {
                 WorkflowService.getInstance().storeStepData(sourceStepId, new ArrayList<String>());
 
                 cleanupCompleter.complete(Workflow.StepState.SUCCESS, null);
-            } else if (_status == JobStatus.FAILED ) {
+            } else if (_status == JobStatus.FAILED) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailedOp("CleanupMetaVolumeMembersJob");
                 cleanupCompleter.complete(Workflow.StepState.ERROR, serviceError);
             } else if (_status == JobStatus.ERROR) {

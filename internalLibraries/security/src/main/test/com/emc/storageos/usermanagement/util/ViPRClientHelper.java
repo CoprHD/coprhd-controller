@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.usermanagement.util;
@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-
 public class ViPRClientHelper {
 
     private static Logger logger = LoggerFactory.getLogger(ViPRClientHelper.class);
@@ -35,17 +34,15 @@ public class ViPRClientHelper {
         return viPRCoreClient;
     }
 
-
-
-
-///////////////////
-//
-//  AuthnProvider related methods
-//
-//////////////////
+    // /////////////////
+    //
+    // AuthnProvider related methods
+    //
+    // ////////////////
 
     /**
      * create AuthnProvider from xml file
+     * 
      * @return
      */
     public AuthnProviderRestRep createAuthnProvider(String filePath) throws Exception {
@@ -59,7 +56,7 @@ public class ViPRClientHelper {
 
         if (isExisted) {
             for (String domain : input.getDomains()) {
-                AuthnProviderRestRep authnProviderRestRep= getAuthnProviderByDomain(domain);
+                AuthnProviderRestRep authnProviderRestRep = getAuthnProviderByDomain(domain);
                 if (authnProviderRestRep != null) {
                     return authnProviderRestRep;
                 }
@@ -72,10 +69,9 @@ public class ViPRClientHelper {
         return null;
     }
 
-
     /**
      * check if AuthProvider already existed
-     *
+     * 
      * @param authnCreateParam
      * @return
      */
@@ -94,20 +90,22 @@ public class ViPRClientHelper {
                     }
                 }
 
-                if (bExisted)
+                if (bExisted) {
                     break;
+                }
             }
 
-            if (bExisted)
+            if (bExisted) {
                 break;
+            }
         }
 
         return bExisted;
     }
 
-
     /**
      * get AuthPrivder by domain
+     * 
      * @param domain
      * @return
      */
@@ -134,12 +132,11 @@ public class ViPRClientHelper {
         }
     }
 
-
-///////////////////
-//
-//  tenant related methods
-//
-//////////////////
+    // /////////////////
+    //
+    // tenant related methods
+    //
+    // ////////////////
 
     // create tenant from xml file
     public TenantOrgRestRep createTenant(String filePath) throws Exception {
@@ -151,9 +148,9 @@ public class ViPRClientHelper {
      * create tenant from 1 domain + 1 attribute
      */
     public TenantOrgRestRep createTenant(String name, String domain,
-                                         String attributeName, String attributeValue) {
+            String attributeName, String attributeValue) {
 
-        // construct attribute:  attributeName = attributeValue
+        // construct attribute: attributeName = attributeValue
         UserMappingAttributeParam userMappingAttributeParam = new UserMappingAttributeParam();
         userMappingAttributeParam.setKey(attributeName);
         List<String> valueList = new ArrayList<String>();
@@ -163,7 +160,6 @@ public class ViPRClientHelper {
         // add attribute constructed above into user mapping list
         List<UserMappingAttributeParam> userMappingAttributeParamList = new ArrayList<UserMappingAttributeParam>();
         userMappingAttributeParamList.add(userMappingAttributeParam);
-
 
         UserMappingParam userMappingParam = new UserMappingParam();
         userMappingParam.setDomain(domain);
@@ -193,7 +189,7 @@ public class ViPRClientHelper {
     }
 
     public void addUserMappingToTenant(URI tenantID,
-                                       List<UserMappingParam> userMappingParams) {
+            List<UserMappingParam> userMappingParams) {
         UserMappingChanges userMappingChanges = new UserMappingChanges();
         userMappingChanges.setAdd(userMappingParams);
         TenantUpdateParam tenantUpdateParam = new TenantUpdateParam();
@@ -201,12 +197,11 @@ public class ViPRClientHelper {
         viPRCoreClient.tenants().update(tenantID, tenantUpdateParam);
     }
 
-
-///////////////////
-//
-//  role assignment related methods
-//
-//////////////////
+    // /////////////////
+    //
+    // role assignment related methods
+    //
+    // ////////////////
 
     public void removeAllVDCRoles() {
         List<RoleAssignmentEntry> list = viPRCoreClient.vdc().getRoleAssignments();
@@ -222,7 +217,7 @@ public class ViPRClientHelper {
         viPRCoreClient.vdc().updateRoleAssignments(roleChanges);
     }
 
-    public  void addRoleAssignment(
+    public void addRoleAssignment(
             URI projectOrTenantURI,
             String subjectId,
             String role) {
@@ -230,14 +225,12 @@ public class ViPRClientHelper {
     }
 
     public void removeRoleAssignment(URI projectOrTenantURI,
-                                     String subjectId,
-                                     String role) {
+            String subjectId,
+            String role) {
         updateRoleAssignment(projectOrTenantURI, subjectId, null, role, "remove");
     }
 
-
-
-    public  List<RoleAssignmentEntry> removeAllTenantRoles(URI tenantURI) {
+    public List<RoleAssignmentEntry> removeAllTenantRoles(URI tenantURI) {
         List<RoleAssignmentEntry> list = viPRCoreClient.tenants().getRoleAssignments(tenantURI);
         RoleAssignmentChanges roleChanges = new RoleAssignmentChanges();
         roleChanges.setRemove(list);
@@ -253,10 +246,10 @@ public class ViPRClientHelper {
 
     // private methods
     private void updateRoleAssignment(URI projectOrTenantURI,
-                                      String subjectId,
-                                      String group,
-                                      String role,
-                                      String operationType) {
+            String subjectId,
+            String group,
+            String role,
+            String operationType) {
 
         if (projectOrTenantURI == null) {
             RoleAssignmentChanges changes = prepareRoleAssignmentChange(operationType, subjectId, group, role);
@@ -274,7 +267,7 @@ public class ViPRClientHelper {
             if (role.equals(RoleOrAcl.ProjectAclOwn.toString())) {
                 ProjectUpdateParam projectUpdateParam = new ProjectUpdateParam();
                 projectUpdateParam.setOwner(subjectId);
-                viPRCoreClient.projects().update(projectOrTenantURI,projectUpdateParam);
+                viPRCoreClient.projects().update(projectOrTenantURI, projectUpdateParam);
             } else {
                 ACLAssignmentChanges aclChanges = prepareACLAssignmentChange(operationType, subjectId, group, role);
                 viPRCoreClient.projects().updateACLs(projectOrTenantURI, aclChanges);
@@ -284,10 +277,10 @@ public class ViPRClientHelper {
     }
 
     private RoleAssignmentChanges prepareRoleAssignmentChange(String operationType,  // add or remove
-                                                              String subjectId,
-                                                              String group,
-                                                              String role
-    ) {
+            String subjectId,
+            String group,
+            String role
+            ) {
         RoleAssignmentEntry roleAssignmentEntry = new RoleAssignmentEntry();
 
         if (subjectId != null) {
@@ -315,12 +308,11 @@ public class ViPRClientHelper {
         return roleChanges;
     }
 
-
     private static ACLAssignmentChanges prepareACLAssignmentChange(String operationType,  // add or remove
-                                                                   String subjectId,
-                                                                   String group,
-                                                                   String role
-    ) {
+            String subjectId,
+            String group,
+            String role
+            ) {
         ACLEntry roleAssignmentEntry = new ACLEntry();
 
         if (subjectId != null) {
@@ -347,7 +339,6 @@ public class ViPRClientHelper {
 
         return roleChanges;
     }
-
 
     public void deactiveAllTenants() {
 

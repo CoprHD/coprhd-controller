@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.server.geo;
@@ -61,29 +51,29 @@ public class DbsvcGeoTestBase {
         LoggingUtils.configureIfNecessary("geodbtest-log4j.properties");
     }
     private static final Logger log = LoggerFactory.getLogger(DbsvcGeoTestBase.class);
-    
+
     protected static CoordinatorClient _coordinator;
     protected static EncryptionProviderImpl _encryptionProvider = new EncryptionProviderImpl();
     protected static EncryptionProviderImpl _geoEncryptionProvider = new EncryptionProviderImpl();
     protected static DbVersionInfo _dbVersionInfo;
     protected static TestGeoDbClientImpl _dbClient;
-    
+
     protected static DbSvcRunner geoRunner;
     protected static DbSvcRunner localRunner;
-    
+
     @BeforeClass
     public static void setup() {
         _dbVersionInfo = new DbVersionInfo();
         _dbVersionInfo.setSchemaVersion(DbSvcRunner.SVC_VERSION);
-        
+
         geoRunner = new DbSvcRunner(DbSvcRunner.GEODBSVC_CONFIG, Constants.GEODBSVC_NAME);
         geoRunner.startCoordinator();
         geoRunner.start();
-        
+
         localRunner = new DbSvcRunner(DbSvcRunner.DBSVC_CONFIG, Constants.DBSVC_NAME);
         localRunner.start();
-        
-        //geoRunner.waitUntilStarted(100);
+
+        // geoRunner.waitUntilStarted(100);
         try {
             configDbClient();
         } catch (Exception e) {
@@ -91,17 +81,17 @@ public class DbsvcGeoTestBase {
             return;
         }
     }
-    
+
     @AfterClass
     public static void stop() {
-    	localRunner.stop();
-    	geoRunner.stop();
+        localRunner.stop();
+        geoRunner.stop();
     }
-    
+
     protected static TestGeoDbClientImpl getDbClient() {
         try {
             TestGeoDbClientImpl dbClient = getDbClientBase();
-            
+
             DbClientContext geoCtx = new DbClientContext();
             geoCtx.setClusterName("GeoStorageOS");
             geoCtx.setKeyspaceName("GeoStorageOS");
@@ -111,9 +101,9 @@ public class DbsvcGeoTestBase {
             localCtx.setClusterName("StorageOS");
             localCtx.setKeyspaceName("StorageOS");
             dbClient.setLocalContext(localCtx);
-            
-            //dbClient.setGeoContext(new DbClientContext());
-            
+
+            // dbClient.setGeoContext(new DbClientContext());
+
             dbClient.start();
             VdcUtil.setDbClient(dbClient);
             return dbClient;
@@ -121,13 +111,13 @@ public class DbsvcGeoTestBase {
             throw new IllegalStateException(ex);
         }
     }
-   
+
     /**
      * Create DbClient to embedded DB
      * 
      * @return
-     * @throws IOException 
-     * @throws URISyntaxException 
+     * @throws IOException
+     * @throws URISyntaxException
      */
     protected static void configDbClient() throws URISyntaxException, IOException {
         if (_dbClient == null) {
@@ -147,16 +137,16 @@ public class DbsvcGeoTestBase {
         _geoEncryptionProvider.setCoordinator(_coordinator);
         _geoEncryptionProvider.setEncryptId("geoid");
         dbClient.setGeoEncryptionProvider(_geoEncryptionProvider);
-        
+
         return dbClient;
     }
-    
+
     protected static class TestGeoDbClientImpl extends DbClientImpl {
-        
+
         public boolean isItWhereItShouldBe(DataObject dbObj) {
             if ((dbObj.getClass().isAnnotationPresent(DbKeyspace.class) &&
-                Arrays.asList(dbObj.getClass().getAnnotation(DbKeyspace.class).value()).contains(Keyspaces.GLOBAL) &&
-                Arrays.asList(dbObj.getClass().getAnnotation(DbKeyspace.class).value()).contains(Keyspaces.LOCAL))) {
+                    Arrays.asList(dbObj.getClass().getAnnotation(DbKeyspace.class).value()).contains(Keyspaces.GLOBAL) && Arrays.asList(
+                    dbObj.getClass().getAnnotation(DbKeyspace.class).value()).contains(Keyspaces.LOCAL))) {
                 // it's hybrid, check the id
                 if (dbObj.isGlobal()) {
                     return (queryObject(geoContext.getKeyspace(), dbObj.getClass(), dbObj.getId()) != null);
@@ -164,13 +154,13 @@ public class DbsvcGeoTestBase {
                     return (queryObject(localContext.getKeyspace(), dbObj.getClass(), dbObj.getId()) != null);
                 }
             } else if (dbObj.getClass().isAnnotationPresent(DbKeyspace.class) &&
-                        Arrays.asList(dbObj.getClass().getAnnotation(DbKeyspace.class).value()).contains(Keyspaces.GLOBAL) ) {
+                    Arrays.asList(dbObj.getClass().getAnnotation(DbKeyspace.class).value()).contains(Keyspaces.GLOBAL)) {
                 return (queryObject(geoContext.getKeyspace(), dbObj.getClass(), dbObj.getId()) != null);
             } else {
                 return (queryObject(localContext.getKeyspace(), dbObj.getClass(), dbObj.getId()) != null);
             }
         }
-        
+
         private <T extends DataObject> T queryObject(Keyspace ks, Class<T> clazz, URI id)
                 throws DatabaseException {
             DataObjectType doType = TypeMap.getDoType(clazz);
@@ -185,7 +175,7 @@ public class DbsvcGeoTestBase {
             T dataObject = doType.deserialize(clazz, row, cleanList);
             return dataObject;
         }
-        
+
         private <T> Row<String, CompositeColumnName> queryRowWithAllColumns(Keyspace ks, Class<T> clazz, URI id,
                 ColumnFamily<String, CompositeColumnName> cf) throws DatabaseException {
             List<URI> collection = new ArrayList<URI>(1);
@@ -197,9 +187,10 @@ public class DbsvcGeoTestBase {
             }
             return row;
         }
+
         private <T> Rows<String, CompositeColumnName> queryRowsWithAllColumns(Keyspace ks, Class<T> clazz,
                 Collection<URI> id, ColumnFamily<String, CompositeColumnName> cf)
-                    throws DatabaseException {
+                throws DatabaseException {
             try {
                 OperationResult<Rows<String, CompositeColumnName>> result =
                         ks.prepareQuery(cf)
@@ -210,7 +201,7 @@ public class DbsvcGeoTestBase {
                 throw DatabaseException.retryables.connectionFailed(e);
             }
         }
-        
+
         private Collection<String> convertUriCollection(Collection<URI> uriList) {
             List<String> idList = new ArrayList<String>();
             Iterator<URI> it = uriList.iterator();
@@ -224,7 +215,7 @@ public class DbsvcGeoTestBase {
             return idList;
         }
     }
-    
+
     protected boolean isItWhereItShouldBe(DataObject dbObj) {
         return _dbClient.isItWhereItShouldBe(dbObj);
     }

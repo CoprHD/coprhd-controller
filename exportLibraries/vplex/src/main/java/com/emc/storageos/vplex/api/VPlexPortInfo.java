@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
@@ -27,75 +17,75 @@ import java.util.regex.Pattern;
  * Sample data from the VPlex:
  * 
  * "attributes": [
- *  {
- *      "value": "0x50001442607dc400",
- *      "name": "address"
- *  },
- *  {
- *      "value": null,
- *      "name": "current-speed"
- *  },
- *  {
- *      "value": "true",
- *      "name": "enabled"
- *  },
- *  {
- *      "value": "8Gbits/s",
- *      "name": "max-speed"
- *  },
- *  {
- *      "value": "A0-FC00",
- *      "name": "name"
- *  },
- *  {
- *      "value": "0x5000144046e07dc4",
- *      "name": "node-wwn"
- *  },
- *  {
- *      "value": "error",
- *      "name": "operational-status"
- *  },
- *  {
- *      "value": "no-link",
- *      "name": "port-status"
- *  },
- *  {
- *      "value": "0x50001442607dc400",
- *      "name": "port-wwn"
- *  },
- *  {
- *      "value": [
- *          "fc"
- *      ],
- *      "name": "protocols"
- *  },
- *  {
- *      "value": "front-end",
- *      "name": "role"
- *  },
- *  {
- *      "value": "P0000000046E07DC4-A0-FC00",
- *      "name": "target-port"
- *  },
- *  {
- *      "value": "p2p",
- *      "name": "topology"
- *  }
- *  ],
+ * {
+ * "value": "0x50001442607dc400",
+ * "name": "address"
+ * },
+ * {
+ * "value": null,
+ * "name": "current-speed"
+ * },
+ * {
+ * "value": "true",
+ * "name": "enabled"
+ * },
+ * {
+ * "value": "8Gbits/s",
+ * "name": "max-speed"
+ * },
+ * {
+ * "value": "A0-FC00",
+ * "name": "name"
+ * },
+ * {
+ * "value": "0x5000144046e07dc4",
+ * "name": "node-wwn"
+ * },
+ * {
+ * "value": "error",
+ * "name": "operational-status"
+ * },
+ * {
+ * "value": "no-link",
+ * "name": "port-status"
+ * },
+ * {
+ * "value": "0x50001442607dc400",
+ * "name": "port-wwn"
+ * },
+ * {
+ * "value": [
+ * "fc"
+ * ],
+ * "name": "protocols"
+ * },
+ * {
+ * "value": "front-end",
+ * "name": "role"
+ * },
+ * {
+ * "value": "P0000000046E07DC4-A0-FC00",
+ * "name": "target-port"
+ * },
+ * {
+ * "value": "p2p",
+ * "name": "topology"
+ * }
+ * ],
  */
 public class VPlexPortInfo extends VPlexResourceInfo {
-    
+
     // Defines units in which port speeds can be returned.
     public static enum SpeedUnits {
         BITS_PER_SECOND,
         GBITS_PER_SECOND
     }
-    
+
     // Defines the valid values for the port operational status.
     public static enum OperationalStatus {
         ok
     }
-    
+
     // Enumerates the port attributes we are interested in and
     // parse from the VPlex director response. There must be a setter
     // method for each attribute specified. The format of the setter
@@ -112,7 +102,7 @@ public class VPlexPortInfo extends VPlexResourceInfo {
 
         // The VPlex name for the attribute.
         private String _name;
-        
+
         /**
          * Constructor.
          * 
@@ -121,16 +111,16 @@ public class VPlexPortInfo extends VPlexResourceInfo {
         PortAttribute(String name) {
             _name = name;
         }
-        
+
         /**
          * Getter for the VPlex name for the attribute.
          * 
          * @return The VPlex name for the attribute.
          */
         public String getAttributeName() {
-             return _name;
+            return _name;
         }
-        
+
         /**
          * Returns the enum whose name matches the passed name, else null when
          * not found.
@@ -150,7 +140,7 @@ public class VPlexPortInfo extends VPlexResourceInfo {
             return null;
         }
     };
-    
+
     // Defines the port roles/types.
     public static enum PortRole {
         FRONTEND("front-end"),
@@ -159,10 +149,10 @@ public class VPlexPortInfo extends VPlexResourceInfo {
         LOACAL_COM("local-com"),
         MANAGEMENT("management"),
         INTER_DIRECTOR_COM("inter-director-communication");
-        
+
         // The VPlex name for the role.
         private String _roleName;
-        
+
         /**
          * Constructor.
          * 
@@ -171,16 +161,16 @@ public class VPlexPortInfo extends VPlexResourceInfo {
         PortRole(String roleName) {
             _roleName = roleName;
         }
-        
+
         /**
          * Getter for the VPlex name for the role.
          * 
          * @return The VPlex name for the role.
          */
         public String getRoleName() {
-             return _roleName;
+            return _roleName;
         }
-        
+
         /**
          * Returns the enum whose role matches the passed role, else null when
          * not found.
@@ -198,36 +188,36 @@ public class VPlexPortInfo extends VPlexResourceInfo {
                 }
             }
             return null;
-        }        
+        }
     };
 
     // Converts Gbits/s to Bits/s.
-    public static final Long BITS_GBITS_CONVERSION = new Long(1024*1024*1024);
-    
+    public static final Long BITS_GBITS_CONVERSION = new Long(1024 * 1024 * 1024);
+
     // The director for the port
     private VPlexDirectorInfo directorInfo;
-       
+
     // The port WWN.
     private String portWwn;
-    
+
     // The node WWN.
     private String nodeWwn;
-        
+
     // The target port.
     private String targetPort;
-        
+
     // The role of the port i.e., front-end, back-end, wan-com, etc...
     private String role;
 
     // List of support protocols.
     private List<String> protocols;
-    
+
     // The current port speed GB/s
     private String currentSpeed;
-    
+
     // The operational status
     private String operationalStatus;
-       
+
     /**
      * Getter for the port director.
      * 
@@ -236,7 +226,7 @@ public class VPlexPortInfo extends VPlexResourceInfo {
     public VPlexDirectorInfo getDirectorInfo() {
         return directorInfo;
     }
-    
+
     /**
      * Setter for the port director.
      * 
@@ -253,7 +243,7 @@ public class VPlexPortInfo extends VPlexResourceInfo {
      */
     public String getPortWwn() {
         return VPlexApiUtils.formatWWN(portWwn);
-    }    
+    }
 
     /**
      * Setter for the port WWN.
@@ -281,7 +271,7 @@ public class VPlexPortInfo extends VPlexResourceInfo {
     public void setNodeWwn(String strVal) {
         nodeWwn = strVal;
     }
-    
+
     /**
      * Getter for the target-port.
      * 
@@ -299,7 +289,7 @@ public class VPlexPortInfo extends VPlexResourceInfo {
     public void setTargetPort(String strVal) {
         targetPort = strVal;
     }
-    
+
     /**
      * Getter for the port role.
      * 
@@ -317,7 +307,7 @@ public class VPlexPortInfo extends VPlexResourceInfo {
     public void setRole(String strVal) {
         role = strVal;
     }
-       
+
     /**
      * Getter for the support protocols.
      * 
@@ -335,7 +325,7 @@ public class VPlexPortInfo extends VPlexResourceInfo {
     public void setProtocols(List<String> listVal) {
         protocols = listVal;
     }
-    
+
     /**
      * Getter for the current port speed.
      * 
@@ -344,7 +334,7 @@ public class VPlexPortInfo extends VPlexResourceInfo {
     public String getCurrentSpeed() {
         return currentSpeed;
     }
-    
+
     /**
      * Gets the current port speed in the requested units.
      * 
@@ -367,7 +357,7 @@ public class VPlexPortInfo extends VPlexResourceInfo {
     public void setCurrentSpeed(String strVal) {
         currentSpeed = strVal;
     }
-    
+
     /**
      * Return whether or not the port is a backend port.
      * 
@@ -376,7 +366,7 @@ public class VPlexPortInfo extends VPlexResourceInfo {
     public boolean isBackendPort() {
         return PortRole.BACKEND.getRoleName().equals(role);
     }
-      
+
     /**
      * Return whether or not the port is a frontend port.
      * 
@@ -385,7 +375,7 @@ public class VPlexPortInfo extends VPlexResourceInfo {
     public boolean isFrontendPort() {
         return PortRole.FRONTEND.getRoleName().equals(role);
     }
-    
+
     /**
      * Converts the passed port speed specified as a String in Gbits/s to
      * a Long value in the requested units.
@@ -393,7 +383,7 @@ public class VPlexPortInfo extends VPlexResourceInfo {
      * @param speedStr The port speed in Gbits/s.
      * @param units The desired units.
      * 
-     * @return The port speed in the requested units, or null when the 
+     * @return The port speed in the requested units, or null when the
      *         value cannot be determined.
      * 
      * @throws VPlexApiException When invalid formatted speed is passed.
@@ -411,14 +401,14 @@ public class VPlexPortInfo extends VPlexResourceInfo {
                     return speed;
                 } else {
                     return speed * BITS_GBITS_CONVERSION;
-                } 
+                }
             } else {
                 throw new VPlexApiException(String.format(
-                    "Unexpected format for speed: %s", speedStr));
+                        "Unexpected format for speed: %s", speedStr));
             }
         }
     }
-    
+
     /**
      * Getter for the operational status of the port.
      * 
@@ -427,7 +417,7 @@ public class VPlexPortInfo extends VPlexResourceInfo {
     public String getOperationalStatus() {
         return operationalStatus;
     }
-    
+
     /**
      * Setter for the operational status of the port.
      * 
@@ -448,7 +438,7 @@ public class VPlexPortInfo extends VPlexResourceInfo {
         }
         return attFilters;
     }
-    
+
     /**
      * {@inheritDoc}
      */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.apidocs.generating;
@@ -26,13 +26,13 @@ public class TemplateEngine {
     /**
      * Call the template with the parameters, but return the response as a string
      */
-    public static String generateStringFromTemplate(File templateFile, Map<String, Object> parameters)  {
+    public static String generateStringFromTemplate(File templateFile, Map<String, Object> parameters) {
         try {
             Template template = getTemplate(templateFile);
             Writable finishedTemplate = template.make(parameters);
             return finishedTemplate.toString();
-        }catch (Throwable e) {
-            DocReporter.printError("Error whilst generating page from template "+templateFile);
+        } catch (Throwable e) {
+            DocReporter.printError("Error whilst generating page from template " + templateFile);
             DocReporter.printError(e.getMessage());
             throw new RuntimeException(e);
         }
@@ -41,19 +41,19 @@ public class TemplateEngine {
     /**
      * Call the template with the parameters and save the response to the outputFile
      */
-    public static void generateFileFromTemplate(File templateFile, File outputFile, Map<String, Object> parameters)  {
+    public static void generateFileFromTemplate(File templateFile, File outputFile, Map<String, Object> parameters) {
         try {
             Template template = getTemplate(templateFile);
             Writable finishedTemplate = template.make(parameters);
             try {
                 IOUtils.copy(new ByteArrayInputStream(finishedTemplate.toString().getBytes()), new FileOutputStream(outputFile));
-            } catch(Exception e) {
-                throw new RuntimeException("Error writing to file "+outputFile,e);
+            } catch (Exception e) {
+                throw new RuntimeException("Error writing to file " + outputFile, e);
             }
-        }catch (Throwable e) {
-            DocReporter.printError("Error whilst generating page from file "+outputFile+" from template "+templateFile);
+        } catch (Throwable e) {
+            DocReporter.printError("Error whilst generating page from file " + outputFile + " from template " + templateFile);
             DocReporter.printError(e.getMessage());
-            throw new RuntimeException("Unable to process template"+templateFile,e);
+            throw new RuntimeException("Unable to process template" + templateFile, e);
         }
     }
 
@@ -74,8 +74,8 @@ public class TemplateEngine {
             templates.put(templateFile.getName(), template);
 
             return template;
-        }catch(Exception e) {
-            throw new RuntimeException("Unable to process template"+templateFile,e);
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to process template" + templateFile, e);
         }
     }
 
@@ -86,17 +86,16 @@ public class TemplateEngine {
         StringBuffer result = new StringBuffer(templateContents.length());
 
         Matcher tagMatcher = PRE_PROCESSOR_PATTERN.matcher(templateContents);
-        while(tagMatcher.find()) {
+        while (tagMatcher.find()) {
             Matcher includeTag = INCLUDE_TAG_PATTERN.matcher(tagMatcher.group(1));
             if (includeTag.find()) {
                 File partFile = KnownPaths.getTemplatePartFile(includeTag.group(1));
                 try {
                     String templatePart = IOUtils.toString(new FileInputStream(partFile));
 
-                    tagMatcher.appendReplacement(result,Matcher.quoteReplacement(templatePart));
-                }
-                catch (IOException e) {
-                    throw new RuntimeException("Error reading template part "+partFile.getAbsolutePath(), e);
+                    tagMatcher.appendReplacement(result, Matcher.quoteReplacement(templatePart));
+                } catch (IOException e) {
+                    throw new RuntimeException("Error reading template part " + partFile.getAbsolutePath(), e);
                 }
             }
             else {

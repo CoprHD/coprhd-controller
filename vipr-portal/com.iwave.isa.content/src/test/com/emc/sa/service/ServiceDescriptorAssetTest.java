@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service;
@@ -56,7 +56,7 @@ public class ServiceDescriptorAssetTest {
                 Assert.fail(String.format("%s [%s]: No provider found for type: %s", descriptor.getTitle(),
                         field.getName(), assetType));
             }
-            
+
             try {
                 List<String> assetDependencies = provider.getAssetDependencies(assetType, allAssetTypes);
                 for (String assetDependency : assetDependencies) {
@@ -66,8 +66,7 @@ public class ServiceDescriptorAssetTest {
                                 descriptor.getTitle(), field.getName(), assetDependency, assetType));
                     }
                 }
-            }
-            catch (IllegalStateException e) {
+            } catch (IllegalStateException e) {
                 Assert.fail(String.format("%s [%s]: Could not query dependencies of type: %s, provided: %s",
                         descriptor.getTitle(), field.getName(), assetType, allAssetTypes));
             }

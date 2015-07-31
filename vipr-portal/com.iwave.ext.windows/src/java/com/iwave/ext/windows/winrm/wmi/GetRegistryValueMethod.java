@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.windows.winrm.wmi;
@@ -53,23 +53,23 @@ public class GetRegistryValueMethod extends AbstractRegistryMethod<Object> {
     public void setValueType(RegistryValueType valueType) {
         this.valueType = valueType;
         switch (valueType) {
-        case STRING:
-            setMethodName(GET_STRING_VALUE);
-            break;
-        case EXPANDED_STRING:
-            setMethodName(GET_EXPANDED_STRING_VALUE);
-            break;
-        case BINARY:
-            setMethodName(GET_BINARY_VALUE);
-            break;
-        case DWORD:
-            setMethodName(GET_DWORD_VALUE);
-            break;
-        case MULTI_STRING:
-            setMethodName(GET_MULTI_STRING_VALUE);
-            break;
-        default:
-            throw new IllegalArgumentException("Unsupported value type: " + valueType);
+            case STRING:
+                setMethodName(GET_STRING_VALUE);
+                break;
+            case EXPANDED_STRING:
+                setMethodName(GET_EXPANDED_STRING_VALUE);
+                break;
+            case BINARY:
+                setMethodName(GET_BINARY_VALUE);
+                break;
+            case DWORD:
+                setMethodName(GET_DWORD_VALUE);
+                break;
+            case MULTI_STRING:
+                setMethodName(GET_MULTI_STRING_VALUE);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported value type: " + valueType);
         }
     }
 
@@ -85,18 +85,18 @@ public class GetRegistryValueMethod extends AbstractRegistryMethod<Object> {
     @Override
     protected Object processOutput(Element output) {
         switch (valueType) {
-        case STRING:
-            return getStringValue(output);
-        case EXPANDED_STRING:
-            return getExpandedStringValue(output);
-        case BINARY:
-            return getBinaryValue(output);
-        case DWORD:
-            return getDWordValue(output);
-        case MULTI_STRING:
-            return getMultiStringValue(output);
-        default:
-            throw new IllegalStateException("Unsupported value type: " + valueType);
+            case STRING:
+                return getStringValue(output);
+            case EXPANDED_STRING:
+                return getExpandedStringValue(output);
+            case BINARY:
+                return getBinaryValue(output);
+            case DWORD:
+                return getDWordValue(output);
+            case MULTI_STRING:
+                return getMultiStringValue(output);
+            default:
+                throw new IllegalStateException("Unsupported value type: " + valueType);
         }
     }
 

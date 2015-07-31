@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.auth.local;
 
@@ -27,11 +17,9 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Map;
 
 import com.emc.storageos.db.client.model.EncryptionProvider;
-import org.apache.commons.codec.binary.Base64;
 
 /**
  * Class to handle authentication using basic username password credentials
@@ -44,15 +32,15 @@ public class StorageOSLocalAuthenticationHandler implements StorageOSAuthenticat
     private CoordinatorClient _coordinatorClient;
 
     private Map<String, StorageOSUser> _localUsers;
-         
+
     private EncryptionProvider _encryptionProvider;
-    
+
     private static final String CRYPT_SHA_512 = "$6$";
-        
+
     public void setEncryptionProvider(EncryptionProvider encryptionProvider) {
         _encryptionProvider = encryptionProvider;
     }
-         
+
     public void setLocalUsers(final Map<String, StorageOSUser> localUsers) {
         _localUsers = localUsers;
     }
@@ -61,19 +49,20 @@ public class StorageOSLocalAuthenticationHandler implements StorageOSAuthenticat
         _coordinatorClient = coordinatorClient;
     }
 
-    public StorageOSLocalAuthenticationHandler() { }
+    public StorageOSLocalAuthenticationHandler() {
+    }
 
     /**
      * Verify that the user's password matches with the hashed and salted value stored.
      * Return false if user is not found.
-     *
+     * 
      * @param username the user
      * @param clearTextPassword the clear text password
      * @return true if user's password matches, otherwise false.
      */
     public boolean verifyUserPassword(final String username, final String clearTextPassword) {
 
-        if(clearTextPassword == null || clearTextPassword.isEmpty()) {
+        if (clearTextPassword == null || clearTextPassword.isEmpty()) {
             _log.error("Login with blank password is not allowed");
             return false;
         }
@@ -86,18 +75,18 @@ public class StorageOSLocalAuthenticationHandler implements StorageOSAuthenticat
             _log.error("Access local user properties failed", e);
             return false;
         }
-            
+
         if (props == null) {
             _log.error("Access local user properties failed");
             return false;
         }
         encpassword = props.getProperty(
-                "system_"+username+"_encpassword");
+                "system_" + username + "_encpassword");
         if (StringUtils.isBlank(encpassword)) {
             _log.error("No password set for user {} ", username);
             return false;
         }
-        
+
         // A hashed value will start with the SHA-512 identifier ($6$)
         if (StringUtils.startsWith(encpassword, CRYPT_SHA_512)) {
             // Hash the clear text password and compare against the stored value
@@ -117,7 +106,7 @@ public class StorageOSLocalAuthenticationHandler implements StorageOSAuthenticat
      * @return the encrypted (and Base64 encoded) string.
      */
     private String encrypt(String s) {
-       return _encryptionProvider.getEncryptedString(s);
+        return _encryptionProvider.getEncryptedString(s);
     }
 
     @Override
@@ -129,11 +118,11 @@ public class StorageOSLocalAuthenticationHandler implements StorageOSAuthenticat
     public boolean exists(String username) {
         return _localUsers.containsKey(username);
     }
-    
+
     @Override
     public boolean supports(final Credentials credentials) {
-        return  credentials != null
+        return credentials != null
                 && (UsernamePasswordCredentials.class.isAssignableFrom(credentials.getClass()))
-                && exists(((UsernamePasswordCredentials)(credentials)).getUserName());
+                && exists(((UsernamePasswordCredentials) (credentials)).getUserName());
     }
 }

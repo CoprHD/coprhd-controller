@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.model;
@@ -20,15 +10,16 @@ import javax.xml.bind.annotation.XmlAttribute;
 import java.net.URI;
 
 /**
- *  Class represent a link for the Rest API
- *
+ * Class represent a link for the Rest API
+ * 
  */
-public class RestLinkRep{
+public class RestLinkRep {
 
     private String linkName;
     private URI linkRef;
 
-    public RestLinkRep() {}
+    public RestLinkRep() {
+    }
 
     public RestLinkRep(String link, URI ref) {
         this.linkName = link;
@@ -36,19 +27,19 @@ public class RestLinkRep{
     }
 
     @XmlAttribute(name = "rel")
-    public String getLinkName() { 
-        return linkName; 
+    public String getLinkName() {
+        return linkName;
     }
-    
+
     public void setLinkName(String link) {
-        linkName = link; 
+        linkName = link;
     }
 
     @XmlAttribute(name = "href")
-    public URI getLinkRef() { 
-        return linkRef; 
+    public URI getLinkRef() {
+        return linkRef;
     }
-    
+
     public void setLinkRef(URI ref) {
         linkRef = ref;
     }
@@ -66,25 +57,30 @@ public class RestLinkRep{
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         RestLinkRep other = (RestLinkRep) obj;
         if (linkName == null) {
-            if (other.linkName != null)
+            if (other.linkName != null) {
                 return false;
-        } else if (!linkName.equals(other.linkName))
+            }
+        } else if (!linkName.equals(other.linkName)) {
             return false;
+        }
         if (linkRef == null) {
-            if (other.linkRef != null)
+            if (other.linkRef != null) {
                 return false;
-        } else if (!linkRef.equals(other.linkRef))
+            }
+        } else if (!linkRef.equals(other.linkRef)) {
             return false;
+        }
         return true;
     }
 }
-
-

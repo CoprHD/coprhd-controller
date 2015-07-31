@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
@@ -23,12 +13,10 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 @SuppressWarnings("serial")
 public class VolumeCreateCompleter extends VolumeTaskCompleter {
@@ -50,19 +38,19 @@ public class VolumeCreateCompleter extends VolumeTaskCompleter {
             super.complete(dbClient, status, coded);
             for (URI id : getIds()) {
                 switch (status) {
-                case error:
-                    dbClient.error(Volume.class, id, getOpId(), coded);
-                    break;
-                default:
-                    dbClient.ready(Volume.class, id, getOpId());
+                    case error:
+                        dbClient.error(Volume.class, id, getOpId(), coded);
+                        break;
+                    default:
+                        dbClient.ready(Volume.class, id, getOpId());
                 }
 
                 _log.info(String.format("Done VolumeCreate - Id: %s, OpId: %s, status: %s",
                         id.toString(), getOpId(), status.name()));
-                // TODO: this may be causing a double event.  If so, break this completer out to a workflow version.
+                // TODO: this may be causing a double event. If so, break this completer out to a workflow version.
                 recordBlockVolumeOperation(dbClient, OperationTypeEnum.CREATE_BLOCK_VOLUME, status, id.toString());
             }
-         } catch (Exception e) {
+        } catch (Exception e) {
             _log.error(String.format("Failed updating status for VolumeCreate - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
         }

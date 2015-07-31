@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.apidocs.model;
@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * Describes a field or attribute in a Class or a Method parameter
  */
-public class ApiField implements Comparable<ApiField>{
+public class ApiField implements Comparable<ApiField> {
     public String name;
     public boolean required = false;
     public String primitiveType = "";
@@ -32,13 +32,12 @@ public class ApiField implements Comparable<ApiField>{
         return type == null || !primitiveType.equals("");
     }
 
-
     public void addValidValue(String value) {
         validValues.add(value);
     }
 
     public boolean isOptional() {
-        return !required && min==0 & max==1;
+        return !required && min == 0 & max == 1;
     }
 
     /** Indicates if this Field has a type that has child elements, really only useful for XML generation */
@@ -48,6 +47,6 @@ public class ApiField implements Comparable<ApiField>{
 
     @Override
     public int compareTo(ApiField other) {
-        return name.compareTo(other.name);  //To change body of implemented methods use File | Settings | File Templates.
+        return name.compareTo(other.name);  // To change body of implemented methods use File | Settings | File Templates.
     }
 }

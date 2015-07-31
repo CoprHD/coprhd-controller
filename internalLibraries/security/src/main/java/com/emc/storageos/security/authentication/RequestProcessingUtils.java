@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.authentication;
 
@@ -27,8 +17,8 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
- *  Utilities class for request processing common constants and coding
- *  patterns, related to bourne tokens.
+ * Utilities class for request processing common constants and coding
+ * patterns, related to bourne tokens.
  */
 public class RequestProcessingUtils {
     private static final Logger _log = LoggerFactory.getLogger(RequestProcessingUtils.class);
@@ -43,12 +33,13 @@ public class RequestProcessingUtils {
 
     /**
      * get Token from the cookie, if there is one
+     * 
      * @param request
      * @return
      */
     public static String getTokenFromCookie(final HttpServletRequest request) {
         if (request.getCookies() != null) {
-            for (Cookie cookie: request.getCookies()) {
+            for (Cookie cookie : request.getCookies()) {
                 if (cookie.getName().equalsIgnoreCase(AUTH_TOKEN_HEADER)) {
                     return cookie.getValue();
                 }
@@ -59,6 +50,7 @@ public class RequestProcessingUtils {
 
     /**
      * get local authsvc redirect
+     * 
      * @param req
      * @return
      */
@@ -73,6 +65,7 @@ public class RequestProcessingUtils {
 
     /**
      * if matching key exists in the query string, removes it
+     * 
      * @param queryString
      * @param matching
      * @return
@@ -102,15 +95,16 @@ public class RequestProcessingUtils {
         }
         return resultQStr.toString();
     }
-    
+
     /**
      * returns true if the provided query parameter is requested
+     * 
      * @param queryParam The query parameter to check on
      * @param req
      * @return true if the provided query parameter is set
      */
     public static boolean isRequestingQueryParam(final HttpServletRequest req, String queryParam) {
-        if (req.getQueryString() != null &&  req.getQueryString().contains(queryParam)) {
+        if (req.getQueryString() != null && req.getQueryString().contains(queryParam)) {
             try {
                 for (String pair : req.getQueryString().split("&")) {
                     int eq = pair.indexOf("=");
@@ -122,14 +116,14 @@ public class RequestProcessingUtils {
                     } else {
                         // key=value
                         key = URLDecoder.decode(pair.substring(0, eq), UTF8_ENCODING);
-                        value = URLDecoder.decode(pair.substring(eq+1), UTF8_ENCODING);
+                        value = URLDecoder.decode(pair.substring(eq + 1), UTF8_ENCODING);
                     }
                     if (key.equalsIgnoreCase(queryParam) &&
                             (value == null || value.equalsIgnoreCase("true"))) {
                         return true;
                     }
                 }
-            } catch(UnsupportedEncodingException ex) {
+            } catch (UnsupportedEncodingException ex) {
                 _log.error("exception parsing query string", ex);
                 throw APIException.badRequests.parameterIsNotValidURI(
                         URI.create(req.getQueryString()), ex);
@@ -139,17 +133,18 @@ public class RequestProcessingUtils {
     }
 
     /**
-     * Method that examines the HTTPServletRequest header searching for 
-     * the X-Forwarded-Host key.  If it's found, this method will return
+     * Method that examines the HTTPServletRequest header searching for
+     * the X-Forwarded-Host key. If it's found, this method will return
      * true.
+     * 
      * @param req the HttpServletRequest that provides a means to lookup request
-     *        header information.
-     * @return returns true if the X-Forwarded-Host is set.  Otherwise
+     *            header information.
+     * @return returns true if the X-Forwarded-Host is set. Otherwise
      *         returns false.
      */
     public static boolean isRequestFromLoadBalancer(final HttpServletRequest req) {
         boolean result = false;
-        if (req != null ) {
+        if (req != null) {
             String lbFlag = req.getHeader(FORWARDED_HOST_HEADER);
             if (lbFlag != null) {
                 result = true;

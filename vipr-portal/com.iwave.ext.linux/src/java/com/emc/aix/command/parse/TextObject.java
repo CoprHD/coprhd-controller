@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.aix.command.parse;
@@ -13,6 +13,8 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface TextObject {
     String separatorExpression() default "\\s+";
+
     int startLine() default 1;
+
     int endLine() default -1;
 }

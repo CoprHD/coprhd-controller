@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -27,7 +27,7 @@ public class Metering {
      * <tt>getStatisticsForTimeBucketAsStream(TimeBucketUtils.forHour(date))</tt>
      * 
      * @param date
-     *        the date to format as an hour time bucket.
+     *            the date to format as an hour time bucket.
      * @return the stream containing the statistics as XML.
      * 
      * @see #getStatisticsForTimeBucketAsStream(String)
@@ -43,7 +43,7 @@ public class Metering {
      * <tt>getStatisticsForTimeBucketAsStream(TimeBucketUtils.forMinute(date))</tt>
      * 
      * @param date
-     *        the date to format as a minute time bucket.
+     *            the date to format as a minute time bucket.
      * @return the stream containing the statistics as XML.
      * 
      * @see #getStatisticsForTimeBucketAsStream(String)
@@ -61,7 +61,7 @@ public class Metering {
      * API Call: <tt>GET /metering/stats?time_bucket={timeBucket}</tt>
      * 
      * @param timeBucket
-     *        the time bucket for which to retrieve the stats.
+     *            the time bucket for which to retrieve the stats.
      * @return the stream containing the statistics as XML. This must be closed by the client in order to release the
      *         connection.
      */

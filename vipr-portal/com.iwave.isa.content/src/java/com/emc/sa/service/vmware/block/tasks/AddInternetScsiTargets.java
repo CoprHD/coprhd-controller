@@ -1,11 +1,10 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vmware.block.tasks;
 
 import static com.emc.sa.util.ArrayUtil.safeArrayCopy;
-import java.util.Arrays;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;

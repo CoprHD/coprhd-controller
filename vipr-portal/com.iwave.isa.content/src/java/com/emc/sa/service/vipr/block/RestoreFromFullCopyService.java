@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block;
@@ -15,7 +15,7 @@ public class RestoreFromFullCopyService extends ViPRService {
 
     @Param(COPIES)
     protected String copyId;
-    
+
     @Override
     public void execute() throws Exception {
         BlockStorageUtils.restoreFromFullCopy(uri(copyId));

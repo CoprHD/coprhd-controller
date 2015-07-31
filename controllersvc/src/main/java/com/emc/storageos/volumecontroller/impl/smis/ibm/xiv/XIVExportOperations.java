@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.ibm.xiv;
 
@@ -56,7 +46,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -138,16 +127,16 @@ public class XIVExportOperations implements ExportMaskOperations {
         try {
             CIMInstance controllerInst = null;
             boolean createdBySystem = true;
-            Map<String, Initiator> initiatorMap = _helper. getInitiatorMap(initiatorList);
+            Map<String, Initiator> initiatorMap = _helper.getInitiatorMap(initiatorList);
             String[] initiatorNames = initiatorMap.keySet().toArray(new String[] {});
             List<Initiator> userAddedInitiators = new ArrayList<Initiator>();
             Map<String, CIMObjectPath> existingHwStorageIds = getStorageHardwareIds(storage);
-            // note - the initiator list maybe just a subset of all initiators on a host, need to 
+            // note - the initiator list maybe just a subset of all initiators on a host, need to
             // get all the initiators from the host, and check here
             // a special case is that there is a host on array side with i1 and i2,
             // while there is a host with initiator i2 and i3 on ViPR side,
             // we will not be able to match the two hosts if there is common initiator(s)
-            // if an HBA get moved from one host to another, it need to be removed on array side manually            
+            // if an HBA get moved from one host to another, it need to be removed on array side manually
             List<Initiator> allInitiators = CustomQueryUtility
                     .queryActiveResourcesByConstraint(_dbClient,
                             Initiator.class, ContainmentConstraint.Factory
@@ -191,7 +180,8 @@ public class XIVExportOperations implements ExportMaskOperations {
                         // add initiator to host on array side
                         CIMObjectPath specificCollectionPath = getSystemSpecificCollectionPathByHwId(storage, initiatorPath);
                         CIMArgument[] outArgs = new CIMArgument[5];
-                        _helper.addHardwareIDsToCollection(storage, specificCollectionPath, initiatorsToAdd.toArray(new String[] {}), outArgs);
+                        _helper.addHardwareIDsToCollection(storage, specificCollectionPath, initiatorsToAdd.toArray(new String[] {}),
+                                outArgs);
                         if (outArgs[0] == null) {
                             Set<String> hwIds = hasHwIdsInCollection(storage, specificCollectionPath);
                             if (!hwIds.containsAll(initiatorsToAdd)) {
@@ -354,7 +344,7 @@ public class XIVExportOperations implements ExportMaskOperations {
                 Iterator<String> itr = initiators.iterator();
                 if (itr.hasNext()) {
                     Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(itr.next()));
-                    host = _dbClient.queryObject(Host.class, initiator.getHost()); 
+                    host = _dbClient.queryObject(Host.class, initiator.getHost());
                 }
             }
 
@@ -521,9 +511,10 @@ public class XIVExportOperations implements ExportMaskOperations {
 
     @Override
     // TOD -test
-    public void removeInitiator(StorageSystem storage, URI exportMaskURI,
-            List<Initiator> initiatorList, List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            public
+            void removeInitiator(StorageSystem storage, URI exportMaskURI,
+                    List<Initiator> initiatorList, List<URI> targets,
+                    TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} removeInitiator START...", storage.getLabel());
 
         try {
@@ -861,7 +852,7 @@ public class XIVExportOperations implements ExportMaskOperations {
                 } else {
                     builder.append("XM refresh: There are no changes to the mask\n");
                 }
-                _networkDeviceController.refreshZoningMap(mask, 
+                _networkDeviceController.refreshZoningMap(mask,
                         initiatorsToRemove, Collections.EMPTY_LIST, (addInitiators || removeInitiators), true);
                 _log.info(builder.toString());
             }
@@ -1006,7 +997,7 @@ public class XIVExportOperations implements ExportMaskOperations {
 
     /*
      * create SystemSpecificCollection for the initiators
-     *
+     * 
      * Try to use the given element name first, if not success, retry without
      * element name
      */
@@ -1140,9 +1131,9 @@ public class XIVExportOperations implements ExportMaskOperations {
 
     /**
      * Looks up the targets that are associated with the protocol controller (if any).
-     *
+     * 
      * @param protocolController [in] - CIMObjectPath representing protocol controller to lookup target endpoints (StoragePorts) for
-     * @param storage         [in] - StorageSystem object representing the array
+     * @param storage [in] - StorageSystem object representing the array
      * @return List or StoragePort URIs that were found to be end points for the protocol controller
      * @throws Exception
      */
@@ -1177,11 +1168,11 @@ public class XIVExportOperations implements ExportMaskOperations {
         return endpoints;
     }
 
-	@Override
+    @Override
     public void updateStorageGroupPolicyAndLimits(StorageSystem storage, ExportMask exportMask,
             List<URI> volumeURIs, VirtualPool newVirtualPool, boolean rollback,
             TaskCompleter taskCompleter) throws Exception {
-		throw DeviceControllerException.exceptions
-				.blockDeviceOperationNotSupported();
-	}
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
 }

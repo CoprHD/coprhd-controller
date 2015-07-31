@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.coordinator.client.service;
@@ -42,8 +32,8 @@ import java.util.Properties;
 /**
  * Coordinator unit test base that contains basic startup / teardown utilities
  */
-//Suppress Sonar violation of Lazy initialization of static fields should be synchronized
-//There's only one thread initializing and using _dataDir and _coordinator, so it's safe.
+// Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+// There's only one thread initializing and using _dataDir and _coordinator, so it's safe.
 @SuppressWarnings("squid:S2444")
 public class CoordinatorTestBase {
     private static final Logger _logger = LoggerFactory.getLogger(CoordinatorTestBase.class);
@@ -53,12 +43,12 @@ public class CoordinatorTestBase {
 
     /**
      * Deletes given directory
-     *
+     * 
      * @param dir
      */
     protected static void cleanDirectory(File dir) {
         File[] files = dir.listFiles();
-        if(files == null) {
+        if (files == null) {
             return;
         }
         for (File file : files) {
@@ -71,10 +61,9 @@ public class CoordinatorTestBase {
         dir.delete();
     }
 
-
     /**
      * Connects to test coordinator
-     *
+     * 
      * @return connected client
      * @throws Exception
      */
@@ -128,7 +117,7 @@ public class CoordinatorTestBase {
 
     /**
      * Bootstraps test coordinator
-     *
+     * 
      * @throws Exception
      */
     protected static void startCoordinator() throws Exception {
@@ -141,8 +130,8 @@ public class CoordinatorTestBase {
         zkprop.setProperty("initLimit", "5");
         zkprop.setProperty("syncLimit", "2");
         zkprop.setProperty("maxClientCnxns", "0");
-        zkprop.setProperty("autopurge.purgeInterval","30");
-        zkprop.setProperty("autopurge.snapRetainCount","16");
+        zkprop.setProperty("autopurge.purgeInterval", "30");
+        zkprop.setProperty("autopurge.snapRetainCount", "16");
         config.setProperties(zkprop);
         config.init();
 
@@ -160,7 +149,6 @@ public class CoordinatorTestBase {
         }).start();
     }
 
-
     @BeforeClass
     public static void setup() throws Exception {
         _dataDir = new File("./dqtest");
@@ -169,5 +157,5 @@ public class CoordinatorTestBase {
         }
         startCoordinator();
     }
-    
+
 }

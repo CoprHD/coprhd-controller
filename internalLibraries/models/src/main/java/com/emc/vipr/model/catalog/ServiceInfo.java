@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -9,47 +9,47 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Deprecated
 @XmlRootElement
 public class ServiceInfo extends ModelInfo {
-    
+
     /**
      * Name of this category
      */
-    private String name;                               
-    
+    private String name;
+
     /**
      * Title of this category. Used as the title in the UI
      */
-    private String title;                              
-    
+    private String title;
+
     /**
      * Description of this category. Used as the description in the UI
      */
-    private String description;                         
-    
+    private String description;
+
     /**
      * Icon to show for this category.
      */
-    private String image;                               
-    
+    private String image;
+
     /**
      * Indicates if approval is required or not
      */
-    private boolean approvalRequired = false;           
-    
+    private boolean approvalRequired = false;
+
     /**
      * Indicates if this service will run in an execution window
      */
-    private boolean executionWindowRequired = false;    
-    
+    private boolean executionWindowRequired = false;
+
     /**
      * ID of the execution window this service will run in
      */
-    private String defaultExecutionWindowId;           
-    
+    private String defaultExecutionWindowId;
+
     /**
      * Engine Workflow that will be executed for this service
      */
-    private String baseService;                        
-    
+    private String baseService;
+
     private Integer maxSize;
 
     public boolean isApprovalRequired() {

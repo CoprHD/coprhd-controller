@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package storageapi;
@@ -20,7 +20,7 @@ import static com.emc.vipr.client.impl.Constants.AUTH_TOKEN_KEY;
 /**
  * JSON WS API wrapper for accessing the backed storage APIs. This wrapper adds parsing to the JSON, basic logging and
  * the auth token support.
- *
+ * 
  * @author Jonny Miller
  * @author Chris Dail
  */
@@ -41,7 +41,8 @@ public class JsonAPI {
     }
 
     // Standard POST
-    protected <T> F.Promise<APIResponse<T>> post(String authToken, Object request, final Class<T> responseType, String path, String... args) {
+    protected <T> F.Promise<APIResponse<T>>
+            post(String authToken, Object request, final Class<T> responseType, String path, String... args) {
         WS.WSRequest wsReq = newRequest(authToken, request, path, args);
         Logger.info("POST: %s, %s", wsReq.url, wsReq.body);
         return responseHandler(wsReq.postAsync(), responseType);
@@ -60,20 +61,20 @@ public class JsonAPI {
         Logger.info("DELETE: %s, %s", wsReq.url, wsReq.body);
         return responseHandler(wsReq.deleteAsync());
     }
-    
+
     // PUT with no payload
     protected F.Promise<APIResponse<Boolean>> put(String authToken, String path, String... args) {
         WS.WSRequest wsReq = newRequest(authToken, null, path, args);
         Logger.info("PUT: %s, %s", wsReq.url, wsReq.body);
         return responseHandler(wsReq.putAsync());
     }
-    
+
     // PUT with payload
     protected <T> F.Promise<APIResponse<T>> put(String authToken, Object request, final Class<T> responseType, String path, String... args) {
         WS.WSRequest wsReq = newRequest(authToken, request, path, args);
         Logger.info("PUT: %s, %s", wsReq.url, wsReq.body);
         return responseHandler(wsReq.putAsync(), responseType);
-    }        
+    }
 
     // GET
     protected <T> F.Promise<APIResponse<T>> get(String authToken, final Class<T> responseType, String path, String... args) {
@@ -107,7 +108,7 @@ public class JsonAPI {
 
     /**
      * Creates a new WSRequest to the API using the given path. the request is added parsed as JSON.
-     *
+     * 
      * @param authToken Auth token sent as the Security.AUTH_HEADER
      * @param path Path to the API
      * @param request Request object (can be null)
@@ -162,7 +163,7 @@ public class JsonAPI {
     /**
      * Wraps a promise response with a new promise. This one parses the result as JSON returning the JSON to the new
      * promise.
-     *
+     * 
      * @param wsRespPromise WS Response
      * @param responseType Class to parse JSON
      * @param <T> Type of the request
@@ -192,10 +193,10 @@ public class JsonAPI {
                     handleAPIException(e);
                 }
                 catch (Exception e) {
-                    handleAPIException(e);                   
+                    handleAPIException(e);
                 }
             }
-            
+
             private void handleAPIException(Throwable e) {
                 Logger.error(e, "API Exception");
                 methodResult.invoke(new APIResponse<T>(e));
@@ -203,5 +204,5 @@ public class JsonAPI {
         });
         return methodResult;
     }
-    
+
 }

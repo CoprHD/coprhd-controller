@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.monitoring.cim.indicationProcessor.processor.volumeView;
@@ -37,13 +37,14 @@ public class VMAXVolumeViewEventProcessor extends BaseProcessor {
             spEvent.setIndication(notification);
             Boolean status = spEvent
                     .updateStoragePoolObjectFromVMAXVolumeViewIndication();
-            if (status)
+            if (status) {
                 logMessage(
                         "VMAX StoragePool object updated sucessfully from VMAX Volume View Event",
                         new Object[] {});
-            else
+            } else {
                 logMessage("VMAX StoragePool object not updated",
                         new Object[] {});
+            }
             spEvent = null;
 
         } catch (Exception e) {

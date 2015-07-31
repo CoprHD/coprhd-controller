@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -17,7 +17,7 @@ import controllers.auth.VDCRoleAssignments.VDCRoleAssignmentForm;
 import controllers.security.Security;
 
 public class VDCRoleAssignmentDataTable extends DataTable {
-    
+
     public VDCRoleAssignmentDataTable() {
         addColumn("name").setRenderFunction("renderLink");
         addColumn("type").hidden().setSearchable(false);
@@ -49,15 +49,15 @@ public class VDCRoleAssignmentDataTable extends DataTable {
                 localizedType = RoleAssignmentType.GROUP.getDisplayName();
             }
             id = VDCRoleAssignmentForm.createId(name, type);
-            
+
             vdcRoles = "";
             if (roleAssignment.getRoles() != null) {
                 for (String role : roleAssignment.getRoles()) {
-                	vdcRoles = addRole(role, vdcRoles);
+                    vdcRoles = addRole(role, vdcRoles);
                 }
             }
         }
-        
+
         private String addRole(String role, String value) {
             if (value.length() > 0) {
                 value += ", ";

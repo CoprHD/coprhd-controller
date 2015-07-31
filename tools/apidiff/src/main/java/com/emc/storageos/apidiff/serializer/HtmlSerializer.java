@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2013 EMC Corporation 
- * All Rights Reserved 
- *
- * This software contains the intellectual property of EMC Corporation 
- * or is licensed to EMC Corporation from third parties.  Use of this 
- * software and the intellectual property contained therein is expressly 
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.apidiff.serializer;
@@ -44,8 +34,9 @@ public class HtmlSerializer extends AbstractSerializer {
     public HtmlSerializer(List<ServiceCatalogDiff> serviceCatalogDiffList, File folder) {
         super(serviceCatalogDiffList, folder);
         file = new File(folder.getAbsolutePath() + File.separator + "apidiff.html");
-        if (file.exists())
+        if (file.exists()) {
             file.delete();
+        }
     }
 
     @Override
@@ -80,6 +71,7 @@ public class HtmlSerializer extends AbstractSerializer {
 
     /**
      * constructs summary of API changes
+     * 
      * @return format string of API changes summary
      */
     public String createSummary() {
@@ -122,6 +114,7 @@ public class HtmlSerializer extends AbstractSerializer {
 
     /**
      * constructs component list which API are changed
+     * 
      * @return html format string of API changed component list
      */
     public String createComponentList() {
@@ -140,6 +133,7 @@ public class HtmlSerializer extends AbstractSerializer {
 
     /**
      * construct details of API changes by service and component name
+     * 
      * @return html format string of API change details
      */
     private String createComponentChanges() {
@@ -152,6 +146,7 @@ public class HtmlSerializer extends AbstractSerializer {
 
     /**
      * constructs component list which API are changed
+     * 
      * @return format string of API changed component list
      */
     public String createApiChanges(ServiceCatalogDiff serviceCatalogDiff) {
@@ -165,8 +160,9 @@ public class HtmlSerializer extends AbstractSerializer {
 
         SortedSet<String> sortedSet = new TreeSet<String>(componentMap.keySet());
         for (String key : sortedSet) {
-            if (!key.startsWith(serviceName))
+            if (!key.startsWith(serviceName)) {
                 continue;
+            }
             StringBuilder value = componentMap.get(key);
             value.append(HtmlSerializerHelper.buildDivTailer());
             builder.append(value);
@@ -179,20 +175,21 @@ public class HtmlSerializer extends AbstractSerializer {
 
     /**
      * Adds "added" or "removed" records to component map
+     * 
      * @param serviceCatalog
-     *          The rest service which contains added/removed records
+     *            The rest service which contains added/removed records
      * @param title
-     *          The tile of records table
+     *            The tile of records table
      */
     private void addNormalRecords(ServiceCatalog serviceCatalog, String title) {
 
         Map<String, StringBuilder> changedMap = new HashMap<String, StringBuilder>();
 
-        for(Map.Entry<ApiIdentifier, ApiDescriptor> entry : serviceCatalog.getApiMap().entrySet()) {
+        for (Map.Entry<ApiIdentifier, ApiDescriptor> entry : serviceCatalog.getApiMap().entrySet()) {
             String componentName = serviceCatalog.getServiceName()
                     + Constants.NAME_STRING_SEPARATOR
                     + entry.getKey().getPath().split(Constants.URL_PATH_SEPARATOR)[1];
-            StringBuilder componentValue = changedMap.get(componentName) ;
+            StringBuilder componentValue = changedMap.get(componentName);
             if (componentValue == null) {
                 componentValue = new StringBuilder();
                 if (componentMap.get(componentName) == null) {
@@ -208,8 +205,9 @@ public class HtmlSerializer extends AbstractSerializer {
                     serviceCatalog.getElementMap()));
         }
 
-        for (StringBuilder builder : changedMap.values())
+        for (StringBuilder builder : changedMap.values()) {
             builder.append(HtmlSerializerHelper.buildTableTailer());
+        }
 
         Iterator<Map.Entry<String, StringBuilder>> iterator = changedMap.entrySet().iterator();
         while (iterator.hasNext()) {
@@ -225,8 +223,8 @@ public class HtmlSerializer extends AbstractSerializer {
     }
 
     private String addNormalRecord(final ApiIdentifier apiIdentifier,
-                                   final ApiDescriptor apiResource,
-                                   final Map<String, String> elmentMap) {
+            final ApiDescriptor apiResource,
+            final Map<String, String> elmentMap) {
 
         // Constructs html content for added/removed apis
         StringBuilder builder = new StringBuilder();
@@ -235,11 +233,11 @@ public class HtmlSerializer extends AbstractSerializer {
                 new Pair<String, Integer>("URI", 15),
                 new Pair<String, Integer>(apiIdentifier.getHttpMethod() + " "
                         + apiIdentifier.getPath(), 85)
-        ));
+                ));
         builder.append(HtmlSerializerHelper.buildTableRow(1,
                 new Pair<String, Integer>("Parameter", 15),
                 new Pair<String, Integer>(apiResource.getParameters().toString(), 85)
-        ));
+                ));
 
         String requestElement = elmentMap.get(apiResource.getRequestElement());
         if (requestElement != null) {
@@ -251,7 +249,7 @@ public class HtmlSerializer extends AbstractSerializer {
         builder.append(HtmlSerializerHelper.buildTableRow(1,
                 new Pair<String, Integer>("Request Body", 15),
                 new Pair<String, Integer>(requestElement, 85)
-        ));
+                ));
 
         String responseElement = elmentMap.get(apiResource.getResponseElement());
         if (responseElement != null) {
@@ -263,29 +261,29 @@ public class HtmlSerializer extends AbstractSerializer {
         builder.append(HtmlSerializerHelper.buildTableRow(1,
                 new Pair<String, Integer>("Response Body", 15),
                 new Pair<String, Integer>(responseElement, 85)
-        ));
+                ));
         builder.append(HtmlSerializerHelper.buildTableTailer());
 
         return HtmlSerializerHelper.buildTableRow(1,
                 new Pair<String, Integer>(apiIdentifier.getPath(), 25),
                 new Pair<String, Integer>(builder.toString(), 75)
-        );
+                );
 
     }
 
     /**
      * Adds "changed" records to component map
+     * 
      * @param serviceCatalogDiff
-     *          The instance of ServiceCatalogDiff
+     *            The instance of ServiceCatalogDiff
      * @param title
-     *          The tile of records table
+     *            The tile of records table
      */
     private void addComparisonRecords(ServiceCatalogDiff serviceCatalogDiff, String title) {
 
         Map<String, StringBuilder> changedMap = new HashMap<String, StringBuilder>();
 
-        for (Map.Entry<ApiIdentifier, ApiDescriptorDiff> entry :
-                serviceCatalogDiff.getApiChangedMap().entrySet()) {
+        for (Map.Entry<ApiIdentifier, ApiDescriptorDiff> entry : serviceCatalogDiff.getApiChangedMap().entrySet()) {
 
             String componentName = serviceCatalogDiff.getNewServiceCatalog().getServiceName()
                     + Constants.NAME_STRING_SEPARATOR
@@ -305,8 +303,9 @@ public class HtmlSerializer extends AbstractSerializer {
             componentValue.append(addComparisonRecord(entry.getKey(), entry.getValue()));
         }
 
-        for (StringBuilder builder : changedMap.values())
+        for (StringBuilder builder : changedMap.values()) {
             builder.append(HtmlSerializerHelper.buildTableTailer());
+        }
 
         Iterator<Map.Entry<String, StringBuilder>> iterator = changedMap.entrySet().iterator();
         while (iterator.hasNext()) {
@@ -323,7 +322,7 @@ public class HtmlSerializer extends AbstractSerializer {
     }
 
     private String addComparisonRecord(final ApiIdentifier apiIdentifier,
-                                       final ApiDescriptorDiff apiDescriptorDiff) {
+            final ApiDescriptorDiff apiDescriptorDiff) {
 
         // Constructs html content for added/removed apis
         StringBuilder builder = new StringBuilder();
@@ -332,12 +331,12 @@ public class HtmlSerializer extends AbstractSerializer {
                 new Pair<String, Integer>("Item", 15),
                 new Pair<String, Integer>("Old", 40),
                 new Pair<String, Integer>("New", 45)
-        ));
+                ));
         builder.append(HtmlSerializerHelper.buildTableRow(2,
                 new Pair<String, Integer>("URI", 15),
                 new Pair<String, Integer>(apiIdentifier.getHttpMethod() + " "
                         + apiIdentifier.getPath(), 85)
-        ));
+                ));
 
         builder.append(addChangedField("Parameter", apiDescriptorDiff.getParamDiff()));
         builder.append(addChangedField("Request Body", apiDescriptorDiff.getRequestElementDiff()));
@@ -347,28 +346,31 @@ public class HtmlSerializer extends AbstractSerializer {
         return HtmlSerializerHelper.buildTableRow(1,
                 new Pair<String, Integer>(apiIdentifier.getPath(), 25),
                 new Pair<String, Integer>(builder.toString(), 75)
-        );
+                );
     }
 
     private String addChangedField(final String name, Pair<String, String> pair) {
-        if (name == null || pair == null)
+        if (name == null || pair == null) {
             return "";
+        }
 
-        String left=Constants.CODE_PREFIX;
-        if (pair.getLeft() != null)
+        String left = Constants.CODE_PREFIX;
+        if (pair.getLeft() != null) {
             left += StringEscapeUtils.escapeHtml(pair.getLeft());
+        }
         left += Constants.CODE_SUFFIX;
 
-        String right=Constants.CODE_PREFIX;
-        if (pair.getRight() != null)
+        String right = Constants.CODE_PREFIX;
+        if (pair.getRight() != null) {
             right += StringEscapeUtils.escapeHtml(pair.getRight());
+        }
         right += Constants.CODE_SUFFIX;
 
         return HtmlSerializerHelper.buildTableRow(1,
                 new Pair<String, Integer>(name, 15),
                 new Pair<String, Integer>(left, 40),
                 new Pair<String, Integer>(right, 45)
-        );
+                );
     }
 
 }

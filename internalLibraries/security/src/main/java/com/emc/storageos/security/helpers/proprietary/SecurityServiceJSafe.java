@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.helpers.proprietary;
 
@@ -57,7 +47,7 @@ public class SecurityServiceJSafe implements SecurityService {
                     KeyCertificateAlgorithmValuesHolder.DEFAULT_KEY_ALGORITHM,
                     KeyCertificatePairGenerator.RSA_JAVA_DEVICE_NAME);
 
-            byte[][] pemHolder = {pemKey.getBytes()};
+            byte[][] pemHolder = { pemKey.getBytes() };
             privKey.setKeyData(KeyCertificatePairGenerator.PRIVATE_RSA_KEY_PEM_FORMAT_NAME, pemHolder);
 
             // we need to clear the whole JSAFE_PrivateKey. so return the copied the key bytes.
@@ -72,6 +62,7 @@ public class SecurityServiceJSafe implements SecurityService {
 
     /**
      * clear Sensitive data
+     * 
      * @param key
      */
     @Override
@@ -81,6 +72,7 @@ public class SecurityServiceJSafe implements SecurityService {
 
     /**
      * clear Sensitive data
+     * 
      * @param key
      */
     @Override

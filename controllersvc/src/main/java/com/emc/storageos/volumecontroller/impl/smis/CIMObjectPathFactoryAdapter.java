@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.smis;
@@ -27,7 +27,7 @@ import java.util.List;
 /**
  * This class implements the CIMObjectPathFactory interface and delegates all calls to
  * a dynamic proxy.
- *
+ * 
  */
 public class CIMObjectPathFactoryAdapter implements CIMObjectPathFactory {
     private final static Logger log = LoggerFactory.getLogger(CIMObjectPathFactoryAdapter.class);
@@ -40,12 +40,12 @@ public class CIMObjectPathFactoryAdapter implements CIMObjectPathFactory {
     }
 
     /**
-     * Initialize 
+     * Initialize
      */
     public void init() {
         log.info("Initializing CIMObjectPathFactory proxy..");
         proxy = (CIMObjectPathFactory) Proxy.newProxyInstance(CIMObjectPathFactory.class.getClassLoader(),
-                new Class<?>[]{CIMObjectPathFactory.class}, handler);
+                new Class<?>[] { CIMObjectPathFactory.class }, handler);
     }
 
     @Override
@@ -85,7 +85,8 @@ public class CIMObjectPathFactoryAdapter implements CIMObjectPathFactory {
     }
 
     @Override
-    public CIMObjectPath getStorageSynchronized(StorageSystem sourceSystem, BlockObject source, StorageSystem targetSystem, BlockObject target) {
+    public CIMObjectPath getStorageSynchronized(StorageSystem sourceSystem, BlockObject source, StorageSystem targetSystem,
+            BlockObject target) {
         return proxy.getStorageSynchronized(sourceSystem, source, targetSystem, target);
     }
 

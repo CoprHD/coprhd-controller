@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -72,9 +72,9 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * Gets a list of host references from the given path.
      * 
      * @param path
-     *        the path to get.
+     *            the path to get.
      * @param args
-     *        the path arguments.
+     *            the path arguments.
      * @return the list of host references.
      */
     protected List<NamedRelatedResourceRep> getList(String path, Object... args) {
@@ -88,18 +88,18 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * API Call: <tt>GET /compute/hosts?tenant={tenantId}</tt>
      * 
      * @param tenantId
-     *        the ID of the tenant.
+     *            the ID of the tenant.
      * @return the list of host references.
      */
-	@Override
-	public List<NamedRelatedResourceRep> listByTenant(URI tenantId) {
-		UriBuilder uriBuilder = client.uriBuilder(baseUrl);
-		if (tenantId != null) {
-			uriBuilder.queryParam(TENANT_PARAM, tenantId);
-		}
-		HostList response = client.getURI(HostList.class, uriBuilder.build());
-		return defaultList(response.getHosts());
-	}
+    @Override
+    public List<NamedRelatedResourceRep> listByTenant(URI tenantId) {
+        UriBuilder uriBuilder = client.uriBuilder(baseUrl);
+        if (tenantId != null) {
+            uriBuilder.queryParam(TENANT_PARAM, tenantId);
+        }
+        HostList response = client.getURI(HostList.class, uriBuilder.build());
+        return defaultList(response.getHosts());
+    }
 
     @Override
     public List<NamedRelatedResourceRep> listByUserTenant() {
@@ -134,7 +134,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * API Call: <tt>GET /compute/vcenter-data-centers/{dataCenterId}/hosts</tt>
      * 
      * @param dataCenterId
-     *        the ID of the datacenter.
+     *            the ID of the datacenter.
      * @return the list of host references.
      */
     public List<NamedRelatedResourceRep> listByDataCenter(URI dataCenterId) {
@@ -145,7 +145,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * Gets the list of hosts in the given datacenter.
      * 
      * @param dataCenterId
-     *        the ID of the datacenter.
+     *            the ID of the datacenter.
      * @return the list of hosts.
      */
     public List<HostRestRep> getByDataCenter(URI dataCenterId) {
@@ -156,9 +156,9 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * Gets the list of hosts in a given datacenter, optionally filtering the results.
      * 
      * @param dataCenterId
-     *        the ID of the datacenter.
+     *            the ID of the datacenter.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of hosts.
      */
     public List<HostRestRep> getByDataCenter(URI dataCenterId, ResourceFilter<HostRestRep> filter) {
@@ -172,7 +172,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * API Call: <tt>GET /compute/clusters/{clusterId}/hosts</tt>
      * 
      * @param clusterId
-     *        the ID of the cluster.
+     *            the ID of the cluster.
      * @return the list of host references.
      */
     public List<NamedRelatedResourceRep> listByCluster(URI clusterId) {
@@ -183,7 +183,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * Gets the list of hosts in the given cluster.
      * 
      * @param clusterId
-     *        the ID of the cluster.
+     *            the ID of the cluster.
      * @return the list of hosts.
      */
     public List<HostRestRep> getByCluster(URI clusterId) {
@@ -197,20 +197,20 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * API Call: <tt>POST /compute/hosts</tt>
      * 
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<HostRestRep> create(HostCreateParam input) {
         return create(input, false);
     }
-    
+
     public Task<HostRestRep> create(HostCreateParam input, boolean validateConnection) {
         UriBuilder uriBuilder = client.uriBuilder(baseUrl);
         if (validateConnection) {
             uriBuilder.queryParam(VALIDATE_CONNECTION_PARAM, Boolean.TRUE);
         }
         return postTaskURI(input, uriBuilder.build());
-    }    
+    }
 
     /**
      * Begins updating a host.
@@ -218,22 +218,22 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * API Call: <tt>PUT /compute/hosts/{id}</tt>
      * 
      * @param id
-     *        the ID of the host.
+     *            the ID of the host.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return a task for monitoing the progress of the operation.
      */
     public Task<HostRestRep> update(URI id, HostUpdateParam input) {
         return update(id, input, Boolean.FALSE);
     }
-    
+
     public Task<HostRestRep> update(URI id, HostUpdateParam input, boolean validateConnection) {
         UriBuilder uriBuilder = client.uriBuilder(getIdUrl());
         if (validateConnection) {
             uriBuilder.queryParam(VALIDATE_CONNECTION_PARAM, Boolean.TRUE);
         }
         return putTaskURI(input, uriBuilder.build(id));
-    }    
+    }
 
     /**
      * Deactivates a host.
@@ -241,53 +241,53 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * API Call: <tt>POST /compute/hosts/{id}/deactivate</tt>
      * 
      * @param id
-     *        the ID of the host.
-     * @return 
+     *            the ID of the host.
+     * @return
      */
     public Task<HostRestRep> deactivate(URI id) {
         return deactivate(id, false);
     }
-    
+
     /**
      * Deactivates a host.
      * <p>
      * API Call: <tt>POST /compute/hosts/{id}/deactivate?detach_storage={detachStorage}</tt>
      * 
      * @param id
-     *        the ID of the host to deactivate.
+     *            the ID of the host to deactivate.
      * @param detachStorage
-     *        if true, will first detach storage.
+     *            if true, will first detach storage.
      */
     public Task<HostRestRep> deactivate(URI id, boolean detachStorage) {
         URI deactivateUri = client.uriBuilder(getDeactivateUrl()).queryParam("detach_storage", detachStorage).build(id);
         return postTaskURI(deactivateUri);
     }
-    
-    
+
     /**
      * Deactivates a host.
      * <p>
      * API Call: <tt>POST /compute/hosts/{id}/deactivate?detach_storage={detachStorage}&deactivate_boot_volume={deactivateBootVolume}</tt>
      * 
      * @param id
-     *        the ID of the host to deactivate.
+     *            the ID of the host to deactivate.
      * @param detachStorage
-     *        if true, will first detach storage.
+     *            if true, will first detach storage.
      * @param deactivateBootVolume
-     * 		  if true, and if the host was provisioned by ViPR the associated boot volume (if exists) will be deactivated 
+     *            if true, and if the host was provisioned by ViPR the associated boot volume (if exists) will be deactivated
      */
-    public Task<HostRestRep> deactivate(URI id, boolean detachStorage,boolean deactivateBootVolume) {
-        URI deactivateUri = client.uriBuilder(getDeactivateUrl()).queryParam("detach_storage", detachStorage).queryParam("deactivate_boot_volume", deactivateBootVolume).build(id);
+    public Task<HostRestRep> deactivate(URI id, boolean detachStorage, boolean deactivateBootVolume) {
+        URI deactivateUri = client.uriBuilder(getDeactivateUrl()).queryParam("detach_storage", detachStorage)
+                .queryParam("deactivate_boot_volume", deactivateBootVolume).build(id);
         return postTaskURI(deactivateUri);
     }
-    
+
     /**
      * Detaches storage from a host.
      * <p>
      * API Call: <tt>POST /compute/hosts/{id}/detach-storage</tt>
      * 
      * @param id
-     *        the ID of the host.
+     *            the ID of the host.
      */
     public Task<HostRestRep> detachStorage(URI id) {
         return postTask(PathConstants.HOST_DETACH_STORAGE_URL, id);
@@ -299,7 +299,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * API Call: <tt>POST /compute/hosts/{id}/discover</tt>
      * 
      * @param id
-     *        the ID of the host to discover.
+     *            the ID of the host to discover.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<HostRestRep> discover(URI id) {
@@ -310,25 +310,25 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * Provision bare metal hosts.
      * <p>
      * API Call: <tt>POST /compute/hosts/provision-bare-metal</tt>
-     *
+     * 
      * @return Tasks for monitoring the progress of the operation(s).
      */
     public Tasks<HostRestRep> provisionBareMetalHosts(ProvisionBareMetalHostsParam param) {
         return postTasks(param, baseUrl + "/provision-bare-metal");
     }
 
-	/**
-	 * Install OS on the given host.
-	 * <p>
-	 * API Call: <tt> PUT /compute/hosts/{id}/os-install</tt>
-	 *
-	 * @param id
-	 *            the ID of the host to install OS on.
-	 * @param input
-	 *            the OS install information.
-	 * @return a task for monitoring the progress of the operation.
-	 */
-	public Task<HostRestRep> osInstall(URI id, OsInstallParam input) {
-		return putTask(input, getIdUrl() + "/os-install", id);
-	}
+    /**
+     * Install OS on the given host.
+     * <p>
+     * API Call: <tt> PUT /compute/hosts/{id}/os-install</tt>
+     * 
+     * @param id
+     *            the ID of the host to install OS on.
+     * @param input
+     *            the OS install information.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<HostRestRep> osInstall(URI id, OsInstallParam input) {
+        return putTask(input, getIdUrl() + "/os-install", id);
+    }
 }

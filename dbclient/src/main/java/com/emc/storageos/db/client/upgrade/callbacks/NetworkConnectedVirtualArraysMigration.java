@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.upgrade.callbacks;
 
@@ -29,49 +19,49 @@ import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 
 /**
  * This class is perform necessary updates of network connected virtual
- * array as the definition of this field changed between 1.1 and 2.0. 
- *
+ * array as the definition of this field changed between 1.1 and 2.0.
+ * 
  */
 public class NetworkConnectedVirtualArraysMigration extends
-		BaseCustomMigrationCallback {
-	
-	private static final Logger log = LoggerFactory.getLogger(NetworkConnectedVirtualArraysMigration.class);
-	
-	/**
-	 *  Add assigned virtual arrays to connected virtual arrays.
-	 *  Starting 2.0, connected virtual arrays includes assigned,
-	 *  connected via port-virtualArray associations, and connected
-	 *   via routed networks
-	 */
-	@Override
-	public void process() {
-		DbClient dbClient = getDbClient();
-		
-		try {
-			List<URI> networkUris = dbClient.queryByType(Network.class, true);
-			Iterator<Network> networks =
-			        dbClient.queryIterativeObjects(Network.class, networkUris);
-			List<Network> updated = new ArrayList<Network>();
-			while(networks.hasNext()){
-				Network network = networks.next();
+        BaseCustomMigrationCallback {
+
+    private static final Logger log = LoggerFactory.getLogger(NetworkConnectedVirtualArraysMigration.class);
+
+    /**
+     * Add assigned virtual arrays to connected virtual arrays.
+     * Starting 2.0, connected virtual arrays includes assigned,
+     * connected via port-virtualArray associations, and connected
+     * via routed networks
+     */
+    @Override
+    public void process() {
+        DbClient dbClient = getDbClient();
+
+        try {
+            List<URI> networkUris = dbClient.queryByType(Network.class, true);
+            Iterator<Network> networks =
+                    dbClient.queryIterativeObjects(Network.class, networkUris);
+            List<Network> updated = new ArrayList<Network>();
+            while (networks.hasNext()) {
+                Network network = networks.next();
                 log.info("Updating connected virtual arrays for network {}", network.getLabel());
-				if (network.getAssignedVirtualArrays() != null) {
-				    if (network.getConnectedVirtualArrays() != null) {
-	                    for (String assignedVarrayUri : network.getAssignedVirtualArrays()) {
-	                        log.info("Adding virtual array {} to connected virtual arrays", assignedVarrayUri);
-	                        network.getConnectedVirtualArrays().add(assignedVarrayUri);
-	                    }
-				    } else {
+                if (network.getAssignedVirtualArrays() != null) {
+                    if (network.getConnectedVirtualArrays() != null) {
+                        for (String assignedVarrayUri : network.getAssignedVirtualArrays()) {
+                            log.info("Adding virtual array {} to connected virtual arrays", assignedVarrayUri);
+                            network.getConnectedVirtualArrays().add(assignedVarrayUri);
+                        }
+                    } else {
                         log.info("Setting connected virtual arrays to {}", network.getAssignedVirtualArrays());
-	                    network.setConnectedVirtualArrays(new StringSet(network.getAssignedVirtualArrays()));
-				    }
-				    updated.add(network);
-				}
-			}
-			dbClient.updateAndReindexObject(updated);
-		} catch (Exception e) {
-			log.error("Exception occured while updating Network connectedVirtualArrays");
-			log.error(e.getMessage(),e);
-		}
-	}
+                        network.setConnectedVirtualArrays(new StringSet(network.getAssignedVirtualArrays()));
+                    }
+                    updated.add(network);
+                }
+            }
+            dbClient.updateAndReindexObject(updated);
+        } catch (Exception e) {
+            log.error("Exception occured while updating Network connectedVirtualArrays");
+            log.error(e.getMessage(), e);
+        }
+    }
 }

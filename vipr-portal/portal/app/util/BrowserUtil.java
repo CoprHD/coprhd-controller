@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -14,7 +14,7 @@ public class BrowserUtil {
 
     public static boolean supportsCSSRotate() {
         double ieVersion = getIEVersion();
-        return ieVersion == (double)-1 || ieVersion >= (double)10;
+        return ieVersion == (double) -1 || ieVersion >= (double) 10;
     }
 
     public static double getIEVersion() {

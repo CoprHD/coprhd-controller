@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.model.vpool;
@@ -29,8 +19,9 @@ public class VirtualPoolList {
 
     private List<NamedRelatedVirtualPoolRep> virtualPool;
 
-    public VirtualPoolList() {}
-    
+    public VirtualPoolList() {
+    }
+
     public VirtualPoolList(List<NamedRelatedVirtualPoolRep> virtualPool) {
         this.virtualPool = virtualPool;
     }
@@ -66,7 +57,7 @@ public class VirtualPoolList {
         for (RelatedResourceRep vpoolListResource : getVirtualPool()) {
             URI vpoolListResourceId = vpoolListResource.getId();
             if ((vpoolListResourceId != null)
-                && (vpoolListResourceId.toString().equals(virtualPoolId))) {
+                    && (vpoolListResourceId.toString().equals(virtualPoolId))) {
                 return true;
             }
         }

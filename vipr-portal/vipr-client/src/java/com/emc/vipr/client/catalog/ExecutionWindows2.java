@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.catalog;
@@ -55,7 +55,7 @@ public class ExecutionWindows2 extends AbstractCatalogBulkResources<ExecutionWin
             uriBuilder = uriBuilder.queryParam(SearchConstants.TENANT_ID_PARAM, tenantId);
         }
         ExecutionWindowList response = client.getURI(ExecutionWindowList.class, uriBuilder.build());
-        return ResourceUtils.defaultList(response.getExecutionWindows());        
+        return ResourceUtils.defaultList(response.getExecutionWindows());
     }
 
     @Override
@@ -76,12 +76,12 @@ public class ExecutionWindows2 extends AbstractCatalogBulkResources<ExecutionWin
     }
 
     /**
-     * Creates a execution window 
+     * Creates a execution window
      * <p>
      * API Call: <tt>POST /catalog/execution-windows</tt>
      * 
      * @param input
-     *        the execution window configuration.
+     *            the execution window configuration.
      * @return the newly created execution window.
      */
     public ExecutionWindowRestRep create(ExecutionWindowCreateParam input) {
@@ -96,9 +96,9 @@ public class ExecutionWindows2 extends AbstractCatalogBulkResources<ExecutionWin
      * API Call: <tt>PUT /catalog/execution-windows/{id}</tt>
      * 
      * @param id
-     *        the ID of the execution window to update.
+     *            the ID of the execution window to update.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated execution window.
      */
     public ExecutionWindowRestRep update(URI id, ExecutionWindowUpdateParam input) {
@@ -111,10 +111,10 @@ public class ExecutionWindows2 extends AbstractCatalogBulkResources<ExecutionWin
      * API Call: <tt>POST /catalog/execution-windows/{id}/deactivate</tt>
      * 
      * @param id
-     *        the ID of execution window to deactivate.
+     *            the ID of execution window to deactivate.
      */
     public void deactivate(URI id) {
         doDeactivate(id);
-    }    
-    
+    }
+
 }

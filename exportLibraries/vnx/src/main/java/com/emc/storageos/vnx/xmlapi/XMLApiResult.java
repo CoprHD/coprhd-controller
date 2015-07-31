@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.vnx.xmlapi;
@@ -32,7 +22,7 @@ public class XMLApiResult {
     private String resultFeed = "";
     private Object obj = null;
 
-    //Error Handling
+    // Error Handling
     private static final String ERROR = "error";
     private static final String READY = "ready";
     private static final String TASKRESPONSE = "TaskResponse";
@@ -41,7 +31,8 @@ public class XMLApiResult {
     private static final String MESSAGE = "message";
     private static final String DESCRIPTION = "Description";
 
-    public XMLApiResult(){}
+    public XMLApiResult() {
+    }
 
     public XMLApiResult(String resultFeed) {
         this.resultFeed = resultFeed;
@@ -51,38 +42,39 @@ public class XMLApiResult {
         return commandSuccess;
     }
 
-    public void setCommandSuccess(){
+    public void setCommandSuccess() {
         commandSuccess = true;
     }
 
-    public void setCommandFailed(){
+    public void setCommandFailed() {
         commandSuccess = false;
-    }    
-    public String getMessage(){
+    }
+
+    public String getMessage() {
         return message;
     }
 
-    public void setMessage(String message){
+    public void setMessage(String message) {
         this.message = message;
     }
 
-    public String getResultFeed(){
+    public String getResultFeed() {
         return resultFeed;
     }
 
-    public void setResultFeed(String resultFeed){
+    public void setResultFeed(String resultFeed) {
         this.resultFeed = resultFeed;
     }
-    
-    public void setObject(Object obj){
+
+    public void setObject(Object obj) {
         this.obj = obj;
     }
-    
-    public Object getObject(){
+
+    public Object getObject() {
         return obj;
     }
-    
-    public static XMLApiResult parseResult(String resultXML){
+
+    public static XMLApiResult parseResult(String resultXML) {
         XMLApiResult result = new XMLApiResult(resultXML);
         String cmdMessage = "";
         String errorMsg = "";
@@ -93,19 +85,19 @@ public class XMLApiResult {
             source.setCharacterStream(new StringReader(resultXML));
             Document doc = dBuilder.parse(source);
             NodeList list = doc.getElementsByTagName(PROBLEM);
-            if(list.getLength() > 0) {
-                //Handle Error response
+            if (list.getLength() > 0) {
+                // Handle Error response
                 Node probNode = list.item(0);
                 if (PROBLEM.equals(probNode.getNodeName())) {
                     NamedNodeMap attributes = probNode.getAttributes();
                     Node errorMsgNode = attributes.getNamedItem(MESSAGE);
                     errorMsg = errorMsgNode.getNodeValue();
                     NodeList probChildren = probNode.getChildNodes();
-                    for(int j=0; j < probChildren.getLength(); j++){
+                    for (int j = 0; j < probChildren.getLength(); j++) {
                         Node probChild = probChildren.item(j);
 
-                        if( !DESCRIPTION.equals(probChild.getNodeName())) {
-                        	continue;
+                        if (!DESCRIPTION.equals(probChild.getNodeName())) {
+                            continue;
                         }
                         if (probChild.getFirstChild() != null) {
                             errorMsg = errorMsg + ":" + probChild.getFirstChild().getNodeValue();
@@ -115,7 +107,7 @@ public class XMLApiResult {
                 result.setCommandFailed();
                 result.setMessage(errorMsg);
             } else {
-                //Handle success response
+                // Handle success response
                 result.setCommandSuccess();
             }
         } catch (Exception e) {
@@ -126,11 +118,11 @@ public class XMLApiResult {
         return result;
     }
 
-    public static XMLApiResult parseErrorResult(String errorMsg){
+    public static XMLApiResult parseErrorResult(String errorMsg) {
         XMLApiResult result = new XMLApiResult();
         result.setCommandFailed();
         result.setMessage(errorMsg);
         return result;
     }
-    
+
 }

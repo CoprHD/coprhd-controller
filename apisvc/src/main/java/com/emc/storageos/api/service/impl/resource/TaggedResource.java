@@ -1,34 +1,19 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.resource;
 
-
 import java.net.URI;
 
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-
 import com.emc.storageos.model.*;
 import com.emc.storageos.security.authorization.ExcludeLicenseCheck;
 import org.slf4j.Logger;
@@ -42,7 +27,6 @@ import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.ScopedLabelSet;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
 import com.emc.storageos.model.search.Tags;
@@ -54,8 +38,8 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
  * Base class for all resources with
- *  1. support for /<base path>/{id}/...
- *  2. support for tagging
+ * 1. support for /<base path>/{id}/...
+ * 2. support for tagging
  */
 public abstract class TaggedResource extends ResourceService {
     private static Logger _log = LoggerFactory.getLogger(TaggedResource.class);
@@ -76,10 +60,10 @@ public abstract class TaggedResource extends ResourceService {
 
     /**
      * @brief Assign tags to resource
-     * Assign tags
-     *
+     *        Assign tags
+     * 
      * @prereq none
-     *
+     * 
      * @param id the URN of a ViPR resource
      * @param assignment tag assignments
      * @return No data returned in response body
@@ -101,7 +85,7 @@ public abstract class TaggedResource extends ResourceService {
             while (it.hasNext()) {
                 String tagName = it.next();
                 if (tagName == null || tagName.isEmpty() || tagName.length() < 2) {
-                	throw APIException.badRequests.parameterTooShortOrEmpty("Tag", 2);
+                    throw APIException.badRequests.parameterTooShortOrEmpty("Tag", 2);
                 }
                 ScopedLabel tagLabel = new ScopedLabel(getTenantOwnerIdString(id), tagName);
                 tagSet.add(tagLabel);
@@ -124,13 +108,12 @@ public abstract class TaggedResource extends ResourceService {
         return getTagsResponse(object);
     }
 
-
     /**
      * @brief List tags assigned to resource
-     * Returns assigned tags
-     *
+     *        Returns assigned tags
+     * 
      * @prereq none
-     *
+     * 
      * @param id the URN of a ViPR Resource
      * @return Tags information
      */
@@ -147,7 +130,7 @@ public abstract class TaggedResource extends ResourceService {
     private Tags getTagsResponse(DataObject object) {
         Tags tags = new Tags();
         if (object.getTag() != null) {
-            for (ScopedLabel label: object.getTag()) {
+            for (ScopedLabel label : object.getTag()) {
                 tags.getTag().add(label.getLabel());
             }
         }
@@ -169,9 +152,9 @@ public abstract class TaggedResource extends ResourceService {
     protected abstract DataObject queryResource(URI id);
 
     /**
-     *
+     * 
      * return the actual class object of this resource
-     *
+     * 
      * The base class throws unsupported exception.
      * Derived resource class which supports bulk retrieving should override this method.
      */
@@ -180,12 +163,11 @@ public abstract class TaggedResource extends ResourceService {
     }
 
     /**
-     * Tenant this object belongs to.  For non tenant specific objects (like storage system), it returns null
-     *
+     * Tenant this object belongs to. For non tenant specific objects (like storage system), it returns null
+     * 
      * @return
      */
     protected abstract URI getTenantOwner(URI id);
-
 
     // The following 8 methods are used by the Search API.
     // Every derived class needs to override them appropriately
@@ -201,6 +183,7 @@ public abstract class TaggedResource extends ResourceService {
 
     /**
      * Non-zone level resource, but visible to system admin -- default false
+     * 
      * @return
      */
     protected boolean isSysAdminReadableResource() {
@@ -209,33 +192,33 @@ public abstract class TaggedResource extends ResourceService {
 
     /**
      * Get search results by name in zone (default) or in a specific project.
-     *
+     * 
      * @return SearchedResRepList
      */
-    protected SearchedResRepList getNamedSearchResults(String name,URI projectId){
+    protected SearchedResRepList getNamedSearchResults(String name, URI projectId) {
         SearchedResRepList resRepList = null;
         if (projectId == null) {
             resRepList = new SearchedResRepList(getResourceType());
             _dbClient.queryByConstraint(
-               PrefixConstraint.Factory.getLabelPrefixConstraint(getResourceClass(),name),
-               resRepList);
+                    PrefixConstraint.Factory.getLabelPrefixConstraint(getResourceClass(), name),
+                    resRepList);
         } else {
-			throw APIException.badRequests.parameterNotSupportedFor(
-			        "project-level search",
-			        MessageFormat.format("{0} search", getResourceClass().getName()));
+            throw APIException.badRequests.parameterNotSupportedFor(
+                    "project-level search",
+                    MessageFormat.format("{0} search", getResourceClass().getName()));
         }
         return resRepList;
     }
 
     /**
      * Get search results by tag in zone (default) or in a specific tenant level
-     *
+     * 
      * @return SearchedResRepList
      */
-    protected SearchedResRepList getTagSearchResults(String tag, URI tenant){
+    protected SearchedResRepList getTagSearchResults(String tag, URI tenant) {
         SearchedResRepList resRepList = new SearchedResRepList(getResourceType());
         _dbClient.queryByConstraint(
-                PrefixConstraint.Factory.getTagsPrefixConstraint(getResourceClass(),tag, tenant),
+                PrefixConstraint.Factory.getTagsPrefixConstraint(getResourceClass(), tag, tenant),
                 resRepList);
         return resRepList;
     }
@@ -243,35 +226,35 @@ public abstract class TaggedResource extends ResourceService {
     /**
      * Get search results by project alone.
      * By default this fails
-     *
+     * 
      * @return SearchedResRepList
      */
-    protected SearchedResRepList getProjectSearchResults(URI projectId){
-		throw APIException.badRequests.parameterNotSupportedFor("project",
-		        MessageFormat.format("{0} search", getResourceClass().getName()));
+    protected SearchedResRepList getProjectSearchResults(URI projectId) {
+        throw APIException.badRequests.parameterNotSupportedFor("project",
+                MessageFormat.format("{0} search", getResourceClass().getName()));
     }
 
     /**
      * Get object specific search results by parameters other than name and tag.
      * Default is not implemented error
-     *
+     * 
      * @return SearchResults
      */
     protected SearchResults getOtherSearchResults(Map<String, List<String>> parameters,
             boolean authorized) {
-    	throw APIException.badRequests.unknownParameter("search", parameters.toString());
+        throw APIException.badRequests.unknownParameter("search", parameters.toString());
     }
 
     /**
-    * Get object specific permissions filter, if applicable
-    * Default is null
-    *
-    * @return ResRepFilter<? extends RelatedResourceRep>
-    */
+     * Get object specific permissions filter, if applicable
+     * Default is null
+     * 
+     * @return ResRepFilter<? extends RelatedResourceRep>
+     */
     protected ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(
             StorageOSUser user, PermissionsHelper permissionsHelper)
     {
-        if(!isZoneLevelResource()) {
+        if (!isZoneLevelResource()) {
             throw new UnsupportedOperationException("non-zone level resource needs to implement its specific permission filter");
         }
 
@@ -280,40 +263,39 @@ public abstract class TaggedResource extends ResourceService {
                         .toString());
     }
 
-
     /**
      * @brief search API
-     * Search resources by name, tag, project or additional parameters (for example, wwn or initiator_port etc.)
-     *
+     *        Search resources by name, tag, project or additional parameters (for example, wwn or initiator_port etc.)
+     * 
      * @prereq none
      * @return search results
      */
 
     /*
-     * Parameters: 
-     *      Common Parameters:
-     *          name: Name has to be a minimum of 2 characters. Could only be combined with project parameter
-     *          tag:  Tag has to be a minimum of 2 characters. Could only be combined with tenant parameter
-     *          project: The full project URI needs to be provided.
-     *
-     *          NOTE: Name and tag are not case sensitive.
-     *                For Zone level resources, search by project is not allowed.
-     *      Special Parameters:
-     *          wwn:  only used by block service
-     *          initiator_port: only used by virtual array service.
+     * Parameters:
+     * Common Parameters:
+     * name: Name has to be a minimum of 2 characters. Could only be combined with project parameter
+     * tag: Tag has to be a minimum of 2 characters. Could only be combined with tenant parameter
+     * project: The full project URI needs to be provided.
+     * 
+     * NOTE: Name and tag are not case sensitive.
+     * For Zone level resources, search by project is not allowed.
+     * Special Parameters:
+     * wwn: only used by block service
+     * initiator_port: only used by virtual array service.
      */
     @GET
     @Path("/search")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public SearchResults search() {
         // 1. Figure out user privilege
         boolean bAuthorized = false;
         StorageOSUser user = getUserFromContext();
-        if (_permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_MONITOR)){
+        if (_permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_MONITOR)) {
             bAuthorized = true;
-        } else if((isZoneLevelResource() || isSysAdminReadableResource()) &&
-               (_permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_ADMIN))){
+        } else if ((isZoneLevelResource() || isSysAdminReadableResource()) &&
+                (_permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_ADMIN))) {
             bAuthorized = true;
         }
 
@@ -321,7 +303,7 @@ public abstract class TaggedResource extends ResourceService {
         String name = null, tag = null;
         URI projectId = null, tenant = null;
         Map<String, List<String>> parameters = uriInfo.getQueryParameters();
-        
+
         // remove non-search related common parameters
         parameters.remove(RequestProcessingUtils.REQUESTING_COOKIES);
 
@@ -337,23 +319,23 @@ public abstract class TaggedResource extends ResourceService {
             checkParameterCombination(parameters, getResourceClass(), "tag", "tenant");
 
             // set tenant scope for non-zone resources
-            if (!isZoneLevelResource()){
+            if (!isZoneLevelResource()) {
                 if (parameters.containsKey("tenant")) {
                     tenant = URI.create(parameters.get("tenant").get(0));
                 }
             }
         }
 
-        if (parameters.containsKey("project")){
+        if (parameters.containsKey("project")) {
             checkParameterCombination(parameters, getResourceClass(), "project", "name");
 
             projectId = URI.create(parameters.get("project").get(0));
-            if(isZoneLevelResource()) {
+            if (isZoneLevelResource()) {
                 throw APIException.badRequests.invalidParameterSearchProjectNotSupported(getResourceClass().getName());
             }
 
             // check if user is authorized for the project
-            if (!bAuthorized){
+            if (!bAuthorized) {
                 if (!isAuthorized(projectId)) {
                     throw APIException.forbidden
                             .insufficientPermissionsForUser(getUserFromContext()
@@ -397,7 +379,7 @@ public abstract class TaggedResource extends ResourceService {
         if (projectId != null) {
             // start resource search within project
             // note: for project resources search, the permission check
-            //       has been addressed in parameter checke period.
+            // has been addressed in parameter checke period.
 
             result.setResource(getProjectSearchResults(projectId));
             return result;
@@ -406,41 +388,43 @@ public abstract class TaggedResource extends ResourceService {
         // some other resource specific search
         return getOtherSearchResults(parameters, bAuthorized);
     }
+
     // End of the search API section
 
     private static void checkParameterCombination(
             Map<String, List<String>> parameters, Class<DataObject> resourceClass,
             final String first, final String second) {
         for (Map.Entry<String, List<String>> entry : parameters.entrySet()) {
-            if(!entry.getKey().equals(first) && !entry.getKey().equals(second)) {
-                throw APIException.badRequests.parameterForSearchCouldOnlyBeCombinedWithOtherParameter(resourceClass.getName(),first,second);
+            if (!entry.getKey().equals(first) && !entry.getKey().equals(second)) {
+                throw APIException.badRequests.parameterForSearchCouldOnlyBeCombinedWithOtherParameter(resourceClass.getName(), first,
+                        second);
             }
         }
     }
 
     private static void checkSearchParameterLength(final String field, String value, Class<DataObject> resourceClass) {
         final int minimum = 2;
-        if(value.length() < minimum) {
+        if (value.length() < minimum) {
             throw APIException.badRequests.invalidParameterSearchStringTooShort(field, value, resourceClass.getName(), minimum);
         }
     }
 
     /**
      * @brief List all instances of resource type
-     * Retrieve all ids of this type of resources.
-     *
+     *        Retrieve all ids of this type of resources.
+     * 
      * @prereq none
-     *
+     * 
      * @return list of ids.
      */
     @GET
     @Path("/bulk")
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public BulkIdParam getBulkIds() {
         StorageOSUser user = getUserFromContext();
         if (_permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_MONITOR) ||
-            ((isZoneLevelResource() || isSysAdminReadableResource()) &&
-                    _permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_ADMIN))) {
+                ((isZoneLevelResource() || isSysAdminReadableResource()) &&
+                _permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_ADMIN))) {
             return queryBulkIds();
         }
 
@@ -449,7 +433,7 @@ public abstract class TaggedResource extends ResourceService {
 
     /**
      * Retrieve resource ids.
-     *
+     * 
      * @return list of IDs of the resources of this type.
      */
     protected BulkIdParam queryBulkIds() {
@@ -459,23 +443,22 @@ public abstract class TaggedResource extends ResourceService {
         return ret;
     }
 
-
     /**
      * @brief List data of specified resources
-     * Retrieve resource representations based on input ids.
-     *
+     *        Retrieve resource representations based on input ids.
+     * 
      * @prereq none
-     *
+     * 
      * @param param POST data containing the id list.
      * @return list of representations.
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @ExcludeLicenseCheck
     public BulkRestRep getBulkResources(BulkIdParam param) {
-      return getBulkResources(param.getIds());
+        return getBulkResources(param.getIds());
     }
 
     protected BulkRestRep getBulkResources(List<URI> ids) {
@@ -483,15 +466,15 @@ public abstract class TaggedResource extends ResourceService {
         BulkRestRep ret = null;
 
         if (ids.size() > _maxBulkSize) {
-        	throw APIException.badRequests.exceedingLimit("bulk size", _maxBulkSize);
+            throw APIException.badRequests.exceedingLimit("bulk size", _maxBulkSize);
         }
 
         // full list for:
         // -system monitor
         // -sysadmin (if zone level resource or resource is system admin readable)
         if (_permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_MONITOR) ||
-               ( (isZoneLevelResource() || isSysAdminReadableResource())
-                       && _permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_ADMIN)) ) {
+                ((isZoneLevelResource() || isSysAdminReadableResource())
+                && _permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_ADMIN))) {
             _log.info("Bulk of {} for sysmonitor/sysadmin",
                     getResourceClass().getSimpleName());
             ret = queryBulkResourceReps(ids);
@@ -507,11 +490,11 @@ public abstract class TaggedResource extends ResourceService {
      * Query resource objects from db based on given ids which are accessible
      * by teh user in the securiy context and wrap them into resourceRestRep
      * objects.
-     *
+     * 
      * The base class throws unsupported exception.
      * Derived resource class which supports bulk retrieving in user context
      * should override this method.
-     *
+     * 
      * @param ids the URN of a ViPR representations to be filtered upon
      * @return list of filtered representations.
      */
@@ -523,10 +506,10 @@ public abstract class TaggedResource extends ResourceService {
     /**
      * Query resource objects from db based on given ids and wrap them
      * into resourceRestRep objects.
-     *
+     * 
      * The base class throws unsupported exception.
      * Derived resource class which supports bulk retrieving should override this method.
-     *
+     * 
      * @param ids the URN list of a ViPR bulk resource
      * @return list of representations.
      */

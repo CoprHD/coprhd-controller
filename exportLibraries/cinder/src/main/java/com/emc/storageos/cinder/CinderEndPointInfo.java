@@ -1,138 +1,124 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.cinder;
 
 import java.io.Serializable;
 
 /**
- * Bean for Cinder Endpoint Information. Use this bean for 
+ * Bean for Cinder Endpoint Information. Use this bean for
  * keeping cinder details required to access the cinder service.
- *
+ * 
  */
 public class CinderEndPointInfo implements Serializable {
-	
-	private static final long serialVersionUID = -1311609353266088041L;
-	private String cinderHostName = null;
-	private String cinderRESTuserName = null;
-	private String cinderRESTPassword = null;
-	private String cinderRESTPort = null;
-	private String cinderToken = null;
-	private String cinderTenantId = null;
-	private String cinderBaseUriHttp = null;
-	private String cinderBaseUriHttps = null;
-	private String cinderTenantName = null;
-	private String baseUri = null;
-	
-	public CinderEndPointInfo(String hostName, String userName,
-			String password, String tenantName) {
 
-		this.cinderHostName = hostName;
-		this.cinderRESTuserName = userName;
-		this.cinderRESTPassword = password;
-		this.cinderTenantName = tenantName;
-		this.cinderRESTPort = CinderConstants.CINDER_REST_PORT;
-	}
-	
-	public String getCinderTenantName() {
-		return cinderTenantName;
-	}
+    private static final long serialVersionUID = -1311609353266088041L;
+    private String cinderHostName = null;
+    private String cinderRESTuserName = null;
+    private String cinderRESTPassword = null;
+    private String cinderRESTPort = null;
+    private String cinderToken = null;
+    private String cinderTenantId = null;
+    private String cinderBaseUriHttp = null;
+    private String cinderBaseUriHttps = null;
+    private String cinderTenantName = null;
+    private String baseUri = null;
 
+    public CinderEndPointInfo(String hostName, String userName,
+            String password, String tenantName) {
 
-	public void setCinderTenantName(String cinderTenantName) {
-		this.cinderTenantName = cinderTenantName;
-	}
+        this.cinderHostName = hostName;
+        this.cinderRESTuserName = userName;
+        this.cinderRESTPassword = password;
+        this.cinderTenantName = tenantName;
+        this.cinderRESTPort = CinderConstants.CINDER_REST_PORT;
+    }
 
+    public String getCinderTenantName() {
+        return cinderTenantName;
+    }
 
-	public String getCinderHostName() {
-		return cinderHostName;
-	}
+    public void setCinderTenantName(String cinderTenantName) {
+        this.cinderTenantName = cinderTenantName;
+    }
 
-	public void setCinderHostName(String cinderHostName) {
-		this.cinderHostName = cinderHostName;
-	}
+    public String getCinderHostName() {
+        return cinderHostName;
+    }
 
-	
-	public String getCinderRESTuserName() {
-		return cinderRESTuserName;
-	}
+    public void setCinderHostName(String cinderHostName) {
+        this.cinderHostName = cinderHostName;
+    }
 
-	public void setCinderRESTuserName(String cinderRESTuserName) {
-		this.cinderRESTuserName = cinderRESTuserName;
-	}
+    public String getCinderRESTuserName() {
+        return cinderRESTuserName;
+    }
 
-	public String getCinderRESTPassword() {
-		return cinderRESTPassword;
-	}
+    public void setCinderRESTuserName(String cinderRESTuserName) {
+        this.cinderRESTuserName = cinderRESTuserName;
+    }
 
-	public void setCinderRESTPassword(String cinderRESTPassword) {
-		this.cinderRESTPassword = cinderRESTPassword;
-	}
+    public String getCinderRESTPassword() {
+        return cinderRESTPassword;
+    }
 
-	public String getCinderRESTPort() {
-		return cinderRESTPort;
-	}
+    public void setCinderRESTPassword(String cinderRESTPassword) {
+        this.cinderRESTPassword = cinderRESTPassword;
+    }
 
-	public void setCinderRESTPort(String cinderRESTPort) {
-		this.cinderRESTPort = cinderRESTPort;
-	}
+    public String getCinderRESTPort() {
+        return cinderRESTPort;
+    }
 
-	public String getCinderToken() {
-		return cinderToken;
-	}
+    public void setCinderRESTPort(String cinderRESTPort) {
+        this.cinderRESTPort = cinderRESTPort;
+    }
 
-	public void setCinderToken(String cinderToken) {
-		this.cinderToken = cinderToken;
-	}
+    public String getCinderToken() {
+        return cinderToken;
+    }
 
-	public String getCinderTenantId() {
-		return cinderTenantId;
-	}
+    public void setCinderToken(String cinderToken) {
+        this.cinderToken = cinderToken;
+    }
 
-	public void setCinderTenantId(String cinderTenantId) {
-		this.cinderTenantId = cinderTenantId;
-	}
+    public String getCinderTenantId() {
+        return cinderTenantId;
+    }
 
-	private String getCinderBaseUriHttp() {
-		return cinderBaseUriHttp;
-	}
+    public void setCinderTenantId(String cinderTenantId) {
+        this.cinderTenantId = cinderTenantId;
+    }
 
-	public void setCinderBaseUriHttp(String cinderBaseUriHttp) {
-		this.cinderBaseUriHttp = cinderBaseUriHttp;
-	}
+    private String getCinderBaseUriHttp() {
+        return cinderBaseUriHttp;
+    }
 
-	private String getCinderBaseUriHttps() {
-		return cinderBaseUriHttps;
-	}
+    public void setCinderBaseUriHttp(String cinderBaseUriHttp) {
+        this.cinderBaseUriHttp = cinderBaseUriHttp;
+    }
 
-	public void setCinderBaseUriHttps(String cinderBaseUriHttps) {
-		this.cinderBaseUriHttps = cinderBaseUriHttps;
-	}
-	
-	public String getBaseUri() {
+    private String getCinderBaseUriHttps() {
+        return cinderBaseUriHttps;
+    }
 
-		if(null == baseUri)
-		{
-			String endPointBaseUri = getCinderBaseUriHttp();
-			if (null == endPointBaseUri) {
-				endPointBaseUri = getCinderBaseUriHttps();
-			}
-			baseUri = endPointBaseUri.replace("5000/v2.0", CinderConstants.CINDER_REST_PORT);
-		}		
+    public void setCinderBaseUriHttps(String cinderBaseUriHttps) {
+        this.cinderBaseUriHttps = cinderBaseUriHttps;
+    }
 
-		return baseUri;
-	}
+    public String getBaseUri() {
 
+        if (null == baseUri)
+        {
+            String endPointBaseUri = getCinderBaseUriHttp();
+            if (null == endPointBaseUri) {
+                endPointBaseUri = getCinderBaseUriHttps();
+            }
+            baseUri = endPointBaseUri.replace("5000/v2.0", CinderConstants.CINDER_REST_PORT);
+        }
+
+        return baseUri;
+    }
 
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.scaleio;
@@ -41,8 +31,8 @@ public class ScaleIOCLIHelper {
     private static Logger log = LoggerFactory.getLogger(ScaleIOCLIHelper.class);
 
     public static void updateVolumeWithAddVolumeInfo(DbClient dbClient, Volume volume, String systemId,
-                                                     Long requestedCapacity,
-                                                     ScaleIOAddVolumeResult addVolumeResult) throws IOException {
+            Long requestedCapacity,
+            ScaleIOAddVolumeResult addVolumeResult) throws IOException {
         volume.setNativeId(addVolumeResult.getId());
         volume.setWWN(generateWWN(systemId, addVolumeResult.getId()));
         volume.setAllocatedCapacity(Long.parseLong(addVolumeResult.getActualSize()) * BYTES_IN_GB);
@@ -53,9 +43,8 @@ public class ScaleIOCLIHelper {
         volume.setThinlyProvisioned(addVolumeResult.isThinlyProvisioned());
     }
 
-
     public static void updateSnapshotWithSnapshotVolumeResult(DbClient dbClient, BlockObject snapshot, String systemId,
-                                                              ScaleIOSnapshotVolumeResult result) throws IOException {
+            ScaleIOSnapshotVolumeResult result) throws IOException {
         snapshot.setNativeId(result.getId());
         snapshot.setWWN(generateWWN(systemId, result.getId()));
         snapshot.setDeviceLabel(snapshot.getLabel());
@@ -71,8 +60,8 @@ public class ScaleIOCLIHelper {
     }
 
     public static void updateSnapshotsWithSnapshotMultiVolumeResult(DbClient dbClient,
-                                                                    List<BlockSnapshot> blockSnapshots, String systemId,
-                                                                    ScaleIOSnapshotMultiVolumeResult multiResult) throws IOException {
+            List<BlockSnapshot> blockSnapshots, String systemId,
+            ScaleIOSnapshotMultiVolumeResult multiResult) throws IOException {
         for (BlockSnapshot snapshot : blockSnapshots) {
             ScaleIOSnapshotVolumeResult result = multiResult.findResult(snapshot.getLabel());
             updateSnapshotWithSnapshotVolumeResult(dbClient, snapshot, systemId, result);
@@ -82,7 +71,7 @@ public class ScaleIOCLIHelper {
 
     public static void updateStoragePoolCapacity(DbClient dbClient, ScaleIOCLI scaleIOCLI, BlockSnapshot snapshot) {
         Volume parent = dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
-        updateStoragePoolCapacity(dbClient,scaleIOCLI, parent);
+        updateStoragePoolCapacity(dbClient, scaleIOCLI, parent);
     }
 
     public static void updateStoragePoolCapacity(DbClient dbClient, ScaleIOCLI scaleIOCLI, Volume volume) {
@@ -92,7 +81,7 @@ public class ScaleIOCLIHelper {
     }
 
     public static void updateStoragePoolCapacity(DbClient dbClient, ScaleIOCLI scaleIOCLI, StoragePool storagePool,
-                                                 StorageSystem storage) {
+            StorageSystem storage) {
         try {
             log.info(String.format("Old storage pool capacity data for %n  pool %s/%s --- %n  free capacity: %s; subscribed capacity: %s",
                     storage.getId(), storagePool.getId(),

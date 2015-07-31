@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2013 EMC Corporation 
- * All Rights Reserved 
- *
- * This software contains the intellectual property of EMC Corporation 
- * or is licensed to EMC Corporation from third parties.  Use of this 
- * software and the intellectual property contained therein is expressly 
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.apidiff.serializer;
@@ -35,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-
 /**
  * Outputs API differences of all services to html file
  */
@@ -51,10 +40,11 @@ public class HtmlSerializerMultiPages extends AbstractSerializer {
     private final Map<String, ComponentView> componentMap = new TreeMap<String, ComponentView>();
 
     public HtmlSerializerMultiPages(final List<ServiceCatalogDiff> diffList, File folder) {
-        super(diffList,folder);
+        super(diffList, folder);
         file = new File(folder.getAbsolutePath() + File.separator + "apidiff-docs");
-        if (!file.exists())
+        if (!file.exists()) {
             file.mkdir();
+        }
     }
 
     @Override
@@ -62,10 +52,12 @@ public class HtmlSerializerMultiPages extends AbstractSerializer {
         String oldVersion = null, newVersion = null;
         for (ServiceCatalogDiff serviceCatalogDiff : diffList) {
             buildComponentList(serviceCatalogDiff);
-            if (oldVersion == null)
+            if (oldVersion == null) {
                 oldVersion = serviceCatalogDiff.getOldServiceCatalog().getVersion();
-            if (newVersion == null)
+            }
+            if (newVersion == null) {
                 newVersion = serviceCatalogDiff.getNewServiceCatalog().getVersion();
+            }
         }
 
         // Create component pages
@@ -102,8 +94,7 @@ public class HtmlSerializerMultiPages extends AbstractSerializer {
             getComponentView(entry.getKey().getPath()).changed.add(addComparisonRecord(entry.getKey(), entry.getValue()));
         }
 
-        for (Map.Entry<ApiIdentifier, ApiDescriptor> entry :
-                serviceCatalogDiff.getOldServiceCatalog().getApiMap().entrySet()) {
+        for (Map.Entry<ApiIdentifier, ApiDescriptor> entry : serviceCatalogDiff.getOldServiceCatalog().getApiMap().entrySet()) {
             getComponentView(entry.getKey().getPath()).removed.add(
                     addNormalRecord(entry.getKey(), entry.getValue(),
                             serviceCatalogDiff.getOldServiceCatalog().getElementMap()));
@@ -173,8 +164,9 @@ public class HtmlSerializerMultiPages extends AbstractSerializer {
                 builder.append(HtmlSerializerHelper.buildDivHeader(ApiChangeEnum.Added.toString()));
                 builder.append(HtmlSerializerHelper.buildContent(ApiChangeEnum.Added.toString(), "REST API", 2));
                 builder.append(HtmlSerializerHelper.buildTableHeader());
-                for (String added : entry.getValue().added)
+                for (String added : entry.getValue().added) {
                     builder.append(added);
+                }
                 builder.append(HtmlSerializerHelper.buildTableTailer());
                 builder.append(HtmlSerializerHelper.buildDivTailer());
             }
@@ -185,8 +177,9 @@ public class HtmlSerializerMultiPages extends AbstractSerializer {
                 builder.append(HtmlSerializerHelper.buildDivHeader(ApiChangeEnum.Changed.toString()));
                 builder.append(HtmlSerializerHelper.buildContent(ApiChangeEnum.Changed.toString(), "REST API", 2));
                 builder.append(HtmlSerializerHelper.buildTableHeader());
-                for (String changed : entry.getValue().changed)
+                for (String changed : entry.getValue().changed) {
                     builder.append(changed);
+                }
                 builder.append(HtmlSerializerHelper.buildTableTailer());
                 builder.append(HtmlSerializerHelper.buildDivTailer());
             }
@@ -196,8 +189,9 @@ public class HtmlSerializerMultiPages extends AbstractSerializer {
                 builder.append(HtmlSerializerHelper.buildDivHeader(ApiChangeEnum.Removed.toString()));
                 builder.append(HtmlSerializerHelper.buildContent(ApiChangeEnum.Removed.toString(), "REST API", 2));
                 builder.append(HtmlSerializerHelper.buildTableHeader());
-                for (String removed : entry.getValue().removed)
+                for (String removed : entry.getValue().removed) {
                     builder.append(removed);
+                }
                 builder.append(HtmlSerializerHelper.buildTableTailer());
                 builder.append(HtmlSerializerHelper.buildDivTailer());
             }
@@ -211,8 +205,8 @@ public class HtmlSerializerMultiPages extends AbstractSerializer {
     }
 
     private String addNormalRecord(final ApiIdentifier apiIdentifier,
-                                   final ApiDescriptor apiResource,
-                                   final Map<String, String> elementMap) {
+            final ApiDescriptor apiResource,
+            final Map<String, String> elementMap) {
 
         // Constructs html content for added/removed apis
         StringBuilder builder = new StringBuilder();
@@ -221,11 +215,11 @@ public class HtmlSerializerMultiPages extends AbstractSerializer {
                 new Pair<String, Integer>("URI", 15),
                 new Pair<String, Integer>(apiIdentifier.getHttpMethod() + " "
                         + apiIdentifier.getPath(), 85)
-        ));
+                ));
         builder.append(HtmlSerializerHelper.buildTableRow(1,
                 new Pair<String, Integer>("Parameter", 15),
                 new Pair<String, Integer>(apiResource.getParameters().toString(), 85)
-        ));
+                ));
 
         String requestElement = elementMap.get(apiResource.getRequestElement());
         if (requestElement != null) {
@@ -237,7 +231,7 @@ public class HtmlSerializerMultiPages extends AbstractSerializer {
         builder.append(HtmlSerializerHelper.buildTableRow(1,
                 new Pair<String, Integer>("Request Body", 15),
                 new Pair<String, Integer>(requestElement, 85)
-        ));
+                ));
 
         String responseElement = elementMap.get(apiResource.getResponseElement());
         if (responseElement != null) {
@@ -249,18 +243,18 @@ public class HtmlSerializerMultiPages extends AbstractSerializer {
         builder.append(HtmlSerializerHelper.buildTableRow(1,
                 new Pair<String, Integer>("Response Body", 15),
                 new Pair<String, Integer>(responseElement, 85)
-        ));
+                ));
         builder.append(HtmlSerializerHelper.buildTableTailer());
 
         return HtmlSerializerHelper.buildTableRow(1,
                 new Pair<String, Integer>(getSubServiceName(apiIdentifier.getPath()), 15),
                 new Pair<String, Integer>(builder.toString(), 85)
-        );
+                );
 
     }
 
     private String addComparisonRecord(final ApiIdentifier apiIdentifier,
-                                       final ApiDescriptorDiff apiDescriptorDiff) {
+            final ApiDescriptorDiff apiDescriptorDiff) {
 
         // Constructs html content for added/removed apis
         StringBuilder builder = new StringBuilder();
@@ -269,12 +263,12 @@ public class HtmlSerializerMultiPages extends AbstractSerializer {
                 new Pair<String, Integer>("Item", 15),
                 new Pair<String, Integer>("Old", 40),
                 new Pair<String, Integer>("New", 45)
-        ));
+                ));
         builder.append(HtmlSerializerHelper.buildTableRow(2,
                 new Pair<String, Integer>("URI", 15),
                 new Pair<String, Integer>(apiIdentifier.getHttpMethod() + " "
                         + apiIdentifier.getPath(), 85)
-        ));
+                ));
 
         builder.append(addChangedField("Parameter", apiDescriptorDiff.getParamDiff()));
         builder.append(addChangedField("Request Body", apiDescriptorDiff.getRequestElementDiff()));
@@ -284,28 +278,31 @@ public class HtmlSerializerMultiPages extends AbstractSerializer {
         return HtmlSerializerHelper.buildTableRow(1,
                 new Pair<String, Integer>(getSubServiceName(apiIdentifier.getPath()), 15),
                 new Pair<String, Integer>(builder.toString(), 85)
-        );
+                );
     }
 
     private String addChangedField(final String name, Pair<String, String> pair) {
-        if (name == null || pair == null)
+        if (name == null || pair == null) {
             return "";
+        }
 
-        String left=Constants.CODE_PREFIX;
-        if (pair.getLeft() != null)
+        String left = Constants.CODE_PREFIX;
+        if (pair.getLeft() != null) {
             left += StringEscapeUtils.escapeHtml(pair.getLeft());
+        }
         left += Constants.CODE_SUFFIX;
 
-        String right=Constants.CODE_PREFIX;
-        if (pair.getRight() != null)
+        String right = Constants.CODE_PREFIX;
+        if (pair.getRight() != null) {
             right += StringEscapeUtils.escapeHtml(pair.getRight());
+        }
         right += Constants.CODE_SUFFIX;
 
         return HtmlSerializerHelper.buildTableRow(1,
                 new Pair<String, Integer>(name, 15),
                 new Pair<String, Integer>(left, 40),
                 new Pair<String, Integer>(right, 45)
-        );
+                );
     }
 
     private ComponentView getComponentView(String path) {
@@ -327,12 +324,14 @@ public class HtmlSerializerMultiPages extends AbstractSerializer {
                     break;
                 }
             }
-            if (key != null)
+            if (key != null) {
                 break;
+            }
         }
 
-        if (key == null)
-            throw new RuntimeException("Please check api PATH: /"+serviceName + "/" + componentName);
+        if (key == null) {
+            throw new RuntimeException("Please check api PATH: /" + serviceName + "/" + componentName);
+        }
 
         ComponentView componentView = componentMap.get(key);
         if (componentView == null) {
@@ -361,7 +360,7 @@ public class HtmlSerializerMultiPages extends AbstractSerializer {
             }
         }
 
-        throw new RuntimeException("Please check api PATH: /"+serviceName + "/" + componentName);
+        throw new RuntimeException("Please check api PATH: /" + serviceName + "/" + componentName);
     }
 
     private static void outputToFile(final String fileName, final String content) {
@@ -372,7 +371,5 @@ public class HtmlSerializerMultiPages extends AbstractSerializer {
             throw new IllegalStateException("Can't write result file: " + fileName, ex);
         }
     }
-
-
 
 }

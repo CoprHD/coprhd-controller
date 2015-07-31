@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -48,7 +48,7 @@ public class LicenseUtils {
         if (type == null) {
             return false;
         }
-        
+
         String licensedCacheKey = getLicensedCacheKey(type);
         Boolean licensed = null;
         if (useCache) {
@@ -71,33 +71,32 @@ public class LicenseUtils {
             Cache.set(licensedCacheKey, licensed, LICENSE_CACHE_INTERVAL);
         }
         return licensed;
-    }    
-    
+    }
+
     private static String getLicensedCacheKey(LicenseType type) {
         return "license.isLicensed." + type.toString();
     }
 
     private static void clearLicenseCache() {
-        for (LicenseType type: LicenseType.values()) {
+        for (LicenseType type : LicenseType.values()) {
             Cache.delete(getLicensedCacheKey(type));
         }
     }
 
     /**
-     * Gets the license from the API client.  If there is any error retrieving the license, this returns null.
+     * Gets the license from the API client. If there is any error retrieving the license, this returns null.
      * 
      * @return the license, or null if it could not be retrieved.
      */
     public static License getLicense() {
         try {
             return BourneUtil.getSysClient().license().get();
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             Logger.error(e, "Could not retrieve license");
             return null;
         }
     }
-    
+
     public static void updateLicenseText(String newLicenseText) {
         BourneUtil.getSysClient().license().set(newLicenseText);
         clearLicenseCache();
@@ -119,8 +118,8 @@ public class LicenseUtils {
     public static BigDecimal getLicensedCapacity(String model) {
         LicenseFeature licenseFeature = getLicenseFeature(model);
         if (licenseFeature != null && StringUtils.isNotBlank(licenseFeature.getStorageCapacity())) {
-            try { 
-                
+            try {
+
                 return new BigDecimal(licenseFeature.getStorageCapacity());
             } catch (NumberFormatException e) {
                 // ignore, just return -1
@@ -139,8 +138,8 @@ public class LicenseUtils {
                     }
                 }
             }
-        }    
-        return null;   
-    }    
-    
+        }
+        return null;
+    }
+
 }

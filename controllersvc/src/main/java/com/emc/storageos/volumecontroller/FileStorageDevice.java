@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller;
@@ -22,14 +12,14 @@ import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 
 /**
  * Main interface for block storage device specific implementations.
- *
+ * 
  */
 public interface FileStorageDevice {
 
     /**
-     *
+     * 
      * @param storage storage device operation is to be performed on
-     * @param fd   FileDeviceInputOutput object holding the data objects
+     * @param fd FileDeviceInputOutput object holding the data objects
      * @return command result object
      * @throws ControllerException
      */
@@ -37,9 +27,9 @@ public interface FileStorageDevice {
             throws ControllerException;
 
     /**
-     *
+     * 
      * @param storage storage device operation is to be performed on
-     * @param fd   FileDeviceInputOutput object holding the data objects
+     * @param fd FileDeviceInputOutput object holding the data objects
      * @return command result object
      * @throws ControllerException
      */
@@ -47,66 +37,65 @@ public interface FileStorageDevice {
             throws ControllerException;
 
     /**
-     *
+     * 
      * @param storage storage device operation is to be performed on
-     * @param fd   FileDeviceInputOutput object holding the data objects
+     * @param fd FileDeviceInputOutput object holding the data objects
      * @param exportList export list
      * @return command result object
      * @throws ControllerException
      */
     public BiosCommandResult doExport(StorageSystem storage, FileDeviceInputOutput fd,
-                                      List<FileExport> exportList) throws ControllerException;
+            List<FileExport> exportList) throws ControllerException;
 
     /**
      * Create/modify SMB share
-     *
-     * @param storage   storage device operation is to be performed on
-     * @param args      FileDeviceInputOutput object with data about file system to be shared
-     * @param smbFileShare  smb share properties
-     * @return      command result object
+     * 
+     * @param storage storage device operation is to be performed on
+     * @param args FileDeviceInputOutput object with data about file system to be shared
+     * @param smbFileShare smb share properties
+     * @return command result object
      * @throws ControllerException
      */
     public BiosCommandResult doShare(StorageSystem storage, FileDeviceInputOutput args,
-                                      SMBFileShare smbFileShare) throws ControllerException;
-
+            SMBFileShare smbFileShare) throws ControllerException;
 
     /**
      * Delete SMB share of file system
-     * @param storage   storage device operation is to be performed on
-     * @param args      FileDeviceInputOutput object with data about file system on which operation is performed
-     * @param smbFileShare  smb share properties
-     * @return   command result object
+     * 
+     * @param storage storage device operation is to be performed on
+     * @param args FileDeviceInputOutput object with data about file system on which operation is performed
+     * @param smbFileShare smb share properties
+     * @return command result object
      * @throws ControllerException
      */
-    public BiosCommandResult  doDeleteShare(StorageSystem storage, FileDeviceInputOutput args,
-                                        SMBFileShare smbFileShare) throws ControllerException;
+    public BiosCommandResult doDeleteShare(StorageSystem storage, FileDeviceInputOutput args,
+            SMBFileShare smbFileShare) throws ControllerException;
 
     /**
      * Delete all SMB shares of file system
-     * @param storage   storage device operation is to be performed on
-     * @param args      FileDeviceInputOutput object with data about file system on which operation is performed
-     * @return   command result object
+     * 
+     * @param storage storage device operation is to be performed on
+     * @param args FileDeviceInputOutput object with data about file system on which operation is performed
+     * @return command result object
      * @throws ControllerException
      */
-    public BiosCommandResult  doDeleteShares(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException;
-
-
+    public BiosCommandResult doDeleteShares(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException;
 
     /**
-     *
+     * 
      * @param storage storage device operation is to be performed on
-     * @param fd   FileDeviceInputOutput object holding the data objects
+     * @param fd FileDeviceInputOutput object holding the data objects
      * @param exportList unexport list
      * @return command result object
      * @throws ControllerException
      */
     public BiosCommandResult doUnexport(StorageSystem storage, FileDeviceInputOutput fd,
-                                        List<FileExport> exportList) throws ControllerException;
+            List<FileExport> exportList) throws ControllerException;
 
     /**
-     *
+     * 
      * @param storage storage device operation is to be performed on
-     * @param fd   FileDeviceInputOutput object holding the data objects
+     * @param fd FileDeviceInputOutput object holding the data objects
      * @return command result object
      * @throws ControllerException
      */
@@ -114,9 +103,9 @@ public interface FileStorageDevice {
             throws ControllerException;
 
     /**
-     *
+     * 
      * @param storage storage device operation is to be performed on
-     * @param fd   FileDeviceInputOutput object holding the data objects
+     * @param fd FileDeviceInputOutput object holding the data objects
      * @return command result object
      * @throws ControllerException
      */
@@ -124,9 +113,9 @@ public interface FileStorageDevice {
             throws ControllerException;
 
     /**
-     *
+     * 
      * @param storage
-     * @param fd   FileDeviceInputOutput object holding the data objects
+     * @param fd FileDeviceInputOutput object holding the data objects
      * @return command result object
      * @throws ControllerException
      */
@@ -134,31 +123,30 @@ public interface FileStorageDevice {
             throws ControllerException;
 
     /**
-     *
+     * 
      * @param storage
-     * @param fd   FileDeviceInputOutput object holding the data objects
+     * @param fd FileDeviceInputOutput object holding the data objects
      * @return command result object
      * @throws ControllerException
      */
     public BiosCommandResult doRestoreFS(StorageSystem storage, FileDeviceInputOutput fd)
             throws ControllerException;
-    
-    /**
-    *
-    * @param storage
-    * @param fd   FileDeviceInputOutput object holding the data objects
-    * @param snapshots  List of snapshot names found on the device
-    * @return command result object
-    * @throws ControllerException
-    */
-   public BiosCommandResult getFSSnapshotList(StorageSystem storage, FileDeviceInputOutput fd, 
-           List<String> snapshots) throws ControllerException;
-    
 
     /**
-     *
+     * 
+     * @param storage
+     * @param fd FileDeviceInputOutput object holding the data objects
+     * @param snapshots List of snapshot names found on the device
+     * @return command result object
+     * @throws ControllerException
+     */
+    public BiosCommandResult getFSSnapshotList(StorageSystem storage, FileDeviceInputOutput fd,
+            List<String> snapshots) throws ControllerException;
+
+    /**
+     * 
      * @param storage storage device operation is to be performed on
-     * @param fd   FileDeviceInputOutput object holding the data objects
+     * @param fd FileDeviceInputOutput object holding the data objects
      * @return command result object
      * @throws ControllerException
      */
@@ -166,6 +154,7 @@ public interface FileStorageDevice {
 
     /**
      * Connect the device - called when a new device is added
+     * 
      * @param storage storage device object
      * @return command result object
      * @throws ControllerException
@@ -173,7 +162,8 @@ public interface FileStorageDevice {
     public void doConnect(StorageSystem storage) throws ControllerException;
 
     /**
-     * Disconnect the device  - called when a device is being removed
+     * Disconnect the device - called when a device is being removed
+     * 
      * @param storage storage device object
      * @return command result object
      * @throws ControllerException
@@ -182,44 +172,45 @@ public interface FileStorageDevice {
 
     /**
      * Obtain the physical pools and ports
+     * 
      * @param storage storage device object
      * @return command result object
      * @throws ControllerException
      */
     public BiosCommandResult getPhysicalInventory(StorageSystem storage);
-    
+
     /**
-    *
-    * @param storage
-    * @param fd   FileDeviceInputOutput object holding the data objects
-    * @return command result object
-    * @throws ControllerException
-    */
-   public BiosCommandResult doCreateQuotaDirectory(StorageSystem storage, FileDeviceInputOutput fd, QuotaDirectory qt)
-           throws ControllerException;    
-   
-   /**
-   *
-   * @param storage
-   * @param fd   FileDeviceInputOutput object holding the data objects
-   * @return command result object
-   * @throws ControllerException
-   */
-   public BiosCommandResult doDeleteQuotaDirectory(StorageSystem storage, FileDeviceInputOutput fd) 
-		   throws ControllerException;
-   
-   public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage, FileDeviceInputOutput fd, QuotaDirectory qt)
-           throws ControllerException;    
+     * 
+     * @param storage
+     * @param fd FileDeviceInputOutput object holding the data objects
+     * @return command result object
+     * @throws ControllerException
+     */
+    public BiosCommandResult doCreateQuotaDirectory(StorageSystem storage, FileDeviceInputOutput fd, QuotaDirectory qt)
+            throws ControllerException;
+
+    /**
+     * 
+     * @param storage
+     * @param fd FileDeviceInputOutput object holding the data objects
+     * @return command result object
+     * @throws ControllerException
+     */
+    public BiosCommandResult doDeleteQuotaDirectory(StorageSystem storage, FileDeviceInputOutput fd)
+            throws ControllerException;
+
+    public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage, FileDeviceInputOutput fd, QuotaDirectory qt)
+            throws ControllerException;
 
     public BiosCommandResult updateExportRules(StorageSystem storage,
-			FileDeviceInputOutput args);
+            FileDeviceInputOutput args);
 
     public BiosCommandResult deleteExportRules(StorageSystem storage,
-			FileDeviceInputOutput args);
-    
-    public BiosCommandResult updateShareACLs(StorageSystem storage,
-			FileDeviceInputOutput args);
+            FileDeviceInputOutput args);
 
-	public BiosCommandResult deleteShareACLs(StorageSystem storageObj,
-			FileDeviceInputOutput args);
+    public BiosCommandResult updateShareACLs(StorageSystem storage,
+            FileDeviceInputOutput args);
+
+    public BiosCommandResult deleteShareACLs(StorageSystem storageObj,
+            FileDeviceInputOutput args);
 }

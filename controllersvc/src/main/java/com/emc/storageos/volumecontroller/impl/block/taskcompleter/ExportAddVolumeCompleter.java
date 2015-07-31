@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
@@ -39,7 +29,7 @@ public class ExportAddVolumeCompleter extends ExportTaskCompleter {
     private static final String EXPORT_ADD_VOLUME_MSG_FAILED_MSG = "Failed to add volume %s to ExportGroup %s";
 
     public ExportAddVolumeCompleter(URI egUri, Map<URI, Integer> volumes,
-                                    String task) {
+            String task) {
         super(ExportGroup.class, egUri, task);
         _volumes = new ArrayList<URI>();
         _volumes.addAll(volumes.keySet());
@@ -59,7 +49,8 @@ public class ExportAddVolumeCompleter extends ExportTaskCompleter {
                 _log.info(String.format("Done ExportMaskAddVolume - Id: %s, OpId: %s, status: %s",
                         getId().toString(), getOpId(), status.name()));
 
-                recordBlockExportOperation(dbClient, OperationTypeEnum.ADD_EXPORT_VOLUME, status, eventMessage(status, volume, exportGroup), exportGroup, volume);
+                recordBlockExportOperation(dbClient, OperationTypeEnum.ADD_EXPORT_VOLUME, status,
+                        eventMessage(status, volume, exportGroup), exportGroup, volume);
 
                 if (status.name().equals(Operation.Status.error.name())) {
                     exportGroup.removeVolume(volumeURI);
@@ -68,14 +59,14 @@ public class ExportAddVolumeCompleter extends ExportTaskCompleter {
 
             Operation operation = new Operation();
             switch (status) {
-            case error:
-                operation.error(coded);
-                break;
-            case ready:
-                operation.ready();
-                break;
-            default:
-                break;
+                case error:
+                    operation.error(coded);
+                    break;
+                case ready:
+                    operation.ready();
+                    break;
+                default:
+                    break;
             }
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
             dbClient.persistObject(exportGroup);

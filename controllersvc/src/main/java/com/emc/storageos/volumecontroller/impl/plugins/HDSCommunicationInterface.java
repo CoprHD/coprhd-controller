@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins;
 
@@ -95,7 +85,6 @@ import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 
-
 /**
  * HDSCommunicationInterface class is an implementation of
  * CommunicationInterface which is responsible to scan the HiCommand device manager.
@@ -105,45 +94,44 @@ import com.google.common.collect.Iterables;
 public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImpl {
     private static final String CONTROLLER_HICOMMAND_PROVIDER_VERSION = "controller_hicommand_provider_version";
 
-	/**
+    /**
      * Logger instance to log messages.
      */
     private static final Logger _logger = LoggerFactory.getLogger(HDSCommunicationInterface.class);
-    
+
     private static final String COMMA_SEPERATOR = "\\.";
-    
+
     private HDSApiFactory hdsApiFactory;
-    
+
     private HDSVolumeDiscoverer volumeDiscoverer;
-    
+
     private WBEMClient wbemClient = null;
-    
+
     private NamespaceList namespaces;
-    
+
     private SMIExecutor executor;
-    
+
     private PortMetricsProcessor portMetricsProcessor;
-    
-    
+
     /**
      * @param hdsApiFactory the hdsApiFactory to set
      */
     public void setHdsApiFactory(HDSApiFactory hdsApiFactory) {
         this.hdsApiFactory = hdsApiFactory;
     }
-    
+
     public void setVolumeDiscoverer(HDSVolumeDiscoverer volumeDiscoverer) {
         this.volumeDiscoverer = volumeDiscoverer;
-    }    
+    }
 
     public void setNamespaces(NamespaceList namespaces) {
         this.namespaces = namespaces;
     }
-    
+
     public void setExecutor(SMIExecutor executor) {
         this.executor = executor;
     }
-    
+
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile)
             throws BaseCollectionException {
@@ -158,23 +146,23 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             _logger.info("Started Injection of Stats to Cassandra");
             dumpStatRecords();
             injectStats();
-            
+
             // if portMetricsProcesor was injected with metering, trigger pool matcher
             if (portMetricsProcessor != null) {
                 //
-                // compute port metric to trigger if any port allocation qualification changed.  If there is
+                // compute port metric to trigger if any port allocation qualification changed. If there is
                 // changes, run vpool matcher
                 //
                 _logger.info("checking to see if Vpool Matcher needs to be run");
                 List<StoragePort> systemPorts = ControllerUtils.getSystemPortsOfSystem(_dbClient, accessProfile.getSystemId());
                 portMetricsProcessor.triggerVpoolMatcherIfPortAllocationQualificationChanged(accessProfile.getSystemId(), systemPorts);
-    
+
                 //
-                // compute storage system's average of port metrics.  Then, persist it into storage system object.
+                // compute storage system's average of port metrics. Then, persist it into storage system object.
                 //
                 portMetricsProcessor.computeStorageSystemAvgPortMetrics(accessProfile.getSystemId());
             }
-            
+
         } catch (Exception e) {
             throw new HDSCollectionException(e.getMessage());
         } finally {
@@ -193,17 +181,20 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             HDSApiClient hdsApiClient = hdsApiFactory.getClient(
                     HDSUtils.getHDSServerManagementServerInfo(accessProfile),
                     accessProfile.getUserName(), accessProfile.getPassword());
-            
+
             String apiVersion = hdsApiClient.getProviderAPIVersion();
-            _logger.info("Provider {} API Version:{}",provider.getLabel(),apiVersion);
+            _logger.info("Provider {} API Version:{}", provider.getLabel(), apiVersion);
             provider.setVersionString(apiVersion);
-            String minimumSupportedVersion = ControllerUtils.getPropertyValueFromCoordinator(_coordinator, CONTROLLER_HICOMMAND_PROVIDER_VERSION);
-            if(VersionChecker.verifyVersionDetails(minimumSupportedVersion, apiVersion) < 0)
+            String minimumSupportedVersion = ControllerUtils.getPropertyValueFromCoordinator(_coordinator,
+                    CONTROLLER_HICOMMAND_PROVIDER_VERSION);
+            if (VersionChecker.verifyVersionDetails(minimumSupportedVersion, apiVersion) < 0)
             {
-            	provider.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name());
-                throw new HDSCollectionException(String.format(" ** The HiCommand Device Manager API version is not supported. Minimum supported version should be: %s", minimumSupportedVersion));
+                provider.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name());
+                throw new HDSCollectionException(String.format(
+                        " ** The HiCommand Device Manager API version is not supported. Minimum supported version should be: %s",
+                        minimumSupportedVersion));
             }
-            
+
             provider.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
             List<StorageArray> storageArrayList = hdsApiClient.getStorageSystemsInfo();
             if (null != storageArrayList && !storageArrayList.isEmpty()) {
@@ -233,6 +224,7 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 
     /**
      * Process the XMLAPI response and persist storageSystem.
+     * 
      * @param result
      */
     private void processScanResponse(List<StorageArray> arrayList,
@@ -258,9 +250,9 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             }
             systemVO.setDeviceType(systemType);
             systemVO.addprovider(accessProfile.getSystemId().toString());
-            systemVO.setProperty(StorageSystemViewObject.MODEL,model);
+            systemVO.setProperty(StorageSystemViewObject.MODEL, model);
             systemVO.setProperty(StorageSystemViewObject.SERIAL_NUMBER, serialNumber);
-            systemVO.setProperty(StorageSystemViewObject.STORAGE_NAME,nativeGuid);
+            systemVO.setProperty(StorageSystemViewObject.STORAGE_NAME, nativeGuid);
 
             storageSystemsCache.put(nativeGuid, systemVO);
         }
@@ -279,7 +271,7 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             discoverUnManagedVolumes(accessProfile);
         } else {
             _logger.info("Discovery started for system {}", accessProfile.getSystemId());
-            
+
             StorageSystem storageSystem = null;
             String detailedStatusMessage = "Unknown Status";
             try {
@@ -295,7 +287,7 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 String objectID = Iterables.getLast(splitter);
 
                 StorageArray storageArray = hdsApiClient.getStorageSystemDetails(objectID);
-                
+
                 if (null != storageArray) {
                     parseDiscoveryResponse(storageArray, accessProfile);
                     storageArray = hdsApiClient.getStorageSystemTieringPolicies(objectID);
@@ -335,75 +327,78 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             _logger.info("Discovery Ended for system {}", accessProfile.getSystemId());
         }
     }
-    
-	/**
-	 * 1. Get all pools & its tiers of a given storagesystem. 
-	 * 2. Check whether pool is HDT (Tiering supported pool or not.)
-	 * 3. If it is HDT pool, then process all its storage tiers.
-	 * 
-	 * @param accessProfile
-	 * @throws Exception
-	 */
-	private void fetchStoragePoolTiers(StorageSystem system, String systemObjectID,
-			AccessProfile accessProfile, HDSApiClient hdsApiClient)
-			throws Exception {
-		List<Pool> journalPoolList = hdsApiClient
-				.getStoragePoolsTierInfo(systemObjectID);
-		if (null != journalPoolList && !journalPoolList.isEmpty()) {
-			for (Pool pool : journalPoolList) {
-				if (null != pool && pool.getTierControl() == 1) {
-					if (null != pool.getTiers() && !pool.getTiers().isEmpty()) {
-						processStoragePoolTiersInfo(system, pool);
-					} else {
-						_logger.debug(
-								"No storage tiers found on journal pool : {}",
-								pool.getObjectID());
-					}
-				}
-			}
-		} else {
-			_logger.info("No Journal pools found on storage system {}",
-					systemObjectID);
-		}
 
-	}
+    /**
+     * 1. Get all pools & its tiers of a given storagesystem.
+     * 2. Check whether pool is HDT (Tiering supported pool or not.)
+     * 3. If it is HDT pool, then process all its storage tiers.
+     * 
+     * @param accessProfile
+     * @throws Exception
+     */
+    private void fetchStoragePoolTiers(StorageSystem system, String systemObjectID,
+            AccessProfile accessProfile, HDSApiClient hdsApiClient)
+            throws Exception {
+        List<Pool> journalPoolList = hdsApiClient
+                .getStoragePoolsTierInfo(systemObjectID);
+        if (null != journalPoolList && !journalPoolList.isEmpty()) {
+            for (Pool pool : journalPoolList) {
+                if (null != pool && pool.getTierControl() == 1) {
+                    if (null != pool.getTiers() && !pool.getTiers().isEmpty()) {
+                        processStoragePoolTiersInfo(system, pool);
+                    } else {
+                        _logger.debug(
+                                "No storage tiers found on journal pool : {}",
+                                pool.getObjectID());
+                    }
+                }
+            }
+        } else {
+            _logger.info("No Journal pools found on storage system {}",
+                    systemObjectID);
+        }
 
-	private void processStoragePoolTiersInfo(StorageSystem system, Pool pool) {
-		String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(system, pool.getObjectID(), NativeGUIDGenerator.POOL);
-		URIQueryResultList uriQueryResult = new URIQueryResultList();
-		Set<String> tiersSet = new HashSet<String>();
-	    List<StorageTier> newTiers = new ArrayList<StorageTier>();
-	    List<StorageTier> updateTiers = new ArrayList<StorageTier>();
-		_dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePoolByNativeGuidConstraint(poolNativeGuid), uriQueryResult);
-		StoragePool poolInDb = null;
-		if (uriQueryResult.iterator().hasNext()) {
-			poolInDb = _dbClient.queryObject(StoragePool.class, uriQueryResult.iterator().next());
-			if (null == poolInDb) return;
-		}
-		for (StoragePoolTier tier : pool.getTiers()) {
-		    String tierNativeGuid = NativeGUIDGenerator.generateStorageTierNativeGuidForHDSTier(system, poolInDb.getNativeId(), tier.getTierID());
-		    StorageTier storageTier = checkStorageTierExistsInDB(tierNativeGuid);
-		    if (null == storageTier) {
-		        storageTier = new StorageTier();
-		        storageTier.setId(URIUtil.createId(StorageTier.class));
-		        storageTier.setDiskDriveTechnology(tier.getDiskType());
-		        storageTier.setLabel(tier.getObjectID());
-		        storageTier.setNativeGuid(tierNativeGuid);
-		        storageTier.setStorageDevice(system.getId());
-		        storageTier.setTotalCapacity(Long.parseLong(tier.getCapacityInKB()));
-		        newTiers.add(storageTier);
-		    }
-		    //@TODO check whether we are getting the right percentage.
+    }
+
+    private void processStoragePoolTiersInfo(StorageSystem system, Pool pool) {
+        String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(system, pool.getObjectID(), NativeGUIDGenerator.POOL);
+        URIQueryResultList uriQueryResult = new URIQueryResultList();
+        Set<String> tiersSet = new HashSet<String>();
+        List<StorageTier> newTiers = new ArrayList<StorageTier>();
+        List<StorageTier> updateTiers = new ArrayList<StorageTier>();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePoolByNativeGuidConstraint(poolNativeGuid), uriQueryResult);
+        StoragePool poolInDb = null;
+        if (uriQueryResult.iterator().hasNext()) {
+            poolInDb = _dbClient.queryObject(StoragePool.class, uriQueryResult.iterator().next());
+            if (null == poolInDb) {
+                return;
+            }
+        }
+        for (StoragePoolTier tier : pool.getTiers()) {
+            String tierNativeGuid = NativeGUIDGenerator.generateStorageTierNativeGuidForHDSTier(system, poolInDb.getNativeId(),
+                    tier.getTierID());
+            StorageTier storageTier = checkStorageTierExistsInDB(tierNativeGuid);
+            if (null == storageTier) {
+                storageTier = new StorageTier();
+                storageTier.setId(URIUtil.createId(StorageTier.class));
+                storageTier.setDiskDriveTechnology(tier.getDiskType());
+                storageTier.setLabel(tier.getObjectID());
+                storageTier.setNativeGuid(tierNativeGuid);
+                storageTier.setStorageDevice(system.getId());
+                storageTier.setTotalCapacity(Long.parseLong(tier.getCapacityInKB()));
+                newTiers.add(storageTier);
+            }
+            // @TODO check whether we are getting the right percentage.
             storageTier.setPercentage(tier.getUsageRate());
             tiersSet.add(storageTier.getId().toString());
             updateTiers.add(storageTier);
-		}
-		_dbClient.createObject(newTiers);
-		_dbClient.persistObject(updateTiers);
-		poolInDb.addTiers(tiersSet);
-		_dbClient.persistObject(poolInDb);
-	}
-	
+        }
+        _dbClient.createObject(newTiers);
+        _dbClient.persistObject(updateTiers);
+        poolInDb.addTiers(tiersSet);
+        _dbClient.persistObject(poolInDb);
+    }
+
     /**
      * Check if Storage Tier exists in DB.
      * 
@@ -423,8 +418,9 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
         return tier;
     }
 
-	/**
+    /**
      * Discover all UnManagedVolumes for a given storagesystem.
+     * 
      * @param accessProfile
      */
     private void discoverUnManagedVolumes(AccessProfile accessProfile) {
@@ -492,46 +488,46 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
      * 
      * @param result
      * @param accessProfile
-     * @throws Exception 
+     * @throws Exception
      */
     private void parseDiscoveryResponse(StorageArray array, AccessProfile accessProfile) throws Exception {
         String nativeGuid = NativeGUIDGenerator.generateNativeGuid(
                 DiscoveredDataObject.Type.hds.toString(), array.getObjectID());
         List<StorageSystem> systems = CustomQueryUtility.getActiveStorageSystemByNativeGuid(_dbClient, nativeGuid);
-        if (systems !=null && !systems.isEmpty()) {
-        	try {
-        		StorageSystem system = systems.get(0);
-        		processStorageSystemResponse(system, array);
-        		Set<String> supportedProtocols = new HashSet<String>();
-        		processStorageAdapterResponse(system, array.getPortControllerList(),
-        				accessProfile);
-        		List<StoragePort> ports = processStoragePortResponse(system, array.getPortList(), accessProfile, supportedProtocols);
-        		List<StoragePool> poolsToMatchWithVpool = new ArrayList<StoragePool>();
-        		List<StoragePool> thickPools = processStorageThickPoolResponse(system, array.getThickPoolList(),
-        				accessProfile, supportedProtocols, poolsToMatchWithVpool);
-        		List<StoragePool> thinPools = processStorageThinPoolResponse(system, array.getThinPoolList(),
-        		        accessProfile, supportedProtocols, poolsToMatchWithVpool);
-        		
-        		//Get the pools not visible in the present discovery
-        		List<StoragePool> discoveredPools = new ArrayList<StoragePool>(thickPools);
-        		discoveredPools.addAll(thinPools);
-        		List<StoragePool> notVisiblePools = DiscoveryUtils.checkStoragePoolsNotVisible(discoveredPools, _dbClient, system.getId());
-        		for (StoragePool notVisiblePool : notVisiblePools) {
+        if (systems != null && !systems.isEmpty()) {
+            try {
+                StorageSystem system = systems.get(0);
+                processStorageSystemResponse(system, array);
+                Set<String> supportedProtocols = new HashSet<String>();
+                processStorageAdapterResponse(system, array.getPortControllerList(),
+                        accessProfile);
+                List<StoragePort> ports = processStoragePortResponse(system, array.getPortList(), accessProfile, supportedProtocols);
+                List<StoragePool> poolsToMatchWithVpool = new ArrayList<StoragePool>();
+                List<StoragePool> thickPools = processStorageThickPoolResponse(system, array.getThickPoolList(),
+                        accessProfile, supportedProtocols, poolsToMatchWithVpool);
+                List<StoragePool> thinPools = processStorageThinPoolResponse(system, array.getThinPoolList(),
+                        accessProfile, supportedProtocols, poolsToMatchWithVpool);
+
+                // Get the pools not visible in the present discovery
+                List<StoragePool> discoveredPools = new ArrayList<StoragePool>(thickPools);
+                discoveredPools.addAll(thinPools);
+                List<StoragePool> notVisiblePools = DiscoveryUtils.checkStoragePoolsNotVisible(discoveredPools, _dbClient, system.getId());
+                for (StoragePool notVisiblePool : notVisiblePools) {
                     poolsToMatchWithVpool.add(notVisiblePool);
                 }
-        		
-        		//Get all the ports not visible in the present discovery
-        		List<StoragePort> notVisiblePorts = DiscoveryUtils.checkStoragePortsNotVisible(ports, _dbClient, system.getId());
-        		
-        		List<StoragePort> updatedPorts = new ArrayList<StoragePort>(ports);
-        		updatedPorts.addAll(notVisiblePorts);
 
-        		StoragePortAssociationHelper.runUpdatePortAssociationsProcess(updatedPorts,null, _dbClient, _coordinator,
-        				poolsToMatchWithVpool);
-        	} catch (Exception ex) {
-        		_logger.error("Exception occurred during discovery.", ex);
-        		throw ex;
-        	}
+                // Get all the ports not visible in the present discovery
+                List<StoragePort> notVisiblePorts = DiscoveryUtils.checkStoragePortsNotVisible(ports, _dbClient, system.getId());
+
+                List<StoragePort> updatedPorts = new ArrayList<StoragePort>(ports);
+                updatedPorts.addAll(notVisiblePorts);
+
+                StoragePortAssociationHelper.runUpdatePortAssociationsProcess(updatedPorts, null, _dbClient, _coordinator,
+                        poolsToMatchWithVpool);
+            } catch (Exception ex) {
+                _logger.error("Exception occurred during discovery.", ex);
+                throw ex;
+            }
 
         } else {
             _logger.error("Unidentified storage system {} found", array.getObjectID());
@@ -541,87 +537,92 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 
     /**
      * Parse & process the TieringPolicies of a given system.
+     * 
      * @param array
      * @param accessProfile
      * @throws Exception
      */
     private void parseDiscoveryTieringPolicyResponse(StorageArray array, AccessProfile accessProfile) throws Exception {
-    	String nativeGuid = NativeGUIDGenerator.generateNativeGuid(
+        String nativeGuid = NativeGUIDGenerator.generateNativeGuid(
                 DiscoveredDataObject.Type.hds.toString(), array.getObjectID());
         URIQueryResultList queryResult = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getStorageSystemByNativeGuidConstraint(nativeGuid), queryResult);
         if (queryResult.iterator().hasNext()) {
-        	 URI systemURI = queryResult.iterator().next();
-             if (null != systemURI) {
-                 try {
-                     StorageSystem system = _dbClient.queryObject(StorageSystem.class,
-                             systemURI);
-                     if (null == system) return;
-                     List<TieringPolicy> tpList = array.getTieringPolicyList();
-                     if (null != tpList && !tpList.isEmpty()) {
-                    	 processDiscoveredTieringPolicies(system, tpList);
-                     } else {
-                    	 _logger.info("No tieringPolicies defined for the system: {}", systemURI);
-                     }
-                 } catch (Exception ex) {
-                     _logger.error("Exception occurred during discovery of Tiering Policies.", ex);
-                     throw ex;
-                 }
-             }
+            URI systemURI = queryResult.iterator().next();
+            if (null != systemURI) {
+                try {
+                    StorageSystem system = _dbClient.queryObject(StorageSystem.class,
+                            systemURI);
+                    if (null == system) {
+                        return;
+                    }
+                    List<TieringPolicy> tpList = array.getTieringPolicyList();
+                    if (null != tpList && !tpList.isEmpty()) {
+                        processDiscoveredTieringPolicies(system, tpList);
+                    } else {
+                        _logger.info("No tieringPolicies defined for the system: {}", systemURI);
+                    }
+                } catch (Exception ex) {
+                    _logger.error("Exception occurred during discovery of Tiering Policies.", ex);
+                    throw ex;
+                }
+            }
         }
     }
-    
+
     /**
      * Process the tieringpolicies received for a given system.
+     * 
      * @param system
      * @param tpList
      */
     private void processDiscoveredTieringPolicies(StorageSystem system,
-			List<TieringPolicy> tpList) {
-		List<AutoTieringPolicy> newPolicies = new ArrayList<AutoTieringPolicy>();
-		List<AutoTieringPolicy> allPolicies = new ArrayList<AutoTieringPolicy>();
-		List<AutoTieringPolicy> updatePolicies = new ArrayList<AutoTieringPolicy>();
-		for (TieringPolicy tpFromResponse : tpList) {
-		    // Ignore all custom tiering policies.
-		    if (Integer.parseInt(tpFromResponse.getPolicyID()) > 5) {
+            List<TieringPolicy> tpList) {
+        List<AutoTieringPolicy> newPolicies = new ArrayList<AutoTieringPolicy>();
+        List<AutoTieringPolicy> allPolicies = new ArrayList<AutoTieringPolicy>();
+        List<AutoTieringPolicy> updatePolicies = new ArrayList<AutoTieringPolicy>();
+        for (TieringPolicy tpFromResponse : tpList) {
+            // Ignore all custom tiering policies.
+            if (Integer.parseInt(tpFromResponse.getPolicyID()) > 5) {
                 _logger.debug("Ignoring custom policy {} on system {} ", tpFromResponse.getPolicyID(),
                         system.getNativeGuid());
-		        continue;
-		    }
+                continue;
+            }
             String nativeGuid = NativeGUIDGenerator.generateAutoTierPolicyNativeGuid(system.getNativeGuid(),
                     getTieringPolicyLabel(tpFromResponse.getPolicyID()), NativeGUIDGenerator.AUTO_TIERING_POLICY);
-			AutoTieringPolicy tieringPolicy = checkTieringPolicyExistsInDB(nativeGuid);
-			boolean isNew = false;
-			if (null == tieringPolicy) {
-				isNew = true;
-				tieringPolicy = new AutoTieringPolicy();
-				tieringPolicy.setId(URIUtil.createId(AutoTieringPolicy.class));
+            AutoTieringPolicy tieringPolicy = checkTieringPolicyExistsInDB(nativeGuid);
+            boolean isNew = false;
+            if (null == tieringPolicy) {
+                isNew = true;
+                tieringPolicy = new AutoTieringPolicy();
+                tieringPolicy.setId(URIUtil.createId(AutoTieringPolicy.class));
                 tieringPolicy.setPolicyName(getTieringPolicyLabel(tpFromResponse.getPolicyID()));
-				tieringPolicy.setStorageSystem(system.getId());
-				tieringPolicy.setNativeGuid(nativeGuid);
-				tieringPolicy.setLabel(getTieringPolicyLabel(tpFromResponse.getPolicyID()));
-				tieringPolicy.setSystemType(Type.hds.name());
-				newPolicies.add(tieringPolicy);
-			}
-			// Hitachi is not providing any API to check whether a policy is enabled or not.
-			// Hence enabling by default for all policies.
-			tieringPolicy.setPolicyEnabled(Boolean.TRUE);
-			tieringPolicy
-					.setProvisioningType(ProvisioningType.ThinlyProvisioned
-							.name());
-			if (!isNew) {
-				updatePolicies.add(tieringPolicy);
-			}
-		}
-		_dbClient.createObject(newPolicies);
-		_dbClient.persistObject(updatePolicies);
-		allPolicies.addAll(newPolicies);
-		allPolicies.addAll(updatePolicies);
-	}
+                tieringPolicy.setStorageSystem(system.getId());
+                tieringPolicy.setNativeGuid(nativeGuid);
+                tieringPolicy.setLabel(getTieringPolicyLabel(tpFromResponse.getPolicyID()));
+                tieringPolicy.setSystemType(Type.hds.name());
+                newPolicies.add(tieringPolicy);
+            }
+            // Hitachi is not providing any API to check whether a policy is enabled or not.
+            // Hence enabling by default for all policies.
+            tieringPolicy.setPolicyEnabled(Boolean.TRUE);
+            tieringPolicy
+                    .setProvisioningType(ProvisioningType.ThinlyProvisioned
+                            .name());
+            if (!isNew) {
+                updatePolicies.add(tieringPolicy);
+            }
+        }
+        _dbClient.createObject(newPolicies);
+        _dbClient.persistObject(updatePolicies);
+        allPolicies.addAll(newPolicies);
+        allPolicies.addAll(updatePolicies);
+    }
 
     /**
      * Returns the policy name like HiCommand Suite.
+     * 
      * @param policyID
      * @return
      */
@@ -632,54 +633,56 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 
     /**
      * Verify whether tieringPolicy already exists in DB or not.
+     * 
      * @param nativeGuid
      * @return
      */
-	private AutoTieringPolicy checkTieringPolicyExistsInDB(String nativeGuid) {
-		AutoTieringPolicy tieringPolicy = null;
-		URIQueryResultList queryResult = new URIQueryResultList();
-		// use NativeGuid to lookup Pools in DB
-		_dbClient.queryByConstraint(AlternateIdConstraint.Factory
-				.getAutoTieringPolicyByNativeGuidConstraint(nativeGuid), queryResult);
-		if (queryResult.iterator().hasNext()) {
-			URI tieringPolicyURI = queryResult.iterator().next();
-			if (null != tieringPolicyURI) {
-				tieringPolicy = _dbClient.queryObject(AutoTieringPolicy.class,
-						tieringPolicyURI);
-			}
-		}
-		return tieringPolicy;
-	}
+    private AutoTieringPolicy checkTieringPolicyExistsInDB(String nativeGuid) {
+        AutoTieringPolicy tieringPolicy = null;
+        URIQueryResultList queryResult = new URIQueryResultList();
+        // use NativeGuid to lookup Pools in DB
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getAutoTieringPolicyByNativeGuidConstraint(nativeGuid), queryResult);
+        if (queryResult.iterator().hasNext()) {
+            URI tieringPolicyURI = queryResult.iterator().next();
+            if (null != tieringPolicyURI) {
+                tieringPolicy = _dbClient.queryObject(AutoTieringPolicy.class,
+                        tieringPolicyURI);
+            }
+        }
+        return tieringPolicy;
+    }
 
-	/**
+    /**
      * Process the system response and update storagesystem object.
+     * 
      * @param system
      * @param array
      */
-	private void processStorageSystemResponse(StorageSystem system,
-			StorageArray array) {
-		system.setFirmwareVersion(array.getControllerVersion());
-		String arrayIpAddress = null;
-		// Since Hicommand XML API is not providing a property to get the ipaddress.
-		// We should parse name & description to find the ipaddress of the SVP.
-		if (null != array.getName()
-				&& array.getName().contains(HDSConstants.AT_THE_RATE_SYMBOL)) {
-			arrayIpAddress = HDSUtils.extractIpAddress(array.getName(), 2,
-					HDSConstants.AT_THE_RATE_SYMBOL);
-		} else {
-			int length = array.getDescription().split(HDSConstants.SPACE_STR).length - 1;
-			arrayIpAddress = HDSUtils.extractIpAddress(array.getDescription(),
-					length, HDSConstants.SPACE_STR);
-		}
-		system.setIpAddress(arrayIpAddress);
-		system.setLabel(array.getName());
-		system.setReachableStatus(Boolean.TRUE);
-		// TODO needs to set compatible status based on the firmware check
-		system.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
-    	system.setAutoTieringEnabled(Boolean.TRUE);
+    private void processStorageSystemResponse(StorageSystem system,
+            StorageArray array) {
+        system.setFirmwareVersion(array.getControllerVersion());
+        String arrayIpAddress = null;
+        // Since Hicommand XML API is not providing a property to get the ipaddress.
+        // We should parse name & description to find the ipaddress of the SVP.
+        if (null != array.getName()
+                && array.getName().contains(HDSConstants.AT_THE_RATE_SYMBOL)) {
+            arrayIpAddress = HDSUtils.extractIpAddress(array.getName(), 2,
+                    HDSConstants.AT_THE_RATE_SYMBOL);
+        } else {
+            int length = array.getDescription().split(HDSConstants.SPACE_STR).length - 1;
+            arrayIpAddress = HDSUtils.extractIpAddress(array.getDescription(),
+                    length, HDSConstants.SPACE_STR);
+        }
+        system.setIpAddress(arrayIpAddress);
+        system.setLabel(array.getName());
+        system.setReachableStatus(Boolean.TRUE);
+        // TODO needs to set compatible status based on the firmware check
+        system.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
+        system.setAutoTieringEnabled(Boolean.TRUE);
 
-		_dbClient.persistObject(system);
-	}
+        _dbClient.persistObject(system);
+    }
 
     /**
      * 
@@ -715,16 +718,18 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 port.setPortNetworkId(portFromResponse.getWwpn());
                 if (HDSConstants.TARGET.equalsIgnoreCase(portFromResponse.getPortRole())) {
                     port.setPortType(PortType.frontend.name());
-                }else{
+                } else {
                     port.setPortType(PortType.Unknown.name());
                 }
                 // @TODO extract the operationalStatus from topology and set.
-                //if (portFromResponse.getTopology().contains("LinkUp")) {
-                    port.setOperationalStatus(OperationalStatus.OK.toString());    
-                /*} else if(portFromResponse.getTopology().contains("Failure")) {
-                    port.setOperationalStatus(OperationalStatus.NOT_OK.toString());  
-                }*/
-                
+                // if (portFromResponse.getTopology().contains("LinkUp")) {
+                port.setOperationalStatus(OperationalStatus.OK.toString());
+                /*
+                 * } else if(portFromResponse.getTopology().contains("Failure")) {
+                 * port.setOperationalStatus(OperationalStatus.NOT_OK.toString());
+                 * }
+                 */
+
                 if (HDSConstants.FIBRE.equalsIgnoreCase(portFromResponse.getPortType())) {
                     port.setTransportType(HDSConstants.FC);
                     addProtocolIfNotExists(supportedProtocols, HDSConstants.FC);
@@ -748,9 +753,9 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             allPorts.addAll(updatePorts);
         }
         return allPorts;
-        
+
     }
-    
+
     /**
      * Verify whether protocolType already exists or not. If it doesn't exist
      * then add.
@@ -766,16 +771,18 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 
     /**
      * Return the StorageAdapter information of a port it belongs to.
+     * 
      * @param port : port to find the adapter info.
      * @param system : storage system details.
      * @return : URI of the StorageHADomain.
-     * @throws IOException 
+     * @throws IOException
      */
     private URI getStorageAdapterRef(Port port, StorageSystem system) throws IOException {
         URIQueryResultList queryResult = new URIQueryResultList();
         URI uri = null;
         // CONTROLLER.D800S.83041093.0
-        String adapterObjectID = generateObjectID(HDSConstants.CONTROLLER, port.getArrayType(), port.getSerialNumber(), port.getPortControllerID());
+        String adapterObjectID = generateObjectID(HDSConstants.CONTROLLER, port.getArrayType(), port.getSerialNumber(),
+                port.getPortControllerID());
         String adapterNativeGuid = NativeGUIDGenerator.generateNativeGuid(system,
                 adapterObjectID, NativeGUIDGenerator.ADAPTER);
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageHADomainByNativeGuidConstraint(adapterNativeGuid), queryResult);
@@ -787,6 +794,7 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 
     /**
      * Utility to generate ObjectId.
+     * 
      * @param componentKey
      * @param arrayType
      * @param serialNumber
@@ -795,12 +803,13 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
      */
     private String generateObjectID(String componentKey, String arrayType,
             String serialNumber, String nativeID) {
-        String []uriParams = new String[]{componentKey, arrayType, serialNumber, nativeID};
+        String[] uriParams = new String[] { componentKey, arrayType, serialNumber, nativeID };
         return MessageFormatter.arrayFormat(HDSConstants.HDS_OBJECT_ID_FORMAT, uriParams).getMessage();
     }
 
     /**
      * Process the StorageAdapter response received from the server.
+     * 
      * @param system : storagesystem details.
      * @param portControllerList : List of portcontrollers info received from server.
      * @param accessProfile : accessProfile details.
@@ -843,8 +852,7 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             _dbClient.persistObject(updateAdapters);
         }
     }
-    
-    
+
     /**
      * Check if Adapter exists in DB.
      * 
@@ -858,12 +866,12 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
         StorageHADomain adapter = null;
         // use NativeGuid to lookup Pools in DB
         List<StorageHADomain> adapterInDB = CustomQueryUtility.getActiveStorageHADomainByNativeGuid(_dbClient, nativeGuid);
-        if (adapterInDB !=null && !adapterInDB.isEmpty()) {
-        	adapter = adapterInDB.get(0);
+        if (adapterInDB != null && !adapterInDB.isEmpty()) {
+            adapter = adapterInDB.get(0);
         }
         return adapter;
     }
-    
+
     /**
      * Check if Pool exists in DB.
      * 
@@ -877,13 +885,13 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
         StoragePool pool = null;
         // use NativeGuid to lookup Pools in DB
         List<StoragePool> poolInDB = CustomQueryUtility.getActiveStoragePoolByNativeGuid(_dbClient, nativeGuid);
-        if (poolInDB !=null && !poolInDB.isEmpty()) {
-        	pool = poolInDB.get(0);
+        if (poolInDB != null && !poolInDB.isEmpty()) {
+            pool = poolInDB.get(0);
         }
-        
+
         return pool;
     }
-    
+
     /**
      * Check if Port exists in DB.
      * 
@@ -897,44 +905,44 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
         StoragePort port = null;
         // use NativeGuid to lookup Pools in DB
         List<StoragePort> portInDB = CustomQueryUtility.getActiveStoragePortByNativeGuid(_dbClient, nativeGuid);
-        if (portInDB !=null && !portInDB.isEmpty()) {
-        	port = portInDB.get(0);
+        if (portInDB != null && !portInDB.isEmpty()) {
+            port = portInDB.get(0);
         }
         return port;
     }
-    
 
     /**
      * Process the ThickPool response received from server.
+     * 
      * @param system
      * @param thickPoolListFromResponse
      * @param accessProfile
      * @param supportedProtocols
-     * @param poolsToMatchWithVpool 
+     * @param poolsToMatchWithVpool
      * @throws IOException
      */
     private List<StoragePool> processStorageThickPoolResponse(StorageSystem system,
             List<Pool> thickPoolListFromResponse, AccessProfile accessProfile,
             Set<String> supportedProtocols, List<StoragePool> poolsToMatchWithVpool) throws IOException {
-        _logger.debug("Entering {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        _logger.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         List<StoragePool> newPools = new ArrayList<StoragePool>();
         List<StoragePool> updatePools = new ArrayList<StoragePool>();
         List<StoragePool> allPools = new ArrayList<StoragePool>();
-        
+
         if (null != thickPoolListFromResponse && !thickPoolListFromResponse.isEmpty()) {
-            _logger.debug("thickPoolListFromResponse.size() :{}",thickPoolListFromResponse.size());
+            _logger.debug("thickPoolListFromResponse.size() :{}", thickPoolListFromResponse.size());
             for (Pool poolFromResponse : thickPoolListFromResponse) {
-                _logger.debug("Pool Id:{}",poolFromResponse.getPoolID());
-                 // Thick pool's type should be either 0/1 or -1. we should ignore thin pools here.
-                 if (!(0 == Integer.valueOf(poolFromResponse.getType()) || -1 == Integer.valueOf(poolFromResponse.getType())
-            			 || 1 == Integer.valueOf(poolFromResponse.getType()) )) {
-                     continue;
-                 }
+                _logger.debug("Pool Id:{}", poolFromResponse.getPoolID());
+                // Thick pool's type should be either 0/1 or -1. we should ignore thin pools here.
+                if (!(0 == Integer.valueOf(poolFromResponse.getType()) || -1 == Integer.valueOf(poolFromResponse.getType())
+                || 1 == Integer.valueOf(poolFromResponse.getType()))) {
+                    continue;
+                }
                 boolean isNew = false;
                 boolean isModified = false;   // indicates whether to add to modified pools list or not
                 String nativeGuid = NativeGUIDGenerator.generateNativeGuid(system,
                         poolFromResponse.getObjectID(), NativeGUIDGenerator.POOL);
-                _logger.debug("nativeGuid :{}",nativeGuid);
+                _logger.debug("nativeGuid :{}", nativeGuid);
                 StoragePool pool = checkPoolExistsInDB(nativeGuid);
                 if (null == pool) {
                     isNew = true;
@@ -950,28 +958,28 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                     pool.setPoolServiceType(PoolServiceType.block.toString());
                     pool.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED
                             .toString());
-                   
-                    
-                    
+
                     StringSet raidLevels = new StringSet();
                     // raid level for thick pools will be like RAID5(7D+1P), RAID1(1D+1D)
                     // we needs to truncate (7D+1P)
                     String raidLevel = parseRaidLevel(poolFromResponse.getRaidType());
-                    if(StringUtils.isNotEmpty(raidLevel)){
+                    if (StringUtils.isNotEmpty(raidLevel)) {
                         raidLevels.add(raidLevel);
                     }
                     pool.addSupportedRaidLevels(raidLevels);
                     pool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THICK_ONLY
                             .toString());
                     _logger.info("poolType {} {}", poolFromResponse.getType(), poolFromResponse.getObjectID());
-                    /*// Only Basic volumes are allowed to create.
-                    if (0 == Integer.valueOf(poolFromResponse.getType()) || -1 == Integer.valueOf(poolFromResponse.getType())) {
-                        
-                    } else if (Integer.valueOf(poolFromResponse.getType()) == 4 || Integer.valueOf(poolFromResponse.getType()) == 3) {
-                        // Only DP volumes are allowed to create.
-                        pool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THIN_ONLY
-                                .toString());
-                    }*/
+                    /*
+                     * // Only Basic volumes are allowed to create.
+                     * if (0 == Integer.valueOf(poolFromResponse.getType()) || -1 == Integer.valueOf(poolFromResponse.getType())) {
+                     * 
+                     * } else if (Integer.valueOf(poolFromResponse.getType()) == 4 || Integer.valueOf(poolFromResponse.getType()) == 3) {
+                     * // Only DP volumes are allowed to create.
+                     * pool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THIN_ONLY
+                     * .toString());
+                     * }
+                     */
                 }
                 StringSet protocols = new StringSet(supportedProtocols);
                 if (!isNew && ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getProtocols(), protocols)) {
@@ -980,17 +988,18 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 pool.setProtocols(protocols);
                 pool.setPoolName(poolFromResponse.getDisplayName());
                 pool.setFreeCapacity(poolFromResponse.getFreeCapacity());
-                
+
                 // UNSYNC_ASSOC -> snapshot, UNSYNC_UNASSOC -> clone
                 StringSet copyTypes = new StringSet();
                 copyTypes.add(StoragePool.CopyTypes.UNSYNC_ASSOC.name());
                 copyTypes.add(StoragePool.CopyTypes.UNSYNC_UNASSOC.name());
                 copyTypes.add(StoragePool.CopyTypes.SYNC.name());
                 copyTypes.add(StoragePool.CopyTypes.ASYNC.name());
-                
+
                 pool.setSupportedCopyTypes(copyTypes);
-                
-                // There is not direct way to get total capacity. totaCapacity = allocated capacity of allocated volumes + unallocated volumes
+
+                // There is not direct way to get total capacity. totaCapacity = allocated capacity of allocated volumes + unallocated
+                // volumes
                 pool.setTotalCapacity(poolFromResponse.getFreeCapacity() + poolFromResponse.getUsedCapacity());
                 if (StringUtils.isNotBlank(poolFromResponse.getDisplayName())) {
                     pool.setLabel(poolFromResponse.getDisplayName().length() == 1 ? " "
@@ -998,10 +1007,10 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                             .getDisplayName());
                 }
 
-                if (!isNew && !isModified && 
+                if (!isNew && !isModified &&
                         (ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getCompatibilityStatus(),
-                                CompatibilityStatus.COMPATIBLE.name()) || 
-                        ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getDiscoveryStatus(), 
+                                CompatibilityStatus.COMPATIBLE.name()) ||
+                        ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getDiscoveryStatus(),
                                 DiscoveryStatus.VISIBLE.name()))) {
                     isModified = true;
                 }
@@ -1021,59 +1030,61 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 }
 
             }
-            
+
             StoragePoolAssociationHelper.setStoragePoolVarrays(system.getId(), newPools, _dbClient);
 
-            _logger.debug("newPools size:{}",newPools.size());
-            _logger.debug("updatePools size:{}",updatePools.size());
+            _logger.debug("newPools size:{}", newPools.size());
+            _logger.debug("updatePools size:{}", updatePools.size());
             _dbClient.createObject(newPools);
             _dbClient.persistObject(updatePools);
             allPools.addAll(newPools);
             allPools.addAll(updatePools);
         }
-        _logger.debug("Exiting {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        _logger.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         return allPools;
     }
-    
+
     /**
      * Raid level for thick pools will be RAID5(7D+1P), RAID1(1D+1D) or "-"
+     * 
      * @param raidType
      * @return truncated raid level
      */
     private String parseRaidLevel(String raidLevel) {
         String result = null;
-        _logger.debug("Raid Level recived from hds :{}",raidLevel);
-        if(raidLevel!=null && raidLevel.length()>4 &&
-                raidLevel.contains("(")){
-            result = raidLevel.substring(0,raidLevel.indexOf("("));
-            //RAID1+0(2D+2D) -> RAID10
-            if(result.contains("+")){
+        _logger.debug("Raid Level recived from hds :{}", raidLevel);
+        if (raidLevel != null && raidLevel.length() > 4 &&
+                raidLevel.contains("(")) {
+            result = raidLevel.substring(0, raidLevel.indexOf("("));
+            // RAID1+0(2D+2D) -> RAID10
+            if (result.contains("+")) {
                 result = new StringBuilder(result).deleteCharAt(result.indexOf("+")).toString();
             }
         }
-        _logger.debug("Raid Level after parsing :{}",result);
+        _logger.debug("Raid Level after parsing :{}", result);
         return result;
     }
 
     /**
      * Process the thin pool response received from server.
+     * 
      * @param system
      * @param thinPoolListFromResponse
      * @param accessProfile
      * @param supportedProtocols
-     * @param poolsToMatchWithVpool 
+     * @param poolsToMatchWithVpool
      * @throws IOException
      */
     private List<StoragePool> processStorageThinPoolResponse(StorageSystem system,
             List<Pool> thinPoolListFromResponse, AccessProfile accessProfile,
             Set<String> supportedProtocols, List<StoragePool> poolsToMatchWithVpool) throws IOException {
-        _logger.debug("Entering {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        _logger.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         List<StoragePool> newPools = new ArrayList<StoragePool>();
         List<StoragePool> updatePools = new ArrayList<StoragePool>();
         List<StoragePool> allPools = new ArrayList<StoragePool>();
-        
+
         if (null != thinPoolListFromResponse && !thinPoolListFromResponse.isEmpty()) {
-            _logger.debug("thinPoolListFromResponse size:{}",thinPoolListFromResponse.size());
+            _logger.debug("thinPoolListFromResponse size:{}", thinPoolListFromResponse.size());
             for (Pool poolFromResponse : thinPoolListFromResponse) {
 
                 if (poolFromResponse.getPoolFunction() == 5) {
@@ -1081,7 +1092,7 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                     boolean isModified = false;   // indicates whether to add to modified pools list or not
                     String nativeGuid = NativeGUIDGenerator.generateNativeGuid(system,
                             poolFromResponse.getObjectID(), NativeGUIDGenerator.POOL);
-                    _logger.debug("nativeGuid :{}",nativeGuid);
+                    _logger.debug("nativeGuid :{}", nativeGuid);
                     StoragePool pool = checkPoolExistsInDB(nativeGuid);
                     if (null == pool) {
                         isNew = true;
@@ -1111,17 +1122,17 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 
                     // Set TieringEnabled flag based on tierControl of the pool.
                     if (poolFromResponse.getTierControl() == 1) {
-                    	pool.setAutoTieringEnabled(Boolean.TRUE);
+                        pool.setAutoTieringEnabled(Boolean.TRUE);
                     } else {
-                    	pool.setAutoTieringEnabled(Boolean.FALSE);
+                        pool.setAutoTieringEnabled(Boolean.FALSE);
                     }
-                    
+
                     StringSet protocols = new StringSet(supportedProtocols);
                     if (!isNew && ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getProtocols(), protocols)) {
                         isModified = true;
                     }
                     pool.setProtocols(protocols);
-                    
+
                     StringSet copyTypes = new StringSet();
                     copyTypes.add(StoragePool.CopyTypes.UNSYNC_ASSOC.name());
                     copyTypes.add(StoragePool.CopyTypes.UNSYNC_UNASSOC.name());
@@ -1139,20 +1150,20 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                     pool.setFreeCapacity(poolFromResponse.getFreeCapacity());
                     pool.setTotalCapacity(poolFromResponse.getUsedCapacity());
                     pool.setSubscribedCapacity(poolFromResponse.getSubscribedCapacityInKB());
-                    
+
                     if (null != poolFromResponse.getDiskType()) {
                         Set<String> driveTypes = new HashSet<String>();
                         driveTypes.add(getPoolSupportedDriveType(poolFromResponse.getDiskType()));
                         pool.addDriveTypes(driveTypes);
                     }
-                    
-                    //TODO workaround to display the display name based on the pool name
+
+                    // TODO workaround to display the display name based on the pool name
                     pool.setLabel(label);
 
-                    if (!isNew && !isModified && 
+                    if (!isNew && !isModified &&
                             (ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getCompatibilityStatus(),
-                                    CompatibilityStatus.COMPATIBLE.name()) || 
-                            ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getDiscoveryStatus(), 
+                                    CompatibilityStatus.COMPATIBLE.name()) ||
+                            ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getDiscoveryStatus(),
                                     DiscoveryStatus.VISIBLE.name()))) {
                         isModified = true;
                     }
@@ -1172,81 +1183,81 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                     }
                 }
             }
-            StoragePoolAssociationHelper.setStoragePoolVarrays(system.getId(),newPools, _dbClient);
+            StoragePoolAssociationHelper.setStoragePoolVarrays(system.getId(), newPools, _dbClient);
 
-            _logger.info("New pools size: {}",newPools.size());
-            _logger.info("updatePools size: {}",updatePools.size());
+            _logger.info("New pools size: {}", newPools.size());
+            _logger.info("updatePools size: {}", updatePools.size());
             _dbClient.createObject(newPools);
             _dbClient.persistObject(updatePools);
             allPools.addAll(newPools);
             allPools.addAll(updatePools);
         }
-        _logger.debug("Exiting {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        _logger.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         return allPools;
     }
-    
+
     /**
      * Return the supportedDrive for a Pool.
+     * 
      * @param diskType
      * @return
      */
     private String getPoolSupportedDriveType(String diskType) {
         String supportedDriveType = SupportedDriveTypeValues.UNKNOWN.name();
-        if(HDSConstants.SATA_DRIVE_VALUE.equalsIgnoreCase(diskType)) {
-            supportedDriveType  = SupportedDriveTypeValues.SATA.name();
-        } else if(HDSConstants.SAS_DRIVE_VALUE.equalsIgnoreCase(diskType)) {
-            supportedDriveType  = SupportedDriveTypeValues.SAS.name();
-        } else if(HDSConstants.SSD_DRIVE_VALUE.equalsIgnoreCase(diskType)) {
-            supportedDriveType  = SupportedDriveTypeValues.SSD.name();
+        if (HDSConstants.SATA_DRIVE_VALUE.equalsIgnoreCase(diskType)) {
+            supportedDriveType = SupportedDriveTypeValues.SATA.name();
+        } else if (HDSConstants.SAS_DRIVE_VALUE.equalsIgnoreCase(diskType)) {
+            supportedDriveType = SupportedDriveTypeValues.SAS.name();
+        } else if (HDSConstants.SSD_DRIVE_VALUE.equalsIgnoreCase(diskType)) {
+            supportedDriveType = SupportedDriveTypeValues.SSD.name();
         }
         return supportedDriveType;
     }
 
     /**
      * Creates a new WEBClient for a given IP, based on AccessProfile
-     *
+     * 
      * @param accessProfile
-     *            : AccessProfile for the providers    
+     *            : AccessProfile for the providers
      * @throws WBEMException
      *             : if WBEMException while creating the WBEMClient
      * @throws SMIPluginException
      * @return WBEMClient : initialized instance of WBEMClientCIMXML
      */
-	private WBEMClient getCIMClient(AccessProfile accessProfile) throws Exception {
-		String protocol = Boolean.valueOf(accessProfile.getSslEnable()) ? CimConstants.SECURE_PROTOCOL
-				: CimConstants.DEFAULT_PROTOCOL;
-		CIMObjectPath path = CimObjectPathCreator.createInstance(protocol,
-				accessProfile.getIpAddress(),
-				Integer.toString(accessProfile.getPortNumber()),
-				accessProfile.getInteropNamespace(), null, null);
-		try {
-			Subject subject = new Subject();
-			subject.getPrincipals().add(new UserPrincipal(accessProfile.getUserName()));
-			subject.getPrivateCredentials().add(
-					new PasswordCredential(accessProfile.getPassword()));
-			wbemClient = WBEMClientFactory
-					.getClient(CimConstants.CIM_CLIENT_PROTOCOL);
+    private WBEMClient getCIMClient(AccessProfile accessProfile) throws Exception {
+        String protocol = Boolean.valueOf(accessProfile.getSslEnable()) ? CimConstants.SECURE_PROTOCOL
+                : CimConstants.DEFAULT_PROTOCOL;
+        CIMObjectPath path = CimObjectPathCreator.createInstance(protocol,
+                accessProfile.getIpAddress(),
+                Integer.toString(accessProfile.getPortNumber()),
+                accessProfile.getInteropNamespace(), null, null);
+        try {
+            Subject subject = new Subject();
+            subject.getPrincipals().add(new UserPrincipal(accessProfile.getUserName()));
+            subject.getPrivateCredentials().add(
+                    new PasswordCredential(accessProfile.getPassword()));
+            wbemClient = WBEMClientFactory
+                    .getClient(CimConstants.CIM_CLIENT_PROTOCOL);
 
-			// Operations block by default, so a timeout must be set in case the
-			// CIM server becomes unreachable.
-			// Commenting out, as timeout had been moved to cimom.properties
-			// file
-			// _cimClient.setProperty(WBEMClientConstants.PROP_TIMEOUT,
-			// CimConstants.CIM_CLIENT_TIMEOUT);
-			wbemClient.initialize(path, subject, null);
+            // Operations block by default, so a timeout must be set in case the
+            // CIM server becomes unreachable.
+            // Commenting out, as timeout had been moved to cimom.properties
+            // file
+            // _cimClient.setProperty(WBEMClientConstants.PROP_TIMEOUT,
+            // CimConstants.CIM_CLIENT_TIMEOUT);
+            wbemClient.initialize(path, subject, null);
 
-		} catch (Exception e) {
-			_logger.error("Could not establish connection for {}", accessProfile.getIpAddress(), e);
-			wbemClient.close();
-			throw e;
-		}
-		return wbemClient;
-	}
-    
-    
+        } catch (Exception e) {
+            _logger.error("Could not establish connection for {}", accessProfile.getIpAddress(), e);
+            wbemClient.close();
+            throw e;
+        }
+        return wbemClient;
+    }
+
     /**
      * Initialize the Map
-     *
+     * 
      * @param _keyMap
      * @param cacheVolumes
      * @param cachePools
@@ -1266,18 +1277,18 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
         _keyMap.put(Constants.STORAGEPROCESSORS, new LinkedList<CIMObjectPath>());
         _keyMap.put(Constants.STORAGEPORTS, new LinkedList<CIMObjectPath>());
     }
-    
+
     /**
      * releaseResources
      */
     private void releaseResources() {
-    	wbemClient.close();
+        wbemClient.close();
         _keyMap.clear();
         namespaces = null;
     }
-    
+
     public void setPortMetricsProcessor(PortMetricsProcessor portMetricsProcessor) {
         this.portMetricsProcessor = portMetricsProcessor;
     }
-    
+
 }

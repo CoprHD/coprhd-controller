@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
@@ -38,26 +28,27 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
     private List<URI> _volumes;
 
     public ExportRemoveVolumeCompleter(URI egUri, List<URI> volumes,
-                                       String task) {
+            String task) {
         super(ExportGroup.class, egUri, task);
         _volumes = new ArrayList<URI>();
         _volumes.addAll(volumes);
     }
 
-	private ExportGroup prepareExportGroups(DbClient dbClient, Operation.Status status)
-	throws DeviceControllerException {
+    private ExportGroup prepareExportGroups(DbClient dbClient, Operation.Status status)
+            throws DeviceControllerException {
         ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
         for (URI volumeURI : _volumes) {
             BlockObject volume = BlockObject.fetch(dbClient, volumeURI);
             _log.info("export_volume_remove: completed");
-            recordBlockExportOperation(dbClient, OperationTypeEnum.DELETE_EXPORT_VOLUME, status, eventMessage(status, volume, exportGroup), exportGroup, volume);
+            recordBlockExportOperation(dbClient, OperationTypeEnum.DELETE_EXPORT_VOLUME, status, eventMessage(status, volume, exportGroup),
+                    exportGroup, volume);
             if (status.name().equals(Operation.Status.ready.name())) {
                 exportGroup.removeVolume(volumeURI);
             }
         }
 
         return exportGroup;
-	}
+    }
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
@@ -66,7 +57,8 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
             for (URI volumeURI : _volumes) {
                 BlockObject volume = BlockObject.fetch(dbClient, volumeURI);
                 _log.info("export_volume_remove: completed");
-                recordBlockExportOperation(dbClient, OperationTypeEnum.DELETE_EXPORT_VOLUME, status, eventMessage(status, volume, exportGroup), exportGroup, volume);
+                recordBlockExportOperation(dbClient, OperationTypeEnum.DELETE_EXPORT_VOLUME, status,
+                        eventMessage(status, volume, exportGroup), exportGroup, volume);
                 if (status.name().equals(Operation.Status.ready.name())) {
                     exportGroup.removeVolume(volumeURI);
                 }
@@ -74,21 +66,20 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
 
             Operation operation = new Operation();
             switch (status) {
-            case error:
-                operation.error(coded);
-                break;
-            case ready:
-                operation.ready();
-                break;
-            default:
-                break;
+                case error:
+                    operation.error(coded);
+                    break;
+                case ready:
+                    operation.ready();
+                    break;
+                default:
+                    break;
             }
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
             dbClient.persistObject(exportGroup);
 
             _log.info(String.format("Done ExportMaskRemoveVolume - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
-
 
         } catch (Exception e) {
             _log.error(String.format("Failed updating status for ExportMaskRemoveVolume - Id: %s, OpId: %s",

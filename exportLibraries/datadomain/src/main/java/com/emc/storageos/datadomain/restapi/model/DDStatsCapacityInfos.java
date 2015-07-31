@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.datadomain.restapi.model;
@@ -12,73 +12,73 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="stats_capacity")
+@JsonRootName(value = "stats_capacity")
 public class DDStatsCapacityInfos {
-	
-	@SerializedName("data_view")
-	@JsonProperty(value="data_view")
-	private String dataView;
 
-	@SerializedName("stats_capacity")
-	@JsonProperty(value="stats_capacity")
-	private List<DDStatsCapacityInfo> statsCapacity;
+    @SerializedName("data_view")
+    @JsonProperty(value = "data_view")
+    private String dataView;
 
-	@SerializedName("requested_data_interval")
-	@JsonProperty(value="requested_data_interval")
-	private DDStatsIntervalQuery requestedDataInterval;
+    @SerializedName("stats_capacity")
+    @JsonProperty(value = "stats_capacity")
+    private List<DDStatsCapacityInfo> statsCapacity;
 
-	@SerializedName("returned_data_interval")
-	@JsonProperty(value="returned_data_interval")
-	private DDStatsIntervalQuery returnedDataInterval;
+    @SerializedName("requested_data_interval")
+    @JsonProperty(value = "requested_data_interval")
+    private DDStatsIntervalQuery requestedDataInterval;
 
-	@SerializedName("paging_info")
-	@JsonProperty(value="paging_info")
-	private DDPaging pagingInfo;
+    @SerializedName("returned_data_interval")
+    @JsonProperty(value = "returned_data_interval")
+    private DDStatsIntervalQuery returnedDataInterval;
 
-	private List<DDRestLinkRep> link;
+    @SerializedName("paging_info")
+    @JsonProperty(value = "paging_info")
+    private DDPaging pagingInfo;
 
-	public List<DDStatsCapacityInfo> getStatsCapacity() {
-		return statsCapacity;
-	}
+    private List<DDRestLinkRep> link;
 
-	public void setStatsCapacity(List<DDStatsCapacityInfo> statsCapacity) {
-		this.statsCapacity = statsCapacity;
-	}
+    public List<DDStatsCapacityInfo> getStatsCapacity() {
+        return statsCapacity;
+    }
 
-	public DDStatsIntervalQuery getRequestedDataInterval() {
-		return requestedDataInterval;
-	}
+    public void setStatsCapacity(List<DDStatsCapacityInfo> statsCapacity) {
+        this.statsCapacity = statsCapacity;
+    }
 
-	public void setRequestedDataInterval(DDStatsIntervalQuery requestedDataInterval) {
-		this.requestedDataInterval = requestedDataInterval;
-	}
+    public DDStatsIntervalQuery getRequestedDataInterval() {
+        return requestedDataInterval;
+    }
 
-	public DDStatsIntervalQuery getReturnedDataInterval() {
-		return returnedDataInterval;
-	}
+    public void setRequestedDataInterval(DDStatsIntervalQuery requestedDataInterval) {
+        this.requestedDataInterval = requestedDataInterval;
+    }
 
-	public void setReturnedDataInterval(DDStatsIntervalQuery returnedDataInterval) {
-		this.returnedDataInterval = returnedDataInterval;
-	}
+    public DDStatsIntervalQuery getReturnedDataInterval() {
+        return returnedDataInterval;
+    }
 
-	public DDPaging getPagingInfo() {
-		return pagingInfo;
-	}
+    public void setReturnedDataInterval(DDStatsIntervalQuery returnedDataInterval) {
+        this.returnedDataInterval = returnedDataInterval;
+    }
 
-	public void setPagingInfo(DDPaging pagingInfo) {
-		this.pagingInfo = pagingInfo;
-	}
+    public DDPaging getPagingInfo() {
+        return pagingInfo;
+    }
 
-	public List<DDRestLinkRep> getLink() {
-		return link;
-	}
+    public void setPagingInfo(DDPaging pagingInfo) {
+        this.pagingInfo = pagingInfo;
+    }
 
-	public void setLink(List<DDRestLinkRep> link) {
-		this.link = link;
-	}
+    public List<DDRestLinkRep> getLink() {
+        return link;
+    }
 
-	public String toString() {
-		return new Gson().toJson(this).toString();
-	}
+    public void setLink(List<DDRestLinkRep> link) {
+        this.link = link;
+    }
+
+    public String toString() {
+        return new Gson().toJson(this).toString();
+    }
 
 }

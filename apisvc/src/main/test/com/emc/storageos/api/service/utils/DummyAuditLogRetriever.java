@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.utils;
@@ -62,7 +52,7 @@ public class DummyAuditLogRetriever implements AuditLogRetriever {
 
         List<AuditLog> auditLogs = null;
         try {
-        	auditLogs = getDummyAuditLogs();
+            auditLogs = getDummyAuditLogs();
         } catch (URISyntaxException e) {
             _logger.error("Error getting logs", e);
         }
@@ -84,7 +74,7 @@ public class DummyAuditLogRetriever implements AuditLogRetriever {
         List<AuditLog> loglist = new ArrayList<AuditLog>();
 
         for (int i = 0; i < 100; i++) {
-        	AuditLog log = new AuditLog();
+            AuditLog log = new AuditLog();
             log.setProductId("productId." + String.valueOf(i));
             log.setTenantId(new URI("http://tenant." + String.valueOf(i)));
             log.setUserId(new URI("http://user." + String.valueOf(i)));
@@ -92,7 +82,7 @@ public class DummyAuditLogRetriever implements AuditLogRetriever {
             log.setAuditType("auditType." + String.valueOf(i));
             log.setDescription("description." + String.valueOf(i));
             log.setOperationalStatus("operationalStatus." + String.valueOf(i));
-        	
+
             loglist.add(log);
         }
 

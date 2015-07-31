@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
@@ -42,11 +32,13 @@ public class SmisUtils {
     public static final String SPACE_STR = " ";
     public static final String SLO = "SLO";
     public static final String WORKLOAD = "Workload";
+
     /**
      * Return RemainingManagedSpace of the pool.
      * RemainingManagedSpace always matches with Element Managers in most of the cases.
      * Capacity will not match with Element Managers, when a VNX Pool is created with UnBound raid level
      * as user doesn't know the RAID to choose. FreeCapacity will match once it becomes bound.
+     * 
      * @param poolInstance
      * @return
      */
@@ -60,6 +52,7 @@ public class SmisUtils {
      * TotalManagedSpace always matches with Element Managers in most of the cases.
      * Capacity will not match with Element Managers, when a VNX Pool is created with UnBound raid level
      * as user doesn't know the RAID to choose. TotalCapacity will match once it becomes bound.
+     * 
      * @param poolInstance
      * @return
      */
@@ -70,26 +63,27 @@ public class SmisUtils {
 
     /**
      * get Property Value;
+     * 
      * @param instance cim instance
      * @param propName name of property
      * @return
      */
     public static String getCIMPropertyValue(CIMInstance instance, String propName) {
-        String value= null;
+        String value = null;
         try {
             value = instance.getPropertyValue(propName).toString();
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.debug("Property {} Not found in returned Instance {}", propName, instance.getObjectPath());
         }
         return value;
     }
-    
+
     public static Volume checkStorageVolumeExistsInDB(String nativeGuid, DbClient dbClient)
             throws IOException {
         @SuppressWarnings("deprecation")
         List<URI> volumeUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getVolumeNativeGuidConstraint(nativeGuid));
-        
+
         if (!volumeUris.isEmpty()) {
             Volume volume = dbClient.queryObject(Volume.class, volumeUris.get(0));
             if (!volume.getInactive()) {
@@ -98,7 +92,7 @@ public class SmisUtils {
         }
         return null;
     }
-    
+
     public static void updateStoragePoolCapacity(DbClient dbClient, WBEMClient client, URI storagePoolURI) {
         StorageSystem storageSystem = null;
 
@@ -144,8 +138,9 @@ public class SmisUtils {
             dbClient.persistObject(storagePool);
         } catch (Exception e) {
             _log.error(
-                    String.format("Failed to update capacity of storage pool after volume provisioning operation. %n  Storage system: %s, storage pool %s .",
-                    storageSystem.getId(), storagePoolURI), e);
+                    String.format(
+                            "Failed to update capacity of storage pool after volume provisioning operation. %n  Storage system: %s, storage pool %s .",
+                            storageSystem.getId(), storagePoolURI), e);
         }
 
     }
@@ -155,7 +150,7 @@ public class SmisUtils {
      * 
      * @param accessState simple access state, see Volume VolumeAccessState enum.
      * @param statusDescriptions a string of fields that may contain "NOT_READY", and if it does, we want to mark the volume as such.
-     * @return the access state.  Defaults to read/write
+     * @return the access state. Defaults to read/write
      */
     public static String generateAccessState(String accessState, Collection<String> statusDescriptions) {
         if ((accessState != null) && (statusDescriptions != null) && (statusDescriptions.contains(SmisConstants.NOT_READY))) {
@@ -165,7 +160,7 @@ public class SmisUtils {
         }
         return Volume.VolumeAccessState.READWRITE.name();
     }
-    
+
     /**
      * This method checks if the storage sytem is using SMIS 8.0 then translates
      * the delimiter from "+" to "-+-".
@@ -174,8 +169,8 @@ public class SmisUtils {
      * @param translateString The string to be translated
      * @return returns translatedString if V3 provider or same string.
      */
-    public static String translate(StorageSystem storageDevice, String translateString){
-        if(storageDevice.getUsingSmis80()){
+    public static String translate(StorageSystem storageDevice, String translateString) {
+        if (storageDevice.getUsingSmis80()) {
             translateString = translateString.replaceAll(Constants.SMIS_PLUS_REGEX, Constants.SMIS80_DELIMITER_REGEX);
         }
         return translateString;
@@ -185,16 +180,16 @@ public class SmisUtils {
      * Parse target group name VMAX V3 only for now
      */
     public static String getTargetGroupName(String instanceId, Boolean isUsingSMIS80) {
-    	if(isUsingSMIS80){
-    		// for VMAX V3 instanceId, e.g., 000196700567+EMC_SMI_RG1415737386866
+        if (isUsingSMIS80) {
+            // for VMAX V3 instanceId, e.g., 000196700567+EMC_SMI_RG1415737386866
             return instanceId.split(Constants.SMIS_PLUS_REGEX)[1];
-    	}else{
-    		// for VMAX V2 using 4.6.2, instanceId, e.g., 557B5BBA+1+SYMMETRIX+000195701573
-    		return instanceId.split(Constants.SMIS_PLUS_REGEX)[0];
-    	}
-    	
+        } else {
+            // for VMAX V2 using 4.6.2, instanceId, e.g., 557B5BBA+1+SYMMETRIX+000195701573
+            return instanceId.split(Constants.SMIS_PLUS_REGEX)[0];
+        }
+
     }
-    
+
     public static String getSLOPolicyName(CIMInstance instance) {
         Object sloNameObj = instance.getPropertyValue(SmisConstants.CP_EMC_SLO);
         String sloName = null, emcWorkload = null;
@@ -212,22 +207,23 @@ public class SmisUtils {
 
         return formatSGSLOName(sloName, emcWorkload);
     }
-    
+
     public static boolean checkPolicyMatchForVMAX3(String storageGroupPolicyName, String autoTierPolicyName) {
-       if(autoTierPolicyName.contains(storageGroupPolicyName) && 
-               !(autoTierPolicyName.contains(Constants.WORKLOAD) && !storageGroupPolicyName.contains(Constants.WORKLOAD))) 
-           return true;
-       else 
-           return false;
-           
+        if (autoTierPolicyName.contains(storageGroupPolicyName) &&
+                !(autoTierPolicyName.contains(Constants.WORKLOAD) && !storageGroupPolicyName.contains(Constants.WORKLOAD))) {
+            return true;
+        } else {
+            return false;
+        }
+
     }
-    
+
     /**
      * Format the given EMCSLOName & EMCWorkload to understand the
      * AutoTieringPolicy persisted in DB.
-     *
+     * 
      * Ex. Bronze, OLTP => Bronze SLO OLTP Workload
-     *
+     * 
      * @param sloName - SLO Name
      * @param emcWorkload - Workload
      * @return - formatted SLO Name.

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) $today_year. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
@@ -43,13 +33,13 @@ public class BlockMirrorDeactivateCompleter extends BlockMirrorTaskCompleter {
             Volume volume = dbClient.queryObject(Volume.class, mirror.getSource());
 
             switch (status) {
-            case error:
-                dbClient.error(BlockMirror.class, mirror.getId(), getOpId(), coded);
-                dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
-                break;
-            default:
-                dbClient.ready(BlockMirror.class, mirror.getId(), getOpId());
-                dbClient.ready(Volume.class, volume.getId(), getOpId());
+                case error:
+                    dbClient.error(BlockMirror.class, mirror.getId(), getOpId(), coded);
+                    dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
+                    break;
+                default:
+                    dbClient.ready(BlockMirror.class, mirror.getId(), getOpId());
+                    dbClient.ready(Volume.class, volume.getId(), getOpId());
             }
 
             recordBlockMirrorOperation(dbClient, OperationTypeEnum.DEACTIVATE_VOLUME_MIRROR,

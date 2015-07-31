@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util.builders;
@@ -115,7 +115,7 @@ public class VirtualPoolUpdateBuilder {
         virtualPool.setProtocolChanges(changes);
         return this;
     }
-    
+
     protected URI defaultURI(URI uri) {
         if (uri != null) {
             return uri;

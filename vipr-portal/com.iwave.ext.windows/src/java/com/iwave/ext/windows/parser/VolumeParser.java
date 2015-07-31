@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.windows.parser;
@@ -49,12 +49,12 @@ public class VolumeParser extends TextParser {
         // set offset for labels that overflows 11 characters
         int offset = (line.length() - MAX_VOLUME_LINE_LENGTH);
 
-        volume.setFileSystem(getColumnText(line, offset+30, 5));
-        volume.setType(getColumnText(line, offset+37, 10));
-        volume.setSize(getColumnText(line, offset+49, 7));
-        volume.setStatus(getColumnText(line, offset+58, 9));
-        volume.setInfo(getColumnText(line, offset+69, 8));
-        
+        volume.setFileSystem(getColumnText(line, offset + 30, 5));
+        volume.setType(getColumnText(line, offset + 37, 10));
+        volume.setSize(getColumnText(line, offset + 49, 7));
+        volume.setStatus(getColumnText(line, offset + 58, 9));
+        volume.setInfo(getColumnText(line, offset + 69, 8));
+
         // if the volume mountPoint is blank it probably means we're dealing with a volume mounted at a file path,
         // and the mountpoint info is actually on the next line.
         if (StringUtils.isBlank(volume.getMountPoint())) {

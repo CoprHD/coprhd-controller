@@ -1,20 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2013-2014 EMC Corporation All Rights Reserved
- * 
- * This software contains the intellectual property of EMC Corporation or is licensed to
- * EMC Corporation from third parties. Use of this software and the intellectual property
- * contained therein is expressly limited to the terms and conditions of the License
- * Agreement under which it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.keystore.impl;
 
 import java.io.IOException;
 import java.security.KeyStore.LoadStoreParameter;
-import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Calendar;
 import java.util.Date;
@@ -63,7 +54,9 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
     private CoordinatorConfigStoringHelper coordConfigStoringHelper;
     private KeyCertificatePairGenerator generator;
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.security.keystore.DistributedKeyStore#init(java.security.KeyStore.LoadStoreParameter)
      */
     @Override
@@ -75,15 +68,17 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
             coordConfigStoringHelper = new CoordinatorConfigStoringHelper(coordinator);
             generator = new KeyCertificatePairGenerator();
             generator
-            .setKeyCertificateAlgorithmValuesHolder(new KeyCertificateAlgorithmValuesHolder(
-                    coordinator));
+                    .setKeyCertificateAlgorithmValuesHolder(new KeyCertificateAlgorithmValuesHolder(
+                            coordinator));
         } else {
             throw SecurityException.fatals
-            .failedToInitializedKeystoreNeedDistKeystoreParams();
+                    .failedToInitializedKeystoreNeedDistKeystoreParams();
         }
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.security.keystore.DistributedKeyStore#getTrustedCertificates()
      */
     @Override
@@ -97,13 +92,15 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
         }
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.security.keystore.DistributedKeyStore#setTrustedCertificates(java.util.Map)
      */
     @Override
     public synchronized void setTrustedCertificates(
             Map<String, TrustedCertificateEntry> trustedCerts)
-                    throws SecurityException {
+            throws SecurityException {
         try {
             coordConfigStoringHelper.removeAllConfigOfKInd(TRUSTED_CERTIFICATES_LOCK,
                     TRUSTED_CERTIFICATES_CONFIG_KIND);
@@ -168,7 +165,9 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
         }
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.security.keystore.DistributedKeyStore#removeTrustedCertificate(java.lang.String)
      */
     @Override
@@ -184,13 +183,16 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
         }
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.security.keystore.DistributedKeyStore#addTrustedCertificate(java.lang.String, com.emc.storageos.security.keystore.TrustedCertificateEntry)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.security.keystore.DistributedKeyStore#addTrustedCertificate(java.lang.String,
+     * com.emc.storageos.security.keystore.TrustedCertificateEntry)
      */
     @Override
     public synchronized void addTrustedCertificate(String alias,
             TrustedCertificateEntry cert)
-                    throws SecurityException {
+            throws SecurityException {
         try {
             log.info("adding the following trusted certificate under alias " + alias
                     + ": " + cert.getCertificate().toString());
@@ -202,7 +204,9 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
         }
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.security.keystore.DistributedKeyStore#removeTrustedCertificate(java.lang.String)
      */
     @Override
@@ -218,7 +222,9 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
         }
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.security.keystore.DistributedKeyStore#getKeyCertificatePair()
      */
     @Override
@@ -252,7 +258,7 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
                     entryToReturn = generateNewKeyCertificatePair();
                 }
             } else {
-                X509Certificate cert =  (X509Certificate) entryToReturn.getCertificateChain()[0];
+                X509Certificate cert = (X509Certificate) entryToReturn.getCertificateChain()[0];
                 if (KeyStoreUtil.isSelfGeneratedCertificate(coordConfigStoringHelper)
                         && !generator.isCertificateIPsCorrect(cert)) {
                     log.info("ViPR certificate is self generated and has illegal IPs. Generating a new one...");
@@ -309,17 +315,17 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
         Date nextMonth = DateUtils.addMonths(today, 1);
         Date next3Months = DateUtils.addMonths(today, 3);
         Date next6Months = DateUtils.addMonths(today, 6);
-        if(lastCertificateAlert == null ||  DateUtils.truncatedCompareTo(lastCertificateAlert, today, Calendar.DATE) < 0) {
+        if (lastCertificateAlert == null || DateUtils.truncatedCompareTo(lastCertificateAlert, today, Calendar.DATE) < 0) {
             boolean logAlert = false;
             String messageToLog = CERTIFICATE_WILL_EXPIRE_MESSAGE_FORMAT;
             int timeAmount = 0;
             String timeType = null;
             LogLevel logLevel = LogLevel.WARN;
-            if(notAfter.before(today)) {
+            if (notAfter.before(today)) {
                 logLevel = LogLevel.FATAL;
                 messageToLog = CERTIFICATE_EXPIRED_MESSAGE;
                 logAlert = true;
-            } else if(DateUtils.isSameDay(notAfter, today)) {
+            } else if (DateUtils.isSameDay(notAfter, today)) {
                 timeType = "days";
                 logLevel = LogLevel.ERROR;
                 logAlert = true;
@@ -356,7 +362,7 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
     }
 
     /**
-     *
+     * 
      * @param messageFormatToLog
      * @param timeAmount
      * @param timeType

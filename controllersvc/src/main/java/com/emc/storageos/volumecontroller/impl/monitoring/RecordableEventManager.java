@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.monitoring;
@@ -161,15 +151,15 @@ public class RecordableEventManager {
 
     // A reference to the database client.
     private DbClient _dbClient;
-    
+
     // The logger.
-    private static Logger s_logger = LoggerFactory.getLogger(RecordableEventManager.class);    
-    
+    private static Logger s_logger = LoggerFactory.getLogger(RecordableEventManager.class);
+
     /**
      * Default constructor.
      */
     public RecordableEventManager() {
-    	super();
+        super();
     }
 
     /**
@@ -190,24 +180,24 @@ public class RecordableEventManager {
     public void recordEvents(RecordableEvent... events) throws DatabaseException {
 
         List<Event> dbEventsList = new ArrayList<Event>();
-        
-        for (RecordableEvent event:events) {
-        	Event dbEvent = ControllerUtils.convertToEvent(event);
+
+        for (RecordableEvent event : events) {
+            Event dbEvent = ControllerUtils.convertToEvent(event);
             // if no db object found after querying using native guid,
             // means the indication triggered from outside world but not
             // from bourne, so we need to ignore as per requirement
             // we need to drop the these indications
-        	    if(event.getResourceId() == null && 
-                        !(event instanceof RecordableBourneEvent)) {
-                     continue;
-                }
-        	
+            if (event.getResourceId() == null &&
+                    !(event instanceof RecordableBourneEvent)) {
+                continue;
+            }
+
             dbEventsList.add(dbEvent);
         }
-        if(!dbEventsList.isEmpty()){
+        if (!dbEventsList.isEmpty()) {
             Event[] dbEvents = new Event[dbEventsList.size()];
             dbEventsList.toArray(dbEvents);
-            
+
             // Now insert the events into the database.
             try {
                 String bucketId = _dbClient.insertTimeSeries(EventTimeSeries.class, dbEvents);
@@ -215,10 +205,10 @@ public class RecordableEventManager {
             } catch (DatabaseException e) {
                 s_logger.error("Error inserting events into the database", e);
                 throw e;
-            } 
-        }else{
+            }
+        } else {
             s_logger.info("Event list is empty");
         }
-       
+
     }
 }

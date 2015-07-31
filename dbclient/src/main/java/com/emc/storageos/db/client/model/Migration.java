@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.model;
 
@@ -22,25 +12,25 @@ import java.net.URI;
 @ExcludeFromGarbageCollection
 @Cf("Migration")
 public class Migration extends DataObject {
-    
+
     // The URI of the volume associated with the migration.
     private URI _volume;
-    
+
     // The URI of the migration source.
     private URI _source;
-    
+
     // The URI of the migration target.
     private URI _target;
-    
+
     // The migration start time.
     private String _startTime;
-    
+
     // The status of the migration.
     private String _migrationStatus;
-    
+
     // The percentage done.
     private String _percentDone;
-    
+
     /**
      * Getter for the URI of the volume being migrated.
      * 
@@ -60,7 +50,7 @@ public class Migration extends DataObject {
         _volume = volume;
         setChanged("volume");
     }
-    
+
     /**
      * Getter for the URI of the migration source.
      * 
@@ -80,7 +70,7 @@ public class Migration extends DataObject {
         _source = source;
         setChanged("source");
     }
-    
+
     /**
      * Getter for the URI of the migration target.
      * 
@@ -99,7 +89,7 @@ public class Migration extends DataObject {
     public void setTarget(URI target) {
         _target = target;
         setChanged("target");
-    }    
+    }
 
     /**
      * Getter for the migration start time.
@@ -119,8 +109,8 @@ public class Migration extends DataObject {
     public void setStartTime(String startTime) {
         _startTime = startTime;
         setChanged("startTime");
-    }  
-    
+    }
+
     /**
      * Getter for the migration status.
      * 
@@ -140,7 +130,7 @@ public class Migration extends DataObject {
         _migrationStatus = status;
         setChanged("migrationStatus");
     }
-       
+
     /**
      * Getter for the migration percentage done.
      * 
@@ -159,5 +149,5 @@ public class Migration extends DataObject {
     public void setPercentDone(String percentDone) {
         _percentDone = percentDone;
         setChanged("percentDone");
-    }    
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.compute;
@@ -46,15 +46,14 @@ public class InstallOsHelper implements ViPRTaskHandler<HostRestRep> {
             if (osInstall != null) {
                 try {
                     tasks.add(ExecutionUtils.startViprTask(new InstallOs(host, osInstall)));
-                }
-                catch (ExecutionException e) {
+                } catch (ExecutionException e) {
                     context.logError("computeutils.installOs.failure", host.getId(), e.getMessage());
                 }
             }
         }
         if (!ExecutionUtils.waitForTask(tasks, this)) {
             // TODO: Re-throw the error?
-            //ExecutionUtils.checkForError(tasks);
+            // ExecutionUtils.checkForError(tasks);
         }
     }
 

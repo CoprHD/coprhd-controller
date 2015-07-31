@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.apidocs.differencing;
@@ -161,7 +161,6 @@ public class DifferenceEngine {
         return methodChanges;
     }
 
-
     // Creates a new Class which is a mix of the old and new class, fields are marked with change markers
     public static ApiClass compareClasses(ApiClass oldClass, ApiClass newClass) {
         List<ApiField> oldFields = oldClass.fields;
@@ -170,7 +169,7 @@ public class DifferenceEngine {
         ApiClass diffClass = new ApiClass();
 
         int oldClassPos = 0;
-        for (int newClassPos=0;newClassPos<newClass.fields.size();newClassPos++) {
+        for (int newClassPos = 0; newClassPos < newClass.fields.size(); newClassPos++) {
             ApiField newClassField = newFields.get(newClassPos);
             ApiField oldClassField = oldFields.get(oldClassPos);
 
@@ -182,8 +181,8 @@ public class DifferenceEngine {
             else {
                 // Search forward in the new Class to see if this field appears (which means fields were deleted)
                 int foundPosition = -1;
-                for (int t=oldClassPos;t<oldFields.size();t++) {
-                    if(oldFields.get(t).name.equals(newClassField.name)) {
+                for (int t = oldClassPos; t < oldFields.size(); t++) {
+                    if (oldFields.get(t).name.equals(newClassField.name)) {
                         foundPosition = t;
                         break;
                     }
@@ -210,7 +209,7 @@ public class DifferenceEngine {
         }
 
         // run through any fields still left on Old
-        for (int f=newFields.size();f<oldFields.size();f++) {
+        for (int f = newFields.size(); f < oldFields.size(); f++) {
             ApiField fieldCopy = copyField(oldFields.get(f));
             fieldCopy.changeState = ChangeState.REMOVED;
             diffClass.addField(fieldCopy);
@@ -218,7 +217,6 @@ public class DifferenceEngine {
 
         return diffClass;
     }
-
 
     /**
      * Create a copy of a field, expect for the type
@@ -283,20 +281,19 @@ public class DifferenceEngine {
         return addedValues;
     }
 
-
     private static void findClassChanges(ApiClass oldClass, ApiClass newClass) {
-        System.out.println("COMPARING CLASS "+oldClass.name);
+        System.out.println("COMPARING CLASS " + oldClass.name);
         // Check for removed fields
         for (ApiField oldField : oldClass.fields) {
             if (!containsField(oldField.name, newClass.fields)) {
-                System.out.println("Field REMOVED : "+oldField.name);
+                System.out.println("Field REMOVED : " + oldField.name);
             }
         }
 
         // Check for removed fields
         for (ApiField newField : newClass.fields) {
             if (!containsField(newField.name, oldClass.fields)) {
-                System.out.println("Field ADDED : "+newField.name);
+                System.out.println("Field ADDED : " + newField.name);
             }
         }
 
@@ -308,7 +305,6 @@ public class DifferenceEngine {
             }
         }
     }
-
 
     public static boolean containsService(String className, List<ApiService> services) {
         return findService(className, services) != null;
@@ -343,7 +339,7 @@ public class DifferenceEngine {
     }
 
     public static ApiField findField(String fieldName, List<ApiField> fields) {
-        for(ApiField field : fields) {
+        for (ApiField field : fields) {
             if (field.name.equals(fieldName)) {
                 return field;
             }
@@ -356,16 +352,16 @@ public class DifferenceEngine {
      * For more information on the LCS algorithm, see http://en.wikipedia.org/wiki/Longest_common_subsequence_problem
      */
     private static int[][] computeLcs(List<ApiField> sequenceA, List<ApiField> sequenceB) {
-        int[][] lcs = new int[sequenceA.size()+1][sequenceB.size()+1];
+        int[][] lcs = new int[sequenceA.size() + 1][sequenceB.size() + 1];
 
         for (int i = 0; i < sequenceA.size(); i++) {
 
             for (int j = 0; j < sequenceB.size(); j++) {
 
                 if (sequenceA.get(i).compareTo(sequenceB.get(j)) == 0) {
-                    lcs[i+1][j+1] = lcs[i][j] + 1;
+                    lcs[i + 1][j + 1] = lcs[i][j] + 1;
                 } else {
-                    lcs[i+1][j+1] = Math.max(lcs[i][j+1], lcs[i+1][j]);
+                    lcs[i + 1][j + 1] = Math.max(lcs[i][j + 1], lcs[i + 1][j]);
                 }
             }
         }
@@ -376,11 +372,11 @@ public class DifferenceEngine {
     public static ApiClass generateMergedClass(ApiClass oldClass, ApiClass newClass) {
         ApiClass mergedClass = new ApiClass();
 
-        if (oldClass==null) {
-            throw new RuntimeException("Old Class NULL "+newClass.name);
+        if (oldClass == null) {
+            throw new RuntimeException("Old Class NULL " + newClass.name);
         }
 
-        if (newClass==null) {
+        if (newClass == null) {
             throw new RuntimeException("New Class NULL");
         }
 
@@ -404,20 +400,20 @@ public class DifferenceEngine {
 
         while (aPos > 0 || bPos > 0) {
 
-            if (aPos > 0 && bPos > 0 && oldFields.get(aPos-1).compareTo(newFields.get(bPos - 1)) == 0) {
+            if (aPos > 0 && bPos > 0 && oldFields.get(aPos - 1).compareTo(newFields.get(bPos - 1)) == 0) {
                 ApiField field = oldFields.get(aPos - 1);
                 field.changeState = ChangeState.NOT_CHANGED;
                 mergedFields.add(field);
 
                 aPos--;
                 bPos--;
-            } else if (bPos > 0 && (aPos == 0 || lcs[aPos][bPos-1] >= lcs[aPos-1][bPos])) {
+            } else if (bPos > 0 && (aPos == 0 || lcs[aPos][bPos - 1] >= lcs[aPos - 1][bPos])) {
                 ApiField field = newFields.get(bPos - 1);
                 field.changeState = ChangeState.ADDED;
                 mergedFields.add(field);
                 bPos--;
             } else {
-                ApiField field =oldFields.get(aPos - 1);
+                ApiField field = oldFields.get(aPos - 1);
                 field.changeState = ChangeState.REMOVED;
                 mergedFields.add(field);
                 aPos--;
@@ -430,7 +426,6 @@ public class DifferenceEngine {
 
         return mergedFields;
     }
-
 
     public static boolean containsChanges(List<ApiField> fields) {
         for (ApiField field : fields) {

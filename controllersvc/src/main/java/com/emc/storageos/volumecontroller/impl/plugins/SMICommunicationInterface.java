@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins;
 
@@ -106,7 +96,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
 
     /**
      * Initialize the Map
-     *
+     * 
      * @param _keyMap
      * @param cacheVolumes
      * @param cachePools
@@ -139,9 +129,9 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
 
     /**
      * Creates a new WEBClient for a given IP, based on AccessProfile
-     *
+     * 
      * @param accessProfile
-     *            : AccessProfile for the providers    
+     *            : AccessProfile for the providers
      * @throws WBEMException
      *             : if WBEMException while creating the WBEMClient
      * @throws SMIPluginException
@@ -314,8 +304,8 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             storageSystem = queryStorageSystem(accessProfile);
             _keyMap = new ConcurrentHashMap<String, Object>();
             _wbemClient = getCIMClient(accessProfile);
-            _logger.info("CIMClient initialized successfully");           
-          
+            _logger.info("CIMClient initialized successfully");
+
             _keyMap.put(Constants._cimClient, _wbemClient);
             _keyMap.put(Constants.dbClient, _dbClient);
             _keyMap.put(Constants.COORDINATOR_CLIENT, _coordinator);
@@ -337,30 +327,30 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
                 _keyMap.put(Constants.VERSION, providerVersion);
                 _keyMap.put(Constants.IS_NEW_SMIS_PROVIDER, isSMIS8XProvider(providerVersion));
             }
-            
-            Map<URI,StoragePool> poolsToMatchWithVpool = new HashMap<URI, StoragePool>();
+
+            Map<URI, StoragePool> poolsToMatchWithVpool = new HashMap<URI, StoragePool>();
             _keyMap.put(Constants.MODIFIED_STORAGEPOOLS, poolsToMatchWithVpool);
-            //need this nested structure to be able to minimize the changes on existing code.
+            // need this nested structure to be able to minimize the changes on existing code.
             List<List<StoragePort>> portsToRunNetworkConnectivity = new ArrayList<List<StoragePort>>();
             _keyMap.put(Constants.STORAGE_PORTS, portsToRunNetworkConnectivity);
-            
+
             List<StoragePort> discoveredPorts = new ArrayList<StoragePort>();
             _keyMap.put(Constants.DISCOVERED_PORTS, discoveredPorts);
-            
+
             if (Type.ibmxiv.name().equals(accessProfile.getSystemType())) {
                 initIBMDiscoveryKeyMap(accessProfile);
             }
             else {
-                initEMCDiscoveryKeyMap(accessProfile);                
+                initEMCDiscoveryKeyMap(accessProfile);
             }
-             
+
             executor.setKeyMap(_keyMap);
             executor.execute((Namespace) namespaces.getNsList().get(DISCOVER));
 
         } catch (Exception e) {
             detailedStatusMessage = String.format("Discovery failed for Storage System: %s because %s",
                     storageSystemURI.toString(), e.getMessage());
-        	_logger.error(detailedStatusMessage, e);
+            _logger.error(detailedStatusMessage, e);
             throw new SMIPluginException(detailedStatusMessage);
         } finally {
             if (storageSystem != null) {
@@ -374,7 +364,8 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             }
             releaseResources();
             long totalTime = System.currentTimeMillis() - startTime;
-            _logger.info(String.format("Discovery of Storage System %s took %f seconds",storageSystemURI.toString(), (double) totalTime / (double) 1000));
+            _logger.info(String.format("Discovery of Storage System %s took %f seconds", storageSystemURI.toString(), (double) totalTime
+                    / (double) 1000));
         }
     }
 
@@ -382,10 +373,10 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             throws IOException {
         return _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
     }
-    
-    private void initEMCDiscoveryKeyMap(AccessProfile accessProfile) {        
+
+    private void initEMCDiscoveryKeyMap(AccessProfile accessProfile) {
         _keyMap.put(Constants._computerSystem, CimObjectPathCreator.createInstance(
-                Constants.EmcStorageSystem, accessProfile.getInteropNamespace()));       
+                Constants.EmcStorageSystem, accessProfile.getInteropNamespace()));
         _keyMap.put(Constants.TIER, CimObjectPathCreator.createInstance(
                 Constants.EMC_STORAGE_TIER, accessProfile.getInteropNamespace()));
         _keyMap.put(Constants.CONFIGURATIONSERVICE, CimObjectPathCreator.createInstance(
@@ -393,7 +384,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
         _keyMap.put(Constants.TIERPOLICYSERVICE, CimObjectPathCreator.createInstance(
                 Constants.EMCTIERPOLICYSERVICE, accessProfile.getInteropNamespace()));
         _keyMap.put(Constants.STORAGE_VOLUME_VIEWS, new LinkedList<CIMObjectPath>());
-        _keyMap.put(Constants.DEVICEANDTHINPOOLS, new LinkedList<CIMObjectPath>());    
+        _keyMap.put(Constants.DEVICEANDTHINPOOLS, new LinkedList<CIMObjectPath>());
         _keyMap.put(Constants.THINPOOLS, new LinkedList<CIMObjectPath>());
 
         _keyMap.put(Constants.STORAGEPROCESSORS, new LinkedList<CIMObjectPath>());
@@ -403,7 +394,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
         _keyMap.put(Constants.VMAXFASTPOLICIES, new LinkedList<CIMObjectPath>());
         _keyMap.put(Constants.VNXFASTPOLICIES, new LinkedList<CIMObjectPath>());
         _keyMap.put(Constants.VNXPOOLCAPABILITIES, new LinkedList<CIMObjectPath>());
-        _keyMap.put(Constants.VNXPOOLCAPABILITIES_TIER, new LinkedList<String>() );
+        _keyMap.put(Constants.VNXPOOLCAPABILITIES_TIER, new LinkedList<String>());
         _keyMap.put(Constants.VNXPOOLSETTINGS, new LinkedList<CIMObjectPath>());
         _keyMap.put(Constants.VNXPOOLS, new LinkedList<CIMObjectPath>());
         _keyMap.put(Constants.VMAXPOOLS, new LinkedList<CIMObjectPath>());
@@ -421,16 +412,16 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
         _keyMap.put(Constants.STORAGE_GROUPS, new LinkedList<CIMObjectPath>());
         _keyMap.put(Constants.AUTO_TIER_VOLUMES, new LinkedList<CIMObjectPath>());
         _keyMap.put(Constants.EVENT_MANAGER, accessProfile.getRecordableEventManager());
-            
+
         Set<URI> systemsToRunRPConnectivity = new HashSet<URI>();
         _keyMap.put(Constants.SYSTEMS_RUN_RP_CONNECTIVITY, systemsToRunRPConnectivity);
-         
-        Map<String,RemoteMirrorObject> unManagedVolToRaGroupMap = new HashMap<String, RemoteMirrorObject>();
-        _keyMap.put(Constants.UN_VOLUME_RAGROUP_MAP, unManagedVolToRaGroupMap);                        
-              
-        Map<String,String> policyToGroupMap = new HashMap<String, String>();
+
+        Map<String, RemoteMirrorObject> unManagedVolToRaGroupMap = new HashMap<String, RemoteMirrorObject>();
+        _keyMap.put(Constants.UN_VOLUME_RAGROUP_MAP, unManagedVolToRaGroupMap);
+
+        Map<String, String> policyToGroupMap = new HashMap<String, String>();
         _keyMap.put(Constants.POLICY_STORAGE_GROUP_MAPPING, policyToGroupMap);
-        
+
         Map<String, String> volumesWithSLO = new HashMap<String, String>();
         _keyMap.put(Constants.VOLUMES_WITH_SLOS, volumesWithSLO);
 
@@ -447,23 +438,23 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
         _keyMap.put(Constants.USED_IN_CHECKING_GROUPNAMES_TO_FASTPOLICY, new LinkedList<String>());
         _keyMap.put(Constants.REPLICATIONSERVICE, new LinkedList<CIMObjectPath>());
         _keyMap.put("connectivityCollection", new LinkedList<CIMObjectPath>());
-         
-        Map<String,URI> raGroupMap = new HashMap<String, URI>();
+
+        Map<String, URI> raGroupMap = new HashMap<String, URI>();
         _keyMap.put(Constants.RAGROUP, raGroupMap);
-        
+
         // deviceMaskingGroups
         _keyMap.put(Constants.DEVICEMASKINGROUPS, new LinkedList<CIMObjectPath>());
         _keyMap.put(Constants.FASTPOLICY, CimObjectPathCreator.createInstance(
                 Constants.CIMFASTPOLICYRULE, accessProfile.getInteropNamespace()));
-        
-        //deviceMaskingGroups
+
+        // deviceMaskingGroups
         Map<String, Set<String>> policytopoolMapping = new HashMap<String, Set<String>>();
         _keyMap.put(Constants.POLICY_TO_POOLS_MAPPING, policytopoolMapping);
-        
+
         Map<String, StringSet> volumeToStorageGroupMapping = new HashMap<String, StringSet>();
         _keyMap.put(Constants.VOLUME_STORAGE_GROUP_MAPPING, volumeToStorageGroupMapping);
-        
-        Map<String,Set<Integer>> initiatorToHLU = new HashMap<String, Set<Integer>>();
+
+        Map<String, Set<Integer>> initiatorToHLU = new HashMap<String, Set<Integer>>();
         _keyMap.put(Constants.INITIATOR_HLU_MAP, initiatorToHLU);
 
         // unmanaged volume (local mirrors/snapshots) discovery
@@ -473,14 +464,15 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
         Map<String, String> snapshotToSynchronizationAspectMap = new HashMap<String, String>();
         _keyMap.put(Constants.SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP, snapshotToSynchronizationAspectMap);
     }
-    
-    private void initIBMDiscoveryKeyMap(AccessProfile accessProfile) {        
+
+    private void initIBMDiscoveryKeyMap(AccessProfile accessProfile) {
         _keyMap.put(Constants._computerSystem, CimObjectPathCreator.createInstance(
-                Constants.IBM_STORAGE_SYSTEM, accessProfile.getInteropNamespace()));       
+                Constants.IBM_STORAGE_SYSTEM, accessProfile.getInteropNamespace()));
     }
-    
+
     /**
      * Return the provider version.
+     * 
      * @param storageSystem
      * @return
      */
@@ -488,17 +480,18 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
         String providerVersion = null;
         if (!NullColumnValueGetter.isNullURI(storageSystem.getActiveProviderURI())) {
             StorageProvider provider = _dbClient.queryObject(StorageProvider.class, storageSystem.getActiveProviderURI());
-            
+
             if (null != provider && null != provider.getVersionString()) {
                 providerVersion = provider.getVersionString().replaceFirst("[^\\d]", "");
             }
         }
         return providerVersion;
     }
-    
+
     /**
      * Verify the version specified in the KeyMap and return true if major version is < 8.
      * If Version string is not set in keyamp, then return true.
+     * 
      * @param keyMap
      * @return
      */

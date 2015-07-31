@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -27,7 +27,7 @@ public class ServiceFormUtils {
      * Creates a mapping of field name to {@link AssetFieldDescriptor} for all asset fields in the provided service.
      * 
      * @param service
-     *        the service descriptor.
+     *            the service descriptor.
      * @return the map of field name->AssetFieldDescriptor.
      */
     public static Map<String, AssetFieldDescriptor> createAssetFieldDescriptors(ServiceDescriptorRestRep service) {
@@ -41,7 +41,7 @@ public class ServiceFormUtils {
      * Reverses the dependencies of the asset fields, calculating {@link AssetFieldDescriptor#fieldsThatDependOnUs}.
      * 
      * @param assetFields
-     *        the map of all asset fields.
+     *            the map of all asset fields.
      */
     private static void calculateReverseDependencies(Map<String, AssetFieldDescriptor> assetFields) {
         for (Map.Entry<String, AssetFieldDescriptor> entry : assetFields.entrySet()) {
@@ -59,9 +59,9 @@ public class ServiceFormUtils {
      * Creates the asset fields for the container and all its children.
      * 
      * @param container
-     *        the service item container.
+     *            the service item container.
      * @param providedFields
-     *        the asset fields provided by the parent, mapped by asset type.
+     *            the asset fields provided by the parent, mapped by asset type.
      * @return the map of field name->AssetFieldDescriptor.
      */
     private static Map<String, AssetFieldDescriptor> createAssetFieldsFromItems(Collection<? extends ServiceItemRestRep> items,
@@ -88,9 +88,9 @@ public class ServiceFormUtils {
      * the parent.
      * 
      * @param fields
-     *        the asset fields for which to create descriptors.
+     *            the asset fields for which to create descriptors.
      * @param providedFields
-     *        the asset fields provided by the parent, mapped by asset type.
+     *            the asset fields provided by the parent, mapped by asset type.
      * @return the map of field name->AssetFieldDescriptor.
      */
     private static Map<String, AssetFieldDescriptor> createAssetFields(List<ServiceFieldRestRep> fields,
@@ -118,9 +118,9 @@ public class ServiceFormUtils {
      * Creates an asset field descriptor for the service field with the provided dependencies
      * 
      * @param field
-     *        the service field.
+     *            the service field.
      * @param dependencies
-     *        the names of the fields that are dependencies.
+     *            the names of the fields that are dependencies.
      * @return the asset field descriptor.
      */
     private static AssetFieldDescriptor createAssetField(ServiceFieldRestRep field, List<String> dependencies) {
@@ -138,9 +138,9 @@ public class ServiceFormUtils {
      * if the service fields contain a matching asset type.
      * 
      * @param fields
-     *        the service fields to add.
+     *            the service fields to add.
      * @param providedFields
-     *        the current provided fields, mapped by asset type.
+     *            the current provided fields, mapped by asset type.
      * @return the combined map containing the original provided fields and the service fields mapped by type.
      */
     private static Map<String, ServiceFieldRestRep> addFieldsByType(List<ServiceFieldRestRep> fields,
@@ -158,15 +158,15 @@ public class ServiceFormUtils {
      * Finds a field by asset type, first searching the fields list and falling back to a lookup in the provided fields.
      * 
      * @param assetType
-     *        the asset type.
+     *            the asset type.
      * @param fields
-     *        the fields to search.
+     *            the fields to search.
      * @param providedFields
-     *        the fields provided by the parent, mapped by asset type.
+     *            the fields provided by the parent, mapped by asset type.
      * @return the matching service field.
      * 
      * @throws IllegalArgumentException
-     *         if there is no matching field with the desired type.
+     *             if there is no matching field with the desired type.
      */
     private static ServiceFieldRestRep findFieldByAssetType(String assetType, Collection<ServiceFieldRestRep> fields,
             Map<String, ServiceFieldRestRep> providedFields) {
@@ -185,9 +185,9 @@ public class ServiceFormUtils {
      * Finds a field by asset type in a collection of fields. The first matching field is returned.
      * 
      * @param assetType
-     *        the asset type.
+     *            the asset type.
      * @param fields
-     *        the fields to search.
+     *            the fields to search.
      * @return the matching service field.
      */
     private static ServiceFieldRestRep findFieldByAssetType(String assetType, Collection<ServiceFieldRestRep> fields) {

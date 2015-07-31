@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.command;
@@ -16,11 +16,11 @@ public class LocalCommandExecutor implements CommandExecutor {
     private String charset = StreamConsumer.DEFAULT_CHARSET;
 
     public void setEnvironment(String[] environment) {
-    	if (environment == null) {
-    		this.environment = new String[0];
-    	} else {
-    		this.environment = Arrays.copyOf(environment, environment.length);
-    	}
+        if (environment == null) {
+            this.environment = new String[0];
+        } else {
+            this.environment = Arrays.copyOf(environment, environment.length);
+        }
     }
 
     public void setWorkingDir(File workingDir) {
@@ -39,19 +39,15 @@ public class LocalCommandExecutor implements CommandExecutor {
             try {
                 int exitCode = p.waitFor();
                 return new CommandOutput(stdout.toString(), stderr.toString(), exitCode);
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 throw new CommandException(e);
-            }
-            finally {
+            } finally {
                 stdout.close();
                 stderr.close();
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new CommandException(e);
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             throw new CommandException(e);
         }
     }

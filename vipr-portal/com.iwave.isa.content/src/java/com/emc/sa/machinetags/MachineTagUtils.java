@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.machinetags;
@@ -47,19 +47,19 @@ public class MachineTagUtils {
         Map<String, String> currentMachineTags = parseMachineTags(currentTags);
         return currentMachineTags.get(tagName);
     }
-    
+
     public static void setTaskTag(ViPRCoreClient client, URI taskId, String tagName, String tagValue) {
         removeTaskTag(client, taskId, tagName);
         client.tasks().addTags(taskId, Sets.newHashSet(machineTag(tagName, tagValue)));
-    }    
-    
+    }
+
     public static void setTaskOrderIdTag(ViPRCoreClient client, URI taskId, String tagValue) {
         setTaskTag(client, taskId, KnownMachineTags.getOrderIdTagName(), tagValue);
     }
-    
+
     public static void setTaskOrderNumberTag(ViPRCoreClient client, URI taskId, String tagValue) {
         setTaskTag(client, taskId, KnownMachineTags.getOrderNumberTagName(), tagValue);
-    }            
+    }
 
     public static void removeTaskTag(ViPRCoreClient client, URI taskId, String tagName) {
         Set<String> currentTags = getTaskTags(client, taskId);

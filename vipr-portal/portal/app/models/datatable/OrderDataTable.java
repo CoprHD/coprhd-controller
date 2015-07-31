@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -50,7 +50,7 @@ public class OrderDataTable extends DataTable {
 
         return convert(orderRestReps);
     }
-    
+
     protected List<OrderInfo> convert(List<OrderRestRep> orderRestReps) {
         List<OrderInfo> orderInfos = Lists.newArrayList();
         if (orderRestReps != null) {
@@ -58,7 +58,7 @@ public class OrderDataTable extends DataTable {
                 orderInfos.add(new OrderInfo(orderRestRep));
             }
         }
-        return orderInfos;        
+        return orderInfos;
     }
 
     public static class OrderInfo {

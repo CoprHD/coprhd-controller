@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.security.authentication;
@@ -49,7 +39,7 @@ public class LogoutHandlingFilter extends AbstractRequestWrapperFilter {
 
     @Override
     public void doFilter(final ServletRequest servletRequest, final ServletResponse servletResponse,
-                         final FilterChain filterChain) throws IOException, ServletException {
+            final FilterChain filterChain) throws IOException, ServletException {
 
         HttpServletRequest req = (HttpServletRequest) servletRequest;
         if (!findLogoutPattern(req.getRequestURI())) {
@@ -65,7 +55,7 @@ public class LogoutHandlingFilter extends AbstractRequestWrapperFilter {
             }
             StringBuilder redirectURL = new StringBuilder(endpoint.toString());
             if (!InetAddresses.isInetAddress(endpoint.getHost()) ||
-                    RequestProcessingUtils.getTokenFromCookie(req) != null){
+                    RequestProcessingUtils.getTokenFromCookie(req) != null) {
                 // ok, then, keep them on the same node
                 redirectURL = RequestProcessingUtils.getOnNodeAuthsvcRedirectURL(req, endpoint);
             }
@@ -79,9 +69,10 @@ public class LogoutHandlingFilter extends AbstractRequestWrapperFilter {
             response.sendRedirect(redirectURL.toString());
         }
     }
-    
+
     /**
      * parses the input string to find matches for /logout, /logout.xml, /logout.json (case insensitive)
+     * 
      * @param input
      * @return true if found, false if not found.
      */

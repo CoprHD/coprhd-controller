@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl;
@@ -18,7 +18,8 @@ public class JobPollResult implements Serializable {
     private String _name;
     private String _errorDescription;
 
-    public JobPollResult() {}
+    public JobPollResult() {
+    }
 
     public String getJobName() {
         return _name;
@@ -51,7 +52,7 @@ public class JobPollResult implements Serializable {
     public void setJobId(String id) {
         _id = id;
     }
-   
+
     public String getErrorDescription() {
         return _errorDescription;
     }
@@ -67,11 +68,12 @@ public class JobPollResult implements Serializable {
     public void setJobPostProcessingStatus(Job.JobStatus postProcessingStatus) {
         _postProcessingStatus = postProcessingStatus;
     }
+
     public boolean isJobInTerminalState() {
         return (getJobStatus() == Job.JobStatus.SUCCESS || getJobStatus() == Job.JobStatus.FAILED
-                 || getJobStatus() == Job.JobStatus.FATAL_ERROR) &&
-                (getJobPostProcessingStatus() == Job.JobStatus.SUCCESS || getJobPostProcessingStatus() == Job.JobStatus.FAILED 
-                        || getJobPostProcessingStatus() == Job.JobStatus.FATAL_ERROR);
+                || getJobStatus() == Job.JobStatus.FATAL_ERROR) &&
+                (getJobPostProcessingStatus() == Job.JobStatus.SUCCESS || getJobPostProcessingStatus() == Job.JobStatus.FAILED
+                || getJobPostProcessingStatus() == Job.JobStatus.FATAL_ERROR);
 
     }
 

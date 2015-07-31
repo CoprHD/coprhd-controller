@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service;
@@ -53,8 +53,8 @@ public class ServiceRunner {
 
             String[] configs = { "service-runner.xml" };
             CONTEXT = new ClassPathXmlApplicationContext(configs, ServiceRunner.class, parentContext);
-            ENGINE = (ExecutionEngineImpl)CONTEXT.getBean("ExecutionEngine",ExecutionEngineImpl.class);
-            MODELS = (ModelClient)CONTEXT.getBean("ModelClient",ModelClient.class);
+            ENGINE = (ExecutionEngineImpl) CONTEXT.getBean("ExecutionEngine", ExecutionEngineImpl.class);
+            MODELS = (ModelClient) CONTEXT.getBean("ModelClient", ModelClient.class);
         }
     }
 

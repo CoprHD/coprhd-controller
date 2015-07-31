@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.scaleio.api;
@@ -22,14 +12,14 @@ import java.util.List;
 
 public class ScaleIOSnapshotVolumeCommand extends AbstractScaleIOQueryCommand<ScaleIOSnapshotVolumeResult> {
 
-//    Snapshot created successfully
-//    Source volume with ID e9e5158e00000000 => e9e5158f00000001
+    // Snapshot created successfully
+    // Source volume with ID e9e5158e00000000 => e9e5158f00000001
 
     private static final String SNAPSHOT_VOLUME_SUCCESS = "SnapshotVolumeSuccess";
 
     private static final String SNAPSHOT_ID = "SnapshotId";
 
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern("Snapshot created successfully", SNAPSHOT_VOLUME_SUCCESS),
             new ParsePattern("\\s+Source volume with ID (\\w+)\\s+=>\\s+(\\w+)\\s+(\\S+)", SNAPSHOT_ID)
     };
@@ -45,7 +35,7 @@ public class ScaleIOSnapshotVolumeCommand extends AbstractScaleIOQueryCommand<Sc
 
     @Override
     ParsePattern[] getOutputPatternSpecification() {
-        return PARSING_CONFIG.clone(); //No need to check not null condition here
+        return PARSING_CONFIG.clone(); // No need to check not null condition here
     }
 
     @Override

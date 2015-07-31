@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.windows;
@@ -58,7 +58,7 @@ import com.iwave.ext.windows.model.Volume;
 import com.iwave.ext.windows.model.wmi.DiskDrive;
 
 public class WindowsSupport {
-    
+
     private WindowsSystemWinRM targetSystem;
 
     public WindowsSupport(WindowsSystemWinRM targetSystem) {
@@ -103,7 +103,8 @@ public class WindowsSupport {
         if ((detail != null) && (detail.getVolumes() != null) && (detail.getVolumes().size() > 0)) {
             return detail.getVolumes().get(0).getMountPoint();
         }
-        ExecutionUtils.fail("failTask.WindowsSupport.noMountPoint", String.valueOf(disk.getNumber()), disk.getName(), String.valueOf(disk.getNumber()));
+        ExecutionUtils.fail("failTask.WindowsSupport.noMountPoint", String.valueOf(disk.getNumber()), disk.getName(),
+                String.valueOf(disk.getNumber()));
         return null; // fail() will throw an exception - we should never get here
     }
 
@@ -116,10 +117,9 @@ public class WindowsSupport {
         return execute(new DiscoverDisksForVolumes(volumes, attempts, delay));
     }
 
-    public Map<? extends BlockObjectRestRep, DiskDrive> findDisks( Collection<? extends BlockObjectRestRep> volumes) {
+    public Map<? extends BlockObjectRestRep, DiskDrive> findDisks(Collection<? extends BlockObjectRestRep> volumes) {
         return execute(new FindDisksForVolumes(volumes));
     }
-
 
     public boolean isReadOnly(Disk disk) {
         return Boolean.TRUE.equals(disk.getCurrentReadOnlyState())
@@ -135,7 +135,7 @@ public class WindowsSupport {
     public void offlineDisk(DiskDrive disk) {
         execute(new OfflineDisk(disk.getNumber()));
     }
-    
+
     public void checkPartitionRestriction(DiskDrive disk, long volumeSizeInBytes) {
         execute(new CheckPartitionRestriction(disk.getNumber(), volumeSizeInBytes));
     }
@@ -162,7 +162,7 @@ public class WindowsSupport {
         String mountPoint = getMountPoint(volume);
         extendDrive(volume, mountPoint);
     }
-    
+
     public void extendDrive(BlockObjectRestRep volume, String mountPoint) {
         execute(new ExtendVolume(mountPoint));
         addAffectedResource(volume.getId());
@@ -182,7 +182,7 @@ public class WindowsSupport {
     public <T extends BlockObjectRestRep> String getMountPoint(T volume) {
         if (targetSystem.getClusterId() != null) {
             return KnownMachineTags.getBlockVolumeMountPoint(targetSystem.getClusterId(), volume);
-        } 
+        }
         else {
             return KnownMachineTags.getBlockVolumeMountPoint(targetSystem.getHostId(), volume);
         }
@@ -240,7 +240,7 @@ public class WindowsSupport {
     private String getMountPointTagName() {
         if (targetSystem.getClusterId() != null) {
             return KnownMachineTags.getHostMountPointTagName(targetSystem.getClusterId());
-        } 
+        }
         else {
             return KnownMachineTags.getHostMountPointTagName(targetSystem.getHostId());
         }
@@ -269,11 +269,12 @@ public class WindowsSupport {
     public void verifyMountPointLetterIsAvailable(String mountPointLetter, Set<String> usedDriveLetters) {
         execute(new VerifyDriveLetterIsAvailable(mountPointLetter, usedDriveLetters));
     }
-    
+
     public boolean isGuid(String expression)
     {
-        if (expression != null ) {
-            Pattern guidRegEx = Pattern.compile("^(\\{{0,1}([0-9a-fA-F]){8}-([0-9a-fA-F]){4}-([0-9a-fA-F]){4}-([0-9a-fA-F]){4}-([0-9a-fA-F]){12}\\}{0,1})$");
+        if (expression != null) {
+            Pattern guidRegEx = Pattern
+                    .compile("^(\\{{0,1}([0-9a-fA-F]){8}-([0-9a-fA-F]){4}-([0-9a-fA-F]){4}-([0-9a-fA-F]){4}-([0-9a-fA-F]){12}\\}{0,1})$");
 
             Matcher matcher = guidRegEx.matcher(expression);
             return matcher.find();

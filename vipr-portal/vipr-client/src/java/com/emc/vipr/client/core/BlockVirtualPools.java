@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -70,9 +70,9 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
      * Gets a list of virtual pool references from the given url.
      * 
      * @param url
-     *        the URL to retrieve.
+     *            the URL to retrieve.
      * @param args
-     *        the arguments for the URL.
+     *            the arguments for the URL.
      * @return the list of virtual pool references.
      */
     protected List<NamedRelatedVirtualPoolRep> getList(String url, Object... args) {
@@ -91,7 +91,6 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
     public List<NamedRelatedVirtualPoolRep> list() {
         return getList(baseUrl);
     }
-    
 
     /**
      * Lists all virtual pools in a virtual data center
@@ -103,9 +102,9 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
     public List<NamedRelatedVirtualPoolRep> listByVDC(String shortVdcId) {
         UriBuilder builder = client.uriBuilder(baseUrl);
         builder.queryParam(SearchConstants.VDC_ID_PARAM, shortVdcId);
-        VirtualPoolList response =  client.getURI(VirtualPoolList.class, builder.build());
+        VirtualPoolList response = client.getURI(VirtualPoolList.class, builder.build());
         return ResourceUtils.defaultList(response.getVirtualPool());
-    }        
+    }
 
     /**
      * Gets all block virtual pools.
@@ -124,7 +123,7 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
      * Gets all block virtual pools, optionally filtering the results.
      * 
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of block virtual pools.
      */
     @Override
@@ -139,7 +138,7 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
      * API Call: <tt>POST /block/vpools</tt>
      * 
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return the newly created block virtual pool.
      */
     public BlockVirtualPoolRestRep create(BlockVirtualPoolParam input) {
@@ -152,9 +151,9 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
      * API Call: <tt>PUT /block/vpools/{id}</tt>
      * 
      * @param id
-     *        the ID of the block virtual pool to update.
+     *            the ID of the block virtual pool to update.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated block virtual pool.
      */
     public BlockVirtualPoolRestRep update(URI id, BlockVirtualPoolUpdateParam input) {
@@ -167,7 +166,7 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
      * API Call: <tt>POST /block/vpools/{id}/deactivate</tt>
      * 
      * @param id
-     *        the ID of the block virtual pool to deactivate.
+     *            the ID of the block virtual pool to deactivate.
      */
     public void deactivate(URI id) {
         doDeactivate(id);
@@ -181,24 +180,24 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
      * Lists the virtual pools that are associated with the given virtual array.
      * <p>
      * API Call: <tt>GET /vdc/varrays/{id}/vpools</tt>
-     *
+     * 
      * @param varrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @return the list of virtual pool references.
      */
     public List<NamedRelatedVirtualPoolRep> listByVirtualArray(URI varrayId) {
         VirtualPoolList response = client.get(VirtualPoolList.class, String.format(ID_URL_FORMAT, VARRAY_URL) + "/vpools", varrayId);
         return defaultList(response.getVirtualPool());
-    }  
-    
+    }
+
     /**
      * Gets the storage pools that are associated with the given block virtual pool.
      * Convenience method for calling getByRefs(listByVirtualArray(varrayId)).
-     *
+     * 
      * @param varrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @return the list of virtual pools.
-     *
+     * 
      * @see #listByVirtualArray(URI)
      * @see #getByRefs(java.util.Collection)
      */
@@ -209,14 +208,14 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
     /**
      * Gets the storage pools that are associated with the given block virtual pool.
      * Convenience method for calling getByRefs(listByVirtualArray(varrayId)).
-     *
+     * 
      * @param varrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
-     *
+     *            the resource filter to apply to the results as they are returned (optional).
+     * 
      * @return the list of virtual pools.
-     *
+     * 
      * @see #listByVirtualArray(URI)
      * @see #getByRefs(java.util.Collection)
      */
@@ -251,9 +250,9 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
      * API Call: <tt>GET /block/vpools/{id}/varrays/{varrayId}/capacity</tt>
      * 
      * @param id
-     *        the ID of the block virtual pool.
+     *            the ID of the block virtual pool.
      * @param virtualArrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @return the capacity information.
      */
     public CapacityResponse getCapacityOnVirtualArray(URI id, URI virtualArrayId) {
@@ -264,9 +263,9 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
      * Lists the storage pools that are associated with the given block virtual pool.
      * <p>
      * API Call: <tt>GET /block/vpools/{id}/storage-pools</tt>
-     *
+     * 
      * @param id
-     *        the ID of the block virtual pool.
+     *            the ID of the block virtual pool.
      * @return the list of storage pool references.
      */
     public List<NamedRelatedResourceRep> listStoragePools(URI id) {
@@ -276,11 +275,11 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
 
     /**
      * Gets the storage pools that are associated with the given block virtual pool
-     *
+     * 
      * @param id
-     *        the ID of the block virtual pool.
+     *            the ID of the block virtual pool.
      * @return the list of storage pools.
-     *
+     * 
      * @see #listStoragePools(URI)
      * @see StoragePools#getByRefs(java.util.Collection)
      */
@@ -295,7 +294,7 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
      * API Call: <tt>POST /block/vpools/matching-pools</tt>
      * 
      * @param input
-     *        the configuration for a potential block virtual pool.
+     *            the configuration for a potential block virtual pool.
      * @return the list of matching storage pool references.
      */
     public List<NamedRelatedResourceRep> listMatchingStoragePools(BlockVirtualPoolParam input) {
@@ -307,7 +306,7 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
      * Get the storage pools that would match a block virtual pool with the given configuration.
      * 
      * @param input
-     *        the configuration for potential block virtual pool.
+     *            the configuration for potential block virtual pool.
      * @return the list of matching storage pools.
      */
     public List<StoragePoolRestRep> getMatchingStoragePools(BlockVirtualPoolParam input) {
@@ -321,7 +320,7 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
      * API Call: <tt>GET /block/vpools/{id}/refresh-matched-pools</tt>
      * 
      * @param id
-     *        the ID of the block virtual pool.
+     *            the ID of the block virtual pool.
      * @return the list of currently matching storage pool references.
      */
     public List<NamedRelatedResourceRep> refreshMatchingStoragePools(URI id) {
@@ -335,27 +334,27 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
      * API Call: <tt>PUT /block/vpools/{id}/assign-matched-pools</tt>
      * 
      * @param id
-     *        the ID of the block virtual pool.
+     *            the ID of the block virtual pool.
      * @param input
-     *        the configuration of the storage pool assignments.
+     *            the configuration of the storage pool assignments.
      * @return the updated block virtual pool.
      */
     public BlockVirtualPoolRestRep assignStoragePools(URI id, VirtualPoolPoolUpdateParam input) {
         return client.put(BlockVirtualPoolRestRep.class, input, getIdUrl() + "/assign-matched-pools", id);
     }
-     
+
     /**
      * Lists virtual pool change candidates for the given block virtual pool.
      * <p>
      * API Call: <tt>GET /block/vpools/{id}/vpool-change/vpool</tt>
      * 
      * @param id
-     *        the ID of the block virtual pool.
+     *            the ID of the block virtual pool.
      * @return the list of virtual pool candidates.
      */
     public List<VirtualPoolChangeRep> listVirtualPoolChangeCandidates(URI id, BulkIdParam input) {
         VirtualPoolChangeList response = client.post(VirtualPoolChangeList.class, input, getIdUrl() + "/vpool-change/vpool", id);
         return defaultList(response.getVirtualPools());
     }
-    
+
 }

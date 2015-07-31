@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.compute;
@@ -16,108 +16,108 @@ import com.emc.storageos.model.RelatedResourceRep;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class ComputeElementRestRep extends DiscoveredSystemObjectRestRep {
 
-	private Long ram;
-	private RelatedResourceRep computeSystem;
-	private Integer numOfCores;
-	private Short numOfProcessors;
-	private Integer numOfThreads;
-	private String processorSpeed;
-	private String uuid;
-	private String originalUuid;
-	private Boolean available;
-	private String model;
+    private Long ram;
+    private RelatedResourceRep computeSystem;
+    private Integer numOfCores;
+    private Short numOfProcessors;
+    private Integer numOfThreads;
+    private String processorSpeed;
+    private String uuid;
+    private String originalUuid;
+    private Boolean available;
+    private String model;
 
-	public ComputeElementRestRep() {
-	}
+    public ComputeElementRestRep() {
+    }
 
-	@XmlElement(name = "ram")
-	public Long getRam() {
-		return ram;
-	}
+    @XmlElement(name = "ram")
+    public Long getRam() {
+        return ram;
+    }
 
-	public void setRam(Long ram) {
-		this.ram = ram;
-	}
+    public void setRam(Long ram) {
+        this.ram = ram;
+    }
 
-	@XmlElement(name = "num_of_cores")
-	public Integer getNumOfCores() {
-		return numOfCores;
-	}
+    @XmlElement(name = "num_of_cores")
+    public Integer getNumOfCores() {
+        return numOfCores;
+    }
 
-	public void setNumOfCores(Integer numOfCores) {
-		this.numOfCores = numOfCores;
-	}
+    public void setNumOfCores(Integer numOfCores) {
+        this.numOfCores = numOfCores;
+    }
 
-	@XmlElement(name = "uuid")
-	public String getUuid() {
-		return uuid;
-	}
+    @XmlElement(name = "uuid")
+    public String getUuid() {
+        return uuid;
+    }
 
-	public void setUuid(String uuid) {
-		this.uuid = uuid;
-	}
-	
-	@XmlElement(name = "number_of_processors")
-	public Short getNumOfProcessors() {
-		return numOfProcessors;
-	}
+    public void setUuid(String uuid) {
+        this.uuid = uuid;
+    }
 
-	public void setNumOfProcessors(Short numOfProcessors) {
-		this.numOfProcessors = numOfProcessors;
-	}
+    @XmlElement(name = "number_of_processors")
+    public Short getNumOfProcessors() {
+        return numOfProcessors;
+    }
 
-	@XmlElement(name = "number_of_threads")
-	public Integer getNumOfThreads() {
-		return numOfThreads;
-	}
+    public void setNumOfProcessors(Short numOfProcessors) {
+        this.numOfProcessors = numOfProcessors;
+    }
 
-	public void setNumOfThreads(Integer numOfThreads) {
-		this.numOfThreads = numOfThreads;
-	}
+    @XmlElement(name = "number_of_threads")
+    public Integer getNumOfThreads() {
+        return numOfThreads;
+    }
 
-	@XmlElement(name = "processor_speed")
-	public String getProcessorSpeed() {
-		return processorSpeed;
-	}
+    public void setNumOfThreads(Integer numOfThreads) {
+        this.numOfThreads = numOfThreads;
+    }
 
-	public void setProcessorSpeed(String processorSpeed) {
-		this.processorSpeed = processorSpeed;
-	}
+    @XmlElement(name = "processor_speed")
+    public String getProcessorSpeed() {
+        return processorSpeed;
+    }
 
-	@XmlElement
-	public RelatedResourceRep getComputeSystem() {
-		return computeSystem;
-	}
+    public void setProcessorSpeed(String processorSpeed) {
+        this.processorSpeed = processorSpeed;
+    }
 
-	public void setComputeSystem(RelatedResourceRep computeSystem) {
-		this.computeSystem = computeSystem;
-	}
-	
-	@XmlElement
-	public String getOriginalUuid() {
-		return originalUuid;
-	}
+    @XmlElement
+    public RelatedResourceRep getComputeSystem() {
+        return computeSystem;
+    }
 
-	public void setOriginalUuid(String originalUuid) {
-		this.originalUuid = originalUuid;
-	}
-	
-	@XmlElement
-	public Boolean getAvailable() {
-		return available;
-	}
+    public void setComputeSystem(RelatedResourceRep computeSystem) {
+        this.computeSystem = computeSystem;
+    }
 
-	public void setAvailable(Boolean available) {
-		this.available = available;
-	}
-	
-	@XmlElement
-	public String getModel() {
-		return model;
-	}
+    @XmlElement
+    public String getOriginalUuid() {
+        return originalUuid;
+    }
 
-	public void setModel(String model) {
-		this.model = model;
-	}
-	
+    public void setOriginalUuid(String originalUuid) {
+        this.originalUuid = originalUuid;
+    }
+
+    @XmlElement
+    public Boolean getAvailable() {
+        return available;
+    }
+
+    public void setAvailable(Boolean available) {
+        this.available = available;
+    }
+
+    @XmlElement
+    public String getModel() {
+        return model;
+    }
+
+    public void setModel(String model) {
+        this.model = model;
+    }
+
 }

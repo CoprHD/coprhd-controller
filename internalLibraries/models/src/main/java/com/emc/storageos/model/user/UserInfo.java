@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.user;
@@ -95,7 +95,6 @@ public class UserInfo {
     public void setHomeTenantRoles(List<String> roles) {
         this.homeTenantRoles = roles;
     }
-
 
     @XmlElementWrapper(name = "subtenant_roles")
     /**

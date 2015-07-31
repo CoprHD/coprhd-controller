@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.vpool;
@@ -8,11 +8,8 @@ import java.net.URI;
 
 import javax.xml.bind.annotation.XmlElement;
 
-
-
 public class VirtualPoolRemoteProtectionVirtualArraySettingsParam {
-    
-    
+
     public VirtualPoolRemoteProtectionVirtualArraySettingsParam(URI varray, URI vpool,
             String remoteCopyMode) {
         super();
@@ -22,7 +19,7 @@ public class VirtualPoolRemoteProtectionVirtualArraySettingsParam {
     }
 
     public VirtualPoolRemoteProtectionVirtualArraySettingsParam() {
-      
+
     }
 
     /**
@@ -30,7 +27,7 @@ public class VirtualPoolRemoteProtectionVirtualArraySettingsParam {
      * 
      * @valid none
      */
-  
+
     private URI varray;
 
     /**
@@ -39,7 +36,7 @@ public class VirtualPoolRemoteProtectionVirtualArraySettingsParam {
      * @valid none
      */
     private URI vpool;
-    
+
     /**
      * remote copy modes
      * 
@@ -64,8 +61,8 @@ public class VirtualPoolRemoteProtectionVirtualArraySettingsParam {
     public void setVpool(URI vpool) {
         this.vpool = vpool;
     }
-    
-    @XmlElement(name="remote_copy_mode", required = false)
+
+    @XmlElement(name = "remote_copy_mode", required = false)
     public String getRemoteCopyMode() {
         return remoteCopyMode;
     }
@@ -73,9 +70,7 @@ public class VirtualPoolRemoteProtectionVirtualArraySettingsParam {
     public void setRemoteCopyMode(String remoteCopyMode) {
         this.remoteCopyMode = remoteCopyMode;
     }
-    
-    
-    
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -89,28 +84,37 @@ public class VirtualPoolRemoteProtectionVirtualArraySettingsParam {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         VirtualPoolRemoteProtectionVirtualArraySettingsParam other = (VirtualPoolRemoteProtectionVirtualArraySettingsParam) obj;
         if (remoteCopyMode == null) {
-            if (other.remoteCopyMode != null)
+            if (other.remoteCopyMode != null) {
                 return false;
-        } else if (!remoteCopyMode.equals(other.remoteCopyMode))
+            }
+        } else if (!remoteCopyMode.equals(other.remoteCopyMode)) {
             return false;
+        }
         if (varray == null) {
-            if (other.varray != null)
+            if (other.varray != null) {
                 return false;
-        } else if (!varray.equals(other.varray))
+            }
+        } else if (!varray.equals(other.varray)) {
             return false;
+        }
         if (vpool == null) {
-            if (other.vpool != null)
+            if (other.vpool != null) {
                 return false;
-        } else if (!vpool.equals(other.vpool))
+            }
+        } else if (!vpool.equals(other.vpool)) {
             return false;
+        }
         return true;
     }
 }

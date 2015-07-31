@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
@@ -38,12 +28,12 @@ public class SmisSynchSubTaskJob extends SmisJob {
     private static Logger log = LoggerFactory.getLogger(SmisSynchSubTaskJob.class);
 
     public SmisSynchSubTaskJob(CIMObjectPath cimJob,
-                               URI storageSystem,
-                               final String name) {
+            URI storageSystem,
+            final String name) {
         super(cimJob, storageSystem, new TaskCompleter() {
             @Override
             protected void complete(DbClient dbClient, Operation.Status status,
-                                 ServiceCoded coded)
+                    ServiceCoded coded)
                     throws DeviceControllerException {
                 log.info(String.format("Completing synchronous sub-task %s with status %s",
                         name, status.toString()));

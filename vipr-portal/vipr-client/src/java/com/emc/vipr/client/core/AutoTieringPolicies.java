@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -55,9 +55,9 @@ public class AutoTieringPolicies extends AbstractCoreBulkResources<AutoTieringPo
      * Gets a list of auto tier policy references from the given URL.
      * 
      * @param url
-     *        the URL.
+     *            the URL.
      * @param args
-     *        the URL arguments.
+     *            the URL arguments.
      * @return the list of auto tier policy references.
      */
     protected List<NamedRelatedResourceRep> getList(String url, Object... args) {
@@ -69,7 +69,7 @@ public class AutoTieringPolicies extends AbstractCoreBulkResources<AutoTieringPo
      * Gets a list of auto tier policy references from the given URI.
      * 
      * @param uri
-     *        the URI.
+     *            the URI.
      * @return the list of auto tier policy references.
      */
     protected List<NamedRelatedResourceRep> getList(URI uri) {
@@ -92,13 +92,12 @@ public class AutoTieringPolicies extends AbstractCoreBulkResources<AutoTieringPo
     /**
      * Lists the auto tier policies, with the ability to limit by provisioning type or unique policy name.
      * <p>
-     * API Call:
-     * <tt>GET /vdc/auto-tier-policies?provisioning_type={provisioningType}&unique_auto_tier_policy_names={uniqueNames}</tt>
+     * API Call: <tt>GET /vdc/auto-tier-policies?provisioning_type={provisioningType}&unique_auto_tier_policy_names={uniqueNames}</tt>
      * 
      * @param provisioningType
-     *        the provisioning type, if null matches any provisioning type.
+     *            the provisioning type, if null matches any provisioning type.
      * @param uniqueNames
-     *        when true duplicate named policies will be ignored.
+     *            when true duplicate named policies will be ignored.
      * @return the list of auto tier policy references.
      */
     public List<NamedRelatedResourceRep> list(String provisioningType, Boolean uniqueNames) {
@@ -129,7 +128,7 @@ public class AutoTieringPolicies extends AbstractCoreBulkResources<AutoTieringPo
      * API Call: <tt>GET /vdc/storage-systems/{storageSystemId}/auto-tier-policies</tt>
      * 
      * @param storageSystemId
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @return the list of auto tier policy references.
      * 
      * @see StorageSystems
@@ -141,13 +140,12 @@ public class AutoTieringPolicies extends AbstractCoreBulkResources<AutoTieringPo
     /**
      * Lists all auto tier policies for a given storage system.
      * <p>
-     * API Call:
-     * <tt>GET /vdc/storage-systems/{storageSystemId}/auto-tier-policies?unique_policy_names={uniqueNames}</tt>
+     * API Call: <tt>GET /vdc/storage-systems/{storageSystemId}/auto-tier-policies?unique_policy_names={uniqueNames}</tt>
      * 
      * @param storageSystemId
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @param uniqueNames
-     *        when true duplicate named policies will be ignored.
+     *            when true duplicate named policies will be ignored.
      * @return the list of auto tier policy references.
      * 
      * @see StorageSystems
@@ -164,7 +162,7 @@ public class AutoTieringPolicies extends AbstractCoreBulkResources<AutoTieringPo
      * Gets all auto tier policies for a given storage system.
      * 
      * @param storageSystemId
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @return the list of auto tier policies.
      * 
      * @see #listByStorageSystem(URI)
@@ -182,7 +180,7 @@ public class AutoTieringPolicies extends AbstractCoreBulkResources<AutoTieringPo
      * API Call: <tt>GET /vdc/varrays/{virtualArrayId}/auto-tier-policies</tt>
      * 
      * @param virtualArrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @return the list of auto tier policy references.
      * 
      * @see VirtualArrays
@@ -198,11 +196,11 @@ public class AutoTieringPolicies extends AbstractCoreBulkResources<AutoTieringPo
      * <tt>GET /vdc/varrays/{virtualArrayId}/auto-tier-policies?provisioning_type={provisioningType}&unique_auto_tier_policy_names={uniqueNames}</tt>
      * 
      * @param virtualArrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @param provisioningType
-     *        the provisioning type, if null matches any provisioning type.
+     *            the provisioning type, if null matches any provisioning type.
      * @param uniqueNames
-     *        when true duplicate named policies will be ignored.
+     *            when true duplicate named policies will be ignored.
      * @return the list of auto tier policy references.
      * 
      * @see VirtualArrays
@@ -218,18 +216,18 @@ public class AutoTieringPolicies extends AbstractCoreBulkResources<AutoTieringPo
         }
         return getList(builder.build(virtualArrayId));
     }
-    
+
     /**
      * Gets all auto tier policies for a given virtual array.
      * 
      * @param virtualArrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @param provisioningType
-     *        the provisioning type, if null matches any provisioning type.
+     *            the provisioning type, if null matches any provisioning type.
      * @param uniqueNames
-     *        when true duplicate named policies will be ignored.
+     *            when true duplicate named policies will be ignored.
      * @param filter
-     *        filter used to filter results       
+     *            filter used to filter results
      * @return the list of auto tier policies.
      * 
      * @see #listByVirtualArray(URI, String, Boolean)
@@ -239,26 +237,27 @@ public class AutoTieringPolicies extends AbstractCoreBulkResources<AutoTieringPo
     public List<AutoTieringPolicyRestRep> getByVirtualArray(URI virtualArrayId, String provisioningType,
             Boolean uniqueNames, ResourceFilter<AutoTieringPolicyRestRep> filter) {
         List<NamedRelatedResourceRep> refs = listByVirtualArray(virtualArrayId, provisioningType, uniqueNames);
-        
+
         return getByRefs(refs, filter);
     }
-    
+
     /**
      * Gets all auto tier policies for all virtual arrays.
      * 
      * @param virtualArrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @param provisioningType
-     *        the provisioning type, if null matches any provisioning type.
+     *            the provisioning type, if null matches any provisioning type.
      * @param uniqueNames
-     *        when true duplicate named policies will be ignored.      
-     * @param filter 
+     *            when true duplicate named policies will be ignored.
+     * @param filter
      * @return the list of auto tier policies.
      * 
      * @see #getByRefs(java.util.Collection)
      * @see VirtualArrays
      */
-    public List<AutoTieringPolicyRestRep> getByVirtualArrays(Collection<URI> virtualArrayIds, String provisioningType, Boolean uniqueNames, ResourceFilter<AutoTieringPolicyRestRep> filter) {
+    public List<AutoTieringPolicyRestRep> getByVirtualArrays(Collection<URI> virtualArrayIds, String provisioningType, Boolean uniqueNames,
+            ResourceFilter<AutoTieringPolicyRestRep> filter) {
         UriBuilder builder = client.uriBuilder(PathConstants.AUTO_TIER_FOR_ALL_VARRAY);
         if ((provisioningType != null) && (provisioningType.length() > 0)) {
             builder.queryParam("provisioning_type", provisioningType);
@@ -266,23 +265,23 @@ public class AutoTieringPolicies extends AbstractCoreBulkResources<AutoTieringPo
         if (uniqueNames != null) {
             builder.queryParam("unique_auto_tier_policy_names", uniqueNames);
         }
-        
+
         BulkIdParam input = new BulkIdParam((List<URI>) virtualArrayIds);
-        
+
         AutoTierPolicyList response = client.postURI(AutoTierPolicyList.class, input, builder.build());
-        
+
         return defaultList(getByRefs(response.getAutoTierPolicies(), filter));
     }
-    
+
     /**
      * Gets all auto tier policies for a given virtual array. This is a convenience method for: <tt>getByRefs(list())</tt>.
      * 
      * @param virtualArrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @param provisioningType
-     *        the provisioning type, if null matches any provisioning type.
+     *            the provisioning type, if null matches any provisioning type.
      * @param uniqueNames
-     *        when true duplicate named policies will be ignored.       
+     *            when true duplicate named policies will be ignored.
      * @return the list of auto tier policies.
      * 
      * @see #getByVirtualArray(URI, String, Boolean, ResourceFilter)
@@ -297,7 +296,7 @@ public class AutoTieringPolicies extends AbstractCoreBulkResources<AutoTieringPo
      * Gets all auto tier policies for a given virtual array.
      * 
      * @param virtualArrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @return the list of auto tier policies.
      * 
      * @see #listByVirtualArray(URI)

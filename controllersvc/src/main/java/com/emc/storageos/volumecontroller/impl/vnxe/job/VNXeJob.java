@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.vnxe.job;
@@ -39,13 +29,13 @@ import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.JobPollResult;
 
-public class VNXeJob extends  Job implements Serializable{
- 
+public class VNXeJob extends Job implements Serializable {
+
     private static final long serialVersionUID = 1L;
     private static final Logger _logger = LoggerFactory.getLogger(VNXeJob.class);
-    private static final long ERROR_TRACKING_LIMIT = 60*1000; // tracking limit for transient errors. set for 2 hours
+    private static final long ERROR_TRACKING_LIMIT = 60 * 1000; // tracking limit for transient errors. set for 2 hours
     public static int KBYTES = 1024;
-    //private static final long ERROR_TRACKING_LIMIT = 2*60*60*1000;
+    // private static final long ERROR_TRACKING_LIMIT = 2*60*60*1000;
     private JobPollResult _pollResult = new JobPollResult();
     protected List<String> _jobIds = new ArrayList<String>();
     protected URI _storageSystemUri;
@@ -56,27 +46,28 @@ public class VNXeJob extends  Job implements Serializable{
     protected JobStatus _status = JobStatus.IN_PROGRESS;
     protected boolean _isSuccess = false;
     protected Map<String, Object> _map = new HashMap<String, Object>();
-	public VNXeJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
+
+    public VNXeJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
         _jobIds.add(jobId);
         _storageSystemUri = storageSystemUri;
         _taskCompleter = taskCompleter;
         _jobName = jobName;
     }
-	
-	public VNXeJob(List<String> jobIds, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
-	    _jobIds = jobIds;
+
+    public VNXeJob(List<String> jobIds, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
+        _jobIds = jobIds;
         _storageSystemUri = storageSystemUri;
         _taskCompleter = taskCompleter;
         _jobName = jobName;
-	}
-	
-	@Override
+    }
+
+    @Override
     public JobPollResult poll(JobContext jobContext, long trackingPeriodInMillis) {
-	    String currentJob = _jobIds.get(0);
-	    try {
+        String currentJob = _jobIds.get(0);
+        try {
             _logger.info("VNXeJob: Looking up job: id {}", _jobIds.get(0));
             VNXeApiClient vnxeApiClient = getVNXeClient(jobContext);
-            
+
             if (vnxeApiClient == null) {
                 String errorMessage = "No VNXe client found for: " + _storageSystemUri;
                 processTransientError(currentJob, trackingPeriodInMillis, errorMessage, null);
@@ -92,22 +83,22 @@ public class VNXeJob extends  Job implements Serializable{
                     int progressPct = jobResult.getProgressPct();
                     int state = jobResult.getState();
                     if (state == VNXeCommandJob.JobStatusEnum.FAILED.getValue()) {
-                        completeCount ++;
+                        completeCount++;
                         isSuccess = false;
                         msg.append("Async task failed for jobID ");
                         msg.append(jobId);
                         continue;
                     }
                     if (progressPct == 100 && state != VNXeCommandJob.JobStatusEnum.RUNNING.getValue()) {
-                        completeCount ++;
-                        if(state != VNXeCommandJob.JobStatusEnum.COMPLETED.getValue()) {
+                        completeCount++;
+                        if (state != VNXeCommandJob.JobStatusEnum.COMPLETED.getValue()) {
                             msg.append("Async task failed for jobID ");
                             msg.append(jobId);
                         }
                     }
                 }
                 if (completeCount == _jobIds.size()) {
-                    //all completed
+                    // all completed
                     _pollResult.setJobPercentComplete(100);
                     if (isSuccess) {
                         _status = JobStatus.SUCCESS;
@@ -116,12 +107,12 @@ public class VNXeJob extends  Job implements Serializable{
                         _status = JobStatus.FAILED;
                         _errorDescription = msg.toString();
                         _logger.info(_errorDescription);
-                        
+
                     }
                 } else {
-                    _pollResult.setJobPercentComplete(100*completeCount/_jobIds.size());
+                    _pollResult.setJobPercentComplete(100 * completeCount / _jobIds.size());
                 }
-           
+
             }
         } catch (Exception e) {
             processTransientError(currentJob, trackingPeriodInMillis, e.getMessage(), e);
@@ -137,29 +128,29 @@ public class VNXeJob extends  Job implements Serializable{
         _pollResult.setErrorDescription(_errorDescription);
         return _pollResult;
     }
-	
-	public void updateStatus(JobContext jobContext) throws Exception {
+
+    public void updateStatus(JobContext jobContext) throws Exception {
         if (_status == JobStatus.SUCCESS) {
             _taskCompleter.ready(jobContext.getDbClient());
         } else if (_status == JobStatus.FAILED || _status == JobStatus.FATAL_ERROR) {
-            ServiceError error =  DeviceControllerErrors.vnxe.jobFailed(_errorDescription);
+            ServiceError error = DeviceControllerErrors.vnxe.jobFailed(_errorDescription);
             _taskCompleter.error(jobContext.getDbClient(), error);
         }
     }
-	
-	private void processTransientError(String jobId, long trackingInterval, String errorMessage, Exception ex) {
+
+    private void processTransientError(String jobId, long trackingInterval, String errorMessage, Exception ex) {
         _status = JobStatus.ERROR;
         _errorDescription = errorMessage;
         if (ex != null) {
             _logger.error(String.format("Error while processing VNXeJob - Name: %s, ID: %s, Desc: %s Status: %s",
-                                    _jobName, jobId, _errorDescription, _status), ex);
+                    _jobName, jobId, _errorDescription, _status), ex);
         } else {
             _logger.error(String.format("Error while processing VNXeJob - Name: %s, ID: %s, Desc: %s Status: %s",
-                                                _jobName, jobId, _errorDescription, _status));
+                    _jobName, jobId, _errorDescription, _status));
         }
 
         // Check if job tracking limit was reached. Set status to FAILED in such a case.
-        setErrorTrackingTime(_error_tracking_time+ trackingInterval);
+        setErrorTrackingTime(_error_tracking_time + trackingInterval);
         _logger.info(String.format("Tracking time of VNXeJob in transient error status - %s, Name: %s, ID: %s. Status %s .",
                 _error_tracking_time, _jobName, jobId, _status));
         if (_error_tracking_time > ERROR_TRACKING_LIMIT) {
@@ -168,75 +159,84 @@ public class VNXeJob extends  Job implements Serializable{
                     _jobName, jobId, _status));
         }
     }
-	
-	public void setErrorTrackingTime(long trackingTime) {
+
+    public void setErrorTrackingTime(long trackingTime) {
         _error_tracking_time = trackingTime;
     }
-	
-	public void setErrorStatus(String errorDescription) {
+
+    public void setErrorStatus(String errorDescription) {
         _status = JobStatus.FATAL_ERROR;
         _errorDescription = errorDescription;
     }
+
     public List<String> getJobIds() {
         return _jobIds;
     }
+
     public void setJobId(List<String> _jobIds) {
         this._jobIds = _jobIds;
     }
+
     public URI getStorageSystemUri() {
         return _storageSystemUri;
     }
+
     public void setStorageSystemUri(URI _storageSystemUri) {
         this._storageSystemUri = _storageSystemUri;
     }
+
     public TaskCompleter getTaskCompleter() {
         return _taskCompleter;
     }
+
     public void setTaskCompleter(TaskCompleter _taskCompleter) {
         this._taskCompleter = _taskCompleter;
     }
+
     public String getJobName() {
         return _jobName;
     }
+
     public void setJobName(String _jobName) {
         this._jobName = _jobName;
     }
-	
+
     public boolean getIsSuccess() {
         return _isSuccess;
     }
+
     public void setIsSuccess(boolean success) {
         _isSuccess = success;
     }
-    
+
     /**
      * Get VNXe API client
+     * 
      * @param jobContext
      * @return
      */
     public VNXeApiClient getVNXeClient(JobContext jobContext) {
-    	StorageSystem storageSystem = jobContext.getDbClient().queryObject(StorageSystem.class, _storageSystemUri);
+        StorageSystem storageSystem = jobContext.getDbClient().queryObject(StorageSystem.class, _storageSystemUri);
         VNXeApiClient vnxeApiClient = jobContext.getVNXeApiClientFactory().getClient(
-                storageSystem.getIpAddress(),storageSystem.getPortNumber(), 
+                storageSystem.getIpAddress(), storageSystem.getPortNumber(),
                 storageSystem.getUsername(), storageSystem.getPassword());
         return vnxeApiClient;
     }
-    
+
     /**
      * Update storage pool capacity
+     * 
      * @param dbClient
      * @param vnxeApiClient
      * @param storagePoolUri
      */
     public static void updateStoragePoolCapacity(DbClient dbClient, VNXeApiClient vnxeApiClient, URI storagePoolUri) {
-    	StoragePool storagePool = dbClient.queryObject(StoragePool.class, storagePoolUri);
-    	String poolNativeId = storagePool.getNativeId();
+        StoragePool storagePool = dbClient.queryObject(StoragePool.class, storagePoolUri);
+        String poolNativeId = storagePool.getNativeId();
         VNXePool pool = vnxeApiClient.getPool(poolNativeId);
         storagePool.setFreeCapacity(VNXeUtils.convertDoubleSizeToViPRLong(pool.getSizeFree()));
         storagePool.setSubscribedCapacity(VNXeUtils.convertDoubleSizeToViPRLong(pool.getSizeSubscribed()));
         dbClient.persistObject(storagePool);
     }
-    
-       
-	
+
 }

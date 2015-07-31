@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file;
@@ -14,18 +14,18 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "share_acl")
 public class ShareACLs implements Serializable {
 
-	private static final long serialVersionUID = -4590555905523347134L;
-	
-	private List<ShareACL> shareACLs;
+    private static final long serialVersionUID = -4590555905523347134L;
 
-	@XmlElementWrapper(name="acl")
-	@XmlElement(name = "ace")
-	public List<ShareACL> getShareACLs() {
-		return shareACLs;
-	}
+    private List<ShareACL> shareACLs;
 
-	public void setShareACLs(List<ShareACL> shareACLs) {
-		this.shareACLs = shareACLs;
-	}
-	
+    @XmlElementWrapper(name = "acl")
+    @XmlElement(name = "ace")
+    public List<ShareACL> getShareACLs() {
+        return shareACLs;
+    }
+
+    public void setShareACLs(List<ShareACL> shareACLs) {
+        this.shareACLs = shareACLs;
+    }
+
 }

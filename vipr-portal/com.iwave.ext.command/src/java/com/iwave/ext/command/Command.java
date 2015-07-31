@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.command;
@@ -40,7 +40,7 @@ public class Command {
     private Map<String, String> variables = new HashMap<String, String>();
     /** Flag to indicate the command must be run as root. */
     private boolean runAsRoot = false;
-    
+
     public Command() {
     }
 
@@ -439,13 +439,13 @@ public class Command {
     /**
      * Get an error message from the CommandOutput object
      */
-	protected String getErrorMessage() {
-		String errorMessage = StringUtils.trimToNull(output.getStderr());
+    protected String getErrorMessage() {
+        String errorMessage = StringUtils.trimToNull(output.getStderr());
         if (errorMessage == null) {
             errorMessage = StringUtils.trimToNull(output.getStdout());
         }
-		return errorMessage;
-	}
+        return errorMessage;
+    }
 
     /**
      * Executes the command.

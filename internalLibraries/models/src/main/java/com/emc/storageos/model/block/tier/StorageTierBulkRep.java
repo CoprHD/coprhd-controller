@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block.tier;
@@ -16,11 +16,11 @@ public class StorageTierBulkRep extends BulkRestRep {
     private List<StorageTierRestRep> storageTiers;
 
     /**
-     * List of storage tiers where a storage tier is a 
+     * List of storage tiers where a storage tier is a
      * collection of multiple pools.
      * 
      * @valid none
-     */ 
+     */
     @XmlElement(name = "storage_tier")
     public List<StorageTierRestRep> getStorageTiers() {
         if (storageTiers == null) {

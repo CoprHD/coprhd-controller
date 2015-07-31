@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -19,31 +19,32 @@ public class CatalogImageRestRep extends DataObjectRestRep {
     private RelatedResourceRep tenant;
     private String contentType;
     private byte[] data;
-    
+
     @XmlElement(name = "tenant")
     public RelatedResourceRep getTenant() {
         return tenant;
     }
+
     public void setTenant(RelatedResourceRep tenant) {
         this.tenant = tenant;
     }
-    
+
     @XmlElement(name = "content_type")
     public String getContentType() {
         return contentType;
     }
+
     public void setContentType(String contentType) {
         this.contentType = contentType;
     }
-    
+
     @XmlElement(name = "data")
     public byte[] getData() {
         return data;
     }
+
     public void setData(byte[] data) {
         this.data = data;
-    }   
-    
-    
-    
+    }
+
 }

@@ -27,7 +27,7 @@ import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.model.ColumnFamily;
 
 public class DetectHelper {
-	private static final Logger log = LoggerFactory.getLogger(DetectHelper.class);
+    private static final Logger log = LoggerFactory.getLogger(DetectHelper.class);
 
     public static ObjectEntry extractObjectEntryFromIndex(String indexKey,
             IndexColumnName name, Class<? extends DbIndex> type) {
@@ -61,10 +61,10 @@ public class DetectHelper {
             int firstColon = indexKey.indexOf(':');
             className = firstColon == -1 ? indexKey : indexKey.substring(0, firstColon);
         } else {
-        	String msg = String.format("Unsupported index type %s.", type);
-        	log.warn(msg);
-        	System.out.println(msg);
-        	return null;
+            String msg = String.format("Unsupported index type %s.", type);
+            log.warn(msg);
+            System.out.println(msg);
+            return null;
         }
         return new ObjectEntry(className, objectId);
     }
@@ -93,7 +93,7 @@ public class DetectHelper {
             return buffer.toString();
         }
     }
-    
+
     public static class IndexEntry {
         private String indexKey;
         private IndexColumnName columnName;
@@ -112,9 +112,9 @@ public class DetectHelper {
         }
 
     }
-    
+
     /*
-     * This class records the Index Data's ColumnFamily and 
+     * This class records the Index Data's ColumnFamily and
      * the related DbIndex type and it belongs to which Keyspace.
      */
     public static class IndexAndCf {
@@ -134,42 +134,48 @@ public class DetectHelper {
             this.cf = cf;
             this.keyspace = keyspace;
         }
-        
+
         @Override
         public String toString() {
             return generateKey(indexType, cf, keyspace);
         }
-        
+
         public static String generateKey(Class<? extends DbIndex> indexType,
                 ColumnFamily<String, IndexColumnName> cf, Keyspace keyspace) {
             StringBuffer buffer = new StringBuffer();
             buffer.append(keyspace.getKeyspaceName()).append("/")
                     .append(indexType.getSimpleName()).append("/")
                     .append(cf.getName());
-            return buffer.toString();           
+            return buffer.toString();
         }
-        
+
         @Override
         public boolean equals(Object obj) {
-            if (obj == null)
+            if (obj == null) {
                 return false;
-            if (!(obj instanceof IndexAndCf))
+            }
+            if (!(obj instanceof IndexAndCf)) {
                 return false;
-            if (this == obj)
+            }
+            if (this == obj) {
                 return true;
+            }
             IndexAndCf that = (IndexAndCf) obj;
-            if (cf != null ? !cf.equals(that.cf) : that.cf != null)
+            if (cf != null ? !cf.equals(that.cf) : that.cf != null) {
                 return false;
+            }
             if (indexType != null ? !indexType.equals(that.indexType)
-                    : that.indexType != null)
+                    : that.indexType != null) {
                 return false;
+            }
             if (keyspace != null ? !keyspace.equals(that.keyspace)
-                    : that.keyspace != null)
+                    : that.keyspace != null) {
                 return false;
+            }
 
             return true;
         }
-        
+
         @Override
         public int hashCode() {
             int result = cf != null ? cf.hashCode() : 0;

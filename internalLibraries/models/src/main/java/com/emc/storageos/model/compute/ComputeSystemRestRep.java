@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.compute;
@@ -19,44 +19,49 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 @XmlRootElement(name = "compute_system")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class ComputeSystemRestRep extends DiscoveredSystemObjectRestRep {
-	private String ipAddress;
+    private String ipAddress;
     private Integer portNumber;
     private String username;
     private String version;
     private String osInstallNetwork;
     private String vlans;
     private Boolean useSSL;
-    
+
     private List<NamedRelatedResourceRep> serviceProfileTemplates = new ArrayList<NamedRelatedResourceRep>();
-    
-    public ComputeSystemRestRep() {}
+
+    public ComputeSystemRestRep() {
+    }
 
     @XmlElement(name = "ip_address")
-	public String getIpAddress() {
-		return ipAddress;
-	}
-	public void setIpAddress(String ipAddress) {
-		this.ipAddress = ipAddress;
-	}
-	
-	@XmlElement(name = "port_number")
-	public Integer getPortNumber() {
-		return portNumber;
-	}
-	public void setPortNumber(Integer portNumber) {
-		this.portNumber = portNumber;
-	}
-	
-	@XmlElement(name = "user_name")
-	public String getUsername() {
-		return username;
-	}
-	public void setUsername(String username) {
-		this.username = username;
-	}
+    public String getIpAddress() {
+        return ipAddress;
+    }
 
-	/**
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
+    }
+
+    @XmlElement(name = "port_number")
+    public Integer getPortNumber() {
+        return portNumber;
+    }
+
+    public void setPortNumber(Integer portNumber) {
+        this.portNumber = portNumber;
+    }
+
+    @XmlElement(name = "user_name")
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    /**
      * Whether or not secure SSL connection is used.
+     * 
      * @valid true
      * @valid false
      */
@@ -69,41 +74,41 @@ public class ComputeSystemRestRep extends DiscoveredSystemObjectRestRep {
         this.useSSL = useSSL;
     }
 
-	
-	@XmlElement(name = "version")
-	public String getVersion() {
-		return version;
-	}
-	public void setVersion(String version) {
-		this.version = version;
-	}
+    @XmlElement(name = "version")
+    public String getVersion() {
+        return version;
+    }
 
-	@XmlElementWrapper(name="service_profile_templates",nillable=true,required=false)
-	@XmlElement(name="service_profile_template")
-	public List<NamedRelatedResourceRep> getServiceProfileTemplates() {
-		return serviceProfileTemplates;
-	}
+    public void setVersion(String version) {
+        this.version = version;
+    }
 
-	public void setServiceProfileTemplates(
-			List<NamedRelatedResourceRep> serviceProfileTemplates) {
-		this.serviceProfileTemplates = serviceProfileTemplates;
-	}
+    @XmlElementWrapper(name = "service_profile_templates", nillable = true, required = false)
+    @XmlElement(name = "service_profile_template")
+    public List<NamedRelatedResourceRep> getServiceProfileTemplates() {
+        return serviceProfileTemplates;
+    }
 
-	@XmlElement(name = "os_install_network")
-	public String getOsInstallNetwork() {
-		return osInstallNetwork;
-	}
+    public void setServiceProfileTemplates(
+            List<NamedRelatedResourceRep> serviceProfileTemplates) {
+        this.serviceProfileTemplates = serviceProfileTemplates;
+    }
 
-	public void setOsInstallNetwork(String osInstallNetwork) {
-		this.osInstallNetwork = osInstallNetwork;
-	}
+    @XmlElement(name = "os_install_network")
+    public String getOsInstallNetwork() {
+        return osInstallNetwork;
+    }
 
-	@XmlElement(name = "vlans")
-	public String getVlans() {
-		return vlans;
-	}
+    public void setOsInstallNetwork(String osInstallNetwork) {
+        this.osInstallNetwork = osInstallNetwork;
+    }
 
-	public void setVlans(String vlans) {
-		this.vlans = vlans;
-	}	
+    @XmlElement(name = "vlans")
+    public String getVlans() {
+        return vlans;
+    }
+
+    public void setVlans(String vlans) {
+        this.vlans = vlans;
+    }
 }

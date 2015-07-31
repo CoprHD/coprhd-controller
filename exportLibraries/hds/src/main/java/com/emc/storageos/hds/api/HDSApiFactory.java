@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.hds.api;
 
@@ -57,7 +47,7 @@ public class HDSApiFactory {
     // A map of client connections to VPlex Management Stations keyed
     // by the URI of the Management Station.
     private ConcurrentMap<String, HDSApiClient> _clientMap;
-    
+
     // The root HTTP client handler.
     private ApacheHttpClientHandler _clientHandler;
 
@@ -106,31 +96,31 @@ public class HDSApiFactory {
         // connections.
         MultiThreadedHttpConnectionManager mgr = new MultiThreadedHttpConnectionManager();
         mgr.setParams(params);
-        
+
         // Create the HTTP client and set the handler for determining if an
         // HttpMethod should be retried after a recoverable exception during
         // execution.
         HttpClient client = new HttpClient(mgr);
         client.getParams().setParameter(HttpMethodParams.RETRY_HANDLER,
-            new HttpMethodRetryHandler() {
-                @Override
-                public boolean retryMethod(HttpMethod httpMethod, IOException e, int i) {
-                    return false;
-                }
-            });
-        
+                new HttpMethodRetryHandler() {
+                    @Override
+                    public boolean retryMethod(HttpMethod httpMethod, IOException e, int i) {
+                        return false;
+                    }
+                });
+
         // Create the client handler.
         _clientHandler = new ApacheHttpClientHandler(client);
 
         // Register the specific for the HTTPS protocol.
         Protocol.registerProtocol("https", new Protocol("https",
-            new NonValidatingSocketFactory(), 443));
+                new NonValidatingSocketFactory(), 443));
     }
 
     /**
      * Get the HDS API client for the HDS Management Station identified
      * by the passed endpoint using the passed username and password.
-     *
+     * 
      * @param endpoint HDS Management Station endpoint URI.
      * @param username The user name to authenticate.
      * @param password The password to authenticate.
@@ -138,7 +128,7 @@ public class HDSApiFactory {
      * @return Reference to a VPlexApiClient.
      */
     public HDSApiClient getClient(URI endpoint, String username, String password) {
-        
+
         // Make the key dependent on user and password in case they
         // change for a client endpoint.
         StringBuilder clientKeyBuilder = new StringBuilder();
@@ -157,28 +147,31 @@ public class HDSApiFactory {
         }
         return hdsApiClient;
     }
-    
-    
-/*    public static void main(String ar[]) {
-        System.out.println("starting");
-        URI uri = URI.create(String.format("http://%1$s:%2$s/service/StorageManager",
-                "lglak148", "2001"));
-        StringBuffer queryMessage = new StringBuffer("<?xml version=\"1.0\"?><HiCommandServerMessage><APIInfo version=\"5.0\"/><Request><SessionManager><Get target=\"RequestStatus\"><RequestStatus messageID=\"574741551\"/></Get></SessionManager></Request></HiCommandServerMessage>");
-        HDSApiFactory factory = new HDSApiFactory();
-        factory.init();
-        HDSApiClient hdsClient = factory.getClient(uri, "system", "manager");
-        
-        ClientResponse response = hdsClient.post(uri, queryMessage.toString());
-        System.out.println("status:"+response.getStatus());
-        StringWriter writer = new StringWriter();
-        try {
-            IOUtils.copy(response.getEntityInputStream(), writer, "UTF-8");
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        String theString = writer.toString();
-        System.out.println(theString);
-        
-    }*/
+
+    /*
+     * public static void main(String ar[]) {
+     * System.out.println("starting");
+     * URI uri = URI.create(String.format("http://%1$s:%2$s/service/StorageManager",
+     * "lglak148", "2001"));
+     * StringBuffer queryMessage = new StringBuffer(
+     * "<?xml version=\"1.0\"?><HiCommandServerMessage><APIInfo version=\"5.0\"/><Request><SessionManager><Get target=\"RequestStatus\"><RequestStatus messageID=\"574741551\"/></Get></SessionManager></Request></HiCommandServerMessage>"
+     * );
+     * HDSApiFactory factory = new HDSApiFactory();
+     * factory.init();
+     * HDSApiClient hdsClient = factory.getClient(uri, "system", "manager");
+     * 
+     * ClientResponse response = hdsClient.post(uri, queryMessage.toString());
+     * System.out.println("status:"+response.getStatus());
+     * StringWriter writer = new StringWriter();
+     * try {
+     * IOUtils.copy(response.getEntityInputStream(), writer, "UTF-8");
+     * } catch (IOException e) {
+     * // TODO Auto-generated catch block
+     * e.printStackTrace();
+     * }
+     * String theString = writer.toString();
+     * System.out.println(theString);
+     * 
+     * }
+     */
 }

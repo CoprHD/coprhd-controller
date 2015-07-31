@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -27,7 +27,7 @@ public class Monitoring {
      * <tt>getEventsForTimeBucketAsStream(TimeBucketUtils.forHour(date))</tt>
      * 
      * @param date
-     *        the date to format as an hour time bucket.
+     *            the date to format as an hour time bucket.
      * @return the stream containing the events as XML.
      * 
      * @see #getEventsForTimeBucketAsStream(String)
@@ -44,7 +44,7 @@ public class Monitoring {
      * <tt>getEventsForTimeBucketAsStream(TimeBucketUtils.forHour(date))</tt>
      * 
      * @param date
-     *        the date to format as an hour time bucket.
+     *            the date to format as an hour time bucket.
      * @return the stream containing the events as XML.
      * 
      * @see #getEventsForTimeBucketAsStream(String)
@@ -63,7 +63,7 @@ public class Monitoring {
      * API Call: <tt>GET /monitoring/events?time_bucket={timeBucket}</tt>
      * 
      * @param timeBucket
-     *        the time bucket for which to retrieve the events.
+     *            the time bucket for which to retrieve the events.
      * @return the stream containing the events as XML. This must be closed by the client in order to release the
      *         connection.
      */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.aix.tasks;
@@ -44,7 +44,7 @@ public abstract class AixExecutionTask<T> extends ExecutionTask<T> {
         command.execute();
         return command.getResults();
     }
-    
+
     protected <V> V executeCommand(LinuxResultsCommand<V> command) {
         return executeCommand(command, NO_TIMEOUT);
     }
@@ -69,7 +69,7 @@ public abstract class AixExecutionTask<T> extends ExecutionTask<T> {
         command.setCommandExecutor(createCommandExecutor(timeout));
         command.execute();
     }
-    
+
     protected void executeCommand(LinuxCommand command) {
         executeCommand(command, NO_TIMEOUT);
     }

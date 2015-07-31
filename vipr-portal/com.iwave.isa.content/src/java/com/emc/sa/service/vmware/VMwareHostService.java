@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vmware;
@@ -66,9 +66,9 @@ public abstract class VMwareHostService extends ViPRService {
 
         host = vmware.getHostSystem(datacenter.getLabel(), esxHost.getLabel());
     }
-    
-    protected void connectAndInitializeHost(){
-    	vmware.connect(vcenterId);
+
+    protected void connectAndInitializeHost() {
+        vmware.connect(vcenterId);
         initHost();
     }
 

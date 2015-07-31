@@ -1,29 +1,28 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file;
 
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlTransient;
-
 
 /**
  * Attributes associated with file share, specified during the
  * file share creation.
- *
+ * 
  */
 public class FileSystemShareBase {
-    
+
     private String shareName;
     private String description;
     private String maxUsers = "unlimited";  // default --- unlimited
-    private String permissionType = "allow"; //FileSMBShare.PermissionType.allow.name();
-    private String permission; //FileSMBShare.Permission.change.name();
+    private String permissionType = "allow"; // FileSMBShare.PermissionType.allow.name();
+    private String permission; // FileSMBShare.Permission.change.name();
     private String subDirectory;
 
-    public FileSystemShareBase() {}
-    
+    public FileSystemShareBase() {
+    }
+
     public FileSystemShareBase(String shareName, String description,
             String maxUsers, String permissionType, String permission, String subDirectory) {
         this.shareName = shareName;
@@ -36,6 +35,7 @@ public class FileSystemShareBase {
 
     /**
      * User provided name of the file share.
+     * 
      * @valid none
      */
     @XmlElement(name = "name", required = true)
@@ -49,6 +49,7 @@ public class FileSystemShareBase {
 
     /**
      * User provided description of the file share.
+     * 
      * @valid none
      */
     @XmlElement(name = "description")
@@ -61,8 +62,9 @@ public class FileSystemShareBase {
     }
 
     /**
-     * Maximum number of users of the file share.  Default
+     * Maximum number of users of the file share. Default
      * is unlimited.
+     * 
      * @valid none
      */
     @XmlElement(name = "max_users")
@@ -75,8 +77,9 @@ public class FileSystemShareBase {
     }
 
     /**
-     * Permission type for the file share.  Default is
+     * Permission type for the file share. Default is
      * "allow".
+     * 
      * @valid "allow" = permission type by default
      * @valid "deny"
      */
@@ -90,8 +93,9 @@ public class FileSystemShareBase {
     }
 
     /**
-     * Permission type for the file share.  Default is
+     * Permission type for the file share. Default is
      * "change".
+     * 
      * @valid "read" = read permission only
      * @valid "change" = read and write permissions
      * @valid "full" = full control of the file share
@@ -113,5 +117,5 @@ public class FileSystemShareBase {
     public void setSubDirectory(String subDirectory) {
         this.subDirectory = subDirectory;
     }
-    
+
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.dbcli.adapter;
 
@@ -31,22 +21,22 @@ public class SMBShareMapAdapter extends
     public static class AdaptedMap {
         public List<Entry> entry = new ArrayList<Entry>();
     }
-    
+
     public static class Entry {
         public String key;
         public SMBFileShare value;
     }
-    
+
     @Override
     public SMBShareMap unmarshal(AdaptedMap adaptedMap)
-          throws Exception {
+            throws Exception {
         SMBShareMap map = new SMBShareMap();
         for (Entry entry : adaptedMap.entry) {
             map.put(entry.key, entry.value);
         }
         return map;
     }
-    
+
     @Override
     public AdaptedMap marshal(SMBShareMap map) throws Exception {
         AdaptedMap adaptedMap = new AdaptedMap();

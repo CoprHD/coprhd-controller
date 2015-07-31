@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.impl;
@@ -23,18 +13,22 @@ import java.util.UUID;
  * Composite column name for all data object fields
  */
 public class CompositeColumnName {
-    private @Component(ordinal = 0) String _one;
-    private @Component(ordinal = 1) String _two;
-    private @Component(ordinal = 2) String _three;
-    private @Component(ordinal = 3) UUID _timeUUID;
+    private @Component(ordinal = 0)
+    String _one;
+    private @Component(ordinal = 1)
+    String _two;
+    private @Component(ordinal = 2)
+    String _three;
+    private @Component(ordinal = 3)
+    UUID _timeUUID;
 
-    public CompositeColumnName() {        
+    public CompositeColumnName() {
     }
-    
+
     public CompositeColumnName(String one) {
         _one = one;
     }
-    
+
     public CompositeColumnName(String one, String two) {
         _one = one;
         _two = two;

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.vipr.model.sys.recovery;
@@ -30,7 +20,7 @@ public class DbRepairStatus implements Serializable {
     /**
      * The status of db repair
      */
-	@XmlType(name="dbRepairStatus_Status")
+    @XmlType(name = "dbRepairStatus_Status")
     public enum Status {
         NOT_STARTED,
         IN_PROGRESS,
@@ -40,9 +30,9 @@ public class DbRepairStatus implements Serializable {
 
     public DbRepairStatus() {
     }
-    
+
     public DbRepairStatus(Status status) {
-    	this.status = status;
+        this.status = status;
     }
 
     public DbRepairStatus(Status status, Date startTime, Date endTime, int progress) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.impl.jaxb;
@@ -49,8 +49,7 @@ public class XmlUtils {
     public static SAXParser createSAXParser() {
         try {
             return getSAXFactory().newSAXParser();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new ViPRException(e);
         }
     }
@@ -58,8 +57,7 @@ public class XmlUtils {
     public static DocumentBuilder createDocumentBuilder() {
         try {
             return getDOMFactory().newDocumentBuilder();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new ViPRException(e);
         }
     }
@@ -67,8 +65,7 @@ public class XmlUtils {
     public static Transformer createTransformer() {
         try {
             return getTransformerFactory().newTransformer();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new ViPRException(e);
         }
     }
@@ -76,8 +73,7 @@ public class XmlUtils {
     public static Unmarshaller createUnmarshaller(Class<?> itemClass) {
         try {
             return JAXBContext.newInstance(itemClass).createUnmarshaller();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new ViPRException(e);
         }
     }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.management.backup;
 
@@ -351,10 +341,10 @@ public class BackupManager implements BackupManagerMBean {
             }
             for (File file : backupFiles) {
                 BackupSetInfo backupSetInfo = new BackupSetInfo();
-                backupSetInfo.setName(file.getName());
-                backupSetInfo.setCreateTime(file.lastModified());
-                backupSetInfo.setSize(file.length());
-                backupSetInfoList.add(backupSetInfo);
+		backupSetInfo.setName(file.getName());
+		backupSetInfo.setCreateTime(file.lastModified());
+		backupSetInfo.setSize(file.length());
+		backupSetInfoList.add(backupSetInfo);
             }
         }
         log.info("Backup is listed successfully: {}", backupSetInfoList);

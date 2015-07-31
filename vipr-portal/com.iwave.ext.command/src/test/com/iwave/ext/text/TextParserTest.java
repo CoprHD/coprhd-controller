@@ -263,7 +263,6 @@ public class TextParserTest {
             IOUtils.copy(diskUtilFile, writer);
         } catch (IOException e) {
             // TODO Auto-generated catch block
-            e.printStackTrace();
             throw new RuntimeException(e);
         }
         String text = writer.toString();

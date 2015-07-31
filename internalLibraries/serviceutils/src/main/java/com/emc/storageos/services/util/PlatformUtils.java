@@ -97,7 +97,7 @@ public class PlatformUtils {
             }
             reader.close();
         } catch (Exception e) {
-            e.printStackTrace();
+        	log.error(e.getMessage(), e);
         }
         return out.toArray(new String[out.size()]);
     }

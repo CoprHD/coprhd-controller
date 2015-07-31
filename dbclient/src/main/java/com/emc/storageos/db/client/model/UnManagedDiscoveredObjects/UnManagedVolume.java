@@ -301,4 +301,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         SOURCE,
         TARGET
     }
+    
+    public String toString() {
+        return this.getLabel() + " (" + this.getId() + ")";
+    }
 }

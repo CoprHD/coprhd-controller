@@ -137,14 +137,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
                 validateAssociatedVolumes(vPool, project, tenant, associatedVolumeUris);
 
-                _logger.info("About to ingest the backend volumes: " + associatedVolumeUris);
                 ingestBackendVolumes(systemCache, poolCache, vPool,
                         virtualArray, project, tenant,
                         unManagedVolumesToBeDeleted, taskStatusMap,
                         associatedVolumeUris, processedUnManagedVolumeMap,
                         vplexCreatedObjectMap, vplexUpdatedObjectMap);
 
-                _logger.info("About to ingest the backend export masks...");
                 List<BlockObject> ingestedObjects = new ArrayList<BlockObject>();
 
                 ingestBackendExportMasks(system, vPool, virtualArray, project,
@@ -241,7 +239,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
         List<UnManagedVolume> associatedVolumes = _dbClient.queryObject(UnManagedVolume.class, associatedVolumeUris, true);
 
-        _logger.info("About to ingest the backend volumes...");
+        _logger.info("ingesting these backend volumes: " + associatedVolumes);
         for (UnManagedVolume associatedVolume : associatedVolumes) {
             _logger.info("Ingestion started for exported vplex backend unmanagedvolume {}", associatedVolume.getNativeGuid());
 
@@ -293,10 +291,10 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             List<BlockObject> ingestedObjects) {
         
         for (String unManagedVolumeGUID: processedUnManagedVolumeMap.keySet()) {
-            _logger.info("ingesting export masks");
             String objectGUID = unManagedVolumeGUID.replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
             BlockObject processedBlockObject = vplexCreatedObjectMap.get(objectGUID);
             UnManagedVolume processedUnManagedVolume = processedUnManagedVolumeMap.get(unManagedVolumeGUID);
+            _logger.info("ingesting export mask(s) for unmanaged volume " + processedUnManagedVolume);
 
             try {
                 if(processedBlockObject == null) {

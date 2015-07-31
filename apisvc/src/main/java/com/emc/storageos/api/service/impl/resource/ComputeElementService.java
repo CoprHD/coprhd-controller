@@ -51,8 +51,8 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 import com.google.common.base.Function;
 
 @Path("/vdc/compute-elements")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class ComputeElementService extends TaskResourceService {
     private static final String EVENT_SERVICE_TYPE = "ComputeElement";
     private static final String EVENT_SERVICE_SOURCE = "ComputeElementService";

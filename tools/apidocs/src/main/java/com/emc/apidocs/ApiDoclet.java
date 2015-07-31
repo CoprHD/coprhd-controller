@@ -275,22 +275,22 @@ public class ApiDoclet {
 
         if (defaultPermissions != null) {
             for (AnnotationDesc.ElementValuePair pair : defaultPermissions.elementValues()) {
-                if (pair.element().name().equals("read_roles")) {
+                if (pair.element().name().equals("readRoles")) {
                     for (AnnotationValue value : (AnnotationValue[]) pair.value().value()) {
                         apiService.addReadRole(((FieldDoc) value.value()).name());
                     }
                 }
-                else if (pair.element().name().equals("write_roles")) {
+                else if (pair.element().name().equals("writeRoles")) {
                     for (AnnotationValue value : (AnnotationValue[]) pair.value().value()) {
                         apiService.addWriteRole(((FieldDoc) value.value()).name());
                     }
                 }
-                else if (pair.element().name().equals("read_acls")) {
+                else if (pair.element().name().equals("readAcls")) {
                     for (AnnotationValue value : (AnnotationValue[]) pair.value().value()) {
                         apiService.addReadAcl(((FieldDoc) value.value()).name());
                     }
                 }
-                else if (pair.element().name().equals("write_acls")) {
+                else if (pair.element().name().equals("writeAcls")) {
                     for (AnnotationValue value : (AnnotationValue[]) pair.value().value()) {
                         apiService.addWriteAcl(((FieldDoc) value.value()).name());
                     }

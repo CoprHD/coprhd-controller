@@ -251,7 +251,7 @@ public class MethodProcessor {
         } else if (AnnotationUtils.hasAnnotation(method, KnownAnnotations.InheritCheckPermission_Annotation)) {
             // InheritCheckPermission signifies that the method should inherit from teh DefaultPermission read or write lists
             boolean inheritWrite = AnnotationUtils.getAnnotationValue(method, KnownAnnotations.InheritCheckPermission_Annotation,
-                    "write_access", false);
+                    "writeAccess", false);
 
             if (inheritWrite) {
                 apiMethod.acls.addAll(apiMethod.apiService.writeAcls);

@@ -322,7 +322,7 @@ public class VPlexApiDiscoveryManager {
      * @throws VPlexApiException If a VPlex request returns a failed status or
      *         an error occurs processing the response.
      */
-    List<VPlexClusterInfo> getClusterInfo(boolean shallow)
+    List<VPlexClusterInfo> getClusterInfo(boolean shallow, boolean isItlsRequired)
         throws VPlexApiException {
 
         // Get the URI for the cluster info request and make the request.

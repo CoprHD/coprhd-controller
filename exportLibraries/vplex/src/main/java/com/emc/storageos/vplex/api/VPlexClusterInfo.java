@@ -37,7 +37,10 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
     List<VPlexStorageVolumeInfo> storageVolumeInfoList = new ArrayList<VPlexStorageVolumeInfo>();
     
     // Information about the system volumes accessible to the cluster.
-    List<VPlexSystemVolumeInfo> systemVolumeInfoList = new ArrayList<VPlexSystemVolumeInfo>();    
+    List<VPlexSystemVolumeInfo> systemVolumeInfoList = new ArrayList<VPlexSystemVolumeInfo>();
+    
+    // Information about the unclaimed storage volumes accessible to the cluster.
+    List<VPlexStorageVolumeInfo> unClaimedStorageVolumeInfoList = new ArrayList<VPlexStorageVolumeInfo>();    
 
     /**
      * Getter for the assembly id.

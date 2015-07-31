@@ -185,7 +185,7 @@ public class VPlexApiClient {
      */
     public List<VPlexClusterInfo> getClusterInfo() throws VPlexApiException {
         s_logger.info("Request for cluster info for VPlex at {}", _baseURI);
-        return _discoveryMgr.getClusterInfo(true);
+        return _discoveryMgr.getClusterInfo(true, false);
     }
     
     /**
@@ -1231,7 +1231,7 @@ public class VPlexApiClient {
     public String getClusterName(String clusterId) {
         String clusterName = null;
         
-        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true);
+        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true, false);
         for (VPlexClusterInfo clusterInfo : clusterInfos) {
             if (clusterId.equals(clusterInfo.getClusterId())) {
                 clusterName = clusterInfo.getName();
@@ -1250,7 +1250,7 @@ public class VPlexApiClient {
     public Map<String, String> getClusterIdToNameMap() {
         Map<String, String> clusterIdToNameMap = new HashMap<String, String>();
         
-        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true);
+        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true, false);
         for (VPlexClusterInfo clusterInfo : clusterInfos) {
             clusterIdToNameMap.put(clusterInfo.getClusterId(), clusterInfo.getName()); 
         }

@@ -13,12 +13,17 @@ import javax.xml.bind.Marshaller;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.model.pools.VirtualArrayAssignments;
 
 /**
  */
 public class ProtectionSystemUpdateRequestParamTest {
+	
+	private static final Logger logger = LoggerFactory
+            .getLogger(ProtectionSystemUpdateRequestParamTest.class);
 
     /**
      * @throws java.lang.Exception
@@ -69,8 +74,7 @@ public class ProtectionSystemUpdateRequestParamTest {
             // Write to System.out
             m.marshal(param, System.out);
         } catch (JAXBException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        	logger.error(e.getMessage(), e);
         }
     }
 

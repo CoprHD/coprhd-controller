@@ -839,10 +839,10 @@ public class BackupOps {
             JMXServiceURL jmxUrl = new JMXServiceURL(connectorAddress);
             return JMXConnectorFactory.connect(jmxUrl);
         } catch (MalformedURLException e) {
-            log.error("Failed to construct jmx url for {}:{}", host, port, e);
+            log.error(String.format("Failed to construct jmx url for %s:%d", host, port), e);
             throw new IllegalStateException("Failed to construct jmx url");
         } catch (IOException e) {
-            log.error("Failed to connect {}:{}", host, port, e);
+            log.error(String.format("Failed to connect %s:%d", host, port), e);
             throw new IllegalStateException("Failed to connect " + host);
         }
     }

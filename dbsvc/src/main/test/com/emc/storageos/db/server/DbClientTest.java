@@ -1958,6 +1958,101 @@ public class DbClientTest extends DbsvcTestBase {
     }
 
     @Test
+    public void testAggregate2() {
+        StorageSystem currStorageSystem = null;
+        Map<URI, Volume> curVols = null;
+        URI curVolId = null;
+        Volume volume = null;
+        Map<URI, Map<URI, Volume>> volumes = new HashMap<>();
+        Map<URI, List<URI>> volumeIds = new HashMap<>();
+        Map<URI, Volume> allVolumes = new HashMap<>();
+        List<StorageSystem> storageSystems = new ArrayList<>();
+
+        for (int jj = 0; jj < 2; jj++) {
+            URI storagesystemId = URIUtil.createId(StorageSystem.class);
+            StorageSystem storagesystem = new StorageSystem();
+            storagesystem.setId(storagesystemId);
+            _dbClient.createObject(storagesystem);
+            storageSystems.add(storagesystem);
+
+            Map<URI, Volume> volMap = new HashMap<>();
+            List<URI> volIds = new ArrayList<>();
+            for (int ii = 0; ii < 4; ii++) {
+                volume = new Volume();
+                volume.setId(URIUtil.createId(Volume.class));
+                String label = String.format("%1$d.%2$d : Test Label", jj, ii);
+                volume.setLabel(label);
+                int mult = (int) Math.round(Math.pow(10, jj));
+                volume.setCapacity(2000L * (ii + 1) * mult);
+                volume.setProvisionedCapacity(3000L * (ii + 1) * mult);
+                volume.setAllocatedCapacity(1000L * (ii + 1) * mult);
+                volume.setStorageController(storagesystemId);
+                _dbClient.createObject(volume);
+                volMap.put(volume.getId(), volume);
+                volIds.add(volume.getId());
+                allVolumes.put(volume.getId(), volume);
+            }
+            volumes.put(storagesystemId, volMap);
+            volumeIds.put(storagesystemId, volIds);
+        }
+        checkAggregatedValues("allocatedCapacity", Volume.class, allVolumes);
+        currStorageSystem = storageSystems.get(0);
+        checkAggregatedValues("storageDevice", currStorageSystem.getId().toString(), "allocatedCapacity", Volume.class, volumes.get(currStorageSystem.getId()));
+        currStorageSystem = storageSystems.get(1);
+        checkAggregatedValues("storageDevice", currStorageSystem.getId().toString(), "allocatedCapacity", Volume.class, volumes.get(currStorageSystem.getId()));
+
+        //
+        // change capacity of one of the volume and check that results do match...
+        //
+        currStorageSystem = storageSystems.get(0);
+        curVols = volumes.get(currStorageSystem.getId());
+        volume = new Volume();
+        volume.setId(volumeIds.get(currStorageSystem.getId()).get(2));
+        volume.setCapacity(3456L);
+        volume.setProvisionedCapacity(3456L);
+        volume.setAllocatedCapacity(3456L);
+        volume.setLabel("Test Label: capacity modified");
+        // Do not need to set pool. Pool should be set by the framework during persist.
+        // volume.setVirtualPool( curPool.getId());
+        _dbClient.persistObject(volume);
+        allVolumes.put(volume.getId(), volume);
+        curVols.put(volume.getId(), volume);
+        currStorageSystem = storageSystems.get(1);
+        curVols = volumes.get(currStorageSystem.getId());
+        volume = new Volume();
+        volume.setId(volumeIds.get(currStorageSystem.getId()).get(2));
+        volume.setCapacity(67890L);
+        volume.setProvisionedCapacity(67890L);
+        volume.setAllocatedCapacity(67890L);
+        volume.setLabel("Test Label: capacity modified");
+        // verify that by setting pool, nothing get broken
+        volume.setStorageController(currStorageSystem.getId());
+        _dbClient.persistObject(volume);
+        allVolumes.put(volume.getId(), volume);
+        curVols.put(volume.getId(), volume);
+
+        checkAggregatedValues("allocatedCapacity", Volume.class, allVolumes);
+        currStorageSystem = storageSystems.get(0);
+        checkAggregatedValues("storageDevice", currStorageSystem.getId().toString(), "allocatedCapacity", Volume.class, volumes.get(currStorageSystem.getId()));
+        currStorageSystem = storageSystems.get(1);
+        checkAggregatedValues("storageDevice", currStorageSystem.getId().toString(), "allocatedCapacity", Volume.class, volumes.get(currStorageSystem.getId()));
+
+        //
+        // delete one of the entries and validate that results match
+        //
+        currStorageSystem = storageSystems.get(1);
+        curVols = volumes.get(currStorageSystem.getId());
+        curVolId = volumeIds.get(currStorageSystem.getId()).remove(1);
+        volume = curVols.remove(curVolId);
+        allVolumes.remove(curVolId);
+        _dbClient.removeObject(volume);
+        checkAggregatedValues("allocatedCapacity", Volume.class, allVolumes);
+        checkAggregatedValues("storageDevice", currStorageSystem.getId().toString(), "allocatedCapacity", Volume.class, curVols);
+
+        _logger.info("finish aggregator");
+    }
+
+    @Test
     public void testAggregationEfficiency() {
         int NN = 100000;
 

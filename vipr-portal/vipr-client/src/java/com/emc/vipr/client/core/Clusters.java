@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -53,9 +53,9 @@ public class Clusters extends AbstractCoreBulkResources<ClusterRestRep> implemen
      * Gets a list of cluster references from the given path.
      * 
      * @param path
-     *        the URL path.
+     *            the URL path.
      * @param args
-     *        the path arguments.
+     *            the path arguments.
      * @return the list of cluster references.
      */
     protected List<NamedRelatedResourceRep> getList(String path, Object... args) {
@@ -69,7 +69,7 @@ public class Clusters extends AbstractCoreBulkResources<ClusterRestRep> implemen
      * API Call: <tt>GET /tenants/{tenantId}/clusters</tt>
      * 
      * @param tenantId
-     *        the ID of the tenant.
+     *            the ID of the tenant.
      * @return the list of cluster references.
      */
     @Override
@@ -109,7 +109,7 @@ public class Clusters extends AbstractCoreBulkResources<ClusterRestRep> implemen
      * API Call: <tt>GET /compute/vcenter-data-centers/{dataCenterId}/clusters</tt>
      * 
      * @param dataCenterId
-     *        the ID of the datacenter.
+     *            the ID of the datacenter.
      * @return the list of cluster references.
      */
     public List<NamedRelatedResourceRep> listByDataCenter(URI dataCenterId) {
@@ -122,7 +122,7 @@ public class Clusters extends AbstractCoreBulkResources<ClusterRestRep> implemen
      * Convenience method for <tt>getByRefs(listByDataCenter(dataCenterId))</tt>.
      * 
      * @param dataCenterId
-     *        the ID of the datacenter.
+     *            the ID of the datacenter.
      * @return the list of clusters.
      * 
      * @see #listByDataCenter(URI)
@@ -137,9 +137,9 @@ public class Clusters extends AbstractCoreBulkResources<ClusterRestRep> implemen
      * Lists the clusters for the given vCenter by ID.
      * <p>
      * API Call: <tt>GET /compute/vcenters/{vCenterId}/clusters</tt>
-     *
+     * 
      * @param vCenterId
-     *        the ID of the vCenter.
+     *            the ID of the vCenter.
      * @return the list of cluster references.
      */
     public List<NamedRelatedResourceRep> listByVCenter(URI vCenterId) {
@@ -150,11 +150,11 @@ public class Clusters extends AbstractCoreBulkResources<ClusterRestRep> implemen
      * Gets the list of clusters for the given vCenter by ID.
      * <p>
      * Convenience method for <tt>getByRefs(listByVCenter(vCenterId))</tt>.
-     *
+     * 
      * @param vCenterId
-     *        the ID of the vCenter.
+     *            the ID of the vCenter.
      * @return the list of clusters.
-     *
+     * 
      * @see #listByDataCenter(URI)
      * @see #getByRefs(java.util.Collection)
      */
@@ -169,9 +169,9 @@ public class Clusters extends AbstractCoreBulkResources<ClusterRestRep> implemen
      * API Call: <tt>POST /tenants/{tenantId}/clusters</tt>
      * 
      * @param tenantId
-     *        the ID of the tenant.
+     *            the ID of the tenant.
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return the newly created cluster.
      */
     public ClusterRestRep create(URI tenantId, ClusterCreateParam input) {
@@ -184,15 +184,15 @@ public class Clusters extends AbstractCoreBulkResources<ClusterRestRep> implemen
      * API Call: <tt>PUT /compute/clusters/{id}</tt>
      * 
      * @param id
-     *        the ID of the cluster to update.
+     *            the ID of the cluster to update.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated cluster.
      */
     public ClusterRestRep update(URI id, ClusterUpdateParam input) {
         return client.put(ClusterRestRep.class, input, getIdUrl(), id);
     }
-    
+
     /**
      * Deactivates a cluster by ID if cluster hosts do not have block or file exports.
      * 
@@ -200,35 +200,35 @@ public class Clusters extends AbstractCoreBulkResources<ClusterRestRep> implemen
      * API Call: <tt>POST /compute/clusters/{id}/deactivate</tt>
      * 
      * @param id
-     *        the ID of the cluster to deactivate.
+     *            the ID of the cluster to deactivate.
      * @prereq The cluster hosts must not have block or file exports
      */
     public Task<ClusterRestRep> deactivate(URI id) {
         return deactivate(id, false);
     }
-    
+
     /**
      * Deactivates a cluster.
      * <p>
      * API Call: <tt>POST /compute/clusters/{id}/deactivate?detach-storage={detachStorage}</tt>
      * 
      * @param id
-     *        the ID of the cluster to deactivate.
+     *            the ID of the cluster to deactivate.
      * @param detachStorage
-     *        if true, will first detach storage.
+     *            if true, will first detach storage.
      */
     public Task<ClusterRestRep> deactivate(URI id, boolean detachStorage) {
         URI deactivateUri = client.uriBuilder(getDeactivateUrl()).queryParam("detach-storage", detachStorage).build(id);
         return postTaskURI(deactivateUri);
     }
-    
+
     /**
      * Detaches storage from a cluster.
      * <p>
      * API Call: <tt>POST /compute/clusters/{id}/detach-storage</tt>
      * 
      * @param id
-     *        the ID of the cluster.
+     *            the ID of the cluster.
      */
     public Task<ClusterRestRep> detachStorage(URI id) {
         return postTask(PathConstants.CLUSTER_DETACH_STORAGE_URL, id);
@@ -240,13 +240,13 @@ public class Clusters extends AbstractCoreBulkResources<ClusterRestRep> implemen
      * API Call: <tt>GET /compute/clusters/search?name={name}</tt>
      * 
      * @param clusterName
-     *        the name of the cluster.
+     *            the name of the cluster.
      * @return the list of cluster references.
      */
-    public List<ClusterRestRep> searchByName(String clusterName) {  
-    	return search().byName(clusterName).run();
+    public List<ClusterRestRep> searchByName(String clusterName) {
+        return search().byName(clusterName).run();
     }
-    
+
     /**
      * Creates a search builder specifically for creating cluster search queries.
      * 
@@ -257,5 +257,4 @@ public class Clusters extends AbstractCoreBulkResources<ClusterRestRep> implemen
         return new ClusterSearchBuilder(this);
     }
 
-    
 }

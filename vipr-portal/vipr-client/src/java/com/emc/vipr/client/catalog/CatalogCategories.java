@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.catalog;
@@ -57,19 +57,19 @@ public class CatalogCategories extends AbstractCatalogBulkResources<CatalogCateg
 
     @Override
     public List<NamedRelatedResourceRep> listByTenant(URI tenantId) {
-        
-        CatalogCategoryRestRep rootCatalogCategory = 
-                    getRootCatalogCategory(asString(tenantId));
-        
+
+        CatalogCategoryRestRep rootCatalogCategory =
+                getRootCatalogCategory(asString(tenantId));
+
         UriBuilder uriBuilder = client.uriBuilder(PathConstants.CATALOG_SUB_CATEGORIES_URL);
         if (tenantId != null) {
             uriBuilder = uriBuilder.queryParam(SearchConstants.TENANT_ID_PARAM, tenantId);
         }
-        
-        CatalogCategoryList response = client.getURI(
-                CatalogCategoryList.class, uriBuilder.build(rootCatalogCategory.getId()));        
 
-        return ResourceUtils.defaultList(response.getCatalogCategories());        
+        CatalogCategoryList response = client.getURI(
+                CatalogCategoryList.class, uriBuilder.build(rootCatalogCategory.getId()));
+
+        return ResourceUtils.defaultList(response.getCatalogCategories());
     }
 
     @Override
@@ -95,7 +95,7 @@ public class CatalogCategories extends AbstractCatalogBulkResources<CatalogCateg
      * API Call: <tt>POST /catalog/categories</tt>
      * 
      * @param input
-     *        the catalog category configuration.
+     *            the catalog category configuration.
      * @return the newly created catalog category.
      */
     public CatalogCategoryRestRep create(CatalogCategoryCreateParam input) {
@@ -103,7 +103,7 @@ public class CatalogCategories extends AbstractCatalogBulkResources<CatalogCateg
                 .post(CatalogCategoryRestRep.class, input, PathConstants.CATALOG_CATEGORY_URL);
         return catalogCategory;
     }
-    
+
     /**
      * Get root catalog category
      * <p>
@@ -115,7 +115,7 @@ public class CatalogCategories extends AbstractCatalogBulkResources<CatalogCateg
     public CatalogCategoryRestRep getRootCatalogCategory(String tenantId) {
         return getRootCatalogCategory(ResourceUtils.uri(tenantId));
     }
-    
+
     public CatalogCategoryRestRep getRootCatalogCategory(URI tenantId) {
         UriBuilder builder = client.uriBuilder(PathConstants.CATALOG_CATEGORY_URL);
         if (tenantId != null) {
@@ -123,7 +123,7 @@ public class CatalogCategories extends AbstractCatalogBulkResources<CatalogCateg
         }
         CatalogCategoryRestRep catalogCategory = client.getURI(CatalogCategoryRestRep.class, builder.build());
         return catalogCategory;
-    }    
+    }
 
     /**
      * Updates the given catalog category by ID.
@@ -131,9 +131,9 @@ public class CatalogCategories extends AbstractCatalogBulkResources<CatalogCateg
      * API Call: <tt>PUT /catalog/categories/{id}</tt>
      * 
      * @param id
-     *        the ID of the catalog category to update.
+     *            the ID of the catalog category to update.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated catalog category.
      */
     public CatalogCategoryRestRep update(URI id, CatalogCategoryUpdateParam input) {
@@ -146,20 +146,20 @@ public class CatalogCategories extends AbstractCatalogBulkResources<CatalogCateg
      * API Call: <tt>POST /catalog/categories/{id}/deactivate</tt>
      * 
      * @param id
-     *        the ID of catalog category to deactivate.
+     *            the ID of catalog category to deactivate.
      */
     public void deactivate(URI id) {
         doDeactivate(id);
-    }    
-    
+    }
+
     /**
      * Reset the catalog to the default
      * <p>
      * API Call: <tt>POST /catalog/categories/reset</tt>
      * 
      * @param id
-     *        the ID of the tenant
-     */    
+     *            the ID of the tenant
+     */
     public void resetCatalog(URI tenantId) {
         UriBuilder uriBuilder = client.uriBuilder(PathConstants.CATALOG_RESET_URL);
         if (tenantId != null) {
@@ -167,53 +167,53 @@ public class CatalogCategories extends AbstractCatalogBulkResources<CatalogCateg
         }
         client.postURI(String.class, uriBuilder.build());
     }
-    
+
     /**
      * Return the list of catalog categories contained within supplied category id
      * <p>
      * API Call: <tt>POST /catalog/categories/{id}/categories</tt>
      * 
      * @param id
-     *        the ID of the catalog category
-     */    
+     *            the ID of the catalog category
+     */
     public List<CatalogCategoryRestRep> getSubCategories(URI catalogCategoryId) {
         CatalogCategoryList response = client.get(CatalogCategoryList.class, PathConstants.CATALOG_SUB_CATEGORIES_URL, catalogCategoryId);
         return getByRefs(response.getCatalogCategories());
     }
-    
+
     /**
      * Determines if an upgrade is available to the service catalog
      * <p>
      * API Call: <tt>GET /catalog/upgrade</tt>
      * 
      * @param id
-     *        the ID of the tenant
-     */      
+     *            the ID of the tenant
+     */
     public boolean upgradeAvailable(URI tenantId) {
         UriBuilder uriBuilder = client.uriBuilder(PathConstants.CATALOG_UPGRADE_URI);
         if (tenantId != null) {
             uriBuilder = uriBuilder.queryParam(SearchConstants.TENANT_ID_PARAM, tenantId);
-        }        
+        }
         CatalogUpgrade response = client.getURI(CatalogUpgrade.class, uriBuilder.build());
         return response != null && response.getUpgradeAvailable();
     }
-    
+
     /**
      * Upgrades the service catalog, if available
      * <p>
      * API Call: <tt>POST /catalog/upgrade</tt>
      * 
      * @param id
-     *        the ID of the tenant
-     */    
+     *            the ID of the tenant
+     */
     public void upgradeCatalog(URI tenantId) {
         UriBuilder uriBuilder = client.uriBuilder(PathConstants.CATALOG_UPGRADE_URI);
         if (tenantId != null) {
             uriBuilder = uriBuilder.queryParam(SearchConstants.TENANT_ID_PARAM, tenantId);
-        }        
-        client.postURI(String.class, uriBuilder.build());        
+        }
+        client.postURI(String.class, uriBuilder.build());
     }
-    
+
     @Override
     public List<ACLEntry> getACLs(URI id) {
         return doGetACLs(id);
@@ -222,14 +222,14 @@ public class CatalogCategories extends AbstractCatalogBulkResources<CatalogCateg
     @Override
     public List<ACLEntry> updateACLs(URI id, ACLAssignmentChanges aclChanges) {
         return doUpdateACLs(id, aclChanges);
-    }    
-    
+    }
+
     public void moveUp(URI catalogCategoryId) {
         client.put(String.class, PathConstants.CATALOG_CATEGORY_MOVE_UP_URL, catalogCategoryId);
     }
-    
+
     public void moveDown(URI catalogCategoryId) {
         client.put(String.class, PathConstants.CATALOG_CATEGORY_MOVE_DOWN_URL, catalogCategoryId);
-    }    
-    
+    }
+
 }

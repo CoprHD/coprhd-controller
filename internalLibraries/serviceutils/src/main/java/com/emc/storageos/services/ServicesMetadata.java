@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.services;
 
@@ -54,7 +44,7 @@ public class ServicesMetadata implements InitializingBean {
         }
         return _serviceMetadataMap;
     }
-    
+
     public void setRoleMetadataMap(LinkedHashMap<String,
             RoleMetadata> roleMetadataMap) {
         if (_roleMetadataMap == null) {
@@ -78,7 +68,7 @@ public class ServicesMetadata implements InitializingBean {
             ImmutableList.Builder<String> listBuilder = new ImmutableList.Builder<>();
             for (ServiceMetadata serviceMetadata : _serviceMetadataMap.values()) {
                 Set<String> roles = Sets.newHashSet(splitter.split(serviceMetadata.getRoles()));
-                if(roles.contains(roleName)) {
+                if (roles.contains(roleName)) {
                     listBuilder.add(serviceMetadata.getName());
                 }
             }
@@ -86,7 +76,7 @@ public class ServicesMetadata implements InitializingBean {
         }
         _roleServiceIndex = ImmutableMap.copyOf(index);
     }
-    
+
     /**
      * Returns list of service names that are available for control node
      */
@@ -120,17 +110,17 @@ public class ServicesMetadata implements InitializingBean {
         }
         return extraNodeServices;
     }
-    
+
     public static List<String> getRoleServiceNames(String... role) {
         return getRoleServiceNames(Arrays.asList(role));
     }
-    
+
     public static List<String> getRoleServiceNames(Iterable<String> roles) {
         if (_roleServiceIndex == null) {
             throw new IllegalStateException("Role Index does not exist");
         }
         HashSet<String> names = new HashSet<>();
-        for(String role: roles) {
+        for (String role : roles) {
             names.addAll(_roleServiceIndex.get(role));
         }
         return ImmutableList.copyOf(names);

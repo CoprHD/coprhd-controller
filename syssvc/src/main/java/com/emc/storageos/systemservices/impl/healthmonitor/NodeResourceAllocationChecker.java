@@ -1,20 +1,9 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.systemservices.impl.healthmonitor;
-
 
 import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
@@ -28,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 public class NodeResourceAllocationChecker {
-    private static final Logger _log = LoggerFactory.getLogger(NodeResourceAllocationChecker .class);
+    private static final Logger _log = LoggerFactory.getLogger(NodeResourceAllocationChecker.class);
     private static final String STATUS_OK = "OK";
     private static final String STATUS_IMBALANCE = "IMBALANCE";
 
@@ -59,18 +48,18 @@ public class NodeResourceAllocationChecker {
             }
 
             return STATUS_OK;
-        } catch (SysClientException ex ) {
-            //Ignore exception
+        } catch (SysClientException ex) {
+            // Ignore exception
             return STATUS_IMBALANCE;
         }
     }
 
-    private NodeHardwareInfoRestRep getNodeHardwareInfo(String svcId) throws SysClientException{
+    private NodeHardwareInfoRestRep getNodeHardwareInfo(String svcId) throws SysClientException {
         NodeHardwareInfoRestRep nodeHardwareInfoRestRep = null;
         try {
             _log.info("Get node: {} resp.", svcId);
-            nodeHardwareInfoRestRep =  SysClientFactory.getSysClient(_coordinator.getNodeEndpointForSvcId(svcId))
-                    .get(SysClientFactory.URI_GET_INTERNAL_NODE_HARDWARE,NodeHardwareInfoRestRep.class,null);
+            nodeHardwareInfoRestRep = SysClientFactory.getSysClient(_coordinator.getNodeEndpointForSvcId(svcId))
+                    .get(SysClientFactory.URI_GET_INTERNAL_NODE_HARDWARE, NodeHardwareInfoRestRep.class, null);
         } catch (SysClientException ex) {
             _log.error("Error get node hardware info with node: {} Cause: {}", svcId, ex.getMessage());
             throw ex;
@@ -80,7 +69,7 @@ public class NodeResourceAllocationChecker {
 
     /**
      * check 2 node resource is balance or not, if imbalance, return false.
-     *
+     * 
      * @param myBaseRep
      * @param compareRep
      */

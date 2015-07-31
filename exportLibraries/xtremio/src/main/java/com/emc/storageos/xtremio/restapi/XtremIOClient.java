@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.xtremio.restapi;
 
@@ -142,47 +132,47 @@ public class XtremIOClient extends StandardRestClient {
         }
         return initiatorPortList;
     }
-    
+
     public List<XtremIOVolume> getXtremIOVolumes() throws Exception {
         ClientResponse response = get(XtremIOConstants.XTREMIO_VOLUMES_URI);
         XtremIOVolumesInfo volumeLinks = getResponseObject(XtremIOVolumesInfo.class, response);
         log.info("Returned Volume Links size : {}", volumeLinks.getVolumeInfo().length);
         List<XtremIOVolume> volumeList = new ArrayList<XtremIOVolume>();
-        for(XtremIOVolumeInfo volumeInfo : volumeLinks.getVolumeInfo()) {
+        for (XtremIOVolumeInfo volumeInfo : volumeLinks.getVolumeInfo()) {
             URI volumeURI = URI.create(volumeInfo.getHref());
             response = get(volumeURI);
             XtremIOVolumes volumes = getResponseObject(XtremIOVolumes.class, response);
-            log.info("Volume {}", volumes.getContent().getVolInfo().get(1) + "-" 
+            log.info("Volume {}", volumes.getContent().getVolInfo().get(1) + "-"
                     + volumes.getContent().getVolInfo().get(2));
-            volumeList.add(volumes.getContent());            
+            volumeList.add(volumes.getContent());
         }
-        
+
         return volumeList;
     }
-    
+
     public List<XtremIOVolume> getXtremIOVolumesForLinks(List<XtremIOVolumeInfo> volumeLinks) throws Exception {
         List<XtremIOVolume> volumeList = new ArrayList<XtremIOVolume>();
-        for(XtremIOVolumeInfo volumeInfo : volumeLinks) {
+        for (XtremIOVolumeInfo volumeInfo : volumeLinks) {
             log.debug("Trying to get volume details for {}", volumeInfo.getHref());
             try {
                 URI volumeURI = URI.create(volumeInfo.getHref());
                 ClientResponse response = get(volumeURI);
                 XtremIOVolumes volumes = getResponseObject(XtremIOVolumes.class, response);
-                log.info("Volume {}", volumes.getContent().getVolInfo().get(1) + "-" 
+                log.info("Volume {}", volumes.getContent().getVolInfo().get(1) + "-"
                         + volumes.getContent().getVolInfo().get(2));
                 volumeList.add(volumes.getContent());
             } catch (InternalException ex) {
                 log.warn("Exception while trying to retrieve xtremio volume link {}", volumeInfo.getHref());
-            }           
+            }
         }
-        
+
         return volumeList;
     }
-    
+
     public List<XtremIOVolumeInfo> getXtremIOVolumeLinks() throws Exception {
         ClientResponse response = get(XtremIOConstants.XTREMIO_VOLUMES_URI);
         XtremIOVolumesInfo volumeLinks = getResponseObject(XtremIOVolumesInfo.class, response);
-        
+
         return Arrays.asList(volumeLinks.getVolumeInfo());
     }
 
@@ -202,14 +192,14 @@ public class XtremIOClient extends StandardRestClient {
                     getJsonForEntity(volumeFolderCreate));
             getResponseObject(XtremIOFolderCreate.class, response);
         } catch (Exception e) {
-            //TODO Right now making the fix very simple ,instead of trying to acquire a lock on Storage System
+            // TODO Right now making the fix very simple ,instead of trying to acquire a lock on Storage System
             if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.CAPTION_NOT_UNIQUE)) {
                 throw e;
             } else {
                 log.warn("Volume folder {} already created by a different operation at the same time", projectName);
             }
         }
-        
+
     }
 
     /**
@@ -398,7 +388,7 @@ public class XtremIOClient extends StandardRestClient {
             XtremIOInitiators initiators = getResponseObject(XtremIOInitiators.class, response);
             return initiators.getContent();
         } catch (Exception e) {
-        	log.error(e.getMessage(),e);
+            log.error(e.getMessage(), e);
         }
         log.info("Initiators not registered on Array with name : {}", initiatorName);
         return null;
@@ -413,7 +403,7 @@ public class XtremIOClient extends StandardRestClient {
                     response);
             return igGroups.getContent();
         } catch (Exception e) {
-        	log.error(e.getMessage(),e);
+            log.error(e.getMessage(), e);
         }
         log.info("Initiator Group not registered on Array with name : {}", initiatorGroupName);
         return null;
@@ -431,7 +421,7 @@ public class XtremIOClient extends StandardRestClient {
             return folderResponse.getContent();
 
         } catch (Exception e) {
-        	log.error(e.getMessage(),e);
+            log.error(e.getMessage(), e);
         }
         log.info("Initiator Group Folder not available on Array with name : {}",
                 initiatorGroupFolderName);
@@ -481,16 +471,19 @@ public class XtremIOClient extends StandardRestClient {
         log.info("Volume Delete URI : {}", uriStr);
         delete(URI.create(uriStr));
     }
+
     /**
      * Delete initiator
+     * 
      * @param initiatorName
      * @throws Exception
      */
     public void deleteInitiator(String initiatorName) throws Exception {
-    	  String uriStr = XtremIOConstants.getXIOVolumeInitiatorUri(initiatorName);
-         log.info("Initiator Delete URI : {}", uriStr);
-         delete(URI.create(uriStr));
+        String uriStr = XtremIOConstants.getXIOVolumeInitiatorUri(initiatorName);
+        log.info("Initiator Delete URI : {}", uriStr);
+        delete(URI.create(uriStr));
     }
+
     /**
      * Deletes a lunMap
      * 

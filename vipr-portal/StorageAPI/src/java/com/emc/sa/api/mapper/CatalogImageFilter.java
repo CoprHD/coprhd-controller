@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.api.mapper;
@@ -12,7 +12,7 @@ import com.emc.storageos.api.service.impl.response.BulkList.TenantResourceFilter
 import com.emc.storageos.security.authentication.StorageOSUser;
 
 public class CatalogImageFilter
-    extends TenantResourceFilter<CatalogImage> {
+        extends TenantResourceFilter<CatalogImage> {
 
     public CatalogImageFilter(StorageOSUser user,
             PermissionsHelper permissionsHelper) {
@@ -21,6 +21,6 @@ public class CatalogImageFilter
 
     @Override
     public boolean isAccessible(CatalogImage resource) {
-            return isTenantResourceAccessible(uri(resource.getTenant()));
+        return isTenantResourceAccessible(uri(resource.getTenant()));
     }
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.security.password.rules;
@@ -21,7 +11,6 @@ import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.MessageFormat;
 import java.util.Calendar;
 
 public class ExpireRule implements Rule {
@@ -32,7 +21,7 @@ public class ExpireRule implements Rule {
 
     /**
      * expire time: in days
-     *
+     * 
      * @param expireTime
      */
     public ExpireRule(int expireTime) {
@@ -41,7 +30,7 @@ public class ExpireRule implements Rule {
 
     /**
      * validate if password expired
-     *
+     * 
      * @param password
      */
     @Override
@@ -63,7 +52,7 @@ public class ExpireRule implements Rule {
         Calendar expireDate = ph.getExpireDate();
         Calendar now = Calendar.getInstance();
 
-        if (expireDate == null ) {
+        if (expireDate == null) {
             Long lastChangedTime = password.getLatestChangedTime();
             expireDate = Calendar.getInstance();
             expireDate.setTimeInMillis(lastChangedTime);

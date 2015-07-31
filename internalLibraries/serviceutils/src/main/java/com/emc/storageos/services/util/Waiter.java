@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012-2015 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.services.util;
@@ -33,12 +23,13 @@ public class Waiter {
 
     /**
      * Sleep for a specific amount of time, or until the wakeup method is called, whichever comes first
+     * 
      * @param milliSeconds the amount of time to sleep, in milliseconds.
      */
     public void sleep(long milliSeconds) {
         lock.lock();
         try {
-            // if someone tried to wake it up before it goes to sleep 
+            // if someone tried to wake it up before it goes to sleep
             // just reset t and restart the loop
             if (t != 0) {
                 t = System.currentTimeMillis() + milliSeconds;

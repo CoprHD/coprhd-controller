@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.systemservices.impl.upgrade;
@@ -23,31 +13,31 @@ import java.util.List;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 
 public class SyncInfo {
-    private final List<SoftwareVersion>       _toInstall;
+    private final List<SoftwareVersion> _toInstall;
     private final List<SoftwareVersion> _toRemove;
-    
+
     public List<SoftwareVersion> getToInstall() {
         return _toInstall;
     }
-    
+
     public List<SoftwareVersion> getToRemove() {
         return _toRemove;
     }
 
     public SyncInfo(final List<SoftwareVersion> toInstall, final List<SoftwareVersion> toRemove) {
         _toInstall = Collections.unmodifiableList(toInstall);
-        _toRemove  = Collections.unmodifiableList(toRemove);
+        _toRemove = Collections.unmodifiableList(toRemove);
     }
 
     public SyncInfo(final SoftwareVersion toInstall, final List<SoftwareVersion> toRemove) {
         _toInstall = new ArrayList<SoftwareVersion>();
         _toInstall.add(toInstall);
-        _toRemove  = Collections.unmodifiableList(toRemove);
+        _toRemove = Collections.unmodifiableList(toRemove);
     }
 
     public SyncInfo(final List<SoftwareVersion> toRemove) {
         _toInstall = new ArrayList<SoftwareVersion>();
-        _toRemove  = toRemove;
+        _toRemove = toRemove;
     }
 
     public SyncInfo() {
@@ -70,7 +60,7 @@ public class SyncInfo {
     public int hashCode() {
         return _toInstall.hashCode();
     }
-    
+
     @Override
     public String toString() {
         StringBuilder s = new StringBuilder();

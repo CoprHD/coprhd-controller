@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api.clientdata;
 
@@ -32,25 +22,25 @@ import com.emc.storageos.vplex.api.clientdata.formatter.XtremioVplexVolumeNameFo
  */
 public class VolumeInfo implements Serializable {
     private static final long serialVersionUID = 8156741332010435117L;
-    
+
     // A logger reference.
     protected static Logger s_logger = LoggerFactory.getLogger(VolumeInfo.class);
 
     // The native Guid for the storage system that owns the volume.
     private String _storageSystemNativeGuid;
-    
+
     // The device type of the storage system that owns the volume.
     private VPlexApiBackendSystemType _systemType;
 
-    // The WWN for the volume. 
+    // The WWN for the volume.
     private String _volumeWWN;
-    
+
     // The native volume id.
     private String _volumeNativeId;
-    
+
     // The name for the claimed storage volume.
     private String _volumeName;
-    
+
     // Whether or not the volume is thin provisioned.
     private boolean _isThin = false;
     
@@ -66,9 +56,11 @@ public class VolumeInfo implements Serializable {
      * @param volumeNativeId The naive id of the backend volume.
      * @param true if the volume is thin provisioned, false otherwise
      */
+
     public VolumeInfo(String storageSystemNativeGuid, String storageSystemType, 
             String volumeWWN, String volumeNativeId, boolean isThin,
-            List<String> itls) {
+            List<String> itls)
+    {
         _storageSystemNativeGuid = storageSystemNativeGuid;
         setSystemType(storageSystemType);
         _volumeWWN = volumeWWN;
@@ -87,7 +79,9 @@ public class VolumeInfo implements Serializable {
 		ITLs = iTLs;
 	}
 
-	/**
+	
+
+    /**
      * Getter for the storage system native guid.
      * 
      * @return The storage system native guid.
@@ -95,7 +89,7 @@ public class VolumeInfo implements Serializable {
     public String getStorageSystemNativeGuid() {
         return _storageSystemNativeGuid;
     }
-    
+
     /**
      * Setter for the storage system native guid.
      * 
@@ -104,7 +98,7 @@ public class VolumeInfo implements Serializable {
     public void setStorageSystemNativeGuid(String storageSystemNativeGuid) {
         _storageSystemNativeGuid = storageSystemNativeGuid;
     }
-    
+
     /**
      * Getter for the storage system device type.
      * 
@@ -121,7 +115,7 @@ public class VolumeInfo implements Serializable {
      */
     public void setSystemType(String systemType) {
         this._systemType = VPlexApiBackendSystemType.valueOfType(systemType);
-        
+
         if (null == this._systemType) {
             s_logger.error("system type {} is not currently supported", systemType);
             throw VPlexApiException.exceptions.systemTypeNotSupported(systemType);
@@ -136,7 +130,7 @@ public class VolumeInfo implements Serializable {
     public String getVolumeWWN() {
         return _volumeWWN;
     }
-    
+
     /**
      * Setter for the volume WWN.
      * 
@@ -145,7 +139,7 @@ public class VolumeInfo implements Serializable {
     public void setVolumeWWN(String volumeWWN) {
         _volumeWWN = volumeWWN;
     }
-    
+
     /**
      * Getter for the volume native id.
      * 
@@ -154,19 +148,19 @@ public class VolumeInfo implements Serializable {
     public String getVolumeNativeId() {
         return _volumeNativeId;
     }
-    
+
     /**
      * Setter for the volume native id.
      * 
      * @param volumeName The volume native id.
-     */    
+     */
     public void setVolumeNativeId(String volumeNativeId) {
         _volumeNativeId = volumeNativeId;
     }
-    
+
     /**
      * Getter for the volume name. When not set specifically, we generate the
-     * name by appending the serial number of the array, extracted from the 
+     * name by appending the serial number of the array, extracted from the
      * array native guid, to the native volume id. This is the name given the
      * volume when it is claimed.
      * 
@@ -174,7 +168,7 @@ public class VolumeInfo implements Serializable {
      */
     public String getVolumeName() {
         if ((_volumeName == null) || (_volumeName.length() == 0)) {
-            switch( getSystemType() ) {
+            switch (getSystemType()) {
                 case XTREMIO:
                     _volumeName = new XtremioVplexVolumeNameFormatter(this).format();
                     break;
@@ -183,27 +177,27 @@ public class VolumeInfo implements Serializable {
                     break;
             }
         }
-        
+
         s_logger.info("claimed volume name is " + _volumeName);
         return _volumeName;
     }
-    
+
     /**
      * Setter for the volume name.
      * 
      * @param volumeName The name to give the volume when claimed.
      * @throws VPlexApiException when the volumeName argument is too long.
-     */    
+     */
     public void setVolumeName(String volumeName) throws VPlexApiException {
-        
+
         if (volumeName.length() > VPlexApiConstants.MAX_VOL_NAME_LENGTH) {
-            throw VPlexApiException.exceptions.claimedVolumeNameIsTooLong(volumeName, 
+            throw VPlexApiException.exceptions.claimedVolumeNameIsTooLong(volumeName,
                     String.valueOf(VPlexApiConstants.MAX_VOL_NAME_LENGTH));
         }
-        
+
         _volumeName = volumeName;
     }
-    
+
     /**
      * Getter returns whether or not the volume is thin provisioned.
      * 
@@ -212,12 +206,12 @@ public class VolumeInfo implements Serializable {
     public boolean getIsThinProvisioned() {
         return _isThin;
     }
-    
+
     /**
      * Setter for whether or not the volume is thin provisioned.
      * 
      * @param isThin true if the volume is thin provisioned, false otherwise.
-     */    
+     */
     public void setIsThinProvisioned(boolean isThin) {
         _isThin = isThin;
     }

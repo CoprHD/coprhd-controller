@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -84,7 +84,7 @@ public class Tenants extends AbstractCoreBulkResources<TenantOrgRestRep> impleme
      * Creates a sub-tenant within the current tenant.
      * 
      * @param input
-     *        the tenant configuration.
+     *            the tenant configuration.
      * @return the newly created tenant.
      */
     public TenantOrgRestRep create(TenantCreateParam input) {
@@ -98,9 +98,9 @@ public class Tenants extends AbstractCoreBulkResources<TenantOrgRestRep> impleme
      * API Call: <tt>POST /tenants/{parentTenantId}/subtenants</tt>
      * 
      * @param parentTenantId
-     *        the ID of the parent tenant.
+     *            the ID of the parent tenant.
      * @param input
-     *        the tenant configuration.
+     *            the tenant configuration.
      * @return the newly created tenant.
      */
     public TenantOrgRestRep create(URI parentTenantId, TenantCreateParam input) {
@@ -111,11 +111,11 @@ public class Tenants extends AbstractCoreBulkResources<TenantOrgRestRep> impleme
      * Creates a host within the given tenant.
      * <p>
      * API Call: <tt>POST /tenants/{tenantId}/hosts</tt>
-     *
+     * 
      * @param tenantId
-     *        the ID of the tenant.
+     *            the ID of the tenant.
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<HostRestRep> createHost(URI tenantId, HostCreateParam input) {
@@ -137,9 +137,9 @@ public class Tenants extends AbstractCoreBulkResources<TenantOrgRestRep> impleme
      * API Call: <tt>PUT /tenants/{id}</tt>
      * 
      * @param id
-     *        the ID of the tenant to update.
+     *            the ID of the tenant to update.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated tenant configuration.
      */
     public TenantOrgRestRep update(URI id, TenantUpdateParam input) {
@@ -162,7 +162,7 @@ public class Tenants extends AbstractCoreBulkResources<TenantOrgRestRep> impleme
      * API Call: <tt>GET /tenants/{id}/role-assignments</tt>
      * 
      * @param id
-     *        the ID of the tenant.
+     *            the ID of the tenant.
      * @return the list of RoleAssignmentEntry
      */
     public List<RoleAssignmentEntry> getRoleAssignments(URI id) {
@@ -176,9 +176,9 @@ public class Tenants extends AbstractCoreBulkResources<TenantOrgRestRep> impleme
      * API Call: <tt>PUT /tenants/{id}/role-assignments</tt>
      * 
      * @param id
-     *        the ID of the tenant.
+     *            the ID of the tenant.
      * @param roleChanges
-     *        Role assignment changes
+     *            Role assignment changes
      * @return the list of RoleAssignmentEntry
      */
     public List<RoleAssignmentEntry> updateRoleAssignments(URI id, RoleAssignmentChanges roleChanges) {
@@ -192,7 +192,7 @@ public class Tenants extends AbstractCoreBulkResources<TenantOrgRestRep> impleme
      * API Call: <tt>GET /tenants/{parentId}/subtenants</tt>
      * 
      * @param parentId
-     *        the ID of the parent tenant.
+     *            the ID of the parent tenant.
      * @return the list of sub-tenant references.
      */
     public List<NamedRelatedResourceRep> listSubtenants(URI parentId) {
@@ -200,11 +200,10 @@ public class Tenants extends AbstractCoreBulkResources<TenantOrgRestRep> impleme
     }
 
     /**
-     * Gets the list of all sub-tenants for the given tenant. This is a convenience method for:
-     * <tt>getByRefs(listSubtenants(parentId))</tt>
+     * Gets the list of all sub-tenants for the given tenant. This is a convenience method for: <tt>getByRefs(listSubtenants(parentId))</tt>
      * 
      * @param parentId
-     *        the ID of the parent tenant.
+     *            the ID of the parent tenant.
      * @return the list of sub-tenants.
      */
     public List<TenantOrgRestRep> getAllSubtenants(URI parentId) {
@@ -212,13 +211,12 @@ public class Tenants extends AbstractCoreBulkResources<TenantOrgRestRep> impleme
     }
 
     /**
-     * Gets the list of all sub-tenants for the given tenant. This is a convenience method for:
-     * <tt>getByRefs(listSubtenants(parentId))</tt>
+     * Gets the list of all sub-tenants for the given tenant. This is a convenience method for: <tt>getByRefs(listSubtenants(parentId))</tt>
      * 
      * @param parentId
-     *        the ID of the parent tenant.
+     *            the ID of the parent tenant.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of sub-tenants.
      */
     public List<TenantOrgRestRep> getAllSubtenants(URI parentId, ResourceFilter<TenantOrgRestRep> filter) {
@@ -229,9 +227,9 @@ public class Tenants extends AbstractCoreBulkResources<TenantOrgRestRep> impleme
      * Deactivates the given tenant by ID.
      * <p>
      * API Call: <tt>POST /vdc/tenants/{id}/deactivate</tt>
-     *
+     * 
      * @param id
-     *        the ID of the tenant to deactivate.
+     *            the ID of the tenant to deactivate.
      */
     public void deactivate(URI id) {
         doDeactivate(id);

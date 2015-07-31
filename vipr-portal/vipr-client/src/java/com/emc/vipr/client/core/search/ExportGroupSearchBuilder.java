@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core.search;
@@ -14,16 +14,16 @@ import com.emc.vipr.client.core.AbstractResources;
 
 public class ExportGroupSearchBuilder extends ProjectSearchBuilder<ExportGroupRestRep> {
 
-	public ExportGroupSearchBuilder(AbstractResources<ExportGroupRestRep> resources) {
+    public ExportGroupSearchBuilder(AbstractResources<ExportGroupRestRep> resources) {
         super(resources);
     }
-	
-	public SearchBuilder<ExportGroupRestRep> byCluster(URI cluster) {
+
+    public SearchBuilder<ExportGroupRestRep> byCluster(URI cluster) {
         return by(CLUSTER_PARAM, cluster);
     }
-	
-	public SearchBuilder<ExportGroupRestRep> byHost(URI host) {
-		return by(HOST_PARAM, host);
-	}
+
+    public SearchBuilder<ExportGroupRestRep> byHost(URI host) {
+        return by(HOST_PARAM, host);
+    }
 
 }

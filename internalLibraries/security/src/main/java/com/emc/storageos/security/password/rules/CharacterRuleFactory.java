@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.security.password.rules;
@@ -19,8 +9,6 @@ import com.emc.storageos.security.password.Password;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.text.MessageFormat;
 
 public abstract class CharacterRuleFactory {
     private static final Logger _log = LoggerFactory.getLogger(CharacterRuleFactory.class);
@@ -35,10 +23,18 @@ public abstract class CharacterRuleFactory {
     public static CharacterRule getCharacterRule(CharacterRuleType type, int num) {
         CharacterRule rule = null;
         switch (type) {
-            case LOWERCASE: rule = new LowercaseCharacterRule(num); break;
-            case UPPERCASE: rule = new UppercaseCharacterRule(num); break;
-            case NUMERIC: rule = new NumericCharacterRule(num); break;
-            case SPECIAL: rule = new SpecialCharacterRule(num); break;
+            case LOWERCASE:
+                rule = new LowercaseCharacterRule(num);
+                break;
+            case UPPERCASE:
+                rule = new UppercaseCharacterRule(num);
+                break;
+            case NUMERIC:
+                rule = new NumericCharacterRule(num);
+                break;
+            case SPECIAL:
+                rule = new SpecialCharacterRule(num);
+                break;
         }
 
         return rule;
@@ -55,7 +51,6 @@ public abstract class CharacterRuleFactory {
         public LowercaseCharacterRule(final int num) {
             setNumberOfCharacters(num);
         }
-
 
         @Override
         public int getNumber(Password password) {
@@ -74,7 +69,7 @@ public abstract class CharacterRuleFactory {
     }
 
     /**
-     *  Rule for determining if a password contains the correct number of numeric characters.
+     * Rule for determining if a password contains the correct number of numeric characters.
      */
     public static class NumericCharacterRule extends AbstractCharacterRule {
         private static final String TYPE = "numeric";
@@ -110,7 +105,6 @@ public abstract class CharacterRuleFactory {
             setNumberOfCharacters(num);
         }
 
-
         @Override
         public int getNumber(Password password) {
             return password.getNumberOfSpeicial();
@@ -120,7 +114,6 @@ public abstract class CharacterRuleFactory {
         public String getType() {
             return CHARACTER_TYPE;
         }
-
 
         @Override
         public BadRequestException getException() {
@@ -139,7 +132,6 @@ public abstract class CharacterRuleFactory {
         public UppercaseCharacterRule(final int num) {
             setNumberOfCharacters(num);
         }
-
 
         @Override
         public int getNumber(Password password) {

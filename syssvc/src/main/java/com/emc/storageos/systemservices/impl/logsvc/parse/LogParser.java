@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc.parse;
 
@@ -48,7 +38,7 @@ public abstract class LogParser {
     // return 0 -- in time range
     // return -1 --later than end time
     protected int inTimeRange(int year, int month, int days, int hours, int mins,
-                            int secs, int msecs, LogRequest request) {
+            int secs, int msecs, LogRequest request) {
         logDate.set(year, (month - 1), days, hours, mins, secs);
         logDate.set(Calendar.MILLISECOND, msecs);
         return LogUtil.timeInRange(logDate.getTime(), request.getStartTime(),
@@ -57,7 +47,7 @@ public abstract class LogParser {
 
     // Returns the number of milliseconds
     protected long getTime(int year, int month, int days, int hours, int mins,
-                         int secs, int msecs) {
+            int secs, int msecs) {
         logDate.set(year, (month - 1), days, hours, mins, secs);
         logDate.set(Calendar.MILLISECOND, msecs);
         Date date = logDate.getTime();

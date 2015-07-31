@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.impl.jersey;
@@ -14,7 +14,7 @@ import java.net.URI;
 
 /**
  * Jersey filter for accessing and sending Storage OS Auth Token. This also implements redirection manually 302.
- *
+ * 
  * If login is required, you are redirected to the login page. Basic Auth is taken there and a token is provided back.
  * This is sent back as a 302 to redirect you to your original page. The issue is that the 302 contains the response
  * header with the token. Standard redirect processing will lose this token when you redirect to the real page.
@@ -22,11 +22,11 @@ import java.net.URI;
 public class AuthTokenFilter extends ClientFilter {
 
     private TokenAccess sessionAccess;
-    
+
     public AuthTokenFilter(TokenAccess sessionAccess) {
         this.sessionAccess = sessionAccess;
     }
-    
+
     @Override
     public ClientResponse handle(ClientRequest request) throws ClientHandlerException {
         addTokenToRequest(request);

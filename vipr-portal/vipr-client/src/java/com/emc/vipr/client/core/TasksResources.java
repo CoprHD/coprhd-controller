@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -47,6 +47,7 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
         ERROR("error");
 
         String literal;
+
         State(String literal) {
             this.literal = literal;
         }
@@ -67,12 +68,11 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
         return listByTenant(null, FETCH_ALL, null, null);
     }
 
-
     /**
      * List ALL tasks for a specific tenant (use {@link #SYSTEM_TENANT} for System level tasks).
-     *
+     * 
      * Tasks are returned sorted with the most recent task first
-     *
+     * 
      * @param tenantId The tenant tasks are required for
      */
     public List<NamedRelatedResourceRep> listByTenant(URI tenantId) {
@@ -81,11 +81,11 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
 
     /**
      * List specified number of tasks for a specific tenant (use {@link #SYSTEM_TENANT} for System level tasks).
-     *
+     * 
      * Tasks are returned sorted with the most recent task first
-     *
+     * 
      * @param tenantId The tenant tasks are required for
-     * @param maxCount The maximum number of tasks to return.  Use {@link #FETCH_ALL} for all tasks
+     * @param maxCount The maximum number of tasks to return. Use {@link #FETCH_ALL} for all tasks
      */
     public List<NamedRelatedResourceRep> listByTenant(URI tenantId, int maxCount) {
         return listByTenant(tenantId, maxCount, null, null);
@@ -94,9 +94,9 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
     /**
      * List all tasks for a specific tenant (use {@link #SYSTEM_TENANT} for System level tasks) that were started between
      * startTime and endTime
-     *
+     * 
      * Tasks are returned sorted with the most recent task first
-     *
+     * 
      * @param tenantId The tenant tasks are required for
      * @param maxCount Number of tasks to return or {@link #FETCH_ALL} for all matching tasks
      * @param startTime Time in milliseconds (Null if not required)
@@ -125,7 +125,7 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
     }
 
     /**
-     * Returns tasks matching a particular state  for the given tenant
+     * Returns tasks matching a particular state for the given tenant
      */
     public List<TaskResourceRep> findByState(URI tenantId, State state) {
         Map<String, Object> params = new HashMap<>();
@@ -139,7 +139,7 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
 
     /**
      * Returns the specified number of tasks that have been created for the given client since startTime
-     *
+     * 
      * @param tenantId The tenant (use {@link #USER_TENANT} for current users tasks, or {@link #SYSTEM_TENANT} for system level tasks
      * @param startTime Number of milliseconds since Jan 1 (or Date().getTime())
      * @param maxCount Number of tasks to return or {@link #FETCH_ALL} for all matching tasks
@@ -188,7 +188,7 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
         }
     }
 
-    private void  addResource(UriBuilder builder, URI tenantId) {
+    private void addResource(UriBuilder builder, URI tenantId) {
         if (tenantId != null) {
             builder.queryParam(RESOURCE_PARAM, tenantId);
         }

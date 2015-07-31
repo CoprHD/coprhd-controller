@@ -717,12 +717,14 @@ public class BlockDeviceExportController implements BlockExportController {
                         .getHostStorageLockKeys(_dbClient,
                                 ExportGroup.ExportGroupType.valueOf(exportGroup.getType()),
                                 initiatorURIs, volume.getStorageController());
+                initiatorURIs.clear();
                 boolean acquiredLocks = _wfUtils.getWorkflowService().acquireWorkflowLocks(
                         workflow, lockKeys, LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
                 if (!acquiredLocks) {
                     throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
                             "UpdateVolumePathParams: " + volume.getLabel());
                 }
+
             }
 
             // These steps are serialized, which is required in case an ExportMask appears

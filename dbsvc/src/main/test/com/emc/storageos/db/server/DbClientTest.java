@@ -2012,11 +2012,10 @@ public class DbClientTest extends DbsvcTestBase {
         volume.setProvisionedCapacity(3456L);
         volume.setAllocatedCapacity(3456L);
         volume.setLabel("Test Label: capacity modified");
-        // Do not need to set pool. Pool should be set by the framework during persist.
-        // volume.setVirtualPool( curPool.getId());
         _dbClient.persistObject(volume);
         allVolumes.put(volume.getId(), volume);
         curVols.put(volume.getId(), volume);
+
         currStorageSystem = storageSystems.get(1);
         curVols = volumes.get(currStorageSystem.getId());
         volume = new Volume();
@@ -2025,7 +2024,6 @@ public class DbClientTest extends DbsvcTestBase {
         volume.setProvisionedCapacity(67890L);
         volume.setAllocatedCapacity(67890L);
         volume.setLabel("Test Label: capacity modified");
-        // verify that by setting pool, nothing get broken
         volume.setStorageController(currStorageSystem.getId());
         _dbClient.persistObject(volume);
         allVolumes.put(volume.getId(), volume);

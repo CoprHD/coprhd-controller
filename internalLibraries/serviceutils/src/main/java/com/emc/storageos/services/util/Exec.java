@@ -46,7 +46,12 @@ public class Exec {
         Result(final String[] cmd, final long timeout,
                 final int exitValue, final String stdOutput, final String stdError,
                 final Termination termination) {
-            _cmd = cmd;
+        	if(cmd == null){
+        		_cmd = new String[0];
+        	}else{
+        		_cmd = Arrays.copyOf(cmd, cmd.length);
+        	}
+            
             _timeout = timeout;
             _exitValue = exitValue;
             _stdOutput = stdOutput;
@@ -55,7 +60,7 @@ public class Exec {
         }
 
         public String[] getCmd() {
-            return _cmd;
+            return _cmd.clone();
         }
 
         /**

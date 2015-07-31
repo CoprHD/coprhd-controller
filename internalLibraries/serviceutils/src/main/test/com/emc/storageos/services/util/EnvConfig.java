@@ -17,8 +17,8 @@ import org.slf4j.LoggerFactory;
 
 public class EnvConfig {
 
-    private static String properties_location = System.getenv("PROP_FILE_LOC");
-    private static Map<String, Properties> properties = null;
+    private static volatile String properties_location = System.getenv("PROP_FILE_LOC");
+    private static volatile Map<String, Properties> properties = null;
     private static final Logger logger = LoggerFactory.getLogger(EnvConfig.class);
 
     private static void readConfig(String propertyFile) throws Exception {

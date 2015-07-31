@@ -29,8 +29,8 @@ public class PlatformUtils {
     private static final long CMD_TIMEOUT = 120 * 1000;
     private static final long CMD_PARTITION_TIMEOUT = 600 * 1000;    // 10 min
 
-    private static Boolean isVMwareVapp;
-    private static Boolean isAppliance;
+    private static volatile Boolean isVMwareVapp;
+    private static volatile Boolean isAppliance;
 
     /*
      * Get local configuration by reading ovfenv partition and detecting real h/w

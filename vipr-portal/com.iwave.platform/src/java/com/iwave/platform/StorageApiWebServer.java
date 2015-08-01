@@ -73,7 +73,7 @@ public class StorageApiWebServer {
 
     @Required
     public void setCiphers(String[] ciphers) {
-        this.ciphers = ciphers;
+        this.ciphers = ciphers; //NOSONAR Suppressing sonar violation on user-supplied array is stored directly
     }
 
     @Required

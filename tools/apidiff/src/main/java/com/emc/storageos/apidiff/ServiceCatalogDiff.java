@@ -115,7 +115,7 @@ public class ServiceCatalogDiff {
             }
         }
 
-        if (oldParameters.size() != 0 || newParameters.size() != 0) {
+        if (!oldParameters.isEmpty() || !newParameters.isEmpty()) {
             return new Pair<String, String>(
                     Arrays.toString(oldParameters.toArray(new String[oldParameters.size()])),
                     Arrays.toString(newParameters.toArray(new String[newParameters.size()])));
@@ -153,7 +153,6 @@ public class ServiceCatalogDiff {
             newDocument = saxBuilder.build(new StringReader(newXml));
         } catch (Exception ex) {
             System.err.println("Invalid XML content:\n " + oldXml + "\n and: \n" + newXml);
-            ex.printStackTrace();
         }
 
         if (oldDocument == null || newDocument == null) {

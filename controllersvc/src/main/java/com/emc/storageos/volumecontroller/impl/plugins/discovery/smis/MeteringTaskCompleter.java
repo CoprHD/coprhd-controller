@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
@@ -23,28 +23,26 @@ public class MeteringTaskCompleter extends DataCollectionTaskCompleter {
         super(clazz, id, opId);
     }
 
-    public MeteringTaskCompleter(AsyncTask task)  {
+    public MeteringTaskCompleter(AsyncTask task) {
         super(task);
     }
 
-    public String getJobType(){
+    public String getJobType() {
         return ControllerServiceImpl.METERING;
     }
 
-    protected void  updateObjectState(DbClient dbClient,
-                                      DiscoveredDataObject.DataCollectionJobStatus jobStatus) {
+    protected void updateObjectState(DbClient dbClient,
+            DiscoveredDataObject.DataCollectionJobStatus jobStatus) {
         Class type = getType();
-        if (DiscoveredSystemObject.class.isAssignableFrom(type))   {
+        if (DiscoveredSystemObject.class.isAssignableFrom(type)) {
             try {
-                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type,getId());
+                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type, getId());
                 dbObject.trackChanges();
                 dbObject.setMeteringStatus(jobStatus.toString());
                 dbClient.persistObject(dbObject);
-            }
-            catch (InstantiationException ex) {
+            } catch (InstantiationException ex) {
                 DatabaseException.fatals.queryFailed(ex);
-            }
-            catch(IllegalAccessException ex)       {
+            } catch (IllegalAccessException ex) {
                 DatabaseException.fatals.queryFailed(ex);
             }
         }
@@ -56,17 +54,15 @@ public class MeteringTaskCompleter extends DataCollectionTaskCompleter {
     @Override
     final public void setNextRunTime(DbClient dbClient, long time) {
         Class type = getType();
-        if (DiscoveredSystemObject.class.isAssignableFrom(type))   {
+        if (DiscoveredSystemObject.class.isAssignableFrom(type)) {
             try {
-                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type,getId());
+                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type, getId());
                 dbObject.trackChanges();
                 dbObject.setNextMeteringRunTime(time);
                 dbClient.persistObject(dbObject);
-            }
-            catch (InstantiationException ex) {
+            } catch (InstantiationException ex) {
                 DatabaseException.fatals.queryFailed(ex);
-            }
-            catch(IllegalAccessException ex)       {
+            } catch (IllegalAccessException ex) {
                 DatabaseException.fatals.queryFailed(ex);
             }
         }
@@ -76,19 +72,17 @@ public class MeteringTaskCompleter extends DataCollectionTaskCompleter {
     }
 
     @Override
-    final public void setLastTime(DbClient dbClient, long time){
+    final public void setLastTime(DbClient dbClient, long time) {
         Class type = getType();
-        if (DiscoveredSystemObject.class.isAssignableFrom(type))   {
+        if (DiscoveredSystemObject.class.isAssignableFrom(type)) {
             try {
-                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type,getId());
+                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type, getId());
                 dbObject.trackChanges();
                 dbObject.setLastMeteringRunTime(time);
                 dbClient.persistObject(dbObject);
-            }
-            catch (InstantiationException ex) {
+            } catch (InstantiationException ex) {
                 DatabaseException.fatals.queryFailed(ex);
-            }
-            catch(IllegalAccessException ex)       {
+            } catch (IllegalAccessException ex) {
                 DatabaseException.fatals.queryFailed(ex);
             }
         }
@@ -100,17 +94,15 @@ public class MeteringTaskCompleter extends DataCollectionTaskCompleter {
     @Override
     final public void setSuccessTime(DbClient dbClient, long time) {
         Class type = getType();
-        if (DiscoveredSystemObject.class.isAssignableFrom(type))   {
+        if (DiscoveredSystemObject.class.isAssignableFrom(type)) {
             try {
-                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type,getId());
+                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type, getId());
                 dbObject.trackChanges();
                 dbObject.setSuccessMeteringTime(time);
                 dbClient.persistObject(dbObject);
-            }
-            catch (InstantiationException ex) {
+            } catch (InstantiationException ex) {
                 DatabaseException.fatals.queryFailed(ex);
-            }
-            catch(IllegalAccessException ex)       {
+            } catch (IllegalAccessException ex) {
                 DatabaseException.fatals.queryFailed(ex);
             }
         }
@@ -121,8 +113,8 @@ public class MeteringTaskCompleter extends DataCollectionTaskCompleter {
     }
 
     @Override
-    final protected void createDefaultOperation(DbClient dbClient){
-        dbClient.createTaskOpStatus(getType(),getId(),getOpId(),
+    final protected void createDefaultOperation(DbClient dbClient) {
+        dbClient.createTaskOpStatus(getType(), getId(), getOpId(),
                 ResourceOperationTypeEnum.METERING_STORAGE_SYSTEM);
     }
 }

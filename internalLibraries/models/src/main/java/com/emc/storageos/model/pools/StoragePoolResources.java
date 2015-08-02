@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.pools;
@@ -19,9 +19,10 @@ public class StoragePoolResources {
 
     // A list containing the resources in a storage pool.
     private List<TypedRelatedResourceRep> resources;
-    
-    public StoragePoolResources() {}
-    
+
+    public StoragePoolResources() {
+    }
+
     public StoragePoolResources(List<TypedRelatedResourceRep> resources) {
         this.resources = resources;
     }

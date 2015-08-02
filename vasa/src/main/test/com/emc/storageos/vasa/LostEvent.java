@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 
@@ -12,36 +12,33 @@
 
 package com.emc.storageos.vasa;
 
-public class LostEvent extends java.lang.Exception{
+public class LostEvent extends java.lang.Exception {
 
     private static final long serialVersionUID = 1348562968769L;
-    
+
     private com.emc.storageos.vasa.VasaServiceStub.LostEventE faultMessage;
 
-    
-        public LostEvent() {
-            super("LostEvent");
-        }
-
-        public LostEvent(java.lang.String s) {
-           super(s);
-        }
-
-        public LostEvent(java.lang.String s, java.lang.Throwable ex) {
-          super(s, ex);
-        }
-
-        public LostEvent(java.lang.Throwable cause) {
-            super(cause);
-        }
-    
-
-    public void setFaultMessage(com.emc.storageos.vasa.VasaServiceStub.LostEventE msg){
-       faultMessage = msg;
+    public LostEvent() {
+        super("LostEvent");
     }
-    
-    public com.emc.storageos.vasa.VasaServiceStub.LostEventE getFaultMessage(){
-       return faultMessage;
+
+    public LostEvent(java.lang.String s) {
+        super(s);
+    }
+
+    public LostEvent(java.lang.String s, java.lang.Throwable ex) {
+        super(s, ex);
+    }
+
+    public LostEvent(java.lang.Throwable cause) {
+        super(cause);
+    }
+
+    public void setFaultMessage(com.emc.storageos.vasa.VasaServiceStub.LostEventE msg) {
+        faultMessage = msg;
+    }
+
+    public com.emc.storageos.vasa.VasaServiceStub.LostEventE getFaultMessage() {
+        return faultMessage;
     }
 }
-    

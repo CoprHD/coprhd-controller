@@ -1,13 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.systems;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-
-import org.codehaus.jackson.annotate.JsonProperty;
 
 import com.emc.storageos.model.valid.Length;
 import com.emc.storageos.model.valid.Range;
@@ -25,10 +23,11 @@ public class StorageSystemUpdateRequestParam {
     private String smisUserName;
     private String smisPassword;
     private Boolean smisUseSSL;
-    private Integer maxResources; 
+    private Integer maxResources;
     private Boolean isUnlimitedResourcesSet;
-    
-    public StorageSystemUpdateRequestParam() {}
+
+    public StorageSystemUpdateRequestParam() {
+    }
 
     /**
      * Name of the storage system
@@ -172,8 +171,8 @@ public class StorageSystemUpdateRequestParam {
      * This field is applicable for storage systems of type 'vnxfile'.
      * It is ignored for other storage system types and can be null.
      * 
-     *  @valid true
-     *  @valid false
+     * @valid true
+     * @valid false
      */
     @XmlElement(name = "smis_use_ssl")
     public Boolean getSmisUseSSL() {
@@ -190,27 +189,27 @@ public class StorageSystemUpdateRequestParam {
      * @valid none
      */
     @XmlElement(name = "max_resources")
-    @Range(min=0, max=Integer.MAX_VALUE)
+    @Range(min = 0, max = Integer.MAX_VALUE)
     public Integer getMaxResources() {
         return maxResources;
     }
 
-   public void setMaxResources(Integer maxResources) {
+    public void setMaxResources(Integer maxResources) {
         this.maxResources = maxResources;
     }
-   
-   /**
-    * Whether limit on number of Resources has been set
-    * 
-    * @valid none
-    */
-   @XmlElement(name = "unlimited_resources")
-   public Boolean getIsUnlimitedResourcesSet() {
-       return isUnlimitedResourcesSet;
-   }
 
-   public void setIsUnlimitedResourcesSet(Boolean isUnlimitedResourcesSet){
-       this.isUnlimitedResourcesSet = isUnlimitedResourcesSet;
-   }
+    /**
+     * Whether limit on number of Resources has been set
+     * 
+     * @valid none
+     */
+    @XmlElement(name = "unlimited_resources")
+    public Boolean getIsUnlimitedResourcesSet() {
+        return isUnlimitedResourcesSet;
+    }
+
+    public void setIsUnlimitedResourcesSet(Boolean isUnlimitedResourcesSet) {
+        this.isUnlimitedResourcesSet = isUnlimitedResourcesSet;
+    }
 
 }

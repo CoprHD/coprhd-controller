@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.networkcontroller.impl;
@@ -68,34 +68,36 @@ import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
  * and storage volume port numbers.
  */
 public class NetworkScheduler {
-	protected static final Logger _log = LoggerFactory.getLogger(NetworkScheduler.class);
+    protected static final Logger _log = LoggerFactory.getLogger(NetworkScheduler.class);
     @Autowired
     private DataSourceFactory dataSourceFactory;
-	@Autowired
+    @Autowired
     private CustomConfigHandler customConfigHandler;
-	
-	private DbClient _dbClient;
-	private static final String LSAN = "LSAN_";
-	public void setDbClient(DbClient dbClient) {
-		_dbClient = dbClient;
-	}
-   
+
+    private DbClient _dbClient;
+    private static final String LSAN = "LSAN_";
+
+    public void setDbClient(DbClient dbClient) {
+        _dbClient = dbClient;
+    }
+
     /**
-     * Gets the network lite for a storage port when the port is in a 
+     * Gets the network lite for a storage port when the port is in a
      * network that is active and registered. Returns null otherwise.
+     * 
      * @param port the storage port
-     * @return the network lite for a storage port when the port is in a 
-     * network that is active and registered. Returns null otherwise.
+     * @return the network lite for a storage port when the port is in a
+     *         network that is active and registered. Returns null otherwise.
      */
     public NetworkLite getStoragePortNetwork(StoragePort port) {
-        if (NullColumnValueGetter.isNullURI(port.getNetwork() )) {
-            _log.info("Port {} is not in a network",port.getPortNetworkId());
+        if (NullColumnValueGetter.isNullURI(port.getNetwork())) {
+            _log.info("Port {} is not in a network", port.getPortNetworkId());
         }
         NetworkLite portNetworkLite = NetworkUtil.getNetworkLite(port.getNetwork(), _dbClient);
         if (portNetworkLite == null || portNetworkLite.getInactive()) {
-            _log.info("Port {} network cannot be found or is decativated",port.getPortNetworkId());
+            _log.info("Port {} network cannot be found or is decativated", port.getPortNetworkId());
         } else if (!portNetworkLite.registered()) {
-            _log.info("Port {} network {} is deregistered",port.getPortNetworkId(), 
+            _log.info("Port {} network {} is deregistered", port.getPortNetworkId(),
                     portNetworkLite.getNativeGuid());
         } else {
             return portNetworkLite;
@@ -103,21 +105,22 @@ public class NetworkScheduler {
         return null;
     }
 
-	/**
-	 * Assign a name to a zone using the current zone name configuration.
-	 * The name is stored in the fabricInfo.
-	 * The system-default name is composed of the following fields separated by underscores:
-	 * 1. The prefix "SDS"
-	 * 2. Hostname (maximum 32 characters)
-	 * 3. The last twelve characters of the WWPN of the Initiator (without colons, upper case)
-	 * 4. The last four digits of the Storage Array serial number.
-	 * 5. The Storage Array Port Name (maximum 9 characters) (nothing but alpha-numeric characters).
-	 * @param fabricInfo -- Contextual object for the operation. Contains the endpoints.
-	 * @param hostName -- The host name for the given initiator.
-	 * @param port -- The StoragePort used to find the StorageArray and get the PortName
-	 * @param lsanZone -- a flag that indicates if the zone to be created is an LSAN zone
-	 */
-    private void nameZone(NetworkFCZoneInfo fabricInfo, String systemType, String hostName, 
+    /**
+     * Assign a name to a zone using the current zone name configuration.
+     * The name is stored in the fabricInfo.
+     * The system-default name is composed of the following fields separated by underscores:
+     * 1. The prefix "SDS"
+     * 2. Hostname (maximum 32 characters)
+     * 3. The last twelve characters of the WWPN of the Initiator (without colons, upper case)
+     * 4. The last four digits of the Storage Array serial number.
+     * 5. The Storage Array Port Name (maximum 9 characters) (nothing but alpha-numeric characters).
+     * 
+     * @param fabricInfo -- Contextual object for the operation. Contains the endpoints.
+     * @param hostName -- The host name for the given initiator.
+     * @param port -- The StoragePort used to find the StorageArray and get the PortName
+     * @param lsanZone -- a flag that indicates if the zone to be created is an LSAN zone
+     */
+    private void nameZone(NetworkFCZoneInfo fabricInfo, String systemType, String hostName,
             String initiatorport, StoragePort port, boolean lsanZone) {
         // use 1st two endpoints in name
         if (fabricInfo.getEndPoints().size() < 2) {
@@ -130,36 +133,35 @@ public class NetworkScheduler {
             throw NetworkDeviceControllerException.exceptions.portStorageDeviceNotFound(
                     port.getStorageDevice().toString(), port.getLabel());
         }
-        
+
         Initiator initiator = NetworkUtil.findInitiatorInDB(initiatorport, _dbClient);
-        DataSource dataSource = dataSourceFactory.createZoneNameDataSource(hostName, 
+        DataSource dataSource = dataSourceFactory.createZoneNameDataSource(hostName,
                 initiator, port, fabricInfo.getFabricId(), array);
         if (array.getSystemType().equals(DiscoveredDataObject.Type.vplex.name())) {
-            dataSource.addProperty(CustomConfigConstants.ARRAY_PORT_NAME, 
+            dataSource.addProperty(CustomConfigConstants.ARRAY_PORT_NAME,
                     getVPlexPortName(port));
-            dataSource.addProperty(CustomConfigConstants.ARRAY_SERIAL_NUMBER, 
-                getVPlexClusterSerialNumber(port));
+            dataSource.addProperty(CustomConfigConstants.ARRAY_SERIAL_NUMBER,
+                    getVPlexClusterSerialNumber(port));
         }
-        String zoneName =  customConfigHandler.getComputedCustomConfigValue(
+        String zoneName = customConfigHandler.getComputedCustomConfigValue(
                 CustomConfigConstants.ZONE_MASK_NAME, systemType, dataSource);
         if (lsanZone && DiscoveredDataObject.Type.brocade.name().equals(systemType)) {
             zoneName = LSAN + zoneName;
         }
         fabricInfo.setZoneName(zoneName);
     }
-    
-    
-    
+
     /**
      * Add the director digits to make the vplex port name unique within a vplex system
+     * 
      * @param port StoragePort
      * @param system StorageSystem
      * @return nine character maximum string generated from director and port fields
      */
     private String getVPlexPortName(StoragePort port) {
         String directorDigits = port.getPortGroup().substring(port.getPortGroup().indexOf("-") + 1,
-                port.getPortGroup().lastIndexOf("-") );
-        return  directorDigits + port.getPortName();
+                port.getPortGroup().lastIndexOf("-"));
+        return directorDigits + port.getPortName();
     }
 
     /**
@@ -177,24 +179,24 @@ public class NetworkScheduler {
         String portClusterId = ConnectivityUtil.getVplexClusterOfPort(port);
         return VPlexUtil.getVPlexClusterSerialNumber(portClusterId, vplexSystem);
     }
-    
-	/**
-	 * Select the network device and VSAN or Brocade Fabric for the host/volume zoning.
-	 * 
-	 * The selection is based on the end points (initiator and storage port) and
-	 * the availability of a network device that has ports connections to both
-	 * end points. If a fabric can't be identified with both endpoints, we fall back to
-	 * looking for a fabric with at least the storagePort discovered.
-	 * 
-	 * @param varrayUri Virtual Array URI
-	 * @param protocol String (FC for this to do anything)
-	 * @param initiatorPort The WWN of the initiator
-	 * @param storagePort The StoragePort object
-	 * @param hostName Used for generating the zone name.
-	 * @param existingZones a list of existing zones for the initiator
-	 * @return NetworkFabricInfo configured for adding zones
-	 */
-	private NetworkFCZoneInfo placeZones(URI varrayUri, String protocol,  String initiatorPort,
+
+    /**
+     * Select the network device and VSAN or Brocade Fabric for the host/volume zoning.
+     * 
+     * The selection is based on the end points (initiator and storage port) and
+     * the availability of a network device that has ports connections to both
+     * end points. If a fabric can't be identified with both endpoints, we fall back to
+     * looking for a fabric with at least the storagePort discovered.
+     * 
+     * @param varrayUri Virtual Array URI
+     * @param protocol String (FC for this to do anything)
+     * @param initiatorPort The WWN of the initiator
+     * @param storagePort The StoragePort object
+     * @param hostName Used for generating the zone name.
+     * @param existingZones a list of existing zones for the initiator
+     * @return NetworkFabricInfo configured for adding zones
+     */
+    private NetworkFCZoneInfo placeZones(URI varrayUri, String protocol, String initiatorPort,
             StoragePort storagePort, String hostName, List<Zone> existingZones) throws DeviceControllerException {
 		initiatorPort = formatWWN(initiatorPort);
 		String storagePortWwn = formatWWN(storagePort.getPortNetworkId());
@@ -217,8 +219,8 @@ public class NetworkScheduler {
         // If the zone already exists, just return its reference, we do this so that we can create zone refs for added volumes
 		NetworkFCZoneInfo zoneInfo = getZoneInfoForExistingZone(iniNet, initiatorPort, storagePort.getPortNetworkId(), existingZones);
         if (zoneInfo != null) {
-            _log.info("Already existing zone {} for initiator {} and port {} will be used.", 
-                    new Object[] {zoneInfo.getZoneName(), initiatorPort, storagePortWwn});
+            _log.info("Already existing zone {} for initiator {} and port {} will be used.",
+                    new Object[] { zoneInfo.getZoneName(), initiatorPort, storagePortWwn });
             return zoneInfo;
         }
 
@@ -241,35 +243,35 @@ public class NetworkScheduler {
 		
 		// 3. identify an alternate network device, if any
         _log.debug("Network system {} was selected to be the primary network system. " +
-        		"Trying to select an alternate network system.", networkSystem.getNativeGuid());
-		NetworkSystem altNetworkSystem = networkSystem;
-		for (NetworkSystem system : networkSystems) {
-			if (altNetworkSystem != system) {
-			    altNetworkSystem = system;
+                "Trying to select an alternate network system.", networkSystem.getNativeGuid());
+        NetworkSystem altNetworkSystem = networkSystem;
+        for (NetworkSystem system : networkSystems) {
+            if (altNetworkSystem != system) {
+                altNetworkSystem = system;
                 _log.debug("Network system {} was selected to be the alternate network system.", altNetworkSystem.getNativeGuid());
-				break;
-			}
-		}
-		
-		// 4. create the response 
-		NetworkFCZoneInfo networkFabricInfo = null;
-		if (networkSystem != null) {
-			networkFabricInfo = new NetworkFCZoneInfo(networkSystem.getId(), 
-			        iniNet.getNativeId(), NetworkUtil.getNetworkWwn(iniNet));
-			networkFabricInfo.getEndPoints().addAll(endPoints);
-			networkFabricInfo.setAltNetworkDeviceId(URI.create(altNetworkSystem.getId().toString()));
-			nameZone(networkFabricInfo, networkSystem.getSystemType(), hostName, initiatorPort, storagePort, !portNet.equals(iniNet));
-		} else {
-			// This should not happen unless the transport zones were manually entered
-			throw DeviceControllerException.exceptions.cannotFindSwitchConnectionToInitiator();			
-		}
-		return networkFabricInfo;
-	}
+                break;
+            }
+        }
 
+        // 4. create the response
+        NetworkFCZoneInfo networkFabricInfo = null;
+        if (networkSystem != null) {
+            networkFabricInfo = new NetworkFCZoneInfo(networkSystem.getId(),
+                    iniNet.getNativeId(), NetworkUtil.getNetworkWwn(iniNet));
+            networkFabricInfo.getEndPoints().addAll(endPoints);
+            networkFabricInfo.setAltNetworkDeviceId(URI.create(altNetworkSystem.getId().toString()));
+            nameZone(networkFabricInfo, networkSystem.getSystemType(), hostName, initiatorPort, storagePort, !portNet.equals(iniNet));
+        } else {
+            // This should not happen unless the transport zones were manually entered
+            throw DeviceControllerException.exceptions.cannotFindSwitchConnectionToInitiator();
+        }
+        return networkFabricInfo;
+    }
 
     /**
      * Looks at the varray to see if zoning is disabled, and looks to make
      * sure that there is at least one active NetworkSystem registered.
+     * 
      * @param dbClient DbClient
      * @param varrayUri the URI of the virtual array
      * @return true if zoning required, false if not
@@ -284,15 +286,18 @@ public class NetworkScheduler {
         }
         return false;
     }
+
     /**
      * Search the list of existing zones for the initiator-port pair to decide which to use.
-     * Preference is given to zones according to this priority:<ol>
+     * Preference is given to zones according to this priority:
+     * <ol>
      * <li>The zone is in ViPR DB and was created by ViPR</li>
      * <li>The zone is in ViPR DB but was not created by ViPR</li>
      * <li>The zone follows the single initiator-target pair per zone</li>
      * <li>The last zone in the list</li>
      * </ol>
      * If no zone can be found for the initiator-port pair, null is returned.
+     * 
      * @param initiatorWwn the initiator WWN
      * @param portWwn the target WWN
      * @param existingZones a list of zones found on the network system for the initiator
@@ -304,19 +309,19 @@ public class NetworkScheduler {
         if (existingZones == null || existingZones.isEmpty()) return null;
         
         // initialize variables
-        boolean existingZone = true; 
-        Zone foundZone = null; 
+        boolean existingZone = true;
+        Zone foundZone = null;
 
         // Find the FCZoneReference in ViPR for the port-initiator key and the network
         String key = FCZoneReference.makeEndpointsKey(initiatorWwn, portWwn);
         List<FCZoneReference> fcZoneRefs = getFCZoneReferencesForKey(key);
         if (!fcZoneRefs.isEmpty()) {
-            Zone matchedZone = null; 
+            Zone matchedZone = null;
             _log.info("Found {} FCZoneReference for key {}", fcZoneRefs.size(), key);
             // try to re-use zones known to ViPR as a first preference
             for (FCZoneReference fcZoneRef : fcZoneRefs) {
                 // make sure the FCZoneReference matches the network and its network system a
-                if (network.getNetworkSystems().contains( fcZoneRef.getNetworkSystemUri().toString()) &&
+                if (network.getNetworkSystems().contains(fcZoneRef.getNetworkSystemUri().toString()) &&
                         network.getNativeId().equals(fcZoneRef.getFabricId())) {
                     _log.debug("Found an FCZoneReference for zone {}", fcZoneRef.getZoneName());
                     // do still have the zone on the network system
@@ -349,31 +354,34 @@ public class NetworkScheduler {
                         }
                     }
                 }
-            }           
+            }
         }
-        if (foundZone != null) foundZone.setExistingZone(existingZone);
+        if (foundZone != null) {
+            foundZone.setExistingZone(existingZone);
+        }
         return foundZone;
     }
-    
+
     /**
      * Find the FCZoneReferences for a given zone reference key.
+     * 
      * @param key - Endpoint key consisting of concatenated WWNs
      * @return List of FCZoneReference
      */
-    public List<FCZoneReference>  getFCZoneReferencesForKey(String key) {
+    public List<FCZoneReference> getFCZoneReferencesForKey(String key) {
         List<FCZoneReference> list = new ArrayList<FCZoneReference>();
         URIQueryResultList uris = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
                 getFCZoneReferenceKeyConstraint(key), uris);
-        list.addAll(_dbClient.queryObject(FCZoneReference.class, 
+        list.addAll(_dbClient.queryObject(FCZoneReference.class,
                 DataObjectUtils.iteratorToList(uris), true));
         return list;
     }
 
-
     /**
      * Looks at the varray to see if zoning is disabled, and looks to make
      * sure that there is at least one active NetworkSystem registered.
+     * 
      * @param dbClient DbClient
      * @param nh Neighborhood
      * @return true if zoning required, false if not
@@ -387,156 +395,169 @@ public class NetworkScheduler {
         }
         return NetworkUtil.areNetworkSystemDiscovered(dbClient);
     }
-	
-	/**
-	 * Returns true if zoning is required for a volume.
-	 * @param volURI
-	 * @return
-	 * @throws DeviceControllerException
-	 * @throws IOException
-	 */
-	private boolean isZoningRequired(URI volURI) throws DeviceControllerException {
-		// Check that zoning is enabled
-		URI nhURI = getNeighborhoodURIForVolume(volURI);
-		VirtualArray nh = _dbClient.queryObject(VirtualArray.class, nhURI);
-		Volume volume = _dbClient.queryObject(Volume.class, volURI);
-		if ( nh == null ) { 
-			throw DeviceControllerException.exceptions.virtualArrayNotFoundForVolume(volume.getLabel());
-		}
-		return isZoningRequired(_dbClient, nh);
-	}
-	
-	/**
-	 * Finds all the network systems that have access to the initiators and '
-	 * storage port networks. When the initiators and storage port are in 
-	 * different networks that are routed to each other, the assumption is that
-	 * there should exist and network system that can be used to managed both 
-	 * networks.
-	 * @param iniNetwork the initiator network
-	 * @param portNetwork the storage port network 
-	 * @return the network systems that can be used to managed the port and initiator
-	 *         networks.
-	 */
-	List<NetworkSystem> getZoningNetworkSystems (NetworkLite iniNetwork, 
-	        NetworkLite portNetwork) {
-	    List<NetworkSystem> orderedNetworkSystems = new ArrayList<NetworkSystem>();
-	    List<NetworkSystem> idleNetworkSystems = new ArrayList<NetworkSystem>();
-	    List<NetworkSystem> deRegisteredNetworkSystems = new ArrayList<NetworkSystem>();
-	    List<URI> iniNetSys =  (iniNetwork == null ) ? 
-	        new ArrayList<URI>() : StringSetUtil.stringSetToUriList(new StringSet(iniNetwork.getNetworkSystems()));
-        List<URI> portNetSys =  (portNetwork == null ) ? 
+
+    /**
+     * Returns true if zoning is required for a volume.
+     * 
+     * @param volURI
+     * @return
+     * @throws DeviceControllerException
+     * @throws IOException
+     */
+    private boolean isZoningRequired(URI volURI) throws DeviceControllerException {
+        // Check that zoning is enabled
+        URI nhURI = getNeighborhoodURIForVolume(volURI);
+        VirtualArray nh = _dbClient.queryObject(VirtualArray.class, nhURI);
+        Volume volume = _dbClient.queryObject(Volume.class, volURI);
+        if (nh == null) {
+            throw DeviceControllerException.exceptions.virtualArrayNotFoundForVolume(volume.getLabel());
+        }
+        return isZoningRequired(_dbClient, nh);
+    }
+
+    /**
+     * Finds all the network systems that have access to the initiators and '
+     * storage port networks. When the initiators and storage port are in
+     * different networks that are routed to each other, the assumption is that
+     * there should exist and network system that can be used to managed both
+     * networks.
+     * 
+     * @param iniNetwork the initiator network
+     * @param portNetwork the storage port network
+     * @return the network systems that can be used to managed the port and initiator
+     *         networks.
+     */
+    List<NetworkSystem> getZoningNetworkSystems(NetworkLite iniNetwork,
+            NetworkLite portNetwork) {
+        List<NetworkSystem> orderedNetworkSystems = new ArrayList<NetworkSystem>();
+        List<NetworkSystem> idleNetworkSystems = new ArrayList<NetworkSystem>();
+        List<NetworkSystem> deRegisteredNetworkSystems = new ArrayList<NetworkSystem>();
+        List<URI> iniNetSys = (iniNetwork == null) ?
+                new ArrayList<URI>() : StringSetUtil.stringSetToUriList(new StringSet(iniNetwork.getNetworkSystems()));
+        List<URI> portNetSys = (portNetwork == null) ?
                 new ArrayList<URI>() : StringSetUtil.stringSetToUriList(new StringSet(portNetwork.getNetworkSystems()));
-        
-        // find the common network systems 
+
+        // find the common network systems
         Collection<URI> allSys = new HashSet<URI>();
-        if (iniNetSys != null) allSys.addAll(iniNetSys);
-        if (portNetSys != null) allSys.addAll(portNetSys);
+        if (iniNetSys != null) {
+            allSys.addAll(iniNetSys);
+        }
+        if (portNetSys != null) {
+            allSys.addAll(portNetSys);
+        }
         if (!allSys.isEmpty()) {
-        	orderedNetworkSystems = _dbClient.queryObject(NetworkSystem.class, allSys, true);
-        	if(!orderedNetworkSystems.isEmpty()) {
-        		for(NetworkSystem networkSystem : orderedNetworkSystems) {
-        			if(networkSystem.getRegistrationStatus().equals(RegistrationStatus.UNREGISTERED.toString())) {
-        				_log.info("Network System {} is not used as it is not registered.", networkSystem.getLabel());
-        				deRegisteredNetworkSystems.add(networkSystem);
-        			} else if(networkSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.toString()) || 
-        					networkSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.CREATED.toString())) {
-        				_log.info("Network System {} is moved to the end of Network System list as its discovery is not successful.", networkSystem.getLabel());
-        				idleNetworkSystems.add(networkSystem);
-        			}
-        		}
-        		orderedNetworkSystems.removeAll(deRegisteredNetworkSystems);
-        		orderedNetworkSystems.removeAll(idleNetworkSystems);
-        		Collections.shuffle(orderedNetworkSystems);
-        		Collections.shuffle(idleNetworkSystems);
-        		orderedNetworkSystems.addAll(idleNetworkSystems);
-        	} else {
-        		_log.warn("Could not find any active network systems that can be used to zone.");
-        	}
+            orderedNetworkSystems = _dbClient.queryObject(NetworkSystem.class, allSys, true);
+            if (!orderedNetworkSystems.isEmpty()) {
+                for (NetworkSystem networkSystem : orderedNetworkSystems) {
+                    if (networkSystem.getRegistrationStatus().equals(RegistrationStatus.UNREGISTERED.toString())) {
+                        _log.info("Network System {} is not used as it is not registered.", networkSystem.getLabel());
+                        deRegisteredNetworkSystems.add(networkSystem);
+                    } else if (networkSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.toString()) ||
+                            networkSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.CREATED.toString())) {
+                        _log.info("Network System {} is moved to the end of Network System list as its discovery is not successful.",
+                                networkSystem.getLabel());
+                        idleNetworkSystems.add(networkSystem);
+                    }
+                }
+                orderedNetworkSystems.removeAll(deRegisteredNetworkSystems);
+                orderedNetworkSystems.removeAll(idleNetworkSystems);
+                Collections.shuffle(orderedNetworkSystems);
+                Collections.shuffle(idleNetworkSystems);
+                orderedNetworkSystems.addAll(idleNetworkSystems);
+            } else {
+                _log.warn("Could not find any active network systems that can be used to zone.");
+            }
         } else {
-        	_log.warn("Could not find any network systems that can be used to zone.");
+            _log.warn("Could not find any network systems that can be used to zone.");
 
         }
-	    return orderedNetworkSystems;
-	}
-	
-	/**
-	 * Returns all the FCEndpoint instances discovered on a network system 
-	 * filtered by an initiator and storage port 
-	 * @param ns the network system
-	 * @param initiator the initiator
-	 * @param port the storage port
-	 * @return
-	 */
-	private List<FCEndpoint> getFCEndpointsForNetworkSystem(NetworkSystem ns, 
-	        String initiator, String port) {
-	    List<FCEndpoint> eps = new ArrayList<FCEndpoint>();
+        return orderedNetworkSystems;
+    }
+
+    /**
+     * Returns all the FCEndpoint instances discovered on a network system
+     * filtered by an initiator and storage port
+     * 
+     * @param ns the network system
+     * @param initiator the initiator
+     * @param port the storage port
+     * @return
+     */
+    private List<FCEndpoint> getFCEndpointsForNetworkSystem(NetworkSystem ns,
+            String initiator, String port) {
+        List<FCEndpoint> eps = new ArrayList<FCEndpoint>();
         URIQueryResultList result = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory
-                .getNetworkSystemFCPortConnectionConstraint(ns.getId()), result);
+                        .getNetworkSystemFCPortConnectionConstraint(ns.getId()), result);
         // loop thru the connections and get all those we need
         for (URI uriFcPortConnection : result) {
             FCEndpoint connection = _dbClient.queryObject(
                     FCEndpoint.class, uriFcPortConnection);
-            if (connection == null)
+            if (connection == null) {
                 continue;
+            }
             if (port.equals(connection.getRemotePortName()) ||
                     initiator.equals(connection.getRemotePortName())) {
                 eps.add(connection);
             }
         }
         return eps;
-	}
-	/**
-	 * Check that the zoning map has been initialized and has entries for all initiators
-	 * in the Export Mask.
-	 * @param varrayURI VirtualArray URI
-	 * @param mask ExportMask
-	 */
-	private void checkZoningMap(ExportGroup exportGroup, ExportMask mask, Set<Initiator> initiators ) {
-	    // Normally we don't want to generate a full zone map except in the rare case
-	    // where there is no zone map set and the Export Group zoneAllInitiators flag
-	    // is set to true. Currently only needed by RecoverPoint.
-	    if (mask.getZoningMap().isEmpty() && exportGroup.getZoneAllInitiators() == true) {
-	        generateFullZoningMap(_dbClient, exportGroup.getVirtualArray(), mask, initiators);
-        } 
-	    else {
-	        checkZoningMap(exportGroup.getVirtualArray(), mask, initiators);
-        }        
-	}
-	
-	/**
-	 * Check that the zoning map has been initialized and has entries for a specified Collection of Initiators.
-	 * Otherwise info error message.
-	 * @param varrayURI VirtualArray URI
-     * @param mask ExportMask
-	 * @param initiators Collection<Initiator>
-	 */
-	private void checkZoningMap(URI varrayURI, ExportMask mask, Collection<Initiator> initiators) {
-	    StringSetMap zoningMap = mask.getZoningMap();
-	    for (Initiator initiator : initiators) {
-	        if (zoningMap == null || !zoningMap.containsKey(initiator.getId().toString())) {
-	            _log.info(String.format("No zoning map entry for initiator %s (%s), will not be zoned", 
-	                    initiator.getInitiatorPort(), initiator.getId()));
-	        }
-	    }
-	}
-    
+    }
+
     /**
-     * Given a list of storage ports, the find the ones that can be targets for 
+     * Check that the zoning map has been initialized and has entries for all initiators
+     * in the Export Mask.
+     * 
+     * @param varrayURI VirtualArray URI
+     * @param mask ExportMask
+     */
+    private void checkZoningMap(ExportGroup exportGroup, ExportMask mask, Set<Initiator> initiators) {
+        // Normally we don't want to generate a full zone map except in the rare case
+        // where there is no zone map set and the Export Group zoneAllInitiators flag
+        // is set to true. Currently only needed by RecoverPoint.
+        if (mask.getZoningMap().isEmpty() && exportGroup.getZoneAllInitiators() == true) {
+            generateFullZoningMap(_dbClient, exportGroup.getVirtualArray(), mask, initiators);
+        }
+        else {
+            checkZoningMap(exportGroup.getVirtualArray(), mask, initiators);
+        }
+    }
+
+    /**
+     * Check that the zoning map has been initialized and has entries for a specified Collection of Initiators.
+     * Otherwise info error message.
+     * 
+     * @param varrayURI VirtualArray URI
+     * @param mask ExportMask
+     * @param initiators Collection<Initiator>
+     */
+    private void checkZoningMap(URI varrayURI, ExportMask mask, Collection<Initiator> initiators) {
+        StringSetMap zoningMap = mask.getZoningMap();
+        for (Initiator initiator : initiators) {
+            if (zoningMap == null || !zoningMap.containsKey(initiator.getId().toString())) {
+                _log.info(String.format("No zoning map entry for initiator %s (%s), will not be zoned",
+                        initiator.getInitiatorPort(), initiator.getId()));
+            }
+        }
+    }
+
+    /**
+     * Given a list of storage ports, the find the ones that can be targets for
      * the initiator in a given virtual array. The target port must be tagged to
      * the virtual array and have connectivity to the initiator either via that
-     * same network as the initiator or via a network that is routed to the 
+     * same network as the initiator or via a network that is routed to the
      * initiator's network. When a mix of local and routed targets are found,
      * only the local ones are returned.
-     *  
+     * 
      * @param varrayURI - VirtualArray URI
      * @param initiator Initiator
      * @param port StoragePort
      * @return a list of storage ports that can be the target of the initiator.
      */
-    public static List<URI> findInitiatorTargetsInVarray(DbClient dbClient, URI varrayURI, Initiator initiator, Set<StoragePort> storagePorts) {
-        NetworkLite iniNetwork  = BlockStorageScheduler.lookupNetworkLite(dbClient, Transport.FC, initiator.getInitiatorPort());
+    public static List<URI> findInitiatorTargetsInVarray(DbClient dbClient, URI varrayURI, Initiator initiator,
+            Set<StoragePort> storagePorts) {
+        NetworkLite iniNetwork = BlockStorageScheduler.lookupNetworkLite(dbClient, Transport.FC, initiator.getInitiatorPort());
         List<URI> targetPorts = new ArrayList<URI>();
         if (iniNetwork != null) {
             for (StoragePort storagePort : storagePorts) {
@@ -575,9 +596,13 @@ public class NetworkScheduler {
 
         for (URI maskURI : exportMaskURIs) {
             ExportMask exportMask = ExportMaskUtils.getExportMask(_dbClient, maskURI);
-            if (exportMask == null) continue;
+            if (exportMask == null) {
+                continue;
+            }
             Collection<URI> filteredVolumesURIs = filterVolumes(volumeURIs, exportMask);
-            if (filteredVolumesURIs.isEmpty()) continue;
+            if (filteredVolumesURIs.isEmpty()) {
+                continue;
+            }
             checkZoningMap(exportGroup, exportMask,
                     ExportMaskUtils.getInitiatorsForExportMask(_dbClient,
                             exportMask, Transport.FC));
@@ -585,7 +610,7 @@ public class NetworkScheduler {
             _log.info(String.format("Generating zoning targets for ExportMask %s (%s)",
                     exportMask.getMaskName(), exportMask.getId()));
             zoneInfos.addAll(
-                    generateRequestedZonesForExportMask(exportGroup.getVirtualArray(), 
+                    generateRequestedZonesForExportMask(exportGroup.getVirtualArray(),
                             exportMask, filteredVolumesURIs, existingZonesMap));
             }
             // If we're doing a VPlex export, it might use an alternate Varray (for HA export),
@@ -705,7 +730,8 @@ public class NetworkScheduler {
 	
     /**
      * Search the list of existing zones for the initiator-port pair to decide which to use.
-     * Preference is given to zones according to this priority:<ol>
+     * Preference is given to zones according to this priority:
+     * <ol>
      * <li>The zone is in ViPR DB and was created by ViPR</li>
      * <li>The zone is in ViPR DB but was not created by ViPR</li>
      * <li>The zone follows the single initiator-target pair per zone</li>
@@ -724,44 +750,46 @@ public class NetworkScheduler {
         Zone zone = selectExistingZoneForInitiatorPort(network, initiatorWwn, portWwn, existingZones);
         if (zone != null) {
             zoneInfo = new NetworkFCZoneInfo(
-                    URI.create(network.getNetworkSystems().iterator().next()), 
+                    URI.create(network.getNetworkSystems().iterator().next()),
                     network.getNativeId(), NetworkUtil.getNetworkWwn(network));
-            zoneInfo.setEndPoints(Arrays.asList(new String[] {initiatorWwn, portWwn}));
+            zoneInfo.setEndPoints(Arrays.asList(new String[] { initiatorWwn, portWwn }));
             zoneInfo.setZoneName(zone.getName());
             zoneInfo.setExistingZone(zone.getExistingZone());
         }
         return zoneInfo;
     }
-	
-	/**
-	 * Performs a simple search to find a zone in a collection by name and port WWN
-	 * @param name the name
-	 * @param portWwn the port WWN
-	 * @param zones the collection of zone
-	 * @return the matching if one is found, null otherwise.
-	 */
-	private Zone findZoneByNameAndPort (String name, String portWwn, List<Zone> zones) {
-	    if (zones != null) {
-	        for (Zone zone : zones) {
-	            if (zone.getName().equals(name)) {
-	                for (ZoneMember member : zone.getMembers()) {
-	                    if (member.getAddress() != null && member.getAddress().equals(portWwn)) {
-	                        _log.debug("Found a matching zone for name {} and port WWN {}", zone.getName(), portWwn);
-	                        return zone;
-	                    }
-	                }
-	            }
-	            
-	        }
-	    }  
-        _log.debug("Could not find a matching zone for name {} and port WWN {}", name, portWwn);
-	    return null;
-	}
 
     /**
-	 * Returns a list of zoning targets for multiple export masks each adding their own 
-	 * list of initiators.
-	 * @param exportGroup ExportGroup
+     * Performs a simple search to find a zone in a collection by name and port WWN
+     * 
+     * @param name the name
+     * @param portWwn the port WWN
+     * @param zones the collection of zone
+     * @return the matching if one is found, null otherwise.
+     */
+    private Zone findZoneByNameAndPort(String name, String portWwn, List<Zone> zones) {
+        if (zones != null) {
+            for (Zone zone : zones) {
+                if (zone.getName().equals(name)) {
+                    for (ZoneMember member : zone.getMembers()) {
+                        if (member.getAddress() != null && member.getAddress().equals(portWwn)) {
+                            _log.debug("Found a matching zone for name {} and port WWN {}", zone.getName(), portWwn);
+                            return zone;
+                        }
+                    }
+                }
+
+            }
+        }
+        _log.debug("Could not find a matching zone for name {} and port WWN {}", name, portWwn);
+        return null;
+    }
+
+    /**
+     * Returns a list of zoning targets for multiple export masks each adding their own
+     * list of initiators.
+     * 
+     * @param exportGroup ExportGroup
      * @param exportMasksToInitiators Map of ExportMask URI to List of Initiator URIs
      * @param zonesMap a list of existing zones mapped by the initiator port WWN
      * @param dbClient
@@ -875,284 +903,118 @@ public class NetworkScheduler {
 	}
 	
 	public List<NetworkFCZoneInfo> getRemoveZoningTargetsForExportMasks(
-            ExportGroup exportGroup, List<URI> exportMaskURIs, Collection<URI> volumeURIs) {
-	    List<NetworkFCZoneInfo> zoningTargets = new ArrayList<NetworkFCZoneInfo>();
-	    URI nbrUri = exportGroup.getVirtualArray();
-	    
-        for (URI maskURI : exportMaskURIs) {
-            ExportMask exportMask = ExportMaskUtils.getExportMask(_dbClient, maskURI);
-            if (exportMask == null) continue;
-            Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(
-                    _dbClient, exportMask, Transport.FC);
-            checkZoningMap(exportGroup, exportMask, initiators);
-            _log.info(String.format("Generating remove zoning targets for ExportMask %s (%s)",
-                    exportMask.getMaskName(), exportMask.getId()));
-            
-            for (Initiator initiator: initiators) {
-                StringSet portSet = null;
-                if (exportMask.getZoningMap() != null) {
-                    portSet = exportMask.getZoningMap().get(initiator.getId().toString());
+                NetworkFCZoneInfo fabricInfo = createZoneInfoForRef(
+                        ourReference, volUri, initiatorPort,
+                        port.getPortNetworkId(), null);
+                ourReferences.add(fabricInfo);
+                volRefMap.remove(make2UriKey(volUri, exportGroupUri));
+            }
+
+            // See if all the remaining entries have been marked for deletion.
+            boolean live = false;
+            for (FCZoneReference ref : volRefMap.values()) {
+                if (ref.getInactive() == false) {
+                    // Here is an apparent live reference; look up the volume and make
+                    // sure it's still active too.
+                    Volume vol = _dbClient.queryObject(Volume.class, ref.getVolumeUri());
+                    ExportGroup group = _dbClient.queryObject(ExportGroup.class, ref.getGroupUri());
+                    if (vol != null && vol.getInactive() == false && group != null && group.getInactive() == false) {
+                        live = true;
+                    } else {
+                        // mark the errant reference inactive
+                        _dbClient.markForDeletion(ref);
+                    }
                 }
-                if (portSet != null) {
-                    for (String portId : portSet) {
-                        // Calculate the zone information
-                        List<NetworkFCZoneInfo> zoneInfos = unexportVolumes(
-                                nbrUri,
-                                volumeURIs,
-                                exportGroup.getId(),
-                                URI.create(portId),
-                                formatWWN(initiator.getInitiatorPort()));
-                        if (zoneInfos != null) {
-                            zoningTargets.addAll(zoneInfos);
+            }
+
+            // If there are still live references, can't delete the zone.
+            // So leave _fabricInfo._isLastReference == false
+            // Otherwise mark it true so the zone will be taken out.
+            if (live == false) {
+                for (NetworkFCZoneInfo fabricInfo : ourReferences) {
+                    fabricInfo._isLastReference = true;
+
+                    // Pick an alternate device, just in case
+                    NetworkLite portNet = getStoragePortNetwork(port);
+                    NetworkLite iniNet = BlockStorageScheduler.lookupNetworkLite(_dbClient,
+                            StorageProtocol.block2Transport("FC"), initiatorPort);
+                    List<NetworkSystem> networkSystems = getZoningNetworkSystems(iniNet, portNet);
+                    for (NetworkSystem ns : networkSystems) {
+                        if (!ns.getId().equals(fabricInfo.getNetworkDeviceId())) {
+                            fabricInfo.setAltNetworkDeviceId(ns.getId());
+                            break;
                         }
                     }
                 }
             }
-          
+            return ourReferences;
         }
-	    return zoningTargets;
-	}
-	
-	public List<NetworkFCZoneInfo> getRemoveZoningTargetsForInitiators(
-            ExportGroup exportGroup, Map<URI, List<URI>> exportMasksToInitiators) 
-            throws DeviceControllerException {
-        List<NetworkFCZoneInfo> zones = new ArrayList<NetworkFCZoneInfo>();
-        for (URI maskURI : exportMasksToInitiators.keySet()) {
-            ExportMask mask = ExportMaskUtils.getExportMask(_dbClient, maskURI);
-            if (mask == null) continue;
-            List<Initiator> initiators = getInitiators(exportMasksToInitiators.get(maskURI));
-            _log.info(String.format(
-                    "Generating zoning remove targets for ExportMask: %s (%s) Initiators: %s",
-                    mask.getMaskName(), mask.getId(), exportMasksToInitiators.get(maskURI).toString()));
-            checkZoningMap(exportGroup.getVirtualArray(), mask, initiators);
-            zones.addAll(getRemoveZoningTargetsForInitiators(exportGroup, mask, initiators));
-        }
-        return zones;
     }
-	
 
-	private List<NetworkFCZoneInfo> getRemoveZoningTargetsForInitiators(
-	        ExportGroup exportGroup, ExportMask exportMask, List<Initiator> initiators) {
-	    List<NetworkFCZoneInfo> zoningTargets = new ArrayList<NetworkFCZoneInfo>();
-	    try {
-	        for (Initiator initiator : initiators) {
-	            StringSet storagePorts = null;
-                if (exportMask.getZoningMap() != null) {
-                    storagePorts = exportMask.getZoningMap().get(initiator.getId().toString());
-                }
-                if (storagePorts == null) continue;
-                
-	            if (StorageProtocol.block2Transport(initiator.getProtocol()) 
-	                    != Transport.FC) continue;
-	            if (exportMask.getVolumes() != null) {
-	                Set<URI> volumeUris = new HashSet<URI>();
-
-	                URI nbrUri = null;
-	                for (String volUri : exportMask.getVolumes().keySet()) {
-	                    URI volumeURI = URI.create(volUri);
-	                    volumeUris.add(volumeURI);
-	                    if (nbrUri == null) nbrUri = getNeighborhoodURIForVolume(volumeURI);
-	                }
-	                
-	                for (String portId : storagePorts) {
-	                    List<NetworkFCZoneInfo> zoneInfos = unexportVolumes(
-	                            nbrUri,
-	                            volumeUris,
-	                            exportGroup.getId(),
-	                            URI.create(portId),
-	                            formatWWN(initiator.getInitiatorPort()));
-	                    if (zoneInfos != null) {
-	                        zoningTargets.addAll(zoneInfos);
-	                    }
-	                }
-	            }
-	        }
-	    } catch (Exception e) {
-	        // TODO Revisit exceptions
-	        _log.error(String.format("Error finding zones to remove for host initiators: %s", 
-	                initiators.toString()));
-	    }
-        return zoningTargets;
-    }
-	
-	/**
-	 * Make a String key from two URIs.
-	 * @param uri1
-	 * @param uri2
-	 * @return
-	 */
-	private String make2UriKey(URI uri1, URI uri2) {
-		String part1 = "null";
-		String part2 = "null";
-		if (uri1 != null) part1 = uri1.toString();
-		if (uri2 != null) part2 = uri2.toString();
-		return part1 + "+" + part2;
-	}
-	
-	/**
-	 * Called from the unexportVolume call. and others. This method builds the NetworkFabricInfo to be passed to the
-	 * NetworkDeviceController for automatic unzoning.
-	 * @param volUris 	Collection of URIs for volumes whose references are to be deleted
-	 * @param exportGroupUri  Reference to the export group containing the volume, can be null to export from volume
-	 * @param storagePortUri the URI of the StoragePort
-	 * @param initiatorPort String WWPN with colons
-	 * @param protocol StorageProtocol
-	 * @return List<NetworkFCZoneInfo> detailing zones to be removed or at least unreferenced
-	 * @throws IOException
-	 */
-	@SuppressWarnings("deprecation")
-	public List<NetworkFCZoneInfo> unexportVolumes(URI nbrUri, Collection<URI> volUris, URI exportGroupUri,
-			URI storagePortUri, String initiatorPort) {
-	    List<NetworkFCZoneInfo> ourReferences = new ArrayList<NetworkFCZoneInfo>();
-	    VirtualArray nh = _dbClient.queryObject(VirtualArray.class, nbrUri);
-	    if (nh != null && nh.getAutoSanZoning() == false) {
-	        _log.info("Automatic SAN zoning is disabled in virtual array: " + nh.getLabel());
-	        return null;
-	    }
-
-	    initiatorPort = formatWWN(initiatorPort);
-	    // Get the StoragePort
-	    StoragePort port = null;
-	    try {
-	        port = _dbClient.queryObject(StoragePort.class, storagePortUri);
-	        if (port == null ) return null;
-	    } catch (DatabaseException ex) {
-	        return null;
-	    }
-
-	    // See if we can find our zone references 
-	    List<String> endPoints = new ArrayList<String>();
-	    endPoints.add(initiatorPort);
-	    endPoints.add(formatWWN(port.getPortNetworkId()));
-	    // Make the key for our endPoints
-	    String key = null;
-	    {
-	        NetworkFCZoneInfo fabricInfo = new NetworkFCZoneInfo();
-	        fabricInfo.setEndPoints(endPoints);
-	        key = fabricInfo.makeEndpointsKey();
-	    }
-
-	    // Create a map of the references keyed by volUri concatenated with export group URI.
-	    // This allows for multiple export groups to export the same volume, and the zone will not
-	    // be deleted until the volume's references are removed from all export groups.
-	    // Then we can tell if other volumes are using this.
-	    Map<String, FCZoneReference> volRefMap = makeExportToReferenceMap(key);
-
-	    // If there were no references at all, we don't do anything.
-	    if (volRefMap.isEmpty()) {
-	        return null;
-
-	    } else {
-	        // Loop through all the volumes we're removing, removing them from the set.
-	        for (URI volUri : volUris) {
-	            FCZoneReference ourReference = volRefMap.get(make2UriKey(volUri, exportGroupUri));
-	            if (ourReference == null) continue;
-	            // We need a fabricInfo for each, 
-	            // so as to remove the FCZoneReference that is keyed on volume/exportGroup.
-                NetworkFCZoneInfo fabricInfo = createZoneInfoForRef(
-                        ourReference, volUri, initiatorPort,
-                        port.getPortNetworkId(), null);
-	            ourReferences.add(fabricInfo);
-	            volRefMap.remove(make2UriKey(volUri, exportGroupUri));
-	        }
-
-	        // See if all the remaining entries have been marked for deletion.
-	        boolean live = false;
-	        for (FCZoneReference ref : volRefMap.values()) {
-	            if (ref.getInactive() == false) {
-	                // Here is an apparent live reference; look up the volume and make
-	                // sure it's still active too.
-	                Volume vol = _dbClient.queryObject(Volume.class, ref.getVolumeUri());
-	                ExportGroup group = _dbClient.queryObject(ExportGroup.class, ref.getGroupUri());
-	                if (vol != null && vol.getInactive()==false && group != null && group.getInactive()==false) {
-	                    live = true;
-	                } else {
-	                    // mark the errant reference inactive
-	                    _dbClient.markForDeletion(ref);
-	                }
-	            }
-	        }
-
-	        // If there are still live references, can't delete the zone.
-	        // So leave _fabricInfo._isLastReference == false
-	        // Otherwise mark it true so the zone will be taken out.
-	        if (live == false) {
-	            for (NetworkFCZoneInfo fabricInfo : ourReferences) {
-	                fabricInfo._isLastReference = true;
-
-	                // Pick an alternate device, just in case
-	                NetworkLite portNet = getStoragePortNetwork(port);
-	                NetworkLite iniNet = BlockStorageScheduler.lookupNetworkLite(_dbClient, 
-	                        StorageProtocol.block2Transport("FC"), initiatorPort);
-	                List<NetworkSystem> networkSystems = getZoningNetworkSystems(iniNet, portNet);
-	                    for (NetworkSystem ns : networkSystems) {
-	                    if (!ns.getId().equals(fabricInfo.getNetworkDeviceId())) {
-	                        fabricInfo.setAltNetworkDeviceId(ns.getId());
-	                            break;
-	                        }
-	                    }
-	            }
-	        }
-	        return ourReferences;
-	    }
-	}
-	
-	/**
-	 * Makes a map from a volume/export group key to the FCZoneReference.
-	 * @param key - Endpoint key consisting of concatenated WWNs
-	 * @return Map of volume/export group key to FCZoneReference
-	 */
-	public Map<String, FCZoneReference>  makeExportToReferenceMap(String key) {
-	    Map<String, FCZoneReference> volRefMap = new HashMap<String, FCZoneReference>();
+    /**
+     * Makes a map from a volume/export group key to the FCZoneReference.
+     * 
+     * @param key - Endpoint key consisting of concatenated WWNs
+     * @return Map of volume/export group key to FCZoneReference
+     */
+    public Map<String, FCZoneReference> makeExportToReferenceMap(String key) {
+        Map<String, FCZoneReference> volRefMap = new HashMap<String, FCZoneReference>();
         List<FCZoneReference> refs = getFCZoneReferencesForKey(key);
         for (FCZoneReference ref : refs) {
             String uri2key = make2UriKey(ref.getVolumeUri(), ref.getGroupUri());
             volRefMap.put(uri2key, ref);
         }
         return volRefMap;
-	}
-
-	/**
-	 * Normalize WWN. Inserts colons if needed an converts to upper case.
-	 * @param wwn
-	 * @return
-	 */
-	protected String formatWWN(String wwn) {
-		if (wwn.contains(":")) return wwn.toUpperCase();
-    	char[] chars = wwn.toUpperCase().toCharArray();
-    	StringBuilder buf = new StringBuilder();
-    	for (int i=0; i < chars.length; ) {
-    		buf.append(chars[i++]);
-    		if (i < chars.length && (i%2) == 0) buf.append(":");
-    	}
-    	return buf.toString().toUpperCase();
     }
-	
-	/**
-	 * Normalize endpoint collection.
-	 * @param endpoints
-	 * @return Collection<String>
-	 */
-	protected Collection<String> formatEndpoints(Collection<String> endpoints)	 {
-		List<String> eps = new ArrayList<String>();
-		for (String endpoint : endpoints) {
-			String ep = formatWWN(endpoint);
-			eps.add(ep);
-		}
-		return eps;
-	}
-	
-	/**
-	 * Get varray URI for a volume, be it a real volume, or a block snapshot
-	 * @param uri - URI of Volume or BlockSnapshot
-	 * @return
-	 */
-	private URI getNeighborhoodURIForVolume(URI uri) {
-		URI nhURI = null;
-		// Volume is the normal case
-		Volume volume = _dbClient.queryObject(Volume.class, uri);
+
+    /**
+     * Normalize WWN. Inserts colons if needed an converts to upper case.
+     * 
+     * @param wwn
+     * @return
+     */
+    protected String formatWWN(String wwn) {
+        if (wwn.contains(":")) {
+            return wwn.toUpperCase();
+        }
+        char[] chars = wwn.toUpperCase().toCharArray();
+        StringBuilder buf = new StringBuilder();
+        for (int i = 0; i < chars.length;) {
+            buf.append(chars[i++]);
+            if (i < chars.length && (i % 2) == 0) {
+                buf.append(":");
+            }
+        }
+        return buf.toString().toUpperCase();
+    }
+
+    /**
+     * Normalize endpoint collection.
+     * 
+     * @param endpoints
+     * @return Collection<String>
+     */
+    protected Collection<String> formatEndpoints(Collection<String> endpoints) {
+        List<String> eps = new ArrayList<String>();
+        for (String endpoint : endpoints) {
+            String ep = formatWWN(endpoint);
+            eps.add(ep);
+        }
+        return eps;
+    }
+
+    /**
+     * Get varray URI for a volume, be it a real volume, or a block snapshot
+     * 
+     * @param uri - URI of Volume or BlockSnapshot
+     * @return
+     */
+    private URI getNeighborhoodURIForVolume(URI uri) {
+        URI nhURI = null;
+        // Volume is the normal case
+        Volume volume = _dbClient.queryObject(Volume.class, uri);
         if (volume != null) {
-        	nhURI = volume.getVirtualArray();
+            nhURI = volume.getVirtualArray();
         }
         // Check if snapshot
         else {
@@ -1163,12 +1025,12 @@ public class NetworkScheduler {
         		nhURI = volume.getVirtualArray();
         	}
         }
-        }
         return nhURI;
-	}
-	  
+    }
+
     /**
      * Generates a zoning map that maps all initiators to all ports on the same Network.
+     * 
      * @param varrayURI - the ExportGroup varray
      * @param mask - the Export Mask
      * @param initiators - List of Initiators to be zoned
@@ -1179,9 +1041,9 @@ public class NetworkScheduler {
                 dbClient, mask, Transport.FC);
         for (Initiator initiator : initiators) {
             if (mask.getZoningMap() == null || mask.getZoningMap().get(initiator.getId().toString()) == null) {
-                _log.info(String.format("No zoning map entry for initiator %s (%s), will zone to all ports", 
+                _log.info(String.format("No zoning map entry for initiator %s (%s), will zone to all ports",
                         initiator.getInitiatorPort(), initiator.getId()));
-                List<URI> targetPorts = findInitiatorTargetsInVarray(dbClient, varrayURI, initiator,storagePorts);
+                List<URI> targetPorts = findInitiatorTargetsInVarray(dbClient, varrayURI, initiator, storagePorts);
                 if (!targetPorts.isEmpty()) {
                     changed = true;
                     mask.addZoningMapEntry(initiator.getId().toString(), StringSetUtil.uriListToStringSet(targetPorts));
@@ -1190,12 +1052,13 @@ public class NetworkScheduler {
         }
         if (changed) {
             // Update the mask to save the zoningMap entries.
-            dbClient.persistObject(mask); 
+            dbClient.persistObject(mask);
         }
     }
-    
+
     /**
      * Creates a NetworkFCZoneInfo from a {@link FCZoneReference}
+     * 
      * @param ourReference
      * @param volUri
      * @param initiator
@@ -1203,20 +1066,24 @@ public class NetworkScheduler {
      * @param network
      * @return
      */
-    private NetworkFCZoneInfo createZoneInfoForRef(FCZoneReference ourReference, URI volUri, 
+    private NetworkFCZoneInfo createZoneInfoForRef(FCZoneReference ourReference, URI volUri,
             String initiator, String port, NetworkLite network) {
-        if (ourReference == null) return null;
-        // We need a fabricInfo for each, 
+        if (ourReference == null) {
+            return null;
+        }
+        // We need a fabricInfo for each,
         // so as to remove the FCZoneReference that is keyed on volume/exportGroup.
         NetworkFCZoneInfo fabricInfo = new NetworkFCZoneInfo();
-        fabricInfo.setEndPoints(Arrays.asList(new String[] {initiator, port}));
+        fabricInfo.setEndPoints(Arrays.asList(new String[] { initiator, port }));
         fabricInfo.setFcZoneReferenceId(ourReference.getId());
         fabricInfo.setNetworkDeviceId(ourReference.getNetworkSystemUri());
         fabricInfo.setFabricId(ourReference.getFabricId());
         fabricInfo.setZoneName(ourReference.getZoneName());
         fabricInfo.setVolumeId(volUri);
         fabricInfo.setExistingZone(ourReference.getExistingZone());
-        if (network != null ) fabricInfo.setFabricWwn(NetworkUtil.getNetworkWwn(network));
+        if (network != null) {
+            fabricInfo.setFabricWwn(NetworkUtil.getNetworkWwn(network));
+        }
         return fabricInfo;
     }
 }

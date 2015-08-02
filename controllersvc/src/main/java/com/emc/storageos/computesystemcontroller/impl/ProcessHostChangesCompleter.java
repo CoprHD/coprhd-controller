@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.computesystemcontroller.impl;
@@ -47,24 +37,24 @@ public class ProcessHostChangesCompleter extends TaskCompleter {
         this.deletedHosts = deletedHosts;
         this.deletedClusters = deletedClusters;
     }
-    
+
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         if (isNotifyWorkflow()) {
             // If there is a workflow, update the step to complete.
             updateWorkflowStatus(status, coded);
         }
-        
+
         // if export updates were successful, remove all old initiators and deleted hosts
-        if (status.equals(Status.ready)) { 
+        if (status.equals(Status.ready)) {
             for (HostStateChange hostChange : changes) {
                 for (URI initiatorId : hostChange.getOldInitiators()) {
                     Initiator initiator = dbClient.queryObject(Initiator.class, initiatorId);
                     dbClient.markForDeletion(initiator);
-                    _logger.info("Initiator marked for deletion: " + this.getId());   
+                    _logger.info("Initiator marked for deletion: " + this.getId());
                 }
             }
-            
+
             for (URI hostId : deletedHosts) {
                 Host host = dbClient.queryObject(Host.class, hostId);
                 // don't delete host if it was provisioned by Vipr
@@ -77,7 +67,7 @@ public class ProcessHostChangesCompleter extends TaskCompleter {
                     _logger.info("Deactivating Host: " + host.getId());
                 }
             }
-            
+
             for (URI clusterId : deletedClusters) {
                 Cluster cluster = dbClient.queryObject(Cluster.class, clusterId);
                 List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(dbClient, clusterId, Host.class, "cluster");

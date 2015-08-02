@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -16,17 +16,18 @@ import com.emc.storageos.model.BulkRestRep;
 public class OrderBulkRep extends BulkRestRep {
 
     private List<OrderRestRep> orders;
-    
+
     public OrderBulkRep() {
-        
+
     }
 
     public OrderBulkRep(List<OrderRestRep> orders) {
         this.orders = orders;
-    }    
-    
+    }
+
     /**
      * List of projects
+     * 
      * @valid none
      * @return
      */
@@ -41,5 +42,5 @@ public class OrderBulkRep extends BulkRestRep {
     public void setOrders(List<OrderRestRep> orders) {
         this.orders = orders;
     }
-   
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.task;
@@ -41,10 +41,10 @@ public class TaskScrubberExecutor {
 
     public void start() {
         _executor.scheduleWithFixedDelay(new Runnable() {
-                                public void run() {
-                                    deleteOldTasks();
-                                }
-                            }, 1, getConfigProperty(TASK_CLEAN_INTERVAL_PROPERTY, MINIMUM_PERIOD_MINS), TimeUnit.MINUTES);
+            public void run() {
+                deleteOldTasks();
+            }
+        }, 1, getConfigProperty(TASK_CLEAN_INTERVAL_PROPERTY, MINIMUM_PERIOD_MINS), TimeUnit.MINUTES);
         log.info("Started Task Scrubber");
     }
 
@@ -68,11 +68,12 @@ public class TaskScrubberExecutor {
         log.info("Looking for completed tasks older than {} minutes", getConfigProperty(TASK_TTL_MINS_PROPERTY, MINIMUM_PERIOD_MINS));
 
         long taskLifetimeMicroSeconds = getConfigProperty(TASK_TTL_MINS_PROPERTY, MINIMUM_PERIOD_MINS) * MIN_TO_MICROSECS;
-        long currentTimeMicroseconds =  TimeUUIDUtils.getMicrosTimeFromUUID(TimeUUIDUtils.getUniqueTimeUUIDinMicros());
-        long timeStartMarker =  currentTimeMicroseconds - taskLifetimeMicroSeconds;
+        long currentTimeMicroseconds = TimeUUIDUtils.getMicrosTimeFromUUID(TimeUUIDUtils.getUniqueTimeUUIDinMicros());
+        long timeStartMarker = currentTimeMicroseconds - taskLifetimeMicroSeconds;
 
         // Find all Tasks that were completed older than startTimeMarker
-        Constraint constraint = DecommissionedConstraint.Factory.getDecommissionedObjectsConstraint(Task.class, "completedFlag", timeStartMarker);
+        Constraint constraint = DecommissionedConstraint.Factory.getDecommissionedObjectsConstraint(Task.class, "completedFlag",
+                timeStartMarker);
         URIQueryResultList list = new URIQueryResultList();
         dbClient.queryByConstraint(constraint, list);
 
@@ -95,18 +96,17 @@ public class TaskScrubberExecutor {
     }
 
     private long getConfigProperty(String propertyName, long minimumValue) {
-         String value = coordinator.getPropertyInfo().getProperty(propertyName);
+        String value = coordinator.getPropertyInfo().getProperty(propertyName);
 
         if (value != null && StringUtils.isNotBlank(value)) {
             try {
                 return Math.max(Long.valueOf(value), minimumValue);
-            }
-            catch(Exception e) {
-                log.error("Configuration property "+propertyName+" invalid number, using minimum value of "+minimumValue, e);
+            } catch (Exception e) {
+                log.error("Configuration property " + propertyName + " invalid number, using minimum value of " + minimumValue, e);
                 return minimumValue;
             }
         } else {
-            log.error("Configuration property "+propertyName+" not found, using minimum value of "+minimumValue);
+            log.error("Configuration property " + propertyName + " not found, using minimum value of " + minimumValue);
             return minimumValue;
         }
     }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
 
@@ -47,7 +37,7 @@ public class VNXStoragePoolProcessor extends VNXFileProcessor {
      */
     private final Logger _logger = LoggerFactory
             .getLogger(VNXStoragePoolProcessor.class);
-    
+
     @Override
     public void processResult(Operation operation, Object resultObj,
             Map<String, Object> keyMap) throws BaseCollectionException {
@@ -65,12 +55,12 @@ public class VNXStoragePoolProcessor extends VNXFileProcessor {
                 List<VNXStoragePool> storagePools = new ArrayList<VNXStoragePool>();
                 while (queryRespItr.hasNext()) {
                     Object responseObj = queryRespItr.next();
-                    _logger.info("{}",responseObj);
+                    _logger.info("{}", responseObj);
                     if (responseObj instanceof StoragePool) {
-                        
+
                         VNXStoragePool vnxPool = new VNXStoragePool();
                         StoragePool storagePool = (StoragePool) responseObj;
-                        
+
                         vnxPool.setName(storagePool.getName());
                         vnxPool.setPoolId(storagePool.getPool());
                         vnxPool.setSize(String.valueOf(storagePool.getSize()));
@@ -83,9 +73,9 @@ public class VNXStoragePoolProcessor extends VNXFileProcessor {
                             String dynamic = String.valueOf(data.isDynamic());
                             vnxPool.setDynamic(dynamic);
                         }
-                
-                        _logger.info("VNX Pool Information {}",vnxPool.toString());
-                
+
+                        _logger.info("VNX Pool Information {}", vnxPool.toString());
+
                         storagePools.add(vnxPool);
                     }
                 }

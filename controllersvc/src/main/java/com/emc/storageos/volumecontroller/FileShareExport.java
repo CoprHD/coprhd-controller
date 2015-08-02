@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller;
@@ -26,20 +16,20 @@ import java.util.List;
  */
 public class FileShareExport implements Serializable {
 
-  // enumeration of export security types
-   public enum SecurityTypes {
+    // enumeration of export security types
+    public enum SecurityTypes {
         sys,
         krb5,
         krb5i,
         krb5p
     }
 
-   // enumeration of export permissions
-   public enum Permissions {
+    // enumeration of export permissions
+    public enum Permissions {
         ro,
         rw,
         root
-   }
+    }
 
     private List<String> _clients;
     private SecurityTypes _securityType;
@@ -56,14 +46,16 @@ public class FileShareExport implements Serializable {
 
     /**
      * Construction of FileShareExport export
+     * 
      * @param clients
      * @param securityType
      * @param permissions
      * @param rootUserMapping
      * @param protocol
-     * @param storagePortName   Storage port name.
+     * @param storagePortName Storage port name.
      */
-    public FileShareExport(List<String> clients, String securityType, String permissions, String rootUserMapping, String protocol, String storagePortName, String storagePort) {
+    public FileShareExport(List<String> clients, String securityType, String permissions, String rootUserMapping, String protocol,
+            String storagePortName, String storagePort) {
         _clients = clients;
         _securityType = Enum.valueOf(SecurityTypes.class, securityType);
         _permissions = Enum.valueOf(Permissions.class, permissions);
@@ -76,16 +68,17 @@ public class FileShareExport implements Serializable {
 
     /**
      * Construction of FileShareExport export
+     * 
      * @param clients
      * @param securityType
      * @param permissions
      * @param rootUserMapping
      * @param protocol
-     * @param storagePortName   Storage port name.
+     * @param storagePortName Storage port name.
      * @param path
      */
     public FileShareExport(List<String> clients, String securityType, String permissions, String rootUserMapping,
-                           String protocol, String storagePortName, String storagePort, String path) {
+            String protocol, String storagePortName, String storagePort, String path) {
         _clients = clients;
         _securityType = Enum.valueOf(SecurityTypes.class, securityType);
         _permissions = Enum.valueOf(Permissions.class, permissions);
@@ -95,19 +88,21 @@ public class FileShareExport implements Serializable {
         _storagePort = storagePort;
         _path = path;
     }
+
     /**
      * Construction of FileShareExport export
+     * 
      * @param clients
      * @param securityType
      * @param permissions
      * @param rootUserMapping
      * @param protocol
-     * @param storagePortName   Storage port name.
+     * @param storagePortName Storage port name.
      * @param path
      * @param mountPath
      */
-    public FileShareExport(List<String> clients, String securityType, String permissions, String rootUserMapping, 
-                           String protocol, String storagePortName, String storagePort, String path, String mountPath, String subDirectory, String comments) {
+    public FileShareExport(List<String> clients, String securityType, String permissions, String rootUserMapping,
+            String protocol, String storagePortName, String storagePort, String path, String mountPath, String subDirectory, String comments) {
         _clients = clients;
         _securityType = Enum.valueOf(SecurityTypes.class, securityType);
         _permissions = Enum.valueOf(Permissions.class, permissions);
@@ -122,17 +117,19 @@ public class FileShareExport implements Serializable {
     }
 
     public String getComments() {
-    	if(_comments==null) return "";
-		return _comments;
-	}
+        if (_comments == null) {
+            return "";
+        }
+        return _comments;
+    }
 
-	public void setComments(String comments) {
-		_comments = comments;
-	}
-	
-   
+    public void setComments(String comments) {
+        _comments = comments;
+    }
+
     /**
      * Construction of FileShareExport
+     * 
      * @param fileExport FileExport
      */
     public FileShareExport(FileExport fileExport) {
@@ -148,7 +145,7 @@ public class FileShareExport implements Serializable {
         _isilonId = fileExport.getIsilonId();
         _subDirectory = fileExport.getSubDirectory();
     }
-    
+
     public List<String> getClients() {
         return _clients;
     }
@@ -177,22 +174,23 @@ public class FileShareExport implements Serializable {
         return _storagePort;
     }
 
-    public String getPath(){
+    public String getPath() {
         return _path;
     }
 
-    public String getMountPath(){
+    public String getMountPath() {
         return _mountPath;
     }
-    
-    public String getSubDirectory(){
+
+    public String getSubDirectory() {
         return _subDirectory;
     }
-    
+
     public FileExport getFileExport() {
 
-        FileExport fileExport = new FileExport(_clients, _storagePortName,  _mountPath, _securityType.toString(), _permissions.toString(), _rootUserMapping,
-                                               _protocol.toString(), _storagePort, _path, _mountPath, _subDirectory, _comments);
+        FileExport fileExport = new FileExport(_clients, _storagePortName, _mountPath, _securityType.toString(), _permissions.toString(),
+                _rootUserMapping,
+                _protocol.toString(), _storagePort, _path, _mountPath, _subDirectory, _comments);
         fileExport.setIsilonId(_isilonId);
         return fileExport;
     }
@@ -204,7 +202,5 @@ public class FileShareExport implements Serializable {
     public void setIsilonId(String isilonId) {
         this._isilonId = isilonId;
     }
-    
-    
 
 }

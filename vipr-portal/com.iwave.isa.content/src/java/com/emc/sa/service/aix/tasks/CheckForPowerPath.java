@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.aix.tasks;
@@ -15,8 +15,7 @@ public class CheckForPowerPath extends AixExecutionTask<Boolean> {
         try {
             executeCommand(command, SHORT_TIMEOUT);
             return true;
-        }
-        catch (PowerPathException e) {
+        } catch (PowerPathException e) {
             return false;
         }
     }

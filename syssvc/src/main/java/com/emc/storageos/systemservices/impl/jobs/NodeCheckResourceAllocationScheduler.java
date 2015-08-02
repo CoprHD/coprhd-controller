@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.systemservices.impl.jobs;
@@ -27,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 public class NodeCheckResourceAllocationScheduler implements Runnable, JobConstants {
 
-    private static final Logger _log = LoggerFactory.getLogger(NodeCheckResourceAllocationScheduler .class);
+    private static final Logger _log = LoggerFactory.getLogger(NodeCheckResourceAllocationScheduler.class);
     private static final AlertsLogger _alertsLog = AlertsLogger.getAlertsLogger();
     private static final String PREFIX = "Resource allocation: ";
 
@@ -40,7 +30,7 @@ public class NodeCheckResourceAllocationScheduler implements Runnable, JobConsta
     /**
      * Sets up the scheduler.
      */
-    public NodeCheckResourceAllocationScheduler () {
+    public NodeCheckResourceAllocationScheduler() {
         _log.info("Initializing node balance check scheduler");
         ScheduledExecutorService service = new NamedScheduledThreadPoolExecutor("NodeResourceAllocationScheduler", 1);
         service.schedule(this, SERVICE_START_LAG, TimeUnit.SECONDS);

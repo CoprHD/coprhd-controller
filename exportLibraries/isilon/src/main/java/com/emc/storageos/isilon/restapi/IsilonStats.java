@@ -1,30 +1,14 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.isilon.restapi;
 
 import com.google.gson.annotations.SerializedName;
-import com.google.gson.reflect.TypeToken;
 import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jettison.json.JSONArray;
-
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.jar.Attributes;
 
 /**
  * Class for IsilonStats keys and values
@@ -63,8 +47,8 @@ public class IsilonStats {
 
     public static class StatKey {
         private AggregationType aggregation; // aggregation-type
-        private String base_name; //base-name
-        private String default_cache_time; //default-cache-time
+        private String base_name; // base-name
+        private String default_cache_time; // default-cache-time
         private String desc;
         private String real_name; // real-name
         private Scope scope;
@@ -76,7 +60,7 @@ public class IsilonStats {
         protected ArrayList<String> error;
         protected long time;
         protected T value; // of type StatKey.type
-        
+
         public T getValue() {
             return value;
         }
@@ -116,7 +100,7 @@ public class IsilonStats {
         @JsonProperty("policies")
         protected ArrayList<Policy> policies;
     }
-    
+
     private static final String OP_CLASS_WRITE = "write";
     private static final String OP_CLASS_READ = "read";
 
@@ -124,6 +108,7 @@ public class IsilonStats {
         protected String client_id;
         protected String local_addr;
         protected String remote_addr;
+
         public static class OpClassValue {
             protected String class_name;
             protected long in_max;
@@ -138,15 +123,17 @@ public class IsilonStats {
             protected long time_max;
             protected long time_min;
         }
+
         protected ArrayList<OpClassValue> op_class_values;
 
         /**
          * get out rate for reads, if exists, else, return 0
+         * 
          * @return
          */
         public float getOutBW() {
             float val = 0;
-            for (OpClassValue value: op_class_values) {
+            for (OpClassValue value : op_class_values) {
                 val += value.out_rate;
             }
             return val;
@@ -154,11 +141,12 @@ public class IsilonStats {
 
         /**
          * get in rate, if exists, else, return 0
+         * 
          * @return
          */
         public float getInBW() {
             float val = 0;
-            for (OpClassValue value: op_class_values) {
+            for (OpClassValue value : op_class_values) {
                 val += value.in_rate;
             }
             return val;
@@ -166,10 +154,11 @@ public class IsilonStats {
 
         /**
          * get op counter for reads
+         * 
          * @return
          */
         public long getReadOps() {
-            for (OpClassValue value: op_class_values) {
+            for (OpClassValue value : op_class_values) {
                 if (value.class_name.equals(OP_CLASS_READ)) {
                     return value.op_count;
                 }
@@ -179,10 +168,11 @@ public class IsilonStats {
 
         /**
          * get op counter for writes
+         * 
          * @return
          */
         public long getWriteOps() {
-            for (OpClassValue value: op_class_values) {
+            for (OpClassValue value : op_class_values) {
                 if (value.class_name.equals(OP_CLASS_WRITE)) {
                     return value.op_count;
                 }
@@ -192,12 +182,11 @@ public class IsilonStats {
 
         /**
          * get client address for this record
+         * 
          * @return
          */
         public String getClientAddr() {
-            return  remote_addr;
+            return remote_addr;
         }
     }
 }
-
-

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -34,7 +34,7 @@ public class TaskUtils {
 
     /**
      * Returns the Details of a specified task or NULL if the task doesn't exist
-     *
+     * 
      * @param taskId Id of the task
      * @return The Task details or NULL if the task doesn't exist
      */
@@ -42,8 +42,7 @@ public class TaskUtils {
         if (taskId != null) {
             try {
                 return getViprClient().tasks().get(taskId);
-            }
-            catch (ViPRHttpException e) {
+            } catch (ViPRHttpException e) {
                 // Anything other than 404 is an error
                 if (e.getHttpCode() != 404) {
                     throw e;

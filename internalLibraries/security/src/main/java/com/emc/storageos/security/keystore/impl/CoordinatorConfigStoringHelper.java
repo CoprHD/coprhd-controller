@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.keystore.impl;
 
@@ -33,9 +23,9 @@ import org.apache.curator.framework.recipes.locks.InterProcessLock;
  * Helper class for storing and retrieving configurations in coordinator.
  * This class handles the use of InterProcessLock such that all updates on
  * the coordinator configuration are synced accross the cluseter. Also,
- * InterProcessLocks are being reused according to the lock name given, 
+ * InterProcessLocks are being reused according to the lock name given,
  * which makes it possible to acquire the same lock several times on a single
- * thread. 
+ * thread.
  */
 public class CoordinatorConfigStoringHelper {
 
@@ -155,7 +145,7 @@ public class CoordinatorConfigStoringHelper {
             if (lock != null) {
                 lock.release();
             }
-        }   catch (Exception e) {
+        } catch (Exception e) {
             log.error("Could not release lock");
         }
     }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.vnx.xmlapi;
@@ -37,18 +27,17 @@ import java.util.concurrent.TimeUnit;
 /**
  * Responsible for sending VNX CLI commands to the VNX File System using SSH.
  */
- 
+
 public class VNXFileSshApi {
     public static final String SERVER_EXPORT_CMD = "/nas/bin/server_export";
-    public static final String SERVER_MOUNT_CMD  = "/nas/bin/server_mount";
-    public static final String SERVER_UNMOUNT_CMD  = "/nas/bin/server_umount";
-    public static final String SERVER_INFO_CMD  = "/nas/bin/nas_server";
-    public static final String SERVER_USER_CMD  = "/nas/sbin/server_user";
-    public static final String EXPORT            = "EXPORT";
-    public static final String VNX_CIFS          = "cifs";
-    public static final String NAS_FS            = "/nas/bin/nas_fs";
-    public static final String SHARE          = "share";
-
+    public static final String SERVER_MOUNT_CMD = "/nas/bin/server_mount";
+    public static final String SERVER_UNMOUNT_CMD = "/nas/bin/server_umount";
+    public static final String SERVER_INFO_CMD = "/nas/bin/nas_server";
+    public static final String SERVER_USER_CMD = "/nas/sbin/server_user";
+    public static final String EXPORT = "EXPORT";
+    public static final String VNX_CIFS = "cifs";
+    public static final String NAS_FS = "/nas/bin/nas_fs";
+    public static final String SHARE = "share";
 
     private static final Logger _log = LoggerFactory.getLogger(VNXFileSshApi.class);
 
@@ -59,38 +48,38 @@ public class VNXFileSshApi {
     // Amount of time in milliseconds to wait for a response
     private int _respDelay = 1000;
 
-    private static final int    BUFFER_SIZE    = 1024;
-    private static final int    DEFAULT_PORT   = 22;
+    private static final int BUFFER_SIZE = 1024;
+    private static final int DEFAULT_PORT = 22;
 
     // TODO: change build files to be able to access FileShareExport.SecurityTypes.
-    private enum SecurityTypes { sys, krb5, krb5i, krb5p }
+    private enum SecurityTypes {
+        sys, krb5, krb5i, krb5p
+    }
 
     /**
      * Sets the host and user credentials for the VNX Device to communicate with.
-     *
-     * @param host      host name or ip address
-     * @param user      user name
-     * @param password  user password
+     * 
+     * @param host host name or ip address
+     * @param user user name
+     * @param password user password
      */
     public void setConnParams(String host, String user, String password) {
-        _host      = host;
-        _userName  = user;
-        _password  = password;
+        _host = host;
+        _userName = user;
+        _password = password;
     }
-
 
     /**
      * Clear the connection parameters.
      */
     public void clearConnParams() {
-        _host     = null;
+        _host = null;
         _userName = null;
         _password = null;
     }
 
-
     /**
-     *
+     * 
      * @param delay time in milliseconds
      */
     public void setResponseDelay(int delay) {
@@ -101,19 +90,19 @@ public class VNXFileSshApi {
 
         _respDelay = delay;
     }
-    
+
     private String formatCifsCmd(List<VNXFileExport> exports, String netBios) {
-    	VNXFileExport fileExp = exports.get(0);
-    	StringBuilder command = new StringBuilder();
-    	command.append(" -Protocol cifs -ignore ");
-    	
-    	String name = fileExp.getExportName();
-    	if (null != name && !name.isEmpty()) {
-    		command.append("-name ");
-    		command.append(name + " ");
-    	}
-    	
-        boolean permExists = false;        
+        VNXFileExport fileExp = exports.get(0);
+        StringBuilder command = new StringBuilder();
+        command.append(" -Protocol cifs -ignore ");
+
+        String name = fileExp.getExportName();
+        if (null != name && !name.isEmpty()) {
+            command.append("-name ");
+            command.append(name + " ");
+        }
+
+        boolean permExists = false;
         if (fileExp.getPermissions().equalsIgnoreCase("read")) {
             command.append("-option ro");
             permExists = true;
@@ -124,7 +113,7 @@ public class VNXFileSshApi {
             if (permExists) {
                 command.append(",");
             } else {
-            	command.append("-option ");
+                command.append("-option ");
                 permExists = true;
             }
 
@@ -132,8 +121,8 @@ public class VNXFileSshApi {
             command.append(maxUsers);
         }
 
-        if (null != netBios && netBios.length() > 0){
-            if(permExists) {
+        if (null != netBios && netBios.length() > 0) {
+            if (permExists) {
                 command.append(",");
             } else {
                 command.append("-option ");
@@ -144,18 +133,17 @@ public class VNXFileSshApi {
 
         String comment = fileExp.getComment();
         if (null != comment && !comment.isEmpty()) {
-        	command.append(" " + "-comment ");
-        	command.append("\"" + comment + "\" ");
+            command.append(" " + "-comment ");
+            command.append("\"" + comment + "\" ");
         }
-    	
-    	return command.toString();
+
+        return command.toString();
     }
-    
-    
-    private String formatNfsCmd(List<VNXFileExport> exports, Map<String,String> userInfo) {
- 
-    	StringBuilder options = new StringBuilder();
-    	options.append(" -Protocol nfs -ignore -option ");
+
+    private String formatNfsCmd(List<VNXFileExport> exports, Map<String, String> userInfo) {
+
+        StringBuilder options = new StringBuilder();
+        options.append(" -Protocol nfs -ignore -option ");
 
         String access = null;
         boolean append = false;
@@ -168,16 +156,16 @@ public class VNXFileSshApi {
         for (SecurityTypes secType : SecurityTypes.values()) {
             _log.debug("Processing security type: {}", secType.name());
 
-            for (VNXFileExport exp: exports) {
+            for (VNXFileExport exp : exports) {
                 permissions.add(exp.getPermissions());
             }
 
-            if(permissions.size() == 1 && permissions.get(0).equalsIgnoreCase(rwPerm)) {
-                //Export contains just rw only..  so set it to access list
+            if (permissions.size() == 1 && permissions.get(0).equalsIgnoreCase(rwPerm)) {
+                // Export contains just rw only.. so set it to access list
                 rwOnly = true;
             }
 
-            for (VNXFileExport exp: exports) {
+            for (VNXFileExport exp : exports) {
                 if (secType.name().equals(exp.getSecurityType())) {
                     _log.debug("Matching export with perms {}", exp.getPermissions());
                     if (append) {
@@ -199,14 +187,14 @@ public class VNXFileSshApi {
 
                     if (!perms.isEmpty()) {
                         String translatedPerm = perms;
-                        if(rwOnly){
+                        if (rwOnly) {
                             translatedPerm = accessPerm;
                         }
                         access = createAccessString(secType.name(),
-                                                    translatedPerm,
-                                                    exp.getClients(),
-                                                    exp.getRootUserMapping(),
-                                                    userInfo);
+                                translatedPerm,
+                                exp.getClients(),
+                                exp.getRootUserMapping(),
+                                userInfo);
 
                         options.append(access);
                     }
@@ -215,36 +203,35 @@ public class VNXFileSshApi {
             first = true;
             permissions.clear();
         }
-        
-        // if the command ends with -option meaning that 
-        // 1. We are removing all export rules 
+
+        // if the command ends with -option meaning that
+        // 1. We are removing all export rules
         // 2. VNX overwrites the export with the new command we execute
         // 3. no rules with -option results error in command execution
         // 4. -option should be taken out as part of command when no rules specified.
         // 5. when the command ends with -option -- we can treat this command is missing the rules.
         // 6. Hence -option shouldn't be the part of the command
         _log.info("Validating if requested to delete all export rules");
-        if (options!=null && options.toString()!=null && options.toString().trim().endsWith("-option")) {
-        	String command = options.toString();
-        	command = command.replaceAll("-option", "");
-        	options.setLength(0);
-        	options.append(command);
+        if (options != null && options.toString() != null && options.toString().trim().endsWith("-option")) {
+            String command = options.toString();
+            command = command.replaceAll("-option", "");
+            options.setLength(0);
+            options.append(command);
         }
-        
+
         String comment = exports.get(0).getComment();
-        if(comment!=null && !comment.isEmpty()){
-        	options.append(" " + "-comment ").append("\"" + comment + "\" ");
+        if (comment != null && !comment.isEmpty()) {
+            options.append(" " + "-comment ").append("\"" + comment + "\" ");
         }
-    	return options.toString();
+        return options.toString();
     }
 
-    
     /**
      * Create the command string for removing a CIFS file share
      * 
-     * @param dataMover  data mover that contains the CIFS file share
-     * @param fileShare  name of the file share to remove.
-     * @param netBios    netbios used
+     * @param dataMover data mover that contains the CIFS file share
+     * @param fileShare name of the file share to remove.
+     * @param netBios netbios used
      * @return formatted command string to be used by the VNX File CLI.
      */
     public String formatDeleteShareCmd(String dataMover, String fileShare, String netBios) {
@@ -252,22 +239,21 @@ public class VNXFileSshApi {
         cmd.append(dataMover);
         cmd.append(" -unexport -name ");
         cmd.append(fileShare);
-        if(netBios != null && netBios.length() > 0) {
+        if (netBios != null && netBios.length() > 0) {
             cmd.append(" -option netbios=");
             cmd.append("\"" + netBios + "\" ");
         }
         return cmd.toString();
     }
 
-
     /**
      * Create the command string for exporting a file system.
-     *
-     * @param dataMover   data mover that the export will reside on
-     * @param exports     contains file export details
-     * @return  formatted command required by the VNX CLI for file export
+     * 
+     * @param dataMover data mover that the export will reside on
+     * @param exports contains file export details
+     * @return formatted command required by the VNX CLI for file export
      */
-    public String formatExportCmd(String dataMover, List<VNXFileExport> exports, Map<String,String> userInfo, String netBios) {
+    public String formatExportCmd(String dataMover, List<VNXFileExport> exports, Map<String, String> userInfo, String netBios) {
 
         // Verify that there is at least one entry in exports
         if (exports.isEmpty()) {
@@ -290,18 +276,18 @@ public class VNXFileSshApi {
         }
 
         StringBuilder options = new StringBuilder();
-        
+
         String result = null;
 
         if (protocol.equalsIgnoreCase(VNX_CIFS)) {
-        	result = formatCifsCmd(exports, netBios);
+            result = formatCifsCmd(exports, netBios);
         } else {
-        	result = formatNfsCmd(exports, userInfo);
-        } 
-        
+            result = formatNfsCmd(exports, userInfo);
+        }
+
         options.append(result);
         options.append(" ");
-        
+
         StringBuilder cmd = new StringBuilder();
         cmd.append(dataMover);
         cmd.append(options.toString());
@@ -313,10 +299,10 @@ public class VNXFileSshApi {
 
     /**
      * Create the command string for deleting file system export.
-     *
-     * @param dataMover   data mover that the export will reside on
-     * @param path        path whose export will be deleted
-     * @return  formatted command required by the VNX CLI for file export
+     * 
+     * @param dataMover data mover that the export will reside on
+     * @param path path whose export will be deleted
+     * @return formatted command required by the VNX CLI for file export
      */
     public String formatDeleteNfsExportCmd(String dataMover, String path) {
 
@@ -329,18 +315,17 @@ public class VNXFileSshApi {
         return cmd.toString();
     }
 
-
     /**
      * Create the command string for deleting file system mount.
-     *
-     * @param dataMover   data mover that the export will reside on
-     * @param path        path whose export will be deleted
-     * @param protocol    protocol
-     * @return  formatted command required by the VNX CLI for file export
+     * 
+     * @param dataMover data mover that the export will reside on
+     * @param path path whose export will be deleted
+     * @param protocol protocol
+     * @return formatted command required by the VNX CLI for file export
      */
     public String formatUnMountCmd(String dataMover, String path, String protocol) {
 
-        //server_umount server_3 /testSaravRoot3
+        // server_umount server_3 /testSaravRoot3
 
         StringBuilder cmd = new StringBuilder();
         cmd.append(" ");
@@ -352,20 +337,19 @@ public class VNXFileSshApi {
         return cmd.toString();
     }
 
-    
     /**
      * Create the command string for create file system mount.
-     *
-     * @param dataMover   data mover that the export will reside on
-     * @param fileSystem  file system that is being mounted
-     * @param path        path whose export will be deleted
-     * @return  formatted command required by the VNX CLI for file export
+     * 
+     * @param dataMover data mover that the export will reside on
+     * @param fileSystem file system that is being mounted
+     * @param path path whose export will be deleted
+     * @return formatted command required by the VNX CLI for file export
      */
     public String formatMountCmd(String dataMover, String fileSystem, String path) {
 
-        //server_mount server_3 testFS /testFS
-    	
-    	StringBuilder cmd = new StringBuilder();
+        // server_mount server_3 testFS /testFS
+
+        StringBuilder cmd = new StringBuilder();
         cmd.append(" ");
         cmd.append(dataMover);
         cmd.append(" ");
@@ -377,56 +361,55 @@ public class VNXFileSshApi {
 
     private String entryPathsDiffer(List<VNXFileExport> exports) {
         HashSet<String> paths = new HashSet<>();
-        for(VNXFileExport exp:exports){
+        for (VNXFileExport exp : exports) {
             paths.add(exp.getMountPoint());
         }
-        if(paths.size() == 1) {
+        if (paths.size() == 1) {
             return paths.iterator().next();
         }
-    	return null;
+        return null;
     }
 
     private String entryProtocolsDiffer(List<VNXFileExport> exports) {
         HashSet<String> protocols = new HashSet<>();
-        for(VNXFileExport exp:exports){
+        for (VNXFileExport exp : exports) {
             protocols.add(exp.getProtocol());
         }
-        if(protocols.size() == 1) {
+        if (protocols.size() == 1) {
             return protocols.iterator().next();
         }
         return null;
     }
 
-
     /**
      * Create an access string for VNX File exports.
-     *
-     * @param security  security method: sys, krb5, krb5i, or krb5p
-     * @param perm      access mode depending on security method: ro, rw=, ro=, root=, access=, etc.
-     * @param clients   list of endpoints to be exported to
-     * @param anon      mapping for an unknown or root user.
+     * 
+     * @param security security method: sys, krb5, krb5i, or krb5p
+     * @param perm access mode depending on security method: ro, rw=, ro=, root=, access=, etc.
+     * @param clients list of endpoints to be exported to
+     * @param anon mapping for an unknown or root user.
      * @return formatted access string to be used by the VNX CLI.
      */
-    public String createAccessString(String security, String perm, List<String> clients, String anon, Map<String,String> userInfo) {
+    public String createAccessString(String security, String perm, List<String> clients, String anon, Map<String, String> userInfo) {
         StringBuilder access = new StringBuilder();
 
-        if (!perm.isEmpty())  {
-        	if (perm.equals("ro")) {
-        		access.append(perm);
-        	}
-        	if (!clients.isEmpty()) {
-        		if (!perm.equals("ro")) {
-            		access.append(perm);
-            	}
-        		access.append("=");
-        		Iterator it = clients.iterator();
-        		while (it.hasNext()) {
-        			access.append(it.next());
-        			if (it.hasNext()) {
-        				access.append(":");
-        			}
-        		}
-        	}
+        if (!perm.isEmpty()) {
+            if (perm.equals("ro")) {
+                access.append(perm);
+            }
+            if (!clients.isEmpty()) {
+                if (!perm.equals("ro")) {
+                    access.append(perm);
+                }
+                access.append("=");
+                Iterator it = clients.iterator();
+                while (it.hasNext()) {
+                    access.append(it.next());
+                    if (it.hasNext()) {
+                        access.append(":");
+                    }
+                }
+            }
         }
 
         if (!anon.isEmpty() && security.equalsIgnoreCase(SecurityTypes.sys.name())) {
@@ -437,7 +420,7 @@ public class VNXFileSshApi {
                     access.append("anon=");
                 }
 
-                if ( anon.equalsIgnoreCase("root") ) {
+                if (anon.equalsIgnoreCase("root")) {
                     access.append("0");
                 } else {
                     try {
@@ -451,7 +434,7 @@ public class VNXFileSshApi {
                             // Illegal value for anon (not a UID or account name)
                             throw new IllegalArgumentException("Illegal Root User Mapping");
                         }
-                    }                    
+                    }
                 }
             }
         }
@@ -459,12 +442,11 @@ public class VNXFileSshApi {
         return access.toString();
     }
 
-
     /**
      * Executes a command on the VNX File CLI.
-     *
-     * @param command  command to execute on the VNX File CLI.
-     * @param request  payload for the command
+     * 
+     * @param command command to execute on the VNX File CLI.
+     * @param request payload for the command
      * @return result of executing the command.
      */
     public XMLApiResult executeSsh(String command, String request) {
@@ -479,10 +461,10 @@ public class VNXFileSshApi {
         String cmd = "export NAS_DB=/nas;" + command + " " + request;
         _log.info("executeSsh: cmd: " + cmd);
 
-        InputStream in      = null;
-        Session     session = null;
-        Channel     channel = null;
-        try{
+        InputStream in = null;
+        Session session = null;
+        Channel channel = null;
+        try {
             java.util.Properties config = new java.util.Properties();
             config.put("StrictHostKeyChecking", "no");
             JSch jsch = new JSch();
@@ -492,40 +474,40 @@ public class VNXFileSshApi {
             session.connect();
 
             channel = session.openChannel("exec");
-            ((ChannelExec)channel).setCommand(cmd);
+            ((ChannelExec) channel).setCommand(cmd);
             channel.setInputStream(null);
-            in=channel.getInputStream();
+            in = channel.getInputStream();
             channel.connect();
 
-            byte[] tmp=new byte[BUFFER_SIZE];
+            byte[] tmp = new byte[BUFFER_SIZE];
             StringBuilder cmdResults = new StringBuilder();
-            while(true){
-                while(in.available()>0){
-                    int i=in.read(tmp, 0, BUFFER_SIZE);
-					if (i < 0) {
-						break;
-					}
+            while (true) {
+                while (in.available() > 0) {
+                    int i = in.read(tmp, 0, BUFFER_SIZE);
+                    if (i < 0) {
+                        break;
+                    }
                     cmdResults.append(new String(tmp, 0, i));
                 }
 
-                if(channel.isClosed()){
+                if (channel.isClosed()) {
                     _log.info("Ssh exit status: " + channel.getExitStatus());
                     result.setMessage(cmdResults.toString());
 
                     // Set the command result status.
                     if (channel.getExitStatus() == 0) {
                         StringTokenizer st = new StringTokenizer(cmdResults.toString());
-                        if(st.hasMoreTokens()) {
-                        	st.nextToken();  // data mover name
+                        if (st.hasMoreTokens()) {
+                            st.nextToken();  // data mover name
                         }
-                        if(!command.equalsIgnoreCase(SERVER_USER_CMD)) {
-                        	if(st.hasMoreTokens()) {
-                        		st.nextToken();
-                        	}
+                        if (!command.equalsIgnoreCase(SERVER_USER_CMD)) {
+                            if (st.hasMoreTokens()) {
+                                st.nextToken();
+                            }
                         }
                         String res = "";
-                        if(st.hasMoreTokens()) {
-                        	res = st.nextToken(); // contains status or result.
+                        if (st.hasMoreTokens()) {
+                            res = st.nextToken(); // contains status or result.
                         }
                         if (res.equalsIgnoreCase("done")) {
                             result.setCommandSuccess();
@@ -544,22 +526,21 @@ public class VNXFileSshApi {
                 try {
                     Thread.sleep(_respDelay);
                 } catch (InterruptedException e) {
-                    _log.error("VNX File executeSsh Communication thread interrupted for command: " + cmd,e);
+                    _log.error("VNX File executeSsh Communication thread interrupted for command: " + cmd, e);
                 }
             }
 
             _log.info("executeSsh: Done");
-        } catch (Exception e){
+        } catch (Exception e) {
             _log.error("VNX File executeSsh connection failed while attempting to execute: " + cmd, e);
             result.setCommandFailed();
             result.setMessage(e.getMessage());
-        }
-        finally {
+        } finally {
             if (in != null) {
                 try {
                     in.close();
                 } catch (IOException ignored) {
-                	_log.error("Exception occured while closing input stream due to ", ignored);
+                    _log.error("Exception occured while closing input stream due to ", ignored);
                 }
             }
 
@@ -576,7 +557,7 @@ public class VNXFileSshApi {
     }
 
     public Map<String, String> getFsMountpathMap(String dmName) {
-        Map <String, String> fsMountpathMap = new ConcurrentHashMap<String, String>();
+        Map<String, String> fsMountpathMap = new ConcurrentHashMap<String, String>();
         try {
             if (dmName == null) {
                 return null;
@@ -584,22 +565,22 @@ public class VNXFileSshApi {
             XMLApiResult result = this.executeSsh(VNXFileSshApi.SERVER_MOUNT_CMD, dmName);
             // Parse message to get map
             String[] entries = result.getMessage().split("\n");
-            for (String entry: entries) {
+            for (String entry : entries) {
                 String[] entryElements = entry.split(" ");
                 if (entryElements.length > 2) {
                     String fileName = entry.split(" ")[0];
                     String path = entry.split(" ")[2];
-                    if(path != null && (!path.startsWith("/root"))) {
+                    if (path != null && (!path.startsWith("/root"))) {
                         fsMountpathMap.put(fileName, path);
                         _log.info("Adding File Name {} and Path {}", fileName, path);
                     } else {
                         _log.info("Skipping File Name {} and Path {}", fileName, path);
                     }
                 }
-            }    
+            }
         } catch (Exception ex) {
             _log.error("VNX File getFsMountpathMap failed for Data Mover {} due to {}", dmName, ex);
-        } 
+        }
         return fsMountpathMap;
     }
 
@@ -607,7 +588,7 @@ public class VNXFileSshApi {
         Map<String, String> vdmIntfs = new ConcurrentHashMap<String, String>();
         try {
             // Prepare arguments for CLI command
-            //nas_server -info -vdm vdm_3_a
+            // nas_server -info -vdm vdm_3_a
             StringBuilder data = new StringBuilder();
             data.append(" -info -vdm ");
             data.append(vdmName);
@@ -615,11 +596,11 @@ public class VNXFileSshApi {
             // Execute command
             XMLApiResult result = executeSsh(VNXFileSshApi.SERVER_INFO_CMD, data.toString());
 
-            if(result.isCommandSuccess()) {
+            if (result.isCommandSuccess()) {
                 // Parse message to get Interfaces and properties
                 String[] propList = result.getMessage().split("[\n]");
                 for (String prop : propList) {
-                    if(prop != null && prop.startsWith(" interface")) {
+                    if (prop != null && prop.startsWith(" interface")) {
                         _log.debug("Vdm Interface : " + prop);
                         String[] attrs = prop.split("=");
                         _log.debug("Vdm Interface : " + attrs[1]);
@@ -627,7 +608,7 @@ public class VNXFileSshApi {
                         String intName = intInfo[0].trim();
                         String capability = intInfo[1];
                         vdmIntfs.put(intName, capability);
-                        _log.info("VDM interface {" + intName + "} - Capability -[" + capability+"]");
+                        _log.info("VDM interface {" + intName + "} - Capability -[" + capability + "]");
                     }
                 }
             }
@@ -640,10 +621,10 @@ public class VNXFileSshApi {
 
         return vdmIntfs;
     }
-   
-    public Map <String, Map<String, String>> getNFSExportsForPath(String dmName, String path) {
 
-        Map <String, Map<String, String>> pathExportMap = new ConcurrentHashMap<String, Map<String, String>>();
+    public Map<String, Map<String, String>> getNFSExportsForPath(String dmName, String path) {
+
+        Map<String, Map<String, String>> pathExportMap = new ConcurrentHashMap<String, Map<String, String>>();
 
         try {
             // Prepare arguments for CLI command
@@ -658,14 +639,14 @@ public class VNXFileSshApi {
             String[] propList = result.getMessage().split("[\n]");
             for (int i = 1; i < propList.length; i++) {
                 String exp = propList[i];
-                Map <String, String> fsExportInfoMap = new ConcurrentHashMap<String, String>();
+                Map<String, String> fsExportInfoMap = new ConcurrentHashMap<String, String>();
                 String expPath = "";
-                if(exp.contains(path)){
+                if (exp.contains(path)) {
                     _log.info("Processing export path {} because it contains {}", exp, path);
                     String[] expList = exp.split("[ \n]");
-                    //loose the double quotes from either ends
-                    expPath = expList[1].substring(1, expList[1].length()-1);
-                    for (String prop: expList) {
+                    // loose the double quotes from either ends
+                    expPath = expList[1].substring(1, expList[1].length() - 1);
+                    for (String prop : expList) {
                         String[] tempStr = prop.split("=");
                         if (tempStr.length > 1) {
                             String val = fsExportInfoMap.get(tempStr[0]);
@@ -691,9 +672,9 @@ public class VNXFileSshApi {
         return pathExportMap;
     }
 
-    public Map <String, Map<String, String>> getNFSExportsForPath(String dmName) {
+    public Map<String, Map<String, String>> getNFSExportsForPath(String dmName) {
 
-        Map <String, Map<String, String>> pathExportMap = new ConcurrentHashMap<String, Map<String, String>>();
+        Map<String, Map<String, String>> pathExportMap = new ConcurrentHashMap<String, Map<String, String>>();
 
         try {
             // Prepare arguments for CLI command
@@ -706,18 +687,18 @@ public class VNXFileSshApi {
 
             // Parse message to get export properties
             String[] propList = result.getMessage().split("[\n]");
-            if(propList == null || propList.length < 1) {
-                //no exports found
+            if (propList == null || propList.length < 1) {
+                // no exports found
                 return pathExportMap;
             }
             for (int i = 1; i < propList.length; i++) {
                 String exp = propList[i];
-                Map <String, String> fsExportInfoMap = new ConcurrentHashMap<String, String>();
+                Map<String, String> fsExportInfoMap = new ConcurrentHashMap<String, String>();
                 String expPath = "";
                 String[] expList = exp.split("[ \n]");
-                //loose the double quotes from either ends
-                expPath = expList[1].substring(1, expList[1].length()-1);
-                for (String prop: expList) {
+                // loose the double quotes from either ends
+                expPath = expList[1].substring(1, expList[1].length() - 1);
+                for (String prop : expList) {
                     String[] tempStr = prop.split("=");
                     if (tempStr.length > 1) {
                         String val = fsExportInfoMap.get(tempStr[0]);
@@ -738,34 +719,34 @@ public class VNXFileSshApi {
         }
         return pathExportMap;
     }
- 
+
     public Map<String, String> getFsExportInfo(String dmName, String path) {
-        
-        Map <String, String> fsExportInfoMap = new ConcurrentHashMap<String, String>();
-        
+
+        Map<String, String> fsExportInfoMap = new ConcurrentHashMap<String, String>();
+
         try {
             // Prepare arguments for CLI command
             StringBuilder data = new StringBuilder();
             data.append(dmName);
             data.append(" -list ");
             data.append(path);
-        
+
             // Execute command
             XMLApiResult result = this.executeSsh(VNXFileSshApi.SERVER_EXPORT_CMD, data.toString());
-        
-           // Parse message to get export properties
+
+            // Parse message to get export properties
             String[] propList = result.getMessage().split("[ \n]");
-            for (String prop: propList) {
+            for (String prop : propList) {
                 String[] tempStr = prop.split("=");
                 if (tempStr.length > 1) {
                     String val = fsExportInfoMap.get(tempStr[0]);
                     if (val == null) {
-                    fsExportInfoMap.put(tempStr[0], tempStr[1]);
+                        fsExportInfoMap.put(tempStr[0], tempStr[1]);
                     } else {
                         fsExportInfoMap.put(tempStr[0], val + ":" + tempStr[1]);
+                    }
                 }
-                }
-            }     
+            }
         } catch (Exception ex) {
             StringBuilder message = new StringBuilder();
             message.append("VNX File getFsExportInfo failed for Data Mover" + dmName);
@@ -773,13 +754,13 @@ public class VNXFileSshApi {
             message.append(", due to {}");
             _log.error(message.toString(), ex);
         }
-        
+
         return fsExportInfoMap;
     }
 
-    public Map <String, Map<String, String>> getCIFSExportsForPath(String dmName) {
+    public Map<String, Map<String, String>> getCIFSExportsForPath(String dmName) {
 
-        Map <String, Map<String, String>> pathExportMap = new ConcurrentHashMap<String, Map<String, String>>();
+        Map<String, Map<String, String>> pathExportMap = new ConcurrentHashMap<String, Map<String, String>>();
 
         try {
             // Prepare arguments for CLI command
@@ -793,26 +774,26 @@ public class VNXFileSshApi {
 
             // Parse message to get export properties
             String[] propList = result.getMessage().split("[\n]");
-            if(propList == null || propList.length < 1) {
-                //no exports found
+            if (propList == null || propList.length < 1) {
+                // no exports found
                 return pathExportMap;
             }
             for (int i = 1; i < propList.length; i++) {
                 String exp = propList[i];
-                Map <String, String> fsExportInfoMap = new ConcurrentHashMap<String, String>();
+                Map<String, String> fsExportInfoMap = new ConcurrentHashMap<String, String>();
                 String expPath = "";
                 String[] expList = exp.split("[ \n]");
-                //loose the double quotes from either ends
+                // loose the double quotes from either ends
                 // For CIFS exports - share path will be followed by share name
-                if(expList[0].equalsIgnoreCase(SHARE)){
-                	expPath = expList[2].substring(1, expList[2].length()-1);
-                	String shareName = expList[1].substring(1, expList[1].length()-1);
-                	fsExportInfoMap.put(SHARE, shareName);
-                }else{
-                	continue;
+                if (expList[0].equalsIgnoreCase(SHARE)) {
+                    expPath = expList[2].substring(1, expList[2].length() - 1);
+                    String shareName = expList[1].substring(1, expList[1].length() - 1);
+                    fsExportInfoMap.put(SHARE, shareName);
+                } else {
+                    continue;
                 }
-                
-                for (String prop: expList) {
+
+                for (String prop : expList) {
                     String[] tempStr = prop.split("=");
                     if (tempStr.length > 1) {
                         String val = fsExportInfoMap.get(tempStr[0]);
@@ -835,7 +816,7 @@ public class VNXFileSshApi {
     }
 
     public Map<String, String> getUserInfo(String dmName) {
-        Map <String, String> userInfo = new ConcurrentHashMap<String, String>();
+        Map<String, String> userInfo = new ConcurrentHashMap<String, String>();
         try {
             // Prepare arguments for CLI command
             StringBuilder data = new StringBuilder();
@@ -845,7 +826,7 @@ public class VNXFileSshApi {
             // Execute command
             XMLApiResult result = this.executeSsh(VNXFileSshApi.SERVER_USER_CMD, data.toString());
 
-            if(result.isCommandSuccess()) {
+            if (result.isCommandSuccess()) {
                 // Parse message to get user properties
                 String[] propList = result.getMessage().split("[ \n]");
                 boolean firstRow = true;
@@ -855,7 +836,7 @@ public class VNXFileSshApi {
                         firstRow = false;
                         continue;
                     }
-                    //<UserAccount uid="117" gid="217" comment="Bourne Testing" md5="false"
+                    // <UserAccount uid="117" gid="217" comment="Bourne Testing" md5="false"
                     // desPasswordState="locked" user="user_rss" mover="2"/>
                     String[] tempStr = prop.split(":");
                     if (tempStr.length > 1) {
@@ -878,11 +859,11 @@ public class VNXFileSshApi {
         return userInfo;
     }
 
-    //nas_fs -name testSAPCliThinFS -type uxfs -create size=100M pool="clarsas_archive" -auto_extend yes -thin yes
+    // nas_fs -name testSAPCliThinFS -type uxfs -create size=100M pool="clarsas_archive" -auto_extend yes -thin yes
     // -hwm 90% -max_size 10G
-    //nas_fs -name testSAPCliThickFS -type uxfs -create size=100M pool="clarsas_archive" -auto_extend no -thin no
+    // nas_fs -name testSAPCliThickFS -type uxfs -create size=100M pool="clarsas_archive" -auto_extend no -thin no
     public String formatCreateFS(String name, String type, String initialSizeInMB, String finalSizeInMB,
-                                 String pool, String desc, boolean thin, String id){
+            String pool, String desc, boolean thin, String id) {
         StringBuilder cmd = new StringBuilder();
         cmd.append(" -name ");
         cmd.append(name);
@@ -890,8 +871,8 @@ public class VNXFileSshApi {
         cmd.append(type);
         cmd.append(" -create ");
         pool = "'" + pool + "'";
-        if(thin) {
-        	cmd.append(" size=" + initialSizeInMB +"M"); //Defaut passed in MB
+        if (thin) {
+            cmd.append(" size=" + initialSizeInMB + "M"); // Defaut passed in MB
             cmd.append(" pool=" + pool);
             cmd.append(" -thin ");
             cmd.append("yes");
@@ -900,9 +881,9 @@ public class VNXFileSshApi {
             cmd.append(" -hwm ");
             cmd.append("90%");
             cmd.append(" -max_size ");
-            cmd.append(finalSizeInMB +"M");//Defaut passed in MB
+            cmd.append(finalSizeInMB + "M");// Defaut passed in MB
         } else {
-        	cmd.append(" size=" + finalSizeInMB +"M"); //Defaut passed in MB
+            cmd.append(" size=" + finalSizeInMB + "M"); // Defaut passed in MB
             cmd.append(" pool=" + pool);
             cmd.append(" -thin ");
             cmd.append("no");
@@ -910,17 +891,17 @@ public class VNXFileSshApi {
             cmd.append("no");
         }
 
-        //only if id is not null and not empty
-        if(id != null && !(id.isEmpty())){
+        // only if id is not null and not empty
+        if (id != null && !(id.isEmpty())) {
             cmd.append(" -o ");
-            cmd.append("id="+id);
+            cmd.append("id=" + id);
         }
         return cmd.toString();
 
         // nas_fs -name sebastian_test -type uxfs -create size=10M pool=tsi_pool1
         // log_type=common fast_clone_level=1 -auto_extend yes -thin yes -max_size 100M -o id=132
     }
-    
+
     // nas_fs -size ThinFS
     public String getFSSizeInfo(String fsName) {
 
@@ -971,7 +952,7 @@ public class VNXFileSshApi {
 
         return fsSize;
     }
-    
+
     // Retry executeSsh Command
     public XMLApiResult executeSshRetry(String command, String request) {
 
@@ -989,7 +970,7 @@ public class VNXFileSshApi {
                 } else if (message != null
                         && !message.isEmpty()
                         && (message.contains("unable to acquire lock(s)") ||
-                        message.contains("NAS_DB locked object is stale") ||
+                                message.contains("NAS_DB locked object is stale") ||
                         message.contains("Temporarily no Data Mover is available"))) {
                     try {
                         // Delaying execution since NAS_DB object is locked till
@@ -1016,4 +997,3 @@ public class VNXFileSshApi {
     }
 
 }
-

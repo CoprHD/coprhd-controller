@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vmware.tasks;
@@ -31,7 +31,7 @@ public class VerifySupportedMultipathPolicy extends ExecutionTask<Void> {
             throw stateException("VerifySupportedMultipathPolicy.illegalState.policy.not.supported", multipathPolicy);
         }
     }
-    
+
     private boolean isPathPolicySupported(HostPathSelectionPolicyOption[] supportedPolicies, String multipathPolicy) {
         if (supportedPolicies != null) {
             for (HostPathSelectionPolicyOption policy : supportedPolicies) {

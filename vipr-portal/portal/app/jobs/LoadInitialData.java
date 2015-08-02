@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package jobs;
@@ -18,7 +18,7 @@ public class LoadInitialData extends Job<String> {
         if (Play.mode.isDev() && !Play.runingInTestMode()) {
             // Load any required development assets here
         }
-        
+
         ConfigPropertyUtils.loadCoordinatorProperties();
     }
 }

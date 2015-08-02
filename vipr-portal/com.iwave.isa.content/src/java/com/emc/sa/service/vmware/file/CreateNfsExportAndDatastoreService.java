@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vmware.file;
@@ -35,9 +35,9 @@ public class CreateNfsExportAndDatastoreService extends VMwareHostService {
     protected String datastoreName;
     @Param(value = EXPORT_HOSTS, required = false)
     protected List<String> exportHosts;
-    @Param(value=STORAGE_IO_CONTROL, required=false)
+    @Param(value = STORAGE_IO_CONTROL, required = false)
     protected Boolean storageIOControl;
-    
+
     protected List<String> calculateExportHosts() {
         Set<String> ipAddresses = vmware.getEndpoints(host, cluster);
         if (exportHosts != null) {
@@ -68,18 +68,18 @@ public class CreateNfsExportAndDatastoreService extends VMwareHostService {
         FileSystemExportParam export = createNfsExportHelper.getNfsExport(fileSystemId);
         connectAndInitializeHost();
         if (cluster != null) {
-            datastores.addAll(vmware.createNfsDatastore(cluster, fileSystem, export, datacenterId, datastoreName));            
+            datastores.addAll(vmware.createNfsDatastore(cluster, fileSystem, export, datacenterId, datastoreName));
         }
         else {
             datastores.add(vmware.createNfsDatastore(host, fileSystem, export, datacenterId, datastoreName));
         }
-        
+
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());
         }
-        
+
         for (Datastore datastore : datastores) {
-            vmware.setStorageIOControl(datastore,  storageIOControl);
+            vmware.setStorageIOControl(datastore, storageIOControl);
         }
     }
 }

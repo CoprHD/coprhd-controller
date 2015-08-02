@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -42,7 +32,7 @@ import com.emc.storageos.security.authorization.Role;
 public class StorageTierService extends TaggedResource {
 
     @Override
-	protected StorageTier queryResource(URI id) {
+    protected StorageTier queryResource(URI id) {
         ArgValidator.checkUri(id);
         StorageTier tier = _dbClient.queryObject(StorageTier.class, id);
         ArgValidator.checkEntityNotNull(tier, id, isIdEmbeddedInURL(id));
@@ -50,13 +40,13 @@ public class StorageTierService extends TaggedResource {
     }
 
     @Override
-	protected URI getTenantOwner(URI id) {
+    protected URI getTenantOwner(URI id) {
         return null;
     }
 
-    /**     
+    /**
      * get Storage Tier associated with id.
-     *
+     * 
      * @param id the URN of a ViPR storage tier
      * @brief Show storage tier
      * @return Policy Object
@@ -71,10 +61,11 @@ public class StorageTierService extends TaggedResource {
         StorageTier tier = queryResource(id);
         return map(tier);
     }
-    
-    /**     
+
+    /**
      * 
      * List all storage tiers
+     * 
      * @prereq none
      * @brief List all storage tiers.
      * @return StorageTierList
@@ -94,17 +85,17 @@ public class StorageTierService extends TaggedResource {
         return tierList;
     }
 
-    /**      
+    /**
      * Retrieve resource representations based on input ids.
-     *
+     * 
      * @param param POST data containing the id list.
      * @brief List data of storage tier resources
      * @return list of representations.
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public StorageTierBulkRep getBulkResources(BulkIdParam param) {
         return (StorageTierBulkRep) super.getBulkResources(param);
@@ -120,7 +111,7 @@ public class StorageTierService extends TaggedResource {
     public StorageTierBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<StorageTier> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new StorageTierBulkRep(BulkList.wrapping(_dbIterator, MapStorageTier.getInstance()));
     }
 
@@ -132,7 +123,7 @@ public class StorageTierService extends TaggedResource {
     }
 
     @Override
-    protected ResourceTypeEnum getResourceType(){
+    protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.STORAGE_TIER;
     }
 

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.placement;
@@ -65,6 +55,7 @@ public class FileStorageScheduler {
 
     /**
      * Schedule storage for fileshare in the varray with the given CoS capabilities.
+     * 
      * @param vArray
      * @param vPool
      * @param capabilities
@@ -73,44 +64,44 @@ public class FileStorageScheduler {
     public List<FileRecommendation> placeFileShare(VirtualArray vArray, VirtualPool vPool,
             VirtualPoolCapabilityValuesWrapper capabilities) {
 
-            _log.debug("Schedule storage for {} resource(s) of size {}.", capabilities.getResourceCount(), capabilities.getSize());
+        _log.debug("Schedule storage for {} resource(s) of size {}.", capabilities.getResourceCount(), capabilities.getSize());
 
-            // Get all storage pools that match the passed vpool params and
-            // protocols. In addition, the pool must have enough capacity
-            // to hold at least one resource of the requested size.
-            List<StoragePool> candidatePools = _scheduler.getMatchingPools(vArray, vPool, capabilities);
+        // Get all storage pools that match the passed vpool params and
+        // protocols. In addition, the pool must have enough capacity
+        // to hold at least one resource of the requested size.
+        List<StoragePool> candidatePools = _scheduler.getMatchingPools(vArray, vPool, capabilities);
 
-            // Get the recommendations for the candidate pools.
-            List<Recommendation> poolRecommendations = 
-                    _scheduler.getRecommendationsForPools(vArray.getId().toString(), candidatePools, capabilities);
+        // Get the recommendations for the candidate pools.
+        List<Recommendation> poolRecommendations =
+                _scheduler.getRecommendationsForPools(vArray.getId().toString(), candidatePools, capabilities);
 
-            List<FileRecommendation> recommendations = 
-                    selectStorageHADomainMatchingVpool(vPool, vArray.getId(), poolRecommendations);
-            // We need to place all the resources. If we can't then
-            // log an error and clear the list of recommendations.
-            if (recommendations.isEmpty()) {
-                _log.error(
+        List<FileRecommendation> recommendations =
+                selectStorageHADomainMatchingVpool(vPool, vArray.getId(), poolRecommendations);
+        // We need to place all the resources. If we can't then
+        // log an error and clear the list of recommendations.
+        if (recommendations.isEmpty()) {
+            _log.error(
                     "Could not find matching pools for virtual array {} & vpool {}",
                     vArray.getId(), vPool.getId());
-            }
-
-            return recommendations;
         }
+
+        return recommendations;
+    }
 
     /**
      * Select storage port for exporting file share to the given client.
      * One IP transport zone per varray.
      * Selects only one storage port for all exports of a file share
-     *
-     * @param fs        file share being exported
-     * @param protocol  file storage protocol for this export
-     * @param clients    client network address or name
+     * 
+     * @param fs file share being exported
+     * @param protocol file storage protocol for this export
+     * @param clients client network address or name
      * @return
      */
     public StoragePort placeFileShareExport(FileShare fs, String protocol, List<String> clients) {
         StoragePort sp;
 
-        if (fs.getStoragePort() == null ) {
+        if (fs.getStoragePort() == null) {
             _log.debug("placement for file system {} with no assigned port.", fs.getName());
             // if no storage port is selected yet, select one and record the selection
             List<StoragePort> ports = getStorageSystemPortsInVarray(fs.getStorageDevice(),
@@ -121,10 +112,10 @@ public class FileStorageScheduler {
                 getPortsWithFileSharingProtocol(protocol, ports);
             }
 
-            if (ports == null  || ports.isEmpty()) {
+            if (ports == null || ports.isEmpty()) {
                 _log.error(MessageFormat.format(
-                    "There are no active and registered storage ports assigned to virtual array {0}",
-                    fs.getVirtualArray()));
+                        "There are no active and registered storage ports assigned to virtual array {0}",
+                        fs.getVirtualArray()));
                 throw APIException.badRequests.noStoragePortFoundForVArray(fs.getVirtualArray().toString());
             }
             Collections.shuffle(ports);
@@ -149,7 +140,7 @@ public class FileStorageScheduler {
                     _log.error(MessageFormat.format(
                             "There are no active and registered storage ports assigned to virtual array {0}",
                             fs.getVirtualArray()));
-                        throw APIException.badRequests.noStoragePortFoundForVArray(fs.getVirtualArray().toString());
+                    throw APIException.badRequests.noStoragePortFoundForVArray(fs.getVirtualArray().toString());
                 }
             }
         }
@@ -157,11 +148,10 @@ public class FileStorageScheduler {
         return sp;
     }
 
-
     /**
      * Fetches and returns all the storage ports for a given storage system
      * that are in a given varray
-     *
+     * 
      * @param storageSystemUri the storage system URI
      * @param varray the varray URI
      * @return a list of all the storage ports for a given storage system
@@ -175,27 +165,26 @@ public class FileStorageScheduler {
         while (itr.hasNext()) {
             temp = itr.next();
             if (temp.getInactive() ||
-                temp.getTaggedVirtualArrays() == null ||
-                !temp.getTaggedVirtualArrays().contains(varray.toString()) ||
-                !RegistrationStatus.REGISTERED.toString()
-                    .equalsIgnoreCase(temp.getRegistrationStatus()) ||
-                (StoragePort.OperationalStatus.valueOf(temp.getOperationalStatus()))
-                    .equals(StoragePort.OperationalStatus.NOT_OK)  ||
-                !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
-                    .equals(temp.getCompatibilityStatus()) ||
-                !DiscoveryStatus.VISIBLE.name().equals(temp.getDiscoveryStatus())) {
-                    itr.remove();
+                    temp.getTaggedVirtualArrays() == null ||
+                    !temp.getTaggedVirtualArrays().contains(varray.toString()) ||
+                    !RegistrationStatus.REGISTERED.toString()
+                            .equalsIgnoreCase(temp.getRegistrationStatus()) ||
+                    (StoragePort.OperationalStatus.valueOf(temp.getOperationalStatus()))
+                            .equals(StoragePort.OperationalStatus.NOT_OK) ||
+                    !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
+                            .equals(temp.getCompatibilityStatus()) ||
+                    !DiscoveryStatus.VISIBLE.name().equals(temp.getDiscoveryStatus())) {
+                itr.remove();
             }
         }
         return ports;
     }
 
-
     /**
      * Removes storage ports that do not support the specified file sharing protocol.
-     *
-     * @param protocol  the required protocol that the port must support.
-     * @param ports     the list of available ports.
+     * 
+     * @param protocol the required protocol that the port must support.
+     * @param ports the list of available ports.
      */
     private void getPortsWithFileSharingProtocol(String protocol, List<StoragePort> ports) {
 
@@ -224,7 +213,7 @@ public class FileStorageScheduler {
 
             if (null != haDomain) {
                 StringSet supportedProtocols = haDomain.getFileSharingProtocols();
-                if (supportedProtocols  == null || !supportedProtocols.contains(protocol)) {
+                if (supportedProtocols == null || !supportedProtocols.contains(protocol)) {
                     itr.remove();
                     _log.debug("Removing port {}", tempPort.getPortName());
                 }
@@ -234,9 +223,9 @@ public class FileStorageScheduler {
         }
     }
 
-    
     /**
      * Select the right StorageHADomain matching vpool protocols.
+     * 
      * @param vpool
      * @param vArray
      * @param poolRecommends recommendations after selecting matching storage pools.
@@ -245,39 +234,39 @@ public class FileStorageScheduler {
     private List<FileRecommendation> selectStorageHADomainMatchingVpool(VirtualPool vpool,
             URI vArray, List<Recommendation> poolRecommends) {
 
-    	_log.debug("select matching StorageHADomain");
+        _log.debug("select matching StorageHADomain");
         List<FileRecommendation> result = new ArrayList<FileRecommendation>();
         for (Recommendation recommendation : poolRecommends) {
             FileRecommendation rec = new FileRecommendation(recommendation);
             URI storageUri = recommendation.getSourceDevice();
 
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageUri);
-            // Same check for VNXe will be done here.  
-            // TODO:  normalize behavior across file arrays so that this check is not required.
+            // Same check for VNXe will be done here.
+            // TODO: normalize behavior across file arrays so that this check is not required.
             // TODO: Implement fake storageHADomain for DD to fit the viPR model
             if (!storage.getSystemType().equals(Type.netapp.toString()) &&
-            		!storage.getSystemType().equals(Type.netappc.toString()) && 
+                    !storage.getSystemType().equals(Type.netappc.toString()) &&
                     !storage.getSystemType().equals(Type.vnxe.toString()) &&
                     !storage.getSystemType().equals(Type.datadomain.toString())) {
                 result.add(rec);
                 continue;
             }
-            
+
             List<StoragePort> portList = getStorageSystemPortsInVarray(storageUri, vArray);
             if (portList == null || portList.isEmpty()) {
-            	_log.info("No valid storage port found from the virtual array: " +vArray);
+                _log.info("No valid storage port found from the virtual array: " + vArray);
                 continue;
             }
-            
-            List<URI> storagePorts = new ArrayList<URI>();
-            for (StoragePort port: portList) {
 
-            	_log.debug("Looking for port {}", port.getLabel());
+            List<URI> storagePorts = new ArrayList<URI>();
+            for (StoragePort port : portList) {
+
+                _log.debug("Looking for port {}", port.getLabel());
                 URI haDomainUri = port.getStorageHADomain();
                 // Data Domain does not have a filer entity.
                 if ((haDomainUri == null) && (!storage.getSystemType().equals(Type.datadomain.toString()))) {
-                	_log.info("No StorageHADomain URI for port {}", port.getLabel());
-                	continue;
+                    _log.info("No StorageHADomain URI for port {}", port.getLabel());
+                    continue;
                 }
 
                 StorageHADomain haDomain = null;
@@ -286,7 +275,7 @@ public class FileStorageScheduler {
                 }
                 if (haDomain != null) {
                     StringSet protocols = haDomain.getFileSharingProtocols();
-                    //to see if it matches virtualPool's protocols
+                    // to see if it matches virtualPool's protocols
                     StringSet vpoolProtocols = vpool.getProtocols();
                     if (protocols != null && protocols.containsAll(vpoolProtocols)) {
                         _log.info("Found the StorageHADomain {} for recommended storagepool: {}",
@@ -297,11 +286,11 @@ public class FileStorageScheduler {
                     // The same file system on DD can support NFS and CIFS
                     storagePorts.add(port.getId());
                 } else {
-                	_log.error("No StorageHADomain for port {}", port.getIpAddress());
+                    _log.error("No StorageHADomain for port {}", port.getIpAddress());
                 }
             }
-            
-            //select storage port randomly from all candidate ports (to minimize collisions).
+
+            // select storage port randomly from all candidate ports (to minimize collisions).
             Collections.shuffle(storagePorts);
             rec.setStoragePorts(storagePorts);
             result.add(rec);
@@ -309,6 +298,5 @@ public class FileStorageScheduler {
         return result;
 
     }
-    
-}
 
+}

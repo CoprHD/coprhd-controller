@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.engine;
@@ -15,7 +15,7 @@ import com.emc.vipr.client.exceptions.TimeoutException;
  * Wrapper around a ViPR Tasks that allow for monitoring progress and updating the execution log on success/failure.
  * 
  * @param <T>
- *        the result type of the ViPR Tasks
+ *            the result type of the ViPR Tasks
  */
 public class ViPRTasksMonitor<T> {
     private final ExecutionContext context;
@@ -46,7 +46,7 @@ public class ViPRTasksMonitor<T> {
      * Waits until the tasks complete or the specified timeout (millis), whichever is first.
      * 
      * @param timeout
-     *        the maximum time to wait.
+     *            the maximum time to wait.
      * @return whether the tasks completed or not.
      */
     public boolean waitFor(long timeout) {
@@ -55,11 +55,9 @@ public class ViPRTasksMonitor<T> {
                 values = tasks.get(timeout);
                 complete = true;
                 context.updateTaskLog(log, elapsedTime());
-            }
-            catch (TimeoutException e) {
+            } catch (TimeoutException e) {
                 // Ignore
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 error = new ExecutionException(e);
                 complete = true;
                 context.updateTaskLog(log, elapsedTime(), e);
@@ -83,11 +81,9 @@ public class ViPRTasksMonitor<T> {
                     values = tasks.get();
                 }
                 context.updateTaskLog(log, elapsedTime());
-            }
-            catch (TimeoutException e) {
+            } catch (TimeoutException e) {
                 // Ignore
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 error = new ExecutionException(e);
                 complete = true;
                 context.updateTaskLog(log, elapsedTime(), e);
@@ -170,7 +166,7 @@ public class ViPRTasksMonitor<T> {
      * @return the results of the tasks.
      * 
      * @throws ExecutionException
-     *         if the tasks completed with an error.
+     *             if the tasks completed with an error.
      */
     public List<T> getValues() {
         waitFor();

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile;
 
@@ -35,7 +25,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Processor responsible to do VNXFile related activities.
  */
-public abstract class  VNXFileProcessor extends Processor {
+public abstract class VNXFileProcessor extends Processor {
 
     private final Logger _logger = LoggerFactory.getLogger(VNXFileProcessor.class);
 
@@ -43,9 +33,10 @@ public abstract class  VNXFileProcessor extends Processor {
      * Unmarshaller instance.
      */
     protected Unmarshaller _unmarshaller = null;
-    
+
     /**
      * Fetches the QueryStats response from ResponsePacket.
+     * 
      * @param responsePacket
      * @return
      */
@@ -59,9 +50,10 @@ public abstract class  VNXFileProcessor extends Processor {
         }
         return queryResponse;
     }
-    
+
     /**
      * Fetches the Query response from ResponsePacket.
+     * 
      * @param responsePacket
      * @return
      */
@@ -93,7 +85,7 @@ public abstract class  VNXFileProcessor extends Processor {
         return queryResponse;
     }
 
-    protected List<Object> getTaskResponse( ResponsePacket responsePacket ) {
+    protected List<Object> getTaskResponse(ResponsePacket responsePacket) {
         List<Object> responseList = responsePacket.getResponseOrResponseEx();
         Iterator<Object> responseListItr = responseList.iterator();
         List<Object> taskResponse = new ArrayList<Object>();
@@ -106,7 +98,7 @@ public abstract class  VNXFileProcessor extends Processor {
                 Iterator<Problem> problemsItr = problems.iterator();
                 while (problemsItr.hasNext()) {
                     Problem prob = problemsItr.next();
-                    _logger.error( "Respone fault: {}  cause: {}", prob.getDescription(), prob.getDiagnostics());
+                    _logger.error("Respone fault: {}  cause: {}", prob.getDescription(), prob.getDiagnostics());
                 }
             }
 
@@ -115,13 +107,12 @@ public abstract class  VNXFileProcessor extends Processor {
 
         return taskResponse;
     }
-    
 
     /**
      * Retrieve the description and diagnostics information from the error status.
      * 
-     * @param status  status of the response returned by the XML API Server
-     * @param keyMap  map used to returned values to upper layers.
+     * @param status status of the response returned by the XML API Server
+     * @param keyMap map used to returned values to upper layers.
      */
     protected void processErrorStatus(Status status, Map<String, Object> keyMap) {
         List<Problem> problems = status.getProblem();
@@ -129,47 +120,48 @@ public abstract class  VNXFileProcessor extends Processor {
         // Only retrieve the first problem.
         if (null != problems && !problems.isEmpty()) {
             Problem problem = problems.get(0);
-            String desc  = problem.getDescription();
+            String desc = problem.getDescription();
             String message = problem.getMessage();
 
             String diags = problem.getDiagnostics();
 
             keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_FAILURE);
-            
+
             // These fields are optional in the response packet.
             if (null != desc) {
                 keyMap.put(VNXFileConstants.FAULT_DESC, desc);
             }
-            
+
             if (null != diags) {
                 keyMap.put(VNXFileConstants.FAULT_DIAG, diags);
             }
-            
+
             if (null != message) {
                 keyMap.put(VNXFileConstants.FAULT_MSG, message);
             }
-            
+
             if ((desc != null) && (!desc.isEmpty())) {
-            	_logger.error("Fault response received due to {} possible cause {}", desc, diags);
+                _logger.error("Fault response received due to {} possible cause {}", desc, diags);
             } else {
-            	_logger.error("Fault response received due to {} possible cause {}", message, diags);
+                _logger.error("Fault response received due to {} possible cause {}", message, diags);
             }
         }
     }
 
-    
     /**
      * Utility to get the FileshareNativeId from NativeGuid.
+     * 
      * @param nativeGuid
      * @return
      */
     protected String fetchNativeId(String nativeGuid) {
-        String []token = nativeGuid.split(VNXFileConstants.PLUS_SEPERATOR);
-        return token[token.length-1];
+        String[] token = nativeGuid.split(VNXFileConstants.PLUS_SEPERATOR);
+        return token[token.length - 1];
     }
-    
+
     /**
      * Set unmarshaller instance.
+     * 
      * @param unmarshaller
      */
     public void setUnmarshaller(Unmarshaller unmarshaller) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block;
@@ -19,11 +19,12 @@ import java.util.List;
 public class UnManagedBulkRep extends BulkRestRep {
     private List<UnManagedVolumeRestRep> unManagedVolumes;
 
-    /** 
-     * List of unmanaged volumes.  UnManaged volumes are volumes that are
-     * present within ViPR, but are not under ViPR management.  ViPR provides
+    /**
+     * List of unmanaged volumes. UnManaged volumes are volumes that are
+     * present within ViPR, but are not under ViPR management. ViPR provides
      * an ingest capability that enables users to bring the unmanaged
      * volumes under ViPR management.
+     * 
      * @valid none
      */
     @XmlElement(name = "unmanaged_volume")
@@ -38,8 +39,8 @@ public class UnManagedBulkRep extends BulkRestRep {
         this.unManagedVolumes = unManagedVolumes;
     }
 
-    public UnManagedBulkRep() {}
-
+    public UnManagedBulkRep() {
+    }
 
     public UnManagedBulkRep(List<UnManagedVolumeRestRep> unManagedVolumes) {
         this.unManagedVolumes = unManagedVolumes;

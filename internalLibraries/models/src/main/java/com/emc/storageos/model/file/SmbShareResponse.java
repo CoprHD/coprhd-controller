@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file;
@@ -12,7 +12,7 @@ public class SmbShareResponse extends FileSystemShareBase {
 
     private String mountPoint;
     private String path;
-    
+
     public SmbShareResponse() {
         super();
     }
@@ -27,6 +27,7 @@ public class SmbShareResponse extends FileSystemShareBase {
 
     /**
      * The SMB mount point of the file system.
+     * 
      * @valid String path
      */
     @XmlElement(name = "mount_point")
@@ -40,6 +41,7 @@ public class SmbShareResponse extends FileSystemShareBase {
 
     /**
      * The SMB path of the file system or subdirectory
+     * 
      * @valid String path
      */
     @XmlElement(name = "path")
@@ -50,5 +52,5 @@ public class SmbShareResponse extends FileSystemShareBase {
     public void setPath(String path) {
         this.path = path;
     }
-    
+
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery;
 
@@ -30,6 +20,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
+
 /**
  * Processor to handle Storage Pools.
  * 
@@ -37,17 +28,16 @@ import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.
 public class StoragePoolProcessor extends StorageProcessor {
     private Logger _logger = LoggerFactory.getLogger(StoragePoolProcessor.class);
     private DbClient _dbClient;
-    
+
     @Override
     public void processResult(
             Operation operation, Object resultObj, Map<String, Object> keyMap)
             throws BaseCollectionException {
         try {
             @SuppressWarnings("unchecked")
-            
             final Iterator<CIMObjectPath> it = (Iterator<CIMObjectPath>) resultObj;
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
-            
+
             while (it.hasNext()) {
                 CIMObjectPath poolPath = it.next();
                 String poolNativeGuid = NativeGUIDGenerator
@@ -59,10 +49,10 @@ public class StoragePoolProcessor extends StorageProcessor {
                     if (poolPath.toString().contains(StoragePool.PoolClassNames.Symm_VirtualProvisioningPool.toString())) {
                         addPath(keyMap, Constants.VMAX2_THIN_POOLS, poolPath);
                     }
-                    
+
                     String poolClass = poolPath.getObjectName();
                     if (poolClass.startsWith(SYMM_CLASS_PREFIX) &&
-                        !poolClass.equals(StoragePool.PoolClassNames.Symm_SRPStoragePool.name())) {
+                            !poolClass.equals(StoragePool.PoolClassNames.Symm_SRPStoragePool.name())) {
                         addPath(keyMap, Constants.VMAX2POOLS, poolPath);
                     }
                 }
@@ -84,7 +74,7 @@ public class StoragePoolProcessor extends StorageProcessor {
                                 .toString())
                 || poolPath.toString().contains(
                         StoragePool.PoolClassNames.Symm_SRPStoragePool
-                        .toString())) {
+                                .toString())) {
             return true;
         }
         return false;
@@ -96,4 +86,3 @@ public class StoragePoolProcessor extends StorageProcessor {
         // TODO Auto-generated method stub
     }
 }
-

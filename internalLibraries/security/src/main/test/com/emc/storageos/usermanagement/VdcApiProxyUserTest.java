@@ -1,9 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.usermanagement;
-
 
 import com.emc.storageos.model.vdc.VirtualDataCenterAddParam;
 import com.emc.storageos.model.vdc.VirtualDataCenterModifyParam;
@@ -30,7 +29,7 @@ public class VdcApiProxyUserTest extends TenantMode {
     @BeforeClass
     public synchronized static void setupProxyuser() throws Exception {
         logger.info("Setup for VdcApiProxyUserTest");
-        String user =  getUserByRole(null, RoleOrAcl.SecurityAdmin);
+        String user = getUserByRole(null, RoleOrAcl.SecurityAdmin);
         ViPRCoreClient client = new ViPRCoreClient(controllerNodeEndpoint, true)
                 .withLogin(user, PASSWORD);
         String rootProxyToken = client.auth().proxyToken();
@@ -80,8 +79,7 @@ public class VdcApiProxyUserTest extends TenantMode {
 
     }
 
-
-    private VirtualDataCenterAddParam getVdcAddParam()  {
+    private VirtualDataCenterAddParam getVdcAddParam() {
         VirtualDataCenterAddParam newVdcParam;
         newVdcParam = new VirtualDataCenterAddParam();
         newVdcParam.setName("new_vdc_" + new Random().nextInt());

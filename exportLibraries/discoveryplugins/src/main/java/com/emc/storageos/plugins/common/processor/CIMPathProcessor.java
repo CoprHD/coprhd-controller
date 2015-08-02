@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.plugins.common.processor;
 
@@ -25,7 +15,6 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.Processor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
-
 
 /**
  * Responsible for handling Iterators and updating CIMPaths in Map. This
@@ -54,9 +43,9 @@ public class CIMPathProcessor extends Processor {
                         CIMProperty<?> prop = path.getKey(Constants._Name);
                         serialID = (String) prop.getValue();
                         _logger.info("serial ID Found:" + serialID);
-                        if(serialID.toLowerCase().contains(((String) keyMap
+                        if (serialID.toLowerCase().contains(((String) keyMap
                                 .get(Constants._serialID)).toLowerCase()))
-                         {  
+                        {
                             addPath(keyMap, operation.getResult(), path);
                             break;
                         }

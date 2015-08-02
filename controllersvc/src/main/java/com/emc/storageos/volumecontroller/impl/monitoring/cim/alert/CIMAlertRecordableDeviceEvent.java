@@ -1,24 +1,12 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.monitoring.cim.alert;
 
 //Java imports
 import java.util.Hashtable;
-import java.util.Iterator;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,9 +97,9 @@ public abstract class CIMAlertRecordableDeviceEvent extends
         Severity computedSeverity = Severity.UNKNOWN;
         if ((severityStr != null && severityStr.length() == 0)
                 || severityStr == null) {
-            
+
             int severity;
-            
+
             severityStr = _indication.get(CIMConstants.PERCEIVED_SEVERITY);
             try {
                 if (severityStr != null) {
@@ -120,7 +108,7 @@ public abstract class CIMAlertRecordableDeviceEvent extends
                     if (severity >= 0 && severity <= 9) {
                         computedSeverity = Severity.values()[severity];
                     }
-                } 
+                }
                 severityStr = computedSeverity.name();
             } catch (NumberFormatException e) {
                 _logger.error("Unable to find the right severity ", e);
@@ -134,8 +122,9 @@ public abstract class CIMAlertRecordableDeviceEvent extends
         {
             severityStr = computedSeverity.name();
         }
-        if (_monitoringPropertiesLoader.isToLogIndications())
+        if (_monitoringPropertiesLoader.isToLogIndications()) {
             _logger.debug("Severity calclulated for Alert {}", severityStr);
+        }
         return severityStr;
     }
 
@@ -153,8 +142,9 @@ public abstract class CIMAlertRecordableDeviceEvent extends
         if (description == null) {
             description = _indication.get(CIMConstants.DESCRIPTION);
         }
-        if (_monitoringPropertiesLoader.isToLogIndications())
+        if (_monitoringPropertiesLoader.isToLogIndications()) {
             _logger.debug("Description Found : {}", description);
+        }
         return description;
     }
 

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -27,7 +17,6 @@ import javax.ws.rs.core.MediaType;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.model.workflow.StepList;
@@ -42,12 +31,13 @@ import com.emc.storageos.security.authorization.Role;
  * API interface for a Workflow and WorkflowStep.
  * This interface is read-only and returns historical information about
  * Workflow execution.
+ * 
  * @author Watson
  */
 @Path("/vdc/workflows")
 @DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
         Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.TENANT_ADMIN})
+        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.TENANT_ADMIN })
 public class WorkflowService extends ResourceService {
     protected Workflow queryResource(URI id) {
         ArgValidator.checkUri(id);
@@ -57,8 +47,9 @@ public class WorkflowService extends ResourceService {
         return workflow;
     }
 
-    /**     
+    /**
      * Returns a list of all Workflows.
+     * 
      * @brief List all workflows
      * @return WorkflowList
      */
@@ -67,19 +58,22 @@ public class WorkflowService extends ResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
             Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
     public WorkflowList getWorkflows() {
-    	List<URI> workflowIds = _dbClient.queryByType(Workflow.class, true);
-    	WorkflowList list = new WorkflowList();
-    	for(URI workflowId : workflowIds) {
-    		Workflow workflow = _dbClient.queryObject(Workflow.class, workflowId);
-    		if (workflow == null) continue;
-    		list.getWorkflows().add(map(workflow));
-    		workflow = null;
-    	}
+        List<URI> workflowIds = _dbClient.queryByType(Workflow.class, true);
+        WorkflowList list = new WorkflowList();
+        for (URI workflowId : workflowIds) {
+            Workflow workflow = _dbClient.queryObject(Workflow.class, workflowId);
+            if (workflow == null) {
+                continue;
+            }
+            list.getWorkflows().add(map(workflow));
+            workflow = null;
+        }
         return list;
     }
 
-    /**     
+    /**
      * Returns the active workflows.
+     * 
      * @brief List active workflows
      */
     @GET
@@ -99,8 +93,9 @@ public class WorkflowService extends ResourceService {
         return list;
     }
 
-    /**     
+    /**
      * Returns the completed workflows.
+     * 
      * @brief List completed workflows
      */
     @GET
@@ -120,8 +115,9 @@ public class WorkflowService extends ResourceService {
         return list;
     }
 
-    /**     
+    /**
      * Returns workflows created in the last specified number of minutes.
+     * 
      * @brief List workflows created in specified time period
      */
     @GET
@@ -130,7 +126,9 @@ public class WorkflowService extends ResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
             Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
     public WorkflowList getRecentWorkflows(@QueryParam("min") String minutes) {
-        if (minutes == null) minutes = "10";
+        if (minutes == null) {
+            minutes = "10";
+        }
         List<URI> workflowIds = _dbClient.queryByType(Workflow.class, true);
         List<Workflow> workflows = _dbClient.queryObject(Workflow.class, workflowIds);
         Long timeDiff = new Long(minutes) * 1000 * 60;
@@ -145,8 +143,9 @@ public class WorkflowService extends ResourceService {
         return list;
     }
 
-    /**     
+    /**
      * Returns information about the specified workflow.
+     * 
      * @param id the URN of a ViPR workflow
      * @brief Show workflow
      * @return
@@ -162,8 +161,9 @@ public class WorkflowService extends ResourceService {
         return map(workflow);
     }
 
-    /**     
+    /**
      * Gets a list of all the steps in a particular workflow.
+     * 
      * @param id the URN of a ViPR workflow
      * @brief List workflow steps
      * @return
@@ -189,8 +189,9 @@ public class WorkflowService extends ResourceService {
         return list;
     }
 
-    /**     
+    /**
      * Returns a single WorkflowStep.
+     * 
      * @param stepId
      * @brief Show workflow step
      * @return
@@ -206,14 +207,14 @@ public class WorkflowService extends ResourceService {
         ArgValidator.checkEntityNotNull(step, stepId, isIdEmbeddedInURL(stepId));
         return map(step, getChildWorkflows(step));
     }
-    
+
     private List<URI> getChildWorkflows(WorkflowStep step) {
         URIQueryResultList result = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getWorkflowByOrchTaskId(step.getStepId()), result);
         List<URI> childWorkflows = new ArrayList<URI>();
-        while(result.iterator().hasNext()) { 
-            childWorkflows.add(result.iterator().next()); 
+        while (result.iterator().hasNext()) {
+            childWorkflows.add(result.iterator().next());
         }
         return childWorkflows;
     }

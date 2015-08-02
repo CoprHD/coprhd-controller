@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.api;
@@ -39,12 +39,12 @@ import controllers.catalog.OrderExecution;
 
 /**
  * Catalog API. API for access services and performing orders.
- *
+ * 
  * Note: setSelectedVdc() is used before most of the service. This is a utility to set the VDC based on the VDC name
  * passed in. The API does not have the same interaction as the portal where the user can choose the active VDC in the
  * corner. Instead, the VDC is passed in on each request. Set this into the session so the code is consistent
  * regardless of where the VDC comes from.
- *
+ * 
  * @author Chris Dail
  */
 public class CatalogApi extends OrderExecution {
@@ -67,7 +67,7 @@ public class CatalogApi extends OrderExecution {
     public static void invoke(String serviceId) {
         runCatalogService(serviceId);
     }
-    
+
     public static void invokeByPath(String sp1, String sp2, String sp3, String sp4, String sp5) {
         CatalogCategoryRestRep catalog = CatalogCategoryUtils.getRootCategory();
 
@@ -112,7 +112,7 @@ public class CatalogApi extends OrderExecution {
         }
 
         DataObjectRestRep result = root;
-        for (String path: subPaths) {
+        for (String path : subPaths) {
             if (StringUtils.isBlank(path)) {
                 continue;
             }
@@ -157,7 +157,7 @@ public class CatalogApi extends OrderExecution {
     private static OrderCreateParam createAndValidateOrder(String serviceId) {
         CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(serviceId));
         ServiceDescriptorRestRep descriptor = service.getServiceDescriptor();
-        
+
         // Filter out actual Service Parameters
         Map<String, String> parameters = parseParameters(service, descriptor);
         if (Validation.hasErrors()) {
@@ -169,10 +169,9 @@ public class CatalogApi extends OrderExecution {
         return order;
     }
 
-
     private static List<ValidationError> getValidationErrors() {
         List<ValidationError> errors = Lists.newArrayList();
-        for (play.data.validation.Error error: Validation.errors()) {
+        for (play.data.validation.Error error : Validation.errors()) {
             errors.add(new ValidationError(error.getKey(), error.message()));
         }
         return errors;

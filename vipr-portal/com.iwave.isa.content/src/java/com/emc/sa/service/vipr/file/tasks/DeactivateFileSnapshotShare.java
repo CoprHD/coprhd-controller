@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.file.tasks;
@@ -13,7 +13,7 @@ import com.emc.vipr.client.Task;
 public class DeactivateFileSnapshotShare extends WaitForTask<FileSnapshotRestRep> {
     private final URI fileSnapshotId;
     private final String shareName;
-    
+
     public DeactivateFileSnapshotShare(String fileSnapshotId, String shareName) {
         this(uri(fileSnapshotId), shareName);
     }

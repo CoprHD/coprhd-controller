@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util.descriptor;
@@ -64,15 +64,16 @@ public class ServiceFieldValidator {
      * Validates a number field.
      * 
      * @param service
-     *        the catalog service.
+     *            the catalog service.
      * @param fieldName
-     *        the name of the field to validate.
+     *            the name of the field to validate.
      * @param value
-     *        the field value.
+     *            the field value.
      * @param validation
-     *        the validation configuration.
+     *            the validation configuration.
      */
-    private static void validateNumberField(CatalogServiceRestRep catalogService, ServiceFieldRestRep field, String fieldName, String value) {
+    private static void
+            validateNumberField(CatalogServiceRestRep catalogService, ServiceFieldRestRep field, String fieldName, String value) {
         if (StringUtils.isNotBlank(value)) {
             validateNumber(fieldName, value);
             validateRange(fieldName, value, field.getMin(), field.getMax());
@@ -83,15 +84,16 @@ public class ServiceFieldValidator {
      * Validates an integer field.
      * 
      * @param service
-     *        the catalog service.
+     *            the catalog service.
      * @param fieldName
-     *        the name of the field to validate.
+     *            the name of the field to validate.
      * @param value
-     *        the field value.
+     *            the field value.
      * @param validation
-     *        the validation configuration.
+     *            the validation configuration.
      */
-    private static void validateIntegerField(CatalogServiceRestRep catalogService, ServiceFieldRestRep field, String fieldName, String value) {
+    private static void
+            validateIntegerField(CatalogServiceRestRep catalogService, ServiceFieldRestRep field, String fieldName, String value) {
         if (StringUtils.isNotBlank(value)) {
             validateInteger(fieldName, value);
             validateRange(fieldName, value, field.getMin(), field.getMax());
@@ -102,13 +104,13 @@ public class ServiceFieldValidator {
      * Validates a text field.
      * 
      * @param service
-     *        the catalog service.
+     *            the catalog service.
      * @param fieldName
-     *        the name of the field to validate.
+     *            the name of the field to validate.
      * @param value
-     *        the field value.
+     *            the field value.
      * @param validation
-     *        the validation configuration.
+     *            the validation configuration.
      */
     private static void validateTextField(CatalogServiceRestRep catalogService, ServiceFieldRestRep field, String fieldName, String value) {
         if (StringUtils.isNotBlank(value)) {
@@ -121,15 +123,16 @@ public class ServiceFieldValidator {
      * Validates a storage size field.
      * 
      * @param service
-     *        the catalog service.
+     *            the catalog service.
      * @param fieldName
-     *        the name of the field to validate.
+     *            the name of the field to validate.
      * @param value
-     *        the field value.
+     *            the field value.
      * @param validation
-     *        the validation configuration.
+     *            the validation configuration.
      */
-    private static void validateStorageSizeField(CatalogServiceRestRep catalogService, ServiceFieldRestRep field, String fieldName, String value) {
+    private static void validateStorageSizeField(CatalogServiceRestRep catalogService, ServiceFieldRestRep field, String fieldName,
+            String value) {
         validateNumber(fieldName, value);
 
         boolean hasMinSize = field.getMin() != null;
@@ -141,7 +144,8 @@ public class ServiceFieldValidator {
         validateRange(fieldName, value, min, max);
     }
 
-    private static void validateBooleanField(CatalogServiceRestRep catalogServiceRestRep, ServiceFieldRestRep field, String fieldName, String value) {
+    private static void validateBooleanField(CatalogServiceRestRep catalogServiceRestRep, ServiceFieldRestRep field, String fieldName,
+            String value) {
         if (StringUtils.isNotBlank(value)) {
             validateRegex(fieldName, value, field.getRegEx(), field.getFailureMessage());
             validateLength(fieldName, value, field.getMin(), field.getMax());
@@ -152,9 +156,9 @@ public class ServiceFieldValidator {
      * Validates a value as a number.
      * 
      * @param fieldName
-     *        the name of the field.
+     *            the name of the field.
      * @param value
-     *        the value to validate.
+     *            the value to validate.
      */
     private static void validateNumber(String fieldName, String value) {
         validateRegex(fieldName, value, NUMBER_REGEX, MessagesUtils.get(INVALID_NUMBER_KEY));
@@ -164,9 +168,9 @@ public class ServiceFieldValidator {
      * Validates a value as a float.
      * 
      * @param fieldName
-     *        the name of the field.
+     *            the name of the field.
      * @param value
-     *        the value to validate.
+     *            the value to validate.
      */
     private static void validateInteger(String fieldName, String value) {
         validateRegex(fieldName, value, INTEGER_REGEX, MessagesUtils.get(INVALID_INTEGER_KEY));
@@ -176,14 +180,14 @@ public class ServiceFieldValidator {
      * Validates a field using a regular expression.
      * 
      * @param fieldName
-     *        the name of the field.
+     *            the name of the field.
      * @param value
-     *        the value to validate.
+     *            the value to validate.
      * @param pattern
-     *        the regular expression pattern.
+     *            the regular expression pattern.
      * @param errorMessage
-     *        the error message to display if the value does not match, if blank
-     *        a default message is used.
+     *            the error message to display if the value does not match, if blank
+     *            a default message is used.
      */
     private static void validateRegex(String fieldName, String value, String pattern, String errorMessage) {
         if (!matches(pattern, value)) {
@@ -215,13 +219,13 @@ public class ServiceFieldValidator {
      * Validates range value of the field.
      * 
      * @param name
-     *        the field name.
+     *            the field name.
      * @param value
-     *        the field value.
+     *            the field value.
      * @param min
-     *        the minimum value.
+     *            the minimum value.
      * @param max
-     *        the maximum value.
+     *            the maximum value.
      */
     private static void validateRange(String name, Object value, Integer min, Integer max) {
         if (min != null) {
@@ -236,13 +240,13 @@ public class ServiceFieldValidator {
      * Validates the length of the field.
      * 
      * @param name
-     *        the field name.
+     *            the field name.
      * @param value
-     *        the field value.
+     *            the field value.
      * @param minSize
-     *        the minimum size.
+     *            the minimum size.
      * @param maxSize
-     *        the maximum size.
+     *            the maximum size.
      */
     private static void validateLength(String name, Object value, Integer minSize, Integer maxSize) {
         if (minSize != null) {

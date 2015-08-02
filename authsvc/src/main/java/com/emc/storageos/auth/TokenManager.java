@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- *  software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of 
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.auth;
@@ -20,12 +10,13 @@ import java.util.List;
 import com.emc.storageos.db.client.model.StorageOSUserDAO;
 
 /**
- *   Interface for token management (creation and deletion)
+ * Interface for token management (creation and deletion)
  */
 
 public interface TokenManager {
     /**
      * Get token life time in secs
+     * 
      * @return
      */
     public int getMaxTokenLifeTimeInSecs();
@@ -33,7 +24,7 @@ public interface TokenManager {
     /**
      * 
      * Create a new token for the passed in user object
-     *
+     * 
      * @param user
      * @return
      */
@@ -42,7 +33,7 @@ public interface TokenManager {
     /**
      * 
      * Create a new proxy token for the passed in user object
-     *
+     * 
      * @param user
      * @return
      */
@@ -51,7 +42,7 @@ public interface TokenManager {
     /**
      * 
      * Delete the passed in token
-     *
+     * 
      * @param token
      */
     public void deleteToken(String token);
@@ -71,8 +62,7 @@ public interface TokenManager {
      * @param userName
      */
     public List<StorageOSUserDAO> getUserRecords(final String userName);
-    
-    
+
     /**
      * Updates the list of user dao records with the specified user dao object.
      * 
@@ -81,7 +71,5 @@ public interface TokenManager {
      * @return the last StorageOSUserDAO that was updated
      */
     public StorageOSUserDAO updateDBWithUser(final StorageOSUserDAO userDAO, final List<StorageOSUserDAO> userRecords);
-    
-    
 
 }

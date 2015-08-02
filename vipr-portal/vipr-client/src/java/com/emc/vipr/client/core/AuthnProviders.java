@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -71,7 +71,7 @@ public class AuthnProviders extends AbstractCoreResources<AuthnProviderRestRep> 
      * API Call: <tt>POST /vdc/admin/authnproviders</tt>
      * 
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return the created authentication provider.
      */
     public AuthnProviderRestRep create(AuthnCreateParam input) {
@@ -84,9 +84,9 @@ public class AuthnProviders extends AbstractCoreResources<AuthnProviderRestRep> 
      * API Call: <tt>PUT /vdc/admin/authnproviders/{id}</tt>
      * 
      * @param id
-     *        the authentication provider ID.
+     *            the authentication provider ID.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated authentication provider.
      */
     public AuthnProviderRestRep update(URI id, AuthnUpdateParam input) {
@@ -97,11 +97,11 @@ public class AuthnProviders extends AbstractCoreResources<AuthnProviderRestRep> 
      * Updates an authentication provider with allow_group_attr_change set to true.
      * <p>
      * API Call: <tt>PUT /vdc/admin/authnproviders/{id}?allow_group_attr_change=true</tt>
-     *
+     * 
      * @param id
-     *        the authentication provider ID.
+     *            the authentication provider ID.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated authentication provider.
      */
     public AuthnProviderRestRep forceUpdate(URI id, AuthnUpdateParam input) {
@@ -115,7 +115,7 @@ public class AuthnProviders extends AbstractCoreResources<AuthnProviderRestRep> 
      * API Call: <tt>DELETE /vdc/admin/authnproviders/{id}</tt>
      * 
      * @param id
-     *        the authentication provider ID.
+     *            the authentication provider ID.
      */
     public void delete(URI id) {
         client.delete(String.class, getIdUrl(), id);

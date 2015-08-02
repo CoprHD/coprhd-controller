@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
@@ -66,16 +56,16 @@ public class OwnershipInfo extends DataObject {
 
     // the directory table's level
     private Integer _level;
-    
+
     // the creation of the DT is completed
     private Boolean _creationCompleted;
 
-
     // epoch number in ZK ephemeral node
     private String _zkEpoch;
-    
+
     /**
      * Get virtual pool
+     * 
      * @return
      */
     @XmlElement
@@ -86,6 +76,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Set virtual pool
+     * 
      * @param virtualPool
      */
     public void setVirtualPool(URI virtualPool)
@@ -96,6 +87,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Get type
+     * 
      * @return
      */
     @XmlElement
@@ -106,6 +98,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Set type
+     * 
      * @param type
      */
     public void setType(String type)
@@ -116,6 +109,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Get remainder
+     * 
      * @return
      */
     @XmlElement
@@ -126,6 +120,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Set remainder
+     * 
      * @param remainder
      */
     public void setRemainder(Integer remainder)
@@ -136,6 +131,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Get divisor #
+     * 
      * @return
      */
     @XmlElement
@@ -146,6 +142,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Set divisor #
+     * 
      * @param divisor
      */
     public void setDivisor(Integer divisor)
@@ -157,6 +154,7 @@ public class OwnershipInfo extends DataObject {
     /**
      * Get IP address and port of the owner
      * WARNING: The name is getOwnerIpAddress but it basically returns ip:port
+     * 
      * @return
      */
     @XmlElement
@@ -168,6 +166,7 @@ public class OwnershipInfo extends DataObject {
     /**
      * Set IP address and port of the owner
      * WARNING: The name is setOwnerIpAddress but the passed in value is of the form ip:port
+     * 
      * @param ownerIpAddress
      */
     public void setOwnerIpAddress(String ownerIpAddress)
@@ -178,6 +177,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Get the path of the record file
+     * 
      * @return
      */
     @XmlElement
@@ -188,6 +188,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Set the path of the record file
+     * 
      * @param recordFileList
      */
     public void setRecordFileList(String recordFileList)
@@ -198,6 +199,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Get the hosting device of the directory table
+     * 
      * @return
      */
     @XmlElement
@@ -208,6 +210,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Set the hosting device of the directory table
+     * 
      * @param device
      */
     public void setDevice(URI device)
@@ -215,8 +218,10 @@ public class OwnershipInfo extends DataObject {
         _device = device;
         setChanged("device");
     }
+
     /**
      * Get the version of the directory table
+     * 
      * @return
      */
     @XmlElement
@@ -227,6 +232,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Set the version of the directory table
+     * 
      * @param version
      */
     public void setVersion(Integer version)
@@ -237,6 +243,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Get the epoch of the directory table
+     * 
      * @return
      */
     @XmlElement
@@ -247,6 +254,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Set the epoch of the directory table
+     * 
      * @param epoch
      */
     public void setEpoch(Integer epoch)
@@ -257,6 +265,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Get the level of the directory table
+     * 
      * @return
      */
     @XmlElement
@@ -267,6 +276,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Set the level of the directory table
+     * 
      * @param level
      */
     public void setLevel(Integer level)
@@ -277,6 +287,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Get the creationCompleted of the directory table
+     * 
      * @return
      */
     @XmlElement
@@ -287,6 +298,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Set the creationCompleted of the directory table
+     * 
      * @param creationCompleted
      */
     public void setCreationCompleted(Boolean creationCompleted)
@@ -306,6 +318,7 @@ public class OwnershipInfo extends DataObject {
 
     /**
      * Set the ZK ephemeral node epoch number
+     * 
      * @param zkEpoch
      */
     public void setZkEpoch(String zkEpoch) {

@@ -1,21 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.hds.xmlgen.beans;
 
 public class XmlElementSequenceAttribute {
-    
+
     private String name;
     private String model;
     private String type;
@@ -23,86 +13,98 @@ public class XmlElementSequenceAttribute {
     private String values;
     private String endStatus;
     private Boolean childExists;
-   
+
     /**
      * @return the name
      */
     public String getName() {
         return name;
     }
+
     /**
      * @param name the name to set
      */
     public void setName(String name) {
         this.name = name;
     }
+
     /**
      * @return the model
      */
     public String getModel() {
         return model;
     }
+
     /**
      * @param model the model to set
      */
     public void setModel(String model) {
         this.model = model;
     }
+
     /**
      * @return the type
      */
     public String getType() {
         return type;
     }
+
     /**
      * @param type the type to set
      */
     public void setType(String type) {
         this.type = type;
     }
+
     /**
      * @return the properties
      */
     public String getProperties() {
         return properties;
     }
+
     /**
      * @param properties the properties to set
      */
     public void setProperties(String properties) {
         this.properties = properties;
     }
+
     /**
      * @return the values
      */
     public String getValues() {
         return values;
     }
+
     /**
      * @param values the values to set
      */
     public void setValues(String values) {
         this.values = values;
     }
+
     /**
      * @return the endStatus
      */
     public String getEndStatus() {
         return endStatus;
     }
+
     /**
      * @param endStatus the endStatus to set
      */
     public void setEndStatus(String endStatus) {
         this.endStatus = endStatus;
     }
-    
+
     /**
      * @return the childExists
      */
     public Boolean getChildExists() {
         return childExists;
     }
+
     /**
      * @param childExists the childExists to set
      */

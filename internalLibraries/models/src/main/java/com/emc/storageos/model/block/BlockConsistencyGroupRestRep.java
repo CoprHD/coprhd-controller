@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block;
@@ -39,10 +39,10 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
 
     // VPlex fields
     private List<StringSetMapAdapter.Entry> systemConsistencyGroups;
-    
+
     /**
      * Related storage controller
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "storage_controller")
@@ -56,7 +56,7 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
 
     /**
      * Related project
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "project")
@@ -70,7 +70,7 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
 
     /**
      * Related virtual array
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "varray")
@@ -100,42 +100,42 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
     public void setVolumes(List<RelatedResourceRep> volumes) {
         this.volumes = volumes;
     }
-    
+
     /**
      * The mapping of protection systems/storage systems to consistency groups that
      * are mapped to by the BlockConsistencyGroup.
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "system_consistency_groups")
-    public List<StringSetMapAdapter.Entry> getSystemConsistencyGroups(){ 
-        return systemConsistencyGroups; 
+    public List<StringSetMapAdapter.Entry> getSystemConsistencyGroups() {
+        return systemConsistencyGroups;
     }
-    
-    public void setSystemConsistencyGroups(List<StringSetMapAdapter.Entry> systemConsistencyGroups) { 
+
+    public void setSystemConsistencyGroups(List<StringSetMapAdapter.Entry> systemConsistencyGroups) {
         this.systemConsistencyGroups = systemConsistencyGroups;
-    }    
-    
+    }
+
     /**
      * The types of the block consistency group
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "types")
-    public Set<String> getTypes(){ 
+    public Set<String> getTypes() {
         if (types == null) {
             types = new HashSet<String>();
         }
         return types;
     }
-    
-    public void setTypes(Set<String> types) { 
+
+    public void setTypes(Set<String> types) {
         this.types = types;
     }
-    
+
     /**
-     * The RecoverPoint protection system.  Applies only to CGs of type RP.
-     *
+     * The RecoverPoint protection system. Applies only to CGs of type RP.
+     * 
      * @valid none
      */
     @XmlElement(name = "rp_protection_system")
@@ -148,10 +148,10 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
     }
 
     /**
-     * The RecoverPoint consistency group id.  Applies only to CGs of type RP.
-     *
+     * The RecoverPoint consistency group id. Applies only to CGs of type RP.
+     * 
      * @valid none
-     */    
+     */
     @XmlElement(name = "rp_consistency_group_id")
     public String getRpConsistenyGroupId() {
         return rpConsistenyGroupId;
@@ -163,7 +163,7 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
 
     /**
      * The link status.
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "link_status")

@@ -1,12 +1,11 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.linux.command;
 
-
 public class FindParentMultipathDeviceCommand extends LinuxResultsCommand<String> {
-    
+
     private static final String POWERPATH_NAME_FILE_PATH = "/sys/block/dm-*/holders/dm-*/dm/name";
     private static final String PARENT_DEVICE_REGEX = "s:/sys/block/([^/]*)/.*:\\1:p";
 
@@ -26,5 +25,5 @@ public class FindParentMultipathDeviceCommand extends LinuxResultsCommand<String
     public void parseOutput() {
         this.results = getOutput().getStdout();
     }
-    
+
 }

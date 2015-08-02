@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.file.tasks;
@@ -31,7 +31,7 @@ public class FindFileSystemExportRules extends ViPRExecutionTask<List<ExportRule
     public URI getFileSystemId() {
         return fileSystemId;
     }
-    
+
     @Override
     public List<ExportRule> executeTask() throws Exception {
         // Don't pass a blank sub-directory to getExport

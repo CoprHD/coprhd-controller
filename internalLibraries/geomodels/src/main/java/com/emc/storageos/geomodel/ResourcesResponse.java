@@ -1,18 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
- *
  * Copyright (c) 2011-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
- *
  */
 
 package com.emc.storageos.geomodel;
@@ -31,9 +19,8 @@ public class ResourcesResponse<T> implements Serializable {
 
     private List<T> objects = new ArrayList();
 
-    public ResourcesResponse(){
+    public ResourcesResponse() {
     }
-
 
     public List<T> getObjects() {
         return objects;
@@ -47,8 +34,9 @@ public class ResourcesResponse<T> implements Serializable {
         out.defaultWriteObject();
 
         out.writeInt(size);
-        for( T obj : objects)
+        for (T obj : objects) {
             out.writeObject(obj);
+        }
     }
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
@@ -56,8 +44,9 @@ public class ResourcesResponse<T> implements Serializable {
 
         size = in.readInt();
         objects = new ArrayList(size);
-        for (int i =0; i < size; i++)
-            add((T)in.readObject());
+        for (int i = 0; i < size; i++) {
+            add((T) in.readObject());
+        }
     }
 
     public void setSize(int size) {

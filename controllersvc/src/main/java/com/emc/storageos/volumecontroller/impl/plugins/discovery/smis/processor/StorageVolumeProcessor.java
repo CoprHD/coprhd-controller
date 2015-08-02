@@ -148,7 +148,8 @@ public class StorageVolumeProcessor extends StorageProcessor {
 
                     // Check if this is a meta volume and if we need to set missing meta volume related properties.
                     // This is applicable for meta volumes discovered as unmanaged volumes and ingested prior to vipr controller 2.2 .
-                    if (storageVolume.getIsComposite() && (storageVolume.getCompositionType() == null || storageVolume.getCompositionType().isEmpty())) {
+                    if (storageVolume.getIsComposite()
+                            && (storageVolume.getCompositionType() == null || storageVolume.getCompositionType().isEmpty())) {
                         // meta volume is missing meta related data. Need to discover this data and set in the volume.
                         metaVolumes.add(volumeInstance.getObjectPath());
                         _logger.info("Found meta volume in vipr with missing data: {}, name: {}",
@@ -161,8 +162,7 @@ public class StorageVolumeProcessor extends StorageProcessor {
                             _dbClient, VOLUME);
                     _updateVolumes.clear();
                 }
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 _logger.error("Processing volume instance.", e);
             }
         }
@@ -183,7 +183,7 @@ public class StorageVolumeProcessor extends StorageProcessor {
 
     private boolean isMirror(CIMInstance volumeViewInstance) {
         String usage = getCIMPropertyValue(volumeViewInstance, USAGE);
-        //8 refers to Mirror
+        // 8 refers to Mirror
         return usage.equalsIgnoreCase(EIGHT);
     }
 

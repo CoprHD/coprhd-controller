@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block.tasks;
@@ -16,7 +16,7 @@ import com.emc.vipr.client.Task;
 import com.google.common.collect.Sets;
 
 public class RemoveBlockResourcesFromExport extends WaitForTask<ExportGroupRestRep> {
-    
+
     private URI exportId;
     private Set<URI> resourceIds;
 

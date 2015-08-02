@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators;
 
@@ -23,7 +13,7 @@ import com.emc.storageos.model.vpool.VirtualPoolUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public class DescriptionValidator extends VirtualPoolValidator<VirtualPoolCommonParam, VirtualPoolUpdateParam> {
-   
+
     @Override
     public void setNextValidator(VirtualPoolValidator validator) {
         _nextValidator = validator;
@@ -37,8 +27,9 @@ public class DescriptionValidator extends VirtualPoolValidator<VirtualPoolCommon
 
     @Override
     protected boolean isUpdateAttributeOn(VirtualPoolUpdateParam updateParam) {
-        if (null != updateParam.getDescription())
+        if (null != updateParam.getDescription()) {
             return true;
+        }
         return false;
     }
 
@@ -46,22 +37,23 @@ public class DescriptionValidator extends VirtualPoolValidator<VirtualPoolCommon
     protected void validateVirtualPoolCreateAttributeValue(VirtualPoolCommonParam createParam, DbClient dbClient) {
         checkNullString(createParam.getDescription());
     }
-    
+
     /**
      * Fires APIException.badRequests.invalidParameter if the given collection
      * is empty
      * 
      */
-    public void checkNullString(String description){
-        if(NullColumnValueGetter.getNullStr().equalsIgnoreCase(description)) {
+    public void checkNullString(String description) {
+        if (NullColumnValueGetter.getNullStr().equalsIgnoreCase(description)) {
             throw APIException.badRequests.requiredParameterMissingOrEmpty("description");
         }
     }
 
     @Override
     protected boolean isCreateAttributeOn(VirtualPoolCommonParam createParam) {
-        if (null != createParam.getDescription())
+        if (null != createParam.getDescription()) {
             return true;
+        }
         return false;
     }
 }

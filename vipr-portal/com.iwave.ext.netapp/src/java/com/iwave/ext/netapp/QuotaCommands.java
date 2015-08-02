@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.netapp;
@@ -21,13 +21,13 @@ import com.iwave.ext.netapp.model.QuotaUser;
 public class QuotaCommands {
 
     public enum QuotaStatus {
-        ON, 
-        OFF, 
-        RESIZING, 
-        INITIALIZING, 
+        ON,
+        OFF,
+        RESIZING,
+        INITIALIZING,
         SHUTTING_DOWN
     }
-    
+
     private Logger log = Logger.getLogger(getClass());
 
     private NaServer server = null;
@@ -48,8 +48,7 @@ public class QuotaCommands {
         NaElement resultElem = null;
         try {
             resultElem = server.invokeElem(elem);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw createError(elem, e);
         }
 
@@ -120,14 +119,12 @@ public class QuotaCommands {
             quota.setSoftFileLimit(result.getChildContent("soft-file-limit"));
             quota.setThreshold(result.getChildContent("threshold"));
             return quota;
-        }
-        catch (NaAPIFailedException e) {
+        } catch (NaAPIFailedException e) {
             if (e.getErrno() == NaErrno.EQUOTADOESNOTEXIST) {
                 return null;
             }
             throw createError(elem, e);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw createError(elem, e);
         }
     }
@@ -136,10 +133,10 @@ public class QuotaCommands {
             long thresholdInKB) {
         addDiskLimitQuota(volume, path, "tree", "", diskLimitInKB, thresholdInKB);
     }
-    
-    public void modifyDiskLimitTreeQuota (String volume, String path, long diskLimitInKB,
-    		long thresholdInKB) {
-    	modifyDiskLimitQuota (volume, path, "tree", "", diskLimitInKB, thresholdInKB);
+
+    public void modifyDiskLimitTreeQuota(String volume, String path, long diskLimitInKB,
+            long thresholdInKB) {
+        modifyDiskLimitQuota(volume, path, "tree", "", diskLimitInKB, thresholdInKB);
     }
 
     public void addDiskLimitQuota(String volume, String quotaTarget, String quotaType,
@@ -153,16 +150,15 @@ public class QuotaCommands {
         if (thresholdInKB > 0) {
             elem.addNewChild("threshold", String.valueOf(thresholdInKB));
         }
-        
+
         try {
-        	server.invokeElem(elem);
-        }
-        catch (Exception e) {
+            server.invokeElem(elem);
+        } catch (Exception e) {
             throw createError(elem, e);
         }
 
     }
-    
+
     public void setDiskLimitTreeQuota(String volume, String path, long diskLimitInKB,
             long thresholdInKB) {
         setDiskLimitQuota(volume, path, "tree", "", diskLimitInKB, thresholdInKB);
@@ -181,12 +177,11 @@ public class QuotaCommands {
         }
         try {
             server.invokeElem(elem);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw createError(elem, e);
         }
     }
-    
+
     public void modifyDiskLimitQuota(String volume, String quotaTarget, String quotaType,
             String qtree, long diskLimitInKB, long thresholdInKB) {
         NaElement elem = new NaElement("quota-modify-entry");
@@ -200,13 +195,11 @@ public class QuotaCommands {
         }
         try {
             server.invokeElem(elem);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw createError(elem, e);
         }
     }
-    
-    
+
     public void deleteTreeQuota(String volume, String path) {
         deleteQuota(volume, path, "tree", "");
     }
@@ -219,14 +212,13 @@ public class QuotaCommands {
         elem.addNewChild("qtree", qtree);
         try {
             server.invokeElem(elem);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw createError(elem, e);
         }
     }
 
     /**
-     * Starts to turn quotas on for a volume. A successful return from this API does not mean that quotas are on, 
+     * Starts to turn quotas on for a volume. A successful return from this API does not mean that quotas are on,
      * merely that an attempt to start it has been triggered
      */
     public void turnQuotaOn(String volume) {
@@ -234,12 +226,11 @@ public class QuotaCommands {
         elem.addNewChild("volume", volume);
         try {
             server.invokeElem(elem);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw createError(elem, e);
         }
     }
-    
+
     /**
      * Turns the quota subsystem off for a volume
      */
@@ -248,57 +239,56 @@ public class QuotaCommands {
         elem.addNewChild("volume", volume);
         try {
             server.invokeElem(elem);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw createError(elem, e);
         }
     }
-  
+
     public void startQuotaResize(String volumeName) {
         NaElement elem = new NaElement("quota-resize");
         elem.addNewChild("volume", volumeName);
-        
+
         try {
             server.invokeElem(elem);
-        } catch( Exception e ) {
+        } catch (Exception e) {
             String msg = "Failed to start quota resizing on volume: " + volumeName;
             log.error(msg, e);
             throw new NetAppException(msg, e);
         }
     }
-    
+
     /**
      * Returns the current status of Quotas on the specified volume
      */
     public QuotaStatus getQuotaStatus(String volumeName) {
         NaElement elem = new NaElement("quota-status");
         elem.addNewChild("volume", volumeName);
-        
+
         try {
             NaElement result = server.invokeElem(elem);
             String status = result.getChildContent("status");
-            
+
             if (status.equals("on")) {
                 return QuotaStatus.ON;
             } else if (status.equals("off")) {
                 return QuotaStatus.OFF;
-            } else  if (status.equals("resizing")) {
+            } else if (status.equals("resizing")) {
                 return QuotaStatus.RESIZING;
             } else if (status.equals("shutting down")) {
                 return QuotaStatus.SHUTTING_DOWN;
             } else {
-                throw new NetAppException("Unknown quota status value "+status);
+                throw new NetAppException("Unknown quota status value " + status);
             }
-            
-        } catch( Exception e ) {
+
+        } catch (Exception e) {
             String msg = "Failed to get quota status: " + volumeName;
             log.error(msg, e);
             throw new NetAppException(msg, e);
         }
     }
-    
-    /** 
-     * Starts a Resize Quota operation on the specified volume.  
+
+    /**
+     * Starts a Resize Quota operation on the specified volume.
      * 
      * This only starts the resize operation and returns immediately, {@link #getQuotaStatus(String)} should be used
      * to find out when the current status of the operation
@@ -306,18 +296,16 @@ public class QuotaCommands {
     public void startResize(String volumeName) {
         NaElement elem = new NaElement("quota-resize");
         elem.addNewChild("volume", volumeName);
-        
+
         try {
-           server.invokeElem(elem);
-            
-        } catch( Exception e ) {
+            server.invokeElem(elem);
+
+        } catch (Exception e) {
             String msg = "Failed to start quota resizing on volume: " + volumeName;
             log.error(msg, e);
             throw new NetAppException(msg, e);
         }
     }
-    
-    
 
     protected NetAppException createError(NaElement elem, Exception e) {
         String message = "Failed to run " + elem.getName();

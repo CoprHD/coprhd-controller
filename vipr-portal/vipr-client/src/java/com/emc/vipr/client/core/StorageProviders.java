@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -91,7 +91,7 @@ public class StorageProviders extends AbstractCoreBulkResources<StorageProviderR
      * <tt>getByRefs(list(), filter)</tt>.
      * 
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of SMI-S providers.
      */
     @Override
@@ -106,7 +106,7 @@ public class StorageProviders extends AbstractCoreBulkResources<StorageProviderR
      * API Call: <tt>POST /vdc/storage-providers</tt>
      * 
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<StorageProviderRestRep> create(StorageProviderCreateParam input) {
@@ -119,9 +119,9 @@ public class StorageProviders extends AbstractCoreBulkResources<StorageProviderR
      * API Call: <tt>PUT /vdc/storage-providers/{id}</tt>
      * 
      * @param id
-     *        the ID of the SMI-S provider.
+     *            the ID of the SMI-S provider.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated SMI-S provider.
      */
     public StorageProviderRestRep update(URI id, StorageProviderUpdateParam input) {
@@ -134,7 +134,7 @@ public class StorageProviders extends AbstractCoreBulkResources<StorageProviderR
      * API Call: <tt>POST /vdc/storage-providers/{id}/deactivate</tt>
      * 
      * @param id
-     *        the ID of the SMI-S provider.
+     *            the ID of the SMI-S provider.
      */
     public void deactivate(URI id) {
         doDeactivate(id);

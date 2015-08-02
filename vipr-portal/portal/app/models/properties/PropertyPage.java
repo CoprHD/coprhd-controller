@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.properties;
@@ -41,7 +41,7 @@ public interface PropertyPage {
      * Validates the properties on the page.
      * 
      * @param values
-     *        the values to validate.
+     *            the values to validate.
      */
     public void validate(Map<String, String> values);
 
@@ -56,14 +56,14 @@ public interface PropertyPage {
      * Gets the values that have been updated.
      * 
      * @param values
-     *        the values.
+     *            the values.
      * @return the map of updated values.
      */
     public Map<String, String> getUpdatedValues(Map<String, String> values);
 
     /**
      * Determines if any of the properties named require a reboot.
-     *
+     * 
      * @param keys Keys to check if they require a reboot
      * @return true if reboot is required, false otherwise.
      */

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) 2014. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.hds.prov.job;
 
@@ -31,16 +21,15 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.util.Iterator;
 
-
 /**
  * Job for volumeModify operation.
- *
+ * 
  */
 public class HDSModifyVolumeJob extends HDSJob {
     private static final Logger log = LoggerFactory.getLogger(HDSModifyVolumeJob.class);
-    
+
     public static final String VOLUME_MODIFY_JOB = "volumeModify";
-    
+
     public static final String VOLUME_VPOOL_CHANGE_JOB = "volumeVPoolChange";
 
     public HDSModifyVolumeJob(String jobId, URI storageSystem, TaskCompleter taskCompleter, String jobName) {
@@ -79,7 +68,7 @@ public class HDSModifyVolumeJob extends HDSJob {
                 logicalUnit = (LogicalUnit) javaResult.getBean("logicalunit");
                 if (null != logicalUnit.getLdevList() && !logicalUnit.getLdevList().isEmpty()) {
                     Iterator<LDEV> ldevListItr = logicalUnit.getLdevList().iterator();
-                    if(ldevListItr.hasNext()) {
+                    if (ldevListItr.hasNext()) {
                         LDEV ldev = ldevListItr.next();
                         if (null != ldev && -1 != ldev.getTierLevel()) {
                             logMsgBuilder.append(String.format(

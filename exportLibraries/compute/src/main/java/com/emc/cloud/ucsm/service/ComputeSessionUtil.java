@@ -1,12 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.cloud.ucsm.service;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
 
 public class ComputeSessionUtil {
 
@@ -27,30 +26,29 @@ public class ComputeSessionUtil {
         }
     }
 
-    public static String generateHash(String serviceUri, String username, String password){
+    public static String generateHash(String serviceUri, String username, String password) {
         StringBuilder hashkey = new StringBuilder();
         String hash = null;
         hashkey.append(serviceUri);
         hashkey.append(username);
         hashkey.append(password);
-        try{
+        try {
             MessageDigest sha = MessageDigest.getInstance("SHA-1");
             sha.reset();
             hash = hexEncode(sha.digest(hashkey.toString().getBytes()));
-        }
-        catch (NoSuchAlgorithmException e){
+        } catch (NoSuchAlgorithmException e) {
             return hashkey.toString();
         }
         return hash;
     }
 
-    private static String hexEncode( byte[] aInput){
+    private static String hexEncode(byte[] aInput) {
         StringBuffer result = new StringBuffer();
-        char[] digits = {'0', '1', '2', '3', '4','5','6','7','8','9','a','b','c','d','e','f'};
+        char[] digits = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
         for (int idx = 0; idx < aInput.length; ++idx) {
             byte b = aInput[idx];
-            result.append( digits[ (b&0xf0) >> 4 ] );
-            result.append( digits[ b&0x0f] );
+            result.append(digits[(b & 0xf0) >> 4]);
+            result.append(digits[b & 0x0f]);
         }
         return result.toString();
     }

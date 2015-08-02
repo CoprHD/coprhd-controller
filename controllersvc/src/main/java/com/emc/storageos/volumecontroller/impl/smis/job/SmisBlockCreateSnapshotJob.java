@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) 2012. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
@@ -43,8 +33,8 @@ public class SmisBlockCreateSnapshotJob extends SmisSnapShotJob {
     Boolean _wantSyncActive;
 
     public SmisBlockCreateSnapshotJob(CIMObjectPath cimJob,
-                                      URI storageSystem, boolean wantSyncActive,
-                                      TaskCompleter taskCompleter) {
+            URI storageSystem, boolean wantSyncActive,
+            TaskCompleter taskCompleter) {
         super(cimJob, storageSystem, taskCompleter, "CreateBlockSnapshot");
         _wantSyncActive = wantSyncActive;
     }
@@ -61,7 +51,8 @@ public class SmisBlockCreateSnapshotJob extends SmisSnapShotJob {
             List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, completer.getSnapshotURIs());
             StorageSystem storage = dbClient.queryObject(StorageSystem.class, getStorageSystemURI());
             if (jobStatus == JobStatus.SUCCESS) {
-                _log.info(String.format("Post-processing successful snap creation task:%s. Expected: snapshot.size() = 1; Actual: snapshots.size() = %d",
+                _log.info(String.format(
+                        "Post-processing successful snap creation task:%s. Expected: snapshot.size() = 1; Actual: snapshots.size() = %d",
                         getTaskCompleter().getOpId(), snapshots.size()));
                 // Get the snapshot device ID and set it against the BlockSnapshot object
                 CIMConnectionFactory cimConnectionFactory = jobContext.getCimConnectionFactory();
@@ -88,23 +79,25 @@ public class SmisBlockCreateSnapshotJob extends SmisSnapShotJob {
                     snapshot.setCreationTime(Calendar.getInstance());
                     snapshot.setWWN(wwn.toUpperCase());
                     snapshot.setAlternateName(alternateName);
-                    commonSnapshotUpdate(snapshot,syncVolume,client, storage, volume.getNativeId(), syncDeviceID);
-                    _log.info(String.format("For sync volume path %1$s, going to set blocksnapshot %2$s nativeId to %3$s (%4$s). Associated volume is %5$s (%6$s)",
-                            syncVolumePath.toString(), snapshot.getId().toString(),
-                            syncDeviceID, elementName, volume.getNativeId(), volume.getDeviceLabel()));
+                    commonSnapshotUpdate(snapshot, syncVolume, client, storage, volume.getNativeId(), syncDeviceID);
+                    _log.info(String
+                            .format("For sync volume path %1$s, going to set blocksnapshot %2$s nativeId to %3$s (%4$s). Associated volume is %5$s (%6$s)",
+                                    syncVolumePath.toString(), snapshot.getId().toString(),
+                                    syncDeviceID, elementName, volume.getNativeId(), volume.getDeviceLabel()));
                     dbClient.persistObject(snapshot);
                 }
-            } else if(jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
+            } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 _log.info("Failed to create snapshot");
                 BlockSnapshot snapshot = snapshots.get(0);
                 snapshot.setInactive(true);
                 dbClient.persistObject(snapshot);
             }
         } catch (Exception e) {
-            setPostProcessingErrorStatus("Encountered an internal error during block create snapshot job status processing: " + e.getMessage());
+            setPostProcessingErrorStatus("Encountered an internal error during block create snapshot job status processing: "
+                    + e.getMessage());
             _log.error("Caught an exception while trying to updateStatus for SmisBlockCreateSnapshotJob", e);
         } finally {
-            if(syncVolumeIter != null) {
+            if (syncVolumeIter != null) {
                 syncVolumeIter.close();
             }
             super.updateStatus(jobContext);

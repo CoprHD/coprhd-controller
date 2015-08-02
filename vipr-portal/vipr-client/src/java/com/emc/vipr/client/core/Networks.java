@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -75,11 +75,11 @@ public class Networks extends AbstractCoreBulkResources<NetworkRestRep> implemen
     }
 
     /**
-     * Gets the list of all networks, optionally filtering the results. This is a convenience method for:
-     * <tt>getByRefs(list(), filter)</tt>.
+     * Gets the list of all networks, optionally filtering the results. This is a convenience method for: <tt>getByRefs(list(), filter)</tt>
+     * .
      * 
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of all networks.
      */
     @Override
@@ -92,9 +92,9 @@ public class Networks extends AbstractCoreBulkResources<NetworkRestRep> implemen
      * Lists the networks that are associated with the given virtual array.
      * <p>
      * API Call: <tt>GET /vdc/varrays/{id}/networks</tt>
-     *
+     * 
      * @param varrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @return the list of network references.
      */
     public List<NamedRelatedResourceRep> listByVirtualArray(URI varrayId) {
@@ -105,11 +105,11 @@ public class Networks extends AbstractCoreBulkResources<NetworkRestRep> implemen
     /**
      * Gets the networks that are associated with the given virtual array.
      * Convenience method for calling getByRefs(listByVirtualArray(varrayId)).
-     *
+     * 
      * @param varrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @return the list of networks.
-     *
+     * 
      * @see #listByVirtualArray(URI)
      * @see #getByRefs(java.util.Collection)
      */
@@ -120,14 +120,14 @@ public class Networks extends AbstractCoreBulkResources<NetworkRestRep> implemen
     /**
      * Gets the networks that are associated with the given virtual array.
      * Convenience method for calling getByRefs(listByVirtualArray(varrayId)).
-     *
+     * 
      * @param varrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
-     *
+     *            the resource filter to apply to the results as they are returned (optional).
+     * 
      * @return the list of networks.
-     *
+     * 
      * @see #listByVirtualArray(URI)
      * @see #getByRefs(java.util.Collection)
      */
@@ -142,7 +142,7 @@ public class Networks extends AbstractCoreBulkResources<NetworkRestRep> implemen
      * API Call: <tt>POST /vdc/networks</tt>
      * 
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return the newly created network.
      */
     public NetworkRestRep create(NetworkCreate input) {
@@ -155,9 +155,9 @@ public class Networks extends AbstractCoreBulkResources<NetworkRestRep> implemen
      * API Call: <tt>POST /vdc/varrays/{virtualArrayId}/networks</tt>
      * 
      * @param virtualArrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return the newly created network.
      * 
      * @deprecated use {@link #create(NetworkCreate)} instead.
@@ -173,9 +173,9 @@ public class Networks extends AbstractCoreBulkResources<NetworkRestRep> implemen
      * API Call: <tt>PUT /vdc/networks/{id}</tt>
      * 
      * @param id
-     *        the ID of the network to update.
+     *            the ID of the network to update.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated network.
      */
     public NetworkRestRep update(URI id, NetworkUpdate input) {
@@ -188,21 +188,21 @@ public class Networks extends AbstractCoreBulkResources<NetworkRestRep> implemen
      * API Call: <tt>POST /vdc/networks/{id}/deactivate?force=false</tt>
      * 
      * @param id
-     *        the ID of the network to deactivate.
+     *            the ID of the network to deactivate.
      */
     public void deactivate(URI id) {
         deactivate(id, false);
     }
-    
+
     /**
      * Deactivates a network by ID.
      * <p>
      * API Call: <tt>POST /vdc/networks/{id}/deactivate?force={force}</tt>
      * 
      * @param id
-     *        the ID of the network to deactivate.
+     *            the ID of the network to deactivate.
      * @param force
-     *        if true, will delete manually created network.
+     *            if true, will delete manually created network.
      */
     public void deactivate(URI id, boolean force) {
         URI deactivateUri = client.uriBuilder(getDeactivateUrl()).queryParam("force", force).build(id);
@@ -219,7 +219,7 @@ public class Networks extends AbstractCoreBulkResources<NetworkRestRep> implemen
      * API Call: <tt>POST /vdc/networks/{id}/register</tt>
      * 
      * @param id
-     *        the ID of the network to register.
+     *            the ID of the network to register.
      */
     public NetworkRestRep register(URI id) {
         return client.post(NetworkRestRep.class, getIdUrl() + "/register", id);
@@ -231,7 +231,7 @@ public class Networks extends AbstractCoreBulkResources<NetworkRestRep> implemen
      * API Call: <tt>POST /vdc/networks/{id}/deregister</tt>
      * 
      * @param id
-     *        the ID of the network to deregister.
+     *            the ID of the network to deregister.
      */
     public NetworkRestRep deregister(URI id) {
         return client.post(NetworkRestRep.class, getIdUrl() + "/deregister", id);
@@ -243,9 +243,9 @@ public class Networks extends AbstractCoreBulkResources<NetworkRestRep> implemen
      * API Call: <tt>PUT /vdc/networks/{id}/endpoints</tt>
      * 
      * @param id
-     *        the ID of the network.
+     *            the ID of the network.
      * @param input
-     *        the endpoint configuration.
+     *            the endpoint configuration.
      * @return the updated network.
      * @deprecated Use main update() call to update endpoints
      * @see #update(java.net.URI, com.emc.storageos.model.varray.NetworkUpdate)

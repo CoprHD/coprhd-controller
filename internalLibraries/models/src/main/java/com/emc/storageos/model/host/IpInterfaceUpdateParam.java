@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.host;
@@ -18,15 +18,16 @@ public class IpInterfaceUpdateParam extends IpInterfaceParam {
 
     private String protocol;
     private String ipAddress;
-    
-    public IpInterfaceUpdateParam() {}
-    
+
+    public IpInterfaceUpdateParam() {
+    }
+
     public IpInterfaceUpdateParam(String protocol, String ipAddress) {
         super();
         this.protocol = protocol;
         this.ipAddress = ipAddress;
     }
-    
+
     public IpInterfaceUpdateParam(Integer netmask, Integer prefixLength,
             String scopeId, String protocol, String ipAddress, String name) {
         super(netmask, prefixLength, scopeId, name);
@@ -38,17 +39,19 @@ public class IpInterfaceUpdateParam extends IpInterfaceParam {
     public String findIPaddress() {
         return ipAddress;
     }
-    
+
     @Override
     public String findProtocol() {
         return protocol;
     }
 
-    /** The protocol supported by the interface which should be IPv4 or IPv6.
+    /**
+     * The protocol supported by the interface which should be IPv4 or IPv6.
+     * 
      * @valid example IPv4
      * @valid example IPv6
      */
-    //@EnumType(HostInterface.Protocol.class)
+    // @EnumType(HostInterface.Protocol.class)
     @XmlElement()
     public String getProtocol() {
         return protocol;
@@ -58,12 +61,13 @@ public class IpInterfaceUpdateParam extends IpInterfaceParam {
         this.protocol = protocol;
     }
 
-    /** The IPv4 or IPv6 address of this interface.
-     *
+    /**
+     * The IPv4 or IPv6 address of this interface.
+     * 
      * @valid example: 10.247.12.99
      */
     @XmlElement(name = "ip_address")
-    @Endpoint(type= Endpoint.EndpointType.IP)
+    @Endpoint(type = Endpoint.EndpointType.IP)
     @JsonProperty("ip_address")
     public String getIpAddress() {
         return ipAddress;
@@ -72,5 +76,5 @@ public class IpInterfaceUpdateParam extends IpInterfaceParam {
     public void setIpAddress(String ipAddress) {
         this.ipAddress = ipAddress;
     }
-    
+
 }

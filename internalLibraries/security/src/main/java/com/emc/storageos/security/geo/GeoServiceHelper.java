@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.geo;
 
@@ -59,10 +49,10 @@ public class GeoServiceHelper {
      */
     public void startJobQueue() {
         log.info("Starting geosvc job queue");
-        try{
+        try {
             // no job consumer in geoclient
             _queue = _coordinator.getQueue(GEOSVC_QUEUE_NAME, null, new GeoServiceJobSerializer(), DEFAULT_MAX_THREADS);
-        }catch(Exception e){
+        } catch (Exception e) {
             log.error("can not startup geosvc job queue", e);
         }
     }
@@ -77,11 +67,12 @@ public class GeoServiceHelper {
 
     /**
      * Enqueue a job to geosvc
+     * 
      * @param job The job to be enqueued, including add vdc, disconnect vdc, etc.
      * @throws Exception
      */
     public void enqueueJob(GeoServiceJob job) throws Exception {
-        log.info("post job {} task {} type {}", new Object[] {job.getVdcId(), job.getTask(), job.getType()});
+        log.info("post job {} task {} type {}", new Object[] { job.getVdcId(), job.getTask(), job.getType() });
         // TODO: have different exception here
         if (_queue == null) {
             startJobQueue();
@@ -91,6 +82,7 @@ public class GeoServiceHelper {
 
     /**
      * creates a URI in Mono for an object of type clazz
+     * 
      * @return
      */
     public String createMonoVdcId() {
@@ -104,8 +96,9 @@ public class GeoServiceHelper {
             VirtualDataCenter vdc = _dbClient.queryObject(VirtualDataCenter.class, vdcId);
             String id = vdc.getShortId().replace(VDC_ID_PREFIX, "");
             int num = Integer.parseInt(id);
-            if (num > max_id)
+            if (num > max_id) {
                 max_id = num;
+            }
         }
         return max_id + 1;
     }
@@ -149,8 +142,8 @@ public class GeoServiceHelper {
     }
 
     public static VirtualDataCenter prepareVirtualDataCenter(URI vdcId, VirtualDataCenter.ConnectionStatus connStatus,
-                                                              VirtualDataCenter.GeoReplicationStatus replicationStatus,
-                                                              Properties vdcProp) {
+            VirtualDataCenter.GeoReplicationStatus replicationStatus,
+            Properties vdcProp) {
 
         VirtualDataCenter vdc = new VirtualDataCenter();
         vdc.setId(vdcId);
@@ -173,31 +166,30 @@ public class GeoServiceHelper {
         return vdc;
     }
 
-
-    public static Properties getVDCInfo(VirtualDataCenter vdc){
+    public static Properties getVDCInfo(VirtualDataCenter vdc) {
         Properties vdcProp = new Properties();
-        if( vdc.getLabel()!= null ) {
+        if (vdc.getLabel() != null) {
             vdcProp.setProperty(GeoServiceJob.VDC_NAME, vdc.getLabel());
         }
-        if( vdc.getApiEndpoint() != null ) {
+        if (vdc.getApiEndpoint() != null) {
             vdcProp.setProperty(GeoServiceJob.VDC_API_ENDPOINT, vdc.getApiEndpoint());
         }
-        if( vdc.getSecretKey() != null ) {
+        if (vdc.getSecretKey() != null) {
             vdcProp.setProperty(GeoServiceJob.VDC_SECRETE_KEY, vdc.getSecretKey());
         }
-        if( vdc.getDescription() != null ) {
+        if (vdc.getDescription() != null) {
             vdcProp.setProperty(GeoServiceJob.VDC_DESCRIPTION, vdc.getDescription());
         }
-        if( vdc.getGeoCommandEndpoint()!= null ) {
+        if (vdc.getGeoCommandEndpoint() != null) {
             vdcProp.setProperty(GeoServiceJob.VDC_GEOCOMMAND_ENDPOINT, vdc.getGeoCommandEndpoint());
         }
-        if( vdc.getGeoDataEndpoint() != null ) {
+        if (vdc.getGeoDataEndpoint() != null) {
             vdcProp.setProperty(GeoServiceJob.VDC_GEODATA_ENDPOINT, vdc.getGeoDataEndpoint());
         }
-        if( vdc.getCertificateChain() != null ) {
+        if (vdc.getCertificateChain() != null) {
             vdcProp.setProperty(GeoServiceJob.VDC_CERTIFICATE_CHAIN, vdc.getCertificateChain());
         }
-        if( vdc.getShortId() != null ) {
+        if (vdc.getShortId() != null) {
             vdcProp.setProperty(GeoServiceJob.VDC_SHORT_ID, vdc.getShortId());
         }
         vdcProp.setProperty(GeoServiceJob.OPERATED_VDC_ID, vdc.getId().toString());

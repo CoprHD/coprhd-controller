@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.hds.model;
@@ -7,21 +7,21 @@ package com.emc.storageos.hds.model;
 import com.emc.storageos.hds.HDSConstants;
 
 public class Condition {
-	private String poolFunction;
+    private String poolFunction;
 
-	public Condition(String poolFunction) {
-		this.poolFunction = poolFunction;
-	}
+    public Condition(String poolFunction) {
+        this.poolFunction = poolFunction;
+    }
 
-	public String getPoolFunction() {
-		return poolFunction;
-	}
+    public String getPoolFunction() {
+        return poolFunction;
+    }
 
-	public void setPoolFunction(String poolFunction) {
-		this.poolFunction = poolFunction;
-	}
-	
-	public String toXMLString() {
+    public void setPoolFunction(String poolFunction) {
+        this.poolFunction = poolFunction;
+    }
+
+    public String toXMLString() {
         StringBuilder xmlString = new StringBuilder();
         if (null != this.poolFunction) {
             xmlString.append(HDSConstants.SPACE_STR).append("poolFunction=")
@@ -31,4 +31,3 @@ public class Condition {
         return xmlString.toString();
     }
 }
-

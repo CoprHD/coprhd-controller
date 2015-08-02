@@ -1,23 +1,17 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.fast.vnx;
 
-import java.io.IOException;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
@@ -46,8 +40,6 @@ public class VNXTierDomainToTiersProcessor extends AbstractFASTPolicyProcessor {
             _logger.error("VNX TierDomain to Tier Processing failed :", e);
         }
     }
-
-   
 
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs)

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.fast.vmax;
 
@@ -84,12 +74,12 @@ public class VMAXPolicyToTierProcessor extends AbstractFASTPolicyProcessor {
                 CIMObjectPath tierPath = vmaxTierInstance.getObjectPath();
                 String tierID = tierPath.getKey(Constants.INSTANCEID).getValue()
                         .toString();
-                //For 8.x -+- becomes +, internal DB format uses + only; for 4.6 remains as it is
+                // For 8.x -+- becomes +, internal DB format uses + only; for 4.6 remains as it is
                 tierID = tierID.replaceAll(Constants.SMIS_80_STYLE, Constants.SMIS_PLUS_REGEX);
                 if (keyMap.containsKey(tierID)) {
-                    List<CIMObjectPath> policyPaths =  (List<CIMObjectPath>) keyMap.get(tierID);
+                    List<CIMObjectPath> policyPaths = (List<CIMObjectPath>) keyMap.get(tierID);
                     policyPaths.add(vmaxFastPolicyRule);
-                    
+
                 } else {
                     addPath(keyMap, Constants.STORAGETIERS, tierPath);
                     List<CIMObjectPath> policyPaths = new ArrayList<CIMObjectPath>();
@@ -113,8 +103,10 @@ public class VMAXPolicyToTierProcessor extends AbstractFASTPolicyProcessor {
             _logger.error("Policy to Tier Processing failed :", e);
         }
     }
+
     /**
      * remove Tiers which had been deleted from Array
+     * 
      * @param tierNativeGuidsfromProvider
      * @param id
      * @throws IOException
@@ -124,19 +116,18 @@ public class VMAXPolicyToTierProcessor extends AbstractFASTPolicyProcessor {
         List<URI> tierUrisAssociatedWithPolicy = _dbClient
                 .queryByConstraint(AlternateIdConstraint.Factory
                         .getStorageTierFASTPolicyConstraint(id.toString()));
-        _logger.info("Tiers {} associated with Policy {}",Joiner.on("\t").join(tierUrisAssociatedWithPolicy),id);
+        _logger.info("Tiers {} associated with Policy {}", Joiner.on("\t").join(tierUrisAssociatedWithPolicy), id);
         List<StorageTier> existingTierObjectsInDB = _dbClient.queryObject(
                 StorageTier.class, tierUrisAssociatedWithPolicy);
         for (StorageTier tier : existingTierObjectsInDB) {
             if (!tierNativeGuidsfromProvider.contains(tier.getNativeGuid())) {
                 if (null != tier.getAutoTieringPolicies()) {
-                     tier.getAutoTieringPolicies().clear();
+                    tier.getAutoTieringPolicies().clear();
                 }
                 _dbClient.updateAndReindexObject(tier);
             }
         }
     }
-    
 
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs)

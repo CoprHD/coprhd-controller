@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.linux.tasks;
@@ -14,11 +14,11 @@ import com.iwave.ext.linux.command.FindParentMultipathDeviceCommand;
 public class GetMultipathPrimaryPartitionDeviceParentDmName extends LinuxExecutionTask<String> {
 
     private final String device;
-    
+
     public GetMultipathPrimaryPartitionDeviceParentDmName(String device) {
         this.device = device;
     }
-    
+
     @Override
     public String executeTask() throws Exception {
         String partitionDeviceName = StringUtils.substringAfterLast(device, "/");
@@ -28,5 +28,5 @@ public class GetMultipathPrimaryPartitionDeviceParentDmName extends LinuxExecuti
         }
         return parentDeviceDmName;
     }
-    
+
 }

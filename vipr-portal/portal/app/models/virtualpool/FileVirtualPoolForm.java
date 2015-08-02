@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.virtualpool;
@@ -14,7 +14,6 @@ import jobs.vipr.ConnectedFileVirtualPoolsCall;
 import jobs.vipr.MatchingFileStoragePoolsCall;
 import play.Logger;
 import play.data.validation.Min;
-import play.data.validation.Required;
 import util.VirtualPoolUtils;
 import util.builders.FileVirtualPoolBuilder;
 import util.builders.FileVirtualPoolUpdateBuilder;
@@ -28,7 +27,7 @@ import com.emc.vipr.client.core.util.ResourceUtils;
 public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRestRep> {
     @Min(0)
     public Integer maxSnapshots;
-    
+
     public Boolean longTermRetention;
 
     @Override

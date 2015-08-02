@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models;
@@ -22,17 +22,17 @@ public class StorageProviderTypes {
     public static final String DATA_DOMAIN = "ddmc";
     public static final String IBMXIV = "ibmxiv";
 
-    public static final StringOption[] OPTIONS = { 
-        option(SMIS),
-        option(HITACHI),
-        option(VPLEX),
-        option(CINDER),
-        option(SCALEIO),
-        option(DATA_DOMAIN),
-        option(IBMXIV)
+    public static final StringOption[] OPTIONS = {
+            option(SMIS),
+            option(HITACHI),
+            option(VPLEX),
+            option(CINDER),
+            option(SCALEIO),
+            option(DATA_DOMAIN),
+            option(IBMXIV)
     };
-    
-    public static final StringOption[] SSL_DEFAULT_OPTIONS = StringOption.options(new String[]{SMIS, VPLEX, IBMXIV}, OPTION_PREFIX);
+
+    public static final StringOption[] SSL_DEFAULT_OPTIONS = StringOption.options(new String[] { SMIS, VPLEX, IBMXIV }, OPTION_PREFIX);
 
     private static final Map<String, String> fromStorageArrayTypeMap = new HashMap<String, String>() {
         private static final long serialVersionUID = -8628274587467033626L;
@@ -48,7 +48,7 @@ public class StorageProviderTypes {
             put(StorageSystemTypes.IBMXIV, IBMXIV);
         }
     };
-    
+
     public static String fromStorageArrayType(String storageArrayType) {
         return fromStorageArrayTypeMap.get(storageArrayType);
     }

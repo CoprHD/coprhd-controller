@@ -1,0 +1,44 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import *
+
+def kickstart_get(args):
+    bourne.connect(args.ip)
+    project = bourne.kickstart_get()
+    
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# project <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne project cli usage.')
+parser.add_argument('cmd', help = 'cmd = (kickstart)')
+parser.add_argument('--ip',    metavar = 'ipaddr',    help = 'IP address of bourne', default=bourne_ip)
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "kickstart"):
+        args = parser.parse_args()
+        kickstart_get(args)    
+    else:
+        parser.print_help()
+except:
+    raise

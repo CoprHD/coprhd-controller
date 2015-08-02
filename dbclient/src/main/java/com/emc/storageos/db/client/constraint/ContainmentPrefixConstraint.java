@@ -1,20 +1,9 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.constraint;
-
 
 import com.emc.storageos.db.client.constraint.impl.ContainmentLabelConstraintImpl;
 import com.emc.storageos.db.client.constraint.impl.ContainmentPrefixConstraintImpl;
@@ -26,7 +15,7 @@ import com.emc.storageos.db.client.model.*;
 import java.net.URI;
 
 /**
- * ContainmentPrefix constraint.  For example, find volumes with its name starting
+ * ContainmentPrefix constraint. For example, find volumes with its name starting
  * with 'foo' under project X
  */
 public interface ContainmentPrefixConstraint extends Constraint {
@@ -34,8 +23,8 @@ public interface ContainmentPrefixConstraint extends Constraint {
      * Factory for creating containment prefix constraint for various object types
      */
     class Factory {
-    	private static final String PROJECT = "project";
-    	
+        private static final String PROJECT = "project";
+
         public static ContainmentPrefixConstraint getProjectUnderTenantConstraint(
                 URI tenant, String projectPrefix) {
             DataObjectType doType = TypeMap.getDoType(Project.class);
@@ -105,12 +94,12 @@ public interface ContainmentPrefixConstraint extends Constraint {
             ColumnField field = doType.getColumnField(PROJECT);
             return new ContainmentPrefixConstraintImpl(project, consistencyGroupPrefix, field);
         }
-        
+
         public static ContainmentPrefixConstraint getConstraint(
-                                                      Class<? extends DataObject> type,
-                                                      String columeField,
-                                                      URI resourceUri,
-                                                      String prefix) {
+                Class<? extends DataObject> type,
+                String columeField,
+                URI resourceUri,
+                String prefix) {
             DataObjectType doType = TypeMap.getDoType(type);
             ColumnField field = doType.getColumnField(columeField);
             return new ContainmentPrefixConstraintImpl(resourceUri, prefix, field);

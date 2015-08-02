@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.vnxe.job;
@@ -29,20 +19,21 @@ import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 
-public class VNXeDeleteFileSystemSnapshotJob extends VNXeJob{
+public class VNXeDeleteFileSystemSnapshotJob extends VNXeJob {
 
     /**
      * 
      */
     private static final long serialVersionUID = 4942134855002932670L;
     private static final Logger _logger = LoggerFactory.getLogger(VNXeCreateFileSystemSnapshotJob.class);
+
     public VNXeDeleteFileSystemSnapshotJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter) {
         super(jobId, storageSystemUri, taskCompleter, "deleteFileSystemSnapshot");
     }
-    
+
     /**
      * Called to update the job status when the file system snapshot delete job completes.
-     *
+     * 
      * @param jobContext The job context.
      */
     @Override
@@ -88,5 +79,5 @@ public class VNXeDeleteFileSystemSnapshotJob extends VNXeJob{
             super.updateStatus(jobContext);
         }
     }
-    
+
 }

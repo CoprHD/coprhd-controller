@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- *  software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of 
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
@@ -19,7 +9,7 @@ import java.io.Serializable;
 import java.util.*;
 
 /**
- *  Represents a user record in the database.  
+ * Represents a user record in the database.
  */
 @NoInactiveIndex
 @Cf("StorageOSUserDAO")
@@ -34,6 +24,7 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
 
     /**
      * Returns the value of the field called '_userName'.
+     * 
      * @return Returns the _userName.
      */
     @Name("username")
@@ -44,14 +35,17 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
 
     /**
      * Sets the field called '_userName' to the given value.
+     * 
      * @param userName The _userName to set.
      */
     public void setUserName(String userName) {
         _userName = userName;
         setChanged("username");
     }
+
     /**
      * Returns the value of the field called '_tenantId'.
+     * 
      * @return Returns the _tenantId.
      */
     @Name("tenantid")
@@ -61,24 +55,27 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
 
     /**
      * Sets the field called '_tenantId' to the given value.
+     * 
      * @param tenantId The _tenantId to set.
      */
     public void setTenantId(String tenantId) {
-        _tenantId = tenantId;    
+        _tenantId = tenantId;
         setChanged("tenantid");
     }
 
     /**
      * Sets distinguished name for the user
+     * 
      * @param distinguishedName
      */
-    public void setDistinguishedName( String distinguishedName ) {
+    public void setDistinguishedName(String distinguishedName) {
         _distinguishedName = distinguishedName;
         setChanged("distinguishedName");
     }
 
     /**
      * Returns distinguished name of the user
+     * 
      * @return
      */
     @Name("distinguishedName")
@@ -88,6 +85,7 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
 
     /**
      * Returns the value of the field called '_attributes'.
+     * 
      * @return Returns the _attributes.
      */
     @Name("attributes")
@@ -97,6 +95,7 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
 
     /**
      * Sets the field called '_attributes' to the given value.
+     * 
      * @param attributes The _attributes to set.
      */
     public void setAttributes(StringSet attributes) {
@@ -108,6 +107,7 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
 
     /**
      * add an attribute to the set of attributes
+     * 
      * @param attr
      */
     public void addAttribute(String attr) {
@@ -119,6 +119,7 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
 
     /**
      * Returns the value of the field called '_groups'.
+     * 
      * @return Returns the _groups.
      */
     @Name("groups")
@@ -128,6 +129,7 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
 
     /**
      * Sets groups to the given value.
+     * 
      * @param groups The _groups to set.
      */
     public void setGroups(StringSet groups) {
@@ -138,7 +140,7 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
     }
 
     /**
-     *
+     * 
      * @param group
      */
     public void addGroup(String group) {
@@ -150,6 +152,7 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
 
     /**
      * Returns the value of the field called '_local'.
+     * 
      * @return Returns the _local.
      */
     @Name("islocal")
@@ -159,6 +162,7 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
 
     /**
      * Sets the field called '_local' to the given value.
+     * 
      * @param local The _local to set.
      */
     public void setIsLocal(Boolean local) {
@@ -168,6 +172,7 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
 
     /**
      * Update fields from the new record
+     * 
      * @param newDao
      */
     public void updateFrom(StorageOSUserDAO newDao) {
@@ -175,7 +180,7 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
             setTenantId(newDao.getTenantId());
         }
         // update group info
-        if (newDao.getGroups() == null || newDao.getGroups().size() == 0) {
+        if (newDao.getGroups() == null || newDao.getGroups().isEmpty()) {
             if (_groups != null) {
                 _groups.clear();
             }
@@ -186,21 +191,21 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
             } else {
                 // remove what is not there in the new set
                 Set<String> remove = new HashSet<String>();
-                for (String group: _groups) {
+                for (String group : _groups) {
                     if (!newGroups.contains(group)) {
-                        remove.add(group);    
+                        remove.add(group);
                     }
                 }
                 _groups.removeAll(remove);
             }
-            for (String group: newGroups) {
+            for (String group : newGroups) {
                 if (!_groups.contains(group)) {
                     _groups.add(group);
                 }
             }
         }
         // update attributes
-        if (newDao.getAttributes() == null || newDao.getAttributes().size() == 0) {
+        if (newDao.getAttributes() == null || newDao.getAttributes().isEmpty()) {
             if (_attributes != null) {
                 _attributes.clear();
             }
@@ -210,14 +215,14 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
                 _attributes = new StringSet();
             } else {
                 Set<String> remove = new HashSet<String>();
-                for (String attr: new StringSet(_attributes)) {
+                for (String attr : new StringSet(_attributes)) {
                     if (!newAttributes.contains(attr)) {
                         remove.add(attr);
                     }
                 }
                 _attributes.removeAll(remove);
             }
-            for (String attr: newAttributes) {
+            for (String attr : newAttributes) {
                 if (!_attributes.contains(attr)) {
                     _attributes.add(attr);
                 }

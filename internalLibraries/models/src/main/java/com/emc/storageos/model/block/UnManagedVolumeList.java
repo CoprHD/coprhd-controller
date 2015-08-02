@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block;
@@ -17,17 +17,19 @@ public class UnManagedVolumeList {
 
     private List<RelatedResourceRep> unManagedVolumes;
 
-    public UnManagedVolumeList() {}
-            
+    public UnManagedVolumeList() {
+    }
+
     public UnManagedVolumeList(List<RelatedResourceRep> unManagedVolumes) {
         this.unManagedVolumes = unManagedVolumes;
     }
 
     /**
-     * The list of unmanaged volumes which are available in a storage system.  
-     * Used primarily to ingest volumes into ViPR.  
+     * The list of unmanaged volumes which are available in a storage system.
+     * Used primarily to ingest volumes into ViPR.
+     * 
      * @valid none
-     */    
+     */
     @XmlElement(name = "unmanaged_volume")
     public List<RelatedResourceRep> getUnManagedVolumes() {
         if (unManagedVolumes == null) {
@@ -39,5 +41,5 @@ public class UnManagedVolumeList {
     public void setUnManagedVolumes(List<RelatedResourceRep> unManagedVolumes) {
         this.unManagedVolumes = unManagedVolumes;
     }
-    
+
 }

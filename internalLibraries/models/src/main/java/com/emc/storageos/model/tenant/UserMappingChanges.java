@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012 - 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.tenant;
 
@@ -25,17 +15,19 @@ public class UserMappingChanges {
     private List<UserMappingParam> add;
     private List<UserMappingParam> remove;
 
-    public UserMappingChanges() {}
-    
+    public UserMappingChanges() {
+    }
+
     public UserMappingChanges(List<UserMappingParam> add,
             List<UserMappingParam> remove) {
         this.add = add;
         this.remove = remove;
     }
 
-    @XmlElementWrapper(name="add")
+    @XmlElementWrapper(name = "add")
     /*
      * User mapping to add in this change
+     * 
      * @valid none
      */
     @XmlElement(name = "user_mapping")
@@ -50,7 +42,7 @@ public class UserMappingChanges {
         this.add = add;
     }
 
-    @XmlElementWrapper(name="remove")
+    @XmlElementWrapper(name = "remove")
     /**
      * User mapping to remove in this change
      * @valid none
@@ -66,5 +58,5 @@ public class UserMappingChanges {
     public void setRemove(List<UserMappingParam> remove) {
         this.remove = remove;
     }
-    
+
 }

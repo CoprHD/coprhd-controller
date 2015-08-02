@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.vpool;
@@ -13,7 +13,7 @@ import com.emc.storageos.model.valid.Range;
 
 @XmlRootElement(name = "compute_vpool_update")
 public class ComputeVirtualPoolUpdateParam {
-	
+
     private String name;
     private String description;
     private String systemType;
@@ -34,9 +34,10 @@ public class ComputeVirtualPoolUpdateParam {
     private Boolean useMatchedElements;
     private VirtualArrayAssignmentChanges varrayChanges;
     private ServiceProfileTemplateAssignmentChanges sptChanges;
-    
-    public ComputeVirtualPoolUpdateParam() {}
-    
+
+    public ComputeVirtualPoolUpdateParam() {
+    }
+
     /**
      * The name for the virtual pool.
      * 
@@ -66,14 +67,14 @@ public class ComputeVirtualPoolUpdateParam {
         this.description = description;
     }
 
-     /**
-     *  Supported System Types
-     *  
+    /**
+     * Supported System Types
+     * 
      * @valid Cisco_UCSM
      * @valid Cisco_CSeries
      * @valid Generic
      */
-    @XmlElement(name="system_type")
+    @XmlElement(name = "system_type")
     public String getSystemType() {
         return systemType;
     }
@@ -83,7 +84,7 @@ public class ComputeVirtualPoolUpdateParam {
     }
 
     @XmlElement(name = "min_processors")
-    @Range(min=0,max=65535)
+    @Range(min = 0, max = 65535)
     public Integer getMinProcessors() {
         return minProcessors;
     }
@@ -91,9 +92,9 @@ public class ComputeVirtualPoolUpdateParam {
     public void setMinProcessors(Integer minProcessors) {
         this.minProcessors = minProcessors;
     }
-    
+
     @XmlElement(name = "max_processors")
-    @Range(min=0,max=65535)
+    @Range(min = 0, max = 65535)
     public Integer getMaxProcessors() {
         return maxProcessors;
     }
@@ -103,7 +104,7 @@ public class ComputeVirtualPoolUpdateParam {
     }
 
     @XmlElement(name = "min_total_cores")
-    @Range(min=0,max=65535)
+    @Range(min = 0, max = 65535)
     public Integer getMinTotalCores() {
         return minTotalCores;
     }
@@ -111,9 +112,9 @@ public class ComputeVirtualPoolUpdateParam {
     public void setMinTotalCores(Integer minTotalCores) {
         this.minTotalCores = minTotalCores;
     }
-    
+
     @XmlElement(name = "max_total_cores")
-    @Range(min=0,max=65535)
+    @Range(min = 0, max = 65535)
     public Integer getMaxTotalCores() {
         return maxTotalCores;
     }
@@ -122,9 +123,8 @@ public class ComputeVirtualPoolUpdateParam {
         this.maxTotalCores = maxTotalCores;
     }
 
-
     @XmlElement(name = "min_total_threads")
-    @Range(min=0,max=65535)
+    @Range(min = 0, max = 65535)
     public Integer getMinTotalThreads() {
         return minTotalThreads;
     }
@@ -132,9 +132,9 @@ public class ComputeVirtualPoolUpdateParam {
     public void setMinTotalThreads(Integer minTotalThreads) {
         this.minTotalThreads = minTotalThreads;
     }
-    
+
     @XmlElement(name = "max_total_threads")
-    @Range(min=0,max=65535)
+    @Range(min = 0, max = 65535)
     public Integer getMaxTotalThreads() {
         return maxTotalThreads;
     }
@@ -143,9 +143,8 @@ public class ComputeVirtualPoolUpdateParam {
         this.maxTotalThreads = maxTotalThreads;
     }
 
-
     @XmlElement(name = "min_cpu_speed")
-    @Range(min=0,max=65535)
+    @Range(min = 0, max = 65535)
     public Integer getMinCpuSpeed() {
         return minCpuSpeed;
     }
@@ -153,9 +152,9 @@ public class ComputeVirtualPoolUpdateParam {
     public void setMinCpuSpeed(Integer minCpuSpeed) {
         this.minCpuSpeed = minCpuSpeed;
     }
-    
+
     @XmlElement(name = "max_cpu_speed")
-    @Range(min=0,max=65535)
+    @Range(min = 0, max = 65535)
     public Integer getMaxCpuSpeed() {
         return maxCpuSpeed;
     }
@@ -164,9 +163,8 @@ public class ComputeVirtualPoolUpdateParam {
         this.maxCpuSpeed = maxCpuSpeed;
     }
 
-
     @XmlElement(name = "min_memory")
-    @Range(min=0,max=65535)
+    @Range(min = 0, max = 65535)
     public Integer getMinMemory() {
         return minMemory;
     }
@@ -174,9 +172,9 @@ public class ComputeVirtualPoolUpdateParam {
     public void setMinMemory(Integer minMemory) {
         this.minMemory = minMemory;
     }
-    
+
     @XmlElement(name = "max_memory")
-    @Range(min=0,max=65535)
+    @Range(min = 0, max = 65535)
     public Integer getMaxMemory() {
         return maxMemory;
     }
@@ -186,7 +184,7 @@ public class ComputeVirtualPoolUpdateParam {
     }
 
     @XmlElement(name = "min_nics")
-    @Range(min=0,max=65535)
+    @Range(min = 0, max = 65535)
     public Integer getMinNics() {
         return minNics;
     }
@@ -194,19 +192,19 @@ public class ComputeVirtualPoolUpdateParam {
     public void setMinNics(Integer minNics) {
         this.minNics = minNics;
     }
-    
+
     @XmlElement(name = "max_nics")
-    @Range(min=0,max=65535)
+    @Range(min = 0, max = 65535)
     public Integer getMaxNics() {
         return maxNics;
     }
 
     public void setMaxNics(Integer maxNics) {
         this.maxNics = maxNics;
-    }    
+    }
 
     @XmlElement(name = "min_hbas")
-    @Range(min=0,max=65535)
+    @Range(min = 0, max = 65535)
     public Integer getMinHbas() {
         return minHbas;
     }
@@ -214,19 +212,19 @@ public class ComputeVirtualPoolUpdateParam {
     public void setMinHbas(Integer minHbas) {
         this.minHbas = minHbas;
     }
-    
+
     @XmlElement(name = "max_hbas")
-    @Range(min=0,max=65535)
+    @Range(min = 0, max = 65535)
     public Integer getMaxHbas() {
         return maxHbas;
     }
 
     public void setMaxHbas(Integer maxHbas) {
         this.maxHbas = maxHbas;
-    }    
+    }
 
     /**
-     * Determines if matched or valid assigned compute elements are returned from 
+     * Determines if matched or valid assigned compute elements are returned from
      * command to retrieve the list of compute elements.
      * 
      * @valid true
@@ -239,8 +237,8 @@ public class ComputeVirtualPoolUpdateParam {
 
     public void setUseMatchedElements(Boolean useMatchedElements) {
         this.useMatchedElements = useMatchedElements;
-    }  
-    
+    }
+
     /**
      * The virtual array assignment changes for the virtual pool.
      * 
@@ -253,8 +251,8 @@ public class ComputeVirtualPoolUpdateParam {
 
     public void setVarrayChanges(VirtualArrayAssignmentChanges varrayChanges) {
         this.varrayChanges = varrayChanges;
-    } 
-    
+    }
+
     /**
      * The viService Profile Template assignment changes for the virtual pool.
      * 
@@ -267,20 +265,20 @@ public class ComputeVirtualPoolUpdateParam {
 
     public void setSptChanges(ServiceProfileTemplateAssignmentChanges sptChanges) {
         this.sptChanges = sptChanges;
-    }     
-    
-    public String toString(){
-    	StringBuffer buf = new StringBuffer();
-    	buf.append("Name:"+this.getName()+", Description:"+this.getDescription()+"\n");
-    	buf.append("UseMatchedElements:"+this.getUseMatchedElements()+ "  SystemType:"+this.getSystemType()+"\n");
-    	buf.append("Qualifiers:\n");
-    	buf.append("Processors -  Min:"+this.getMinProcessors()+"  Max:"+this.getMaxProcessors()+"\n");
-    	buf.append("Cores - Min:"+this.getMinTotalCores()+" Max:"+this.getMaxTotalCores()+"\n");
-    	buf.append("Threads - Min:"+this.getMinTotalThreads()+"   Max:"+this.getMaxTotalThreads()+"\n");
-    	buf.append("Cpu Speed - Min:"+ this.getMinCpuSpeed()+"    Max:"+this.getMaxCpuSpeed()+"\n");
-    	buf.append("Memory - Min:"+this.getMinMemory()+"     Max:"+this.getMaxCpuSpeed()+"\n");
-    	buf.append("Nics - Min:"+this.getMinNics()+"   Max:"+this.getMaxNics()+"\n");
-    	buf.append("Hbas - Min:"+this.getMinHbas()+"   Max:"+this.getMaxHbas()+"\n");
-    	return buf.toString();
+    }
+
+    public String toString() {
+        StringBuffer buf = new StringBuffer();
+        buf.append("Name:" + this.getName() + ", Description:" + this.getDescription() + "\n");
+        buf.append("UseMatchedElements:" + this.getUseMatchedElements() + "  SystemType:" + this.getSystemType() + "\n");
+        buf.append("Qualifiers:\n");
+        buf.append("Processors -  Min:" + this.getMinProcessors() + "  Max:" + this.getMaxProcessors() + "\n");
+        buf.append("Cores - Min:" + this.getMinTotalCores() + " Max:" + this.getMaxTotalCores() + "\n");
+        buf.append("Threads - Min:" + this.getMinTotalThreads() + "   Max:" + this.getMaxTotalThreads() + "\n");
+        buf.append("Cpu Speed - Min:" + this.getMinCpuSpeed() + "    Max:" + this.getMaxCpuSpeed() + "\n");
+        buf.append("Memory - Min:" + this.getMinMemory() + "     Max:" + this.getMaxCpuSpeed() + "\n");
+        buf.append("Nics - Min:" + this.getMinNics() + "   Max:" + this.getMaxNics() + "\n");
+        buf.append("Hbas - Min:" + this.getMinHbas() + "   Max:" + this.getMaxHbas() + "\n");
+        return buf.toString();
     }
 }

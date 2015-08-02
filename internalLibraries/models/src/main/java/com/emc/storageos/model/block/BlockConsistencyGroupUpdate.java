@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.block;
 
@@ -26,13 +16,13 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement(name = "consistency_group_update")
 public class BlockConsistencyGroupUpdate {
-    
+
     public static class BlockConsistencyGroupVolumeList {
         private List<URI> volumes;
 
         /**
          * A block volume URI
-         *
+         * 
          * @valid none
          */
         @XmlElement(required = true, name = "volume")
@@ -53,7 +43,7 @@ public class BlockConsistencyGroupUpdate {
 
     /**
      * List of volumes to add to the block consistency group
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "add_volumes")
@@ -67,7 +57,7 @@ public class BlockConsistencyGroupUpdate {
 
     /**
      * List of volumes to remove from the block consistency group
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "remove_volumes")
@@ -79,7 +69,7 @@ public class BlockConsistencyGroupUpdate {
             BlockConsistencyGroupVolumeList removeVolumesList) {
         this.removeVolumesList = removeVolumesList;
     }
-    
+
     public boolean hasEitherAddOrRemoveVolumes() {
         return hasVolumesToAdd() || hasVolumesToRemove();
     }
@@ -96,5 +86,5 @@ public class BlockConsistencyGroupUpdate {
     public boolean hasVolumesToRemove() {
         return removeVolumesList != null && removeVolumesList.volumes != null &&
                 !removeVolumesList.volumes.isEmpty();
-    }    
+    }
 }

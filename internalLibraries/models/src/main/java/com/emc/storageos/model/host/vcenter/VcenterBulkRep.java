@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.host.vcenter;
@@ -16,14 +16,16 @@ import com.emc.storageos.model.BulkRestRep;
 public class VcenterBulkRep extends BulkRestRep {
     private List<VcenterRestRep> vcenters;
 
-    public VcenterBulkRep() {}
-    
+    public VcenterBulkRep() {
+    }
+
     public VcenterBulkRep(List<VcenterRestRep> vcenters) {
         this.vcenters = vcenters;
     }
-    
+
     /**
      * List of vCenter objects that exists in ViPR.
+     * 
      * @valid none
      */
     @XmlElement(name = "vcenter")

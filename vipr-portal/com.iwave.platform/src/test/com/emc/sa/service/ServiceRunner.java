@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service;
@@ -41,7 +41,7 @@ public class ServiceRunner {
         LoggingUtils.configureIfNecessary("sasvc-log4j.properties");
     }
 
-    private static void init() {
+    private static synchronized void init() {
         if (StringUtils.isBlank(System.getProperty("platform.home"))) {
             System.setProperty("platform.home", new File("runtime/platform").getAbsolutePath());
         }
@@ -53,12 +53,12 @@ public class ServiceRunner {
 
             String[] configs = { "service-runner.xml" };
             CONTEXT = new ClassPathXmlApplicationContext(configs, ServiceRunner.class, parentContext);
-            ENGINE = (ExecutionEngineImpl)CONTEXT.getBean("ExecutionEngine",ExecutionEngineImpl.class);
-            MODELS = (ModelClient)CONTEXT.getBean("ModelClient",ModelClient.class);
+            ENGINE = (ExecutionEngineImpl) CONTEXT.getBean("ExecutionEngine", ExecutionEngineImpl.class);
+            MODELS = (ModelClient) CONTEXT.getBean("ModelClient", ModelClient.class);
         }
     }
 
-    public static void shutdown() {
+    public static synchronized void shutdown() {
         if (CONTEXT != null) {
             CONTEXT.stop();
             CONTEXT = null;
@@ -154,7 +154,7 @@ public class ServiceRunner {
         List<ExecutionLog> logs = load(state.getLogIds(), ExecutionLog.class);
         Collections.sort(logs, LOG_COMPARATOR);
 
-        if (logs.size() > 0) {
+        if (!logs.isEmpty()) {
             print("  Logs");
             for (ExecutionLog log : logs) {
                 print("    - %s\t%s\t%s", log.getDate(), log.getLevel(), log.getMessage());
@@ -163,7 +163,7 @@ public class ServiceRunner {
 
         List<ExecutionTaskLog> taskLogs = load(state.getTaskLogIds(), ExecutionTaskLog.class);
         Collections.sort(taskLogs, LOG_COMPARATOR);
-        if (taskLogs.size() > 0) {
+        if (!taskLogs.isEmpty()) {
             print("  Task Logs");
             for (ExecutionTaskLog log : taskLogs) {
                 print("    - %s\t%s\t%s\t%s", log.getDate(), log.getLevel(), log.getMessage(), log.getDetail());

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers;
@@ -29,7 +29,7 @@ public class Preferences extends Controller {
     private static final String FLASH_REFERER = "flash.userPreferences.referer.url";
 
     public static void update() {
-        PreferencesForm user =  new PreferencesForm(UserPreferencesUtils.getUserPreferences());
+        PreferencesForm user = new PreferencesForm(UserPreferencesUtils.getUserPreferences());
         storeReferer(user);
         render(user);
     }
@@ -86,11 +86,11 @@ public class Preferences extends Controller {
     }
 
     private static String getRefererRequestHeader() {
-    	for (Entry<String, Header> keys : request.headers.entrySet()) {
+        for (Entry<String, Header> keys : request.headers.entrySet()) {
             if (StringUtils.equals(keys.getKey(), "referer")) {
                 return keys.getValue().toString();
             }
-    	}
+        }
         return null;
     }
 

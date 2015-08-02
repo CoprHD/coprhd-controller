@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -22,7 +22,7 @@ public class ApiList<T> implements Serializable {
         this.list = new ArrayList<T>(collection);
     }
 
-    @XmlAnyElement(lax=true)
+    @XmlAnyElement(lax = true)
     public List<T> getList() {
         if (list == null) {
             list = new ArrayList<T>();

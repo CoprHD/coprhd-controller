@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -13,27 +13,30 @@ public class CatalogServiceFieldParam {
     private String name;
     private String value;
     private Boolean override;
-    
+
     @XmlElement(name = "name")
     public String getName() {
         return name;
     }
+
     public void setName(String name) {
         this.name = name;
     }
-    
+
     @XmlElement(name = "value")
     public String getValue() {
         return value;
     }
+
     public void setValue(String value) {
         this.value = value;
     }
-    
+
     @XmlElement(name = "override")
     public Boolean getOverride() {
         return override;
     }
+
     public void setOverride(Boolean override) {
         this.override = override;
     }

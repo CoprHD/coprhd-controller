@@ -1,26 +1,15 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.utils;
-
-import com.emc.storageos.db.client.model.Volume;
 
 import java.io.Serializable;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
 /**
  * Wrapper for VirtualPoolParams HashMap
  * 
@@ -51,13 +40,13 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String META_VOLUME_TYPE = "metaVolumeType";
 
     private Map<String, Object> _vpoolCapabilities = new HashMap<String, Object>();
-    
+
     /**
      * Default constructor
      */
     public VirtualPoolCapabilityValuesWrapper() {
     }
-    
+
     /**
      * Copy the passed capabilities to a new instance.
      * 
@@ -68,7 +57,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(AUTO_TIER__POLICY_NAME)) {
             _vpoolCapabilities.put(AUTO_TIER__POLICY_NAME, capabilities.getAutoTierPolicyName());
         }
-        
+
         if (capabilities.contains(RAID_LEVEL)) {
             _vpoolCapabilities.put(RAID_LEVEL, capabilities.getRaidLevel());
         }
@@ -80,15 +69,15 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(VARRAYS)) {
             _vpoolCapabilities.put(VARRAYS, capabilities.getVirtualArrays());
         }
-        
+
         if (capabilities.contains(PROTOCOLS)) {
             _vpoolCapabilities.put(PROTOCOLS, capabilities.getProtocols());
         }
-        
+
         if (capabilities.contains(SIZE)) {
             _vpoolCapabilities.put(SIZE, capabilities.getSize());
         }
-            
+
         if (capabilities.contains(THIN_VOLUME_PRE_ALLOCATE_SIZE)) {
             _vpoolCapabilities.put(THIN_VOLUME_PRE_ALLOCATE_SIZE, capabilities.getThinVolumePreAllocateSize());
         }
@@ -96,11 +85,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(RESOURCE_COUNT)) {
             _vpoolCapabilities.put(RESOURCE_COUNT, capabilities.getResourceCount());
         }
-        
+
         if (capabilities.contains(THIN_PROVISIONING)) {
             _vpoolCapabilities.put(THIN_PROVISIONING, capabilities.getThinProvisioning());
         }
-        
+
         if (capabilities.contains(BLOCK_CONSISTENCY_GROUP)) {
             _vpoolCapabilities.put(BLOCK_CONSISTENCY_GROUP, capabilities.getBlockConsistencyGroup());
         }
@@ -116,7 +105,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(PERSONALITY)) {
             _vpoolCapabilities.put(PERSONALITY, capabilities.getPersonality());
         }
-        
+
         if (capabilities.contains(RP_RPO_VALUE)) {
             _vpoolCapabilities.put(RP_RPO_VALUE, capabilities.getRpRpoValue());
         }
@@ -175,7 +164,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public void put(String key, Object value) {
         _vpoolCapabilities.put(key, value);
     }
-    
+
     public boolean contains(String key) {
         return _vpoolCapabilities.containsKey(key);
     }
@@ -199,10 +188,12 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         Object value = _vpoolCapabilities.get(THIN_PROVISIONING);
         return value != null ? (Boolean) value : false;
     }
+
     public URI getBlockConsistencyGroup() {
         Object value = _vpoolCapabilities.get(BLOCK_CONSISTENCY_GROUP);
         return value != null ? (URI) value : null;
     }
+
     public String getPersonality() {
         Object value = _vpoolCapabilities.get(PERSONALITY);
         return value != null ? (String) value : null;
@@ -212,17 +203,17 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         Object value = _vpoolCapabilities.get(RP_RPO_VALUE);
         return value != null ? (Long) value : 0L;
     }
-    
+
     public String getRpRpoType() {
         Object value = _vpoolCapabilities.get(RP_RPO_TYPE);
         return value != null ? (String) value : null;
     }
-    
+
     public String getRpCopyMode() {
         Object value = _vpoolCapabilities.get(RP_COPY_MODE);
         return value != null ? (String) value : null;
     }
-    
+
     public String getSrdfSource() {
         Object value = _vpoolCapabilities.get(SRDF_SOURCE);
         return value != null ? (String) value : null;

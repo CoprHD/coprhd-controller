@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.cinder.model;
@@ -25,45 +15,45 @@ public class VolumeAttachResponse {
      * 
      * for iSCSI
      * 
-     * {"connection_info": 
-            {
-                "driver_volume_type": "iscsi",
-                "data": 
-                {
-                   "target_discovered": false,
-                   "qos_spec": null,
-                   "target_iqn": "<TARGET_STORAGE_PORT_IQN>",
-                   "target_portal": "<TARGET_ARRAY_IP_ADDRESS>:<PORT_NUMBER>",
-                   "volume_id": "ad620215-9253-4192-bb2d-3b2b190ecebd",
-                   "target_lun": 1,
-                   "access_mode": "rw"
-                }
-            }
-       }
-     *
+     * {"connection_info":
+     * {
+     * "driver_volume_type": "iscsi",
+     * "data":
+     * {
+     * "target_discovered": false,
+     * "qos_spec": null,
+     * "target_iqn": "<TARGET_STORAGE_PORT_IQN>",
+     * "target_portal": "<TARGET_ARRAY_IP_ADDRESS>:<PORT_NUMBER>",
+     * "volume_id": "ad620215-9253-4192-bb2d-3b2b190ecebd",
+     * "target_lun": 1,
+     * "access_mode": "rw"
+     * }
+     * }
+     * }
+     * 
      * for FC (initiator and target wwns will be shown without colon)
      * 
-     * {"connection_info": 
-            {
-                "driver_volume_type": "fibre_channel",
-                "data": 
-                {
-                   "initiator_target_map":
-                   {
-                       "<INITIATOR_WWPN1>": ["<TARGET_STORAGE_PORT_WWN1>", "<TARGET_STORAGE_PORT_WWN2>"],
-                       "<INITIATOR_WWPN2>": ["<TARGET_STORAGE_PORT_WWN1>", "<TARGET_STORAGE_PORT_WWN2>"]
-                   },
-                   "target_discovered": false,
-                   "qos_spec": null,
-                   "volume_id": "fe29d4a9-304e-4241-95fe-d9b6c31887f9",
-                   "target_lun": 2,
-                   "access_mode": "rw",
-                   "target_wwn": ["<TARGET_STORAGE_PORT_WWN1>", "<TARGET_STORAGE_PORT_WWN2>"]
-                           * some drivers return target_wwn as string list, but some return it as string.
-                           * To handle it, we maintain two model classes (VolumeAttachResponse and VolumeAttachResponseAlt)
-                }
-            }
-       }
+     * {"connection_info":
+     * {
+     * "driver_volume_type": "fibre_channel",
+     * "data":
+     * {
+     * "initiator_target_map":
+     * {
+     * "<INITIATOR_WWPN1>": ["<TARGET_STORAGE_PORT_WWN1>", "<TARGET_STORAGE_PORT_WWN2>"],
+     * "<INITIATOR_WWPN2>": ["<TARGET_STORAGE_PORT_WWN1>", "<TARGET_STORAGE_PORT_WWN2>"]
+     * },
+     * "target_discovered": false,
+     * "qos_spec": null,
+     * "volume_id": "fe29d4a9-304e-4241-95fe-d9b6c31887f9",
+     * "target_lun": 2,
+     * "access_mode": "rw",
+     * "target_wwn": ["<TARGET_STORAGE_PORT_WWN1>", "<TARGET_STORAGE_PORT_WWN2>"]
+     * some drivers return target_wwn as string list, but some return it as string.
+     * To handle it, we maintain two model classes (VolumeAttachResponse and VolumeAttachResponseAlt)
+     * }
+     * }
+     * }
      */
 
     public ConnectionInfo connection_info;
@@ -71,7 +61,7 @@ public class VolumeAttachResponse {
     public class ConnectionInfo {
         public String driver_volume_type;
         public Data data;
-        
+
         @Override
         public String toString() {
             StringBuffer response = new StringBuffer();
@@ -101,7 +91,7 @@ public class VolumeAttachResponse {
         public String volume_id;
         public int target_lun;
         public String access_mode;
-        
+
         @Override
         public String toString() {
             StringBuffer response = new StringBuffer();

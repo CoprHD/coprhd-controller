@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.host.cluster;
 
@@ -30,8 +20,9 @@ public class ClusterRestRep extends TenantResourceRestRep {
     private RelatedResourceRep project;
     private RelatedResourceRep VcenterDataCenter;
 
-    public ClusterRestRep() {}
-    
+    public ClusterRestRep() {
+    }
+
     public ClusterRestRep(RelatedResourceRep project,
             RelatedResourceRep vcenterDataCenter) {
         this.project = project;
@@ -40,10 +31,11 @@ public class ClusterRestRep extends TenantResourceRestRep {
 
     /**
      * The project to which the cluster is assigned.
+     * 
      * @valid none
      * @return the project to which the cluster is assigned.
      */
-    @XmlElement(name="project")
+    @XmlElement(name = "project")
     public RelatedResourceRep getProject() {
         return project;
     }
@@ -54,10 +46,11 @@ public class ClusterRestRep extends TenantResourceRestRep {
 
     /**
      * The name of the data center in vCenter where this cluster resides
+     * 
      * @valid none
      * @return the name of the data center in vCenter where this cluster resides
      */
-    @XmlElement(name="vcenter_data_center")
+    @XmlElement(name = "vcenter_data_center")
     public RelatedResourceRep getVcenterDataCenter() {
         return VcenterDataCenter;
     }
@@ -66,4 +59,3 @@ public class ClusterRestRep extends TenantResourceRestRep {
         VcenterDataCenter = vcenterDataCenter;
     }
 }
-

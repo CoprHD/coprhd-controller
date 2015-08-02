@@ -330,6 +330,7 @@ public class NetworkDeviceController implements NetworkController {
 	 * Add/remove a group of zones as given by their NetworkFabricInfo structures.
 	 * ALL fabricInfos must be using the same NetworkDevice, and the same fabricId. There is a higher level
 	 * subroutine to split complex requests into sets of requests with the same NetworkDevice and fabricId.
+     * 
 	 * @param device NetworkDevice
 	 * @param fabricId String
 	 * @param exportGroupUri The ExportGroup URI. Used for reference counting.
@@ -1692,8 +1693,8 @@ public class NetworkDeviceController implements NetworkController {
                 _log.info(String.format("Existing zone reference: vol %s group %s refkey %s", 
                         volumeURI, exportGroupURI, refKey ));
                 newOrExisting[0] = "Existing";
-        return ref;
-    }
+                return ref;
+            }
         }
         return null;
     }

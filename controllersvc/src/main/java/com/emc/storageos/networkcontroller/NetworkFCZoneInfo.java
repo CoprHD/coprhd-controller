@@ -69,166 +69,6 @@ public class NetworkFCZoneInfo implements Serializable {
     }
 
     public NetworkFCZoneInfo(URI _networkDeviceId, String _fabricId, String _fabricWwn, String _task) {
-		this(_networkDeviceId, _fabricId, _fabricWwn);
-		this._task = _task;
-	}
-
-	public NetworkFCZoneInfo(URI _networkDeviceId, String _fabricId, String _fabricWwn) {
-		if (_networkDeviceId == null) throw DeviceControllerException.exceptions.entityNullOrEmpty("_networkDeviceId");
-		if (_fabricId == null) throw DeviceControllerException.exceptions.entityNullOrEmpty("_fabricId");
-		this._networkDeviceId = _networkDeviceId;
-		this._fabricId = _fabricId;
-		this._fabricWwn = _fabricWwn;
-	}
-
-    public NetworkFCZoneInfo(URI _networkDeviceId, String _fabricId, String _fabricWwn, URI _volumeId) {
-        this(_networkDeviceId, _fabricId, _fabricWwn);
-        this._volumeId = _volumeId;
-    }
-
-	public NetworkFCZoneInfo() {
-		super();
-	}
-
-	public URI getNetworkDeviceId() {
-		return _networkDeviceId;
-	}
-
-	public void setNetworkDeviceId(URI _networkDeviceId) {
-		this._networkDeviceId = _networkDeviceId;
-	}
-
-	public String getFabricId() {
-		return _fabricId;
-	}
-
-	public void setFabricId(String _fabricId) {
-		this._fabricId = _fabricId;
-	}
-
-	public String getTask() {
-		return _task;
-	}
-
-	public void setTask(String _task) {
-		this._task = _task;
-	}
-
-	public URI getFcZoneReferenceId() {
-		return _fcZoneReferenceId;
-	}
-
-	public void setFcZoneReferenceId(URI _fcZoneReferenceId) {
-		this._fcZoneReferenceId = _fcZoneReferenceId;
-	}
-
-	public boolean isLastReference() {
-		return _isLastReference;
-	}
-
-	public void setLastReference(boolean _isLastReference) {
-		this._isLastReference = _isLastReference;
-	}
-
-	public List<String> getEndPoints() {
-		return _endPoints;
-	}
-
-	public void setEndPoints(List<String> _endPoints) {
-		this._endPoints = _endPoints;
-	}
-	
-	/**
-	 * This will make a key string consisting of the endPoints in sorted order.
-	 * This is used for the FCZoneReferenceKey structure.
-	 * @return
-	 */
-	public String makeEndpointsKey() {
-		return FCZoneReference.makeEndpointsKey(_endPoints);
-	}
-	
-	@Override
-	public int hashCode() {
-		return toString().hashCode();
-	}
-
-	@Override
-	public boolean equals(Object paramObject) {
-		if (paramObject instanceof NetworkFCZoneInfo) {
-			return toString().equals(paramObject.toString());
-		}
-		return false;
-	}
-
-	@Override
-	public String toString() {
-		StringBuilder builder = new StringBuilder(_fabricId==null? "":_fabricId);
-		List<String> sorted = new ArrayList<String>(_endPoints);
-		Collections.sort(sorted);
-		for (String endPoint : sorted) {
-			builder.append(",");
-			builder.append(endPoint);
-		}
-		// I am not sure what to do when neither fabric nor end points are specified
-		return builder.length() == 0 ? super.toString() :  builder.toString();
-	}
-
-	public URI getAltNetworkDeviceId() {
-		return _altNetworkDeviceId;
-	}
-	public void setAltNetworkDeviceId(URI _altNetworkDeviceId) {
-		this._altNetworkDeviceId = _altNetworkDeviceId;
-	}
-
-	public String getZoneName() {
-		return _zoneName;
-	}
-
-	public void setZoneName(String zoneName) {
-		this._zoneName = zoneName;
-	}
-
-	public URI getVolumeId() {
-		return _volumeId;
-	}
-
-	public void setVolumeId(URI volumeId) {
-		this._volumeId = volumeId;
-	}
-	
-	public String getFabricWwn() {
-		return _fabricWwn;
-	}
-
-	public void setFabricWwn(String fabricWwn) {
-		this._fabricWwn = fabricWwn;
-	}
-	
-	public boolean canBeRolledBack() {
-		return _canBeRolledBack;
-	}
-	
-	public void setCanBeRolledBack(boolean b) {
-		_canBeRolledBack = b;
-	}
-	
-	public NetworkFCZoneInfo clone() {
-	    NetworkFCZoneInfo newInfo = new NetworkFCZoneInfo();
-	    newInfo.setAltNetworkDeviceId(_altNetworkDeviceId);
-	    newInfo.setEndPoints(_endPoints);
-	    newInfo.setExistingZone(existingZone);
-	    newInfo.setFabricId(_fabricId);
-	    newInfo.setFabricWwn(_fabricWwn);
-	    newInfo.setCanBeRolledBack(_canBeRolledBack);
-	    newInfo.setFcZoneReferenceId(_fcZoneReferenceId);
-	    newInfo.setLastReference(_isLastReference);
-	    newInfo.setNetworkDeviceId(_networkDeviceId);
-	    newInfo.setVolumeId(_volumeId);
-	    newInfo.setZoneName(_zoneName);
-	    return newInfo;
-	}
-	
-=======
         this(_networkDeviceId, _fabricId, _fabricWwn);
         this._task = _task;
     }
@@ -243,6 +83,11 @@ public class NetworkFCZoneInfo implements Serializable {
         this._networkDeviceId = _networkDeviceId;
         this._fabricId = _fabricId;
         this._fabricWwn = _fabricWwn;
+    }
+
+    public NetworkFCZoneInfo(URI _networkDeviceId, String _fabricId, String _fabricWwn, URI _volumeId) {
+        this(_networkDeviceId, _fabricId, _fabricWwn);
+        this._volumeId = _volumeId;
     }
 
     public NetworkFCZoneInfo() {
@@ -373,4 +218,19 @@ public class NetworkFCZoneInfo implements Serializable {
         _canBeRolledBack = b;
     }
 
+    public NetworkFCZoneInfo clone() {
+        NetworkFCZoneInfo newInfo = new NetworkFCZoneInfo();
+        newInfo.setAltNetworkDeviceId(_altNetworkDeviceId);
+        newInfo.setEndPoints(_endPoints);
+        newInfo.setExistingZone(existingZone);
+        newInfo.setFabricId(_fabricId);
+        newInfo.setFabricWwn(_fabricWwn);
+        newInfo.setCanBeRolledBack(_canBeRolledBack);
+        newInfo.setFcZoneReferenceId(_fcZoneReferenceId);
+        newInfo.setLastReference(_isLastReference);
+        newInfo.setNetworkDeviceId(_networkDeviceId);
+        newInfo.setVolumeId(_volumeId);
+        newInfo.setZoneName(_zoneName);
+        return newInfo;
+    }
 }

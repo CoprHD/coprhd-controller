@@ -167,13 +167,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                        clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
     }
 
-    private List<Recommendation> getRecommendationsForVirtualPoolChangeRequest(Volume volume, VirtualPool newVpool, VirtualPoolChangeParam cosChangeParam) {
+    private List<Recommendation> getRecommendationsForVirtualPoolChangeRequest(Volume volume, VirtualPool newVpool) {
         Project project = _dbClient.queryObject(Project.class, volume.getProject());
 
         // Protection volume placement is requested.
         return getBlockScheduler().scheduleStorageForVpoolChangeUnprotected(
                 volume, newVpool,
-                RecoverPointScheduler.getProtectionVirtualArraysForVirtualPool(project, newVpool, _dbClient, _permissionsHelper), cosChangeParam);
+                RecoverPointScheduler.getProtectionVirtualArraysForVirtualPool(project, newVpool, _dbClient, _permissionsHelper));
     }
     
     /**
@@ -320,7 +320,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 for (VirtualArray protectionVirtualArray : RecoverPointScheduler.getProtectionVirtualArraysForVirtualPool(project, vpool, _dbClient,
                                                                                                    _permissionsHelper)) {
                     VpoolProtectionVarraySettings settings = _rpHelper.getProtectionSettings(vpool, protectionVirtualArray);  
-                    String targetInternalSiteName = recommendation.getVirtualArrayProtectionMap().get(protectionVirtualArray.getId()).getTargetInternalSiteName();
+                    List<Protection> protectionList = recommendation.getVirtualArrayProtectionMap().get(protectionVirtualArray.getId());
+                    
+                    String targetInternalSiteName = protectionList.get(0).getTargetInternalSiteName();;
                     // whether additional journals are required computation needs to happen only once per copy, irrespective of number of volumes requested
                     if (volumeCount == 0 && (cgSourceVolumes.isEmpty() || _rpHelper.isAdditionalJournalRequiredForCG(settings.getJournalSize(), 
                     							consistencyGroup, param.getSize(), numberOfVolumesInRequest, Volume.PersonalityTypes.TARGET.toString(), targetInternalSiteName))) {
@@ -924,11 +926,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     private Protection getProtectionInfo(VirtualArray varray, Recommendation recommendation) {
     	//Find the protection info for this varray, first check if the target is non-vplex by checking the varray protection map, then vplex protection map
-    	Protection protectionInfo =  ((RPProtectionRecommendation)recommendation).getVirtualArrayProtectionMap().get(varray.getId());
+    	List<Protection> protectionInfo =  ((RPProtectionRecommendation)recommendation).getVirtualArrayProtectionMap().get(varray.getId());
     	if (protectionInfo == null) {
     		protectionInfo = ((RPProtectionRecommendation) recommendation).getVirtualArrayProtectionMap().get(varray.getId());
     	}
-    	return protectionInfo;
+    	return null;
     }
         
     /**
@@ -1045,7 +1047,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             targetVpool = _dbClient.queryObject(VirtualPool.class, settings.getVirtualPool());
         }
 
-        Protection pRec = recommendation.getVirtualArrayProtectionMap().get(protectionVirtualArray.getId());
+        Protection pRec = new Protection(); //recommendation.getVirtualArrayProtectionMap().get(protectionVirtualArray.getId());
 
         // Target volume in a varray
         String targetVolumeName =  new StringBuilder(volumeLabelBuilder.toString()).append(VOLUME_TYPE_TARGET + protectionVirtualArray.getLabel()).toString();
@@ -1060,7 +1062,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         if (createTargetJournal) {
         	String journalVolumeName = new StringBuilder(volumeLabelBuilder.toString()).append(VOLUME_TYPE_TARGET_JOURNAL + protectionVirtualArray.getLabel()).toString();
- 		    URI targetJournalStoragePoolUri = recommendation.getVirtualArrayProtectionMap().get(protectionVirtualArray.getId()).getTargetJournalStoragePool();
+ 		    URI targetJournalStoragePoolUri = null; //recommendation.getVirtualArrayProtectionMap().get(protectionVirtualArray.getId()).getTargetJournalStoragePool();
  		    
  		    VirtualArray targetJournalVarray = protectionVirtualArray ;
  		    if (settings.getJournalVarray() != null) {
@@ -1367,7 +1369,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
         
         List<Recommendation> recommendations = 
-        		getRecommendationsForVirtualPoolChangeRequest(volume, newVpool, vpoolChangeParam);
+        		getRecommendationsForVirtualPoolChangeRequest(volume, newVpool);
 
         if(recommendations.isEmpty()){
             throw APIException.badRequests.noStorageFoundForVolume();

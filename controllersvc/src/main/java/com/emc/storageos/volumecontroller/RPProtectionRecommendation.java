@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ProtectionSystem;
@@ -38,12 +39,13 @@ public class RPProtectionRecommendation extends VPlexRecommendation {
     // Source
     private String sourceInternalSiteName;    
     private URI vpoolChangeVolume;
-    private URI vpoolChangeVpool;   
-    private URI sourceJournalStoragePool;
+    private URI vpoolChangeVpool;       
     private URI sourceJournalVarray;
     private URI sourceJournalVpool;
+    private URI sourceJournalStoragePool;
     private URI standbySourceJournalVarray;
     private URI standbySourceJournalVpool;
+    private URI standbyJournalStoragePool;
     private URI protectionDevice;
     // This is the Storage System that was chosen by placement for connectivity/visibility to the RP Cluster
     private URI sourceInternalSiteStorageSystem;
@@ -57,7 +59,7 @@ public class RPProtectionRecommendation extends VPlexRecommendation {
     // both the RP internal site name + associated storage system.
     private String rpSiteAssociateStorageSystem;
         
-    private Map<URI, Protection> varrayProtectionMap;
+    private Map<URI, List<Protection>> varrayProtectionMap;
     private List<Recommendation> sourceVPlexHaRecommendations;
     
 	public static enum PlacementProgress {
@@ -66,7 +68,7 @@ public class RPProtectionRecommendation extends VPlexRecommendation {
 	}
 
     public RPProtectionRecommendation() {
-    	varrayProtectionMap = new HashMap<URI, Protection>();
+    	varrayProtectionMap = new HashMap<URI, List<Protection>>();
     	placementStepsCompleted = PlacementProgress.NONE;    	
     }
     
@@ -88,7 +90,7 @@ public class RPProtectionRecommendation extends VPlexRecommendation {
     	this.vpoolChangeVolume = copy.getVpoolChangeVolume();
     	this.vpoolChangeVpool = copy.getVpoolChangeVpool();
     	// map
-    	this.varrayProtectionMap = new HashMap<URI, Protection>();
+    	this.varrayProtectionMap = new HashMap<URI, List<Protection>>();
     	this.varrayProtectionMap.putAll(copy.getVirtualArrayProtectionMap());
     }
 	
@@ -109,12 +111,12 @@ public class RPProtectionRecommendation extends VPlexRecommendation {
     }    
 
 
-	public Map<URI, Protection> getVirtualArrayProtectionMap() {
+	public Map<URI, List<Protection>> getVirtualArrayProtectionMap() {
         return varrayProtectionMap;
     }
 
     public void setVirtualArrayProtectionMap(
-            Map<URI, Protection> varrayProtectionMap) {
+            Map<URI, List<Protection>> varrayProtectionMap) {
         this.varrayProtectionMap = varrayProtectionMap;
     }
 
@@ -191,6 +193,14 @@ public class RPProtectionRecommendation extends VPlexRecommendation {
 	public void setStandbySourceJournalVpool(URI _standbySourceJournalVpool) {
 		this.standbySourceJournalVpool = _standbySourceJournalVpool;
 	}
+	
+	public URI getStandbyJournalStoragePool() {
+		return standbyJournalStoragePool;
+	}
+
+	public void setStandbyJournalStoragePool(URI standbyJournalStoragePool) {
+		this.standbyJournalStoragePool = standbyJournalStoragePool;
+	}
 
     public URI getSourceInternalSiteStorageSystem() {
         return sourceInternalSiteStorageSystem;
@@ -237,15 +247,17 @@ public class RPProtectionRecommendation extends VPlexRecommendation {
     		count += this.getResourceCount();
     	}
 
-    	if (getVirtualArrayProtectionMap() != null) {
-			for (Protection protection : getVirtualArrayProtectionMap().values()) {
-				if (protection.getTargetInternalSiteName().equals(internalSiteName)) {
-					if (protection.getTargetJournalStoragePool()!=null) {
-						count++; // Journal Volume
+    	if (getVirtualArrayProtectionMap() != null) {    		
+    		for(Entry<URI, List<Protection>> entry : getVirtualArrayProtectionMap().entrySet()) {
+				for (Protection protection : entry.getValue()) {
+					if (protection.getTargetInternalSiteName().equals(internalSiteName)) {
+						if (protection.getTargetJournalStoragePool()!=null) {
+							count++; // Journal Volume
+						}
+						count += this.getResourceCount();
 					}
-					count += this.getResourceCount();
 				}
-			}
+    		}
 		}
 
     	return count;
@@ -287,6 +299,8 @@ public class RPProtectionRecommendation extends VPlexRecommendation {
 			StorageSystem system = (StorageSystem)dbClient.queryObject(StorageSystem.class, this.getSourceDevice());
 	    	
 	    	buff.append("--------------------------------------\n");
+	    	buff.append("Number of volumes placed in this result : " + this.getResourceCount() + "\n");
+	    	buff.append("Protection System Allocated : " + ps.getLabel() + "\n");
 	    	buff.append("--------------------------------------\n");
 	    	buff.append("VPlex Type : ");	    		    
 	    	
@@ -296,11 +310,9 @@ public class RPProtectionRecommendation extends VPlexRecommendation {
 	        } else {
 	        	vplexDistributed = true;
 	        	buff.append("Distributed\n");
-	            }        	
-	    	    	
-	    	buff.append("Number of volumes placed in this result : " + this.getResourceCount() + "\n");
-	    	buff.append("Protection System Allocated : " + ps.getLabel() + "\n");
-	    	buff.append("--------------------------------------\n");   
+            }        		    	    		    
+	    	buff.append("--------------------------------------\n");
+	    	
 	    	if (null != getVPlexStorageSystem()) {
 	    		StorageSystem vplexSourceSystem  = dbClient.queryObject(StorageSystem.class, getVPlexStorageSystem());    	
 	    		buff.append("VPLEX Source Cluster VPlex Storage System : " + vplexSourceSystem.getLabel() + "\n");
@@ -341,77 +353,76 @@ public class RPProtectionRecommendation extends VPlexRecommendation {
 
     	// RP Targets
     	if (null != getVirtualArrayProtectionMap()) {     		
-    		for (Map.Entry<URI, Protection> varrayProtectionEntry : this.varrayProtectionMap.entrySet()) {
-    		VirtualArray varray = (VirtualArray)dbClient.queryObject(VirtualArray.class, varrayProtectionEntry.getKey());
-    		Protection protection = varrayProtectionEntry.getValue();
-    		StoragePool targetPool = (StoragePool)dbClient.queryObject(StoragePool.class, protection.getTargetStoragePool());	    		
-    	    StoragePool targetJournalStoragePool = (StoragePool)dbClient.queryObject(StoragePool.class, protection.getTargetJournalStoragePool());
-    	    VirtualArray targetJournalVarray = dbClient.queryObject(VirtualArray.class, protection.getTargetJournalVarray());
-    	    VirtualPool targetJournalVpool = dbClient.queryObject(VirtualPool.class, protection.getTargetJournalVpool());
-        	StorageSystem targetSystem = (StorageSystem)dbClient.queryObject(StorageSystem.class, protection.getTargetStorageSystem());
-        	String targetInternalSiteName = protection.getTargetInternalSiteName();
-    		if (VirtualPool.vPoolSpecifiesHighAvailability(protection.getTargetVpool())) {		   
-    			
-	        	String targetRPSiteName = (ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(targetInternalSiteName) : targetInternalSiteName;
-	    		buff.append("--------------------------------------\n");
-	    		buff.append("\tVPLEX RP Target\n");	    	
-	    		if (null != protection.getTargetVplexStorageSystem()) {
-	    			buff.append("\tVplex Storage System : " +  dbClient.queryObject(StorageSystem.class, protection.getTargetVplexStorageSystem()).getLabel() + "\n");
-    			}		    		
-			    buff.append("\tSource Cluster Backing Storage System : " + targetSystem.getLabel() + "\n");
-			    buff.append("\tProtection to RP Site : " + targetRPSiteName + "\n");
-	        	buff.append("\tSource Cluster Virtual Array : " + varray.getLabel() + "\n");
-	        	buff.append("\tSource Cluster Virtual Pool : " + protection.getTargetVpool().getLabel() + "\n");
-                buff.append("\tSource Cluster Storage Pool : " + targetPool.getLabel() + "\n");	                
-                
-                if (VirtualPool.vPoolSpecifiesHighAvailability(targetJournalVpool)) {
-                	buff.append("\tVPLEX Journal : " + "\n");
-                	if (protection.getTargetVplexStorageSystem() != null) {
-                		buff.append("\tVplex Storage System : " + dbClient.queryObject(StorageSystem.class, protection.getTargetVplexStorageSystem()).getLabel() + "\n");
-                	}
-                } else {
-                	buff.append("\tRegular Journal : " + "\n");
-                	buff.append("\tStorage System : " + dbClient.queryObject(StorageSystem.class, protection.getTargetStorageSystem()).getLabel() + "\n");
-                }                                
-	        	buff.append("\tSource Cluster Journal Virtual Array : " + targetJournalVarray.getLabel() + "\n");
-	        	buff.append("\tSource Cluster Journal Virtual Pool : " + targetJournalVpool.getLabel() + "\n");
-	        	if (targetJournalStoragePool != null) {
-	        		buff.append("\tSource Cluster Journal Storage Pool : " + targetJournalStoragePool.getLabel() + "\n");
-	        	}
-                
-                // Check for distributed leg of the target
-                if (protection.getTargetVPlexHaRecommendations() != null
-                        &&  !protection.getTargetVPlexHaRecommendations().isEmpty()) {
-                    VPlexRecommendation vplexTargetHaRec  = (VPlexRecommendation) protection.getTargetVPlexHaRecommendations().get(0);
-                    String targetHaVarrayStr = "N/A";
-                    if (vplexTargetHaRec.getVirtualArray() != null) {
-                    	VirtualArray targetHaVarray = dbClient.queryObject(VirtualArray.class, vplexTargetHaRec.getVirtualArray());
-                    	targetHaVarrayStr = targetHaVarray.getLabel();
-                    }
-
-                    StorageSystem targetHaVplex = dbClient.queryObject(StorageSystem.class, vplexTargetHaRec.getVPlexStorageSystem());
-                    StorageSystem targetHaStorageSystem = dbClient.queryObject(StorageSystem.class, vplexTargetHaRec.getSourceDevice());
-                    StoragePool targetHaStoragePool = dbClient.queryObject(StoragePool.class, vplexTargetHaRec.getSourcePool());
-                    String targetHaVpool = (vplexTargetHaRec.getVirtualPool() != null) ? vplexTargetHaRec.getVirtualPool().getLabel() : "N/A";            
-                    buff.append("\tHA Cluster VPlex Storage System : " + targetHaVplex.getLabel() + "\n");
-                    buff.append("\tHA Cluster Backing Storage System : " + targetHaStorageSystem.getLabel() + "\n");
-                    buff.append("\tHA Cluster Backing Storage Pool : " + targetHaStoragePool.getLabel() + "\n");
-                    buff.append("\tHA Cluster Virtual Array : " + targetHaVarrayStr + "\n");
-                    buff.append("\tHA Cluster Virtual Pool : " + targetHaVpool + "\n");
-                    
-                }
-	    	}  else {		    		
-	                String targetRPSiteName = (ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(targetInternalSiteName) : targetInternalSiteName;
-	                buff.append("-----------------------------\n");
-	                buff.append("\tRegular RP Target\n");                
-	                buff.append("\tProtection to Storage System : " + targetSystem.getLabel() + "\n");
-	                buff.append("\tProtection to Storage Pool : " + targetPool.getLabel() + "\n");                
-	                buff.append("\tProtecting to Virtual Array : " + varray.getLabel() + "\n");
-	                buff.append("\tProtection to RP Site : " + targetRPSiteName + "\n");                
-	                buff.append("\tProtection Cluster Journal Virtual Array : " + targetJournalVarray.getLabel() + "\n");
-		        	buff.append("\tProtection Cluster Journal Virtual Pool : " + targetJournalVpool.getLabel() + "\n");
-		        	buff.append("\tProtection Journal Storage Pool : " + targetJournalStoragePool.getLabel() + "\n");
-	    		}
+    		for (Map.Entry<URI, List<Protection>> varrayProtectionEntry : this.varrayProtectionMap.entrySet()) {
+    			for(Protection protection: varrayProtectionEntry.getValue()) {
+		    		VirtualArray varray = (VirtualArray)dbClient.queryObject(VirtualArray.class, varrayProtectionEntry.getKey());
+		    	
+		    		StoragePool targetPool = (StoragePool)dbClient.queryObject(StoragePool.class, protection.getTargetStoragePool());	    		
+		    	    StoragePool targetJournalStoragePool = (StoragePool)dbClient.queryObject(StoragePool.class, protection.getTargetJournalStoragePool());
+		    	    VirtualArray targetJournalVarray = dbClient.queryObject(VirtualArray.class, protection.getTargetJournalVarray());
+		    	    VirtualPool targetJournalVpool = dbClient.queryObject(VirtualPool.class, protection.getTargetJournalVpool());
+		        	StorageSystem targetSystem = (StorageSystem)dbClient.queryObject(StorageSystem.class, protection.getTargetStorageSystem());
+		        	String targetInternalSiteName = protection.getTargetInternalSiteName();
+		    		if (VirtualPool.vPoolSpecifiesHighAvailability(protection.getTargetVpool())) {		   
+		    			
+			        	String targetRPSiteName = (ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(targetInternalSiteName) : targetInternalSiteName;
+			    		buff.append("--------------------------------------\n");
+			    		buff.append("\tVPLEX RP Target\n");	    	
+			    		if (null != protection.getTargetVplexStorageSystem()) {
+			    			buff.append("\tVplex Storage System : " +  dbClient.queryObject(StorageSystem.class, protection.getTargetVplexStorageSystem()).getLabel() + "\n");
+		    			}		    		
+					    buff.append("\tSource Cluster Backing Storage System : " + targetSystem.getLabel() + "\n");
+					    buff.append("\tProtection to RP Site : " + targetRPSiteName + "\n");
+			        	buff.append("\tSource Cluster Virtual Array : " + varray.getLabel() + "\n");
+			        	buff.append("\tSource Cluster Virtual Pool : " + protection.getTargetVpool().getLabel() + "\n");
+		                buff.append("\tSource Cluster Storage Pool : " + targetPool.getLabel() + "\n");	                
+		                
+		                if (VirtualPool.vPoolSpecifiesHighAvailability(targetJournalVpool)) {
+		                	buff.append("\tVPLEX Journal : " + "\n");                	
+		                } else {
+		                	buff.append("\tRegular Journal : " + "\n");
+		                	buff.append("\tStorage System : " + dbClient.queryObject(StorageSystem.class, protection.getTargetStorageSystem()).getLabel() + "\n");
+		                }                                
+			        	buff.append("\tSource Cluster Journal Virtual Array : " + targetJournalVarray.getLabel() + "\n");
+			        	buff.append("\tSource Cluster Journal Virtual Pool : " + targetJournalVpool.getLabel() + "\n");
+			        	if (targetJournalStoragePool != null) {
+			        		buff.append("\tSource Cluster Journal Storage Pool : " + targetJournalStoragePool.getLabel() + "\n");
+			        	}
+		                
+		                // Check for distributed leg of the target
+		                if (protection.getTargetVPlexHaRecommendations() != null
+		                        &&  !protection.getTargetVPlexHaRecommendations().isEmpty()) {
+		                    VPlexRecommendation vplexTargetHaRec  = (VPlexRecommendation) protection.getTargetVPlexHaRecommendations().get(0);
+		                    String targetHaVarrayStr = "N/A";
+		                    if (vplexTargetHaRec.getVirtualArray() != null) {
+		                    	VirtualArray targetHaVarray = dbClient.queryObject(VirtualArray.class, vplexTargetHaRec.getVirtualArray());
+		                    	targetHaVarrayStr = targetHaVarray.getLabel();
+		                    }
+		
+		                    StorageSystem targetHaVplex = dbClient.queryObject(StorageSystem.class, vplexTargetHaRec.getVPlexStorageSystem());
+		                    StorageSystem targetHaStorageSystem = dbClient.queryObject(StorageSystem.class, vplexTargetHaRec.getSourceDevice());
+		                    StoragePool targetHaStoragePool = dbClient.queryObject(StoragePool.class, vplexTargetHaRec.getSourcePool());
+		                    String targetHaVpool = (vplexTargetHaRec.getVirtualPool() != null) ? vplexTargetHaRec.getVirtualPool().getLabel() : "N/A";            
+		                    buff.append("\tHA Cluster VPlex Storage System : " + targetHaVplex.getLabel() + "\n");
+		                    buff.append("\tHA Cluster Backing Storage System : " + targetHaStorageSystem.getLabel() + "\n");
+		                    buff.append("\tHA Cluster Backing Storage Pool : " + targetHaStoragePool.getLabel() + "\n");
+		                    buff.append("\tHA Cluster Virtual Array : " + targetHaVarrayStr + "\n");
+		                    buff.append("\tHA Cluster Virtual Pool : " + targetHaVpool + "\n");
+		                    
+		                }
+			    	}  else {		    		
+			                String targetRPSiteName = (ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(targetInternalSiteName) : targetInternalSiteName;
+			                buff.append("-----------------------------\n");
+			                buff.append("\tRegular RP Target\n");                
+			                buff.append("\tProtection to Storage System : " + targetSystem.getLabel() + "\n");
+			                buff.append("\tProtection to Storage Pool : " + targetPool.getLabel() + "\n");                
+			                buff.append("\tProtecting to Virtual Array : " + varray.getLabel() + "\n");
+			                buff.append("\tProtection to RP Site : " + targetRPSiteName + "\n");                
+			                buff.append("\tProtection Cluster Journal Virtual Array : " + targetJournalVarray.getLabel() + "\n");
+				        	buff.append("\tProtection Cluster Journal Virtual Pool : " + targetJournalVpool.getLabel() + "\n");
+				        	buff.append("\tProtection Journal Storage Pool : " + targetJournalStoragePool.getLabel() + "\n");
+			    		}
+		    		}
     		}
     	}
     	
@@ -459,57 +470,56 @@ public class RPProtectionRecommendation extends VPlexRecommendation {
             	
                 // VPLEX RP Targets
                 if (protectionRec.varrayProtectionMap != null) {
-                    for (Map.Entry<URI, Protection> varrayProtectionEntry : protectionRec.varrayProtectionMap.entrySet()) {
-                    	Protection vplexProtection = varrayProtectionEntry.getValue();
-    	                VirtualArray protectionVarray = dbClient.queryObject(VirtualArray.class, vplexProtection.getTargetVarray());
-    	                StorageSystem targetStorageSystem = dbClient.queryObject(StorageSystem.class, vplexProtection.getTargetStorageSystem());
-    	                StoragePool targetStoragePool = dbClient.queryObject(StoragePool.class, vplexProtection.getTargetStoragePool());
-    	                StoragePool targetJournalStoragePool = dbClient.queryObject(StoragePool.class, vplexProtection.getTargetJournalStoragePool());
-    	                VirtualArray targetJournalVarray = dbClient.queryObject(VirtualArray.class, vplexProtection.getTargetJournalVarray());
-    		    	    VirtualPool targetJournalVpool = dbClient.queryObject(VirtualPool.class, vplexProtection.getTargetJournalVpool());
-    	            	String targetInternalSiteName = vplexProtection.getTargetInternalSiteName();
-    		        	StorageSystem vplexTargetSystem = dbClient.queryObject(StorageSystem.class, vplexProtection.getTargetStorageSystem());
-    	            	String targetRPSiteName = (ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(targetInternalSiteName) : targetInternalSiteName;
-    	        		buff.append("--------------------------------------\n");
-    	        		buff.append("\tVPLEX RP Target\n");
-    	        		buff.append("\tSource Cluster Virtual Array : " + protectionVarray.getLabel() + "\n");
-    		    		buff.append("\tVPlex Storage System : " + vplexTargetSystem.getLabel() + "\n");
-    	    		    buff.append("\tSource Cluster Storage System : " + targetStorageSystem.getLabel() + "\n");
-    	            	buff.append("\tSource Cluster Storage Pool : " + targetStoragePool.getLabel() + "\n");    	            	    	            	
-                        buff.append("\tProtection to RP Site : " + targetRPSiteName + "\n");
-                        
-                        
-                        StorageSystem journalStorageSystem; 
-                        if (VirtualPool.vPoolSpecifiesHighAvailability(targetJournalVpool)) {
-                        	buff.append("\tVPLEX journal : " + "\n");                        	
-                        } else {
-                        	buff.append("\tRegular journal: " + "\n");
-                        }                        
-        	        	buff.append("\tSource Cluster Journal Virtual Array : " + targetJournalVarray.getLabel() + "\n");
-        	        	buff.append("\tSource Cluster Journal Virtual Pool : " + targetJournalVpool.getLabel() + "\n");
-        	        	buff.append("\tSource Cluster Journal Storage Pool : " + targetJournalStoragePool.getLabel() + "\n");
-                        
-                        // Check for distributed leg of the target
-                        if (vplexProtection.getTargetVPlexHaRecommendations() != null
-                                &&  !vplexProtection.getTargetVPlexHaRecommendations().isEmpty()) {
-                            VPlexRecommendation vplexTargetHaRec  = (VPlexRecommendation) vplexProtection.getTargetVPlexHaRecommendations().get(0);
-                            String targetHaVarrayStr = "N/A";
-                            if (vplexTargetHaRec.getVirtualArray() != null) {
-                            	VirtualArray targetHaVarray = dbClient.queryObject(VirtualArray.class, vplexTargetHaRec.getVirtualArray());
-                            	targetHaVarrayStr = targetHaVarray.getLabel();
-                            }
-
-                            StorageSystem targetHaVplex = dbClient.queryObject(StorageSystem.class, vplexTargetHaRec.getVPlexStorageSystem());
-                            StorageSystem targetHaStorageSystem = dbClient.queryObject(StorageSystem.class, vplexTargetHaRec.getSourceDevice());
-                            StoragePool targetHaStoragePool = dbClient.queryObject(StoragePool.class, vplexTargetHaRec.getSourcePool());
-                            String targetHaVpool = (vplexTargetHaRec.getVirtualPool() != null) ? vplexTargetHaRec.getVirtualPool().getLabel() : "N/A";
-                            buff.append("\tHA Cluster Virtual Array : " + targetHaVarrayStr + "\n");
-                            buff.append("\tHA Cluster Virtual Pool : " + targetHaVpool + "\n");
-                            buff.append("\tHA Cluster VPlex Storage System : " + targetHaVplex.getLabel() + "\n");
-                            buff.append("\tHA Cluster Backing Storage System : " + targetHaStorageSystem.getLabel() + "\n");
-                            buff.append("\tHA Cluster Backing Storage Pool : " + targetHaStoragePool.getLabel() + "\n");                            
-                            
-                        }
+                    for (Map.Entry<URI, List<Protection>> varrayProtectionEntry : protectionRec.varrayProtectionMap.entrySet()) {
+                    	for(Protection vplexProtection : varrayProtectionEntry.getValue()) {                    
+	    	                VirtualArray protectionVarray = dbClient.queryObject(VirtualArray.class, vplexProtection.getTargetVarray());
+	    	                StorageSystem targetStorageSystem = dbClient.queryObject(StorageSystem.class, vplexProtection.getTargetStorageSystem());
+	    	                StoragePool targetStoragePool = dbClient.queryObject(StoragePool.class, vplexProtection.getTargetStoragePool());
+	    	                StoragePool targetJournalStoragePool = dbClient.queryObject(StoragePool.class, vplexProtection.getTargetJournalStoragePool());
+	    	                VirtualArray targetJournalVarray = dbClient.queryObject(VirtualArray.class, vplexProtection.getTargetJournalVarray());
+	    		    	    VirtualPool targetJournalVpool = dbClient.queryObject(VirtualPool.class, vplexProtection.getTargetJournalVpool());
+	    	            	String targetInternalSiteName = vplexProtection.getTargetInternalSiteName();
+	    		        	StorageSystem vplexTargetSystem = dbClient.queryObject(StorageSystem.class, vplexProtection.getTargetStorageSystem());
+	    	            	String targetRPSiteName = (ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(targetInternalSiteName) : targetInternalSiteName;
+	    	        		buff.append("--------------------------------------\n");
+	    	        		buff.append("\tVPLEX RP Target\n");
+	    	        		buff.append("\tSource Cluster Virtual Array : " + protectionVarray.getLabel() + "\n");
+	    		    		buff.append("\tVPlex Storage System : " + vplexTargetSystem.getLabel() + "\n");
+	    	    		    buff.append("\tSource Cluster Storage System : " + targetStorageSystem.getLabel() + "\n");
+	    	            	buff.append("\tSource Cluster Storage Pool : " + targetStoragePool.getLabel() + "\n");    	            	    	            	
+	                        buff.append("\tProtection to RP Site : " + targetRPSiteName + "\n");
+	                                                                                               
+	                        if (VirtualPool.vPoolSpecifiesHighAvailability(targetJournalVpool)) {
+	                        	buff.append("\tVPLEX journal : " + "\n");                        	
+	                        } else {
+	                        	buff.append("\tRegular journal: " + "\n");
+	                        }                                                
+	        	        	buff.append("\tSource Cluster Journal Virtual Array : " + targetJournalVarray.getLabel() + "\n");
+	        	        	buff.append("\tSource Cluster Journal Virtual Pool : " + targetJournalVpool.getLabel() + "\n");
+	        	        	buff.append("\tSource Cluster Journal Storage Pool : " + targetJournalStoragePool.getLabel() + "\n");
+	                        
+	                        // Check for distributed leg of the target
+	                        if (vplexProtection.getTargetVPlexHaRecommendations() != null
+	                                &&  !vplexProtection.getTargetVPlexHaRecommendations().isEmpty()) {
+	                            VPlexRecommendation vplexTargetHaRec  = (VPlexRecommendation) vplexProtection.getTargetVPlexHaRecommendations().get(0);
+	                            String targetHaVarrayStr = "N/A";
+	                            if (vplexTargetHaRec.getVirtualArray() != null) {
+	                            	VirtualArray targetHaVarray = dbClient.queryObject(VirtualArray.class, vplexTargetHaRec.getVirtualArray());
+	                            	targetHaVarrayStr = targetHaVarray.getLabel();
+	                            }
+	
+	                            StorageSystem targetHaVplex = dbClient.queryObject(StorageSystem.class, vplexTargetHaRec.getVPlexStorageSystem());
+	                            StorageSystem targetHaStorageSystem = dbClient.queryObject(StorageSystem.class, vplexTargetHaRec.getSourceDevice());
+	                            StoragePool targetHaStoragePool = dbClient.queryObject(StoragePool.class, vplexTargetHaRec.getSourcePool());
+	                            String targetHaVpool = (vplexTargetHaRec.getVirtualPool() != null) ? vplexTargetHaRec.getVirtualPool().getLabel() : "N/A";
+	                            buff.append("\tHA Cluster Virtual Array : " + targetHaVarrayStr + "\n");
+	                            buff.append("\tHA Cluster Virtual Pool : " + targetHaVpool + "\n");
+	                            buff.append("\tHA Cluster VPlex Storage System : " + targetHaVplex.getLabel() + "\n");
+	                            buff.append("\tHA Cluster Backing Storage System : " + targetHaStorageSystem.getLabel() + "\n");
+	                            buff.append("\tHA Cluster Backing Storage Pool : " + targetHaStoragePool.getLabel() + "\n");                            
+	                            
+	                        }
+	                    }
                     }
                 }              
             }
@@ -547,25 +557,26 @@ public class RPProtectionRecommendation extends VPlexRecommendation {
     	}
     	
     	for (URI tgtVirtualArrayURI : allPrimaryTargetVarrayURIs) {                    
-            // Try to get the protection object from the regular target map   	    
-    	    Protection protection = getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
+            // Try to get the protection object from the regular target map     	
+    	    List<Protection> protectionList = getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
     	    /* if (protection == null) {
                 // If that doesn't work then get the vplex protection object from the vplex target map, leave
     	        // it auto-casted to it's parent.
     	        protection = getVarrayVPlexProtection().get(tgtVirtualArrayURI);
     	    }*/
-
-    		if (protection.getProtectionType() == null) {
-    			// If even one protection type is missing, this is not a valid MetroPoint
-    			// recommendation.  The protection type is only ever set in 
-    			// MetroPoint specific code.
-    			return MetroPointType.INVALID;
-    		}
-    		if (protection.getProtectionType() == ProtectionType.LOCAL) {
-    			primaryLocalCopyCount++;
-    		} else if (protection.getProtectionType() == ProtectionType.REMOTE) {
-    			primaryRemoteCopyCount++;
-    		}
+    	    for (Protection protection : protectionList) {
+	    		if (protection.getProtectionType() == null) {
+	    			// If even one protection type is missing, this is not a valid MetroPoint
+	    			// recommendation.  The protection type is only ever set in 
+	    			// MetroPoint specific code.
+	    			return MetroPointType.INVALID;
+	    		}
+	    		if (protection.getProtectionType() == ProtectionType.LOCAL) {
+	    			primaryLocalCopyCount++;
+	    		} else if (protection.getProtectionType() == ProtectionType.REMOTE) {
+	    			primaryRemoteCopyCount++;
+	    		}
+    	    }
     	}
     	
     	RPProtectionRecommendation secondaryRecommendation = null;
@@ -592,7 +603,7 @@ public class RPProtectionRecommendation extends VPlexRecommendation {
         
         for (URI tgtVirtualArrayURI : allSecondaryTargetVarrayURIs) {                    
             // Try to get the protection object from the regular target map         
-            Protection protection = secondaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
+            List<Protection> protectionList = secondaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
             /* 
             if (protection == null) {
                 // If that doesn't work then get the vplex protection object from the vplex target map, leave
@@ -600,17 +611,19 @@ public class RPProtectionRecommendation extends VPlexRecommendation {
                 protection = secondaryRecommendation.getVarrayVPlexProtection().get(tgtVirtualArrayURI);
             } */
 
-    		if (protection.getProtectionType() == null) {
-    			// If even one protection type is missing, this is not a valid MetroPoint
-    			// recommendation.  The protection type is only ever set in 
-    			// MetroPoint specific code.
-    			return MetroPointType.INVALID;
-    		}
-    		if (protection.getProtectionType() == ProtectionType.LOCAL) {
-    			secondaryLocalCopyCount++;
-    		} else if (protection.getProtectionType() == ProtectionType.REMOTE) {
-    			secondaryRemoteCopyCount++;
-    		}
+            for (Protection protection : protectionList) {
+	    		if (protection.getProtectionType() == null) {
+	    			// If even one protection type is missing, this is not a valid MetroPoint
+	    			// recommendation.  The protection type is only ever set in 
+	    			// MetroPoint specific code.
+	    			return MetroPointType.INVALID;
+	    		}
+	    		if (protection.getProtectionType() == ProtectionType.LOCAL) {
+	    			secondaryLocalCopyCount++;
+	    		} else if (protection.getProtectionType() == ProtectionType.REMOTE) {
+	    			secondaryRemoteCopyCount++;
+	    		}
+            }
     	}
     	
     	boolean singleRemoteCopy = false;
@@ -651,9 +664,11 @@ public class RPProtectionRecommendation extends VPlexRecommendation {
 	 */
 	public boolean containsTargetInternalSiteName(String destInternalSiteName) {
 		if (getVirtualArrayProtectionMap() != null) {
-			for (Protection protection : getVirtualArrayProtectionMap().values()) {
-				if (protection.getTargetInternalSiteName().equals(destInternalSiteName)) {
-					return true;
+			for (Entry<URI, List<Protection>> entry : getVirtualArrayProtectionMap().entrySet()) {						
+				for (Protection protection : entry.getValue()) {
+					if (protection.getTargetInternalSiteName().equals(destInternalSiteName)) {
+						return true;
+					}
 				}
 			}
 		}

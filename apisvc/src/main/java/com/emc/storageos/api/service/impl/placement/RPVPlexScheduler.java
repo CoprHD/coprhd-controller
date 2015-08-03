@@ -97,6 +97,10 @@ public class RPVPlexScheduler implements Scheduler {
         this.dbClient = dbClient;
     }
     
+    /**
+     * 
+     *
+     */
     public class RPVPlexVarrayVpool {
         private VirtualArray srcVarray = null;
         private VirtualPool srcVpool = null;
@@ -128,11 +132,14 @@ public class RPVPlexScheduler implements Scheduler {
         }                       
     }
     
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.placement.Scheduler#getRecommendationsForResources(com.emc.storageos.db.client.model.VirtualArray, com.emc.storageos.db.client.model.Project, com.emc.storageos.db.client.model.VirtualPool, com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper)
+     */
     @Override
     public List<Recommendation> getRecommendationsForResources(VirtualArray srcVarray,
                                                 Project project, VirtualPool srcVpool,
                                                 VirtualPoolCapabilityValuesWrapper srcVpoolCapabilities) {
-        _log.info("Getting recommendations for RP + VPLEX volume placement...");                            
+        _log.info("Getting recommendations for RecoverPoint placement...");                            
         this.initResources();
         
         RPVPlexVarrayVpool container = this.swapSrcAndHAIfNeeded(srcVarray, srcVpool);
@@ -162,7 +169,7 @@ public class RPVPlexScheduler implements Scheduler {
         	// MetroPoint has been enabled so we need to obtain recommendations for the primary (active) and secondary (HA/Stand-by) 
             // VPlex clusters.
             recommendations = createMetroPointRecommendations(container.getSrcVarray(), tgtVarrays, container.getSrcVpool(), haVarray, 
-            		haVpool, project, srcVpoolCapabilities, srcCandidateStoragePools, haCandidateStoragePools, null, null);            
+            		haVpool, project, srcVpoolCapabilities, srcCandidateStoragePools, haCandidateStoragePools, null);            
         } else {
         	recommendations = 
         			scheduleStorageSourcePoolConstraint(container.getSrcVarray(), tgtVarrays, container.getSrcVpool(), project, srcVpoolCapabilities,
@@ -580,7 +587,7 @@ public class RPVPlexScheduler implements Scheduler {
         //vplexProtectionRec.setVirtualArrayProtectionMap(new HashMap<URI, Protection>()); 
         
         List<URI> tgtVarraysToRemove = new ArrayList<URI>();
-        
+     /*   
         for (Entry<URI, Protection> entry : vplexProtectionRec.getVirtualArrayProtectionMap().entrySet()) {
             URI tgtVarrayURI = entry.getKey();
             Protection rpProtection =  entry.getValue();
@@ -612,6 +619,7 @@ public class RPVPlexScheduler implements Scheduler {
                 tgtVarraysToRemove.add(tgtVarrayURI);
             }                                                    
         }
+        */
         
         /* Remove the VPlex protection from the regular protection map
         for (URI uri : tgtVarraysToRemove) {
@@ -638,13 +646,13 @@ public class RPVPlexScheduler implements Scheduler {
      */
     private List<Recommendation> createMetroPointRecommendations(VirtualArray srcVarray, List<VirtualArray> tgtVarrays, VirtualPool srcVpool,
     		VirtualArray haVarray, VirtualPool haVpool, Project project, VirtualPoolCapabilityValuesWrapper srcVpoolCapabilities, 
-    		List<StoragePool> candidatePrimaryPools, List<StoragePool> candidateSecondaryPools, Volume vpoolChangeVolume, VirtualPoolChangeParam vpoolChangeParam) {
+    		List<StoragePool> candidatePrimaryPools, List<StoragePool> candidateSecondaryPools, Volume vpoolChangeVolume) {
         // Initialize a list of recommendations to be returned.
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
         Map<Recommendation, Recommendation> metroPointRecommendations = new HashMap<Recommendation, Recommendation>();
 
-        recoverPointScheduler.sortCandidatePools(candidatePrimaryPools, srcVpoolCapabilities);
-        recoverPointScheduler.sortCandidatePools(candidateSecondaryPools, srcVpoolCapabilities);
+        //recoverPointScheduler.sortCandidatePools(candidatePrimaryPools, srcVpoolCapabilities);
+        //recoverPointScheduler.sortCandidatePools(candidateSecondaryPools, srcVpoolCapabilities);
             
         // Get all the matching pools for each target virtual array.  If the target varray's
         // vpool specifies HA, we will only look for VPLEX connected storage pools.
@@ -654,7 +662,7 @@ public class RPVPlexScheduler implements Scheduler {
         metroPointRecommendations = recoverPointScheduler.createMetroPointRecommendations(srcVarray, tgtVarrays, srcVpool, haVarray, haVpool, 
                                                                                           srcVpoolCapabilities, candidatePrimaryPools, candidateSecondaryPools, 
                                                                                           tgtVarrayStoragePoolsMap, 
-                                                                                          vpoolChangeVolume, vpoolChangeParam);
+                                                                                          vpoolChangeVolume, project);
         
         _log.info("Produced {} recommendations for MetroPoint placement.", metroPointRecommendations.size());
         // We've let the RPScheduler do it's job and find recommendations with passing in the gathered 
@@ -704,7 +712,7 @@ public class RPVPlexScheduler implements Scheduler {
         }
         
         if (rpRecommendations.isEmpty()) {
-            recoverPointScheduler.sortCandidatePools(vplexSourceCandidateStoragePools, srcVpoolCapabilities);
+            //recoverPointScheduler.sortCandidatePools(vplexSourceCandidateStoragePools, srcVpoolCapabilities);
             
             // Get all the matching pools for each target virtual array.  If the target varray's
             // vpool specifies HA, we will only look for VPLEX connected storage pools.
@@ -712,7 +720,7 @@ public class RPVPlexScheduler implements Scheduler {
                    srcVpool, project, srcVpoolCapabilities, null);
             
             rpRecommendations = recoverPointScheduler.scheduleStorageSourcePoolConstraint(srcVarray, tgtVarrays, srcVpool, 
-                                    srcVpoolCapabilities, vplexSourceCandidateStoragePools, vpoolChangeVolume, 
+                                    srcVpoolCapabilities, vplexSourceCandidateStoragePools, null, vpoolChangeVolume, 
                                     tgtVarrayStoragePoolsMap);
         }
         
@@ -1177,7 +1185,7 @@ public class RPVPlexScheduler implements Scheduler {
     
             recommendations = createMetroPointRecommendations(container.getSrcVarray(), tgtVarrays, container.getSrcVpool(), haVarray, 
                                                                 haVpool, project, capabilities, sourcePools, haPools, 
-                                                                volume, vpoolChangeParam);            
+                                                                volume);            
         }
         
         if (recommendations != null && !recommendations.isEmpty()) {

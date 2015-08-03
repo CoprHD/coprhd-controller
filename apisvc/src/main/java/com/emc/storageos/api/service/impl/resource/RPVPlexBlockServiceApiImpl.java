@@ -574,7 +574,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 			        
 			        if (VirtualPool.vPoolSpecifiesHighAvailability(targetVirtualPool)) {
 			            _log.info("Create VPLEX Target");
-			            Protection vplexProtection = primaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
+			            Protection vplexProtection = new Protection(); //primaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
 			            copyInternalSiteName = vplexProtection.getTargetInternalSiteName();
 			            
 			            // Create a recommendation object to use the correct values for Target 
@@ -625,7 +625,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                                                                     targetCopyName, sourceVolume.getId(), null, null);
 			        } else {
 			            _log.info("Create non-VPLEX Target");
-	                    Protection protection = primaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
+	                    Protection protection = new Protection(); //primaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
 	                    copyInternalSiteName = protection.getTargetInternalSiteName();
 
 			            // If the target is not RP+VPLEX/MetroPoint leverage the regular RP Block Service
@@ -659,12 +659,12 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 			        	VirtualArray targetJournalVarray = _dbClient.queryObject(VirtualArray.class, settings.getJournalVarray() != null ? settings.getJournalVarray() : tgtVirtualArrayURI);
 		        	    VirtualPool targetJournalVpool = _dbClient.queryObject(VirtualPool.class, settings.getJournalVpool() != null ? settings.getJournalVpool() : settings.getVirtualPool());
 		        	    
-		        	    URI targetJournalStoragePool = primaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI).getTargetJournalStoragePool();
-		        	    URI targetJournalStorageSystem = primaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI).getTargetStorageSystem();
+		        	    URI targetJournalStoragePool = null; //primaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI).getTargetJournalStoragePool();
+		        	    URI targetJournalStorageSystem = null;// primaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI).getTargetStorageSystem();
 		        	    
 			        	if (VirtualPool.vPoolSpecifiesHighAvailability(targetJournalVpool)) {
 			        	    _log.info("Create VPLEX Target Journal");
-			        	    Protection vplexProtection = primaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
+			        	    Protection vplexProtection = new Protection(); //primaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
     			        	targetJournalVolume = createJournalVolume(primaryRecommendation, task, taskList, param, project, 
                                         			        			vplexProtection.getTargetStorageSystem(), tgtVirtualArray, targetVirtualPool, 
                                         	                			targetJournalVolumeName, capabilities, descriptors, consistencyGroup, targetCopyName, 
@@ -753,7 +753,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                         
 				        if (VirtualPool.vPoolSpecifiesHighAvailability(targetVirtualPool)) {
 				            _log.info("Create VPLEX Secondary Target");
-    				        Protection vplexProtection = secondaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
+    				        Protection vplexProtection = new Protection();// secondaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
     				        
     				        // Create a recommendation object to use the correct values for Target 
     				        RPProtectionRecommendation tgtRec = createTempRecommendation(secondaryRecommendation,
@@ -799,7 +799,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
     													                targetCopyName, sourceVolume.getId(), null, null);
 				        } else {
 				            _log.info("Create non-VPLEX Secondary Target");
-				            Protection protection = secondaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
+				            Protection protection = new Protection() ;//secondaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
 
 	                        // If the target is not RP+VPLEX/MetroPoint we treat leverage the regular RP Block Service
 	                        // to create the target volume
@@ -838,12 +838,12 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 				        	
 			        	    URI targetJournalStoragePool;
 			        	    String targetInternalSiteName = "";			        	  
-		        	    	targetJournalStoragePool = secondaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI).getTargetJournalStoragePool();
-		        	    	targetInternalSiteName = secondaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI).getTargetInternalSiteName();
+		        	    	targetJournalStoragePool = null; //secondaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI).getTargetJournalStoragePool();
+		        	    	targetInternalSiteName = null; //secondaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI).getTargetInternalSiteName();
 				        	
 				        	if (VirtualPool.vPoolSpecifiesHighAvailability(targetJournalVpool)) {
 				        	    _log.info("Create VPLEX Secondary Target Journal");
-				        	    Protection vplexProtection = secondaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
+				        	    Protection vplexProtection = new Protection() ; //secondaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
     				        	targetJournalVolume = createJournalVolume(secondaryRecommendation, task, taskList, param, project, 
                                         				        			vplexProtection.getTargetStorageSystem(), targetJournalVarray, targetJournalVpool, 
                                         		                			targetJournalVolumeName, capabilities, descriptors, consistencyGroup, targetCopyName, 

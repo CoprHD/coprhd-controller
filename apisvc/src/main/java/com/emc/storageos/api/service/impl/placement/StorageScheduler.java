@@ -597,7 +597,7 @@ public class StorageScheduler implements Scheduler{
         
         return poolsWithCapacity;
     }
-
+    
     /**
      * Select one storage pool out a list of candidates. Use static and dynamic loads, capacity etc
      * criteria to narrow the selection.

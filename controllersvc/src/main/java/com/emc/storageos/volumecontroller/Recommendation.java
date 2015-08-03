@@ -48,4 +48,15 @@ public class Recommendation implements Serializable {
 	public void setDeviceType(String _deviceType) {
 		this.deviceType = _deviceType;
 	}
+	
+	public String toString() {
+		StringBuffer buffer = new StringBuffer();
+		buffer.append("Recommendation results: \n");
+		buffer.append("Source Storage System : " + getSourceDevice().toString() + "\n");
+		buffer.append("Source Storage Pool : " + getSourcePool().toString() + "\n");
+		buffer.append("Device Type : " + getDeviceType() + "\n");
+		buffer.append("Resource Count : " + getResourceCount() + "\n");
+		buffer.append("--------------------------------------------\n");
+		return buffer.toString();
+	}
 }

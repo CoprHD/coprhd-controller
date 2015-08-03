@@ -34,11 +34,13 @@ public class Protection implements Serializable {
     private String targetInternalSiteName;
     // This is the Storage System that was chosen by placement for connectivity/visibility to the RP Cluster
     private URI targetInternalSiteStorageSystem;
-    private URI targetJournalStorageSystem;    
+    private URI targetJournalStorageSystem;   
+    private URI targetJournalVplexStorageSystem;
     private URI targetJournalStoragePool;
     private URI targetJournalVarray;
     private URI targetJournalVpool;
     private ProtectionType protectionType;
+   
        
     private List<Recommendation> targetVPlexHaRecommendations;
     
@@ -153,6 +155,15 @@ public class Protection implements Serializable {
 		this.targetVplexStorageSystem = targetVplexStorageSystem;
 	}
 	
+	public URI getTargetJournalVplexStorageSystem() {
+		return targetJournalVplexStorageSystem;
+	}
+
+	public void setTargetJournalVplexStorageSystem(
+			URI targetJournalVplexStorageSystem) {
+		this.targetJournalVplexStorageSystem = targetJournalVplexStorageSystem;
+	}	
+	
     @Override
 	public String toString() {
 		return "Protection [_targetStorageSystem =" + targetStorageSystem
@@ -166,5 +177,5 @@ public class Protection implements Serializable {
 
     public String toString(DbClient _dbClient) {
     	return "NIY";
-    }	
+    }
 }

@@ -46,7 +46,7 @@ public class EnvConfig {
             logger.error(e.getMessage(), e);
             throw e;
         } catch (IOException ex) {
-            logger.error(String.format("Could not read the file %s at ", propertyFile, properties_location));
+            logger.error(String.format("Could not read the file %s at %s", propertyFile, properties_location));
             ex.printStackTrace();
             throw ex;
         } finally {

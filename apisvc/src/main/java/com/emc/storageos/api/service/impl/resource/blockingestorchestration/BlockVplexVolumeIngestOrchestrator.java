@@ -324,14 +324,19 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                             processedUnManagedVolume.getLabel(), "check the logs for more details");
                 }
                 
+                if (null == processedUnManagedVolume.getUnmanagedExportMasks()) {
+                    _logger.info("ingested block object {} has no unmanaged export masks", processedUnManagedVolume.getLabel());
+                    continue;
+                }
+                
+                // TODO happy path would just be one, but may need to account for more than one UEM
+                String uemUri = processedUnManagedVolume.getUnmanagedExportMasks().iterator().next();
+                UnManagedExportMask uem = _dbClient.queryObject(UnManagedExportMask.class, URI.create(uemUri));
+                
                 URI storageSystemUri = processedUnManagedVolume.getStorageSystemUri();
                 StorageSystem associatedSystem =  systemMap.get(storageSystemUri.toString());
 
                 IngestExportStrategy ingestStrategy =  ingestStrategyFactory.buildIngestExportStrategy(processedUnManagedVolume);
-                
-                // TODO happy path would just be one, but may need to account for more than one UEM
-                String uemUri = processedUnManagedVolume.getUnmanagedExportMasks().iterator().next();
-                UnManagedExportMask uem = _dbClient.queryObject(UnManagedExportMask.class, URI.create(uemUri)); 
                 
                 List<URI> initUris = new ArrayList<URI>();
                 for (String uri : uem.getKnownInitiatorUris()) {

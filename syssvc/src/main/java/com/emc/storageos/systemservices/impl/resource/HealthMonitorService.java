@@ -84,7 +84,8 @@ public class HealthMonitorService extends BaseLogSvcResource {
     public NodeStats getNodeStats(RequestParams requestParams) {
         _log.info("Retrieving node stats");
         String nodeName = _coordinatorClientExt.getMyNodeName();
-        return getNodeStats(nodeName, getNodeIP(nodeName),
+        String nodeCustomName = _coordinatorClientExt.getMyCustomName();
+        return getNodeStats(nodeName, nodeCustomName, getNodeIP(nodeName),
                 requestParams.getInterval(),
                 ServicesMetadata.getRoleServiceNames(_coordinatorClientExt.getNodeRoles()));
     }
@@ -312,8 +313,9 @@ public class HealthMonitorService extends BaseLogSvcResource {
     @Produces({ MediaType.APPLICATION_JSON })
     public NodeDiagnostics getNodeDiagnostics(DiagRequestParams requestParams) {
         String nodeName = _coordinatorClientExt.getMyNodeName();
+        String nodeCustomName = _coordinatorClientExt.getMyCustomName();
         _log.info("Retrieving node diagnostics for node: {}", nodeName);
-        return new NodeDiagnostics(nodeName, getNodeIP(nodeName),
+        return new NodeDiagnostics(nodeName, nodeCustomName, getNodeIP(nodeName),
                 DiagnosticsExec.getDiagToolResults(requestParams.isVerbose()
                         ? DiagConstants.VERBOSE : ""));
     }
@@ -371,11 +373,11 @@ public class HealthMonitorService extends BaseLogSvcResource {
      * 
      * @return NodeStats
      */
-    protected NodeStats getNodeStats(String nodeId, String nodeIP, int interval,
-            List<String> availableServices) {
+    protected NodeStats getNodeStats(String nodeId,String nodeName, String nodeIP, int interval,
+                                     List<String> availableServices) {
         try {
             _log.info("List of available services: {}", availableServices);
-            return new NodeStats(nodeId, nodeIP, ProcStats.getLoadAvgStats(),
+            return new NodeStats(nodeId, nodeName, nodeIP, ProcStats.getLoadAvgStats(),
                     ProcStats.getMemoryStats(), ProcStats.getDataDiskStats(),
                     NodeStatsExtractor.getServiceStats(availableServices),
                     NodeStatsExtractor.getDiskStats(interval));

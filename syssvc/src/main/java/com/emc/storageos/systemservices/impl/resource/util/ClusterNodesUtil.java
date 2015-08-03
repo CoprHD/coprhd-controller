@@ -80,7 +80,7 @@ public class ClusterNodesUtil {
                 // for the node on which the service executes.
                 URI nodeEndPoint = svc.getEndpoint(null);
                 if (nodeEndPoint != null) {
-                    nodeInfoList.add(new NodeInfo(svc.getNodeName(), nodeEndPoint));
+                    nodeInfoList.add(new NodeInfo(svc.getNodeName(),svc.getNodeCustomName(), nodeEndPoint));
                     validNodeIds.add(svc.getNodeName());
                 }
             }

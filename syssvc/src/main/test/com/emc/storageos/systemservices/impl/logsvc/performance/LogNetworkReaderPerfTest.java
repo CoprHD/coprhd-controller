@@ -54,9 +54,9 @@ public class LogNetworkReaderPerfTest {
         LogRequest req = new LogRequest.Builder().baseNames(svcs).build();
         final LogNetworkWriter writer = new LogNetworkWriter(req, propertiesLoader);
         try (final PipedOutputStream out = new PipedOutputStream();
-                final BufferedOutputStream outputStream = new BufferedOutputStream(out, bufSize);
-                final PipedInputStream inputStream = new PipedInputStream(out)) {
-            LogNetworkReader reader = new LogNetworkReader("vipr1", inputStream,
+             final BufferedOutputStream outputStream = new BufferedOutputStream(out, bufSize);
+             final PipedInputStream inputStream = new PipedInputStream(out)) {
+            LogNetworkReader reader = new LogNetworkReader("vipr1","vipr1", inputStream,
                     new LogStatusInfo());
 
             long totalSize = 0;

@@ -59,7 +59,6 @@ public class BackupSchedulerTest {
         new TestProductName();
 
         FakeConfiguration cfg = new FakeConfiguration();
-        cfg.dbSchemaVersion = "2.2";
         cfg.setSoftwareVersion("vipr-2.2.0.0.123");
         cfg.nodeCount = 1;
         cfg.copiesToKeep = 5;
@@ -98,7 +97,6 @@ public class BackupSchedulerTest {
         new TestProductName();
 
         FakeConfiguration cfg = new FakeConfiguration();
-        cfg.dbSchemaVersion = "2.2";
         cfg.setSoftwareVersion("vipr-2.2.0.0.123");
         cfg.nodeCount = 1;
         cfg.copiesToKeep = 5;
@@ -155,7 +153,6 @@ public class BackupSchedulerTest {
         new TestProductName();
 
         FakeConfiguration cfg = new FakeConfiguration();
-        cfg.dbSchemaVersion = "2.2";
         cfg.setSoftwareVersion("vipr-2.2.0.0.123");
         cfg.nodeCount = 1;
         cfg.copiesToKeep = 5;

@@ -36,6 +36,8 @@ public class ScheduledBackupTag {
     private static final Logger log = LoggerFactory.getLogger(ScheduledBackupTag.class);
 
     private static final String DATE_PATTERN = "yyyyMMddHHmmss";
+    private static final String BACKUP_TAG_TEMPLATE = "%s-%d-%s";
+    private static final String UPLOAD_ZIP_FILENAME_FORMAT = "%s-%s-%s%s";
     private static final ThreadLocal<SimpleDateFormat> dateFormat = new ThreadLocal<SimpleDateFormat>() {
         @Override
         protected SimpleDateFormat initialValue() {
@@ -55,7 +57,7 @@ public class ScheduledBackupTag {
 
     public static String toBackupTag(Date dt, String ver, int nodeCount) {
         String timestamp = toTimestamp(dt);
-        return String.format("%s-%d-%s", ver, nodeCount, timestamp);
+        return String.format(BACKUP_TAG_TEMPLATE, ver, nodeCount, timestamp);
     }
 
     public static Date parseBackupTag(String tag) throws ParseException {
@@ -112,6 +114,6 @@ public class ScheduledBackupTag {
     }
 
     public static String toZipFileName(String tag, int totalNodes, int backupNodes) {
-        return String.format("%s-%s-%s%s", tag, totalNodes, backupNodes, ZIP_FILE_SURFIX);
+        return String.format(UPLOAD_ZIP_FILENAME_FORMAT, tag, totalNodes, backupNodes, ZIP_FILE_SURFIX);
     }
 }

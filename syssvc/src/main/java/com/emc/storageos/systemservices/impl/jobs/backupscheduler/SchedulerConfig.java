@@ -71,7 +71,6 @@ public class SchedulerConfig {
 
     private MailHelper mailHelper;
 
-    public String dbSchemaVersion;
     public int nodeCount;
 
     // Configurations mirrored from system properties
@@ -111,8 +110,6 @@ public class SchedulerConfig {
     public void reload() throws Exception {
         log.info("Loading configuration");
 
-        this.dbSchemaVersion = this.coordinatorClient.getCurrentDbSchemaVersion();
-        
         this.softwareVersion = this.coordinatorClient.getTargetInfo(RepositoryInfo.class).getCurrentVersion().toString();
 
         PropertyInfo propInfo = this.coordinatorClient.getPropertyInfo();
@@ -334,7 +331,6 @@ public class SchedulerConfig {
         log.info("Current control nodes' state: {}", state);
         if (state == ClusterState.STABLE || state == ClusterState.SYNCING
                 || state == ClusterState.DEGRADED) {
-            this.dbSchemaVersion = currentVersion;
             return false;
         }
         return true;

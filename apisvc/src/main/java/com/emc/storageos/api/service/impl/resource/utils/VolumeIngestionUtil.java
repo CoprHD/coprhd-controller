@@ -2200,4 +2200,63 @@ public class VolumeIngestionUtil {
             }
         }
     }
+    
+    public static List<UnManagedVolume> getUnManagedSnaphots(UnManagedVolume unManagedVolume, DbClient dbClient) {
+        List<UnManagedVolume> snapshots = new ArrayList<UnManagedVolume>();
+        _logger.info("checking for snapshots related to unmanaged volume " + unManagedVolume.getLabel());
+        if (checkUnManagedVolumeHasReplicas(unManagedVolume)) {
+            StringSet snapshotNativeIds = PropertySetterUtil.extractValuesFromStringSet(
+                    SupportedVolumeInformation.SNAPSHOTS.toString(),
+                    unManagedVolume.getVolumeInformation());
+            List<URI> snapshotUris = new ArrayList<URI>();
+            if (null != snapshotNativeIds && !snapshotNativeIds.isEmpty()) {
+                for (String nativeId : snapshotNativeIds) {
+                    _logger.info("   found snapshot native id " + nativeId);
+                    URIQueryResultList unManagedVolumeList = new URIQueryResultList();
+                    dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                            .getVolumeInfoNativeIdConstraint(nativeId), unManagedVolumeList);
+                    if (unManagedVolumeList.iterator().hasNext()) {
+                        snapshotUris.add(unManagedVolumeList.iterator().next());
+                    }
+                }
+            }
+            if (!snapshotUris.isEmpty()) {
+                snapshots = dbClient.queryObject(UnManagedVolume.class, snapshotUris, true);
+                _logger.info("   returning snapshot objects: " + snapshots);
+            }
+            
+        }
+
+        return snapshots;
+    }
+
+    public static List<UnManagedVolume> getUnManagedClones(UnManagedVolume unManagedVolume, DbClient dbClient) {
+        List<UnManagedVolume> clones = new ArrayList<UnManagedVolume>();
+        _logger.info("checking for clones (full copies) related to unmanaged volume " + unManagedVolume.getLabel());
+        if (checkUnManagedVolumeHasReplicas(unManagedVolume)) {
+            StringSet cloneNativeIds = PropertySetterUtil.extractValuesFromStringSet(
+                    SupportedVolumeInformation.FULL_COPIES.toString(),
+                    unManagedVolume.getVolumeInformation());
+            List<URI> cloneUris = new ArrayList<URI>();
+            if (null != cloneNativeIds && !cloneNativeIds.isEmpty()) {
+                for (String nativeId : cloneNativeIds) {
+                    _logger.info("   found clone native id " + nativeId);
+                    URIQueryResultList unManagedVolumeList = new URIQueryResultList();
+                    dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                            .getVolumeInfoNativeIdConstraint(nativeId), unManagedVolumeList);
+                    if (unManagedVolumeList.iterator().hasNext()) {
+                        cloneUris.add(unManagedVolumeList.iterator().next());
+                    }
+                }
+            }
+            if (!cloneUris.isEmpty()) {
+                clones = dbClient.queryObject(UnManagedVolume.class, cloneUris, true);
+                _logger.info("   returning clone objects: " + clones);
+            }
+            
+        }
+
+        return clones;
+    }
+
 }

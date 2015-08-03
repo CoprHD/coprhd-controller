@@ -127,20 +127,28 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             if (null != associatedVolumeUris && !associatedVolumeUris.isEmpty()) {
 
                 Project vplexProject = VPlexBlockServiceApiImpl.getVplexProject(system, _dbClient, _tenantsService);
-                
                 validateAssociatedVolumes(vPool, vplexProject, tenant, associatedVolumeUris);
+
+                List<UnManagedVolume> associatedVolumes = _dbClient.queryObject(UnManagedVolume.class, associatedVolumeUris);
+                List<UnManagedVolume> snapshots = checkForSnapshots(associatedVolumes);
+                List<UnManagedVolume> clones = checkForClones(associatedVolumes);
+
+                List<UnManagedVolume> allVolumes = new ArrayList<UnManagedVolume>();
+                allVolumes.addAll(associatedVolumes);
+                allVolumes.addAll(snapshots);
+                allVolumes.addAll(clones);
 
                 ingestBackendVolumes(systemCache, poolCache, vPool,
                         virtualArray, vplexProject, tenant,
                         unManagedVolumesToBeDeleted, taskStatusMap,
-                        associatedVolumeUris, processedUnManagedVolumeMap,
+                        allVolumes, processedUnManagedVolumeMap,
                         vplexCreatedObjectMap, vplexUpdatedObjectMap);
 
                 List<BlockObject> ingestedObjects = new ArrayList<BlockObject>();
 
                 ingestBackendExportMasks(system, vPool, virtualArray, vplexProject,
                         tenant, unManagedVolumesToBeDeleted, updatedObjectMap,
-                        taskStatusMap, associatedVolumeUris,
+                        taskStatusMap, associatedVolumes,
                         processedUnManagedVolumeMap, vplexCreatedObjectMap,
                         ingestedObjects);
                 
@@ -167,6 +175,28 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         }
         
         return virtualVolume;
+    }
+
+    private List<UnManagedVolume> checkForSnapshots(List<UnManagedVolume> sourceVolumes) {
+        List<UnManagedVolume> snapshotsFound = new ArrayList<UnManagedVolume>();
+        
+        for (UnManagedVolume sourceVolume : sourceVolumes) {
+            snapshotsFound.addAll(VolumeIngestionUtil.getUnManagedSnaphots(sourceVolume, _dbClient));
+        }
+        
+        _logger.info("found these associated snapshots: " + snapshotsFound);
+        return snapshotsFound;
+    }
+
+    private List<UnManagedVolume> checkForClones(List<UnManagedVolume> sourceVolumes) {
+        List<UnManagedVolume> clonesFound = new ArrayList<UnManagedVolume>();
+        
+        for (UnManagedVolume sourceVolume : sourceVolumes) {
+            clonesFound.addAll(VolumeIngestionUtil.getUnManagedClones(sourceVolume, _dbClient));
+        }
+        
+        _logger.info("found these associated clones: " + clonesFound);
+        return clonesFound;
     }
 
     private List<URI> getAssociatedVolumes(UnManagedVolume unManagedVolume) {
@@ -225,12 +255,10 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             Project vplexProject, TenantOrg tenant,
             List<UnManagedVolume> unManagedVolumesToBeDeleted,
             Map<String, StringBuffer> taskStatusMap,
-            List<URI> associatedVolumeUris,
+            List<UnManagedVolume> associatedVolumes,
             Map<String, UnManagedVolume> processedUnManagedVolumeMap,
             Map<String, BlockObject> vplexCreatedObjectMap,
             Map<String, List<DataObject>> vplexUpdatedObjectMap) {
-
-        List<UnManagedVolume> associatedVolumes = _dbClient.queryObject(UnManagedVolume.class, associatedVolumeUris, true);
 
         _logger.info("ingesting these backend volumes: " + associatedVolumes);
         for (UnManagedVolume associatedVolume : associatedVolumes) {
@@ -278,7 +306,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             List<UnManagedVolume> unManagedVolumesToBeDeleted,
             Map<String, List<DataObject>> updatedObjectMap,
             Map<String, StringBuffer> taskStatusMap,
-            List<URI> associatedVolumeUris,
+            List<UnManagedVolume> associatedVolumes,
             Map<String, UnManagedVolume> processedUnManagedVolumeMap,
             Map<String, BlockObject> vplexCreatedObjectMap,
             List<BlockObject> ingestedObjects) {
@@ -317,9 +345,14 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 
                 VolumeExportIngestParam exportIngestParam = new VolumeExportIngestParam();
                 exportIngestParam.setProject(vplexProject.getId());
-                exportIngestParam.setUnManagedVolumes(associatedVolumeUris);
                 exportIngestParam.setVarray(virtualArray.getId());
                 exportIngestParam.setVpool(vPool.getId());
+                
+                List<URI> associatedVolumeUris = new ArrayList<URI>();
+                for (UnManagedVolume umv : associatedVolumes) {
+                    associatedVolumeUris.add(umv.getId());
+                }
+                exportIngestParam.setUnManagedVolumes(associatedVolumeUris);
 
                 BlockObject blockObject = ingestStrategy.ingestExportMasks(processedUnManagedVolume, exportIngestParam, exportGroup, 
                         processedBlockObject, unManagedVolumesToBeDeleted, associatedSystem, exportGroupCreated, initiators);

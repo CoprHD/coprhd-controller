@@ -857,7 +857,7 @@ public class BackupOps {
             MBeanServerConnection mbsc = conn.getMBeanServerConnection();
             return JMX.newMBeanProxy(mbsc, objectName, BackupManagerMBean.class);
         } catch (MalformedObjectNameException e) {
-            log.error("Failed to construct object name", e);
+            log.error("Failed to construct object name for mbean({})", BackupManager.MBEAN_NAME, e);
             throw new IllegalStateException("Failed to construct object name");
         } catch (IOException e) {
             log.error("Failed to create backup manager MBean proxy", e);

@@ -117,17 +117,17 @@ public class FileExportUpdateParams implements Serializable {
 
         List<ExportRule> list = new ArrayList<>();
         if (exportRulesToAdd != null && exportRulesToAdd.getExportRules() != null
-                && exportRulesToAdd.getExportRules().size() > 0) {
+                && !exportRulesToAdd.getExportRules().isEmpty()) {
             list.addAll(exportRulesToAdd.getExportRules());
         }
 
         if (exportRulesToModify != null && exportRulesToModify.getExportRules() != null
-                && exportRulesToModify.getExportRules().size() > 0) {
+                && !exportRulesToModify.getExportRules().isEmpty()) {
             list.addAll(exportRulesToModify.getExportRules());
         }
 
         if (exportRulesToDelete != null && exportRulesToDelete.getExportRules() != null
-                && exportRulesToDelete.getExportRules().size() > 0) {
+                && !exportRulesToDelete.getExportRules().isEmpty()) {
             list.addAll(exportRulesToDelete.getExportRules());
         }
 

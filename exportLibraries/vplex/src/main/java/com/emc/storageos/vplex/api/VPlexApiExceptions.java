@@ -708,4 +708,14 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException systemTypeNotSupported(String systemType);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedGettingStorageVolumeITLsInfo(String clusterName, String status);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedProcessingStorageVolumeITLsResponse(String msg, final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException couldNotFindStorageVolumeMatchingITLs(String volumeName, String storageSystemNativeId);
+    
 }

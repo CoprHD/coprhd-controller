@@ -17,6 +17,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -345,5 +346,29 @@ public class VPlexApiUtils {
         } catch (Exception e) {
             s_logger.warn("Exception while trying to sleep", e);
         }
+    }
+    
+    /**
+     * ITLs fetch is required if the backend
+     * array has populated the ITLs in the VolumeInfo
+     * 
+     * Note : Currently Cinder is using ITLs for volume lookup
+     *  
+     * @param volInfo
+     * @return
+     */
+    public static boolean isITLFetch(List<VolumeInfo> volInfos)
+    {
+    	boolean isFetch = false;
+    	VolumeInfo vi = volInfos.get(0);
+    	String backendSystemType = vi.getSystemType().getType().toString();
+    	List<String> itls = vi.getITLs();
+    	if(VPlexApiBackendSystemType.OPENSTACK.toString().equalsIgnoreCase(backendSystemType)
+    	   && !itls.isEmpty())
+    	{
+    		isFetch = true;
+    	}
+    	
+    	return isFetch;
     }
 }

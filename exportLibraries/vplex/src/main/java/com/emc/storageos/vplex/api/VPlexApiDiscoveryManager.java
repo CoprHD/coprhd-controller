@@ -18,6 +18,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 import com.sun.jersey.api.client.ClientResponse;
 
@@ -343,8 +344,15 @@ public class VPlexApiDiscoveryManager {
                 for (VPlexClusterInfo clusterInfo : clusterInfoList) {
                     String clusterName = clusterInfo.getName();
                     clusterInfo.setStorageSystemInfo(getStorageSystemInfoForCluster(clusterName));
-                    clusterInfo.setStorageVolumeInfo(getStorageVolumeInfoForCluster(clusterName));
                     clusterInfo.setSystemVolumeInfo(getSystemVolumeInfoForCluster(clusterName));
+                    clusterInfo.setStorageVolumeInfo(getStorageVolumeInfoForCluster(clusterName));
+                    
+                    if(isItlsRequired)
+                    {
+                    	clusterInfo.setStorageVolumeITLsInfoList(getStorageVolumeITLInfoForCluster(clusterName));
+                    }
+                    
+                    
                 }
             }
         } catch (Exception e) {
@@ -458,6 +466,73 @@ public class VPlexApiDiscoveryManager {
 
         return storageVolumeInfoMap;
     }
+    
+    
+    /**
+     * Finds the volumes in the VPlex configuration identified by the passed
+     * native volume ITL information.
+     * 
+     * @param volumeInfoList The native volume info for the volumes to find.
+     * @param clusterInfoList The cluster information.
+     * 
+     * @return A map of the found VPlex volumes, key'd by the native volume
+     *         information for each volume.
+     * 
+     * @throws VPlexApiException When an error occurs find the volumes.
+     */
+
+    Map<VolumeInfo, VPlexStorageVolumeITLsInfo> findStorageVolumeITLs(List<VolumeInfo> volumeInfoList,
+    		                                                   List<VPlexClusterInfo> clusterInfoList)
+    		                                                   throws VPlexApiException
+   {
+
+        Map<VolumeInfo, VPlexStorageVolumeITLsInfo> storageVolumeInfoMap = new HashMap<VolumeInfo, VPlexStorageVolumeITLsInfo>();
+        Iterator<VolumeInfo> volumeInfoIter = volumeInfoList.iterator();
+        while (volumeInfoIter.hasNext())
+        {
+            boolean volumeFound = false;
+            VolumeInfo volumeInfo = volumeInfoIter.next();
+            String storageSystemNativeGuid = volumeInfo.getStorageSystemNativeGuid();
+            String volumeITL = volumeInfo.getITLs().get(0);
+            s_logger.info("One of the Volume ITL is {}", volumeITL);
+
+            for (VPlexClusterInfo clusterInfo : clusterInfoList)
+            {
+                if (clusterInfo.containsStorageSystem(storageSystemNativeGuid))
+                {
+                    s_logger.info("Found storage system {} in cluster {}", storageSystemNativeGuid, clusterInfo.getName());
+                    VPlexStorageVolumeITLsInfo storageVolumeInfo = clusterInfo.getStorageVolumeITL(volumeInfo);
+                    if (storageVolumeInfo == null)
+                    {
+                        s_logger.info("Storage volume with ITL {} was not found in cluster {}", volumeITL, clusterInfo.getName());
+                        String volumeName = volumeInfo.getVolumeName();
+                        storageVolumeInfo = clusterInfo.getStorageVolumeITL(volumeInfo);
+                        if (storageVolumeInfo != null)
+                        {
+                            // The storage volume requested for an operation is
+                            // already claimed. For now, we just log a warning so
+                            // that stale VPLEX artifacts associated with this
+                            // storage volume can be easily identified and purged.
+                            s_logger.warn("The claimed storage volume {} has ITL {}", volumeName, volumeITL);
+                        }
+                        continue;
+                    }
+                    volumeFound = true;
+                    s_logger.info("Found storage volume {}", storageVolumeInfo.toString());
+                    storageVolumeInfo.setClusterId(clusterInfo.getName());
+                    storageVolumeInfoMap.put(volumeInfo, storageVolumeInfo);
+                    break;
+                }
+            }
+
+            if (!volumeFound)
+            {
+                throw VPlexApiException.exceptions.couldNotFindStorageVolumeMatchingITLs(volumeITL, storageSystemNativeGuid);
+            }
+        }
+
+        return storageVolumeInfoMap;
+    }
 
     /**
      * Attempts to find the storage volume with the passed name.
@@ -504,13 +579,13 @@ public class VPlexApiDiscoveryManager {
      * 
      * @throws VPlexApiException When an error occurs finding the extents.
      */
-    List<VPlexExtentInfo> findExtents(
-            List<VPlexStorageVolumeInfo> storageVolumeInfoList) throws VPlexApiException {
+    <T extends VPlexStorageVolumeInfo>List<VPlexExtentInfo> findExtents(
+            List<T> storageVolumeInfoList) throws VPlexApiException {
 
         List<VPlexExtentInfo> extentInfoList = new ArrayList<VPlexExtentInfo>();
-        Iterator<VPlexStorageVolumeInfo> storageVolumeIter = storageVolumeInfoList.iterator();
+        Iterator<T> storageVolumeIter = storageVolumeInfoList.iterator();
         while (storageVolumeIter.hasNext()) {
-            VPlexStorageVolumeInfo storageVolumeInfo = storageVolumeIter.next();
+            T storageVolumeInfo = storageVolumeIter.next();
             boolean extentFound = false;
             int retryCount = 0;
             while (++retryCount <= VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES) {
@@ -1110,6 +1185,57 @@ public class VPlexApiDiscoveryManager {
         } catch (Exception e) {
             throw new VPlexApiException(String.format(
                     "Error processing storage volume information: %s", e.getMessage()), e);
+        }
+
+        return storageVolumeInfoList;
+    }
+    
+    
+    /**
+     * Get the storage volume ITL info for the cluster with the passed name.
+     * 
+     * @param clusterName The name of the cluster.
+     * 
+     * @return A list of VPlexStorageVolumeITLInfo specifying the storage volume
+     *         info for the cluster with the passed name.
+     * 
+     * @throws VPlexApiException If a VPlex request returns a failed status or
+     *             an error occurs processing the response.
+     */
+    private List<VPlexStorageVolumeITLsInfo> getStorageVolumeITLInfoForCluster(String clusterName)
+            throws VPlexApiException
+    {
+    	// Get the URI for the storage volume details request and make the request.
+        StringBuilder uriBuilder = new StringBuilder();
+        uriBuilder.append(VPlexApiConstants.URI_CLUSTERS.toString());
+        uriBuilder.append(clusterName);
+        uriBuilder.append(VPlexApiConstants.URI_STORAGE_VOLUMES_DETAILS.toString());
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
+        s_logger.info("Storage Volumes Request URI is {}", requestURI.toString());
+        ClientResponse response = _vplexApiClient.get(requestURI);
+        String responseStr = response.getEntity(String.class);
+        s_logger.info("Response is {}", responseStr);
+        int status = response.getStatus();
+        response.close();
+        if (status != VPlexApiConstants.SUCCESS_STATUS)
+        {
+        	throw VPlexApiException.exceptions.
+        	      failedGettingStorageVolumeITLsInfo(clusterName, String.valueOf(status));
+        }
+
+        // Successful Response
+        List<VPlexStorageVolumeITLsInfo> storageVolumeInfoList = new ArrayList<VPlexStorageVolumeITLsInfo>();
+        try
+        {
+            storageVolumeInfoList = VPlexApiUtils.getResourcesFromResponseContext(
+            		                uriBuilder.toString(),
+            		                responseStr,
+            		                VPlexStorageVolumeITLsInfo.class);
+        }
+        catch (Exception e)
+        {
+        	throw VPlexApiException.exceptions.
+        	      failedProcessingStorageVolumeITLsResponse(e.getMessage(), e);
         }
 
         return storageVolumeInfoList;

@@ -5,6 +5,7 @@
 package com.emc.storageos.vplex.api.clientdata;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -45,7 +46,7 @@ public class VolumeInfo implements Serializable {
     private boolean _isThin = false;
     
     //ITL List
-    private List<String> ITLs;
+    private List<String> ITLs = new ArrayList<String>();
 
     /**
      * Constructor.

@@ -5,14 +5,11 @@
 package com.emc.vipr.client.system;
 
 import static com.emc.vipr.client.impl.jersey.ClientUtils.addQueryParam;
-import static com.emc.vipr.client.system.impl.PathConstants.CONFIG_CONNECT_EMC_EMAIL_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.CONFIG_CONNECT_EMC_FTPS_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.CONFIG_PROPERTIES_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.CONFIG_PROP_METADATA_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.CONFIG_PROP_RESET_URL;
+import static com.emc.vipr.client.system.impl.PathConstants.*;
 
 import javax.ws.rs.core.UriBuilder;
 
+import com.emc.storageos.model.auth.InvalidLoginsList;
 import com.emc.storageos.model.property.PropertiesMetadata;
 import com.emc.storageos.model.property.PropertyInfoRestRep;
 import com.emc.storageos.model.property.PropertyInfoUpdate;
@@ -21,6 +18,8 @@ import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.eventhandler.ConnectEmcEmail;
 import com.emc.vipr.model.sys.eventhandler.ConnectEmcFtps;
+
+import java.net.URI;
 
 public class Config {
     private static final String PROPERTY_CATEGORY = "category";
@@ -135,4 +134,28 @@ public class Config {
     public ClusterInfo resetProps(PropertyList propertyList) {
         return resetProps(propertyList, true);
     }
+
+
+
+
+	/**
+	 * Remove specified IP from block-ip list
+	 * <p>
+	 * API Call: DELETE /config/block-ips/{ip}
+	 *
+	 * @param ip the ip to be deleted from block-ip list, '*' for all ips.
+	 */
+	public void deleteBlockIP(String ip) {
+		client.delete(String.class, CONFIG_DELETE_BLOCK_IP, ip);
+	}
+
+
+	/**
+	 * list block ips with information of their last-access-time and failed-login-attempts
+	 *
+	 * @return
+	 */
+	public InvalidLoginsList listBlockIPs() {
+		return client.get(InvalidLoginsList.class, CONFIG_LIST_BLOCK_IPS);
+	}
 }

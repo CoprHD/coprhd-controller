@@ -69,8 +69,6 @@
     </bean>    
     <bean id="invalidLoginManager" class="com.emc.storageos.security.password.InvalidLoginManager">
         <property name="coordinator" ref="coordinator"/>
-        <property name="maxAuthnLoginAttemtsCount" value="10"/>
-        <property name="maxAuthnLoginAttemtsLifeTimeInMins" value="10"/>
         <property name="cleanupThreadInitialDelay" value="10"/>
     </bean>
        

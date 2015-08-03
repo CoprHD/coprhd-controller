@@ -112,8 +112,6 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         _authManager.init();
         _invalidLoginManager.setCleanupThreadInitialDelay(1);
         _invalidLoginManager.setCoordinator(_coordinator);
-        _invalidLoginManager.setMaxAuthnLoginAttemtsCount(5);
-        _invalidLoginManager.setMaxAuthnLoginAttemtsLifeTimeInMins(1);
         _invalidLoginManager.init();
 
     }

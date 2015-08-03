@@ -244,12 +244,20 @@
             <list>
                 <ref bean="passwordExpireRuleHandler" />
                 <bean class="com.emc.storageos.systemservices.impl.propertyhandler.PasswordChangeIntervalRuleHandler" />
+                <ref bean="authLoginAttemptsHandler" />
+                <ref bean="authLockoutTimeHandler" />
                 <bean class="com.emc.storageos.systemservices.impl.propertyhandler.UpgradeCheckFrequencyRuleHandler" />
             </list>
         </property>
     </bean>
     <bean id="passwordExpireRuleHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.PasswordExpireRuleHandler">
         <property name="passwordHandler" ref="localPasswordHandler"/>
+    </bean>
+    <bean id="authLoginAttemptsHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.AuthLoginAttemptsHandler">
+        <property name="invalidLoginManager" ref="invalidLoginManager"/>
+    </bean>
+    <bean id="authLockoutTimeHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.AuthLockoutTimeHandler">
+        <property name="invalidLoginManager" ref="invalidLoginManager"/>
     </bean>
 
     <bean id="notificationManager" class="com.emc.storageos.security.password.NotificationManager" init-method="init">
@@ -343,8 +351,6 @@
 
     <bean id="invalidLoginManager" class="com.emc.storageos.security.password.InvalidLoginManager">
         <property name="coordinator" ref="coordinator"/>
-        <property name="maxAuthnLoginAttemtsCount" value="10"/>
-        <property name="maxAuthnLoginAttemtsLifeTimeInMins" value="10"/>
         <property name="cleanupThreadInitialDelay" value="10"/>
     </bean>
 

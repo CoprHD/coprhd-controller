@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
@@ -59,18 +49,18 @@ import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
  * 
  * Configuration
  * 
- * 1. VM arguments 
- *  -Dproduct.home=/opt/storageos
+ * 1. VM arguments
+ * -Dproduct.home=/opt/storageos
  * 
  * 2. Classpath
- *  Folders 
- *      cimadapter/src/main/resources
- *      controllersvc/src/main/test/resources 
- *      discoveryplugins/src/main/resources
- *      dbutils/src/conf
+ * Folders
+ * cimadapter/src/main/resources
+ * controllersvc/src/main/test/resources
+ * discoveryplugins/src/main/resources
+ * dbutils/src/conf
  * 
- *  Project
- *      dbutils (project only, no exported entries and required projects)
+ * Project
+ * dbutils (project only, no exported entries and required projects)
  * 
  * Log file will be in controllersvc/logs dir. Configure
  * cimadapter/src/main/resources/log4j.properties as necessary
@@ -80,7 +70,7 @@ import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 public class DataCollectionTest {
     private static final Logger _logger = LoggerFactory
             .getLogger(DataCollectionTest.class);
-    
+
     @Autowired
     private DbClient _dbClient = null;
     @Autowired
@@ -92,7 +82,7 @@ public class DataCollectionTest {
     @Autowired(required = false)
     private StorageProvider _provider = null;
     private URI _providerURI = null;
-    
+
     private DataCollectionJobUtil _jobUtil = null;
     private DataCollectionJobConsumer _jobConsumer = null;
 
@@ -102,7 +92,7 @@ public class DataCollectionTest {
     @Before
     public void setup() {
         try {
-            for(Lock lock : Lock.values()) {
+            for (Lock lock : Lock.values()) {
                 Method method = lock.getClass().getDeclaredMethod("setLock", InterProcessLock.class);
                 method.setAccessible(true);
                 Object[] parameters = new Object[1];
@@ -111,21 +101,21 @@ public class DataCollectionTest {
             }
 
             _dbClient.start();
-            
+
             if (_provider != null) {
                 String providerKey = _provider.getIPAddress() + "-" + _provider.getPortNumber();
                 List<StorageProvider> providers = CustomQueryUtility.getActiveStorageProvidersByProviderId(_dbClient, providerKey);
                 if (providers != null && !providers.isEmpty()) {
                     _providerURI = providers.get(0).getId();
-                   _logger.warn("Provider has already been in db.");
+                    _logger.warn("Provider has already been in db.");
                 }
-                else if (isTestNewProvider) {     
+                else if (isTestNewProvider) {
                     _providerURI = URIUtil.createId(StorageProvider.class);
                     _provider.setId(_providerURI);
                     _dbClient.createObject(_provider);
                 }
             }
-            
+
             CIMConnectionFactory cimConnectionFactory = new CIMConnectionFactory();
             cimConnectionFactory.setDbClient(_dbClient);
             cimConnectionFactory.setConnectionManager(_connectionManager);
@@ -164,19 +154,21 @@ public class DataCollectionTest {
     }
 
     /*
-     * Clean up DB by removing providers, arrays, pools and ports   
+     * Clean up DB by removing providers, arrays, pools and ports
      * 
-     * note - all StorageProvider, StorageSystem, StoragePool and StoragePort objects will be removed 
+     * note - all StorageProvider, StorageSystem, StoragePool and StoragePort objects will be removed
      */
-    @Ignore // so that won't be run accidently
-    @Test
-    public void cleanDB() {
+    @Ignore
+    // so that won't be run accidently
+            @Test
+            public
+            void cleanDB() {
         List<Class<? extends DataObject>> types = new ArrayList<Class<? extends DataObject>>();
         types.add(StorageProvider.class);
         types.add(StorageSystem.class);
         types.add(StoragePool.class);
         types.add(StoragePort.class);
-        
+
         for (Class<? extends DataObject> clazz : types) {
             cleanDBObjects(clazz);
         }
@@ -197,9 +189,9 @@ public class DataCollectionTest {
         while (providerURIsIter.hasNext()) {
             URI providerURI = providerURIsIter.next();
             if (isTestNewProvider && !providerURI.equals(_providerURI)) {
-                continue;    
+                continue;
             }
-            
+
             StorageProvider provider = _dbClient.queryObject(
                     StorageProvider.class, providerURI);
 

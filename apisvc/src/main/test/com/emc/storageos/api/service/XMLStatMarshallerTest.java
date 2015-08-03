@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service;
 
@@ -79,7 +69,7 @@ public class XMLStatMarshallerTest {
         deleteIfExists(XmlTestOutputFile);
 
     }
-    
+
     @Test
     public void testXmlStatMarshallingForNullEvent() throws URISyntaxException, IOException,
             MarshallingExcetion, JAXBException {
@@ -87,7 +77,7 @@ public class XMLStatMarshallerTest {
         deleteIfExists(XmlTestOutputFile);
         XMLEventMarshaller jm = new XMLEventMarshaller();
         Event evt = null;
-        
+
         OutputStream output = new OutputStream() {
             private StringBuilder string = new StringBuilder();
 
@@ -114,20 +104,17 @@ public class XMLStatMarshallerTest {
         unmarshaller = context.createUnmarshaller();
 
         File f = new File(XmlTestOutputFile);
-        try{
+        try {
             @SuppressWarnings("unused")
             Event event = (Event) unmarshaller.unmarshal(f);
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             Assert.assertTrue(e.toString().contains("java.io.FileNotFoundException"));
         }
-       
+
         deleteIfExists(XmlTestOutputFile);
 
     }
-    
-    
-    
+
     @Test
     public void testXmlStatMarshallingForError() throws URISyntaxException, IOException,
             MarshallingExcetion {
@@ -135,10 +122,10 @@ public class XMLStatMarshallerTest {
         deleteIfExists(XmlTestOutputFile);
         XMLStatMarshaller xm = new XMLStatMarshaller();
         Stat stat = new Stat();
-        
+
         stat.setTenant(new URI("http://tenant.1"));
         stat.setTenant(new URI("http://project.1"));
-        
+
         OutputStream output = new OutputStream() {
             private StringBuilder string = new StringBuilder();
 
@@ -151,17 +138,15 @@ public class XMLStatMarshallerTest {
                 return this.string.toString();
             }
         };
-       
+
         PrintWriter writer = new PrintWriter(output);
         String error = "someerror";
-        xm.error(writer, error); 
+        xm.error(writer, error);
         writer.close();
         Assert.assertTrue(output.toString().contains("<stats>" + "someerror" + "</stats>"));
         deleteIfExists(XmlTestOutputFile);
 
     }
-    
-    
 
     private void deleteIfExists(String fname) {
         File f = new File(fname);

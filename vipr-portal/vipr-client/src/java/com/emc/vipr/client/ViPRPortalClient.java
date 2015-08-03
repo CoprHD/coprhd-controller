@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client;
@@ -15,7 +15,7 @@ public class ViPRPortalClient {
 
     /**
      * Convenience method for calling constructor with new ClientConfig().withHost(host)
-     *
+     * 
      * @param host Hostname or IP address for the Virtual IP of the target environment.
      */
     public ViPRPortalClient(String host) {
@@ -24,7 +24,7 @@ public class ViPRPortalClient {
 
     /**
      * Convenience method for calling constructor with new ClientConfig().withHost(host).withIgnoringCertificates(ignoreCertificates)
-     *
+     * 
      * @param host Hostname or IP address for the Virtual IP of the target environment.
      * @param ignoreCertificates True if SSL certificates should be ignored.
      */
@@ -38,7 +38,7 @@ public class ViPRPortalClient {
 
     /**
      * Sets the authentication token to be used for this client.
-     *
+     * 
      * @param authToken The authentication token to set.
      */
     public void setAuthToken(String authToken) {
@@ -47,7 +47,7 @@ public class ViPRPortalClient {
 
     /**
      * Sets the authentication token and returns the updated client.
-     *
+     * 
      * @see #setAuthToken(String)
      * @param token The authentication token to set.
      * @return The updated client.

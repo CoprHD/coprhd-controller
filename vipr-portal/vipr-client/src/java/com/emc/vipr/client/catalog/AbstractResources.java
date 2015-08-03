@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.catalog;
@@ -36,7 +36,7 @@ public class AbstractResources<T extends ModelInfo> {
      * Gets a single resource by ID.
      * <p>
      * API Call: GET /api/RESOURCE/{id}
-     *
+     * 
      * @param id identifier.
      * @return The resource.
      */
@@ -46,14 +46,14 @@ public class AbstractResources<T extends ModelInfo> {
 
     /**
      * Gets a number of resources by their identifier.
-     *
+     * 
      * @param ids identifiers.
      * @return List of resources.
      */
     public List<T> getByIds(Collection<String> ids) {
         List<T> results = new ArrayList<T>();
         if (ids != null) {
-            for (String id: ids) {
+            for (String id : ids) {
                 T item = get(id);
                 if (item != null) {
                     results.add(item);
@@ -65,7 +65,7 @@ public class AbstractResources<T extends ModelInfo> {
 
     /**
      * Gets a list of resources by references. Convenience method that calls getByIds.
-     *
+     * 
      * @see #getByIds(java.util.Collection)
      * @param refs references.
      * @return List of resources.
@@ -75,7 +75,8 @@ public class AbstractResources<T extends ModelInfo> {
     }
 
     protected List<Reference> doList() {
-        List<Reference> apiList = getApiList(client, new GenericType<List<Reference>>() {}, baseUrl);
+        List<Reference> apiList = getApiList(client, new GenericType<List<Reference>>() {
+        }, baseUrl);
         return apiList;
     }
 

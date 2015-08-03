@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.linux.command.fdisk;
@@ -21,28 +21,28 @@ import com.iwave.ext.linux.command.LinuxResultsCommand;
 public class FdiskListCommand extends LinuxResultsCommand<Set<String>> {
     private static final Pattern diskPattern = Pattern.compile("Disk\\s(/dev.+)\\:");
     private static final String MAPPER_PREFIX = "/dev/mapper/";
-    
+
     private boolean includeMapper = true;
     private boolean includeRegular = true;
-    
+
     public FdiskListCommand() {
         setCommand(CommandConstants.FDISK);
         addArguments("-l");
         setRunAsRoot(true);
     }
-    
+
     public void setIncludeMapper(boolean includeMapper) {
         this.includeMapper = includeMapper;
     }
-    
+
     public void setIncludeRegular(boolean includeRegular) {
         this.includeRegular = includeRegular;
     }
-    
+
     @Override
     public void parseOutput() {
         results = Sets.newLinkedHashSet();
-        
+
         Matcher matcher = diskPattern.matcher(getOutput().getStdout());
         while (matcher.find()) {
             String device = matcher.group(1);

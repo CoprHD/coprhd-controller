@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.monitoring.cim;
@@ -53,7 +43,7 @@ import com.emc.storageos.services.util.EnvConfig;
  * or else please uncomment @Service annotation and move to actual package out
  * of test where the real spring context will be created from
  */
-//@Service
+// @Service
 public class IndicationTest {
 
     @SuppressWarnings("unused")
@@ -68,7 +58,7 @@ public class IndicationTest {
 
     // To verify immediate trigger or not
     private Boolean _isIntialLoad = Boolean.TRUE;
-    
+
     private static final String UNIT_TEST_CONFIG_FILE = "sanity";
     private static final String providerIP = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "smis.host.ipaddress");
     private static final String providerPortStr = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "smis.host.port");
@@ -99,10 +89,10 @@ public class IndicationTest {
             // Create a CIM connection info and add the connection.
             CimConnectionInfo connectionInfo = new CimConnectionInfo();
             connectionInfo.setType(CimConstants.ECOM_CONNECTION_TYPE);
-            
-            //connectionInfo.setHost("10.247.87.240");
+
+            // connectionInfo.setHost("10.247.87.240");
             connectionInfo.setHost(providerIP);
-            
+
             connectionInfo.setPort(providerPort);
             connectionInfo.setUser(providerUser);
             connectionInfo.setPassword(providerPassword);
@@ -127,7 +117,7 @@ public class IndicationTest {
             return;
         }
         _logger.info("Shutting down CIM Indication Listener....");
-        //_connectionManager.shutdown();
+        // _connectionManager.shutdown();
 
     }
 

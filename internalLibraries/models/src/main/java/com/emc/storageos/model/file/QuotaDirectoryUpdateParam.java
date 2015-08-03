@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file;
@@ -8,28 +8,30 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * Attributes associated with a file system Quota directory, specified 
+ * Attributes associated with a file system Quota directory, specified
  * during the Quota directory creation.
- *
+ * 
  */
 
 @XmlRootElement(name = "quota_directory_modify")
 public class QuotaDirectoryUpdateParam {
     private Boolean oplock;
-    private String size; //Quota size - hard limit.
+    private String size; // Quota size - hard limit.
     // UNIX, NTFS, Mixed
-    private String securityStyle; 
-    
-    public QuotaDirectoryUpdateParam() {}
-    
+    private String securityStyle;
+
+    public QuotaDirectoryUpdateParam() {
+    }
+
     public QuotaDirectoryUpdateParam(Boolean oplock, String size, String securityStyle) {
         this.oplock = oplock;
         this.size = size;
-        this.securityStyle = securityStyle; 
+        this.securityStyle = securityStyle;
     }
-        
-    /** 
-     * Limit total space usage within this file system  directory in Bytes.
+
+    /**
+     * Limit total space usage within this file system directory in Bytes.
+     * 
      * @valid none
      */
     @XmlElement(name = "size")
@@ -40,9 +42,10 @@ public class QuotaDirectoryUpdateParam {
     public void setSize(String size) {
         this.size = size;
     }
-    
+
     /**
      * Flag to specify Read/Write cache enable for this quota directory.
+     * 
      * @valid true
      * @valid false
      */
@@ -54,10 +57,11 @@ public class QuotaDirectoryUpdateParam {
     public void setOpLock(Boolean oplock) {
         this.oplock = oplock;
     }
-    
+
     /**
-     * Security style for the Quota directory.  Default is
+     * Security style for the Quota directory. Default is
      * "UNIX".
+     * 
      * @valid "UNIX" = Security style by default
      * @valid "NTFS"
      * @valid "Mixed"
@@ -69,7 +73,5 @@ public class QuotaDirectoryUpdateParam {
 
     public void setSecurityStyle(String securityStyle) {
         this.securityStyle = securityStyle;
-    }	
+    }
 }
-
-

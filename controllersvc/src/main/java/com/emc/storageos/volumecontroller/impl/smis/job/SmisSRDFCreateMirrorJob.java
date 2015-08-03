@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
@@ -20,48 +20,48 @@ import com.emc.storageos.workflow.WorkflowStepCompleter;
 public class SmisSRDFCreateMirrorJob extends SmisJob {
     private static final Logger log = LoggerFactory.getLogger(SmisSRDFCreateMirrorJob.class);
     private static final String JOB_NAME = "Create SRDF mirror";
-    
+
     public SmisSRDFCreateMirrorJob(final CIMObjectPath cimJob, final URI storageSystem,
             final TaskCompleter taskCompleter) {
         super(cimJob, storageSystem, taskCompleter, JOB_NAME);
     }
-    
+
     @Override
     public void updateStatus(final JobContext jobContext) throws Exception {
         log.info("START SmisSRDFCreateMirrorJob#updateStatus");
         JobStatus jobStatus = getJobStatus();
         try {
-            
+
             switch (jobStatus) {
-            case IN_PROGRESS:
-                handleInProgress();
-                break;
-            case SUCCESS:
-                handleSuccess(jobContext);
-                break;
-            default:
-                log.error("Unable to handle job state: {}", jobStatus.name());
+                case IN_PROGRESS:
+                    handleInProgress();
+                    break;
+                case SUCCESS:
+                    handleSuccess(jobContext);
+                    break;
+                default:
+                    log.error("Unable to handle job state: {}", jobStatus.name());
             }
-            
+
         } catch (Exception e) {
             TaskCompleter completer = getTaskCompleter();
             String msg = String.format("Failed to update status for task %s on volume %s",
                     completer.getOpId(), completer.getId());
             log.error(msg, e);
-            setPostProcessingFailedStatus(msg+": " +e.getMessage());
+            setPostProcessingFailedStatus(msg + ": " + e.getMessage());
             ServiceError error = SmisException.errors.jobFailed(e.getMessage());
             completer.error(jobContext.getDbClient(), error);
         } finally {
             log.info("updateStatus operation END");
         }
     }
-    
+
     private void handleInProgress() {
         log.info("START handle in progress");
         TaskCompleter completer = getTaskCompleter();
         WorkflowStepCompleter.stepExecuting(completer.getOpId());
     }
-    
+
     private void handleSuccess(final JobContext jobContext) {
         log.info("Successfully created SRDF mirror from {}", getTaskCompleter().getIds());
         getTaskCompleter().ready(jobContext.getDbClient());

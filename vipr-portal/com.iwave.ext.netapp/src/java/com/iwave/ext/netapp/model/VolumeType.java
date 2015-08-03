@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.netapp.model;
@@ -18,8 +18,9 @@ public enum VolumeType {
 
     public static VolumeType valueOfLabel(String label) {
         for (VolumeType t : values()) {
-            if (label.equals(t.label))
+            if (label.equals(t.label)) {
                 return t;
+            }
         }
         throw new IllegalArgumentException(label + " is not a valid label for VolumeType");
     }

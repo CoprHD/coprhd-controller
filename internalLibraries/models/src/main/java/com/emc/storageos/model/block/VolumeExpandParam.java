@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block;
@@ -15,8 +15,9 @@ public class VolumeExpandParam {
 
     private String newSize;
 
-    public VolumeExpandParam() {}
-            
+    public VolumeExpandParam() {
+    }
+
     public VolumeExpandParam(String newSize) {
         this.newSize = newSize;
     }
@@ -24,6 +25,7 @@ public class VolumeExpandParam {
     /**
      * This parameter specifies the volume expansion
      * size.
+     * 
      * @valid Supported size formats: TB, GB, MB, B
      * @valid Default format is size in bytes
      * @valid example: 100GB, 614400000, 614400000B
@@ -36,5 +38,5 @@ public class VolumeExpandParam {
     public void setNewSize(String newSize) {
         this.newSize = newSize;
     }
-  
+
 }

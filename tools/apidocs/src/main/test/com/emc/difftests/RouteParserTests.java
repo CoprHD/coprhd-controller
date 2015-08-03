@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.difftests;
@@ -15,7 +15,7 @@ import org.junit.Test;
 
 import java.util.Collection;
 
-public class RouteParserTests  {
+public class RouteParserTests {
 
     @Test
     @Ignore
@@ -25,9 +25,9 @@ public class RouteParserTests  {
         boolean executionWindowsFound = false;
         boolean approvalsFound = false;
         for (ApiService service : services) {
-//            System.out.println(service.path+"  "+service.getTitle());
+            // System.out.println(service.path+"  "+service.getTitle());
             for (ApiMethod method : service.methods) {
-//                System.out.println(method.httpMethod+"  "+method.path+"  "+method.getTitle());
+                // System.out.println(method.httpMethod+"  "+method.path+"  "+method.getTitle());
                 if (method.path.equals("/admin/api/executionwindows")) {
                     executionWindowsFound = true;  // An admin service found
                 }

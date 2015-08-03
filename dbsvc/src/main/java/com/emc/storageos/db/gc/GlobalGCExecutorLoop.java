@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.gc;
 
@@ -32,7 +22,6 @@ class GlobalGCExecutorLoop extends GarbageCollectionExecutorLoop {
     private static final Logger log = LoggerFactory.getLogger(GlobalGCExecutorLoop.class);
     private static final String GeoLockName = "GeoGCLock";
 
-
     private GlobalLockItf glock = null;
     private boolean locked = false;
 
@@ -49,12 +38,12 @@ class GlobalGCExecutorLoop extends GarbageCollectionExecutorLoop {
         locked = false;
         try {
             String myVdcId = VdcUtil.getLocalShortVdcId();
-            glock = new GlobalLockImpl((DbClientImpl)dbClient, GeoLockName, GlobalLock.GL_Mode.GL_VdcShared_MODE,0,myVdcId);
+            glock = new GlobalLockImpl((DbClientImpl) dbClient, GeoLockName, GlobalLock.GL_Mode.GL_VdcShared_MODE, 0, myVdcId);
 
             log.info("Set global VdcShared lock owner to {} vdcId={}", dbServiceId, myVdcId);
             glock.acquire(dbServiceId);
             locked = true;
-        }catch(Exception e) {
+        } catch (Exception e) {
             log.error("Failed to generate the global Geo GC lock e=", e);
         }
 
@@ -63,11 +52,11 @@ class GlobalGCExecutorLoop extends GarbageCollectionExecutorLoop {
     }
 
     /**
-     *
+     * 
      * @param clazz the GC will run on
      * @param <T>
      * @return true if we can run GC on this class
-     *
+     * 
      **/
     @Override
     protected <T extends DataObject> boolean canRunGCOnClass(Class<T> clazz) {
@@ -76,6 +65,7 @@ class GlobalGCExecutorLoop extends GarbageCollectionExecutorLoop {
 
     /**
      * Generate the task to run GC on a class
+     * 
      * @param clazz the GC will run on
      * @return a GC task
      **/
@@ -97,4 +87,3 @@ class GlobalGCExecutorLoop extends GarbageCollectionExecutorLoop {
         }
     }
 }
-

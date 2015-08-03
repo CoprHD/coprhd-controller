@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
@@ -14,19 +14,17 @@ import com.emc.storageos.db.client.model.ShareACL;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.RelationIndex;
 
-
-
 @Cf("UnManagedCifsShareACL")
 public class UnManagedCifsShareACL extends ShareACL {
-	
+
     protected URI fileSystemId;
     protected URI snapshotId;
     protected String opType;
 
     protected String fsCifsShareIndex;
-    
+
     private String nativeGuid;
-    
+
     @RelationIndex(cf = "RelationIndex", type = Snapshot.class)
     @Name("snapshotId")
     public URI getSnapshotId() {
@@ -37,7 +35,6 @@ public class UnManagedCifsShareACL extends ShareACL {
         this.snapshotId = snapshotId;
         setChanged("snapshotId");
     }
-
 
     @RelationIndex(cf = "RelationIndex", type = FileShare.class)
     @Name("fileSystemId")
@@ -60,7 +57,7 @@ public class UnManagedCifsShareACL extends ShareACL {
         this.opType = opType;
         setChanged("opType");
     }
-    
+
     @AlternateId("fileShareNativeGuidTable")
     @Name("nativeGuid")
     public String getNativeGuid() {
@@ -71,26 +68,26 @@ public class UnManagedCifsShareACL extends ShareACL {
         this.nativeGuid = nativeGuid;
         setChanged("nativeGuid");
     }
-    
+
     @Override
     public void calculateACLIndex() {
 
-		String userOrGroup = this.user == null ? this.group : this.user;
-		StringBuffer aclIndexBuffer = new StringBuffer();
+        String userOrGroup = this.user == null ? this.group : this.user;
+        StringBuffer aclIndexBuffer = new StringBuffer();
 
-		if (this.shareName != null && userOrGroup != null) {
-			if (this.fileSystemId != null) {
-				aclIndexBuffer.append(this.fileSystemId.toString())
-						.append(this.shareName)
-						.append(this.domain == null ? "" : this.domain)
-						.append(userOrGroup);
-				this.setFileSystemShareACLIndex(aclIndexBuffer.toString());
-			}
+        if (this.shareName != null && userOrGroup != null) {
+            if (this.fileSystemId != null) {
+                aclIndexBuffer.append(this.fileSystemId.toString())
+                        .append(this.shareName)
+                        .append(this.domain == null ? "" : this.domain)
+                        .append(userOrGroup);
+                this.setFileSystemShareACLIndex(aclIndexBuffer.toString());
+            }
 
-		}
+        }
 
-	}
-    
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();

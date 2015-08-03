@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.licensing;
 
@@ -21,7 +11,6 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseTyp
 import com.emc.storageos.coordinator.exceptions.DecodingException;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 
-import com.emc.storageos.systemservices.exceptions.SyssvcException;
 import com.emc.storageos.systemservices.impl.eventhandler.connectemc.CallHomeConstants;
 
 public class LicenseInfoExt extends LicenseInfo implements CoordinatorSerializable {
@@ -69,7 +58,7 @@ public class LicenseInfoExt extends LicenseInfo implements CoordinatorSerializab
 
         final StringBuilder s = new StringBuilder();
 
-        // License Type        
+        // License Type
         s.append(LICENSE_TYPE);
         s.append(ENCODING_EQUAL);
         s.append(_licenseType.name());
@@ -122,25 +111,25 @@ public class LicenseInfoExt extends LicenseInfo implements CoordinatorSerializab
         s.append(ENCODING_EQUAL);
         s.append(_notice != null ? _notice : VALUE_NOT_SET);
         s.append(ENCODING_SEPARATOR);
-        
+
         // if it is a trial license
         s.append(IS_TRIAL_LICENSE);
         s.append(ENCODING_EQUAL);
         s.append(_trialLicense.toString());
         s.append(ENCODING_SEPARATOR);
-		
+
         // Last Registration Event Date to SYR
         s.append(LAST_REGISTRATION_EVENT_DATE);
         s.append(ENCODING_EQUAL);
         s.append(_lastRegistrationEventDate != null ? _lastRegistrationEventDate : VALUE_NOT_SET);
         s.append(ENCODING_SEPARATOR);
-        
+
         // Last Heartbeat Event Date to SYR
         s.append(LAST_HEARBEAT_EVENT_DATE);
         s.append(ENCODING_EQUAL);
         s.append(_lastHeartbeatEventDate != null ? _lastHeartbeatEventDate : VALUE_NOT_SET);
         s.append(ENCODING_SEPARATOR);
-        
+
         // Last License Expiration Event to SYR
         s.append(LAST_EXPIRATION_EVENT_DATE);
         s.append(ENCODING_EQUAL);
@@ -157,16 +146,17 @@ public class LicenseInfoExt extends LicenseInfo implements CoordinatorSerializab
     }
 
     @Override
-    public LicenseInfoExt decodeFromString(String infoStr) 
+    public LicenseInfoExt decodeFromString(String infoStr)
             throws DecodingException {
-        
+
         if (infoStr != null && !infoStr.isEmpty()) {
             for (String licenseProps : infoStr.split(ENCODING_SEPARATOR)) {
                 String[] licenseProp = licenseProps.split(ENCODING_EQUAL);
-                if(licenseProp.length < 2)
-                	continue;
+                if (licenseProp.length < 2) {
+                    continue;
+                }
                 if (licenseProp[0].equalsIgnoreCase(LICENSE_TYPE)) {
-                	LicenseType licenseType = LicenseType.findByValue(licenseProp[1]);                    
+                    LicenseType licenseType = LicenseType.findByValue(licenseProp[1]);
                     this.setLicenseType(licenseType);
                 }
                 if (licenseProp[0].equalsIgnoreCase(EXPIRATION_DATE)) {
@@ -186,33 +176,33 @@ public class LicenseInfoExt extends LicenseInfo implements CoordinatorSerializab
                 } else if (licenseProp[0].equalsIgnoreCase(NOTICE)) {
                     this.setNotice(licenseProp[1]);
                 } else if (licenseProp[0].equalsIgnoreCase(IS_TRIAL_LICENSE)) {
-                    this.setTrialLicense(Boolean.valueOf(licenseProp[1]));					
+                    this.setTrialLicense(Boolean.valueOf(licenseProp[1]));
                 } else if (licenseProp[0].equalsIgnoreCase(LAST_REGISTRATION_EVENT_DATE)) {
                     this.setLastRegistrationEventDate(licenseProp[1]);
                 } else if (licenseProp[0].equalsIgnoreCase(LAST_HEARBEAT_EVENT_DATE)) {
                     this.setLastHeartbeatEventDate(licenseProp[1]);
                 } else if (licenseProp[0].equalsIgnoreCase(LAST_EXPIRATION_EVENT_DATE)) {
                     this.setLastLicenseExpirationDateEventDate(licenseProp[1]);
-                }  else if (licenseProp[0].equalsIgnoreCase(LAST_CAPACITY_EXCEEDED_EVENT_DATE)) {
+                } else if (licenseProp[0].equalsIgnoreCase(LAST_CAPACITY_EXCEEDED_EVENT_DATE)) {
                     this.setLastCapacityExceededEventDate(licenseProp[1]);
                 }
             }
         }
         // for migrating license from vipr 1.0 to vipr 1.1
-        if(_licenseType == null) {
+        if (_licenseType == null) {
             _licenseType = LicenseConstants.getLicenseType(_modelId);
-            if(_licenseType == null) {
+            if (_licenseType == null) {
                 throw CoordinatorException.fatals.decodingError("invalid license type");
             }
-        }        
-        return this;        
+        }
+        return this;
     }
 
     @Override
     public CoordinatorClassInfo getCoordinatorClassInfo() {
         return null;
     }
-    
+
     public String getStorageCapacity() {
         return _storageCapacity;
     }
@@ -228,7 +218,7 @@ public class LicenseInfoExt extends LicenseInfo implements CoordinatorSerializab
     public boolean hasStorageCapacity() {
         return _storageCapacity != null && !_storageCapacity.equals(LicenseInfo.VALUE_NOT_SET);
     }
-    
+
     public void setProductId(String productId) {
         this._productId = productId;
     }
@@ -280,7 +270,7 @@ public class LicenseInfoExt extends LicenseInfo implements CoordinatorSerializab
     public void setTrialLicense(Boolean trialLicense) {
         this._trialLicense = trialLicense;
     }
-	
+
     public String getLastLicenseExpirationDateEventDate() {
         return _lastLicenseExpirationDateEventDate;
     }
@@ -304,7 +294,7 @@ public class LicenseInfoExt extends LicenseInfo implements CoordinatorSerializab
     public void setLastRegistrationEventDate(String lastRegistrationEventDate) {
         this._lastRegistrationEventDate = lastRegistrationEventDate;
     }
-    
+
     public String getLastCapacityExceededEventDate() {
         return _lastCapacityExceededEventDate;
     }

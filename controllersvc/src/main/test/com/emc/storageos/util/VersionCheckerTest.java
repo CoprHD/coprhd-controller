@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.util;
@@ -55,18 +45,20 @@ public class VersionCheckerTest {
         EasyMock.replay(coordinator);
         new VersionChecker().setCoordinator(coordinator);
     }
-    
+
     private void exceptionHelper(DiscoveredDataObject.Type systemType, String version) {
         String minimumSupportedVersion = VersionChecker.getMinimumSupportedVersion(systemType);
         if (VersionChecker.verifyVersionDetails(minimumSupportedVersion, version) >= 0) {
-            Assert.fail("This should have failed but did not. Min version supported: " + minimumSupportedVersion + "; Version checked: " + version);
+            Assert.fail("This should have failed but did not. Min version supported: " + minimumSupportedVersion + "; Version checked: "
+                    + version);
         }
     }
-    
+
     private void noExceptionHelper(DiscoveredDataObject.Type systemType, String version) {
         String minimumSupportedVersion = VersionChecker.getMinimumSupportedVersion(systemType);
         if (VersionChecker.verifyVersionDetails(minimumSupportedVersion, version) < 0) {
-            Assert.fail("This should have passed but did not. Min version supported: " + minimumSupportedVersion + "; Version checked: " + version);            
+            Assert.fail("This should have passed but did not. Min version supported: " + minimumSupportedVersion + "; Version checked: "
+                    + version);
         }
     }
 
@@ -75,7 +67,8 @@ public class VersionCheckerTest {
                 .getPropertyValueFromCoordinator(new VersionChecker().getCoordinator(),
                         minimumSupportedVersionKey);
         if (VersionChecker.verifyVersionDetails(minimumSupportedVersion, version) >= 0) {
-            Assert.fail("This should have failed but did not. Min version supported: " + minimumSupportedVersion + "; Version checked: " + version);
+            Assert.fail("This should have failed but did not. Min version supported: " + minimumSupportedVersion + "; Version checked: "
+                    + version);
         }
     }
 
@@ -84,8 +77,9 @@ public class VersionCheckerTest {
                 .getPropertyValueFromCoordinator(new VersionChecker().getCoordinator(),
                         minimumSupportedVersionKey);
         if (VersionChecker.verifyVersionDetails(minimumSupportedVersion, version) < 0) {
-            Assert.fail("This should have passed but did not. Min version supported: " + minimumSupportedVersion + "; Version checked: " + version);            
-        } 
+            Assert.fail("This should have passed but did not. Min version supported: " + minimumSupportedVersion + "; Version checked: "
+                    + version);
+        }
     }
 
     @Test
@@ -139,7 +133,7 @@ public class VersionCheckerTest {
         exceptionHelper(DiscoveredDataObject.Type.mds, "5.0");
         exceptionHelper(DiscoveredDataObject.Type.mds, "4.9(5b)");
     }
-    
+
     @Test
     public void testRp() throws Exception {
         noExceptionHelper(DiscoveredDataObject.Type.rp, "4.1");
@@ -147,7 +141,7 @@ public class VersionCheckerTest {
         noExceptionHelper(DiscoveredDataObject.Type.rp, "4.1.1");
         noExceptionHelper(DiscoveredDataObject.Type.rp, "5.0");
         exceptionHelper(DiscoveredDataObject.Type.rp, "3.6");
-        exceptionHelper(DiscoveredDataObject.Type.rp, "3.7.P2(n.128)");        
+        exceptionHelper(DiscoveredDataObject.Type.rp, "3.7.P2(n.128)");
         exceptionHelper(DiscoveredDataObject.Type.rp, "3.5.P1");
         exceptionHelper(DiscoveredDataObject.Type.rp, "3.4.SP2(p.74)");
         exceptionHelper(DiscoveredDataObject.Type.rp, "3.0");
@@ -211,7 +205,7 @@ public class VersionCheckerTest {
         exceptionHelper("controller_smis_provider_version", "4.6.1.0");
         exceptionHelper("controller_smis_provider_version", "4.6.0.2");
     }
-    
+
     @Test
     public void testWindowsHost() throws Exception {
         noExceptionHelper("compute_windows_version", "6.0.6002");
@@ -219,18 +213,18 @@ public class VersionCheckerTest {
         exceptionHelper("compute_windows_version", "6.0.6001");
         exceptionHelper("compute_windows_version", "6.0.7");
     }
-    
+
     @Test
     public void testSuseLinuxHost() throws Exception {
-    	noExceptionHelper("compute_suse_linux_version", "11");
+        noExceptionHelper("compute_suse_linux_version", "11");
         noExceptionHelper("compute_suse_linux_version", "12");
         exceptionHelper("compute_suse_linux_version", "10");
         exceptionHelper("compute_suse_linux_version", "10.9");
     }
-    
+
     @Test
     public void testRedhatLinuxHost() throws Exception {
-    	noExceptionHelper("compute_redhat_linux_version", "5.9");
+        noExceptionHelper("compute_redhat_linux_version", "5.9");
         noExceptionHelper("compute_redhat_linux_version", "6");
         exceptionHelper("compute_redhat_linux_version", "5");
         exceptionHelper("compute_redhat_linux_version", "4.9");

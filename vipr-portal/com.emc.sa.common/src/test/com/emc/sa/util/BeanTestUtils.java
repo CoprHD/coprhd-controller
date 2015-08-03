@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.util;
@@ -89,8 +89,7 @@ public class BeanTestUtils {
                     }
                 }
             }
-        }
-        catch (IntrospectionException e) {
+        } catch (IntrospectionException e) {
             throw new RuntimeException(e);
         }
     }
@@ -107,14 +106,11 @@ public class BeanTestUtils {
             PropertyUtils.setProperty(bean, property, value);
             Object newValue = PropertyUtils.getProperty(bean, property);
             Assert.assertEquals("get/set property " + property, value, newValue);
-        }
-        catch (IllegalAccessException e) {
+        } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
-        }
-        catch (InvocationTargetException e) {
+        } catch (InvocationTargetException e) {
             throw new RuntimeException(e);
-        }
-        catch (NoSuchMethodException e) {
+        } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.scaleio.api;
@@ -15,11 +15,11 @@ import java.util.Set;
 public class ScaleIOSnapshotMultiVolumeCommand extends AbstractScaleIOQueryCommand<ScaleIOSnapshotMultiVolumeResult> {
 
     /*
-    Snapshots on 3 volumes created successfully.
-    Consistency group ID: 5a05c11200000003
-        Source volume with ID e9e516b400000001 => e9e516bd00000004
-        Source volume with ID e9e516b500000002 => e9e516be00000005
-        Source volume with ID e9e516b600000003 => e9e516bf00000006
+     * Snapshots on 3 volumes created successfully.
+     * Consistency group ID: 5a05c11200000003
+     * Source volume with ID e9e516b400000001 => e9e516bd00000004
+     * Source volume with ID e9e516b500000002 => e9e516be00000005
+     * Source volume with ID e9e516b600000003 => e9e516bf00000006
      */
 
     private static final String SNAPSHOT_VOLUME_SUCCESS = "SnapshotVolumeSuccess";
@@ -64,7 +64,7 @@ public class ScaleIOSnapshotMultiVolumeCommand extends AbstractScaleIOQueryComma
 
     @Override
     ParsePattern[] getOutputPatternSpecification() {
-        return PARSING_CONFIG.clone(); //No need to check not null condition here
+        return PARSING_CONFIG.clone(); // No need to check not null condition here
     }
 
     @Override

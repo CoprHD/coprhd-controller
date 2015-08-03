@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.compute.tasks;
@@ -18,14 +18,14 @@ public class InstallOs extends ViPRExecutionTask<Task<HostRestRep>> {
     public InstallOs(HostRestRep host, OsInstallParam param) {
         this.host = host;
         this.param = param;
-        encryptedPassword = param.getRootPassword();        
+        encryptedPassword = param.getRootPassword();
         provideDetailArgs(host.getHostName());
     }
 
     @Override
     public Task<HostRestRep> executeTask() throws Exception {
-    	decryptedPassword = decrypt(encryptedPassword);
-    	param.setRootPassword(decryptedPassword);
+        decryptedPassword = decrypt(encryptedPassword);
+        param.setRootPassword(decryptedPassword);
         Task<HostRestRep> task = getClient().hosts().osInstall(host.getId(), param);
         addOrderIdTag(task.getTaskResource().getId());
         return task;

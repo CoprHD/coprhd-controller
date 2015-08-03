@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.host.vcenter;
@@ -21,9 +21,10 @@ public abstract class VcenterParam {
     private String password;
     private Boolean useSsl;
     private String osVersion;
-    
-    public VcenterParam() {}
-    
+
+    public VcenterParam() {
+    }
+
     public VcenterParam(String name, Integer portNumber, String userName,
             String password, Boolean useSsl, String osVersion) {
         this.name = name;
@@ -34,8 +35,9 @@ public abstract class VcenterParam {
         this.osVersion = osVersion;
     }
 
-    /** 
-     * The user label for this vCenter 
+    /**
+     * The user label for this vCenter
+     * 
      * @valid none
      */
     @XmlElement()
@@ -46,13 +48,14 @@ public abstract class VcenterParam {
     public void setName(String name) {
         this.name = name;
     }
-    
-    /** 
-     * The integer port number of the vCenter management interface. 
+
+    /**
+     * The integer port number of the vCenter management interface.
+     * 
      * @Range (min=1, max= 65535)
      */
     @XmlElement(name = "port_number")
-    @Range(min=1,max=65535)
+    @Range(min = 1, max = 65535)
     @JsonProperty("port_number")
     public Integer getPortNumber() {
         return portNumber;
@@ -62,8 +65,9 @@ public abstract class VcenterParam {
         this.portNumber = portNumber;
     }
 
-    /** 
-     * The user credential used to login to the vCenter. 
+    /**
+     * The user credential used to login to the vCenter.
+     * 
      * @valid none
      */
     @XmlElement(name = "user_name")
@@ -76,8 +80,9 @@ public abstract class VcenterParam {
         this.userName = userName;
     }
 
-    /** 
-     * The password credential used to login to the vCenter. 
+    /**
+     * The password credential used to login to the vCenter.
+     * 
      * @valid none
      */
     @XmlElement()
@@ -89,8 +94,9 @@ public abstract class VcenterParam {
         this.password = password;
     }
 
-    /** 
-     * A flag indicating whether SSL should be used to communicate with the vCenter. 
+    /**
+     * A flag indicating whether SSL should be used to communicate with the vCenter.
+     * 
      * @valid true = use SSL
      * @valid false = do not use SSL
      */
@@ -104,8 +110,9 @@ public abstract class VcenterParam {
         this.useSsl = useSsl;
     }
 
-    /** 
-     * The operating system version of the vCenter. 
+    /**
+     * The operating system version of the vCenter.
+     * 
      * @valid none
      */
     @XmlElement(name = "os_version")

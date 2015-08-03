@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.search;
 
@@ -37,14 +27,15 @@ public class SearchResultResourceRep extends RelatedResourceRep {
 
     /**
      * The name or tag of the resource matching the search parameters
+     * 
      * @valid none
      */
     @XmlElement(name = "match")
     public String getMatch() {
         return match;
     }
+
     public void setMatch(String match) {
         this.match = match;
     }
 }
-

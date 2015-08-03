@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -101,9 +101,9 @@ public class CustomConfigs extends AbstractBulkResources<CustomConfigRestRep> {
     public void deactivateCustomConfig(URI id) {
         doDeactivate(id);
     }
-//
-//    protected List<NamedRelatedResourceRep> getList(String path, Object... args) {
-//        CustomConfigList response = client.get(CustomConfigList.class, path, args);
-//        return defaultList(response.getCustomConfigs());
-//    }
+    //
+    // protected List<NamedRelatedResourceRep> getList(String path, Object... args) {
+    // CustomConfigList response = client.get(CustomConfigList.class, path, args);
+    // return defaultList(response.getCustomConfigs());
+    // }
 }

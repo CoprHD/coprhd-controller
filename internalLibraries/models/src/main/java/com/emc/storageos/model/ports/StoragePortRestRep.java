@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.model.ports;
@@ -22,7 +12,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.varray.VirtualArrayResourceRestRep;
-
 
 @XmlRootElement(name = "storage_port")
 @XmlAccessorType(XmlAccessType.PROPERTY)
@@ -53,26 +42,26 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     private String discoveryStatus;
     private String adapterName;
 
-    public StoragePortRestRep() {}
-    
-    
+    public StoragePortRestRep() {
+    }
+
     /**
      * The adapter name of the Storage Port
+     * 
      * @return
      */
     @XmlElement(name = "adapter_name")
     public String getAdapterName() {
-		return adapterName;
-	}
+        return adapterName;
+    }
 
-	public void setAdapterName(String adapterName) {
-		this.adapterName = adapterName;
-	}
+    public void setAdapterName(String adapterName) {
+        this.adapterName = adapterName;
+    }
 
-    
     /**
      * The average bandwidth through the port (Gbps)
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "avg_band_width")
@@ -86,7 +75,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * The port's IP address (for IP-based transport)
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "ip_address")
@@ -101,7 +90,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     /**
      * ID of the endpoint with which this port is associated.
      * 
-     * @valid none    
+     * @valid none
      */
     @XmlElement(name = "port_endpoint_id")
     public String getPortEndPointId() {
@@ -113,12 +102,13 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     }
 
     /**
-     * The name of  this  port's group. A port  group is a  mapping
-     * that is configured on a storage system  between a collection
-     * of ports, a collection of volumes and a collection of  hosts
+     * The name of this port's group. A port group is a mapping
+     * that is configured on a storage system between a collection
+     * of ports, a collection of volumes and a collection of hosts
      * that use those volumes. This name is what the storage system
      * uses to identify the port group.
-     *mapped known by Vipr to this port
+     * mapped known by Vipr to this port
+     * 
      * @valid none
      */
     @XmlElement(name = "port_group")
@@ -130,13 +120,12 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
         this.portGroup = portGroup;
     }
 
-
     /**
      * The native name of the port. This name consists of identifiers that
      * are used by the hosting storage system. It may also follow a naming
      * convention that is in common use for that make and model of storage
      * system.
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "port_name")
@@ -147,10 +136,10 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     public void setPortName(String portName) {
         this.portName = portName;
     }
-    
+
     /**
      * The alias represents port's wwn id
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "port_alias")
@@ -160,14 +149,14 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
 
     public void setPortAlias(String portAlias) {
         this.portAlias = portAlias;
-    }    
+    }
 
     /**
      * The network address of the port. When Fibre-Channel (FC) is the
      * transport protocol, the address is a World Wide Name (WWN).
      * If the port is using an IP-based protocol, this is an IP address,
      * or name of the port that a storage system uses to identify the port.
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "port_network_id")
@@ -195,8 +184,8 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * How the port connects its storage controller to its network
-     *
-     * @valid backend  = connects a VPLEX storage controller to another array
+     * 
+     * @valid backend = connects a VPLEX storage controller to another array
      * @valid frontend = connects the storage controller to the hosts
      */
     @XmlElement(name = "port_type")
@@ -210,7 +199,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * The number of exports on the storage port
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "static_load")
@@ -224,7 +213,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * The storage system that hosts this port
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "storage_system")
@@ -238,7 +227,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * The port's TCP port number (for IP-based transport)
-     *
+     * 
      * @valid 1-65535
      */
     @XmlElement(name = "tcp_port_number")
@@ -253,10 +242,10 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     /**
      * The protocol that this port uses to transport disk commands
      * and responses across its network
-     *
+     * 
      * @valid FC = Fibre-Channel
      * @valid IP
-     *
+     * 
      */
     @XmlElement(name = "transport_type")
     public String getTransportType() {
@@ -269,7 +258,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * The ViPR network that connects to this port
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "network")
@@ -285,7 +274,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
      * Whether or not this port is registered with ViPR. A
      * port must be registered before it can be managed by
      * ViPR.
-     *
+     * 
      * @valid REGISTERED
      * @valid UNREGISTERED
      */
@@ -298,10 +287,9 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
         this.registrationStatus = registrationStatus;
     }
 
-
     /**
      * The operational status of the port
-     *
+     * 
      * @valid OK
      * @valid NOT_OK
      * @valid UNKNOWN
@@ -314,7 +302,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     public void setOperationalStatus(String operationalStatus) {
         this.operationalStatus = operationalStatus;
     }
-    
+
     /**
      * Whether or not this storage port is compatible with ViPR
      * 
@@ -330,7 +318,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     public void setCompatibilityStatus(String compatibilityStatus) {
         this.compatibilityStatus = compatibilityStatus;
     }
-    
+
     /**
      * The metric for the Storage Port Allocator.
      * Lower metric numbers are preferred over higher metric numbers for allocation.
@@ -345,7 +333,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     }
 
     /**
-     * The port percent busy as computed by the kbytes transferred per a given 
+     * The port percent busy as computed by the kbytes transferred per a given
      * unit of time versus the maximum number of kbytes that could be transferred
      * as computed from the port speed.
      */
@@ -366,7 +354,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     public Double getCpuPercentBusy() {
         return cpuPercentBusy;
     }
-   
+
     public void setCpuPercentBusy(Double cpuPercentBusy) {
         this.cpuPercentBusy = cpuPercentBusy;
     }
@@ -410,6 +398,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * Whether or not this storage pool is visible in discovery
+     * 
      * @valid VISIBLE
      * @valid NOTVISIBLE
      */
@@ -421,6 +410,5 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     public void setDiscoveryStatus(String discoveryStatus) {
         this.discoveryStatus = discoveryStatus;
     }
-    
-    
+
 }

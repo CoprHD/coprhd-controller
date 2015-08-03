@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.utility.ssh;
@@ -97,8 +97,7 @@ public class CharStreamConsumer {
             current.interrupt();
             try {
                 current.join();
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 // Ignore
             }
         }
@@ -120,9 +119,8 @@ public class CharStreamConsumer {
                     break;
                 }
             }
-        }
-        catch (IOException e) {
-        	logger.error(e.getMessage(), e);
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
         }
         trace("Finished");
     }

@@ -1,51 +1,26 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.coordinator.client.service;
 
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueImpl;
 import com.emc.storageos.coordinator.client.service.DistributedQueueItemProcessedCallback;
-import com.emc.storageos.coordinator.common.impl.ZkConnection;
-import com.emc.storageos.coordinator.service.impl.CoordinatorImpl;
-import com.emc.storageos.coordinator.service.impl.SpringQuorumPeerConfig;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.api.BackgroundCallback;
-import org.apache.curator.framework.api.CuratorEvent;
 import org.apache.curator.framework.recipes.queue.QueueSerializer;
-import org.apache.curator.framework.state.ConnectionState;
-import org.apache.curator.utils.EnsurePath;
 import org.junit.Assert;
-import org.apache.zookeeper.CreateMode;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import java.lang.Math;
 
@@ -78,7 +53,6 @@ public class DistributedQueueTest extends CoordinatorTestBase {
         }
     }
 
-
     /**
      * Integer serializer
      */
@@ -94,26 +68,9 @@ public class DistributedQueueTest extends CoordinatorTestBase {
         }
     }
 
-
-    /**
-     * Deletes given directory
-     *
-     * @param dir
-     */
-    public static void cleanDirectory(File dir) {
-        for (File file : dir.listFiles()) {
-            if (file.isDirectory()) {
-                cleanDirectory(file);
-            } else {
-                file.delete();
-            }
-        }
-        dir.delete();
-    }
-   
     /**
      * Tests multiple consumer / producers
-     *
+     * 
      * @throws Exception
      */
     @Test
@@ -127,7 +84,7 @@ public class DistributedQueueTest extends CoordinatorTestBase {
         boolean testlocal = true;
         CoordinatorClientImpl client = null;
         if (testlocal) {
-            client = (CoordinatorClientImpl)connectClient();
+            client = (CoordinatorClientImpl) connectClient();
         } else {
             List<URI> server = new ArrayList<URI>();
             server.add(URI.create("coordinator://10.247.101.174:2181"));
@@ -135,7 +92,7 @@ public class DistributedQueueTest extends CoordinatorTestBase {
             server.add(URI.create("coordinator://10.247.101.176:2181"));
             server.add(URI.create("coordinator://10.247.101.177:2181"));
             server.add(URI.create("coordinator://10.247.101.178:2181"));
-            client = (CoordinatorClientImpl)connectClient(server);
+            client = (CoordinatorClientImpl) connectClient(server);
         }
 
         CountDownLatch latch = new CountDownLatch(eachCount * pushThreadCount);
@@ -152,7 +109,7 @@ public class DistributedQueueTest extends CoordinatorTestBase {
         }
         Assert.assertTrue(latch.await(600, TimeUnit.SECONDS));
         _logger.info("basicTest end");
-        // todo fix me:  wait for async deletes to finish.
+        // todo fix me: wait for async deletes to finish.
         Thread.sleep(1000 * 60);
     }
 
@@ -181,7 +138,7 @@ public class DistributedQueueTest extends CoordinatorTestBase {
 
     /**
      * Starts a thread that will put integers [start, end)
-     *
+     * 
      * @param queue destination queue
      * @param start starting value inclusive
      * @param end end value exclusive
@@ -216,7 +173,6 @@ public class DistributedQueueTest extends CoordinatorTestBase {
             return consumedCount.get();
         }
 
-
         @Override
         public void consumeItem(Integer item, DistributedQueueItemProcessedCallback cb) throws Exception {
             int timeCost = 2;
@@ -228,7 +184,7 @@ public class DistributedQueueTest extends CoordinatorTestBase {
 
     /**
      * Tests load balance of distributed queue
-     *
+     * 
      * @throws Exception
      */
     @Test
@@ -238,12 +194,12 @@ public class DistributedQueueTest extends CoordinatorTestBase {
         int threadsPerClient = 2;
         int consumerNumber = clientNumber * threadsPerClient;
 
-        // create distributed queue and all consumers 
-        for (int i=0; i < clientNumber-1; i++) {
+        // create distributed queue and all consumers
+        for (int i = 0; i < clientNumber - 1; i++) {
             spawnStatisticConsumer(i, threadsPerClient);
         }
-        DistributedQueue<Integer> queue = createStatisticDistQueue(clientNumber-1, threadsPerClient);
-        Assert.assertTrue(queue!=null);
+        DistributedQueue<Integer> queue = createStatisticDistQueue(clientNumber - 1, threadsPerClient);
+        Assert.assertTrue(queue != null);
 
         _logger.info("start to produce items ");
         int itemNumber = 100;
@@ -252,17 +208,17 @@ public class DistributedQueueTest extends CoordinatorTestBase {
 
         // wait enough time for all items to be consumed.
         // each item needs <timeCost> to be processed.
-        int avgConsumed = itemNumber/clientNumber;
-        Thread.sleep(1000 * (avgConsumed*timeCost + 10));
+        int avgConsumed = itemNumber / clientNumber;
+        Thread.sleep(1000 * (avgConsumed * timeCost + 10));
 
-        for (int i= 0; i < clientNumber; i++) {
-            DistributedQueueImpl<Integer> queueimpl = (DistributedQueueImpl<Integer>)statisticDistQueueList.get(i);
-            ItemStatisticConsumer consumerImpl = (ItemStatisticConsumer)queueimpl.getConsumer();
+        for (int i = 0; i < clientNumber; i++) {
+            DistributedQueueImpl<Integer> queueimpl = (DistributedQueueImpl<Integer>) statisticDistQueueList.get(i);
+            ItemStatisticConsumer consumerImpl = (ItemStatisticConsumer) queueimpl.getConsumer();
             int count = consumerImpl.getItemConsumed();
 
-            _logger.info("Client " +i+ " finally consumed " + count + " items.");
+            _logger.info("Client " + i + " finally consumed " + count + " items.");
             // Each client should consume items not far away from average items count.
-            Assert.assertTrue(Math.abs(count-avgConsumed)*100/avgConsumed <= 20);
+            Assert.assertTrue(Math.abs(count - avgConsumed) * 100 / avgConsumed <= 20);
         }
     }
 
@@ -278,9 +234,8 @@ public class DistributedQueueTest extends CoordinatorTestBase {
                     DistributedQueue<Integer> queue = createStatisticDistQueue(serial, threadsNumber);
 
                     Thread.sleep(1000 * 60 * 10);
-                } catch(Exception e) {
+                } catch (Exception e) {
                     _logger.error("Failed to start client to monitor queue.", e);
-                } finally {
                 }
             }
         }).start();
@@ -288,13 +243,13 @@ public class DistributedQueueTest extends CoordinatorTestBase {
 
     /**
      * Create a distributed queue for statistic purpose
-     *
+     * 
      * @throws Exception
      */
     public DistributedQueue<Integer> createStatisticDistQueue(final int serial, final int threadsNumber) {
         try {
             CoordinatorClientImpl client = null;
-            client = (CoordinatorClientImpl)connectClient();
+            client = (CoordinatorClientImpl) connectClient();
 
             ItemStatisticConsumer consumer = new ItemStatisticConsumer();
             consumer.setSerial(serial);
@@ -303,7 +258,7 @@ public class DistributedQueueTest extends CoordinatorTestBase {
             DistributedQueue<Integer> queue = client.getQueue(QUEUE_NAME_4, consumer, serializer, threadsNumber);
             statisticDistQueueList.add(queue);
             return queue;
-        } catch(Exception e) {
+        } catch (Exception e) {
             _logger.error("Failed to create statistic distribution queue.", e);
             return null;
         }

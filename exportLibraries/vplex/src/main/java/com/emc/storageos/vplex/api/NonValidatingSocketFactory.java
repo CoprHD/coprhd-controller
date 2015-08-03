@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.vplex.api;
@@ -32,12 +22,11 @@ import org.apache.commons.httpclient.ConnectTimeoutException;
 import org.apache.commons.httpclient.params.HttpConnectionParams;
 import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 
-
 /**
  * Non validating socket factory for use with Isilon REST client
  */
 class NonValidatingSocketFactory implements ProtocolSocketFactory {
-    
+
     private SSLContext _sslContext;
 
     /**
@@ -63,7 +52,7 @@ class NonValidatingSocketFactory implements ProtocolSocketFactory {
     public NonValidatingSocketFactory() {
         try {
             _sslContext = SSLContext.getInstance("SSL");
-            _sslContext.init(null, new TrustManager[]{ new NonValidatingTrustManager() }, null);
+            _sslContext.init(null, new TrustManager[] { new NonValidatingTrustManager() }, null);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }

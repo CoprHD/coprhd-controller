@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -153,14 +143,14 @@ import com.sun.jersey.api.NotFoundException;
 /**
  * A service that provides APIs for viewing, updating and removing hosts and their
  * interfaces by authorized users.
- *
+ * 
  */
-@DefaultPermissions( read_roles = {Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN}, 
-                     write_roles = {Role.TENANT_ADMIN},
-                     read_acls = {ACL.ANY})
+@DefaultPermissions(read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
+        write_roles = { Role.TENANT_ADMIN },
+        read_acls = { ACL.ANY })
 @Path("/compute/hosts")
 public class HostService extends TaskResourceService {
-    
+
     // Logger
     protected final static Logger _log = LoggerFactory.getLogger(HostService.class);
 
@@ -183,7 +173,7 @@ public class HostService extends TaskResourceService {
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
     }
-    
+
     private static class DiscoverJobExec implements AsyncTaskExecutorIntf {
 
         private final ComputeSystemController _controller;
@@ -199,66 +189,68 @@ public class HostService extends TaskResourceService {
 
         @Override
         public ResourceOperationTypeEnum getOperation() {
-            return  ResourceOperationTypeEnum.DISCOVER_HOST;
+            return ResourceOperationTypeEnum.DISCOVER_HOST;
         }
     }
 
     /**
      * Gets the information for one host.
+     * 
      * @param id the URN of a ViPR Host
      * @brief Show Host
      * @return All the non-null attributes of the host.
-     * @throws DatabaseException when a DB error occurs.     
+     * @throws DatabaseException when a DB error occurs.
      */
     @GET
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public HostRestRep getHost(@PathParam("id") URI id) throws DatabaseException {
-    	Host host = queryObject(Host.class, id, false);
-    	// check the user permissions
-    	verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
+        Host host = queryObject(Host.class, id, false);
+        // check the user permissions
+        verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
         return map(host);
     }
 
     /**
      * Lists the id and name for all the hosts that belong to the given tenant organization.
+     * 
      * @param tid the URN of a ViPR tenant organization
      * @prereq none
      * @brief List hosts
      * @return a list of hosts that belong to the tenant organization.
      * @throws DatabaseException when a DB error occurs
      */
-	@GET
-	@Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-	public HostList listHosts(@QueryParam("tenant") final URI tid) throws DatabaseException {
-		URI tenantId;
-		StorageOSUser user = getUserFromContext();
-		if (tid == null || StringUtils.isBlank(tid.toString())) {
-			tenantId = URI.create(user.getTenantId());
-		} else {
-			tenantId = tid;
-		}
-		// this call validates the tenant id
-		TenantOrg tenant = _permissionsHelper.getObjectById(tenantId, TenantOrg.class);
-		ArgValidator.checkEntity(tenant, tenantId, isIdEmbeddedInURL(tenantId), true);
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public HostList listHosts(@QueryParam("tenant") final URI tid) throws DatabaseException {
+        URI tenantId;
+        StorageOSUser user = getUserFromContext();
+        if (tid == null || StringUtils.isBlank(tid.toString())) {
+            tenantId = URI.create(user.getTenantId());
+        } else {
+            tenantId = tid;
+        }
+        // this call validates the tenant id
+        TenantOrg tenant = _permissionsHelper.getObjectById(tenantId, TenantOrg.class);
+        ArgValidator.checkEntity(tenant, tenantId, isIdEmbeddedInURL(tenantId), true);
 
-		// check the user permissions for this tenant org
-		verifyAuthorizedInTenantOrg(tenantId, user);
-		// get all host children
-		HostList list = new HostList();
-		list.setHosts(map(ResourceTypeEnum.HOST, listChildren(tenantId, Host.class, "label", "tenant")));
-		return list;
-	}
+        // check the user permissions for this tenant org
+        verifyAuthorizedInTenantOrg(tenantId, user);
+        // get all host children
+        HostList list = new HostList();
+        list.setHosts(map(ResourceTypeEnum.HOST, listChildren(tenantId, Host.class, "label", "tenant")));
+        return list;
+    }
 
     /**
      * Updates one or more of the host attributes. Discovery is initiated
      * after the host is updated.
-     *
+     * 
      * @param id the URN of a ViPR Host
      * @param updateParam the parameter that has the attributes to be
-     * updated.
+     *            updated.
      * @brief Update Host Attributes
-     * @return the host discovery async task representation.     
+     * @return the host discovery async task representation.
      */
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -272,8 +264,8 @@ public class HostService extends TaskResourceService {
         Host host = queryObject(Host.class, id, true);
         validateHostData(updateParam, host.getTenant(), host, validateConnection);
         boolean hasPendingTasks = hostHasPendingTasks(id);
-        if (hasPendingTasks){
-        	throw APIException.badRequests.cannotUpdateHost("another operation is in progress for this host"); 
+        if (hasPendingTasks) {
+            throw APIException.badRequests.cannotUpdateHost("another operation is in progress for this host");
         }
         URI oldClusterURI = host.getCluster();
         populateHostData(host, updateParam);
@@ -285,21 +277,21 @@ public class HostService extends TaskResourceService {
 
         // We only want to update the export group if we're changing the cluster during a host update
         if (updateParam.getCluster() != null) {
-            if (!NullColumnValueGetter.isNullURI(oldClusterURI) 
-            		&& NullColumnValueGetter.isNullURI(host.getCluster())
-            		&& ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
-            	// Remove host from shared export
-            	controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, taskId);
+            if (!NullColumnValueGetter.isNullURI(oldClusterURI)
+                    && NullColumnValueGetter.isNullURI(host.getCluster())
+                    && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
+                // Remove host from shared export
+                controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, taskId);
             } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
                     && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
                 // Non-clustered host being added to a cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
-            } else if (!NullColumnValueGetter.isNullURI(oldClusterURI) 
+            } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
                     && !oldClusterURI.equals(host.getCluster())
-                    && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI) 
-                            || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
+                    && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
+                    || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
                 // Clustered host being moved to another cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
             } else {
@@ -311,7 +303,7 @@ public class HostService extends TaskResourceService {
          * by setting the boot volume id on the Host. A volume is truly a boot
          * volume, iff it's exported to the Host with HLU 0. Hence an update to
          * the Host to set the boot volume should only really be made *after*
-         * the volume has been exported to the Host. 
+         * the volume has been exported to the Host.
          * TODO Consider making the
          * above requirement a hard one, by validating that such an export in
          * fact exists. For the time being following piece of code suffices
@@ -325,32 +317,34 @@ public class HostService extends TaskResourceService {
         _dbClient.updateAndReindexObject(host);
         auditOp(OperationTypeEnum.UPDATE_HOST, true, null,
                 host.auditParameters());
-        
+
         return doDiscoverHost(host);
     }
-    
+
     /**
      * Discovers (refreshes) a host. This is an asynchronous call.
+     * 
      * @param id The URI of the host.
      * @prereq none
      * @brief Discover host
      * @return TaskResourceRep (asynchronous call)
      */
     @POST
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/discover")
-    @CheckPermission(roles = {Role.TENANT_ADMIN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep discoverHost(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, Host.class, "id");
         Host host = queryObject(Host.class, id, true);
 
         return doDiscoverHost(host);
     }
-    
+
     /**
      * Host Discovery
+     * 
      * @param the Host to be discovered.
-     * provided, a new taskId is generated.
+     *            provided, a new taskId is generated.
      * @return the task used to track the discovery job
      */
     protected TaskResourceRep doDiscoverHost(Host host) {
@@ -362,10 +356,10 @@ public class HostService extends TaskResourceService {
         if ((host.getDiscoverable() == null || host.getDiscoverable())) {
             ComputeSystemController controller = getController(ComputeSystemController.class, "host");
             DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(
-            		_dbClient, new DiscoverJobExec(controller));
+                    _dbClient, new DiscoverJobExec(controller));
             ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
             tasks.add(new AsyncTask(Host.class, host.getId(), taskId));
-    
+
             TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
             return taskList.getTaskList().iterator().next();
         } else {
@@ -380,26 +374,27 @@ public class HostService extends TaskResourceService {
 
     /**
      * Validates the create/update host input data
+     * 
      * @param hostParam the input parameter
      * @param host the host being updated in case of update operation.
-     * This parameter must be null for create operations.n
+     *            This parameter must be null for create operations.n
      */
     protected void validateHostData(HostParam hostParam, URI tenanUri, Host host, Boolean validateConnection) {
         Cluster cluster = null;
         VcenterDataCenter dataCenter = null;
         Project project = null;
         Volume volume = null;
-        
+
         // validate the host type
         if (hostParam.getType() != null) {
             ArgValidator.checkFieldValueFromEnum(hostParam.getType(), "Type", Host.HostType.class);
         }
-        
+
         // validate the project is present, active, and in the same tenant org
         if (!NullColumnValueGetter.isNullURI(hostParam.getProject())) {
             project = queryObject(Project.class, hostParam.getProject(), true);
             if (!project.getTenantOrg().getURI().equals(tenanUri)) {
-                throw APIException.badRequests.resourcedoesNotBelongToHostTenantOrg("project");            
+                throw APIException.badRequests.resourcedoesNotBelongToHostTenantOrg("project");
             }
         }
         if (!NullColumnValueGetter.isNullURI(hostParam.getBootVolume())) {
@@ -414,27 +409,27 @@ public class HostService extends TaskResourceService {
                     true);
             if (!cluster.getTenant().equals(tenanUri)) {
                 throw APIException.badRequests.resourcedoesNotBelongToHostTenantOrg("cluster");
-            }         
+            }
         }
-        // validate the data center  is present, active, and in the same tenant org
+        // validate the data center is present, active, and in the same tenant org
         if (!NullColumnValueGetter.isNullURI(hostParam.getVcenterDataCenter())) {
             dataCenter = queryObject(VcenterDataCenter.class, hostParam.getVcenterDataCenter(),
                     true);
             if (!dataCenter.getTenant().equals(tenanUri)) {
                 throw APIException.badRequests.resourcedoesNotBelongToHostTenantOrg("data center");
-            }          
+            }
         }
         if (cluster != null) {
             if (dataCenter != null) {
-                //check the cluster and data center are consistent
-				if(!dataCenter.getId().equals(cluster.getVcenterDataCenter())) {
-					throw APIException.badRequests.invalidParameterClusterNotInDataCenter(cluster.getLabel(),dataCenter.getLabel());
-				}
+                // check the cluster and data center are consistent
+                if (!dataCenter.getId().equals(cluster.getVcenterDataCenter())) {
+                    throw APIException.badRequests.invalidParameterClusterNotInDataCenter(cluster.getLabel(), dataCenter.getLabel());
+                }
             } else if (project != null) {
-                //check the cluster and data center are consistent
-				if(!project.getId().equals(cluster.getProject())) {
-					throw APIException.badRequests.invalidParameterClusterNotInHostProject(cluster.getLabel());
-				}
+                // check the cluster and data center are consistent
+                if (!project.getId().equals(cluster.getProject())) {
+                    throw APIException.badRequests.invalidParameterClusterNotInHostProject(cluster.getLabel());
+                }
             }
         }
         // check the host name is not a duplicate
@@ -448,7 +443,7 @@ public class HostService extends TaskResourceService {
             checkDuplicateLabel(Host.class, hostParam.getName(), "host");
         }
         // If the host project is being changed, check for active exports
-        if (host !=null && !areEqual(host.getProject(), hostParam.getProject())) {
+        if (host != null && !areEqual(host.getProject(), hostParam.getProject())) {
             if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())) {
                 throw APIException.badRequests.hostProjectChangeNotAllowed(host.getHostName());
             }
@@ -456,57 +451,58 @@ public class HostService extends TaskResourceService {
 
         // Find out if the host should be discoverable by checking input and current values
         Boolean discoverable = hostParam.getDiscoverable() == null ?
-            (host == null ? Boolean.FALSE : host.getDiscoverable()) :
-            hostParam.getDiscoverable();
+                (host == null ? Boolean.FALSE : host.getDiscoverable()) :
+                hostParam.getDiscoverable();
 
         // If discoverable, ensure username and password are set in the current host or parameters
         if (discoverable != null && discoverable) {
             String username = hostParam.getUserName() == null ?
-                (host == null ? null : host.getUsername()) :
-                hostParam.getUserName();
+                    (host == null ? null : host.getUsername()) :
+                    hostParam.getUserName();
             String password = hostParam.getPassword() == null ?
-                (host == null ? null : host.getPassword()) :
-                hostParam.getPassword();
+                    (host == null ? null : host.getPassword()) :
+                    hostParam.getPassword();
             ArgValidator.checkFieldNotNull(username, "username");
             ArgValidator.checkFieldNotNull(password, "password");
-            
-            Host.HostType hostType = Host.HostType.valueOf(hostParam.getType() == null ? 
+
+            Host.HostType hostType = Host.HostType.valueOf(hostParam.getType() == null ?
                     (host == null ? null : host.getType()) :
-                        hostParam.getType());
-            
+                    hostParam.getType());
+
             if (hostType != null && hostType == Host.HostType.Windows) {
                 Integer portNumber = hostParam.getPortNumber() == null ?
                         (host == null ? null : host.getPortNumber()) :
                         hostParam.getPortNumber();
-                        
+
                 ArgValidator.checkFieldNotNull(portNumber, "port_number");
             }
         }
-        
+
         if (validateConnection != null && validateConnection == true) {
             if (!HostConnectionValidator.isHostConnectionValid(hostParam, host)) {
                 throw APIException.badRequests.invalidHostConnection();
             }
         }
-    } 
+    }
 
     /**
      * Deactivates the host and all its interfaces.
+     * 
      * @param id the URN of a ViPR Host to be deactivated
      * @param detachStorage
-     *        if true, will first detach storage.
+     *            if true, will first detach storage.
      * @param detachStorageDeprecated
-     *        Deprecated. Use detachStorage instead.
+     *            Deprecated. Use detachStorage instead.
      * @param deactivateBootVolume
-     *        if true, and if the host was provisioned by ViPR the associated boot volume (if exists) will be deactivated
+     *            if true, and if the host was provisioned by ViPR the associated boot volume (if exists) will be deactivated
      * @brief Deactivate Host
      * @return OK if deactivation completed successfully
-     * @throws DatabaseException when a DB error occurs     
+     * @throws DatabaseException when a DB error occurs
      */
     @POST
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep deactivateHost(@PathParam("id") URI id,
             @DefaultValue("false") @QueryParam("detach_storage") boolean detachStorage,
             @DefaultValue("false") @QueryParam("detach-storage") boolean detachStorageDeprecated,
@@ -514,17 +510,17 @@ public class HostService extends TaskResourceService {
         Host host = queryHost(_dbClient, id);
         ArgValidator.checkEntity(host, id, true);
         boolean hasPendingTasks = hostHasPendingTasks(id);
-        if (hasPendingTasks){
-        	throw APIException.badRequests.resourceCannotBeDeleted("Host with another operation in progress"); 
+        if (hasPendingTasks) {
+            throw APIException.badRequests.resourceCannotBeDeleted("Host with another operation in progress");
         }
-        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId()) && !(detachStorage || detachStorageDeprecated) ) {
+        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId()) && !(detachStorage || detachStorageDeprecated)) {
             throw APIException.badRequests.resourceHasActiveReferences(Host.class.getSimpleName(), id);
         } else {
             String taskId = UUID.randomUUID().toString();
             Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId,
                     ResourceOperationTypeEnum.DELETE_HOST);
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.detachHostStorage(host.getId(), true,deactivateBootVolume,taskId);
+            controller.detachHostStorage(host.getId(), true, deactivateBootVolume, taskId);
             host.setProvisioningStatus(Host.ProvisioningJobStatus.IN_PROGRESS.toString());
             _dbClient.persistObject(host);
             auditOp(OperationTypeEnum.DELETE_HOST, true, op.getStatus(),
@@ -532,56 +528,58 @@ public class HostService extends TaskResourceService {
             return toTask(host, taskId, op);
         }
     }
-    
-    private boolean hostHasPendingTasks(URI id){
-    	boolean hasPendingTasks = false;
-    	List<Task> taskList = TaskUtils.findResourceTasks(_dbClient, id);
-        for (Task task: taskList){
-        	if (task.isPending()){
-        		hasPendingTasks = true;
-        		break;
-        	}
+
+    private boolean hostHasPendingTasks(URI id) {
+        boolean hasPendingTasks = false;
+        List<Task> taskList = TaskUtils.findResourceTasks(_dbClient, id);
+        for (Task task : taskList) {
+            if (task.isPending()) {
+                hasPendingTasks = true;
+                break;
+            }
         }
         return hasPendingTasks;
     }
-         
+
     /**
-     * Updates export groups and fileshare exports that are referenced by the given host by removing 
+     * Updates export groups and fileshare exports that are referenced by the given host by removing
      * the host reference, initiators and IP interfaces belonging to this host. Volumes are left intact.
+     * 
      * @param id the URN of a ViPR Host
      * @brief Detach storage from Host
      * @return OK if detaching completed successfully
-     * @throws DatabaseException when a DB error occurs     
+     * @throws DatabaseException when a DB error occurs
      */
     @POST
     @Path("/{id}/detach-storage")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep detachStorage(@PathParam("id") URI id) throws DatabaseException {
         Host host = queryHost(_dbClient, id);
         ArgValidator.checkEntity(host, id, true);
-        
+
         boolean hasPendingTasks = hostHasPendingTasks(id);
-        if (hasPendingTasks){
-        	throw APIException.badRequests.cannotDetachStorageForHost("another operation is in progress for this host"); 
+        if (hasPendingTasks) {
+            throw APIException.badRequests.cannotDetachStorageForHost("another operation is in progress for this host");
         }
-        
+
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId,
                 ResourceOperationTypeEnum.DETACH_HOST_STORAGE);
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
-        controller.detachHostStorage(host.getId(), false,false,taskId);
+        controller.detachHostStorage(host.getId(), false, false, taskId);
         return toTask(host, taskId, op);
     }
-    
+
     /**
      * Creates a new ip interface for a host.
+     * 
      * @param id the URN of a ViPR Host
      * @param createParam the details of the interfaces
      * @brief Create Host Interface Ip
      * @return the details of the host interface, including its id and link,
-     * when creation completes successfully.
-     * @throws DatabaseException when a database error occurs     
+     *         when creation completes successfully.
+     * @throws DatabaseException when a database error occurs
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -604,27 +602,29 @@ public class HostService extends TaskResourceService {
 
     /**
      * Validates the create/update IP interface operation input data.
+     * 
      * @param param the input parameter
      * @param ipInterface the IP interface being updated in case of update operation.
-     * This parameter must be null for create operations.
+     *            This parameter must be null for create operations.
      */
-    public void validateIpInterfaceData(IpInterfaceParam param, IpInterface ipInterface ) {
+    public void validateIpInterfaceData(IpInterfaceParam param, IpInterface ipInterface) {
         String protocol = param.findProtocol() != null ?
                 param.findProtocol() : ipInterface.getProtocol();
-        if (!HostInterface.Protocol.IPV4.toString().equals(protocol) && !HostInterface.Protocol.IPV6.toString().equals(protocol))
-        throw APIException.badRequests.invalidIpProtocol();
-       
+        if (!HostInterface.Protocol.IPV4.toString().equals(protocol) && !HostInterface.Protocol.IPV6.toString().equals(protocol)) {
+            throw APIException.badRequests.invalidIpProtocol();
+        }
+
         // Validate the passed address matches the protocol
-        if ( param.findIPaddress() != null) { // it can be null on update
-        	String ipAddress = param.findIPaddress();
+        if (param.findIPaddress() != null) { // it can be null on update
+            String ipAddress = param.findIPaddress();
             if (HostInterface.Protocol.IPV4.toString().equals(protocol)) {
-            	ArgValidator.checkFieldValidIPV4(ipAddress, "ipAddress");              
+                ArgValidator.checkFieldValidIPV4(ipAddress, "ipAddress");
             } else {
-            	ArgValidator.checkFieldValidIPV6(ipAddress, "ipAddress");               
+                ArgValidator.checkFieldValidIPV6(ipAddress, "ipAddress");
             }
         }
-        //last validate that the ip address is unique
-        if (ipInterface == null || (param.findIPaddress() !=null &&
+        // last validate that the ip address is unique
+        if (ipInterface == null || (param.findIPaddress() != null &&
                 !param.findIPaddress().equalsIgnoreCase(ipInterface.getIpAddress()))) {
             checkDuplicateAltId(IpInterface.class, "ipAddress",
                     EndpointUtility.changeCase(param.findIPaddress()), "IP interface");
@@ -633,36 +633,38 @@ public class HostService extends TaskResourceService {
 
     /**
      * Gets the id and name for all the interfaces of a host.
+     * 
      * @param id the URN of a ViPR Host
      * @brief List Host Interfaces
      * @return a list of interfaces that belong to the host
-     * @throws DatabaseException when a DB error occurs     
+     * @throws DatabaseException when a DB error occurs
      */
     @GET
     @Path("/{id}/ip-interfaces")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public IpInterfaceList getIpInterfaces(@PathParam("id") URI id) throws DatabaseException {
         Host host = queryObject(Host.class, id, false);
-    	// check the user permissions
-    	verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
-        // get the ip interfaces 
-    	IpInterfaceList list = new IpInterfaceList();
+        // check the user permissions
+        verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
+        // get the ip interfaces
+        IpInterfaceList list = new IpInterfaceList();
         List<NamedElementQueryResultList.NamedElement> dataObjects = listChildren(id, IpInterface.class, "ipAddress", "host");
-        for (NamedElementQueryResultList.NamedElement dataObject: dataObjects) {
+        for (NamedElementQueryResultList.NamedElement dataObject : dataObjects) {
             list.getIpInterfaces().add(toNamedRelatedResource(ResourceTypeEnum.IPINTERFACE,
-                dataObject.getId(), dataObject.getName()));
+                    dataObject.getId(), dataObject.getName()));
         }
         return list;
     }
 
     /**
      * Creates a new initiator for a host.
+     * 
      * @param id the URN of a ViPR Host
      * @param createParam the details of the initiator
      * @brief Create Host Initiator
      * @return the details of the host initiator when creation
-     * is successfully.
-     * @throws DatabaseException when a database error occurs.     
+     *         is successfully.
+     * @throws DatabaseException when a database error occurs.
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -673,7 +675,7 @@ public class HostService extends TaskResourceService {
             InitiatorCreateParam createParam) throws DatabaseException {
         Host host = queryObject(Host.class, id, true);
         validateInitiatorData(createParam, null);
-        //create and populate the initiator
+        // create and populate the initiator
         Initiator initiator = new Initiator();
         initiator.setHost(id);
         initiator.setHostName(host.getHostName());
@@ -685,19 +687,19 @@ public class HostService extends TaskResourceService {
         populateInitiator(initiator, createParam);
 
         _dbClient.createObject(initiator);
-    	String taskId = UUID.randomUUID().toString();
+        String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiator.getId(), taskId,
                 ResourceOperationTypeEnum.ADD_HOST_INITIATOR);
-        
+
         // if host in use. update export with new initiator
         if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())) {
-        	ComputeSystemController controller = getController(ComputeSystemController.class, null);
+            ComputeSystemController controller = getController(ComputeSystemController.class, null);
             controller.addInitiatorsToExport(initiator.getHost(), Arrays.asList(initiator.getId()), taskId);
         } else {
-        	// No updates were necessary, so we can close out the task.
-        	_dbClient.ready(Initiator.class, initiator.getId(), taskId);
+            // No updates were necessary, so we can close out the task.
+            _dbClient.ready(Initiator.class, initiator.getId(), taskId);
         }
-        
+
         auditOp(OperationTypeEnum.CREATE_HOST_INITIATOR, true, null,
                 initiator.auditParameters());
         return toTask(initiator, taskId, op);
@@ -705,20 +707,21 @@ public class HostService extends TaskResourceService {
 
     /**
      * Validates the create/update initiator operation input data.
+     * 
      * @param param the input parameter
      * @param initiator the initiator being updated in case of update operation.
-     * This parameter must be null for create operations.n
+     *            This parameter must be null for create operations.n
      */
     public void validateInitiatorData(BaseInitiatorParam param, Initiator initiator) {
         String protocol = param.getProtocol() != null ?
-                param.getProtocol() : (initiator != null ? initiator.getProtocol(): null);
-        String node = param.getNode()!=null ? param.getNode() :
-            (initiator != null ? initiator.getInitiatorNode() : null);
-        String port = param.getPort()!=null ? param.getPort() :
-            (initiator != null ? initiator.getInitiatorPort() : null);
+                param.getProtocol() : (initiator != null ? initiator.getProtocol() : null);
+        String node = param.getNode() != null ? param.getNode() :
+                (initiator != null ? initiator.getInitiatorNode() : null);
+        String port = param.getPort() != null ? param.getPort() :
+                (initiator != null ? initiator.getInitiatorPort() : null);
         ArgValidator.checkFieldValueWithExpected(param == null
                 || HostInterface.Protocol.FC.toString().equals(protocol)
-                || HostInterface.Protocol.iSCSI.toString().equals(protocol), 
+                || HostInterface.Protocol.iSCSI.toString().equals(protocol),
                 "protocol", protocol, HostInterface.Protocol.FC, HostInterface.Protocol.iSCSI);
         // Validate the passed node and port based on the protocol.
         // Note that for iSCSI the node is optional.
@@ -728,21 +731,25 @@ public class HostService extends TaskResourceService {
             // Make sure the node is passed in the request.
             ArgValidator.checkFieldNotNull(port, "port");
             // Make sure the port is a valid WWN.
-            if (!WWNUtility.isValidWWN(port))
-            	throw APIException.badRequests.invalidWwnForFcInitiatorPort();            
+            if (!WWNUtility.isValidWWN(port)) {
+                throw APIException.badRequests.invalidWwnForFcInitiatorPort();
+            }
             // Make sure the node is a valid WWN.
-            if (!WWNUtility.isValidWWN(node))
-            	throw APIException.badRequests.invalidWwnForFcInitiatorNode();          
+            if (!WWNUtility.isValidWWN(node)) {
+                throw APIException.badRequests.invalidWwnForFcInitiatorNode();
+            }
         } else {
             // Make sure the port is a valid iSCSI port.
-        	if (!iSCSIUtility.isValidIQNPortName(port) && !iSCSIUtility.isValidEUIPortName(port))
-        		throw APIException.badRequests.invalidIscsiInitiatorPort();            
-            if (param.getNode() != null) 
-        		throw APIException.badRequests.invalidNodeForiScsiPort();            
+            if (!iSCSIUtility.isValidIQNPortName(port) && !iSCSIUtility.isValidEUIPortName(port)) {
+                throw APIException.badRequests.invalidIscsiInitiatorPort();
+            }
+            if (param.getNode() != null) {
+                throw APIException.badRequests.invalidNodeForiScsiPort();
+            }
         }
-        //last validate that the initiator port is unique
-        if (initiator == null || (param.getPort()!= null &&
-        		!param.getPort().equalsIgnoreCase(initiator.getInitiatorPort()))) {
+        // last validate that the initiator port is unique
+        if (initiator == null || (param.getPort() != null &&
+                !param.getPort().equalsIgnoreCase(initiator.getInitiatorPort()))) {
             checkDuplicateAltId(Initiator.class, "iniport", EndpointUtility.changeCase(param.getPort()),
                     "initiator", "Initiator Port");
         }
@@ -750,30 +757,32 @@ public class HostService extends TaskResourceService {
 
     /**
      * Gets the id and name for all the host initiators of a host.
+     * 
      * @param id the URN of a ViPR Host
      * @brief List Host Initiators
      * @return a list of initiators that belong to the host
-     * @throws DatabaseException when a DB error occurs     
+     * @throws DatabaseException when a DB error occurs
      */
     @GET
     @Path("/{id}/initiators")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public InitiatorList getInitiators(@PathParam("id") URI id) throws DatabaseException {
         Host host = queryObject(Host.class, id, false);
-    	// check the user permissions
-    	verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
-    	// get the initiators
+        // check the user permissions
+        verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
+        // get the initiators
         InitiatorList list = new InitiatorList();
         List<NamedElementQueryResultList.NamedElement> dataObjects = listChildren(id, Initiator.class, "iniport", "host");
-        for (NamedElementQueryResultList.NamedElement dataObject: dataObjects) {
+        for (NamedElementQueryResultList.NamedElement dataObject : dataObjects) {
             list.getInitiators().add(toNamedRelatedResource(ResourceTypeEnum.INITIATOR,
-                dataObject.getId(), dataObject.getName()));
+                    dataObject.getId(), dataObject.getName()));
         }
         return list;
     }
 
     /**
      * Populates the interface using values in the parameter
+     * 
      * @param param the interface creation/update parameter that contains all the attributes
      * @param the IP interface to be to be populated with data.
      */
@@ -784,19 +793,20 @@ public class HostService extends TaskResourceService {
         ipInterface.setScopeId(param.getScopeId());
         ipInterface.setPrefixLength(param.getPrefixLength());
         if (param.getNetmask() != null) {
-        	ipInterface.setNetmask(param.getNetmask().toString());
+            ipInterface.setNetmask(param.getNetmask().toString());
         }
-        
-        // Set label to ipAddress if not specified on create. 
+
+        // Set label to ipAddress if not specified on create.
         if (ipInterface.getLabel() == null && param.getName() == null) {
-        	ipInterface.setLabel(ipInterface.getIpAddress());
+            ipInterface.setLabel(ipInterface.getIpAddress());
         } else if (param.getName() != null) {
-        	ipInterface.setLabel(param.getName());
+            ipInterface.setLabel(param.getName());
         }
     }
 
     /**
      * Populates the initiator using values in the parameter
+     * 
      * @param param the initiator creation/update parameter that contains all the attributes
      * @param the initiator to be to be populated with data.
      */
@@ -804,17 +814,18 @@ public class HostService extends TaskResourceService {
         initiator.setInitiatorPort(param.getPort());
         initiator.setInitiatorNode(param.getNode());
         initiator.setProtocol(param.getProtocol());
-        
+
         // Set label to the initiator port if not specified on create.
         if (initiator.getLabel() == null && param.getName() == null) {
-        	initiator.setLabel(initiator.getInitiatorPort());
+            initiator.setLabel(initiator.getInitiatorPort());
         } else if (param.getName() != null) {
-        	initiator.setLabel(param.getName());
+            initiator.setLabel(param.getName());
         }
     }
 
     /**
      * Creates a new instance of host.
+     * 
      * @param tenant the host parent tenant organization
      * @param param the input parameter containing the host attributes
      * @return an instance of {@link Host}
@@ -825,42 +836,63 @@ public class HostService extends TaskResourceService {
         host.setTenant(tenant.getId());
         populateHostData(host, param);
         if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-        	if (ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
+            if (ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
                 String taskId = UUID.randomUUID().toString();
                 ComputeSystemController controller = getController(ComputeSystemController.class, null);
-        	    controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, null);
-        	} else {
+                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, null);
+            } else {
                 ComputeSystemHelper.updateInitiatorClusterName(_dbClient, host.getCluster(), host.getId());
-        	}
+            }
         }
-        
+
         return host;
     }
 
     /**
      * Populate an instance of host with the provided host parameter
+     * 
      * @param host the host to be populated
      * @param param the parameter that contains the host attributes.
      */
     private void populateHostData(Host host, HostParam param) {
-    	if (param.getName() != null) host.setLabel(param.getName());
-        if (param.getHostName() != null) host.setHostName(param.getHostName());
-        if (param.getCluster() != null) host.setCluster(param.getCluster());
-        if (param.getOsVersion() != null) host.setOsVersion(param.getOsVersion());
-        if (param.getUserName() != null) host.setUsername(param.getUserName());
-        if (param.getPassword() != null) host.setPassword(param.getPassword());
-        if (param.getPortNumber() != null) host.setPortNumber(param.getPortNumber());
-        if (param.getUseSsl() != null) host.setUseSSL(param.getUseSsl());
-        if (param.getType() != null) host.setType(param.getType());
-        if (param.getDiscoverable() != null) host.setDiscoverable(param.getDiscoverable());
+        if (param.getName() != null) {
+            host.setLabel(param.getName());
+        }
+        if (param.getHostName() != null) {
+            host.setHostName(param.getHostName());
+        }
+        if (param.getCluster() != null) {
+            host.setCluster(param.getCluster());
+        }
+        if (param.getOsVersion() != null) {
+            host.setOsVersion(param.getOsVersion());
+        }
+        if (param.getUserName() != null) {
+            host.setUsername(param.getUserName());
+        }
+        if (param.getPassword() != null) {
+            host.setPassword(param.getPassword());
+        }
+        if (param.getPortNumber() != null) {
+            host.setPortNumber(param.getPortNumber());
+        }
+        if (param.getUseSsl() != null) {
+            host.setUseSSL(param.getUseSsl());
+        }
+        if (param.getType() != null) {
+            host.setType(param.getType());
+        }
+        if (param.getDiscoverable() != null) {
+            host.setDiscoverable(param.getDiscoverable());
+        }
         // Commented out because host project is not currently used
-//        if (param.project != null) {
-//            host.setProject(NullColumnValueGetter.isNullURI(param.project) ? 
-//            		NullColumnValueGetter.getNullURI() : param.project);
-//        }
+        // if (param.project != null) {
+        // host.setProject(NullColumnValueGetter.isNullURI(param.project) ?
+        // NullColumnValueGetter.getNullURI() : param.project);
+        // }
         if (param.getVcenterDataCenter() != null) {
             host.setVcenterDataCenter(NullColumnValueGetter.isNullURI(param.getVcenterDataCenter()) ?
-            		NullColumnValueGetter.getNullURI() : param.getVcenterDataCenter());
+                    NullColumnValueGetter.getNullURI() : param.getVcenterDataCenter());
         }
         Cluster cluster = null;
         // make sure host data is consistent with the cluster
@@ -882,9 +914,10 @@ public class HostService extends TaskResourceService {
     }
 
     /**
-     * Returns the instance of host for the given id. Throws {@link DatabaseException}
-     * when id is not a valid URI. Throws {@link NotFoundException} when the host has
+     * Returns the instance of host for the given id. Throws {@link DatabaseException} when id is not a valid URI. Throws
+     * {@link NotFoundException} when the host has
      * been delete.
+     * 
      * @param dbClient an instance of {@link DbClient}
      * @param id the URN of a ViPR Host to be fetched.
      * @return the instance of host for the given id.
@@ -896,20 +929,20 @@ public class HostService extends TaskResourceService {
 
     /**
      * Retrieve resource representations based on input ids.
-     *
+     * 
      * @param param POST data containing the id list.
      * @brief List data of host resources
      * @return list of representations.
-     *
-     * @throws DatabaseException When an error occurs querying the database.     
+     * 
+     * @throws DatabaseException When an error occurs querying the database.
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public HostBulkRep getBulkResources(BulkIdParam param) {
-    	 return (HostBulkRep) super.getBulkResources(param);
+        return (HostBulkRep) super.getBulkResources(param);
     }
 
     @Override
@@ -930,7 +963,7 @@ public class HostService extends TaskResourceService {
     }
 
     @Override
-    protected ResourceTypeEnum getResourceType(){
+    protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.HOST;
     }
 
@@ -938,14 +971,14 @@ public class HostService extends TaskResourceService {
     public HostBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<Host> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new HostBulkRep(BulkList.wrapping(_dbIterator, MapHost.getInstance()));
     }
 
     @Override
     public HostBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
         Iterator<Host> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         BulkList.ResourceFilter filter = new BulkList.HostFilter(getUserFromContext(), _permissionsHelper);
         return new HostBulkRep(BulkList.wrapping(_dbIterator, MapHost.getInstance(), filter));
     }
@@ -961,7 +994,7 @@ public class HostService extends TaskResourceService {
     }
 
     public static class HostResRepFilter<E extends RelatedResourceRep>
-    extends ResRepFilter<E> {
+            extends ResRepFilter<E> {
         public HostResRepFilter(StorageOSUser user,
                 PermissionsHelper permissionsHelper) {
             super(user, permissionsHelper);
@@ -970,13 +1003,15 @@ public class HostService extends TaskResourceService {
         @Override
         public boolean isAccessible(E resrep) {
             boolean ret = false;
-            URI id = resrep.getId(); 
+            URI id = resrep.getId();
 
             Host obj = _permissionsHelper.getObjectById(id, Host.class);
-            if (obj == null)
+            if (obj == null) {
                 return false;
-            if (obj.getTenant().toString().equals(_user.getTenantId()))
+            }
+            if (obj.getTenant().toString().equals(_user.getTenantId())) {
                 return true;
+            }
 
             ret = isTenantAccessible(obj.getTenant());
             return ret;
@@ -1005,22 +1040,22 @@ public class HostService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public UnManagedVolumeList getUnmanagedVolumes(@PathParam("id") URI id) throws DatabaseException {
         Host host = queryObject(Host.class, id, false);
-        
+
         // check the user permissions
         verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
-        
+
         // get the unmanaged volumes
         List<UnManagedVolume> unmanagedVolumes = VolumeIngestionUtil.findUnManagedVolumesForHost(id, _dbClient);
-        
+
         UnManagedVolumeList list = new UnManagedVolumeList();
         for (UnManagedVolume volume : unmanagedVolumes) {
             list.getUnManagedVolumes()
-                .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_VOLUMES, volume.getId()));
+                    .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_VOLUMES, volume.getId()));
         }
 
         return list;
     }
-    
+
     /**
      * Gets the UnManagedExportMasks found for a Host.
      * 
@@ -1033,17 +1068,17 @@ public class HostService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public UnManagedExportMaskList getUnmanagedExportMasks(@PathParam("id") URI id) throws DatabaseException {
         Host host = queryObject(Host.class, id, false);
-        
+
         // check the user permissions
         verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
-        
+
         // get the unmanaged export masks
         List<UnManagedExportMask> uems = VolumeIngestionUtil.findUnManagedExportMasksForHost(id, _dbClient);
-        
+
         UnManagedExportMaskList list = new UnManagedExportMaskList();
         for (UnManagedExportMask uem : uems) {
             list.getUnManagedExportMasks()
-                .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_EXPORT_MASKS, uem.getId()));
+                    .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_EXPORT_MASKS, uem.getId()));
         }
 
         return list;
@@ -1052,7 +1087,7 @@ public class HostService extends TaskResourceService {
     /**
      * Creates a new host for the tenant organization. Discovery is initiated
      * after the host is created.
-     *
+     * 
      * @param createParam
      *            the parameter that has the type and attribute of the host to
      *            be created.
@@ -1068,7 +1103,7 @@ public class HostService extends TaskResourceService {
             @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection) {
         // This is mostly to validate the tenant
         URI tid = createParam.getTenant();
-        if ( (tid == null) || tid.toString().isEmpty()) {
+        if ((tid == null) || tid.toString().isEmpty()) {
             _log.error("The tenant id is missing");
             throw APIException.badRequests.requiredParameterMissingOrEmpty("tenant");
         }
@@ -1124,12 +1159,10 @@ public class HostService extends TaskResourceService {
         List<String> ceList = null;
         try {
             ceList = takeComputeElementsFromPool(cvp, param.getHostNames().size(), varray, param.getCluster());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             _log.error("unable to takeComputeElementsFromPool", e);
             throw e;
-        }
-        finally {
+        } finally {
             unlockBladeReservation(lock);
         }
 
@@ -1147,8 +1180,7 @@ public class HostService extends TaskResourceService {
         try {
             lock.acquire();
             _log.info("acquired BladeReservation lock");
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             _log.error("failed to acquire BladeReservation lock", e);
             throw BadRequestException.badRequests.unableToLockBladeReservation();
         }
@@ -1159,8 +1191,7 @@ public class HostService extends TaskResourceService {
         try {
             lock.release();
             _log.info("unlocked BladeReservation");
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             _log.error("could not unlock BladeReservation", e);
         }
     }
@@ -1246,75 +1277,76 @@ public class HostService extends TaskResourceService {
         return computeSystemToComputeElementMap;
     }
 
-	/*
-	 * Returns a map of compute system URI to compute elements available on that compute system
-	 */
+    /*
+     * Returns a map of compute system URI to compute elements available on that compute system
+     */
     private Map<URI, List<URI>> findComputeElementsMatchingVarrayAndCVP(ComputeVirtualPool cvp, VirtualArray varray) {
         Map<URI, List<URI>> computeSystemToComputeElementsMap = new HashMap<URI, List<URI>>();
 
         _log.debug("Look up compute elements for cvp " + cvp.getId());
         List<String> cvpCEList = new ArrayList<String>();
-        if(cvp.getMatchedComputeElements() != null) {
+        if (cvp.getMatchedComputeElements() != null) {
             Iterator<String> iter = cvp.getMatchedComputeElements().iterator();
             while (iter.hasNext()) {
                 String uriStr = iter.next();
                 cvpCEList.add(uriStr);
             }
         }
-        //Find all SPTs assigned for this CVP and their corresponding ComputeSystems
-        Map<URI,URI> cvpTemplatesMap = new HashMap<URI,URI>();
+        // Find all SPTs assigned for this CVP and their corresponding ComputeSystems
+        Map<URI, URI> cvpTemplatesMap = new HashMap<URI, URI>();
         if (cvp.getServiceProfileTemplates() != null) {
             for (String templateIdString : cvp.getServiceProfileTemplates()) {
                 URI templateId = URI.create(templateIdString);
                 UCSServiceProfileTemplate template = _dbClient.queryObject(UCSServiceProfileTemplate.class, templateId);
-                if (template.getUpdating() == true){
-                	if (!computeSystemService.isUpdatingSPTValid(template, _dbClient)){
-                		throw APIException.badRequests.invalidUpdatingSPT(template.getLabel());
-                	}
-                	StringSet  varrayIds = new StringSet();
-                	varrayIds.add(varray.getId().toString());
-                	if (!computeSystemService.isServiceProfileTemplateValidForVarrays(varrayIds, templateId)){
-                		throw APIException.badRequests.incompatibleSPT(template.getLabel(),varray.getLabel());
-                	}
+                if (template.getUpdating() == true) {
+                    if (!computeSystemService.isUpdatingSPTValid(template, _dbClient)) {
+                        throw APIException.badRequests.invalidUpdatingSPT(template.getLabel());
+                    }
+                    StringSet varrayIds = new StringSet();
+                    varrayIds.add(varray.getId().toString());
+                    if (!computeSystemService.isServiceProfileTemplateValidForVarrays(varrayIds, templateId)) {
+                        throw APIException.badRequests.incompatibleSPT(template.getLabel(), varray.getLabel());
+                    }
                 }
                 cvpTemplatesMap.put(template.getComputeSystem(), templateId);
             }
         }
 
-		_log.debug("Look up compute systems for virtual array " + varray.getId());
+        _log.debug("Look up compute systems for virtual array " + varray.getId());
         ComputeSystemBulkRep computeSystemBulkRep = virtualArrayService.getComputeSystems(varray.getId());
-        
-        if(computeSystemBulkRep.getComputeSystems() != null ) {
-        	for(ComputeSystemRestRep computeSystemRestRep : computeSystemBulkRep.getComputeSystems()) {
-                _log.debug("Found compute system "  + computeSystemRestRep.getId() + " for virtual array " + varray.getId());
+
+        if (computeSystemBulkRep.getComputeSystems() != null) {
+            for (ComputeSystemRestRep computeSystemRestRep : computeSystemBulkRep.getComputeSystems()) {
+                _log.debug("Found compute system " + computeSystemRestRep.getId() + " for virtual array " + varray.getId());
                 if (!cvpTemplatesMap.containsKey(computeSystemRestRep.getId())) {
-                	_log.info("The CVP has no service profile templates assigned from compute system "+ computeSystemRestRep.getName()
-                			+". So no blades will be used from this compute system.");
-                	continue;
+                    _log.info("The CVP has no service profile templates assigned from compute system " + computeSystemRestRep.getName()
+                            + ". So no blades will be used from this compute system.");
+                    continue;
                 }
                 ComputeElementListRestRep computeElementListRestRep = computeSystemService.getComputeElements(computeSystemRestRep.getId());
-                if(computeElementListRestRep.getList() != null) {
+                if (computeElementListRestRep.getList() != null) {
                     List<URI> computeElementList = new ArrayList<URI>();
-                    for(ComputeElementRestRep computeElementRestRep : computeElementListRestRep.getList()) {
+                    for (ComputeElementRestRep computeElementRestRep : computeElementListRestRep.getList()) {
                         _log.debug("Compute system contains compute element " + computeElementRestRep.getId());
-                        for (String computeElement : cvpCEList){
-                        	if (computeElement.equals(computeElementRestRep.getId().toString())){
-                        		if (computeElementRestRep.getAvailable() && computeElementRestRep.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.name())){
-                        		    computeElementList.add(computeElementRestRep.getId());
-                        		    _log.debug("Added compute element "+computeElementRestRep.getId());
-                        		}else{
-                        			_log.debug("found unavailable compute element"+computeElementRestRep.getId());
-                        		}
-                        	}
+                        for (String computeElement : cvpCEList) {
+                            if (computeElement.equals(computeElementRestRep.getId().toString())) {
+                                if (computeElementRestRep.getAvailable()
+                                        && computeElementRestRep.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.name())) {
+                                    computeElementList.add(computeElementRestRep.getId());
+                                    _log.debug("Added compute element " + computeElementRestRep.getId());
+                                } else {
+                                    _log.debug("found unavailable compute element" + computeElementRestRep.getId());
+                                }
+                            }
                         }
                     }
-                    computeSystemToComputeElementsMap.put(computeSystemRestRep.getId(),computeElementList);
+                    computeSystemToComputeElementsMap.put(computeSystemRestRep.getId(), computeElementList);
                 }
             }
-        }else{
-        	throw APIException.badRequests.noComputeSystemsFoundForVarray();
+        } else {
+            throw APIException.badRequests.noComputeSystemsFoundForVarray();
         }
-	    return computeSystemToComputeElementsMap;
+        return computeSystemToComputeElementsMap;
     }
 
     private Map<URI, List<URI>> sortMapByNumberOfElements(Map<URI, List<URI>> computeSystemToComputeElementsMap) {
@@ -1342,28 +1374,28 @@ public class HostService extends TaskResourceService {
         return sortedHashMap;
     }
 
-    private List<String> takeComputeElementsFromPool(ComputeVirtualPool cvp, int numHosts, VirtualArray varray, URI clusterId){
+    private List<String> takeComputeElementsFromPool(ComputeVirtualPool cvp, int numHosts, VirtualArray varray, URI clusterId) {
         List<URI> selectedCEsList = new ArrayList<URI>();
         List<String> bladeSelections = new ArrayList<String>();
-        //Map of compute systems to compute elements from this Compute system used in this cluster
-        Map<URI,List<ComputeElement>> usedComputeElementsMap = findComputeElementsUsedInCluster(clusterId);
-        //Map of compute systems to compute elements from this Compute system that are available in this cvp
-        Map<URI,List<URI>> computeSystemToComputeElementsMap = findComputeElementsMatchingVarrayAndCVP(cvp,varray);
+        // Map of compute systems to compute elements from this Compute system used in this cluster
+        Map<URI, List<ComputeElement>> usedComputeElementsMap = findComputeElementsUsedInCluster(clusterId);
+        // Map of compute systems to compute elements from this Compute system that are available in this cvp
+        Map<URI, List<URI>> computeSystemToComputeElementsMap = findComputeElementsMatchingVarrayAndCVP(cvp, varray);
 
-		int numRequiredCEs = numHosts;
-		int totalAvailableCEs = 0;
-		
-		List<URI> availableCEList = new ArrayList<URI>();
-		
-		//If total # of available CEs less than required, throw exception
-		for (URI key : computeSystemToComputeElementsMap.keySet()){
-			List<URI> computeElements = computeSystemToComputeElementsMap.get(key);
-			totalAvailableCEs = totalAvailableCEs + computeElements.size();
-		}
+        int numRequiredCEs = numHosts;
+        int totalAvailableCEs = 0;
+
+        List<URI> availableCEList = new ArrayList<URI>();
+
+        // If total # of available CEs less than required, throw exception
+        for (URI key : computeSystemToComputeElementsMap.keySet()) {
+            List<URI> computeElements = computeSystemToComputeElementsMap.get(key);
+            totalAvailableCEs = totalAvailableCEs + computeElements.size();
+        }
         if (totalAvailableCEs < numRequiredCEs) {
             throw APIException.badRequests.notEnoughComputeElementsInPool();
         }
-		//First try to pick blades from compute systems already used for this cluster.
+        // First try to pick blades from compute systems already used for this cluster.
         if (!usedComputeElementsMap.isEmpty()) {
             _log.debug("first try to pick blades from compute systems already used for this cluster");
             Set<URI> usedComputeSystems = usedComputeElementsMap.keySet();
@@ -1386,7 +1418,7 @@ public class HostService extends TaskResourceService {
                 computeSystemToComputeElementsMap.remove(uri);
             }
         }
-		//If we have required number of hosts, return
+        // If we have required number of hosts, return
         if (numRequiredCEs == 0) {
             for (URI uri : selectedCEsList) {
                 bladeSelections.add(uri.toString());
@@ -1394,7 +1426,7 @@ public class HostService extends TaskResourceService {
             setCeUnavailable(bladeSelections);
             return bladeSelections;
         }
-		// Else sort compute systems by ascending number of compute elements available.
+        // Else sort compute systems by ascending number of compute elements available.
         Map<URI, List<URI>> sortedMap = sortMapByNumberOfElements(computeSystemToComputeElementsMap);
         _log.debug("Compute Systems sorted by number of available Compute elements:");
         for (URI key : sortedMap.keySet()) {
@@ -1417,39 +1449,39 @@ public class HostService extends TaskResourceService {
                 break;
             }
         }
-		
-		if (numRequiredCEs > 0){
-			
-			_log.debug("No single Compute System has enough compute elements. So pick from multiple.");
-			for (URI key : sortedMap.keySet()){
-				_log.debug("computeSystem: "+key);
-				List<URI> computeElements = sortedMap.get(key);
-				int count = computeElements.size();
-				if (numRequiredCEs >= count){
-				    selectedCEsList.addAll(computeElements);
-					_log.debug("Taking "+count+ " blades from compute system: "+key);
-					numRequiredCEs = numRequiredCEs - count;
-					if (numRequiredCEs==0){
-						_log.debug("Need no more");
-						break;
-					}
-				}
-				else{
-					availableCEList.addAll(computeElements);
-					_log.debug("Pick "+ numRequiredCEs +" blades from "+ count + " blades on compute system: "+ key);
-					// pick n blades from m available blades.
-					selectedCEsList.addAll(pickBladesByStrafingAlgorithm(availableCEList,numRequiredCEs,usedComputeElementsMap.get(key)));
-					numRequiredCEs = 0;
-					break;
-				}
-			}
-		}
-		
+
+        if (numRequiredCEs > 0) {
+
+            _log.debug("No single Compute System has enough compute elements. So pick from multiple.");
+            for (URI key : sortedMap.keySet()) {
+                _log.debug("computeSystem: " + key);
+                List<URI> computeElements = sortedMap.get(key);
+                int count = computeElements.size();
+                if (numRequiredCEs >= count) {
+                    selectedCEsList.addAll(computeElements);
+                    _log.debug("Taking " + count + " blades from compute system: " + key);
+                    numRequiredCEs = numRequiredCEs - count;
+                    if (numRequiredCEs == 0) {
+                        _log.debug("Need no more");
+                        break;
+                    }
+                }
+                else {
+                    availableCEList.addAll(computeElements);
+                    _log.debug("Pick " + numRequiredCEs + " blades from " + count + " blades on compute system: " + key);
+                    // pick n blades from m available blades.
+                    selectedCEsList.addAll(pickBladesByStrafingAlgorithm(availableCEList, numRequiredCEs, usedComputeElementsMap.get(key)));
+                    numRequiredCEs = 0;
+                    break;
+                }
+            }
+        }
+
         for (URI uri : selectedCEsList) {
             bladeSelections.add(uri.toString());
         }
         setCeUnavailable(bladeSelections);
-    	return bladeSelections;
+        return bladeSelections;
     }
 
     private void setCeUnavailable(List<String> ceUriStrs) {
@@ -1464,291 +1496,298 @@ public class HostService extends TaskResourceService {
         _dbClient.persistObject(ceList);
     }
 
-    private List<URI> pickBladesByStrafingAlgorithm(List<URI> availableList,int numRequiredBlades,List<ComputeElement> usedCEList) throws DatabaseException {
-    	if (usedCEList == null){
-    		usedCEList = new ArrayList<ComputeElement>();
-    	}
-    	_log.debug("In pickBladesByStrafingAlgorithm");
-    	List<URI> selectedCEList = new ArrayList<URI>();
-    	List<ComputeElement> availableCEList = new ArrayList<ComputeElement>();
-    	
-    	//Find numChassis and numSlot (M and N)
-    	//Populate M x N matrix of 1s for available blades
-    	//Build chassisUsageMap : chassisUsageCount to Set of chassisIds . sort by key asc
-    	//Build slotUsageMap: slotUsageCount to set of SlotIds. sort by key desc
-    	//Build slotCountMap: slotId to slotCount
-    	/////Build slot availabilityMap availableSlotsCount to Set of slotIds.
-    	//boolean useUsedSlots = false if usedCEsList is empty
-    	//For each chassisCount in chassisUsageMap, loop through the chassises wit that count
-    		//if useUsedSlots is true, On each of those chassis, find the slot that is available and has maximum usage count
-    		//if useUsedSlots is false, on each of those chassis, find the slot that has maximum available slots 
-       	for (URI uri: availableList){
-    		ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, uri);
-    		_log.debug("computeElement:"+computeElement.getLabel()+" chassisId:"+computeElement.getChassisId()+" slotId:"+computeElement.getSlotId());
-    		//ComputeSystem cs =  _dbClient.queryObject(ComputeSystem.class,computeElement.getComputeSystem());
-    		availableCEList.add(computeElement);	
-    	}
-       	int numChassis = 0;
-       	int numSlot = 0;
-       	for (ComputeElement ce : availableCEList){
-       		int chassisId = Integer.parseInt(ce.getChassisId());
-       		long slotId = ce.getSlotId();
-       		if (chassisId > numChassis){
-       			numChassis = chassisId;
-       		}
-       		if (slotId > numSlot){
-       			numSlot = (int) slotId;
-       		}
-       	}
-    	for (ComputeElement ce : usedCEList){
-       		int chassisId = Integer.parseInt(ce.getChassisId());
-       		long slotId = ce.getSlotId();
-       		if (chassisId > numChassis){
-       			numChassis = chassisId;
-       		}
-       		if (slotId > numSlot){
-       			numSlot = (int) slotId;
-       		}
-       	}
-    	int M=numChassis+1;
-    	int N = numSlot+1;
-    	_log.debug("M:"+M+" N:"+N);
-    	int[][] availableBlades = new int[M][N];
-    	Map<String,URI> availableBladesByChassisIdAndSlotId = new HashMap<String,URI>();
-    	for (ComputeElement ce : availableCEList){
-       		int chassisId = Integer.parseInt(ce.getChassisId());
-       		long l_slotId = ce.getSlotId();
-       		int slotId = (int)l_slotId;
-       		if (ce.getAvailable()){
-       			availableBlades[chassisId][slotId] = 1;
-       			availableBladesByChassisIdAndSlotId.put(chassisId+","+slotId,ce.getId());
-       		}else{
-       			availableBlades[chassisId][slotId] = 0;
-       		}
-       	}
-    	int[][] usedBlades = new int [M][N];
-    	for (ComputeElement ce : usedCEList){
-       		int chassisId = Integer.parseInt(ce.getChassisId());
-       		long l_slotId = ce.getSlotId();
-       		int slotId = (int)l_slotId;
-       		usedBlades[chassisId][slotId] = 1;
-       	}
-    	Map<Integer,Integer> chassisIdToCountMap = new HashMap<Integer,Integer>();
-    	Map<Integer,Set<Integer>> chassisUsageMap = new TreeMap<Integer,Set<Integer>>();
-    	List<Integer> unusedChassisIds = new ArrayList<Integer>();
-    	for (int chassisId=1;chassisId<=numChassis;chassisId++){
-    		int chassisUsageCount = 0;
-    		for (int slotId=1;slotId<=numSlot;slotId++){
-    			chassisUsageCount = chassisUsageCount + usedBlades[chassisId][slotId];
-    		}
-    		Integer key = Integer.valueOf(chassisUsageCount);
-    		Set<Integer> chassisIdSet = chassisUsageMap.get(key);
-    		if (chassisIdSet==null){
-    			 chassisIdSet = new HashSet<Integer>();
-    		}
-    		chassisIdSet.add(Integer.valueOf(chassisId));
-    		chassisUsageMap.put(chassisUsageCount,chassisIdSet);
-    		chassisIdToCountMap.put(Integer.valueOf(chassisId),Integer.valueOf(chassisUsageCount));
-    		if (chassisUsageCount==0){
-    			unusedChassisIds.add(chassisId);
-    		}
-    		_log.debug("chassisId:"+chassisId+" usageCount:"+chassisUsageCount);
-    	}
-    	for (int chassisId: unusedChassisIds){
-    		_log.debug("unusedChassis:"+chassisId);
-    	}
- 
-    	
-    	Map<Integer,Integer> slotIdToCountMap = new HashMap<Integer,Integer>();
-    	NavigableMap<Integer,Set<Integer>> slotUsageMap = new TreeMap<Integer,Set<Integer>>();
-    	for (int slotId=1;slotId<=numSlot;slotId++){
-    		int slotUsageCount = 0;
-    		for (int chassisId=1;chassisId<=numChassis;chassisId++){
-    			slotUsageCount = slotUsageCount + usedBlades[chassisId][slotId];
-    		}
-    		Integer key = Integer.valueOf(slotUsageCount);
-    		Set<Integer> slotIdSet = slotUsageMap.get(key);
-    		if (slotIdSet==null){
-    			slotIdSet = new HashSet<Integer>();
-    		}
-    		slotIdSet.add(Integer.valueOf(slotId));
-    		slotUsageMap.put(slotUsageCount,slotIdSet);
-    		slotIdToCountMap.put(Integer.valueOf(slotId),Integer.valueOf(slotUsageCount));
-    		_log.debug("slotId:"+slotId+" usageCount:"+slotUsageCount);
-    	}
-    	//sort the slotUsageMap by its keys in descending order
-    	Map<Integer,Set<Integer>> descSlotUsageMap = slotUsageMap.descendingMap();
-    	
-    	
-    	boolean useUsedSlots = true;
-    	
-    	if (usedCEList.isEmpty()) useUsedSlots = false; 
-    	boolean avoidUsedChassis = true;
-    	if (unusedChassisIds.isEmpty()) avoidUsedChassis = false;
-    	List<String> selectedBlades = new ArrayList<String>();
-    	
-    	while (numRequiredBlades > 0){
-    		if (!useUsedSlots){//No slots used so far.
-				//Now find the slot or slots which are max available 
-    			_log.debug("No slots used so far. Find max available slot.");
-    			int selectedSlotId = 0;
-    			int maxSum = 0;
-    			for (int slotId=1;slotId <= numSlot;slotId++){
-    				int sum = 0;
-    				for (int chassisId=1;chassisId<=numChassis;chassisId++){
-    					sum = sum + availableBlades[chassisId][slotId];
-    				}
-    				if (sum>maxSum){
-    					selectedSlotId=slotId;
-    					maxSum = sum;
-    					if (sum>=numRequiredBlades){ //Stop when we find first slot that enough free blades to satisfy numRequiredBlades
-    						break;
-    					}
-    				}
-    			}
-    			_log.debug("max available slot is:"+selectedSlotId);
-    			//From selected slot pick as many blades as possible
-    			for (int chassisId=1;chassisId<=numChassis;chassisId++){
-    				if (availableBlades[chassisId][selectedSlotId]==1){
-    					_log.debug("selected blade " +chassisId+"/"+selectedSlotId);
-    					selectedBlades.add(chassisId+","+selectedSlotId);
-        				availableBlades[chassisId][selectedSlotId] = 0;
-        				numRequiredBlades--;
-        				if (numRequiredBlades ==0){
-        					break;
-        				}
-    				}
-    			}
-    			useUsedSlots = true;
-			}else{
-				Set<Integer> preferredChassisIds = new HashSet<Integer>();
-				if (avoidUsedChassis){
-					_log.debug("Pick from unused chassis first");
-					preferredChassisIds.addAll(unusedChassisIds);
-					// Pick blades from the max used slots on the preferred chassis
-					//Starting with max used slot, loop thru slots to find ones that are available on preferred chassis
-					Iterator<Integer>  iter = descSlotUsageMap.keySet().iterator();
-		    		while (iter.hasNext()){
-		    			Integer slotUsageCount = iter.next();
-		    			Set<Integer>  preferredSlotIds = descSlotUsageMap.get(slotUsageCount);//slotIds with max usage
-		    			/* This is not part of the blade strafing algorithm in UIM. Hence commenting out. 
-		    			 * Uncomment if this modification to algorithm is required.
-		    			//Order these slots that have same slotUSageCount, in descending order of number of available blades on unused chassis.
-		    			NavigableMap<Integer,Set<Integer> >slotIdAvailabilityMap = new TreeMap<Integer,Set<Integer>>();
-		    			for (int slotId : preferredSlotIds){
-		    				int availabilityCount = 0;
-		    				for (int chassisId : preferredChassisIds){
-		    					if (availableBlades[chassisId][slotId] ==1){
-		    						availabilityCount++;
-		    					}
-		    				}
-		    				Set<Integer> slotIdSet = slotIdAvailabilityMap.get(availabilityCount);
-		    				if (slotIdSet ==null){
-		    					slotIdSet = new HashSet<Integer>();
-		    				}
-		    				slotIdSet.add(slotId);
-		    				slotIdAvailabilityMap.put(availabilityCount,slotIdSet);
-		    			}
-					    
-		    			Iterator<Integer> iterator = slotIdAvailabilityMap.keySet().iterator();
-		    			while(iterator.hasNext()){
-		    				Integer availabilityCount = iterator.next();
-		    				Set<Integer> mostPreferredSlotIds = slotIdAvailabilityMap.get(availabilityCount);
-		    				for (int slotId : mostPreferredSlotIds){
-		    				Comment the next statement  - for(int slotId : preferredSlotIds) when uncommenting this section */
-		    			for (int slotId : preferredSlotIds){
-					    	_log.debug("preferred slotId: "+slotId+" with usage count: "+slotUsageCount);
-					    	for (int chassisId: preferredChassisIds){
-					    	   if (availableBlades[chassisId][slotId]==1){
-					    		   _log.debug("selected Blade: "+chassisId+"/"+slotId);
-					    		   selectedBlades.add(chassisId+","+slotId);
-					    		   availableBlades[chassisId][slotId] = 0;
-					    		   numRequiredBlades--;
-					    		   unusedChassisIds.remove((Integer)chassisId);
-					    		   Integer currentCount = chassisIdToCountMap.get(chassisId);
-			    					chassisIdToCountMap.put(chassisId,currentCount+1);
-			    					//updateChassisUsageMap
-			    					chassisUsageMap = updateChassisUsageMap(chassisIdToCountMap);
-					    		   if (numRequiredBlades==0){ 
-					    			   break;
-					    		   }
-					    	   }
-					    	}
-					    	if (numRequiredBlades == 0){
-					    		break;
-					    	}
-					    }
-		    		}
-					avoidUsedChassis=false;
-				}else{
-					_log.debug(" No more blades from unused chassis. Pick from least used chassis.");
-					Iterator<Integer>  iter = chassisUsageMap.keySet().iterator();
-		    		while (iter.hasNext()){
-		    			Integer chassisUsageCount = iter.next();
-		    			preferredChassisIds = chassisUsageMap.get(chassisUsageCount);//chassisIds with least usage
-		    			//Pick blades from preferredChassis
-		    			for (int chassisId : preferredChassisIds){
-		    				int count = 0;
-		    				_log.debug("preferred chassis :"+ chassisId+"with usgae count:"+chassisUsageCount);
-		    				for (int slotId=1;slotId<=numSlot;slotId++){
-		    					if (availableBlades[chassisId][slotId] == 1){
-		    						numRequiredBlades--;
-		    						_log.debug("selected blade: "+chassisId+"/"+slotId);
-		    						selectedBlades.add(chassisId+","+slotId);
-		    						count++;
-		    						if (preferredChassisIds.size() > 1){ // pick one from each if there are multiple preferred chassis
-		    							break;
-		    						}
-		    						if (numRequiredBlades ==0){
-		    							break;
-		    						}
-		    					}	
-		    				}
-		    				if (count>0){
-		    					unusedChassisIds.remove((Integer)chassisId);
-		    					Integer currentCount = chassisIdToCountMap.get(chassisId);
-		    					chassisIdToCountMap.put(chassisId,currentCount+count);
-		    					//updateChassisUsageMap
-		    					chassisUsageMap = updateChassisUsageMap(chassisIdToCountMap);
-		    				}
-		    				if (numRequiredBlades ==0){
-    							break;
-    						}
-			    			
-		    			}
-		    			if (numRequiredBlades ==0){
-							break;
-						}
-		    		}
-				}
-				
-			}
-    		
-    	}
-    	StringBuffer sbuf = new StringBuffer();
-    	sbuf.append("Selected Blades are:\n");
-       	for (String blade: selectedBlades){
-       		sbuf.append("Blade "+blade);
-       		URI ceURI = availableBladesByChassisIdAndSlotId.get(blade);
-       		selectedCEList.add(ceURI);
-       	}
-       	_log.debug(sbuf.toString());
-    	return selectedCEList;
+    private List<URI> pickBladesByStrafingAlgorithm(List<URI> availableList, int numRequiredBlades, List<ComputeElement> usedCEList)
+            throws DatabaseException {
+        if (usedCEList == null) {
+            usedCEList = new ArrayList<ComputeElement>();
+        }
+        _log.debug("In pickBladesByStrafingAlgorithm");
+        List<URI> selectedCEList = new ArrayList<URI>();
+        List<ComputeElement> availableCEList = new ArrayList<ComputeElement>();
+
+        // Find numChassis and numSlot (M and N)
+        // Populate M x N matrix of 1s for available blades
+        // Build chassisUsageMap : chassisUsageCount to Set of chassisIds . sort by key asc
+        // Build slotUsageMap: slotUsageCount to set of SlotIds. sort by key desc
+        // Build slotCountMap: slotId to slotCount
+        // ///Build slot availabilityMap availableSlotsCount to Set of slotIds.
+        // boolean useUsedSlots = false if usedCEsList is empty
+        // For each chassisCount in chassisUsageMap, loop through the chassises wit that count
+        // if useUsedSlots is true, On each of those chassis, find the slot that is available and has maximum usage count
+        // if useUsedSlots is false, on each of those chassis, find the slot that has maximum available slots
+        for (URI uri : availableList) {
+            ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, uri);
+            _log.debug("computeElement:" + computeElement.getLabel() + " chassisId:" + computeElement.getChassisId() + " slotId:"
+                    + computeElement.getSlotId());
+            // ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class,computeElement.getComputeSystem());
+            availableCEList.add(computeElement);
+        }
+        int numChassis = 0;
+        int numSlot = 0;
+        for (ComputeElement ce : availableCEList) {
+            int chassisId = Integer.parseInt(ce.getChassisId());
+            long slotId = ce.getSlotId();
+            if (chassisId > numChassis) {
+                numChassis = chassisId;
+            }
+            if (slotId > numSlot) {
+                numSlot = (int) slotId;
+            }
+        }
+        for (ComputeElement ce : usedCEList) {
+            int chassisId = Integer.parseInt(ce.getChassisId());
+            long slotId = ce.getSlotId();
+            if (chassisId > numChassis) {
+                numChassis = chassisId;
+            }
+            if (slotId > numSlot) {
+                numSlot = (int) slotId;
+            }
+        }
+        int M = numChassis + 1;
+        int N = numSlot + 1;
+        _log.debug("M:" + M + " N:" + N);
+        int[][] availableBlades = new int[M][N];
+        Map<String, URI> availableBladesByChassisIdAndSlotId = new HashMap<String, URI>();
+        for (ComputeElement ce : availableCEList) {
+            int chassisId = Integer.parseInt(ce.getChassisId());
+            long l_slotId = ce.getSlotId();
+            int slotId = (int) l_slotId;
+            if (ce.getAvailable()) {
+                availableBlades[chassisId][slotId] = 1;
+                availableBladesByChassisIdAndSlotId.put(chassisId + "," + slotId, ce.getId());
+            } else {
+                availableBlades[chassisId][slotId] = 0;
+            }
+        }
+        int[][] usedBlades = new int[M][N];
+        for (ComputeElement ce : usedCEList) {
+            int chassisId = Integer.parseInt(ce.getChassisId());
+            long l_slotId = ce.getSlotId();
+            int slotId = (int) l_slotId;
+            usedBlades[chassisId][slotId] = 1;
+        }
+        Map<Integer, Integer> chassisIdToCountMap = new HashMap<Integer, Integer>();
+        Map<Integer, Set<Integer>> chassisUsageMap = new TreeMap<Integer, Set<Integer>>();
+        List<Integer> unusedChassisIds = new ArrayList<Integer>();
+        for (int chassisId = 1; chassisId <= numChassis; chassisId++) {
+            int chassisUsageCount = 0;
+            for (int slotId = 1; slotId <= numSlot; slotId++) {
+                chassisUsageCount = chassisUsageCount + usedBlades[chassisId][slotId];
+            }
+            Integer key = Integer.valueOf(chassisUsageCount);
+            Set<Integer> chassisIdSet = chassisUsageMap.get(key);
+            if (chassisIdSet == null) {
+                chassisIdSet = new HashSet<Integer>();
+            }
+            chassisIdSet.add(Integer.valueOf(chassisId));
+            chassisUsageMap.put(chassisUsageCount, chassisIdSet);
+            chassisIdToCountMap.put(Integer.valueOf(chassisId), Integer.valueOf(chassisUsageCount));
+            if (chassisUsageCount == 0) {
+                unusedChassisIds.add(chassisId);
+            }
+            _log.debug("chassisId:" + chassisId + " usageCount:" + chassisUsageCount);
+        }
+        for (int chassisId : unusedChassisIds) {
+            _log.debug("unusedChassis:" + chassisId);
+        }
+
+        Map<Integer, Integer> slotIdToCountMap = new HashMap<Integer, Integer>();
+        NavigableMap<Integer, Set<Integer>> slotUsageMap = new TreeMap<Integer, Set<Integer>>();
+        for (int slotId = 1; slotId <= numSlot; slotId++) {
+            int slotUsageCount = 0;
+            for (int chassisId = 1; chassisId <= numChassis; chassisId++) {
+                slotUsageCount = slotUsageCount + usedBlades[chassisId][slotId];
+            }
+            Integer key = Integer.valueOf(slotUsageCount);
+            Set<Integer> slotIdSet = slotUsageMap.get(key);
+            if (slotIdSet == null) {
+                slotIdSet = new HashSet<Integer>();
+            }
+            slotIdSet.add(Integer.valueOf(slotId));
+            slotUsageMap.put(slotUsageCount, slotIdSet);
+            slotIdToCountMap.put(Integer.valueOf(slotId), Integer.valueOf(slotUsageCount));
+            _log.debug("slotId:" + slotId + " usageCount:" + slotUsageCount);
+        }
+        // sort the slotUsageMap by its keys in descending order
+        Map<Integer, Set<Integer>> descSlotUsageMap = slotUsageMap.descendingMap();
+
+        boolean useUsedSlots = true;
+
+        if (usedCEList.isEmpty()) {
+            useUsedSlots = false;
+        }
+        boolean avoidUsedChassis = true;
+        if (unusedChassisIds.isEmpty()) {
+            avoidUsedChassis = false;
+        }
+        List<String> selectedBlades = new ArrayList<String>();
+
+        while (numRequiredBlades > 0) {
+            if (!useUsedSlots) {// No slots used so far.
+                // Now find the slot or slots which are max available
+                _log.debug("No slots used so far. Find max available slot.");
+                int selectedSlotId = 0;
+                int maxSum = 0;
+                for (int slotId = 1; slotId <= numSlot; slotId++) {
+                    int sum = 0;
+                    for (int chassisId = 1; chassisId <= numChassis; chassisId++) {
+                        sum = sum + availableBlades[chassisId][slotId];
+                    }
+                    if (sum > maxSum) {
+                        selectedSlotId = slotId;
+                        maxSum = sum;
+                        if (sum >= numRequiredBlades) { // Stop when we find first slot that enough free blades to satisfy numRequiredBlades
+                            break;
+                        }
+                    }
+                }
+                _log.debug("max available slot is:" + selectedSlotId);
+                // From selected slot pick as many blades as possible
+                for (int chassisId = 1; chassisId <= numChassis; chassisId++) {
+                    if (availableBlades[chassisId][selectedSlotId] == 1) {
+                        _log.debug("selected blade " + chassisId + "/" + selectedSlotId);
+                        selectedBlades.add(chassisId + "," + selectedSlotId);
+                        availableBlades[chassisId][selectedSlotId] = 0;
+                        numRequiredBlades--;
+                        if (numRequiredBlades == 0) {
+                            break;
+                        }
+                    }
+                }
+                useUsedSlots = true;
+            } else {
+                Set<Integer> preferredChassisIds = new HashSet<Integer>();
+                if (avoidUsedChassis) {
+                    _log.debug("Pick from unused chassis first");
+                    preferredChassisIds.addAll(unusedChassisIds);
+                    // Pick blades from the max used slots on the preferred chassis
+                    // Starting with max used slot, loop thru slots to find ones that are available on preferred chassis
+                    Iterator<Integer> iter = descSlotUsageMap.keySet().iterator();
+                    while (iter.hasNext()) {
+                        Integer slotUsageCount = iter.next();
+                        Set<Integer> preferredSlotIds = descSlotUsageMap.get(slotUsageCount);// slotIds with max usage
+                        /*
+                         * This is not part of the blade strafing algorithm in UIM. Hence commenting out.
+                         * Uncomment if this modification to algorithm is required.
+                         * //Order these slots that have same slotUSageCount, in descending order of number of available blades on unused
+                         * chassis.
+                         * NavigableMap<Integer,Set<Integer> >slotIdAvailabilityMap = new TreeMap<Integer,Set<Integer>>();
+                         * for (int slotId : preferredSlotIds){
+                         * int availabilityCount = 0;
+                         * for (int chassisId : preferredChassisIds){
+                         * if (availableBlades[chassisId][slotId] ==1){
+                         * availabilityCount++;
+                         * }
+                         * }
+                         * Set<Integer> slotIdSet = slotIdAvailabilityMap.get(availabilityCount);
+                         * if (slotIdSet ==null){
+                         * slotIdSet = new HashSet<Integer>();
+                         * }
+                         * slotIdSet.add(slotId);
+                         * slotIdAvailabilityMap.put(availabilityCount,slotIdSet);
+                         * }
+                         * 
+                         * Iterator<Integer> iterator = slotIdAvailabilityMap.keySet().iterator();
+                         * while(iterator.hasNext()){
+                         * Integer availabilityCount = iterator.next();
+                         * Set<Integer> mostPreferredSlotIds = slotIdAvailabilityMap.get(availabilityCount);
+                         * for (int slotId : mostPreferredSlotIds){
+                         * Comment the next statement - for(int slotId : preferredSlotIds) when uncommenting this section
+                         */
+                        for (int slotId : preferredSlotIds) {
+                            _log.debug("preferred slotId: " + slotId + " with usage count: " + slotUsageCount);
+                            for (int chassisId : preferredChassisIds) {
+                                if (availableBlades[chassisId][slotId] == 1) {
+                                    _log.debug("selected Blade: " + chassisId + "/" + slotId);
+                                    selectedBlades.add(chassisId + "," + slotId);
+                                    availableBlades[chassisId][slotId] = 0;
+                                    numRequiredBlades--;
+                                    unusedChassisIds.remove((Integer) chassisId);
+                                    Integer currentCount = chassisIdToCountMap.get(chassisId);
+                                    chassisIdToCountMap.put(chassisId, currentCount + 1);
+                                    // updateChassisUsageMap
+                                    chassisUsageMap = updateChassisUsageMap(chassisIdToCountMap);
+                                    if (numRequiredBlades == 0) {
+                                        break;
+                                    }
+                                }
+                            }
+                            if (numRequiredBlades == 0) {
+                                break;
+                            }
+                        }
+                    }
+                    avoidUsedChassis = false;
+                } else {
+                    _log.debug(" No more blades from unused chassis. Pick from least used chassis.");
+                    Iterator<Integer> iter = chassisUsageMap.keySet().iterator();
+                    while (iter.hasNext()) {
+                        Integer chassisUsageCount = iter.next();
+                        preferredChassisIds = chassisUsageMap.get(chassisUsageCount);// chassisIds with least usage
+                        // Pick blades from preferredChassis
+                        for (int chassisId : preferredChassisIds) {
+                            int count = 0;
+                            _log.debug("preferred chassis :" + chassisId + "with usgae count:" + chassisUsageCount);
+                            for (int slotId = 1; slotId <= numSlot; slotId++) {
+                                if (availableBlades[chassisId][slotId] == 1) {
+                                    numRequiredBlades--;
+                                    _log.debug("selected blade: " + chassisId + "/" + slotId);
+                                    selectedBlades.add(chassisId + "," + slotId);
+                                    count++;
+                                    if (preferredChassisIds.size() > 1) { // pick one from each if there are multiple preferred chassis
+                                        break;
+                                    }
+                                    if (numRequiredBlades == 0) {
+                                        break;
+                                    }
+                                }
+                            }
+                            if (count > 0) {
+                                unusedChassisIds.remove((Integer) chassisId);
+                                Integer currentCount = chassisIdToCountMap.get(chassisId);
+                                chassisIdToCountMap.put(chassisId, currentCount + count);
+                                // updateChassisUsageMap
+                                chassisUsageMap = updateChassisUsageMap(chassisIdToCountMap);
+                            }
+                            if (numRequiredBlades == 0) {
+                                break;
+                            }
+
+                        }
+                        if (numRequiredBlades == 0) {
+                            break;
+                        }
+                    }
+                }
+
+            }
+
+        }
+        StringBuffer sbuf = new StringBuffer();
+        sbuf.append("Selected Blades are:\n");
+        for (String blade : selectedBlades) {
+            sbuf.append("Blade " + blade);
+            URI ceURI = availableBladesByChassisIdAndSlotId.get(blade);
+            selectedCEList.add(ceURI);
+        }
+        _log.debug(sbuf.toString());
+        return selectedCEList;
     }
-    
-    private NavigableMap<Integer,Set<Integer>> updateChassisUsageMap(Map<Integer,Integer>  chassisIdToCountMap){
-    	NavigableMap<Integer,Set<Integer>> chassisUsageMap = new TreeMap<Integer,Set<Integer>>();
-    	for (Map.Entry<Integer,Integer>  entry : chassisIdToCountMap.entrySet()){
-    		int chassisId = entry.getKey();
-    		int chassisCount = entry.getValue();
-    		Set<Integer> chassisNumberSet = chassisUsageMap.get(chassisCount);
-    		if (chassisNumberSet==null){
-    			chassisNumberSet = new HashSet<Integer>();
-    		}
-    		chassisNumberSet.add(chassisId);
-    		chassisUsageMap.put(chassisCount,chassisNumberSet);
-    	}
-    	return chassisUsageMap;
+
+    private NavigableMap<Integer, Set<Integer>> updateChassisUsageMap(Map<Integer, Integer> chassisIdToCountMap) {
+        NavigableMap<Integer, Set<Integer>> chassisUsageMap = new TreeMap<Integer, Set<Integer>>();
+        for (Map.Entry<Integer, Integer> entry : chassisIdToCountMap.entrySet()) {
+            int chassisId = entry.getKey();
+            int chassisCount = entry.getValue();
+            Set<Integer> chassisNumberSet = chassisUsageMap.get(chassisCount);
+            if (chassisNumberSet == null) {
+                chassisNumberSet = new HashSet<Integer>();
+            }
+            chassisNumberSet.add(chassisId);
+            chassisUsageMap.put(chassisCount, chassisNumberSet);
+        }
+        return chassisUsageMap;
     }
 
     private Host populateHost(TenantOrg t, String name, String ceId, URI clusterId, URI cvpId) {
@@ -1769,100 +1808,100 @@ public class HostService extends TaskResourceService {
         return host;
     }
 
-	/**
-	 * Install operating system on the host.
-	 * 
-	 * @param hostId
-	 *            host URI
-	 * @param param
-	 *            OS install data
-	 * @brief Install operating system on the host
-	 * @return TaskResourceRep (asynchronous call)
-	 */
-	@PUT
-	@Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-	@Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-	@Path("/{id}/os-install")
-	public TaskResourceRep osInstall(@PathParam("id") URI hostId, OsInstallParam param) {
-		// validate params
-		ArgValidator.checkFieldUriType(hostId, Host.class, "id");
-		ArgValidator.checkFieldNotNull(param.getComputeImage(), "compute_image");
+    /**
+     * Install operating system on the host.
+     * 
+     * @param hostId
+     *            host URI
+     * @param param
+     *            OS install data
+     * @brief Install operating system on the host
+     * @return TaskResourceRep (asynchronous call)
+     */
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/os-install")
+    public TaskResourceRep osInstall(@PathParam("id") URI hostId, OsInstallParam param) {
+        // validate params
+        ArgValidator.checkFieldUriType(hostId, Host.class, "id");
+        ArgValidator.checkFieldNotNull(param.getComputeImage(), "compute_image");
 
-		// get data
-		ComputeImage img = queryObject(ComputeImage.class, param.getComputeImage(), true);
-		ArgValidator.checkEntity(img, param.getComputeImage(),
-				isIdEmbeddedInURL(param.getComputeImage()));
-		if (!ComputeImageStatus.AVAILABLE.name().equals(img.getComputeImageStatus())) {
-			throw APIException.badRequests.invalidParameterComputeImageIsNotAvailable(img.getId());
-		}
+        // get data
+        ComputeImage img = queryObject(ComputeImage.class, param.getComputeImage(), true);
+        ArgValidator.checkEntity(img, param.getComputeImage(),
+                isIdEmbeddedInURL(param.getComputeImage()));
+        if (!ComputeImageStatus.AVAILABLE.name().equals(img.getComputeImageStatus())) {
+            throw APIException.badRequests.invalidParameterComputeImageIsNotAvailable(img.getId());
+        }
 
-		Host host = queryObject(Host.class, hostId, true);
-		ArgValidator.checkEntity(host, hostId, isIdEmbeddedInURL(hostId));
-		
-		// only support os install on hosts with compute elements
-		if (host.getComputeElement() == null) {
-			throw APIException.badRequests.invalidParameterHostHasNoComputeElement();
-		}
-		
-		if (!host.getType().equals(Host.HostType.No_OS.name()) && !param.getForceInstallation()) {
-			throw APIException.badRequests.invalidParameterHostAlreadyHasOs(host.getType());
-		}
+        Host host = queryObject(Host.class, hostId, true);
+        ArgValidator.checkEntity(host, hostId, isIdEmbeddedInURL(hostId));
 
-		if (!StringUtils.isNotBlank(param.getRootPassword())) {
-			throw APIException.badRequests.hostPasswordNotSet();
-		}else{
-		      host.setPassword(param.getRootPassword());
-		      host.setUsername("root");
-		}
-		
-		// check that CS has os install network
-		ComputeElement ce = queryObject(ComputeElement.class, host.getComputeElement(), true);
-		ArgValidator.checkEntity(ce, host.getComputeElement(), isIdEmbeddedInURL(host.getComputeElement()));
-		
-		if (ce.getUuid() == null) {
-			throw APIException.badRequests.computeElementHasNoUuid();
-		}
-		
-		ComputeSystem cs = queryObject(ComputeSystem.class, ce.getComputeSystem(), true);
-		ArgValidator.checkEntity(cs, ce.getComputeSystem(), isIdEmbeddedInURL(ce.getComputeSystem()));
-		
-		if (!StringUtils.isNotBlank(cs.getOsInstallNetwork())) {
-			throw APIException.badRequests.osInstallNetworkNotSet();
-		}
-		
-		if (!cs.getVlans().contains(cs.getOsInstallNetwork())) {
-			throw APIException.badRequests.osInstallNetworkNotValid(cs.getOsInstallNetwork());
-		}
+        // only support os install on hosts with compute elements
+        if (host.getComputeElement() == null) {
+            throw APIException.badRequests.invalidParameterHostHasNoComputeElement();
+        }
 
-		// check that there is no os install in progress for this host
-		URIQueryResultList jobUriList = new URIQueryResultList();
-		_dbClient.queryByConstraint(ContainmentConstraint.Factory.getComputeImageJobsByHostConstraint(host.getId()),
-				jobUriList);
-		Iterator<URI> iterator = jobUriList.iterator();
-		while (iterator.hasNext()) {
-			ComputeImageJob existingJob = _dbClient.queryObject(ComputeImageJob.class, iterator.next());
-			if (!existingJob.getInactive() && existingJob.getJobStatus().equals(ComputeImageJob.JobStatus.CREATED.name())) {
-				throw APIException.badRequests.osInstallAlreadyInProgress();
-			}
-		}
+        if (!host.getType().equals(Host.HostType.No_OS.name()) && !param.getForceInstallation()) {
+            throw APIException.badRequests.invalidParameterHostAlreadyHasOs(host.getType());
+        }
 
-		// openssl passwd -1 (MD5 encryption of password)
-		String passwordHash = Md5Crypt.md5Crypt(host.getPassword().getBytes());
+        if (!StringUtils.isNotBlank(param.getRootPassword())) {
+            throw APIException.badRequests.hostPasswordNotSet();
+        } else {
+            host.setPassword(param.getRootPassword());
+            host.setUsername("root");
+        }
 
-		// create session
-		ComputeImageJob job = new ComputeImageJob();
-		job.setId(URIUtil.createId(ComputeImageJob.class));
-		job.setComputeImageId(img.getId());
-		job.setHostId(host.getId());
-		job.setPasswordHash(passwordHash);
-		job.setHostName(param.getHostName());
-		job.setHostIp(param.getHostIp());
-		job.setNetmask(param.getNetmask());
-		job.setGateway(param.getGateway());
-		job.setNtpServer(param.getNtpServer());
-		job.setDnsServers(param.getDnsServers());
-		job.setManagementNetwork(param.getManagementNetwork());
-		job.setPxeBootIdentifier(ImageServerUtils.uuidFromString(host.getUuid()).toString());
+        // check that CS has os install network
+        ComputeElement ce = queryObject(ComputeElement.class, host.getComputeElement(), true);
+        ArgValidator.checkEntity(ce, host.getComputeElement(), isIdEmbeddedInURL(host.getComputeElement()));
+
+        if (ce.getUuid() == null) {
+            throw APIException.badRequests.computeElementHasNoUuid();
+        }
+
+        ComputeSystem cs = queryObject(ComputeSystem.class, ce.getComputeSystem(), true);
+        ArgValidator.checkEntity(cs, ce.getComputeSystem(), isIdEmbeddedInURL(ce.getComputeSystem()));
+
+        if (!StringUtils.isNotBlank(cs.getOsInstallNetwork())) {
+            throw APIException.badRequests.osInstallNetworkNotSet();
+        }
+
+        if (!cs.getVlans().contains(cs.getOsInstallNetwork())) {
+            throw APIException.badRequests.osInstallNetworkNotValid(cs.getOsInstallNetwork());
+        }
+
+        // check that there is no os install in progress for this host
+        URIQueryResultList jobUriList = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getComputeImageJobsByHostConstraint(host.getId()),
+                jobUriList);
+        Iterator<URI> iterator = jobUriList.iterator();
+        while (iterator.hasNext()) {
+            ComputeImageJob existingJob = _dbClient.queryObject(ComputeImageJob.class, iterator.next());
+            if (!existingJob.getInactive() && existingJob.getJobStatus().equals(ComputeImageJob.JobStatus.CREATED.name())) {
+                throw APIException.badRequests.osInstallAlreadyInProgress();
+            }
+        }
+
+        // openssl passwd -1 (MD5 encryption of password)
+        String passwordHash = Md5Crypt.md5Crypt(host.getPassword().getBytes());
+
+        // create session
+        ComputeImageJob job = new ComputeImageJob();
+        job.setId(URIUtil.createId(ComputeImageJob.class));
+        job.setComputeImageId(img.getId());
+        job.setHostId(host.getId());
+        job.setPasswordHash(passwordHash);
+        job.setHostName(param.getHostName());
+        job.setHostIp(param.getHostIp());
+        job.setNetmask(param.getNetmask());
+        job.setGateway(param.getGateway());
+        job.setNtpServer(param.getNtpServer());
+        job.setDnsServers(param.getDnsServers());
+        job.setManagementNetwork(param.getManagementNetwork());
+        job.setPxeBootIdentifier(ImageServerUtils.uuidFromString(host.getUuid()).toString());
 
         // volume id is optional
         if (!NullColumnValueGetter.isNullURI(param.getVolume())
@@ -1892,26 +1931,25 @@ public class HostService extends TaskResourceService {
         _dbClient.persistObject(host);
         _dbClient.createObject(job);
 
-		// create task
-		String taskId = UUID.randomUUID().toString();
-		Operation op = new Operation();
-		op.setResourceType(ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM);
-		_dbClient.createTaskOpStatus(Host.class, host.getId(), taskId, op);
+        // create task
+        String taskId = UUID.randomUUID().toString();
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM);
+        _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId, op);
 
-		ImageServerController controller = getController(ImageServerController.class, null);
+        ImageServerController controller = getController(ImageServerController.class, null);
 
-		AsyncTask task = new AsyncTask(Host.class, host.getId(), taskId);
-		
+        AsyncTask task = new AsyncTask(Host.class, host.getId(), taskId);
+
         try {
             controller.installOperatingSystem(task, job.getId());
-        }
-        catch (InternalException e) {
+        } catch (InternalException e) {
             _log.error("Did not install OS due to controller error", e);
             job.setJobStatus(ComputeImageJob.JobStatus.FAILED.name());
             _dbClient.persistObject(job);
             _dbClient.error(Host.class, host.getId(), taskId, e);
         }
 
-		return toTask(host, taskId, op);
-	}
+        return toTask(host, taskId, op);
+    }
 }

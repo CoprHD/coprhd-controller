@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util.builders;
@@ -67,8 +67,8 @@ public class FileVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
     public static VirtualPoolProtectionSnapshotsParam getSnapshots(FileVirtualPoolProtectionParam protection) {
         return protection != null ? protection.getSnapshots() : null;
     }
-    
-    public FileVirtualPoolUpdateBuilder setLongTermRetention (Boolean longTermRetention) {
+
+    public FileVirtualPoolUpdateBuilder setLongTermRetention(Boolean longTermRetention) {
         if (!ObjectUtils.equals(longTermRetention, oldVirtualPool.getLongTermRetention())) {
             getVirtualPoolUpdate().setLongTermRetention(longTermRetention);
         }

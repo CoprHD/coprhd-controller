@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.hds.xmlgen.beans;
 
@@ -23,64 +13,70 @@ public class Operation {
     private String parent;
     private List<XmlElementSequenceAttribute> xmlElementSequenceAttributeList;
     private String xmlElementsToClose;
-    
-    
+
     /**
      * @return the name
      */
     public String getName() {
         return name;
     }
+
     /**
      * @param name the name to set
      */
     public void setName(String name) {
         this.name = name;
     }
+
     /**
      * @return the models
      */
     public String getModels() {
         return models;
     }
+
     /**
      * @param models the models to set
      */
     public void setModels(String models) {
         this.models = models;
     }
-    
+
     /**
      * @return the parent
      */
     public String getParent() {
         return parent;
     }
+
     /**
      * @param parent the parent to set
      */
     public void setParent(String parent) {
         this.parent = parent;
     }
-    
+
     /**
      * @return the xmlElementSequence
      */
     public String getXmlElementSequence() {
         return xmlElementSequence;
     }
+
     /**
      * @param xmlElementSequence the xmlElementSequence to set
      */
     public void setXmlElementSequence(String xmlElementSequence) {
         this.xmlElementSequence = xmlElementSequence;
     }
+
     /**
      * @return the xmlElementSequenceAttributeList
      */
     public List<XmlElementSequenceAttribute> getXmlElementSequenceAttributeList() {
         return xmlElementSequenceAttributeList;
     }
+
     /**
      * @param xmlElementSequenceAttributeList the xmlElementSequenceAttributeList to set
      */
@@ -88,12 +84,14 @@ public class Operation {
             List<XmlElementSequenceAttribute> xmlElementSequenceAttributeList) {
         this.xmlElementSequenceAttributeList = xmlElementSequenceAttributeList;
     }
+
     /**
      * @return the xmlElementsToClose
      */
     public String getXmlElementsToClose() {
         return xmlElementsToClose;
     }
+
     /**
      * @param xmlElementsToClose the xmlElementsToClose to set
      */

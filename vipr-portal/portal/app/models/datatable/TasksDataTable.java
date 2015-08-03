@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -13,7 +13,6 @@ import java.util.Objects;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.model.TaskResourceRep;
 
-import controllers.Tasks;
 import play.mvc.Router;
 import util.TagUtils;
 import util.TaskUtils;
@@ -29,11 +28,11 @@ public class TasksDataTable extends DataTable {
     public TasksDataTable() {
         setupTable(false);
     }
-    
+
     public TasksDataTable(boolean addResourceColumn) {
         setupTable(addResourceColumn);
     }
-     
+
     private void setupTable(boolean addResourceColumn) {
         addColumn("creationTime").hidden().setSearchable(false);
         addColumn("systemName").hidden();
@@ -92,13 +91,13 @@ public class TasksDataTable extends DataTable {
         public String orderNumber;
 
         public Task(TaskResourceRep taskResourceRep) {
-            load(taskResourceRep); 
+            load(taskResourceRep);
         }
 
         public Task(com.emc.vipr.client.Task<?> clientTask) {
-            load(clientTask.getTaskResource());        
+            load(clientTask.getTaskResource());
         }
-        
+
         private void load(TaskResourceRep taskResourceRep) {
             if (taskResourceRep.getServiceError() != null) {
                 this.errorCode = taskResourceRep.getServiceError().getCode();
@@ -116,7 +115,7 @@ public class TasksDataTable extends DataTable {
                 this.resourceName = taskResourceRep.getResource().getName();
             }
             this.state = taskResourceRep.getState();
-            this.displayState = Objects.equals(this.state, "ready")? "complete":this.state;
+            this.displayState = Objects.equals(this.state, "ready") ? "complete" : this.state;
 
             this.description = taskResourceRep.getDescription();
             this.message = taskResourceRep.getMessage();
@@ -131,19 +130,19 @@ public class TasksDataTable extends DataTable {
             if (taskResourceRep.getProgress() != null) {
                 this.progress = Math.max(taskResourceRep.getProgress(), MINIMUM_TASK_PROGRESS);
             }
-            
+
             this.orderId = TagUtils.getOrderIdTagValue(taskResourceRep);
             this.orderNumber = TagUtils.getOrderNumberTagValue(taskResourceRep);
-            
+
             // Create Row Link
             Map<String, Object> args = Maps.newHashMap();
             args.put("taskId", id);
             this.rowLink = Router.reverse("Tasks.details", args).url;
-            
+
             // Temporary Fix since ERROR tasks don't show as complete
-            if (Objects.equals(taskResourceRep.getState(),"error")) {
+            if (Objects.equals(taskResourceRep.getState(), "error")) {
                 progress = 100;
-            }                  
+            }
         }
     }
 }

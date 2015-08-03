@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.linux.tasks;
@@ -7,9 +7,9 @@ package com.emc.sa.service.linux.tasks;
 import com.iwave.ext.linux.command.AddToFSTabCommand;
 
 public class AddToFSTab extends LinuxExecutionTask<Void> {
-    
+
     public static final String DEFAULT_OPTIONS = "defaults";
-    
+
     private String device;
     private String path;
     private String fsType;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.networkcontroller.impl.mds;
@@ -23,7 +23,7 @@ public class ZoneWwnAliasUpdate extends ZoneWwnAlias {
         setNewName(newName);
         setNewAddress(newAddress);
     }
-    
+
     public String getNewName() {
         return newName;
     }
@@ -35,15 +35,16 @@ public class ZoneWwnAliasUpdate extends ZoneWwnAlias {
     public String getNewAddress() {
         return this.newAddress;
     }
-    
+
     public void setNewAddress(String newAddress) {
-        if ( StringUtils.isEmpty(newAddress) ) 
+        if (StringUtils.isEmpty(newAddress)) {
             return;
-        
-        if ( EndpointUtility.isValidEndpoint(newAddress, EndpointType.WWN)) {      
-            this.newAddress =  EndpointUtility.changeCase(newAddress) ;
+        }
+
+        if (EndpointUtility.isValidEndpoint(newAddress, EndpointType.WWN)) {
+            this.newAddress = EndpointUtility.changeCase(newAddress);
         } else {
-            throw APIException.badRequests.illegalWWN(newAddress);         
-        }     
-    }    
+            throw APIException.badRequests.illegalWWN(newAddress);
+        }
+    }
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor;
 
@@ -29,7 +19,6 @@ import javax.cim.CIMInstance;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 /**
  * processor to get Device Type (vnx or vmax, or IBM XIV) for StorageSystem.
@@ -40,8 +29,8 @@ public class ModelProcessor extends Processor {
     private static final String VNX = "vnx";
     private static final String VMAX = "vmax";
     private static final String MODEL = "Model";
-    private static final String TYPE_DESC = "ChassisTypeDescription";  
-    
+    private static final String TYPE_DESC = "ChassisTypeDescription";
+
     private Logger _logger = LoggerFactory.getLogger(ModelProcessor.class);
 
     /**
@@ -96,22 +85,22 @@ public class ModelProcessor extends Processor {
                 String nativeGuid = NativeGUIDGenerator.generateNativeGuid(deviceType, serialID);
 
                 if (storageSystemsCache.containsKey(nativeGuid)) {
-					systemVO = storageSystemsCache.get(nativeGuid);
-				} else {
-					systemVO = new StorageSystemViewObject();
-				}
+                    systemVO = storageSystemsCache.get(nativeGuid);
+                } else {
+                    systemVO = new StorageSystemViewObject();
+                }
                 systemVO.setDeviceType(deviceType);
-				systemVO.addprovider(profile.getSystemId().toString());
-				systemVO.setProperty(StorageSystemViewObject.MODEL, model);
-				systemVO.setProperty(StorageSystemViewObject.SERIAL_NUMBER,serialID);
-                systemVO.setProperty(StorageSystemViewObject.STORAGE_NAME,nativeGuid);
-				storageSystemsCache.put(nativeGuid, systemVO);
+                systemVO.addprovider(profile.getSystemId().toString());
+                systemVO.setProperty(StorageSystemViewObject.MODEL, model);
+                systemVO.setProperty(StorageSystemViewObject.SERIAL_NUMBER, serialID);
+                systemVO.setProperty(StorageSystemViewObject.STORAGE_NAME, nativeGuid);
+                storageSystemsCache.put(nativeGuid, systemVO);
             }
             _logger.info("Found {} systems during scanning for ip {}", storageSystemsCache.size(),
                     profile.getIpAddress());
             resultObj = null;
         } catch (Exception e) {
-            _logger.error(e.getMessage(),e);
+            _logger.error(e.getMessage(), e);
             _logger.error("Model Extraction failed for {}-->{}",
                     modelInstance.getObjectPath(), getMessage(e));
         }

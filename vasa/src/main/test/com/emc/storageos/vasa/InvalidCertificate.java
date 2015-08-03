@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 
@@ -12,36 +12,33 @@
 
 package com.emc.storageos.vasa;
 
-public class InvalidCertificate extends java.lang.Exception{
+public class InvalidCertificate extends java.lang.Exception {
 
     private static final long serialVersionUID = 1348562968804L;
-    
+
     private com.emc.storageos.vasa.VasaServiceStub.InvalidCertificateE faultMessage;
 
-    
-        public InvalidCertificate() {
-            super("InvalidCertificate");
-        }
-
-        public InvalidCertificate(java.lang.String s) {
-           super(s);
-        }
-
-        public InvalidCertificate(java.lang.String s, java.lang.Throwable ex) {
-          super(s, ex);
-        }
-
-        public InvalidCertificate(java.lang.Throwable cause) {
-            super(cause);
-        }
-    
-
-    public void setFaultMessage(com.emc.storageos.vasa.VasaServiceStub.InvalidCertificateE msg){
-       faultMessage = msg;
+    public InvalidCertificate() {
+        super("InvalidCertificate");
     }
-    
-    public com.emc.storageos.vasa.VasaServiceStub.InvalidCertificateE getFaultMessage(){
-       return faultMessage;
+
+    public InvalidCertificate(java.lang.String s) {
+        super(s);
+    }
+
+    public InvalidCertificate(java.lang.String s, java.lang.Throwable ex) {
+        super(s, ex);
+    }
+
+    public InvalidCertificate(java.lang.Throwable cause) {
+        super(cause);
+    }
+
+    public void setFaultMessage(com.emc.storageos.vasa.VasaServiceStub.InvalidCertificateE msg) {
+        faultMessage = msg;
+    }
+
+    public com.emc.storageos.vasa.VasaServiceStub.InvalidCertificateE getFaultMessage() {
+        return faultMessage;
     }
 }
-    

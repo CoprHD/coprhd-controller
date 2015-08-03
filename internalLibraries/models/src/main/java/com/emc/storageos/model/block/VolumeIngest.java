@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block;
@@ -12,14 +12,14 @@ import java.util.List;
 
 /**
  * Volume Ingest parameters
- *
+ * 
  * UnManaged Volumes are Volumes, which are present within ViPR Storage Systems, but not managed in ViPR.
  * Use GET /vdc/storage-systems/{id}/unmanaged/volumes to get list of unmanaged volume ids on a Storage System basis.
  * Use GET /vdc/unmanaged/volumes/bulk to get list of all unManaged volume ids.
  * Use POST /vdc/unmanaged/volumes/bulk to get unManaged volume data.
  * Volume Ingest provides flexibility to the user in bringing UnManaged Volumes under ViPR management.
  * User need to associate VirtualPool, Project, and VirtualArray in order to move these under ViPR Management.
- *
+ * 
  * List of Supported virtual pools for each UnManagedVolume is being exposed using /vdc/unmanaged/volumes/bulk.
  */
 @XmlRootElement(name = "volume_ingest")
@@ -29,24 +29,24 @@ public class VolumeIngest {
     private URI varray;
     private URI project;
     private List<URI> unManagedVolumes;
-    
-    
 
-    public VolumeIngest() {}
-            
+    public VolumeIngest() {
+    }
+
     public VolumeIngest(URI vpool, URI varray, URI project,
-            List<URI> unManagedVolumes ) {
+            List<URI> unManagedVolumes) {
         this.vpool = vpool;
         this.varray = varray;
         this.project = project;
         this.unManagedVolumes = unManagedVolumes;
-    
+
     }
 
     /**
-     * VirtualPool to be associated with a list of unmanaged volumes to be ingested. 
-     * @valid example:  a valid URI of a vpool
-     */     
+     * VirtualPool to be associated with a list of unmanaged volumes to be ingested.
+     * 
+     * @valid example: a valid URI of a vpool
+     */
     @XmlElement(required = true)
     public URI getVpool() {
         return vpool;
@@ -57,9 +57,10 @@ public class VolumeIngest {
     }
 
     /**
-     * VirtualArray to be associated with a list of unmanaged volumes to be ingested. 
-     * @valid example:  a valid URI of a varray
-     */     
+     * VirtualArray to be associated with a list of unmanaged volumes to be ingested.
+     * 
+     * @valid example: a valid URI of a varray
+     */
     @XmlElement(required = true)
     public URI getVarray() {
         return varray;
@@ -70,9 +71,10 @@ public class VolumeIngest {
     }
 
     /**
-     * Project to be associated with a list of unmanaged volumes to be ingested. 
-     * @valid example:  a valid URI of a Project
-     */     
+     * Project to be associated with a list of unmanaged volumes to be ingested.
+     * 
+     * @valid example: a valid URI of a Project
+     */
     @XmlElement(required = true)
     public URI getProject() {
         return project;
@@ -83,13 +85,14 @@ public class VolumeIngest {
     }
 
     /**
-     * List of unmanaged volumes to be ingested. 
+     * List of unmanaged volumes to be ingested.
+     * 
      * @valid none
-     */     
+     */
     @XmlElement(name = "unmanaged_volume_list", required = true)
     public List<URI> getUnManagedVolumes() {
         if (unManagedVolumes == null) {
-            unManagedVolumes = new ArrayList<URI>(); 
+            unManagedVolumes = new ArrayList<URI>();
         }
         return unManagedVolumes;
     }
@@ -97,7 +100,5 @@ public class VolumeIngest {
     public void setUnManagedVolumes(List<URI> unManagedVolumes) {
         this.unManagedVolumes = unManagedVolumes;
     }
-    
 
-    
 }

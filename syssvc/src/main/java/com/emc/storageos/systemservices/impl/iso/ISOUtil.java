@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.iso;
 
@@ -41,12 +31,12 @@ public class ISOUtil {
         }
     }
 
-    public static void putIntLSBMSB(ByteBuffer byteBuffer, int value){
+    public static void putIntLSBMSB(ByteBuffer byteBuffer, int value) {
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN).putInt(value);
         byteBuffer.order(ByteOrder.BIG_ENDIAN).putInt(value);
     }
 
-    public static void putShortLSBMSB(ByteBuffer byteBuffer, short value){
+    public static void putShortLSBMSB(ByteBuffer byteBuffer, short value) {
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN).putShort(value);
         byteBuffer.order(ByteOrder.BIG_ENDIAN).putShort(value);
     }
@@ -69,7 +59,7 @@ public class ISOUtil {
         byteBuffer.put((byte) hour);
         byteBuffer.put((byte) minute);
         byteBuffer.put((byte) second);
-        if(gmt_offset > 0)
+        if (gmt_offset > 0)
         {
             byteBuffer.put((byte) gmt_offset);
         }
@@ -98,10 +88,10 @@ public class ISOUtil {
         byteBuffer.put(padIntToString(minute, 2).getBytes());
         byteBuffer.put(padIntToString(second, 2).getBytes());
         byteBuffer.put(padIntToString(hundredth_sec, 2).getBytes());
-        if(gmt_offset > 0){
+        if (gmt_offset > 0) {
             byteBuffer.put((byte) gmt_offset);
         }
-        else{
+        else {
             byteBuffer.put((byte) 0);
         }
     }
@@ -115,7 +105,7 @@ public class ISOUtil {
         return buf.toString();
     }
 
-    public static void padWithSpaces(ByteBuffer byteBuffer, int length){
+    public static void padWithSpaces(ByteBuffer byteBuffer, int length) {
         for (int i = 0; i < length; i++) {
             byteBuffer.put(SPACE);
         }

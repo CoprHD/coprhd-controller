@@ -1,9 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
-
 
 /**
  * Base data object for file shares and snapshots
@@ -13,13 +12,13 @@ public abstract class FileObject extends DataObject {
     // mount path used by hosts for this file share
     protected String _mountPath;
 
-    //path of the file object
+    // path of the file object
     protected String _path;
 
-    //FSExports
+    // FSExports
     protected FSExportMap _fsExportMap;
 
-    //SMB Shares. SMB share name should be unique across SMB server
+    // SMB Shares. SMB share name should be unique across SMB server
     protected SMBShareMap _smbShareMap;
 
     // these will include things like
@@ -29,6 +28,7 @@ public abstract class FileObject extends DataObject {
 
     /**
      * Get mount path
+     * 
      * @return
      */
     @Name("mountPath")
@@ -39,6 +39,7 @@ public abstract class FileObject extends DataObject {
 
     /**
      * Set mount path
+     * 
      * @param mountPath
      */
     public void setMountPath(String mountPath) {
@@ -48,6 +49,7 @@ public abstract class FileObject extends DataObject {
 
     /**
      * Get path
+     * 
      * @return
      */
     @Name("path")
@@ -58,6 +60,7 @@ public abstract class FileObject extends DataObject {
 
     /**
      * Set path
+     * 
      * @param path
      */
     public void setPath(String path) {
@@ -85,21 +88,22 @@ public abstract class FileObject extends DataObject {
 
     /**
      * Get extensions map
+     * 
      * @return
      */
-    @Name ("extensions")
+    @Name("extensions")
     public StringMap getExtensions() {
         return _extensions;
     }
 
     /**
      * Set extensions map - overwrites existing one
-     * @param map        StringMap of extensions to set
+     * 
+     * @param map StringMap of extensions to set
      */
     public void setExtensions(StringMap map) {
         _extensions = map;
     }
-
 
     @Override
     public String canBeDeleted() {

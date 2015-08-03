@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -99,11 +99,10 @@ public class NetworkSystems extends AbstractCoreBulkResources<NetworkSystemRestR
     }
 
     /**
-     * Gets the list of all network systems, optionally filtering the results. This is a convenience for
-     * <tt>getByRefs(list(), filter)</tt>.
+     * Gets the list of all network systems, optionally filtering the results. This is a convenience for <tt>getByRefs(list(), filter)</tt>.
      * 
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of network systems.
      */
     @Override
@@ -118,7 +117,7 @@ public class NetworkSystems extends AbstractCoreBulkResources<NetworkSystemRestR
      * API Call: <tt>POST /vdc/network-systems</tt>
      * 
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<NetworkSystemRestRep> create(NetworkSystemCreate input) {
@@ -131,9 +130,9 @@ public class NetworkSystems extends AbstractCoreBulkResources<NetworkSystemRestR
      * API Call: <tt>PUT /vdc/network-systems/{id}</tt>
      * 
      * @param id
-     *        the ID of the network system to update.
+     *            the ID of the network system to update.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<NetworkSystemRestRep> update(URI id, NetworkSystemUpdate input) {
@@ -146,7 +145,7 @@ public class NetworkSystems extends AbstractCoreBulkResources<NetworkSystemRestR
      * API Call: <tt>POST /vdc/network-systems/{id}</tt>
      * 
      * @param id
-     *        the ID of the network system to deactivate.
+     *            the ID of the network system to deactivate.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<NetworkSystemRestRep> deactivate(URI id) {
@@ -159,7 +158,7 @@ public class NetworkSystems extends AbstractCoreBulkResources<NetworkSystemRestR
      * API Call: <tt>POST /vdc/network-systems/{id}/register</tt>
      * 
      * @param id
-     *        the ID of the network system to register.
+     *            the ID of the network system to register.
      * @return the network system.
      */
     public NetworkSystemRestRep register(URI id) {
@@ -172,7 +171,7 @@ public class NetworkSystems extends AbstractCoreBulkResources<NetworkSystemRestR
      * API Call: <tt>POST /vdc/network-systems/{id}/deregister</tt>
      * 
      * @param id
-     *        the ID of the network system to deregister.
+     *            the ID of the network system to deregister.
      * @return the network system.
      */
     public NetworkSystemRestRep deregister(URI id) {
@@ -185,7 +184,7 @@ public class NetworkSystems extends AbstractCoreBulkResources<NetworkSystemRestR
      * API Call: <tt>POST /vdc/network-systems/{id}/discover</tt>
      * 
      * @param id
-     *        the ID of the network system to discover.
+     *            the ID of the network system to discover.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<NetworkSystemRestRep> discover(URI id) {
@@ -196,11 +195,11 @@ public class NetworkSystems extends AbstractCoreBulkResources<NetworkSystemRestR
      * Gets the list of FC endpoints in the given network system by ID.
      * <p>
      * API Call: <tt>GET {@value PathConstants#FC_ENDPOINT_URL}[?fabric-id={fabric-id}]</tt>
-     *
+     * 
      * @param id
-     *        the ID of the network system.
+     *            the ID of the network system.
      * @param fabricId
-     *        the fabric ID, or {@code null} if there is no fabric.
+     *            the fabric ID, or {@code null} if there is no fabric.
      * @return the list of FC endpoints.
      */
     public List<FCEndpointRestRep> getFCEndpoints(URI id, String fabricId) {
@@ -218,7 +217,7 @@ public class NetworkSystems extends AbstractCoreBulkResources<NetworkSystemRestR
      * API Call: <tt>GET {@value PathConstants#SAN_FABRIC_URL}</tt>
      * 
      * @param id
-     *        the ID of the network system.
+     *            the ID of the network system.
      * @return the list of SAN fabric names.
      */
     public List<String> getSanFabrics(URI id) {
@@ -232,9 +231,9 @@ public class NetworkSystems extends AbstractCoreBulkResources<NetworkSystemRestR
      * API Call: <tt>GET {@value PathConstants#SAN_ZONE_URL}</tt>
      * 
      * @param id
-     *        the ID of the network system.
+     *            the ID of the network system.
      * @param fabric
-     *        the name of the fabric.
+     *            the name of the fabric.
      * @return the list of SAN zones.
      */
     public List<SanZone> getSanZones(URI id, String fabric) {
@@ -248,11 +247,11 @@ public class NetworkSystems extends AbstractCoreBulkResources<NetworkSystemRestR
      * API Call: <tt>POST {@value PathConstants#SAN_ZONE_URL}</tt>
      * 
      * @param id
-     *        the ID of the network system.
+     *            the ID of the network system.
      * @param fabric
-     *        the name of the fabric.
+     *            the name of the fabric.
      * @param input
-     *        the SAN zones configuration.
+     *            the SAN zones configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<NetworkSystemRestRep> addSanZones(URI id, String fabric, SanZoneCreateParam input) {
@@ -265,11 +264,11 @@ public class NetworkSystems extends AbstractCoreBulkResources<NetworkSystemRestR
      * API Call: <tt>POST {@value PathConstants#SAN_ZONE_URL}/remove</tt>
      * 
      * @param id
-     *        the ID of the network system.
+     *            the ID of the network system.
      * @param fabric
-     *        the name of the fabric.
+     *            the name of the fabric.
      * @param input
-     *        the SAN zones configuration.
+     *            the SAN zones configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<NetworkSystemRestRep> removeSanZones(URI id, String fabric, SanZonesDeleteParam input) {
@@ -280,13 +279,13 @@ public class NetworkSystems extends AbstractCoreBulkResources<NetworkSystemRestR
      * Updates a SAN zone from the given network system by ID and fabric name.
      * <p>
      * API Call: <tt>PUT {@value PathConstants#SAN_ZONE_URL}</tt>
-     *
+     * 
      * @param id
-     *        the ID of the network system.
+     *            the ID of the network system.
      * @param fabric
-     *        the name of the fabric.
+     *            the name of the fabric.
      * @param input
-     *        the SAN zones configuration.
+     *            the SAN zones configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<NetworkSystemRestRep> updateSanZones(URI id, String fabric, SanZoneUpdateParams input) {
@@ -299,13 +298,13 @@ public class NetworkSystems extends AbstractCoreBulkResources<NetworkSystemRestR
      * API deactivates it.
      * <p>
      * API Call: <tt>POST {@value PathConstants#SAN_ZONE_URL}/activate</tt>
-     *
+     * 
      * @param id
-     *        the ID of the network system.
+     *            the ID of the network system.
      * @param fabric
-     *        the name of the fabric.
+     *            the name of the fabric.
      * @param input
-     *        the SAN zones configuration.
+     *            the SAN zones configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<NetworkSystemRestRep> activateSanZones(URI id, String fabric, SanZones input) {
@@ -316,11 +315,11 @@ public class NetworkSystems extends AbstractCoreBulkResources<NetworkSystemRestR
      * Gets the list of WWN Aliases in the given network system by ID and fabric name.
      * <p>
      * API Call: <tt>GET {@value PathConstants#SAN_ALIAS_URL}[?fabric-id={fabric}]</tt>
-     *
+     * 
      * @param id
-     *        the ID of the network system.
+     *            the ID of the network system.
      * @param fabric
-     *        the name of the fabric, or {@code null} if there is no fabric.
+     *            the name of the fabric, or {@code null} if there is no fabric.
      * @return the list of WWN Aliases.
      */
     public List<? extends WwnAliasParam> getAliases(URI id, String fabric) {
@@ -336,11 +335,11 @@ public class NetworkSystems extends AbstractCoreBulkResources<NetworkSystemRestR
      * Adds WWN Aliases to the given network system by ID and fabric name.
      * <p>
      * API Call: <tt>POST {@value PathConstants#SAN_ALIAS_URL}</tt>
-     *
+     * 
      * @param id
-     *        the ID of the network system.
+     *            the ID of the network system.
      * @param input
-     *        the WWN Aliases configuration.
+     *            the WWN Aliases configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<NetworkSystemRestRep> addAliases(URI id, WwnAliasesCreateParam input) {
@@ -351,11 +350,11 @@ public class NetworkSystems extends AbstractCoreBulkResources<NetworkSystemRestR
      * Removes WWN Aliases from the given network system by ID.
      * <p>
      * API Call: <tt>POST {@value PathConstants#SAN_ALIAS_URL}/remove</tt>
-     *
+     * 
      * @param id
-     *        the ID of the network system.
+     *            the ID of the network system.
      * @param input
-     *        the WWN Aliases configuration.
+     *            the WWN Aliases configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<NetworkSystemRestRep> deleteAliases(URI id, WwnAliasesDeleteParam input) {
@@ -366,11 +365,11 @@ public class NetworkSystems extends AbstractCoreBulkResources<NetworkSystemRestR
      * Updates WWN Aliases from the given network system by ID.
      * <p>
      * API Call: <tt>PUT {@value PathConstants#SAN_ALIAS_URL}</tt>
-     *
+     * 
      * @param id
-     *        the ID of the network system.
+     *            the ID of the network system.
      * @param input
-     *        the WWN Aliases configuration.
+     *            the WWN Aliases configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<NetworkSystemRestRep> updateAliases(URI id, WwnAliasUpdateParams input) {

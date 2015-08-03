@@ -1,21 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.model;
 
 import com.emc.storageos.db.client.util.EndpointUtility;
-
 
 /**
  * IPv4 or IPV6 interface of a host.
@@ -57,6 +46,7 @@ public class IpInterface extends HostInterface {
 
     /**
      * Gets the IPv4 or IPv6 address of this interface
+     * 
      * @return the IPv4 or IPv6 address of this interface
      */
     @Name("ipAddress")
@@ -67,6 +57,7 @@ public class IpInterface extends HostInterface {
 
     /**
      * Sets the IP address for this interface
+     * 
      * @param ipAddress the IP address of the interface
      */
     public void setIpAddress(String ipAddress) {
@@ -75,7 +66,8 @@ public class IpInterface extends HostInterface {
     }
 
     /**
-     * Gets the IPv6 prefix length 
+     * Gets the IPv6 prefix length
+     * 
      * @return the IPv6 prefix length
      */
     @Name("prefixLength")
@@ -85,6 +77,7 @@ public class IpInterface extends HostInterface {
 
     /**
      * Sets the IPv6 prefix length
+     * 
      * @param prefixLength the IPv6 prefix length
      */
     public void setPrefixLength(Integer prefixLength) {
@@ -94,6 +87,7 @@ public class IpInterface extends HostInterface {
 
     /**
      * Gets the IPv6 scope id
+     * 
      * @return the IPv6 scope id
      */
     @Name("scopeId")
@@ -102,7 +96,8 @@ public class IpInterface extends HostInterface {
     }
 
     /**
-     * Sets the IPv6 scope Id 
+     * Sets the IPv6 scope Id
+     * 
      * @param scopeId the IPv6 scope Id
      */
     public void setScopeId(String scopeId) {
@@ -112,7 +107,7 @@ public class IpInterface extends HostInterface {
 
     @Override
     public Object[] auditParameters() {
-        return new Object[] {getIpAddress(),
-                getHost(), getId()};
+        return new Object[] { getIpAddress(),
+                getHost(), getId() };
     }
 }

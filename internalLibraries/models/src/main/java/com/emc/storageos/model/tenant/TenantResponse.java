@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.tenant;
@@ -15,8 +15,9 @@ public class TenantResponse {
     private String name;
     private RestLinkRep selfLink;
 
-    public TenantResponse() {}
-    
+    public TenantResponse() {
+    }
+
     public TenantResponse(URI tenant, String name, RestLinkRep selfLink) {
         this.tenant = tenant;
         this.name = name;
@@ -25,6 +26,7 @@ public class TenantResponse {
 
     /**
      * Tenant URI
+     * 
      * @valid none
      */
     @XmlElement(name = "id")
@@ -38,6 +40,7 @@ public class TenantResponse {
 
     /**
      * Tenant name
+     * 
      * @valid none
      */
     @XmlElement(name = "name")
@@ -51,6 +54,7 @@ public class TenantResponse {
 
     /**
      * Link to itself (tenant)
+     * 
      * @valid none
      */
     @XmlElement(name = "link")

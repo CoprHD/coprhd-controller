@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
@@ -72,6 +62,7 @@ public abstract class UploadExecutor {
 
     /**
      * Try several times to upload a backup.
+     * 
      * @param tag
      * @return null if succeeded, or error message from last retry if failed.
      * @throws InterruptedException
@@ -172,6 +163,7 @@ public abstract class UploadExecutor {
     /**
      * Some tags in completeTags may not exist on disk anymore, need to remove them from the list
      * to free up space in ZK.
+     * 
      * @throws Exception
      */
     private void cleanupCompletedTags() throws Exception {
@@ -197,6 +189,7 @@ public abstract class UploadExecutor {
 
     /**
      * Get size of a file on server.
+     * 
      * @param fileName the name of the file for which to get size info.
      * @return file size in bytes, or null if file is not exist.
      * @throws Exception
@@ -205,6 +198,7 @@ public abstract class UploadExecutor {
 
     /**
      * Upload file with resuming.
+     * 
      * @param fileName the file on server to be uploaded to.
      * @param offset from which offset on server to resume upload.
      * @return The OutputStream instance to which upload data can be written.

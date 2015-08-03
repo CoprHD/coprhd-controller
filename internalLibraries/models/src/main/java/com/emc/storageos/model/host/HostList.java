@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.host;
@@ -18,15 +18,17 @@ import java.util.List;
 public class HostList {
     private List<NamedRelatedResourceRep> hosts;
 
-    public HostList() {}
-    
+    public HostList() {
+    }
+
     public HostList(List<NamedRelatedResourceRep> hosts) {
         this.hosts = hosts;
     }
 
     /**
-     * List of host objects that exist in ViPR. Each   
+     * List of host objects that exist in ViPR. Each
      * host contains an id, name, and link.
+     * 
      * @valid none
      */
     @XmlElement(name = "host")

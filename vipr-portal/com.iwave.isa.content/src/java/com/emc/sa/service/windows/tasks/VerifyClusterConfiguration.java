@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.windows.tasks;
@@ -54,15 +54,16 @@ public class VerifyClusterConfiguration extends WindowsExecutionTask<Void> {
         if (!notInClusterHosts.isEmpty() || !notInViPRHosts.isEmpty()) {
             StringBuffer notInViPRHostsMsg = new StringBuffer();
             if (!notInViPRHosts.isEmpty()) {
-                for (MSClusterNetworkInterface missingHost: notInViPRHosts) {
-                    notInViPRHostsMsg.append(String.format("%s [%s],",missingHost.getNode(),missingHost.getIpaddress()));
+                for (MSClusterNetworkInterface missingHost : notInViPRHosts) {
+                    notInViPRHostsMsg.append(String.format("%s [%s],", missingHost.getNode(), missingHost.getIpaddress()));
                 }
             }
 
             StringBuffer notInClusterHostsMsg = new StringBuffer();
             if (!notInClusterHosts.isEmpty()) {
-                for (HostWithAddress extraHost: notInClusterHosts) {
-                    notInClusterHostsMsg.append(String.format("%s [%s],",extraHost.getHost().getLabel(), extraHost.getHost().getHostName()));
+                for (HostWithAddress extraHost : notInClusterHosts) {
+                    notInClusterHostsMsg.append(String
+                            .format("%s [%s],", extraHost.getHost().getLabel(), extraHost.getHost().getHostName()));
                 }
             }
 
@@ -70,15 +71,17 @@ public class VerifyClusterConfiguration extends WindowsExecutionTask<Void> {
         }
     }
 
-    /* Returns the first cluster that contains one of the hosts.
-    * There should really only be one cluster, but there COULD be more. Since we don't know the name of the cluster, this is the only way
-    * we can find a matching cluster.
-    */
-    private List<MSClusterNetworkInterface> findClusterInterfaces(Map<String, List<MSClusterNetworkInterface>> networkInterfaces, List<HostWithAddress> hostAddresses) {
+    /*
+     * Returns the first cluster that contains one of the hosts.
+     * There should really only be one cluster, but there COULD be more. Since we don't know the name of the cluster, this is the only way
+     * we can find a matching cluster.
+     */
+    private List<MSClusterNetworkInterface> findClusterInterfaces(Map<String, List<MSClusterNetworkInterface>> networkInterfaces,
+            List<HostWithAddress> hostAddresses) {
         for (Map.Entry<String, List<MSClusterNetworkInterface>> entry : networkInterfaces.entrySet()) {
             for (HostWithAddress host : hostAddresses) {
                 if (clusterInterfacesContainsHost(entry.getValue(), host)) {
-                    logDebug("verify.cluster.conf.ms"+entry.getKey());
+                    logDebug("verify.cluster.conf.ms" + entry.getKey());
                     setDetail(getClusterDisplay(entry.getKey()));
                     return entry.getValue();
                 }
@@ -99,7 +102,7 @@ public class VerifyClusterConfiguration extends WindowsExecutionTask<Void> {
         return false;
     }
 
-    private boolean hostsContainsClusterInterface(List<HostWithAddress> hostWithAddresses, MSClusterNetworkInterface networkInterface ) {
+    private boolean hostsContainsClusterInterface(List<HostWithAddress> hostWithAddresses, MSClusterNetworkInterface networkInterface) {
         if (networkInterface != null && networkInterface.getIpaddress() != null) {
             for (HostWithAddress host : hostWithAddresses) {
                 if (StringUtils.equals(host.getIpAddress(), networkInterface.getIpaddress())) {
@@ -142,11 +145,11 @@ public class VerifyClusterConfiguration extends WindowsExecutionTask<Void> {
             return ipAddress;
         }
     }
-    
+
     public static String getHostsDisplay(List<Host> hosts) {
         StringBuilder sb = new StringBuilder();
         Iterator<Host> i = hosts.iterator();
-        while(i.hasNext()) {
+        while (i.hasNext()) {
             Host host = i.next();
             sb.append(host.getId());
             if (i.hasNext()) {
@@ -155,7 +158,7 @@ public class VerifyClusterConfiguration extends WindowsExecutionTask<Void> {
         }
         return sb.toString();
     }
-    
+
     private String getClusterDisplay(String clusterName) {
         return getMessage("VerifyClusterConfiguration.clusterDisplay", clusterName);
     }

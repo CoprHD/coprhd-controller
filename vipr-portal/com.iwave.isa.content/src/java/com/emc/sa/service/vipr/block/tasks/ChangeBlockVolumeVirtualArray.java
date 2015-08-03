@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block.tasks;
@@ -37,7 +37,7 @@ public class ChangeBlockVolumeVirtualArray extends WaitForTasks<VolumeRestRep> {
         param.setVolumes(volumeIds);
         return getClient().blockVolumes().changeVirtualArrayForVolumes(param);
     }
-    
+
     private String getVolumesDisplayString() {
         List<String> volumes = Lists.newArrayList();
         for (URI volumeId : volumeIds) {
@@ -45,5 +45,5 @@ public class ChangeBlockVolumeVirtualArray extends WaitForTasks<VolumeRestRep> {
         }
         return StringUtils.join(volumes, ",");
     }
-    
+
 }

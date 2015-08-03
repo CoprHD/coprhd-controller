@@ -1,13 +1,7 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
  */
-// Copyright 2012 by EMC Corporation ("EMC").
-//
-// UNPUBLISHED  CONFIDENTIAL  AND  PROPRIETARY  PROPERTY OF EMC. The copyright
-// notice above does not evidence any actual  or  intended publication of this
-// software. Disclosure and dissemination are pursuant to separate agreements.
-// Unauthorized use, distribution or dissemination are strictly prohibited.
 
 package com.emc.storageos.cimadapter.processors;
 
@@ -139,8 +133,8 @@ public class DefaultCimIndicationProcessor extends CimIndicationProcessor {
                 set = getAssociatedInstances(path, className);
             } catch (Exception e) {
                 s_logger.debug(
-                    MessageFormatter.arrayFormat("Failed getting associated {} objects for {}",
-                        new Object[] { className, value }).getMessage(), e);
+                        MessageFormatter.arrayFormat("Failed getting associated {} objects for {}",
+                                new Object[] { className, value }).getMessage(), e);
             }
         }
         return set;
@@ -174,11 +168,11 @@ public class DefaultCimIndicationProcessor extends CimIndicationProcessor {
         CloseableIterator<CIMInstance> instanceIter = null;
         try {
             instanceIter = _connection.getCimClient().associatorInstances(path, null, className, null, null, false,
-                null);
+                    null);
         } catch (Exception e) {
             s_logger.debug(
-                MessageFormatter.arrayFormat("Failed getting associated {} objects for {}",
-                    new Object[] { className, path }).getMessage(), e);
+                    MessageFormatter.arrayFormat("Failed getting associated {} objects for {}",
+                            new Object[] { className, path }).getMessage(), e);
         }
 
         if (instanceIter == null) {
@@ -193,8 +187,8 @@ public class DefaultCimIndicationProcessor extends CimIndicationProcessor {
             }
         } catch (RuntimeException e) {
             s_logger.debug(
-                MessageFormatter.arrayFormat("Runtime exception getting associated {} object for {}",
-                    new Object[] { className, path }).getMessage(), instanceIter.getWBEMException());
+                    MessageFormatter.arrayFormat("Runtime exception getting associated {} object for {}",
+                            new Object[] { className, path }).getMessage(), instanceIter.getWBEMException());
         } finally {
             instanceIter.close();
         }

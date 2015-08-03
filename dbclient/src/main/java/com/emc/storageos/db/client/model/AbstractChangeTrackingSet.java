@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
@@ -27,7 +17,6 @@ public abstract class AbstractChangeTrackingSet<K> extends HashSet<K> {
     private HashSet<K> _added;
     DbClientCallbackEvent _cb;
 
-
     /**
      * Default constructor
      */
@@ -42,11 +31,11 @@ public abstract class AbstractChangeTrackingSet<K> extends HashSet<K> {
     public AbstractChangeTrackingSet(Collection<K> source) {
         super(source);
     }
-    
+
     public void setCallback(DbClientCallbackEvent cb) {
         _cb = cb;
     }
-    
+
     public DbClientCallbackEvent getCallback() {
         return _cb;
     }
@@ -104,9 +93,11 @@ public abstract class AbstractChangeTrackingSet<K> extends HashSet<K> {
             _remove.remove(val);
         }
         super.add(val);
-        
-        if (_cb!=null) _cb.call();
-        
+
+        if (_cb != null) {
+            _cb.call();
+        }
+
         return true;
     }
 
@@ -140,8 +131,10 @@ public abstract class AbstractChangeTrackingSet<K> extends HashSet<K> {
         while (it.hasNext()) {
             add(it.next());
         }
-        
-        if (_cb!=null) _cb.call();
+
+        if (_cb != null) {
+            _cb.call();
+        }
     }
 
     /**
@@ -162,9 +155,11 @@ public abstract class AbstractChangeTrackingSet<K> extends HashSet<K> {
             _remove = new HashSet<K>();
         }
         _remove.add((K) val);
-        
-        if (_cb!=null) _cb.call();
-        
+
+        if (_cb != null) {
+            _cb.call();
+        }
+
         return ret;
     }
 
@@ -185,9 +180,11 @@ public abstract class AbstractChangeTrackingSet<K> extends HashSet<K> {
                 ret = removed;
             }
         }
-        
-        if (_cb!=null) _cb.call();
-        
+
+        if (_cb != null) {
+            _cb.call();
+        }
+
         return ret;
     }
 
@@ -206,8 +203,10 @@ public abstract class AbstractChangeTrackingSet<K> extends HashSet<K> {
         _remove.addAll(this);
 
         super.clear();
-        
-        if (_cb!=null) _cb.call();
+
+        if (_cb != null) {
+            _cb.call();
+        }
     }
 
     /**
@@ -223,16 +222,20 @@ public abstract class AbstractChangeTrackingSet<K> extends HashSet<K> {
 
         HashSet<K> toRemove = new HashSet();
         for (K entry : this) {
-            if (!newEntries.contains(entry))
+            if (!newEntries.contains(entry)) {
                 toRemove.add(entry);
+            }
         }
 
         removeAll(toRemove);
 
-        for (K entry : newEntries)
+        for (K entry : newEntries) {
             add(entry);
-        
-        if (_cb!=null) _cb.call();
+        }
+
+        if (_cb != null) {
+            _cb.call();
+        }
     }
 
     /**

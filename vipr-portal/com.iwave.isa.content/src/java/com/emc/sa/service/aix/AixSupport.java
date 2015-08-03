@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.aix;
@@ -41,7 +41,7 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.iwave.ext.linux.model.PowerPathDevice;
 
 public class AixSupport {
-     
+
     private final AixSystem targetSystem;
 
     public AixSupport(AixSystem targetSystem) {
@@ -51,7 +51,7 @@ public class AixSupport {
     public String getHostName() {
         return targetSystem.getHost();
     }
-    
+
     public AixSystem getTargetSystem() {
         return this.targetSystem;
     }
@@ -78,7 +78,7 @@ public class AixSupport {
 
     public void setVolumeMountPointTag(BlockObjectRestRep volume, String mountPoint) {
         ExecutionUtils.execute(new SetBlockVolumeMachineTag(volume.getId(), getMountPointTagName(), mountPoint));
-        ExecutionUtils.addRollback(new RemoveBlockVolumeMachineTag(volume.getId(),getMountPointTagName()));
+        ExecutionUtils.addRollback(new RemoveBlockVolumeMachineTag(volume.getId(), getMountPointTagName()));
         addAffectedResource(volume.getId());
     }
 
@@ -92,33 +92,33 @@ public class AixSupport {
         ExecutionUtils.execute(new RemoveBlockVolumeMachineTag(volume.getId(), getMountPointTagName()));
         addAffectedResource(volume.getId());
     }
-    
+
     public void findPowerPathDevices(List<VolumeSpec> volumes) {
         execute(new FindPowerPathEntriesForMountPoint(volumes));
     }
-    
+
     public void findMultipathDevices(List<VolumeSpec> volumes) {
         execute(new FindMultiPathEntriesForMountPoint(volumes));
     }
-    
+
     private String getMountPointTagName() {
         return KnownMachineTags.getHostMountPointTagName(targetSystem.getHostId());
     }
-    
+
     public void updatePowerPathEntries() {
         execute(new UpdatePowerPathEntries());
     }
-    
+
     public void removePowerPathDevices(Collection<PowerPathDevice> devices) {
         for (PowerPathDevice device : devices) {
             execute(new RemovePowerPathDevice(device));
         }
     }
-    
+
     public void deleteDirectory(String path) {
         execute(new DeleteDirectory(path));
     }
-    
+
     public void createDirectory(String path) {
         execute(new CreateDirectory(path));
         addRollback(new DeleteDirectory(path));
@@ -127,15 +127,15 @@ public class AixSupport {
     public boolean isDirectoryEmpty(String path) {
         return execute(new GetDirectoryContents(path)).isEmpty();
     }
-    
+
     public MountPoint findMountPoint(String path) {
         return getMountPoints().get(path);
     }
-    
+
     public void verifyMountPoint(String path) {
         execute(new VerifyMountPoint(path));
     }
-    
+
     public void findMountPoints(List<VolumeSpec> volumes) {
         execute(new FindMountPointsForVolumes(targetSystem.getHostId(), volumes));
     }
@@ -143,36 +143,37 @@ public class AixSupport {
     public Map<String, MountPoint> getMountPoints() {
         return execute(new ListMountPoints());
     }
-       
+
     protected <T> T execute(AixExecutionTask<T> task) {
         task.setTargetSystem(targetSystem);
 
         return ViPRExecutionUtils.execute(task);
     }
-    
+
     public boolean checkForPowerPath() {
         return execute(new CheckForPowerPath());
     }
-    
-    public void mount(String mountPoint){
+
+    public void mount(String mountPoint) {
         execute(new MountPath(mountPoint));
         addRollback(new UnmountPath(mountPoint));
     }
-    
-    public void unmount(String mountPoint){
+
+    public void unmount(String mountPoint) {
         execute(new UnmountPath(mountPoint));
     }
-    
+
     public String findHDisk(BlockObjectRestRep volume, boolean usePowerPath) {
         String rhdiskDevice = execute(new FindHDiskForVolume(volume, usePowerPath));
         if (rhdiskDevice == null) {
-            throw new IllegalStateException(String.format("Could not find hdisk for Volume %s: - PowerPath/MPIO or SAN connectivity may need attention from an administrator. ",
+            throw new IllegalStateException(String.format(
+                    "Could not find hdisk for Volume %s: - PowerPath/MPIO or SAN connectivity may need attention from an administrator. ",
                     volume.getWwn().toLowerCase()));
         }
         logInfo("aix.support.found.hdisk", rhdiskDevice, volume.getWwn());
-        return rhdiskDevice.replaceAll("rhdisk", "hdisk");        
+        return rhdiskDevice.replaceAll("rhdisk", "hdisk");
     }
-    
+
     protected <T extends BlockObjectRestRep> void getDeviceFailed(T volume, String errorMessage, IllegalStateException exception) {
         ExecutionUtils.fail("failTask.getDeviceName", volume.getWwn(), errorMessage, exception.getMessage());
     }
@@ -180,16 +181,16 @@ public class AixSupport {
     public void rescanDevices() {
         execute(new RescanDevices());
     }
-    
-    public void addToFilesystemsConfig(String device, String mountPoint, String fsType){
-    	execute(new AddToFilesystemsConfig(device, mountPoint, fsType));
+
+    public void addToFilesystemsConfig(String device, String mountPoint, String fsType) {
+        execute(new AddToFilesystemsConfig(device, mountPoint, fsType));
         addRollback(new RemoveFromFilesystemsConfig(mountPoint));
     }
-    
-    public void removeFromFilesystemsConfig(String mountPoint){
-    	execute(new RemoveFromFilesystemsConfig(mountPoint));
+
+    public void removeFromFilesystemsConfig(String mountPoint) {
+        execute(new RemoveFromFilesystemsConfig(mountPoint));
     }
-    
+
     public String getDevice(BlockObjectRestRep volume, boolean usePowerPath) {
         try {
             // we will retry this up to 5 times
@@ -197,9 +198,9 @@ public class AixSupport {
             while (remainingAttempts-- >= 0) {
                 try {
                     return findHDisk(volume, usePowerPath);
-                }
-                catch (IllegalStateException e) {
-                    String errorMessage = String.format("Unable to find device for WWN %s. %s more attempts will be made.", volume.getWwn(), remainingAttempts);
+                } catch (IllegalStateException e) {
+                    String errorMessage = String.format("Unable to find device for WWN %s. %s more attempts will be made.",
+                            volume.getWwn(), remainingAttempts);
                     if (remainingAttempts == 0) {
                         getDeviceFailed(volume, errorMessage, e);
                     }
@@ -208,14 +209,13 @@ public class AixSupport {
                     rescanDevices();
                 }
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        
+
         return null;
     }
-    
+
     public void addRollback(AixExecutionTask<?> rollbackTask) {
         rollbackTask.setTargetSystem(targetSystem);
 

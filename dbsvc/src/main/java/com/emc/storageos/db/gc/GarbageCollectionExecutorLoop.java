@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.gc;
 
@@ -59,7 +49,7 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
     }
 
     public void setGcDelayMins(int gcDelayMins) {
-       this.gcDelayMins = gcDelayMins;
+        this.gcDelayMins = gcDelayMins;
     }
 
     public void setDbClient(DbClient dbClient) {
@@ -78,7 +68,7 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
     protected abstract boolean preGC();
 
     /**
-     *
+     * 
      * @param clazz the GC will run on
      * @param <T>
      * @return true if we can run GC on this class
@@ -86,18 +76,20 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
     protected abstract <T extends DataObject> boolean canRunGCOnClass(Class<T> clazz);
 
     /**
-     *
+     * 
      * @param clazz the GC will run on
      * @param <T>
      **/
     protected abstract <T extends DataObject> GarbageCollectionRunnable genGCTask(Class<T> clazz);
+
     protected abstract void postGC();
 
     @Override
     public void run() {
         try {
-            if (!preGC())
+            if (!preGC()) {
                 return; // can't run GC now
+            }
 
             int maxLevels = dependencyTracker.getLevels();
             for (int i = 0; i < maxLevels; i++) {
@@ -125,7 +117,7 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
      **/
     private void waitTasksToComplete() {
         log.info("Waiting for {} tasks to finish", futures.size());
-        for (Future f: futures) {
+        for (Future f : futures) {
             try {
                 f.get();
             } catch (ExecutionException | InterruptedException ex) {
@@ -137,4 +129,3 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
         log.info("GC tasks are done");
     }
 }
-

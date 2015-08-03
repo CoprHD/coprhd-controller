@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
@@ -33,13 +33,14 @@ public class ExportMaskOnlyRemoveVolumeCompleter extends ExportTaskCompleter {
 
     /**
      * Constructor for ExportMaskRemoveVolumeCompleter.
+     * 
      * @param egUri -- ExportGroup URI
      * @param emUri -- ExportMask URI
      * @param volumes -- List<URI> of volumes being removed.
      * @param task -- API task id.
      */
     public ExportMaskOnlyRemoveVolumeCompleter(URI egUri, URI emUri, List<URI> volumes,
-                                           String task) {
+            String task) {
         super(ExportGroup.class, egUri, emUri, task);
         _volumes = new ArrayList<URI>();
         _volumes.addAll(volumes);
@@ -59,13 +60,13 @@ public class ExportMaskOnlyRemoveVolumeCompleter extends ExportTaskCompleter {
                     exportGroup.removeVolume(volume.getId());
                 }
             }
-            
+
             // If ViPR did not create the ExportMask, mark the ExportMask and
             // ExportGroup for deletion if and when they are empty.
-            if (exportMask.getCreatedBySystem() == false 
-                && (exportMask.getVolumes() == null || exportMask.getVolumes().isEmpty())) {
-                    dbClient.markForDeletion(exportMask);
-                    dbClient.markForDeletion(exportGroup);
+            if (exportMask.getCreatedBySystem() == false
+                    && (exportMask.getVolumes() == null || exportMask.getVolumes().isEmpty())) {
+                dbClient.markForDeletion(exportMask);
+                dbClient.markForDeletion(exportGroup);
             } else {
                 // If the ExportGroup does not contain the exportMask, add it back.
                 exportGroup.addExportMask(getMask());

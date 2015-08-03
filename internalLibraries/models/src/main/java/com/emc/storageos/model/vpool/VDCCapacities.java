@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.vpool;
@@ -12,25 +12,25 @@ import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 
-
-@XmlRootElement(name="vdc_capacities")
+@XmlRootElement(name = "vdc_capacities")
 public class VDCCapacities {
 
     private List<VirtualArrayVirtualPoolCapacity> arrayCapacities;
 
-    public VDCCapacities() {}
-    
+    public VDCCapacities() {
+    }
+
     public VDCCapacities(List<VirtualArrayVirtualPoolCapacity> arrayCapacities) {
         this.arrayCapacities = arrayCapacities;
     }
 
-    @XmlElementWrapper(name="varrays")
+    @XmlElementWrapper(name = "varrays")
     /**
      * The list of Virtual Pool capacity
      * attributes of a Virtual Array. 
      * @valid none
-     */     
-    @XmlElement(name="varray")
+     */
+    @XmlElement(name = "varray")
     @JsonProperty("varrays")
     public List<VirtualArrayVirtualPoolCapacity> getArrayCapacities() {
         if (arrayCapacities == null) {
@@ -43,5 +43,5 @@ public class VDCCapacities {
             List<VirtualArrayVirtualPoolCapacity> arrayCapacities) {
         this.arrayCapacities = arrayCapacities;
     }
-    
+
 }

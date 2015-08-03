@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block;
@@ -17,20 +17,22 @@ public class NamedVolumesList {
 
     private List<NamedRelatedResourceRep> volumes;
 
-    public NamedVolumesList() {}
-    
+    public NamedVolumesList() {
+    }
+
     public NamedVolumesList(List<NamedRelatedResourceRep> volumes) {
         this.volumes = volumes;
     }
 
     /**
-     * List of volumes that make up this entry.  Used primarily to ingest volumes into ViPR.  
+     * List of volumes that make up this entry. Used primarily to ingest volumes into ViPR.
+     * 
      * @valid Maximum of 4000 volumes can be provided in this list.
      */
     @XmlElement(name = "volume")
     public List<NamedRelatedResourceRep> getVolumes() {
         if (volumes == null) {
-             volumes = new ArrayList<NamedRelatedResourceRep>();
+            volumes = new ArrayList<NamedRelatedResourceRep>();
         }
         return volumes;
     }
@@ -38,5 +40,5 @@ public class NamedVolumesList {
     public void setVolumes(List<NamedRelatedResourceRep> volumes) {
         this.volumes = volumes;
     }
-    
+
 }

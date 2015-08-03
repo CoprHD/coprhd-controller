@@ -1,13 +1,7 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
  */
-// Copyright 2012 by EMC Corporation ("EMC").
-//
-// UNPUBLISHED  CONFIDENTIAL  AND  PROPRIETARY  PROPERTY OF EMC. The copyright
-// notice above does not evidence any actual  or  intended publication of this
-// software. Disclosure and dissemination are pursuant to separate agreements.
-// Unauthorized use, distribution or dissemination are strictly prohibited.
 
 package com.emc.storageos.cimadapter.connections.cim;
 
@@ -41,7 +35,7 @@ public class CimSubscriptionManager {
 
     // The connection associated with the subscription manager.
     private CimConnection _connection;
-    
+
     // An identifier that is used in the filter and handler names of subscriptions
     // that provides a means for subscriptions to identified.
     private String _subscriptionsIdentifier = null;
@@ -63,7 +57,7 @@ public class CimSubscriptionManager {
      * 
      * @param connection The CIM connection.
      * @param subscriptionsIdentifier The identifier that is used in the filter
-     *        and handler names of created subscriptions.
+     *            and handler names of created subscriptions.
      */
     public CimSubscriptionManager(CimConnection connection, String subscriptionsIdentifier) {
         _connection = connection;
@@ -101,7 +95,7 @@ public class CimSubscriptionManager {
     }
 
     /**
-     * Destroys subscription objects. 
+     * Destroys subscription objects.
      */
     public void unsubscribe() {
         s_logger.info("Unsubscribing to indications");
@@ -133,7 +127,7 @@ public class CimSubscriptionManager {
             deleteInstance(_handlerPath);
         }
     }
-    
+
     /**
      * Deletes stale instances on the CIM provider that are associated with
      * stale subscriptions. The connection manager can be configured to
@@ -142,7 +136,7 @@ public class CimSubscriptionManager {
      * connections to the provider that were not properly cleaned up.
      * 
      * @throws WBEMException Enumerating the subscription instances on the
-     *         provider.
+     *             provider.
      */
     public void deleteStaleSubscriptions() throws WBEMException {
 
@@ -159,11 +153,11 @@ public class CimSubscriptionManager {
         // Get and loop over all subscriptions.
         WBEMClient cimClient = _connection.getCimClient();
         CIMObjectPath subscriptionPath = CimObjectPathCreator.createInstance(CimConstants.CIM_SUBSCRIPTION_NAME,
-            _connection.getInteropNamespace());
+                _connection.getInteropNamespace());
         CloseableIterator<CIMInstance> subscriptionIter = null;
         try {
             subscriptionIter =
-                    cimClient.enumerateInstances(subscriptionPath, true, true,false,
+                    cimClient.enumerateInstances(subscriptionPath, true, true, false,
                             null);
             while (subscriptionIter.hasNext()) {
                 subscription = subscriptionIter.next();
@@ -228,7 +222,7 @@ public class CimSubscriptionManager {
             }
         }
     }
-    
+
     /**
      * Finds all of the CIM_Subscription objects that look like they were
      * created for this manager's connection. This is useful for rounding up and
@@ -288,25 +282,25 @@ public class CimSubscriptionManager {
      * @throws WBEMException, ConnectionManagerException
      */
     protected CIMObjectPath createSubscription(CimFilterInfo filterInfo) throws WBEMException,
-        ConnectionManagerException {
+            ConnectionManagerException {
         CIMObjectPath filterPath;
         if (filterInfo instanceof CimManagedFilterInfo) {
             filterPath = createFilter((CimManagedFilterInfo) filterInfo);
         } else {
             filterPath = getInstance(CimConstants.CIM_FILTER_NAME, filterInfo.getName()).getObjectPath();
         }
-        s_logger.trace("filterPath :{}",filterPath);
+        s_logger.trace("filterPath :{}", filterPath);
         CIMProperty<?> filterProp = new CIMProperty<CIMObjectPath>(CimConstants.SUBSCRIPTION_PROP_FILTER,
-            new CIMDataType(CimConstants.CIM_FILTER_NAME), filterPath);
+                new CIMDataType(CimConstants.CIM_FILTER_NAME), filterPath);
 
         CIMProperty<?> handlerProp = new CIMProperty<CIMObjectPath>(CimConstants.SUBSCRIPTION_PROP_HANDLER,
-            new CIMDataType(CimConstants.CIM_HANDLER_NAME), getHandler());
-        s_logger.trace("filterProp :{}",filterProp);
-        s_logger.trace("handlerProp :{}",handlerProp);
+                new CIMDataType(CimConstants.CIM_HANDLER_NAME), getHandler());
+        s_logger.trace("filterProp :{}", filterProp);
+        s_logger.trace("handlerProp :{}", handlerProp);
         CIMProperty<?>[] subscriptionProperties = new CIMProperty[] { filterProp, handlerProp };
         CIMObjectPath subscriptionPath = createInstance(CimConstants.CIM_SUBSCRIPTION_NAME, subscriptionProperties);
         _subscriptionPaths.add(subscriptionPath);
-        s_logger.trace("subscriptionPath :{}",subscriptionPath);
+        s_logger.trace("subscriptionPath :{}", subscriptionPath);
         return subscriptionPath;
     }
 
@@ -328,16 +322,16 @@ public class CimSubscriptionManager {
         String implNS = _connection.getImplNamespace();
         CIMProperty<?> nameProperty = new CIMProperty<String>(CimConstants.NAME_KEY, CIMDataType.STRING_T, filterName);
         CIMProperty<?> srcNamespaceProp = new CIMProperty<String>(CimConstants.FILTER_PROP_SRC_NAMESPACE,
-            CIMDataType.STRING_T, implNS);
+                CIMDataType.STRING_T, implNS);
         CIMProperty<?> srcNamespacesProp = new CIMProperty<String[]>(CimConstants.FILTER_PROP_SRC_NAMESPACES,
-            CIMDataType.STRING_ARRAY_T, new String[] { implNS });
+                CIMDataType.STRING_ARRAY_T, new String[] { implNS });
         CIMProperty<?> queryLangProp = new CIMProperty<String>(CimConstants.FILTER_PROP_QUERY_LANGUAGE,
-            CIMDataType.STRING_T, filterInfo.getQueryLanguage());
+                CIMDataType.STRING_T, filterInfo.getQueryLanguage());
         CIMProperty<?> queryProp = new CIMProperty<String>(CimConstants.FILTER_PROP_QUERY, CIMDataType.STRING_T,
-            filterInfo.getQuery());
+                filterInfo.getQuery());
 
         CIMProperty<?>[] filterProperties = new CIMProperty[] { nameProperty, srcNamespaceProp, srcNamespacesProp,
-            queryLangProp, queryProp };
+                queryLangProp, queryProp };
 
         CIMObjectPath filterPath = createInstance(CimConstants.CIM_FILTER_NAME, filterName, filterProperties);
         _filterPaths.add(filterPath);
@@ -373,7 +367,7 @@ public class CimSubscriptionManager {
         String handlerName = handlerNameBuff.toString();
 
         CIMProperty<?> destinationProperty = new CIMProperty<String>(CimConstants.HANLDER_PROP_DESTINATION,
-            CIMDataType.STRING_T, listenerURL.toString() + '/' + _connection.getConnectionName());
+                CIMDataType.STRING_T, listenerURL.toString() + '/' + _connection.getConnectionName());
         CIMProperty<?>[] handlerProperties = new CIMProperty[] { destinationProperty };
         return createInstance(CimConstants.CIM_HANDLER_NAME, handlerName, handlerProperties);
     }
@@ -409,7 +403,7 @@ public class CimSubscriptionManager {
      * @throws WBEMException
      */
     private CIMObjectPath createInstance(String className, String name, CIMProperty<?>[] properties)
-        throws WBEMException {
+            throws WBEMException {
         CIMProperty<?>[] array = new CIMProperty<?>[properties.length + 1];
         System.arraycopy(properties, 0, array, 0, properties.length);
         array[properties.length] = new CIMProperty<String>(CimConstants.NAME_KEY, CIMDataType.STRING_T, name);
@@ -441,14 +435,14 @@ public class CimSubscriptionManager {
      * @throws WBEMException
      */
     private CIMObjectPath createInstance(String className, CIMProperty<?>[] properties) throws WBEMException {
-        s_logger.trace("className :{}",className);
-        s_logger.trace("properties :{}",properties);
+        s_logger.trace("className :{}", className);
+        s_logger.trace("properties :{}", properties);
         WBEMClient cimClient = _connection.getCimClient();
         String interopNS = _connection.getInteropNamespace();
         CIMObjectPath path = CimObjectPathCreator.createInstance(className, interopNS);
         CIMInstance instance = new CIMInstance(path, properties);
-       s_logger.trace("interopNS :{}",interopNS);
-       s_logger.trace("path :{}",path);
+        s_logger.trace("interopNS :{}", interopNS);
+        s_logger.trace("path :{}", path);
         path = cimClient.createInstance(instance);
         s_logger.debug("Created: {}", path);
         return path;

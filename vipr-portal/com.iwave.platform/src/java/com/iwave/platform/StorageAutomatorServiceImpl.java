@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.platform;
@@ -15,18 +15,18 @@ import com.emc.storageos.security.authentication.AuthSvcEndPointLocator;
 import com.emc.storageos.security.validator.Validator;
 
 public class StorageAutomatorServiceImpl extends AbstractSecuredWebServer implements StorageAutomatorService {
-    
+
     private static final Logger log = LoggerFactory.getLogger(StorageAutomatorServiceImpl.class);
 
     @Autowired
     private CoordinatorClient coordinatorClient;
-    
+
     @Autowired
     private AuthSvcEndPointLocator authSvcEndPointLocator;
-    
+
     @Autowired
     private ServiceBeacon serviceBeacon;
-    
+
     @Override
     public void start() throws Exception {
         log.info("Starting sasvc service");
@@ -44,11 +44,11 @@ public class StorageAutomatorServiceImpl extends AbstractSecuredWebServer implem
         _dbClient.stop();
         log.info("Stopping sasvc service done");
     }
-    
+
     private void initValidator() {
         Validator.setCoordinator(coordinatorClient);
         Validator.setAuthSvcEndPointLocator(authSvcEndPointLocator);
-        
+
     }
-    
+
 }

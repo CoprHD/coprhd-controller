@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.model.varray;
@@ -47,10 +37,12 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
     private Set<String> routedNetworks;
     private String registrationStatus;
 
-    public NetworkRestRep() {}
-    
+    public NetworkRestRep() {
+    }
+
     /**
      * Indicates whether the network was discovered by a network system or manually created.
+     * 
      * @valid true = network was discovered by a network system
      * @valid false = network was manually created
      */
@@ -65,6 +57,7 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
 
     /**
      * List of endpoints associated with the network.
+     * 
      * @valid none
      */
     @XmlElementWrapper(name = "endpoints")
@@ -81,9 +74,10 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
     }
 
     /**
-     * List of endpoints associated with the network. Each endpoint is indexed 
-     * to "true" indicating it was discovered or "false" indicating it was 
+     * List of endpoints associated with the network. Each endpoint is indexed
+     * to "true" indicating it was discovered or "false" indicating it was
      * manually added into the network.
+     * 
      * @valid none
      */
     @XmlElementWrapper(name = "endpoints_discovered")
@@ -100,8 +94,9 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
     }
 
     /**
-     * Fabric name or VSAN (Virtual Storage Area Network) ID for the 
+     * Fabric name or VSAN (Virtual Storage Area Network) ID for the
      * network if discovered by a network system.
+     * 
      * @valid none
      */
     @XmlElement(name = "fabric_id")
@@ -114,11 +109,11 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
     }
 
     /**
-     * Virtual array associated with the network. 
+     * Virtual array associated with the network.
      * <p>
-     * This field is maintained for backward compatibility. It was replaced by
-     * {@link #getVirtualArrays()}. This field returns the network varray when
-     * the network is associated with a single varray. It returns null otherwise.
+     * This field is maintained for backward compatibility. It was replaced by {@link #getVirtualArrays()}. This field returns the network
+     * varray when the network is associated with a single varray. It returns null otherwise.
+     * 
      * @see NetworkRestRep#getVirtualArrays()
      * @valid none
      */
@@ -133,9 +128,10 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
     }
 
     /**
-     * List of network systems that manage the network. These are the network 
-     * systems where the network was discovered. 
+     * List of network systems that manage the network. These are the network
+     * systems where the network was discovered.
      * Empty list for manually created network.
+     * 
      * @valid none
      */
     @XmlElementWrapper(name = "network_systems")
@@ -149,8 +145,8 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
     }
 
     /**
-     * List of virtual arrays to which the network is assigned. 
-     *
+     * List of virtual arrays to which the network is assigned.
+     * 
      * @valid none
      */
     @XmlElementWrapper(name = "assigned_varrays")
@@ -162,12 +158,12 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
     public void setAssignedVirtualArrays(Set<String> varrays) {
         assignedVArrays = varrays;
     }
-    
+
     /**
      * List of virtual arrays to which the network is implicitly
      * connected because a storage port in the network has been
-     * assigned to the virtual array. 
-     *
+     * assigned to the virtual array.
+     * 
      * @valid none
      */
     @XmlElementWrapper(name = "connected_varrays")
@@ -181,9 +177,10 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
     }
 
     /**
-     * Indicates whether the network and its endpoints can be used for provisioning 
+     * Indicates whether the network and its endpoints can be used for provisioning
      * operation. Only registered networks can be used for provisioning operations.
-     * @valid UNREGISTERED 
+     * 
+     * @valid UNREGISTERED
      * @valid REGISTERED
      */
     @XmlElement(name = "registration_status")
@@ -197,6 +194,7 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
 
     /**
      * Transport type for the network. Valid values are IP, FC, and Ethernet.
+     * 
      * @valid IP for IP and iSCSI endpoints
      * @valid FC = Fibre Channel
      * @valid Ethernet
@@ -212,6 +210,7 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
 
     /**
      * A list of networks that are routed to this network
+     * 
      * @valid FC = None
      * @return A list of networks that are routed to this network
      */

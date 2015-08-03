@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.network;
@@ -28,10 +28,11 @@ public class NetworkSystemUpdate {
     private String smisUserName;
     private String smisPassword;
     private Boolean smisUseSsl;
-    
-    public NetworkSystemUpdate() {}
 
-    /** 
+    public NetworkSystemUpdate() {
+    }
+
+    /**
      * Name of the Network System
      * 
      * @valid none
@@ -69,7 +70,7 @@ public class NetworkSystemUpdate {
      * It is ignored for 'brocade' type network systems and can be null.
      */
     @XmlElement(name = "port_number")
-    @Range(min=1,max=65535)
+    @Range(min = 1, max = 65535)
     @JsonProperty("port_number")
     public Integer getPortNumber() {
         return portNumber;
@@ -135,7 +136,7 @@ public class NetworkSystemUpdate {
      * It is ignored for 'mds' type network systems and can be null.
      */
     @XmlElement(name = "smis_port_number")
-    @Range(min=1,max=65535)
+    @Range(min = 1, max = 65535)
     @JsonProperty("smis_port_number")
     public Integer getSmisPortNumber() {
         return smisPortNumber;
@@ -197,5 +198,5 @@ public class NetworkSystemUpdate {
     public void setSmisUseSsl(Boolean smisUseSsl) {
         this.smisUseSsl = smisUseSsl;
     }
- 
+
 }

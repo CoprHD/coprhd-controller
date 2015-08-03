@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.windows.tasks;
@@ -15,12 +15,12 @@ import com.iwave.ext.windows.winrm.WinRMException;
 public class VerifyMountPointHostDriveIsNotShared extends WindowsExecutionTask<Void> {
 
     private final String driveletter;
-    
+
     public VerifyMountPointHostDriveIsNotShared(String mountpoint) {
         this.driveletter = WindowsUtils.getDriveLetterFromMountPath(mountpoint);
         provideDetailArgs(driveletter);
     }
-    
+
     @Override
     public void execute() throws Exception {
         Boolean hostDriveIsShared = isSharedStorage(driveletter);
@@ -31,7 +31,7 @@ public class VerifyMountPointHostDriveIsNotShared extends WindowsExecutionTask<V
             throw stateException("illegalState.VerifyMountPointHostDriveIsNotShared.shared", driveletter);
         }
     }
-    
+
     public Boolean isSharedStorage(String driveletter) throws WinRMException {
         for (DiskDrive drive : getTargetSystem().listDiskDrives()) {
             Disk disk = getTargetSystem().detailDisk(drive.getNumber());
@@ -43,10 +43,10 @@ public class VerifyMountPointHostDriveIsNotShared extends WindowsExecutionTask<V
         }
         return null;
     }
-    
+
     public static boolean isVolumeMountedAtDriveLetter(String driveLetter, Volume volume) {
         String volumeDriveLetter = WindowsUtils.getDriveLetterFromMountPath(volume.getMountPoint());
         return StringUtils.equals(driveLetter, volumeDriveLetter);
     }
-    
+
 }

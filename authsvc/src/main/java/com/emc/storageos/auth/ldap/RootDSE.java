@@ -1,26 +1,18 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.auth.ldap;
 
 import java.util.Arrays;
 
-
 /**
  * RootDSE. Requires LDAP v3 support.
  * 
  */
+
+// Suppress the following two sonar warnings. the arrays are not modified outside of the class.
+@SuppressWarnings({ "pmd:ArrayIsStoredDirectly", "pmd:MethodReturnsInternalArray" })
 public class RootDSE {
 
     private String rootDomainNamingContext;
@@ -80,7 +72,7 @@ public class RootDSE {
             return;
         }
         this.supportedLDAPVersion = new int[supportedLDAPVersion.length];
-        for (int i = 0; i<supportedLDAPVersion.length; i++) {
+        for (int i = 0; i < supportedLDAPVersion.length; i++) {
             try {
                 this.supportedLDAPVersion[i] = Integer.parseInt(supportedLDAPVersion[i]);
             } catch (NumberFormatException ex) {

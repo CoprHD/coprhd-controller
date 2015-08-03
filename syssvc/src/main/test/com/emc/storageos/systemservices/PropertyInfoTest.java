@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.systemservices;
@@ -23,7 +13,6 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
-
 
 public class PropertyInfoTest {
     @Test
@@ -85,14 +74,16 @@ public class PropertyInfoTest {
             Assert.assertTrue(false);
         }
 
-        PropertyInfoExt propertyInfo1 = new PropertyInfoExt(new String[]{"", "node_id=node2", "system_connectemc_username=username", "multiEquals=a=b=c"});
+        PropertyInfoExt propertyInfo1 = new PropertyInfoExt(new String[] { "", "node_id=node2", "system_connectemc_username=username",
+                "multiEquals=a=b=c" });
         String encodeStr1 = propertyInfo1.encodeAsString();
         char[] chars = encodeStr1.toCharArray();
         int len = chars.length;
         int count = 0;
         for (int i = 0; i < len; i++) {
-            if (chars[i] == '=')
+            if (chars[i] == '=') {
                 count++;
+            }
         }
         Assert.assertTrue(count == 5);
 

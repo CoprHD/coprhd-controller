@@ -1,21 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.model;
 
 import org.codehaus.jackson.annotate.JsonProperty;
-
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -123,7 +112,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
      * System Metadata Size (Object Service)
      */
     private long _smdSize = -1;
-    
+
     /**
      * Virtual Pool
      */
@@ -155,7 +144,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
      */
     private long _timeCollected;
 
-    @XmlElement(nillable=true, name = "resource_id")
+    @XmlElement(nillable = true, name = "resource_id")
     @JsonProperty("resource_id")
     public URI getResourceId() {
         return _resourceId;
@@ -165,7 +154,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         this._resourceId = resourceId;
     }
 
-    @XmlElement(nillable=true, name = "provisioned_capacity")
+    @XmlElement(nillable = true, name = "provisioned_capacity")
     @JsonProperty("provisioned_capacity")
     public Long getProvisionedCapacity() {
         if (_provisionedCapacity < 0) {
@@ -179,7 +168,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         this._provisionedCapacity = provisionedCapacity;
     }
 
-    @XmlElement(nillable=true, name = "allocated_capacity")
+    @XmlElement(nillable = true, name = "allocated_capacity")
     @JsonProperty("allocated_capacity")
     public Long getAllocatedCapacity() {
         if (_allocatedCapacity < 0) {
@@ -193,7 +182,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         this._allocatedCapacity = allocatedCapacity;
     }
 
-    @XmlElement(nillable=true, name = "snapshot_capacity")
+    @XmlElement(nillable = true, name = "snapshot_capacity")
     @JsonProperty("snapshot_capacity")
     public Long getSnapshotCapacity() {
         if (_snapshotCapacity < 0) {
@@ -207,7 +196,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         this._snapshotCapacity = snapshotCapacity;
     }
 
-    @XmlElement(nillable=true, name = "snapshot_count")
+    @XmlElement(nillable = true, name = "snapshot_count")
     @JsonProperty("snapshot_count")
     public Integer getSnapshotCount() {
         if (_snapshotCount < 0) {
@@ -221,7 +210,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         this._snapshotCount = snapshotCount;
     }
 
-    @XmlElement(nillable=true, name = "bandwidth_in")
+    @XmlElement(nillable = true, name = "bandwidth_in")
     @JsonProperty("bandwidth_in")
     public Long getBandwidthIn() {
         if (_bandwidthIn < 0) {
@@ -235,7 +224,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         this._bandwidthIn = bandwidthIn;
     }
 
-    @XmlElement(nillable=true, name = "bandwidth_out")
+    @XmlElement(nillable = true, name = "bandwidth_out")
     @JsonProperty("bandwidth_out")
     public Long getBandwidthOut() {
         if (_bandwidthOut < 0) {
@@ -249,8 +238,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         this._bandwidthOut = bandwidthOut;
     }
 
-
-    @XmlElement(nillable=true, name = "object_count")
+    @XmlElement(nillable = true, name = "object_count")
     @JsonProperty("object_count")
     public Long getObjCount() {
         if (_objCount < 0) {
@@ -264,7 +252,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         this._objCount = objCount;
     }
 
-    @XmlElement(nillable=true, name = "user_size")
+    @XmlElement(nillable = true, name = "user_size")
     @JsonProperty("user_size")
     public Long getUserSize() {
         if (_userSize < 0) {
@@ -278,7 +266,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         this._userSize = userSize;
     }
 
-    @XmlElement(nillable=true, name = "real_size")
+    @XmlElement(nillable = true, name = "real_size")
     @JsonProperty("real_size")
     public Long getRealSize() {
         if (_realSize < 0) {
@@ -292,7 +280,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         this._realSize = realSize;
     }
 
-    @XmlElement(nillable=true, name = "user_metadata_size")
+    @XmlElement(nillable = true, name = "user_metadata_size")
     @JsonProperty("user_metadata_size")
     public Long getUmdSize() {
         if (_umdSize < 0) {
@@ -306,7 +294,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         this._umdSize = umdSize;
     }
 
-    @XmlElement(nillable=true, name = "system_metadata_size")
+    @XmlElement(nillable = true, name = "system_metadata_size")
     @JsonProperty("system_metadata_size")
     public Long getSmdSize() {
         if (_smdSize < 0) {
@@ -320,7 +308,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         this._smdSize = smdSize;
     }
 
-    @XmlElement(nillable=true, name = "virtual_pool_id")
+    @XmlElement(nillable = true, name = "virtual_pool_id")
     @JsonProperty("virtual_pool_id")
     public URI getVirtualPool() {
         return _virtualPool;
@@ -330,7 +318,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         _virtualPool = virtualPool;
     }
 
-    @XmlElement(nillable=true, name = "project_id")
+    @XmlElement(nillable = true, name = "project_id")
     @JsonProperty("project_id")
     public URI getProject() {
         return _project;
@@ -340,7 +328,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         this._project = project;
     }
 
-    @XmlElement(nillable=true, name = "tenant_id")
+    @XmlElement(nillable = true, name = "tenant_id")
     @JsonProperty("tenant_id")
     public URI getTenant() {
         return _tenant;
@@ -350,7 +338,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         this._tenant = tenant;
     }
 
-    @XmlElement(nillable=true, name = "user_id")
+    @XmlElement(nillable = true, name = "user_id")
     @JsonProperty("user_id")
     public URI getUser() {
         return _user;
@@ -360,7 +348,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         this._user = user;
     }
 
-    @XmlElement(nillable=true, name = "service_type")
+    @XmlElement(nillable = true, name = "service_type")
     @JsonProperty("service_type")
     public String getServiceType() {
         return _serviceType;
@@ -374,8 +362,9 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
      * Returns the Bourne collection time when statistics
      * are collected by plugins from provider.
      * represents <timeCollected>1346397864466</timeCollected> in output.
+     * 
      * @return the timeCollected in Milli Sec.
-     *          block/vnxfile : Bourne collection time.
+     *         block/vnxfile : Bourne collection time.
      */
     @XmlElement(name = "time_collected")
     @JsonProperty("time_collected")
@@ -388,8 +377,9 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
      * are collected by plugins from provider.
      * If provider is not returning timestamp,
      * Plugin inserts Bourne collection time.
+     * 
      * @param timeCollected:
-     *           block/file : Bourne collection time.
+     *            block/file : Bourne collection time.
      */
     public void setTimeCollected(long timeCollected) {
         _timeCollected = timeCollected;
@@ -399,9 +389,10 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
      * Returns the time measurement taken by provider for
      * the collected statistics.
      * <timeMeasured>1346397864466</timeMeasured>
+     * 
      * @return the timeMeasured in Milli Seconds.
-     *           block : Bourne collection time.
-     *           vnxfile  : Provider's collection time.
+     *         block : Bourne collection time.
+     *         vnxfile : Provider's collection time.
      */
     @Override
     @XmlElement(name = "time_measured")
@@ -413,10 +404,10 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
     /**
      * Set the time measurement taken by provider when
      * statistics are collected in Bourne.
-     *
+     * 
      * @param timeMeasured in Milli seconds.
-     *           for block   : It is always the Bourne collection time.
-     *           for vnxfile : It is the Provider collection time.
+     *            for block : It is always the Bourne collection time.
+     *            for vnxfile : It is the Provider collection time.
      */
     @Override
     public void setTimeInMillis(long timeMeasured) {
@@ -425,6 +416,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
 
     /**
      * Returns the nativeGuid of FileShare/Volume.
+     * 
      * @return the nativeGuid
      */
     @XmlElement(name = "native_guid")
@@ -435,13 +427,14 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
 
     /**
      * Set the nativeGuid of the fileShare/Volume
+     * 
      * @param nativeGuid the nativeGuid to set
      */
     public void setNativeGuid(String nativeGuid) {
         _nativeGuid = nativeGuid;
     }
 
-    @XmlElement(nillable=true, name = "total_ios")
+    @XmlElement(nillable = true, name = "total_ios")
     @JsonProperty("total_ios")
     public Long getTotalIOs() {
         return (_totalIOs < 0) ? null : _totalIOs;
@@ -451,7 +444,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         _totalIOs = totalIOs;
     }
 
-    @XmlElement(nillable=true, name = "read_ios")
+    @XmlElement(nillable = true, name = "read_ios")
     @JsonProperty("read_ios")
     public Long getReadIOs() {
         return (_readIOs < 0) ? null : _readIOs;
@@ -461,7 +454,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         _readIOs = readIOs;
     }
 
-    @XmlElement(nillable=true, name = "write_ios")
+    @XmlElement(nillable = true, name = "write_ios")
     @JsonProperty("write_ios")
     public Long getWriteIOs() {
         return (_writeIOs < 0) ? null : _writeIOs;
@@ -471,7 +464,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         _writeIOs = writeIOs;
     }
 
-    @XmlElement(nillable=true, name = "kbytes_transferred")
+    @XmlElement(nillable = true, name = "kbytes_transferred")
     @JsonProperty("kbytes_transferred")
     public Long getKbytesTransferred() {
         return (_kbytesTransferred < 0) ? null : _kbytesTransferred;
@@ -481,7 +474,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         _kbytesTransferred = kbytesTransferred;
     }
 
-    @XmlElement(nillable=true, name = "idle_time_counter")
+    @XmlElement(nillable = true, name = "idle_time_counter")
     @JsonProperty("idle_time_counter")
     public Long getIdleTimeCounter() {
         return (_idleTimeCounter < 0) ? null : _idleTimeCounter;
@@ -491,7 +484,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         _idleTimeCounter = idleTimeCounter;
     }
 
-    @XmlElement(nillable=true, name = "io_time_counter")
+    @XmlElement(nillable = true, name = "io_time_counter")
     @JsonProperty("io_time_counter")
     public Long getIoTimeCounter() {
         return (_ioTimeCounter < 0) ? null : _ioTimeCounter;
@@ -501,7 +494,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         _ioTimeCounter = ioTimeCounter;
     }
 
-    @XmlElement(nillable=true, name = "queue_length")
+    @XmlElement(nillable = true, name = "queue_length")
     @JsonProperty("queue_length")
     public Long getQueueLength() {
         return (_queueLength < 0) ? null : _queueLength;
@@ -511,7 +504,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         _queueLength = queueLength;
     }
 
-    @XmlElement(nillable=true, name = "read_hit_ios")
+    @XmlElement(nillable = true, name = "read_hit_ios")
     @JsonProperty("read_hit_ios")
     public Long getReadHitIOs() {
         return (_readHitIOs < 0) ? null : _readHitIOs;
@@ -521,7 +514,7 @@ public class Stat extends TimeSeriesSerializer.DataPoint implements
         _readHitIOs = readHitIOs;
     }
 
-    @XmlElement(nillable=true, name = "write_hit_ios")
+    @XmlElement(nillable = true, name = "write_hit_ios")
     @JsonProperty("write_hit_ios")
     public Long getWriteHitIOs() {
         return (_writeHitIOs < 0) ? null : _writeHitIOs;

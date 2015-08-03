@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.jobs;
 
@@ -76,18 +66,18 @@ public class DiagnosticsScheduler implements Runnable, JobConstants {
                 .VERBOSE);
         DiagTestMetadata diagTestMetadata;
         for (DiagTest test : diagTests) {
-            if( (diagTestMetadata=DiagTestsMetadata.getMetadata().get(test.getName()))!=null ) {
+            if ((diagTestMetadata = DiagTestsMetadata.getMetadata().get(test.getName())) != null) {
                 String[] statusArr = test.getStatus().split(",");
                 for (String status : statusArr) {
                     status = status.trim();
-                    if(!diagTestMetadata.getOk().contains(status)){
-                        if(diagTestMetadata.getWarn().contains(status)){
+                    if (!diagTestMetadata.getOk().contains(status)) {
+                        if (diagTestMetadata.getWarn().contains(status)) {
                             _alertsLog.warn(test);
                         }
-                        else if(diagTestMetadata.getError().contains(status)){
+                        else if (diagTestMetadata.getError().contains(status)) {
                             _alertsLog.error(test);
                         }
-                        else if(diagTestMetadata.getCrit().contains(status)){
+                        else if (diagTestMetadata.getCrit().contains(status)) {
                             _alertsLog.fatal(test);
                         }
                     }
@@ -95,7 +85,7 @@ public class DiagnosticsScheduler implements Runnable, JobConstants {
             }
         }
 
-        //Analysis db and zk logs, if the errors match pre-define patterns, alter it in SystemEvents.
+        // Analysis db and zk logs, if the errors match pre-define patterns, alter it in SystemEvents.
         _dbLogAnalyser.analysisLogs();
         _zkLogAnalyser.analysisLogs();
         _controllerSvcLogAnalyser.analysisLogs();

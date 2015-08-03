@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.scaleio.api;
@@ -21,13 +11,13 @@ public class ScaleIOQueryStoragePoolCommand extends AbstractScaleIOQueryCommand<
 
     public static final String STORAGE_POOL_TOTAL_CAPACITY = "StoragePoolTotalCapacity";
     public static final String STORAGE_POOL = "StoragePoolInfo";
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern(ScaleIOContants.REGEX_CAPACITY + " total capacity", STORAGE_POOL_TOTAL_CAPACITY),
             new ParsePattern("Storage pool\\s+(.*?) has (\\d+) volumes and" + ScaleIOContants.REGEX_CAPACITY +
                     " available for volume allocation.*", STORAGE_POOL),
             new ParsePattern("Storage pool\\s+(.*?) has (\\d+) volumes and" + ScaleIOContants.REGEX_BYTES_CAPACITY +
                     "available for volume allocation.*", STORAGE_POOL),
-             new ParsePattern("Storage Pool\\s+(.*?)\\s+\\(Id:\\s+\\w+\\)\\s+has (\\d+) volumes and" + ScaleIOContants.REGEX_CAPACITY +
+            new ParsePattern("Storage Pool\\s+(.*?)\\s+\\(Id:\\s+\\w+\\)\\s+has (\\d+) volumes and" + ScaleIOContants.REGEX_CAPACITY +
                     " available for volume allocation.*", STORAGE_POOL),
             new ParsePattern("Storage Pool\\s+(.*?)\\s+\\(Id:\\s+\\w+\\)\\s+has (\\d+) volumes and" + ScaleIOContants.REGEX_BYTES_CAPACITY +
                     "available for volume allocation.*", STORAGE_POOL)
@@ -41,7 +31,7 @@ public class ScaleIOQueryStoragePoolCommand extends AbstractScaleIOQueryCommand<
 
     @Override
     ParsePattern[] getOutputPatternSpecification() {
-        return PARSING_CONFIG.clone(); //No need to check not null condition here
+        return PARSING_CONFIG.clone(); // No need to check not null condition here
     }
 
     @Override

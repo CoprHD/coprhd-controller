@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.catalog;
@@ -55,9 +55,9 @@ import controllers.util.Models;
  * @author Chris Dail
  */
 @With(Common.class)
-@Restrictions({@Restrict("TENANT_ADMIN")})
+@Restrictions({ @Restrict("TENANT_ADMIN") })
 public class ExecutionWindows extends Controller {
-    
+
     public static void show() {
         Date serverTime = new Date(System.currentTimeMillis());
         TenantSelector.addRenderArgs();
@@ -78,7 +78,7 @@ public class ExecutionWindows extends Controller {
         executionWindowForm.updateTimes(start, end);
 
         addDateTimeRenderArgs();
-        
+
         render("@edit", executionWindowForm);
     }
 
@@ -87,13 +87,13 @@ public class ExecutionWindows extends Controller {
         if (executionWindow == null) {
             notFound();
         }
-        
+
         ExecutionWindowForm executionWindowForm = new ExecutionWindowForm();
         executionWindowForm.timezoneOffsetInMinutes = timezoneOffsetInMinutes == null ? 0 : timezoneOffsetInMinutes;
         executionWindowForm.readFrom(executionWindow);
 
         addDateTimeRenderArgs();
-        
+
         render(executionWindowForm);
     }
 
@@ -103,7 +103,7 @@ public class ExecutionWindows extends Controller {
         if (Validation.hasErrors() || isOverlapping) {
             if (isOverlapping) {
                 renderArgs.put("error", MessagesUtils.get("executionWindow.overlapping"));
-            }            
+            }
             response.status = 400;
             addDateTimeRenderArgs();
             params.flash();
@@ -120,17 +120,17 @@ public class ExecutionWindows extends Controller {
         if (executionWindow == null) {
             renderJSON(new CalResponse(false, MessagesUtils.get("executionWindow.notfound", id)));
         }
-        
+
         ExecutionWindowForm executionWindowForm = new ExecutionWindowForm();
         executionWindowForm.timezoneOffsetInMinutes = timezoneOffsetInMinutes == null ? 0 : timezoneOffsetInMinutes;
         executionWindowForm.readFrom(executionWindow);
         executionWindowForm.updateTimes(start, null);
-        
+
         boolean isOverlapping = isOverlapping(executionWindowForm);
         if (isOverlapping) {
             renderJSON(new CalResponse(false, MessagesUtils.get("executionWindow.overlapping", executionWindow.getName())));
         }
-        
+
         executionWindowForm.save();
         renderJSON(new CalResponse(true, MessagesUtils.get("executionWindow.saved.success", executionWindow.getName())));
     }
@@ -140,18 +140,18 @@ public class ExecutionWindows extends Controller {
         if (executionWindow == null) {
             renderJSON(new CalResponse(false, MessagesUtils.get("executionWindow.notfound", id)));
         }
-        
+
         ExecutionWindowForm executionWindowForm = new ExecutionWindowForm();
         executionWindowForm.timezoneOffsetInMinutes = timezoneOffsetInMinutes == null ? 0 : timezoneOffsetInMinutes;
         executionWindowForm.readFrom(executionWindow);
         executionWindowForm.updateTimes(start, end);
-        
+
         boolean isOverlapping = isOverlapping(executionWindowForm);
         if (isOverlapping) {
             renderJSON(new CalResponse(false, MessagesUtils.get("executionWindow.overlapping", executionWindow.getName())));
-        }        
-        
-        executionWindowForm.save();   
+        }
+
+        executionWindowForm.save();
         renderJSON(new CalResponse(true, MessagesUtils.get("executionWindow.saved.success", executionWindow.getName())));
     }
 
@@ -159,8 +159,8 @@ public class ExecutionWindows extends Controller {
         ExecutionWindowRestRep executionWindow = ExecutionWindowUtils.getExecutionWindow(uri(executionWindowForm.id));
         if (executionWindow == null) {
             notFound();
-        }        
-        
+        }
+
         List<OrderRestRep> scheduledOrders = OrderUtils.getScheduledOrdersByExecutionWindow(uri(executionWindowForm.id));
         if (Validation.hasErrors() || !scheduledOrders.isEmpty()) {
             if (!scheduledOrders.isEmpty()) {
@@ -170,18 +170,19 @@ public class ExecutionWindows extends Controller {
 
             executionWindowForm.readFrom(executionWindow);
 
-            addDateTimeRenderArgs();            
-            
+            addDateTimeRenderArgs();
+
             render("@edit", executionWindowForm);
         }
-        
+
         ExecutionWindowUtils.deleteExecutionWindow(executionWindow);
 
         renderText(MessagesUtils.get("executionWindow.deleted.success", executionWindow.getName()));
     }
 
     public static void events(int timezoneOffsetInMinutes, String start, String end) {
-        List<ExecutionWindowRestRep> executionWindows = ExecutionWindowUtils.getExecutionWindows(uri(Models.currentAdminTenant())); //NOSONAR ("Suppressing Sonar violation of Method invoking inefficient number constructor. Method events is invoked with int which is not inefficient")
+        List<ExecutionWindowRestRep> executionWindows = ExecutionWindowUtils.getExecutionWindows(uri(Models.currentAdminTenant())); // NOSONAR
+                                                                                                                                    // ("Suppressing Sonar violation of Method invoking inefficient number constructor. Method events is invoked with int which is not inefficient")
         DateTimeZone tz = TimeUtils.getLocalTimeZone(timezoneOffsetInMinutes);
         DateTimeFormatter formatter = ISODateTimeFormat.date().withZone(tz);
         DateTime startDateTime = DateTime.parse(start, formatter);
@@ -201,7 +202,7 @@ public class ExecutionWindows extends Controller {
 
         return ExecutionWindowUtils.isOverlapping(tempExecutionWindow);
     }
-    
+
     // Adds choices for dropdowns to the renderArgs
     private static void addDateTimeRenderArgs() {
         // Days of the Week
@@ -255,36 +256,36 @@ public class ExecutionWindows extends Controller {
         public CalResponse() {
         }
     }
-    
+
     public static class ExecutionWindowForm extends AbstractRestRepForm<ExecutionWindowRestRep> {
 
         private static final int MAX_DAYS = 1;
         private static final int MAX_HOURS = 23;
         private static final int MIN_MINUTES = 30;
         private static final int MAX_MINUTES = (23 * 60) + 59;
-        
+
         public static final String LAST_DAY_OF_MONTH = "L";
-        
+
         @Required
         @MaxSize(128)
         @MinSize(2)
         public String name;
 
         public String tenantId;
-        
+
         @Required
         public Integer hourOfDay;
-        
+
         @Required
         @Min(1)
         public Integer length;
-        
+
         @Required
         public String lengthType;
-        
+
         @Required
         public String type;
-        
+
         @Min(1)
         @Max(7)
         public Integer dayOfWeek;
@@ -293,7 +294,7 @@ public class ExecutionWindows extends Controller {
 
         @Required
         public Integer timezoneOffsetInMinutes;
-        
+
         public ExecutionWindowForm() {
         }
 
@@ -304,7 +305,7 @@ public class ExecutionWindows extends Controller {
             length = model.getExecutionWindowLength();
             lengthType = model.getExecutionWindowLengthType();
             type = model.getExecutionWindowType();
-            
+
             if (model.getHourOfDayInUTC() != null) {
                 hourOfDay = TimeUtils.getLocalHourOfDay(model.getHourOfDayInUTC(), timezoneOffsetInMinutes);
                 if (model.getDayOfWeek() != null) {
@@ -316,11 +317,11 @@ public class ExecutionWindows extends Controller {
                 dayOfMonth = LAST_DAY_OF_MONTH;
             }
             else if (model.getDayOfMonth() != null) {
-            	dayOfMonth =  Integer.toString(TimeUtils.getLocalDayOfMonth(
-            	        model.getDayOfMonth(), model.getHourOfDayInUTC(), timezoneOffsetInMinutes));
+                dayOfMonth = Integer.toString(TimeUtils.getLocalDayOfMonth(
+                        model.getDayOfMonth(), model.getHourOfDayInUTC(), timezoneOffsetInMinutes));
             }
         }
-        
+
         @Override
         public void validate(String fieldName) {
             super.validate(fieldName);
@@ -329,10 +330,13 @@ public class ExecutionWindows extends Controller {
             if (name != null) {
                 name = name.trim();
                 if (StringUtils.isNotBlank(name)) {
-                    ExecutionWindowRestRep existingExecutionWindow = ExecutionWindowUtils.getExecutionWindow(name, uri(Models.currentAdminTenant()));
-                    if (existingExecutionWindow != null && (StringUtils.isBlank(id) || (StringUtils.isNotBlank(id) && existingExecutionWindow.getId().equals(URI.create(id))) == false)) {
+                    ExecutionWindowRestRep existingExecutionWindow = ExecutionWindowUtils.getExecutionWindow(name,
+                            uri(Models.currentAdminTenant()));
+                    if (existingExecutionWindow != null
+                            && (StringUtils.isBlank(id) || (StringUtils.isNotBlank(id) && existingExecutionWindow.getId().equals(
+                                    URI.create(id))) == false)) {
                         Validation.addError(fieldName + ".name",
-                                MessagesUtils.get("execWindow.name.notUnique"));                    
+                                MessagesUtils.get("execWindow.name.notUnique"));
                     }
                 }
             }
@@ -348,28 +352,28 @@ public class ExecutionWindows extends Controller {
             }
 
             if (StringUtils.isNotBlank(params.get("executionWindowForm.length")) &&
-            		!StringUtils.isNumeric(params.get("executionWindowForm.length"))) 
+                    !StringUtils.isNumeric(params.get("executionWindowForm.length")))
             {
                 Validation.addError(fieldName + ".length",
-                        MessagesUtils.get("validation.invalid"));                   
+                        MessagesUtils.get("validation.invalid"));
             }
             else {
                 if (this.length != null) {
                     if (ExecutionWindowRestRep.MINUTES.equals(lengthType)) {
                         if (length.intValue() < MIN_MINUTES) {
                             Validation.addError(fieldName + ".length",
-                                    MessagesUtils.get("execWindow.length.min", MIN_MINUTES));                         
-                        }                       
+                                    MessagesUtils.get("execWindow.length.min", MIN_MINUTES));
+                        }
                         if (length.intValue() > MAX_MINUTES) {
                             Validation.addError(fieldName + ".length",
-                                    MessagesUtils.get("execWindow.length.max", MAX_MINUTES));                         
-                        }                
+                                    MessagesUtils.get("execWindow.length.max", MAX_MINUTES));
+                        }
                     }
                     else if (ExecutionWindowRestRep.HOURS.equals(lengthType)) {
                         if (length.intValue() > MAX_HOURS) {
                             Validation.addError(fieldName + ".length",
-                                    MessagesUtils.get("execWindow.length.max", MAX_HOURS));                    
-                        }                
+                                    MessagesUtils.get("execWindow.length.max", MAX_HOURS));
+                        }
                     }
                     else if (ExecutionWindowRestRep.DAYS.equals(lengthType)) {
                         if (length.intValue() > MAX_DAYS) {
@@ -382,8 +386,8 @@ public class ExecutionWindows extends Controller {
                     }
                 }
             }
-                       
-        }   
+
+        }
 
         public void setDurationMillis(String durationMillis) {
             setDurationMillis(Long.parseLong(durationMillis));
@@ -400,10 +404,10 @@ public class ExecutionWindows extends Controller {
         }
 
         public void updateTimes(Long start, Long end) {
-            
+
             DateTime startDateTime = new DateTime(start);
             startDateTime = startDateTime.withZone(TimeUtils.getLocalTimeZone(timezoneOffsetInMinutes));
-            
+
             hourOfDay = startDateTime.getHourOfDay();
             dayOfWeek = startDateTime.getDayOfWeek();
             dayOfMonth = String.valueOf(startDateTime.getDayOfMonth());
@@ -416,51 +420,51 @@ public class ExecutionWindows extends Controller {
 
         @Override
         protected ExecutionWindowRestRep doCreate() {
-            
+
             ExecutionWindowRestRep executionWindow = null;
-                    
+
             try {
                 ExecutionWindowCreateParam createParam = new ExecutionWindowCreateParam();
-                
+
                 createParam.setTenant(uri(this.tenantId));
                 writeCommon(createParam);
-                
+
                 executionWindow = ExecutionWindowUtils.createExecutionWindow(createParam);
-                
-            } catch(Exception e) {
+
+            } catch (Exception e) {
                 flash.error(e.getMessage());
                 Common.handleError();
             }
-            
+
             return executionWindow;
         }
 
         @Override
         protected ExecutionWindowRestRep doUpdate() {
-            
+
             ExecutionWindowRestRep executionWindow = null;
-            
+
             try {
                 ExecutionWindowUpdateParam updateParam = new ExecutionWindowUpdateParam();
-                
+
                 writeCommon(updateParam);
-                
+
                 executionWindow = ExecutionWindowUtils.updateExecutionWindow(uri(this.id), updateParam);
-            
-            } catch(Exception e) {
+
+            } catch (Exception e) {
                 flash.error(e.getMessage());
                 Common.handleError();
-            } 
-            
+            }
+
             return executionWindow;
         }
-        
+
         private void writeCommon(ExecutionWindowCommonParam commonParam) {
             commonParam.setName(name);
             commonParam.setExecutionWindowLength(length);
             commonParam.setExecutionWindowLengthType(lengthType);
             commonParam.setExecutionWindowType(type);
-            
+
             commonParam.setHourOfDayInUTC(TimeUtils.getUTCHourOfDay(hourOfDay, timezoneOffsetInMinutes));
             commonParam.setDayOfWeek(TimeUtils.getUTCDayOfWeek(dayOfWeek, hourOfDay, timezoneOffsetInMinutes));
             if (StringUtils.isNotBlank(dayOfMonth)) {
@@ -470,7 +474,7 @@ public class ExecutionWindows extends Controller {
                 }
                 else {
                     commonParam.setLastDayOfMonth(Boolean.FALSE);
-                    Integer dayOfMonthInLocal = (Integer) ConvertUtils.convert(dayOfMonth, Integer.class); 
+                    Integer dayOfMonthInLocal = (Integer) ConvertUtils.convert(dayOfMonth, Integer.class);
                     if (dayOfMonthInLocal != null) {
                         commonParam.setDayOfMonth(TimeUtils.getUTCDayOfMonth(dayOfMonthInLocal, hourOfDay, timezoneOffsetInMinutes));
                     }
@@ -479,16 +483,16 @@ public class ExecutionWindows extends Controller {
             else {
                 commonParam.setLastDayOfMonth(Boolean.FALSE);
                 commonParam.setDayOfMonth(null);
-            }            
+            }
         }
-        
+
         public void writeTo(ExecutionWindowRestRep executionWindowRestRep) {
             executionWindowRestRep.setId(uri(this.id));
             executionWindowRestRep.setName(name);
             executionWindowRestRep.setExecutionWindowLength(length);
             executionWindowRestRep.setExecutionWindowLengthType(lengthType);
             executionWindowRestRep.setExecutionWindowType(type);
-            
+
             executionWindowRestRep.setHourOfDayInUTC(TimeUtils.getUTCHourOfDay(hourOfDay, timezoneOffsetInMinutes));
             executionWindowRestRep.setDayOfWeek(TimeUtils.getUTCDayOfWeek(dayOfWeek, hourOfDay, timezoneOffsetInMinutes));
             if (StringUtils.isNotBlank(dayOfMonth)) {
@@ -498,19 +502,19 @@ public class ExecutionWindows extends Controller {
                 }
                 else {
                     executionWindowRestRep.setLastDayOfMonth(Boolean.FALSE);
-                    Integer dayOfMonthInLocal = (Integer) ConvertUtils.convert(dayOfMonth, Integer.class); 
+                    Integer dayOfMonthInLocal = (Integer) ConvertUtils.convert(dayOfMonth, Integer.class);
                     if (dayOfMonthInLocal != null) {
-                        executionWindowRestRep.setDayOfMonth(TimeUtils.getUTCDayOfMonth(dayOfMonthInLocal, hourOfDay, timezoneOffsetInMinutes));
+                        executionWindowRestRep.setDayOfMonth(TimeUtils.getUTCDayOfMonth(dayOfMonthInLocal, hourOfDay,
+                                timezoneOffsetInMinutes));
                     }
                 }
             }
             else {
                 executionWindowRestRep.setLastDayOfMonth(Boolean.FALSE);
                 executionWindowRestRep.setDayOfMonth(null);
-            }                      
+            }
         }
 
     }
 
 }
-

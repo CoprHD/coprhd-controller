@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.vmware;
@@ -7,11 +7,11 @@ package com.iwave.ext.vmware;
 public class VcenterVersion {
 
     private String version;
-    
+
     public VcenterVersion() {
         super();
     }
-    
+
     public VcenterVersion(String version) {
         this.version = version;
     }
@@ -23,8 +23,7 @@ public class VcenterVersion {
     public void setVersion(String version) {
         this.version = version;
     }
-    
-    
+
     @Override
     public String toString() {
         return this.version;

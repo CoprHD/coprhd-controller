@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
@@ -37,7 +27,7 @@ public class ExportAddInitiatorCompleter extends ExportTaskCompleter {
     private List<URI> _initiatorURIs;
 
     public ExportAddInitiatorCompleter(URI egUri, List<URI> initiatorURIs,
-                                       String task) {
+            String task) {
         super(ExportGroup.class, egUri, task);
         _initiatorURIs = new ArrayList<URI>();
         _initiatorURIs.addAll(initiatorURIs);
@@ -49,14 +39,14 @@ public class ExportAddInitiatorCompleter extends ExportTaskCompleter {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             Operation operation = new Operation();
             switch (status) {
-            case error:
-                operation.error(coded);
-                break;
-            case ready:
-                operation.ready();
-                break;
-            default:
-                break;
+                case error:
+                    operation.error(coded);
+                    break;
+                case ready:
+                    operation.ready();
+                    break;
+                default:
+                    break;
             }
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
             dbClient.persistObject(exportGroup);
@@ -68,7 +58,8 @@ public class ExportAddInitiatorCompleter extends ExportTaskCompleter {
             for (URI initiatorURI : _initiatorURIs) {
                 Initiator initiator = dbClient.queryObject(Initiator.class,
                         initiatorURI);
-                recordBlockExportOperation(dbClient, OperationTypeEnum.ADD_EXPORT_INITIATOR, status, eventMessage(status, initiator, exportGroup), exportGroup, initiator);
+                recordBlockExportOperation(dbClient, OperationTypeEnum.ADD_EXPORT_INITIATOR, status,
+                        eventMessage(status, initiator, exportGroup), exportGroup, initiator);
 
                 if (status.name().equals(Operation.Status.error.name())) {
                     exportGroup.removeInitiator(initiator);

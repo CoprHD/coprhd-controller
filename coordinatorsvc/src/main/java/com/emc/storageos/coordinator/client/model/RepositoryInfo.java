@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.coordinator.client.model;
 
@@ -28,7 +18,7 @@ import com.emc.storageos.coordinator.exceptions.InvalidRepositoryInfoException;
 import com.emc.storageos.coordinator.exceptions.InvalidSoftwareVersionException;
 
 public class RepositoryInfo implements CoordinatorSerializable {
-    private static final String ENCODING_INVALID   = "";
+    private static final String ENCODING_INVALID = "";
     private static final String ENCODING_SEPARATOR = "\0";
 
     private final SoftwareVersion _current;
@@ -40,9 +30,10 @@ public class RepositoryInfo implements CoordinatorSerializable {
     }
 
     public RepositoryInfo(final SoftwareVersion current, final List<SoftwareVersion> available)
-               throws InvalidRepositoryInfoException {
+            throws InvalidRepositoryInfoException {
         if (current == null || available == null || !available.contains(current)) {
-            throw CoordinatorException.fatals.invalidRepoInfoError("current=" + Strings.repr(current) + " versions=" + Strings.repr(available));
+            throw CoordinatorException.fatals.invalidRepoInfoError("current=" + Strings.repr(current) + " versions="
+                    + Strings.repr(available));
 
         }
 
@@ -75,9 +66,9 @@ public class RepositoryInfo implements CoordinatorSerializable {
             return false;
         }
 
-        final RepositoryInfo state = (RepositoryInfo)object;
+        final RepositoryInfo state = (RepositoryInfo) object;
         return (_current == null ? state._current == null : _current.equals(state._current)) &&
-            hasSameVersions(state);
+                hasSameVersions(state);
     }
 
     @Override

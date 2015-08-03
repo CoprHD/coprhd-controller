@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.pools;
@@ -14,6 +14,7 @@ import java.util.List;
 @XmlRootElement(name = "bulk_storage_pools")
 public class StoragePoolBulkRep extends BulkRestRep {
     private List<StoragePoolRestRep> storagePools;
+
     /**
      * List of storage pools
      * 
@@ -30,7 +31,6 @@ public class StoragePoolBulkRep extends BulkRestRep {
     public void setStoragePools(List<StoragePoolRestRep> storagePools) {
         this.storagePools = storagePools;
     }
-
 
     public StoragePoolBulkRep() {
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.uimodels;
@@ -17,15 +17,15 @@ public class VirtualMachine extends ModelObject {
     private Boolean template = Boolean.FALSE;
 
     private Boolean running = Boolean.FALSE;
-    
+
     private NamedURI datacenterId;
 
     public VirtualMachine() {
-    }        
-    
+    }
+
     public VirtualMachine(String label) {
         this.setLabel(label);
-    }    
+    }
 
     @Name(TEMPLATE)
     public Boolean getTemplate() {
@@ -60,6 +60,6 @@ public class VirtualMachine extends ModelObject {
 
     public String toString() {
         return getLabel();
-    }    
-        
+    }
+
 }

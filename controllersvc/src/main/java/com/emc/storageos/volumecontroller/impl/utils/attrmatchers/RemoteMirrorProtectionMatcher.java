@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.utils.attrmatchers;
@@ -34,12 +34,12 @@ import com.google.common.collect.ListMultimap;
 public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
     private static final Logger _logger = LoggerFactory.getLogger(RemoteMirrorProtectionMatcher.class);
     private static final String STORAGE_DEVICE = "storageDevice";
-    
+
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
         return (null != attributeMap && attributeMap.containsKey(Attributes.remote_copy.toString()));
     }
-    
+
     private Set<String> getPoolUris(List<StoragePool> matchedPools) {
         Set<String> poolUris = new HashSet<String>();
         for (StoragePool pool : matchedPools) {
@@ -47,7 +47,7 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
         }
         return poolUris;
     }
-    
+
     @Override
     protected List<StoragePool> matchStoragePoolsWithAttributeOn(
             List<StoragePool> allPools, Map<String, Object> attributeMap) {
@@ -89,14 +89,15 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
                             Joiner.on("\t").join(storageToPoolsEntry.getValue()));
                 }
             } else {
-                _logger.info("Skipping Pools {} , as associated Storage System is not SRDF supported or there are no available active RA Groups",
+                _logger.info(
+                        "Skipping Pools {} , as associated Storage System is not SRDF supported or there are no available active RA Groups",
                         Joiner.on("\t").join(storageToPoolsEntry.getValue()));
             }
         }
         _logger.info("Pools matching remote mirror protection Ended: {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
         return matchedPools;
     }
-    
+
     private Set<String> getSupportedCopyModesFromGivenRemoteSettings(Map<String, List<String>> remoteCopySettings) {
         Set<String> copyModes = new HashSet<String>();
         for (Entry<String, List<String>> entry : remoteCopySettings.entrySet()) {
@@ -104,9 +105,10 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
         }
         return copyModes;
     }
-    
+
     private boolean isRemotelyConnectedViaExpectedCopyMode(StorageSystem system, Map<String, List<String>> remoteCopySettings) {
-        List<URI> raGroupUris = _objectCache.getDbClient().queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceRemoteGroupsConstraint(system.getId()));
+        List<URI> raGroupUris = _objectCache.getDbClient().queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceRemoteGroupsConstraint(system.getId()));
         _logger.info("List of RA Groups {}", Joiner.on("\t").join(raGroupUris));
         Set<String> copyModes = getSupportedCopyModesFromGivenRemoteSettings(remoteCopySettings);
         _logger.info("Supported Copy Modes from Given Settings {}", Joiner.on("\t").join(copyModes));
@@ -115,7 +117,8 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
             if (null == raGroup || raGroup.getInactive()) {
                 continue;
             }
-            if (system.getRemotelyConnectedTo() != null && system.getRemotelyConnectedTo().contains(raGroup.getRemoteStorageSystemUri().toString())) {
+            if (system.getRemotelyConnectedTo() != null
+                    && system.getRemotelyConnectedTo().contains(raGroup.getRemoteStorageSystemUri().toString())) {
                 if (SupportedCopyModes.ALL.toString().equalsIgnoreCase(raGroup.getSupportedCopyMode())
                         || copyModes.contains(raGroup.getSupportedCopyMode())) {
                     _logger.info("Found Mode {} with RA Group {}", raGroup.getSupportedCopyMode(), raGroup.getNativeGuid());
@@ -125,7 +128,7 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
         }
         return false;
     }
-    
+
     /**
      * Choose Pools based on remote VPool's matched or assigned Pools
      * 
@@ -151,7 +154,7 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
         }
         return remotePoolUris;
     }
-    
+
     /**
      * Group Storage Pools by Storage System
      * 
@@ -161,18 +164,19 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
     private ListMultimap<String, URI> groupStoragePoolsByStorageSystem(Set<String> allPoolUris) {
         Set<String> columnNames = new HashSet<String>();
         columnNames.add(STORAGE_DEVICE);
-        Collection<StoragePool> storagePools = _objectCache.getDbClient().queryObjectFields(StoragePool.class, columnNames, new ArrayList<URI>(
-                Collections2.transform(allPoolUris, CommonTransformerFunctions.FCTN_STRING_TO_URI)));
+        Collection<StoragePool> storagePools = _objectCache.getDbClient().queryObjectFields(StoragePool.class, columnNames,
+                new ArrayList<URI>(
+                        Collections2.transform(allPoolUris, CommonTransformerFunctions.FCTN_STRING_TO_URI)));
         ListMultimap<String, URI> storageToPoolMap = ArrayListMultimap.create();
         for (StoragePool pool : storagePools) {
             storageToPoolMap.put(pool.getStorageDevice().toString(), pool.getId());
         }
         return storageToPoolMap;
     }
-    
+
     @Override
     public Map<String, Set<String>> getAvailableAttribute(List<StoragePool> neighborhoodPools,
-                                        URI vArrayId) {
+            URI vArrayId) {
         Map<String, Set<String>> availableAttrMap = new HashMap<String, Set<String>>(1);
         try {
             ListMultimap<URI, StoragePool> storageToPoolMap = ArrayListMultimap.create();
@@ -188,8 +192,9 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
                 }
                 if (system.getSupportedReplicationTypes().contains(SupportedReplicationTypes.SRDF.toString()) &&
                         null != system.getRemotelyConnectedTo()) {
-                    List<URI> raGroupUris = _objectCache.getDbClient().queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceRemoteGroupsConstraint(system
-                            .getId()));
+                    List<URI> raGroupUris = _objectCache.getDbClient().queryByConstraint(
+                            ContainmentConstraint.Factory.getStorageDeviceRemoteGroupsConstraint(system
+                                    .getId()));
                     List<RemoteDirectorGroup> RemoteDirectorGroup = _objectCache.queryObject(RemoteDirectorGroup.class, raGroupUris);
                     Set<String> copyModes = new HashSet<String>();
                     for (RemoteDirectorGroup rg : RemoteDirectorGroup) {

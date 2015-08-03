@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.apidiff;
@@ -76,20 +66,20 @@ public class XmlDiffTest {
     }
 
     @Test
-    public void testElementAdd()  {
+    public void testElementAdd() {
         Element oldElement = oldDocument.getRootElement().getChild("add").clone();
         Element newElement = newDocument.getRootElement().getChild("add").clone();
         boolean ret = XmlDiff.compareElement(oldElement, newElement);
         Assert.assertFalse(ret);
-        Assert.assertEquals(oldElement.getChildren().size()+1, newElement.getChildren().size());
+        Assert.assertEquals(oldElement.getChildren().size() + 1, newElement.getChildren().size());
     }
 
     @Test
-    public void testElementRemove()  {
+    public void testElementRemove() {
         Element oldElement = oldDocument.getRootElement().getChild("remove").clone();
         Element newElement = newDocument.getRootElement().getChild("remove").clone();
         boolean ret = XmlDiff.compareElement(oldElement, newElement);
         Assert.assertFalse(ret);
-        Assert.assertEquals(oldElement.getChildren().size()-1, newElement.getChildren().size());
+        Assert.assertEquals(oldElement.getChildren().size() - 1, newElement.getChildren().size());
     }
 }

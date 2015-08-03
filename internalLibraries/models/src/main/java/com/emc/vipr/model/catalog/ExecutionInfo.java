@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -17,40 +17,40 @@ public class ExecutionInfo {
     /**
      * Date this order started
      */
-    private Date startDate;                         
-    
+    private Date startDate;
+
     /**
      * Date this order completed
      */
-    private Date endDate;                           
-    
+    private Date endDate;
+
     /**
      * Status of this execution
      */
-    private String executionStatus;                 
-    
+    private String executionStatus;
+
     /**
      * The current task that is running
      */
-    private String currentTask;                     
-    
+    private String currentTask;
+
     /**
      * Resources that were affected (created/updated/deleted) by this service
      */
-    private List<String> affectedResources;         
-    
+    private List<String> affectedResources;
+
     /**
      * Log information for this order execution
      */
-    private List<ExecutionLogInfo> executionLogs;  
-    
+    private List<ExecutionLogInfo> executionLogs;
+
     /**
      * Task information for this order execution
      */
-    private List<ExecutionTaskInfo> executionTasks; 
+    private List<ExecutionTaskInfo> executionTasks;
 
     @XmlElementWrapper(name = "affectedResources")
-    @XmlElement(name="resource")
+    @XmlElement(name = "resource")
     public List<String> getAffectedResources() {
         if (affectedResources == null) {
             affectedResources = new ArrayList<>();
@@ -75,7 +75,7 @@ public class ExecutionInfo {
     }
 
     @XmlElementWrapper(name = "executionLogs")
-    @XmlElement(name="log")
+    @XmlElement(name = "log")
     public List<ExecutionLogInfo> getExecutionLogs() {
         if (executionLogs == null) {
             executionLogs = new ArrayList<>();
@@ -92,7 +92,7 @@ public class ExecutionInfo {
     }
 
     @XmlElementWrapper(name = "executionTasks")
-    @XmlElement(name="task")
+    @XmlElement(name = "task")
     public List<ExecutionTaskInfo> getExecutionTasks() {
         if (executionTasks == null) {
             executionTasks = new ArrayList<>();

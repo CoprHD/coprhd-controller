@@ -1,24 +1,14 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
 /**
  * Info for a VPlex storage volume
  */
-public class VPlexStorageVolumeInfo extends  VPlexResourceInfo {
-    
+public class VPlexStorageVolumeInfo extends VPlexResourceInfo {
+
     // The id of the VPlex cluster to which the storage volume belongs.
     private String clusterId;
 
@@ -30,7 +20,7 @@ public class VPlexStorageVolumeInfo extends  VPlexResourceInfo {
     public String getClusterId() {
         return clusterId;
     }
-    
+
     /**
      * Setter for the storage system cluster id.
      * 
@@ -39,7 +29,7 @@ public class VPlexStorageVolumeInfo extends  VPlexResourceInfo {
     public void setClusterId(String id) {
         clusterId = id;
     }
-       
+
     /**
      * {@inheritDoc}
      */

@@ -292,7 +292,7 @@ public class FileDeviceController implements FileController {
     }
 
     @Override
-    public void delete(URI storage, URI pool, URI uri, boolean forceDelete, String opId) throws ControllerException {
+    public void delete(URI storage, URI pool, URI uri, boolean forceDelete,String deleteType, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(uri, opId);
         StorageSystem storageObj = null;
         FileObject fileObject = null;
@@ -300,8 +300,8 @@ public class FileDeviceController implements FileController {
         Snapshot snapshotObj = null;
         try {
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-            String[] params = { storage.toString(), uri.toString(), String.valueOf(forceDelete) };
-            _log.info("Delete : storage : {}, URI : {}, forceDelete : {}", params);
+            String[] params = { storage.toString(), uri.toString(), String.valueOf(forceDelete) , deleteType };
+            _log.info("Delete : storage : {}, URI : {}, forceDelete : {}, delete_type : {} ", params);
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             boolean isFile = false;
             args.setOpId(opId);
@@ -313,11 +313,15 @@ public class FileDeviceController implements FileController {
                 args.addFileShare(fsObj);
                 args.setFileOperation(isFile);
                 BiosCommandResult result;
-                if (!fsObj.getInactive()) {
-                    result = getDevice(storageObj.getSystemType()).doDeleteFS(storageObj, args);
-                } else {
+                
+                if(FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType)){
                     result = BiosCommandResult.createSuccessfulResult();
-                }
+                }else{
+                    if(!fsObj.getInactive()) {
+                        result = getDevice(storageObj.getSystemType()).doDeleteFS(storageObj, args);
+                    } else {
+                        result = BiosCommandResult.createSuccessfulResult();
+                    }
 
                 if (result.getCommandPending()) {
                     return;

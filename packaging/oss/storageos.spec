@@ -32,11 +32,13 @@ Autoreq: 0
 /usr/bin/systemctl enable nginx
 /usr/bin/systemctl enable storageos-installer
 /etc/storageos/storageos enable
-
-/etc/storageos/boot-ovfenv start
-/usr/bin/systemctl start keepalived
-/usr/bin/systemctl start nginx 
-/etc/storageos/storageos start
+    
+if [ -z "${DO_NOT_START}" ] ; then
+    /etc/storageos/boot-ovfenv start
+    /usr/bin/systemctl start keepalived
+    /usr/bin/systemctl start nginx 
+    /etc/storageos/storageos start
+fi
 
 %postun
 /sbin/ldconfig

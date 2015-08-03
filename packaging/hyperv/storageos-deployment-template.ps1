@@ -171,7 +171,7 @@ function Usage() {
 	Write-Host "    -file:              (Optional) The settings file"
     Write-Host "    -interactive:       (Optional) Interactive way to deploy"
 	Write-Host "	"
-	Write-Host "    example: .\$scriptName -mode install -vip 1.2.3.0 -ipaddr_1 1.2.3.1 -ipaddr_2 1.2.3.2 -ipaddr_3 1.2.3.3 -gateway 1.1.1.1 -netmask 255.255.255.0 -nodeid 1 -nodecount 3 -net network_name -vswitch virtual_switch_name -librarypath library_path -vmhostname vm_host_name -vmpath vm_path -disktype fixed -vlanid vlan_id -vmnameprefix vmprefix- -cpucount 2 -memory 8192 -poweron"
+	Write-Host "    example: .\$scriptName -mode install -vip 1.2.3.0 -ipaddr_1 1.2.3.1 -ipaddr_2 1.2.3.2 -ipaddr_3 1.2.3.3 -gateway 1.1.1.1 -netmask 255.255.255.0 -nodeid 1 -nodecount 3 -net network_name -vswitch virtual_switch_name -librarypath library_path -vmhostname vm_host_name -vmpath vm_path -disktype fixed -vlanid vlan_id -vmprefix vmprefix- -cpucount 2 -memory 8192 -poweron"
 	Write-Host ""
     Write-Host "Redeploy mode options: "
 	Write-Host "    -file:              The setting file"
@@ -190,7 +190,7 @@ function Usage() {
     Write-Host "    -poweron:           (Optional) Auto power on the VM after deploy, (no power on by default)"
     Write-Host "    -interactive:       (Optional) Interactive way to deploy"
 	Write-Host ""
-	Write-Host "    example: .\$scriptName -mode redeploy -file your_setting_file_path -nodeid 1 -nodecount 3 -net network_name -vswitch virtual_switch_name -librarypath library_path -vmhostname vm_host_name -vmpath vm_path -disktype fixed -vlanid vlan_id -vmnameprefix vmprefix- -cpucount 2 -memory 8192 -poweron"
+	Write-Host "    example: .\$scriptName -mode redeploy -file your_setting_file_path -nodeid 1 -nodecount 3 -net network_name -vswitch virtual_switch_name -librarypath library_path -vmhostname vm_host_name -vmpath vm_path -disktype fixed -vlanid vlan_id -vmprefix vmprefix- -cpucount 2 -memory 8192 -poweron"
 	Write-Host ""
 }
 

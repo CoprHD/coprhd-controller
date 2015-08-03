@@ -833,8 +833,8 @@ public class BackupOps {
      * Create a connection to the JMX agent
      */
     private JMXConnector connect(String host, int port) {
-        log.debug("Connecting to JMX Server {}:{}", host, port);
         try {
+            log.debug("Connecting to JMX Server {}:{}", host, port);
             String connectorAddress = String.format(serviceUrl, host, port);
             JMXServiceURL jmxUrl = new JMXServiceURL(connectorAddress);
             return JMXConnectorFactory.connect(jmxUrl);
@@ -873,7 +873,7 @@ public class BackupOps {
             try {
                 conn.close();
             } catch (IOException e) {
-                log.error("Failed to close JMX connector:", e);
+                log.error("Failed to close JMX connector", e);
             }
         }
     }

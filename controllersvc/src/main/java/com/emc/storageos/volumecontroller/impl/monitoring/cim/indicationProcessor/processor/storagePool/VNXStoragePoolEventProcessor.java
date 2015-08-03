@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.monitoring.cim.indicationProcessor.processor.storagePool;
@@ -37,15 +37,15 @@ public class VNXStoragePoolEventProcessor extends BaseProcessor {
             spEvent.setIndication(notification);
             Boolean status = spEvent
                     .updateStoragePoolObjectFromVNXStoragePoolIndication();
-            if (status){
+            if (status) {
                 logMessage(
                         "VNX StoragePool object updated sucessfully from VNX StoragePool Event",
                         new Object[] {});
-            }else{
+            } else {
                 logMessage("VNX StoragePool object not updated",
                         new Object[] {});
             }
-                
+
             getRecordableEventManager().recordEvents(spEvent);
             logMessage("VNX StoragePool Event persisted in DB",
                     new Object[] {});

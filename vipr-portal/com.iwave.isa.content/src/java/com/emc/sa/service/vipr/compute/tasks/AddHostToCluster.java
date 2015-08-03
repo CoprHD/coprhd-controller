@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.compute.tasks;
@@ -13,8 +13,8 @@ import com.emc.vipr.client.Task;
 
 public class AddHostToCluster extends WaitForTask<HostRestRep> {
 
-	private URI host;
-	private URI cluster;
+    private URI host;
+    private URI cluster;
 
     public AddHostToCluster(URI host, URI cluster) {
         this.host = host;
@@ -24,9 +24,9 @@ public class AddHostToCluster extends WaitForTask<HostRestRep> {
 
     @Override
     public Task<HostRestRep> doExecute() throws Exception {
-    	HostUpdateParam hostUpdateParam = new HostUpdateParam();
-    	hostUpdateParam.setCluster(cluster);      
-        Task<HostRestRep> task = getClient().hosts().update(host,hostUpdateParam);      
+        HostUpdateParam hostUpdateParam = new HostUpdateParam();
+        hostUpdateParam.setCluster(cluster);
+        Task<HostRestRep> task = getClient().hosts().update(host, hostUpdateParam);
         return task;
     }
 }

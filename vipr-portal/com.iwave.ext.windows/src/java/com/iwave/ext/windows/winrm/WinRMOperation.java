@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.windows.winrm;
@@ -83,8 +83,7 @@ public abstract class WinRMOperation<T> {
                 debug("Response:\n%s", reformatXml(response));
             }
             return response;
-        }
-        catch (WinRMSoapException e) {
+        } catch (WinRMSoapException e) {
             if (!log.isDebugEnabled()) {
                 info("Request:\n%s", reformatXml(message));
             }
@@ -118,8 +117,7 @@ public abstract class WinRMOperation<T> {
     protected String reformatXml(String xml) {
         try {
             return XmlUtils.formatXml(XmlUtils.parseXml(xml));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             return xml;
         }
     }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.vpool;
 
@@ -30,7 +20,8 @@ public class ProtocolAssignments {
     /**
      * Default Constructor.
      */
-    public ProtocolAssignments() {}
+    public ProtocolAssignments() {
+    }
 
     public ProtocolAssignments(Set<String> protocols) {
         this.protocols = protocols;
@@ -40,7 +31,7 @@ public class ProtocolAssignments {
      * The set of protocols.
      * 
      * @valid FC = Fibre Channel (block)
-     * @valid ISCSI =  Internet Small Computer System Interface (block)
+     * @valid ISCSI = Internet Small Computer System Interface (block)
      * @valid FCoE = Fibre Channel over Ethernet (block)
      * @valid NFS = Network File System (file)
      * @valid NFSv4 = Network File System Version 4 (file)
@@ -58,5 +49,5 @@ public class ProtocolAssignments {
     public void setProtocols(Set<String> protocols) {
         this.protocols = protocols;
     }
-    
+
 }

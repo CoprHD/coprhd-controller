@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.util;
@@ -17,7 +17,7 @@ public class TextUtils {
      * Parses some comma-separated text into a list of values.
      * 
      * @param text
-     *        the CSV text.
+     *            the CSV text.
      * @return the list of values.
      */
     public static List<String> parseCSV(String text) {
@@ -33,7 +33,7 @@ public class TextUtils {
      * Formats some values into comma-separated text.
      * 
      * @param values
-     *        the values to format.
+     *            the values to format.
      * @return the CSV text.
      */
     public static String formatCSV(Iterable<String> values) {
@@ -59,7 +59,7 @@ public class TextUtils {
      * Formats some values into comma-separated text.
      * 
      * @param values
-     *        the values to format.
+     *            the values to format.
      * @return the CSV text.
      */
     public static String formatCSV(String... values) {

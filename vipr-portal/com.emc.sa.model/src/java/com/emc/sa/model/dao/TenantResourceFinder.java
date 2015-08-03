@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.model.dao;
@@ -7,11 +7,9 @@ package com.emc.sa.model.dao;
 import com.emc.sa.model.util.TenantUtils;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantResource;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
-import java.net.URI;
 import java.util.List;
 
 public class TenantResourceFinder<T extends DataObject> extends BaseModelFinder<T> {

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.zkutils;
 
@@ -18,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Represent a Node in zookeeper, 
+ * Represent a Node in zookeeper,
  * only need to care the 2 member variables: path and children list.
  */
 public class ZkNode {
@@ -30,8 +20,9 @@ public class ZkNode {
     }
 
     public String getName() {
-        if (path.equals("/"))
+        if (path.equals("/")) {
             return "/";
+        }
 
         String[] names = path.split("/");
         return names[names.length - 1];
@@ -51,8 +42,9 @@ public class ZkNode {
 
     public boolean hasChild(String child) {
         boolean bHas = false;
-        if (children == null)
+        if (children == null) {
             return bHas;
+        }
 
         for (ZkNode childNode : children) {
             if (childNode.getName().equals(child)) {

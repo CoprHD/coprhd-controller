@@ -1,0 +1,214 @@
+#!/bin/bash
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+# ============================================================
+# Functions contained here can be used to create/maintain
+# a file will commands to revert successfully run commands
+# in the sanity tests.
+# ============================================================
+
+# Have a log file to keep track of operations, so
+# in case of a failure during the test, things can
+# be "undone"
+: ${UNDO_ENABLED=1}
+UNDO_LOG=/tmp/undo.log.$$
+touch $UNDO_LOG
+
+#
+# Poor man's implementation of creating entries on
+# a file that are written such that the last in is
+# at the top of the file (like a stack)
+#
+put_on_undo_stack()
+{
+    if [ $UNDO_ENABLED -ne 1 ]; then
+        return
+    fi
+
+    rm -f ${UNDO_LOG}.tmp
+    if [ -f $UNDO_LOG ]; then
+        mv $UNDO_LOG ${UNDO_LOG}.tmp
+    fi
+    echo $* >> $UNDO_LOG
+    cat ${UNDO_LOG}.tmp >> $UNDO_LOG
+    rm -f ${UNDO_LOG}.tmp
+}
+
+#
+# Do operations to cleanup undo log related stuff
+#
+finalize_undo_log()
+{
+    rm -f $UNDO_LOG
+}
+
+#
+# Remove item from the stack, if it exists
+#
+remove_from_undo_stack()
+{
+    if [ $UNDO_ENABLED -ne 1 ]; then
+        return
+    fi
+
+    if [ $# -eq 0 ]; then
+        return
+    fi
+
+    # Check if the entry exists
+    grep "$*" $UNDO_LOG > /dev/null
+    if [ $? -eq 0 ]; then
+        rm -f ${UNDO_LOG}.tmp
+        if [ -f $UNDO_LOG ]; then
+            mv $UNDO_LOG ${UNDO_LOG}.tmp
+        fi
+        grep -v "$*" ${UNDO_LOG}.tmp | tee $UNDO_LOG
+        rm -f ${UNDO_LOG}.tmp
+    fi
+}
+
+#
+# Run the commands that were left undo
+#
+run_undo_commands()
+{
+    if [ $UNDO_ENABLED -ne 1 ]; then
+        return
+    fi
+
+    if [ -f $UNDO_LOG ]; then
+        # Disable trapping on ERR
+        trap ERR
+        echo "Executing undo commands in $UNDO_LOG :"
+        echo "======================================================"
+        cat $UNDO_LOG
+        echo "======================================================"
+        chmod +x $UNDO_LOG
+        $UNDO_LOG
+        rm -f $UNDO_LOG
+        echo "*** Completed running undo operations"
+    else
+        echo "There is no undo log $UNDO_LOG"
+    fi
+}
+
+#
+# Main tracking function
+#
+set_undo()
+{
+    cmd=$*
+    if [ $# -ge 3 ]; then
+        first=$1
+        second=$2
+        third=$3
+        fourth=$4
+        all_params=${@}
+        case $first in
+        volume)
+            if [ "$second" = create ]; then
+                cnt=-1
+                # Figure out if there was a --count parameter, which
+                # would be the indication of a multi-volume create
+                for i in $all_params
+                do
+                    check_cnt=`echo $i | perl -nle 'if(m#--count\s*={0,1}\s*(\d+)#) { print $1 } else { print 0 }'`
+                    if [ "$check_cnt" -ne "0" ]; then
+                        cnt=$check_cnt
+                        break;
+                    fi
+                done
+                # If cnt = -1, then this is an ordinary volume create.
+                # If cnt is not -1, then this a multi-volume create
+                if [ "$cnt" -eq "-1" ]; then
+                    put_on_undo_stack $first delete $fourth/$third --wait
+                else
+                    index=1;
+                    while [ "$index" -le "$cnt" ];
+                    do
+                        put_on_undo_stack $first delete $fourth/${third}-${index} --wait
+                        index=`expr $index + 1`
+                    done
+                fi
+            elif [ "$second" = full_copy ]; then
+                project=`echo $fourth | cut -d '/' -f1`
+                put_on_undo_stack $first delete $project/$third --wait
+            elif [ "$second" = delete ]; then
+                remove_from_undo_stack $first $second $third
+            fi
+            ;;
+        blocksnapshot)
+            if [ "$second" = create ]; then
+                put_on_undo_stack $first delete $third/$fourth
+            elif [ "$second" = delete ]; then
+                remove_from_undo_stack $first $second $third
+            fi
+            ;;
+        blockmirror)
+            if [ "$second" = create ]; then
+                put_on_undo_stack $first delete $third/$fourth
+            elif [ "$second" = delete ]; then
+                remove_from_undo_stack $first $second $third
+            fi
+            ;;
+        blockconsistencygroup)
+            if [ "$second" = create ]; then
+                put_on_undo_stack $first delete $fourth
+            elif [ "$second" = delete ]; then
+                remove_from_undo_stack $first $second $third
+            fi
+            ;;
+        export_group)
+            if [ "$second" = create ]; then
+                put_on_undo_stack $first delete $third/$fourth
+            elif [ "$second" = delete ]; then
+                remove_from_undo_stack $first $second $third
+            fi
+            ;;
+        snapshot)
+            # snapshot create $PROJECT/$fsname $fsname-$datetime-2
+            # snapshot delete $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
+            if [ "$second" = create ]; then
+                put_on_undo_stack $first delete $PROJECT/$fourth $third
+            elif [ "$second" = delete ]; then
+                remove_from_undo_stack $first $second $third $fourth
+            fi
+            ;;
+        fileshare)
+            # fileshare create $fsname $PROJECT $NH $cos $FS_SIZE
+            # fileshare delete $PROJECT/$fsname
+            if [ "$second" = create ]; then
+                put_on_undo_stack $first delete $PROJECT/$third
+            elif [ "$second" = delete ]; then
+                remove_from_undo_stack $first $second $third
+            fi
+            ;;
+        datastore)
+            if [ "$second" = create ]; then
+                put_on_undo_stack $first delete $fourth $third
+            elif [ "$second" = delete ]; then
+                remove_from_undo_stack $first $second $third $fourth
+            fi
+            ;;
+        objcos)
+            # objcos create name --description "descr"
+            # objcos delete name 
+            if [ "$second" = create ]; then
+                put_on_undo_stack $first delete $third
+            elif [ "$second" = delete ]; then
+                remove_from_undo_stack $first $second $third
+            fi
+            ;;
+        protectionsystem)
+            if [ "$second" = create ]; then
+                put_on_undo_stack $first delete $third
+            elif [ "$second" = delete ]; then
+                remove_from_undo_stack $first $second $third
+            fi
+            ;;
+        esac
+    fi
+}

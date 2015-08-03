@@ -1,20 +1,20 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.aix.model;
 
 public class AixVersion {
-    
+
     private String version;
-    
+
     public AixVersion(String version) {
-       setVersion(version);
+        setVersion(version);
     }
-    
+
     @Override
     public String toString() {
-        return String.format("%s", version );
+        return String.format("%s", version);
     }
 
     public String getVersion() {

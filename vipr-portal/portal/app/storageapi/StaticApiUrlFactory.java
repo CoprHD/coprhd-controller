@@ -1,12 +1,12 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package storageapi;
 
 /**
  * A URL Factory that gives out the same address everytime
- *
+ * 
  * @author dmaddison
  */
 public class StaticApiUrlFactory implements ApiUrlFactory {

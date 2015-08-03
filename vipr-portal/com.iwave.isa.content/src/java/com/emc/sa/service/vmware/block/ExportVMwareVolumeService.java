@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vmware.block;
@@ -22,29 +22,29 @@ public class ExportVMwareVolumeService extends VMwareHostService {
 
     @Bindable
     protected ExportBlockVolumeHelper helper = new ExportVMwareBlockVolumeHelper();
-		
-	@Override
-	public void precheck() throws Exception {
-	    vmware.disconnect();
+
+    @Override
+    public void precheck() throws Exception {
+        vmware.disconnect();
         helper.precheck();
     }
-	
-	@Override
-	public void execute() throws Exception {
-		helper.exportVolumes();
-		setVmfsDatastoreTag(helper.getVolumeIds(), helper.getHostId());
-		this.connectAndInitializeHost();
-		vmware.refreshStorage(host, cluster);
-	}
-	
-	private void setVmfsDatastoreTag(List<String> volumeIds, URI hostId) {
-	    for (String volumeId : volumeIds) {
-	        BlockObjectRestRep volume = BlockStorageUtils.getVolume(uri(volumeId));
-	        Set<String> datastoreNames = VMwareDatastoreTagger.getDatastoreNames(volume);
-	        
-	        for (String datastoreName : datastoreNames) {
-               vmware.addVmfsDatastoreTag(volume, hostId, datastoreName);
-	        }
-	    }
-	}
+
+    @Override
+    public void execute() throws Exception {
+        helper.exportVolumes();
+        setVmfsDatastoreTag(helper.getVolumeIds(), helper.getHostId());
+        this.connectAndInitializeHost();
+        vmware.refreshStorage(host, cluster);
+    }
+
+    private void setVmfsDatastoreTag(List<String> volumeIds, URI hostId) {
+        for (String volumeId : volumeIds) {
+            BlockObjectRestRep volume = BlockStorageUtils.getVolume(uri(volumeId));
+            Set<String> datastoreNames = VMwareDatastoreTagger.getDatastoreNames(volume);
+
+            for (String datastoreName : datastoreNames) {
+                vmware.addVmfsDatastoreTag(volume, hostId, datastoreName);
+            }
+        }
+    }
 }

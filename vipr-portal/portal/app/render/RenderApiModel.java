@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package render;
@@ -25,7 +25,7 @@ import com.emc.vipr.model.catalog.ApiList;
 /**
  * Renderer for rendering API Responses. This can render any model classes from the models.api package.
  * It can render them as either XML using JAXB or as JSON.
- *
+ * 
  * @author Chris Dail
  */
 public class RenderApiModel extends Result {
@@ -34,11 +34,11 @@ public class RenderApiModel extends Result {
     public static void renderApi(Object o) {
         throw new RenderApiModel(o);
     }
-    
+
     public RenderApiModel(Object o) {
         this.o = o;
     }
-    
+
     @Override
     public void apply(Request request, Response response) {
         try {
@@ -60,11 +60,10 @@ public class RenderApiModel extends Result {
 
                 String json = mapper.writeValueAsString(o);
                 String encoding = getEncoding();
-                setContentTypeIfNotSet(response, "application/json; charset="+encoding);
+                setContentTypeIfNotSet(response, "application/json; charset=" + encoding);
                 response.out.write(json.getBytes(encoding));
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.error(e, "API Rendering error");
             throw new UnexpectedException(e);
         }

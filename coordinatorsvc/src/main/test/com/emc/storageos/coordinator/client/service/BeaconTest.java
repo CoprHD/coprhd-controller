@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.coordinator.client.service;
@@ -40,7 +30,6 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 public class BeaconTest extends CoordinatorTestBase {
     private static final Logger _log = LoggerFactory.getLogger(BeaconTest.class);
 
-
     /**
      * Dummy service interface
      */
@@ -64,7 +53,7 @@ public class BeaconTest extends CoordinatorTestBase {
             _svc.setId(UUID.randomUUID().toString());
             _svc.setTag(tag);
             Map<String, URI> endpoint = new HashMap<String, URI>();
-            URI endpointUri =  URI.create(String.format("rmi://localhost:%1$d/test", port));
+            URI endpointUri = URI.create(String.format("rmi://localhost:%1$d/test", port));
             endpoint.put(endpointKey, endpointUri);
             _svc.setEndpointMap(endpoint);
             _port = port;
@@ -128,12 +117,16 @@ public class BeaconTest extends CoordinatorTestBase {
 
         try {
             client.locateService(DummyService.class, si.getName(), si.getVersion(), "random", endpointKey);
+            assert false;
         } catch (CoordinatorException expected) {
+            // ignore this exception since it's expected
         }
 
         try {
             client.locateService(DummyService.class, si.getName(), si.getVersion(), tag, "random");
+            assert false;
         } catch (CoordinatorException expected) {
+            _log.info("CoordinatorException is throwed as we expected", expected);
         }
         service.stopRmiServer();
         service.stop();

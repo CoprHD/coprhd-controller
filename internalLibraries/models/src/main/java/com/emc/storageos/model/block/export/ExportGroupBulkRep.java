@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block.export;
@@ -10,15 +10,15 @@ import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 
-
 @XmlRootElement(name = "bulk_exportgroups")
 public class ExportGroupBulkRep extends BulkRestRep {
     private List<ExportGroupRestRep> exports;
 
     /**
      * List of export groups.
+     * 
      * @valid none
-     */    
+     */
     @XmlElement(name = "exportgroup")
     public List<ExportGroupRestRep> getExports() {
         if (exports == null) {

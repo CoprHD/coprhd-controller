@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -49,8 +49,7 @@ public class ViewHelpers {
     public static String toJson(Object obj) {
         try {
             return MAPPER.writeValueAsString(obj);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
@@ -66,7 +65,7 @@ public class ViewHelpers {
         return toJson(errors);
     }
 
-    public static Map<String,String> globDirectory(String path) throws IOException {
+    public static Map<String, String> globDirectory(String path) throws IOException {
         Map<String, String> allFiles = new HashMap<String, String>();
 
         File baseDir = Play.getVirtualFile(path).getRealFile();

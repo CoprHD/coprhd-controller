@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.vpool;
@@ -29,7 +29,7 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     private List<RelatedResourceRep> availableMatchedComputeElements;
     private Boolean inUse;
 
-	private Integer minProcessors;
+    private Integer minProcessors;
     private Integer maxProcessors;
     private Integer minTotalCores;
     private Integer maxTotalCores;
@@ -42,15 +42,15 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     private Integer minNics;
     private Integer maxNics;
     private Integer minHbas;
-    private Integer maxHbas;    
-    
+    private Integer maxHbas;
+
     private List<RelatedResourceRep> varrays;
     private Boolean useMatchedElements;
     private List<NamedRelatedResourceRep> serviceProfileTemplates;
-    
 
-    public ComputeVirtualPoolRestRep() {}
-    
+    public ComputeVirtualPoolRestRep() {
+    }
+
     /**
      * 
      * User defined description for this virtual pool.
@@ -65,10 +65,10 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     public void setDescription(String description) {
         this.description = description;
     }
-    
+
     /**
      * The supported system type for the virtual pool.
-     *
+     * 
      * @valid Cisco_UCSM
      * @valid Cisco_CSeries
      * @valid Generic
@@ -78,12 +78,12 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     @XmlElement(name = "system_type")
     public String getSystemType() {
         return systemType;
-    }    
+    }
 
     public void setSystemType(String systemType) {
         this.systemType = systemType;
-    }    
-    
+    }
+
     @XmlElementWrapper(name = "matched_compute_elements")
     /**
      * Set of compute elements which have attributes that match the criteria for 
@@ -102,8 +102,7 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     public void setMatchedComputeElements(List<RelatedResourceRep> matchedComputeElements) {
         this.matchedComputeElements = matchedComputeElements;
     }
-    
-    
+
     @XmlElementWrapper(name = "available_matched_compute_elements")
     /**
      * Set of compute elements which have attributes that match the criteria for 
@@ -122,7 +121,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     public void setAvailableMatchedComputeElements(List<RelatedResourceRep> availableMatchedComputeElements) {
         this.availableMatchedComputeElements = availableMatchedComputeElements;
     }
-
 
     /**
      * Minimum Number of processors supported by this virtual pool.
@@ -151,7 +149,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     public void setMaxProcessors(Integer maxProcessors) {
         this.maxProcessors = maxProcessors;
     }
-    
 
     /**
      * Minimum Number of cores supported by this virtual pool.
@@ -179,8 +176,7 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
 
     public void setMaxTotalCores(Integer maxTotalCores) {
         this.maxTotalCores = maxTotalCores;
-    }    
-
+    }
 
     /**
      * Minimum Number of threads supported by this virtual pool.
@@ -208,8 +204,7 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
 
     public void setMaxTotalThreads(Integer maxTotalThreads) {
         this.maxTotalThreads = maxTotalThreads;
-    }    
-
+    }
 
     /**
      * Minimum CPU speed supported by this virtual pool.
@@ -237,8 +232,7 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
 
     public void setMaxCpuSpeed(Integer maxCpuSpeed) {
         this.maxCpuSpeed = maxCpuSpeed;
-    }   
-
+    }
 
     /**
      * Minimum memory supported by this virtual pool.
@@ -266,8 +260,7 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
 
     public void setMaxMemory(Integer maxMemory) {
         this.maxMemory = maxMemory;
-    }  
-
+    }
 
     /**
      * Minimum number of NICs supported by this virtual pool.
@@ -295,8 +288,7 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
 
     public void setMaxNics(Integer maxNics) {
         this.maxNics = maxNics;
-    }  
-
+    }
 
     /**
      * Minimum number of HBAs supported by this virtual pool.
@@ -324,10 +316,9 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
 
     public void setMaxHbas(Integer maxHbas) {
         this.maxHbas = maxHbas;
-    }  
-    
+    }
+
     @XmlElementWrapper(name = "varrays")
-    
     /**
      * The virtual arrays assigned to this virtual pool.
      * 
@@ -347,7 +338,7 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     }
 
     /**
-     * Determines if matched or valid assigned compute elements are returned from 
+     * Determines if matched or valid assigned compute elements are returned from
      * command to retrieve the list of compute elements.
      * 
      * @valid false
@@ -360,7 +351,7 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
 
     public void setUseMatchedElements(Boolean useMatchedElements) {
         this.useMatchedElements = useMatchedElements;
-    }    
+    }
 
     /**
      * The service profile templates assigned to this virtual pool.
@@ -379,6 +370,7 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     public void setServiceProfileTemplates(List<NamedRelatedResourceRep> serviceProfileTemplates) {
         this.serviceProfileTemplates = serviceProfileTemplates;
     }
+
     /**
      * Is the compute virtual pool in use
      * 
@@ -386,13 +378,12 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
      * @valid true
      */
     @XmlElement(name = "in_use")
-    
     public Boolean getInUse() {
-		return inUse;
-	}
+        return inUse;
+    }
 
-	public void setInUse(Boolean inUse) {
-		this.inUse = inUse;
-	}
-    
+    public void setInUse(Boolean inUse) {
+        this.inUse = inUse;
+    }
+
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.vipr.client.core;
@@ -49,7 +39,7 @@ public class UserGroup extends AbstractCoreResources<UserGroupRestRep> implement
      * Lists all user groups.
      * <p>
      * API Call: <tt>GET /vdc/admin/user-groups</tt>
-     *
+     * 
      * @return the list of user groups.
      */
     @Override
@@ -73,9 +63,9 @@ public class UserGroup extends AbstractCoreResources<UserGroupRestRep> implement
      * Creates an user group.
      * <p>
      * API Call: <tt>POST /vdc/admin/user-groups</tt>
-     *
+     * 
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return the created user group.
      */
     public UserGroupRestRep create(UserGroupCreateParam input) {
@@ -86,9 +76,9 @@ public class UserGroup extends AbstractCoreResources<UserGroupRestRep> implement
      * Updates an user group.
      * <p>
      * API Call: <tt>PUT /vdc/admin/user-groups</tt>
-     *
+     * 
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated user group.
      */
     public UserGroupRestRep update(URI id, UserGroupUpdateParam input) {
@@ -99,7 +89,7 @@ public class UserGroup extends AbstractCoreResources<UserGroupRestRep> implement
      * Deletes an user group.
      * <p>
      * API Call: <tt>DELETE /vdc/admin/user-groups/{id}</tt>
-     *
+     * 
      * @param id the user group ID.
      */
     public void delete(URI id) {

@@ -1,20 +1,9 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.coordinator.client.service;
-
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -39,13 +28,14 @@ public class DistributedPersistentLockTest extends CoordinatorTestBase {
      * Simulates a client acquiring and releasing persistent locks.
      * Also simulates failure to release persistent locks when attempted by incorrect owner.
      * Repeated NUMCLIENTS times.
+     * 
      * @throws Exception
      */
     @Test
     public void acquireAndReleaseDistributedPersistentLock() throws Exception {
         _logger.info("*** acquireAndReleaseDistributedPersistentLock start");
         List<DistributedPersistentLock> locks = new ArrayList<DistributedPersistentLock>();
-        for(int i=0; i<NUMRUNS; i++) {
+        for (int i = 0; i < NUMRUNS; i++) {
             String lockName = String.format("%s-%s", "lock", i);
             CoordinatorClient testClient = connectClient();
             try {
@@ -115,13 +105,14 @@ public class DistributedPersistentLockTest extends CoordinatorTestBase {
      * Simulates a client acquiring persistent locks.
      * Also simulates failure to acquire persistent locks when attempted on granted locks.
      * Repeated NUMCLIENTS times.
+     * 
      * @throws Exception
      */
     @Test
     public void acquireDistributedPersistentLock() throws Exception {
         _logger.info("*** acquireDistributedPersistentLock start");
         List<DistributedPersistentLock> locks = new ArrayList<DistributedPersistentLock>();
-        for(int i=0; i<NUMRUNS; i++) {
+        for (int i = 0; i < NUMRUNS; i++) {
             String lockName = String.format("%s-%s", "lock", i);
             DistributedPersistentLock lock = null;
             try {
@@ -162,13 +153,14 @@ public class DistributedPersistentLockTest extends CoordinatorTestBase {
      * When run as part of the DistributedPersistentLockTest test suite, it release locks
      * created by acquireDistributedPersistentLock
      * Repeated NUMCLIENTS times.
+     * 
      * @throws Exception
      */
     @Test
     public void releaseDistributedPersistentLock() throws Exception {
         _logger.info("*** releaseDistributedPersistentLock start");
         List<DistributedPersistentLock> locks = new ArrayList<DistributedPersistentLock>();
-        for(int i=0; i<NUMRUNS; i++) {
+        for (int i = 0; i < NUMRUNS; i++) {
             String lockName = String.format("%s-%s", "lock", i);
             try {
                 locks.add(connectClient().getPersistentLock(lockName));
@@ -181,7 +173,7 @@ public class DistributedPersistentLockTest extends CoordinatorTestBase {
                 _logger.info(": Try releasing lock without checking: {}", lockName);
                 locks.get(i).releaseLock("abc");
                 String lockOwner = locks.get(i).getLockOwner();
-                if(lockOwner != null) {
+                if (lockOwner != null) {
                     boolean bLockActionResult = locks.get(i).releaseLock(lockOwner);
                     _logger.info(": Released lock: {}; result: {}", lockName, bLockActionResult);
                 } else {
@@ -197,13 +189,14 @@ public class DistributedPersistentLockTest extends CoordinatorTestBase {
 
     /**
      * Simulates multiple clients accessing persistent lock API simultaneously.
+     * 
      * @throws Exception
      */
     @Test
     public void miscDistributedPersistentLock() throws Exception {
         _logger.info("*** miscDistributedPersistentLock start");
         ExecutorService clients = Executors.newFixedThreadPool(NUMCLIENTS);
-        for(int i=0; i < NUMCLIENTS; i++) {
+        for (int i = 0; i < NUMCLIENTS; i++) {
             clients.submit(new Runnable() {
                 @Override
                 public void run() {
@@ -218,7 +211,7 @@ public class DistributedPersistentLockTest extends CoordinatorTestBase {
                         Assert.assertNull(e);
                     }
                     _logger.info(": ### Client {}, Initialized lock {} ###", clientName, lockName);
-                    while(true) {
+                    while (true) {
                         try {
                             _logger.info(": {} ------ client: starts loop ------", clientName);
                             _logger.info(": {} client trying to acquire lock", clientName);
@@ -227,7 +220,7 @@ public class DistributedPersistentLockTest extends CoordinatorTestBase {
                             currOwnerName = lock.getLockOwner();
                             _logger.info(": {} is current owner", currOwnerName);
                             Thread.sleep(50);
-                            if(bLockActionResult) {
+                            if (bLockActionResult) {
                                 _logger.info(": {} request succeeded. doing work", currOwnerName);
                                 Thread.sleep(50);
                                 _logger.info(": {} work done. releasing lock", currOwnerName);
@@ -239,7 +232,7 @@ public class DistributedPersistentLockTest extends CoordinatorTestBase {
                                 Thread.sleep(50);
                             }
                         } catch (InterruptedException e) {
-                            //Ignore this.
+                            // Ignore this.
                         } catch (Exception e) {
                             _logger.info(": {} transient error ...", clientName, e);
                         }

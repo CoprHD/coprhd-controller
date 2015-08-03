@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -85,11 +85,10 @@ public class ProtectionSystems extends AbstractCoreBulkResources<ProtectionSyste
     }
 
     /**
-     * Get all protection systems, optionally filtering the results.. Convenience method for:
-     * <tt>getByRefs(list(), filter)</tt>
+     * Get all protection systems, optionally filtering the results.. Convenience method for: <tt>getByRefs(list(), filter)</tt>
      * 
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of protection systems.
      */
     @Override
@@ -104,7 +103,7 @@ public class ProtectionSystems extends AbstractCoreBulkResources<ProtectionSyste
      * API Call: <tt>POST /vdc/protection-systems</tt>
      * 
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<ProtectionSystemRestRep> create(ProtectionSystemRequestParam input) {
@@ -117,9 +116,9 @@ public class ProtectionSystems extends AbstractCoreBulkResources<ProtectionSyste
      * API Call: <tt>PUT /vdc/protection-systems/{id}</tt>
      * 
      * @param id
-     *        the ID of the protection system.
+     *            the ID of the protection system.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<ProtectionSystemRestRep> update(URI id, ProtectionSystemUpdateRequestParam input) {
@@ -132,7 +131,7 @@ public class ProtectionSystems extends AbstractCoreBulkResources<ProtectionSyste
      * API Call: <tt>POST /vdc/protection-systems/{id}/deactivate</tt>
      * 
      * @param id
-     *        the ID of the protection system.
+     *            the ID of the protection system.
      */
     public void deactivate(URI id) {
         doDeactivate(id);
@@ -155,7 +154,7 @@ public class ProtectionSystems extends AbstractCoreBulkResources<ProtectionSyste
      * API Call: <tt>POST /vdc/protection-systems/{id}/discover</tt>
      * 
      * @param id
-     *        the ID of the protection system.
+     *            the ID of the protection system.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<ProtectionSystemRestRep> discover(URI id) {
@@ -168,7 +167,7 @@ public class ProtectionSystems extends AbstractCoreBulkResources<ProtectionSyste
      * API Call: <tt>POST /vdc/protection-systems/{id}/connectivity</tt>
      * 
      * @param id
-     *        the ID of the protection system.
+     *            the ID of the protection system.
      * @return the connectivity of the protection system.
      */
     public ProtectionSystemConnectivityRestRep getConnectivity(URI id) {

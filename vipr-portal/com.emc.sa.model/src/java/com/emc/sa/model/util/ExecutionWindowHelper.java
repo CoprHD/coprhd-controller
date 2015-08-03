@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.model.util;
@@ -18,7 +18,7 @@ public class ExecutionWindowHelper {
     public ExecutionWindowHelper(ExecutionWindow window) {
         this.window = window;
     }
- 
+
     public boolean isActive(Date date) {
         Calendar cal = Calendar.getInstance();
         cal.setTime(date);
@@ -126,7 +126,7 @@ public class ExecutionWindowHelper {
      * Gets the end time of the window from the given window start time.
      * 
      * @param startTime
-     *        the start time.
+     *            the start time.
      * @return the end time.
      */
     private Calendar getWindowEndTime(Calendar startTime) {
@@ -139,7 +139,7 @@ public class ExecutionWindowHelper {
      * Adjusts the start time to the correct day of the week for a weekly window.
      * 
      * @param startTime
-     *        the start time.
+     *            the start time.
      */
     private void adjustDayOfWeek(Calendar startTime) {
         // Adjust the window time within the current week
@@ -152,9 +152,9 @@ public class ExecutionWindowHelper {
      * day of the month, it is set to the last day of the month.
      * 
      * @param startTime
-     *        the start time.
+     *            the start time.
      * @param month
-     *        the month.
+     *            the month.
      */
     private void adjustDayOfMonth(Calendar startTime, int month) {
         // Set to the last day of the month
@@ -172,9 +172,9 @@ public class ExecutionWindowHelper {
      * Sets the calendar to the last day of the given month.
      * 
      * @param cal
-     *        the calendar.
+     *            the calendar.
      * @param month
-     *        the month.
+     *            the month.
      */
     private void applyLastDayOfMonth(Calendar cal, int month) {
         cal.set(Calendar.MONTH, month + 1);
@@ -186,7 +186,7 @@ public class ExecutionWindowHelper {
      * Changes to the previous window start time.
      * 
      * @param startTime
-     *        the window start time.
+     *            the window start time.
      */
     private void previousWindow(Calendar startTime) {
         if (isDaily()) {
@@ -205,7 +205,7 @@ public class ExecutionWindowHelper {
      * Changes to the next window start time.
      * 
      * @param startTime
-     *        the window start time.
+     *            the window start time.
      */
     private void nextWindow(Calendar startTime) {
         if (isDaily()) {
@@ -224,7 +224,7 @@ public class ExecutionWindowHelper {
      * Gets the calendar in UTC time.
      * 
      * @param cal
-     *        the input calendar.
+     *            the input calendar.
      * @return a calendar instance in UTC.
      */
     private Calendar inUTC(Calendar cal) {
@@ -240,12 +240,12 @@ public class ExecutionWindowHelper {
      */
     private int getWindowLengthCalendarField() {
         switch (ExecutionWindowLengthType.valueOf(window.getExecutionWindowLengthType())) {
-        case DAYS:
-            return Calendar.DAY_OF_MONTH;
-        case HOURS:
-            return Calendar.HOUR_OF_DAY;
-        case MINUTES:
-            return Calendar.MINUTE;
+            case DAYS:
+                return Calendar.DAY_OF_MONTH;
+            case HOURS:
+                return Calendar.HOUR_OF_DAY;
+            case MINUTES:
+                return Calendar.MINUTE;
         }
         throw new IllegalStateException("Invalid window length");
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models;
@@ -18,7 +18,7 @@ public class RpoType {
     public static final String TB = "TB";
 
     public static final String[] VALUES = {
-        SECONDS, MINUTES, HOURS, WRITES, BYTES, KB, MB, GB, TB
+            SECONDS, MINUTES, HOURS, WRITES, BYTES, KB, MB, GB, TB
     };
 
     public static final StringOption[] OPTIONS = StringOption.options(VALUES, "RpoType", false);

@@ -1,23 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package models.properties;
 
 import com.emc.storageos.security.password.Constants;
-import com.emc.storageos.security.password.ValidatorFactory;
-
 import java.util.Map;
 
 public class PasswordPropertyPage extends CustomPropertyPage {
@@ -33,7 +21,6 @@ public class PasswordPropertyPage extends CustomPropertyPage {
     private Property passwordReuseNumber;
     private Property passwordExpireDays;
 
-
     public PasswordPropertyPage(Map<String, Property> properties) {
         super("Password");
         setRenderTemplate("passwordPage.html");
@@ -48,39 +35,49 @@ public class PasswordPropertyPage extends CustomPropertyPage {
         passwordPreventDictionary = addCustomProperty(properties, Constants.PASSWORD_PREVENT_DICTIONARY);
         passwordReuseNumber = addCustomProperty(properties, Constants.PASSWORD_REUSE_NUMBER);
         passwordExpireDays = addCustomProperty(properties, Constants.PASSWORD_EXPIRE_DAYS);
-;
+        ;
     }
 
     public Property getPasswordChagneInterval() {
         return passwordChagneInterval;
     }
+
     public Property getPasswordMinLength() {
         return passwordMinLength;
     }
+
     public Property getPasswordLowercaseNumber() {
         return passwordLowercaseNumber;
     }
+
     public Property getPasswordUppercaseNumber() {
         return passwordUppercaseNumber;
     }
+
     public Property getPasswordNumericNumber() {
         return passwordNumericNumber;
     }
+
     public Property getPasswordSpecialNumber() {
         return passwordSpecialNumber;
     }
+
     public Property getPasswordRepeatingNumber() {
         return passwordRepeatingNumber;
     }
+
     public Property getPasswordChangedNumber() {
         return passwordChangedNumber;
     }
+
     public Property getPasswordPreventDictionary() {
         return passwordPreventDictionary;
     }
+
     public Property getPasswordReuseNumber() {
         return passwordReuseNumber;
     }
+
     public Property getPasswordExpireDays() {
         return passwordExpireDays;
     }

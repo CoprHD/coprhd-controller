@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.windows.winrm.wmi;
@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 
 public class AddDiskToClusterMethod extends WinRMInvokeOperation<String> {
     public static final String CLUSTER_AVAILABLE_DISKS_URI = WinRMConstants.WMI_BASE_URI + "root/mscluster/MSCluster_AvailableDisk";
-    public static final String CLUSTER_AVAILABLE_DISKS_ACTION_URI = CLUSTER_AVAILABLE_DISKS_URI+"/AddToCluster";
+    public static final String CLUSTER_AVAILABLE_DISKS_ACTION_URI = CLUSTER_AVAILABLE_DISKS_URI + "/AddToCluster";
 
     private static final XPath XPATH = XmlUtils.createXPath(String.format("ns=%s", CLUSTER_AVAILABLE_DISKS_URI));
     private static final XPathExpression PATH_EXPR = XmlUtils.compileXPath(XPATH, "ns:Path");
@@ -28,7 +28,7 @@ public class AddDiskToClusterMethod extends WinRMInvokeOperation<String> {
 
     public AddDiskToClusterMethod(WinRMTarget target, String diskId) {
         super(target, CLUSTER_AVAILABLE_DISKS_URI, CLUSTER_AVAILABLE_DISKS_ACTION_URI);
-        setSelector("id",diskId);
+        setSelector("id", diskId);
     }
 
     @Override
@@ -47,7 +47,7 @@ public class AddDiskToClusterMethod extends WinRMInvokeOperation<String> {
         if (m.find()) {
             return m.group(1);
         } else {
-            throw new RuntimeException("Unable to determine resource name from "+path);
+            throw new RuntimeException("Unable to determine resource name from " + path);
         }
     }
 

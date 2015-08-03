@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.utils;
 
@@ -42,7 +32,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  * Utility class to hold generic, reusable block service methods
  */
 public class BlockServiceUtils {
-    
+
     /**
      * Validate that the passed block object is not an internal block object,
      * such as a backend volume for a VPLEX volume. If so, throw a bad request
@@ -50,14 +40,14 @@ public class BlockServiceUtils {
      * 
      * @param blockObject A reference to a BlockObject
      * @param force true if an operation should be forced regardless of whether
-     *        or not the passed block object is an internal object, false
-     *        otherwise.
+     *            or not the passed block object is an internal object, false
+     *            otherwise.
      */
     public static void validateNotAnInternalBlockObject(BlockObject blockObject, boolean force) {
         if (blockObject != null) {
             if (blockObject.checkInternalFlags(Flag.INTERNAL_OBJECT)
                     && !blockObject.checkInternalFlags(Flag.SUPPORTS_FORCE)) {
-                throw APIException.badRequests.notSupportedForInternalVolumes();                
+                throw APIException.badRequests.notSupportedForInternalVolumes();
             }
             else if (blockObject.checkInternalFlags(Flag.INTERNAL_OBJECT)
                     && blockObject.checkInternalFlags(Flag.SUPPORTS_FORCE)
@@ -66,25 +56,25 @@ public class BlockServiceUtils {
             }
         }
     }
-    
+
     /**
      * Gets and verifies that the VirtualArray passed in the request is
      * accessible to the tenant.
-     *
+     * 
      * @param project A reference to the project.
      * @param varrayURI The URI of the VirtualArray
-     *
+     * 
      * @return A reference to the VirtualArray.
      */
     public static VirtualArray verifyVirtualArrayForRequest(Project project,
-        URI varrayURI, UriInfo uriInfo, PermissionsHelper permissionsHelper, DbClient dbClient) {
+            URI varrayURI, UriInfo uriInfo, PermissionsHelper permissionsHelper, DbClient dbClient) {
         VirtualArray neighborhood = dbClient.queryObject(VirtualArray.class, varrayURI);
         ArgValidator.checkEntity(neighborhood, varrayURI, isIdEmbeddedInURL(varrayURI, uriInfo));
         permissionsHelper.checkTenantHasAccessToVirtualArray(project.getTenantOrg()
-            .getURI(), neighborhood);
+                .getURI(), neighborhood);
         return neighborhood;
     }
-    
+
     /**
      * Determine if the unique id for a resource is embedded in the passed
      * resource URI.
@@ -113,7 +103,7 @@ public class BlockServiceUtils {
     public static boolean isIdEmbeddedInURL(final String resourceId, UriInfo uriInfo) {
         try {
             final Set<Entry<String, List<String>>> pathParameters = uriInfo
-                .getPathParameters().entrySet();
+                    .getPathParameters().entrySet();
             for (final Entry<String, List<String>> entry : pathParameters) {
                 for (final String param : entry.getValue()) {
                     if (param.equals(resourceId)) {
@@ -127,21 +117,21 @@ public class BlockServiceUtils {
 
         return false;
     }
-    
+
     /**
      * Verify the user is authorized for a request.
      * 
      * @param project A reference to the Project.
      */
     public static void verifyUserIsAuthorizedForRequest(Project project,
-        StorageOSUser user, PermissionsHelper permissionsHelper) {
+            StorageOSUser user, PermissionsHelper permissionsHelper) {
         if (!(permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(),
-            Role.TENANT_ADMIN) || permissionsHelper.userHasGivenACL(user,
-            project.getId(), ACL.OWN, ACL.ALL))) {
+                Role.TENANT_ADMIN) || permissionsHelper.userHasGivenACL(user,
+                project.getId(), ACL.OWN, ACL.ALL))) {
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
     }
-    
+
     /**
      * Get StorageOSUser from the passed security context.
      * 
@@ -165,13 +155,13 @@ public class BlockServiceUtils {
      */
     public static boolean hasValidUserInContext(SecurityContext securityContext) {
         if ((securityContext != null)
-            && (securityContext.getUserPrincipal() instanceof StorageOSUser)) {
+                && (securityContext.getUserPrincipal() instanceof StorageOSUser)) {
             return true;
         } else {
             return false;
         }
     }
-    
+
     /**
      * For VMAX3, We can't create fullcopy/mirror when there are active snap sessions.
      * 
@@ -191,6 +181,5 @@ public class BlockServiceUtils {
             }
         }
     }
-    
-    
+
 }

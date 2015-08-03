@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.resource.utils;
@@ -31,15 +21,15 @@ import com.emc.storageos.security.audit.AuditLogUtils;
 import com.emc.storageos.db.client.model.AuditLog;
 
 import java.util.Locale;
-import java.util.ResourceBundle;   
+import java.util.ResourceBundle;
 
 /**
- *  An XML auditlog marshaler based on JAXB API
+ * An XML auditlog marshaler based on JAXB API
  */
 public class XMLAuditLogMarshaller implements AuditLogMarshaller {
 
     final private Logger _logger = LoggerFactory.getLogger(XMLAuditLogMarshaller.class);
-    
+
     final static private Logger _staticLogger = LoggerFactory.getLogger(XMLAuditLogMarshaller.class);
 
     private static JAXBContext _context = null;
@@ -52,8 +42,8 @@ public class XMLAuditLogMarshaller implements AuditLogMarshaller {
         } catch (JAXBException e) {
             _staticLogger.error("XML Marshaller Creation Error", e);
         }
-      }
-    
+    }
+
     private final ThreadLocal<Marshaller> marshallers = new ThreadLocal<Marshaller>() {
 
         protected Marshaller initialValue() {
@@ -75,7 +65,7 @@ public class XMLAuditLogMarshaller implements AuditLogMarshaller {
 
     @Override
     public void header(Writer writer) throws MarshallingExcetion {
-        BufferedWriter ow = ((BufferedWriter)writer);
+        BufferedWriter ow = ((BufferedWriter) writer);
         try {
             ow.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
             writer.write("<auditlogs>");
@@ -86,7 +76,7 @@ public class XMLAuditLogMarshaller implements AuditLogMarshaller {
 
     @Override
     public void marshal(AuditLog auditlog, Writer writer) throws MarshallingExcetion {
-        BufferedWriter ow = ((BufferedWriter)writer);
+        BufferedWriter ow = ((BufferedWriter) writer);
         try {
             if (auditlog == null) {
                 _logger.warn("null auditlog dropped");
@@ -112,7 +102,7 @@ public class XMLAuditLogMarshaller implements AuditLogMarshaller {
 
     @Override
     public void tailer(Writer writer) throws MarshallingExcetion {
-        BufferedWriter ow = ((BufferedWriter)writer);
+        BufferedWriter ow = ((BufferedWriter) writer);
         try {
             ow.write("</auditlogs>");
         } catch (IOException e) {
@@ -124,14 +114,14 @@ public class XMLAuditLogMarshaller implements AuditLogMarshaller {
     public void setLang(String lang) {
         String language, country;
         String[] array = lang.split("_");
-        if (array.length != 2){
-            language = "en"; 
+        if (array.length != 2) {
+            language = "en";
             country = "US";
         } else {
             language = array[0];
             country = array[1];
         }
-        
+
         locale = new Locale(language, country);
         resb = ResourceBundle.getBundle("SDSAuditlogRes", locale);
     }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.block;
 
@@ -33,9 +23,10 @@ public class VirtualPoolChangeParam {
     private URI virtualPool;
     private BlockVirtualPoolProtectionParam protection;
     private URI consistencyGroup;
-    
-    public VirtualPoolChangeParam() {}
-    
+
+    public VirtualPoolChangeParam() {
+    }
+
     public VirtualPoolChangeParam(URI virtualPool,
             BlockVirtualPoolProtectionParam protection) {
         this.virtualPool = virtualPool;
@@ -44,8 +35,9 @@ public class VirtualPoolChangeParam {
 
     /**
      * ID of the new virtual pool.
-     * @valid example:  a valid URI
-     */ 
+     * 
+     * @valid example: a valid URI
+     */
     @XmlElement(required = true, name = "vpool")
     @JsonProperty("vpool")
     public URI getVirtualPool() {
@@ -57,10 +49,11 @@ public class VirtualPoolChangeParam {
     }
 
     /**
-     * Virtual Pool (Mirror or RecoverPoint) protection 
+     * Virtual Pool (Mirror or RecoverPoint) protection
      * parameters.
+     * 
      * @valid none
-     */ 
+     */
     @XmlElement(required = false, name = "protection")
     public BlockVirtualPoolProtectionParam getProtection() {
         return protection;
@@ -72,7 +65,8 @@ public class VirtualPoolChangeParam {
 
     /**
      * The ViPR consistency group to associate the volume with for
-     * the creation of the RecoverPoint consistency group. 
+     * the creation of the RecoverPoint consistency group.
+     * 
      * @return
      */
     @XmlElement(name = "consistency_group")
@@ -83,5 +77,5 @@ public class VirtualPoolChangeParam {
     public void setConsistencyGroup(URI consistencyGroup) {
         this.consistencyGroup = consistencyGroup;
     }
-    
+
 }

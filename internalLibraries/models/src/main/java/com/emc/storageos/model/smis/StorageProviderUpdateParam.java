@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.smis;
@@ -12,7 +12,6 @@ import com.emc.storageos.model.valid.Length;
 @XmlRootElement(name = "storage_provider_update")
 public class StorageProviderUpdateParam {
 
-
     private String name;
     private String ipAddress;
     private Integer portNumber;
@@ -24,8 +23,9 @@ public class StorageProviderUpdateParam {
     private String secondaryPassword;
     private String elementManagerURL;
 
-    public StorageProviderUpdateParam() {}
-    
+    public StorageProviderUpdateParam() {
+    }
+
     public StorageProviderUpdateParam(String name, String ipAddress,
             Integer portNumber, String userName, String password, Boolean useSSL, String interfaceType) {
         this.name = name;
@@ -38,8 +38,8 @@ public class StorageProviderUpdateParam {
     }
 
     /**
-     * New mgmt Provider name 
-     */     
+     * New mgmt Provider name
+     */
     @XmlElement
     @Length(min = 2, max = 128)
     public String getName() {
@@ -51,9 +51,10 @@ public class StorageProviderUpdateParam {
     }
 
     /**
-     * New mgmt Provider IP address 
+     * New mgmt Provider IP address
+     * 
      * @valid example: 10.247.99.87
-     */     
+     */
     @XmlElement(name = "ip_address")
     public String getIpAddress() {
         return ipAddress;
@@ -64,9 +65,10 @@ public class StorageProviderUpdateParam {
     }
 
     /**
-     * New Provider port number 
+     * New Provider port number
+     * 
      * @valid example: 5989
-     */     
+     */
     @XmlElement(name = "port_number")
     public Integer getPortNumber() {
         return portNumber;
@@ -77,9 +79,10 @@ public class StorageProviderUpdateParam {
     }
 
     /**
-     * New Provider user name 
+     * New Provider user name
+     * 
      * @valid none
-     */     
+     */
     @XmlElement(name = "user_name")
     public String getUserName() {
         return userName;
@@ -90,9 +93,10 @@ public class StorageProviderUpdateParam {
     }
 
     /**
-     * New SMIS Provider password 
+     * New SMIS Provider password
+     * 
      * @valid none
-     */     
+     */
     @XmlElement
     public String getPassword() {
         return password;
@@ -103,10 +107,11 @@ public class StorageProviderUpdateParam {
     }
 
     /**
-     * Specifies whether to use SSL (Secure Sockets Layer) 
+     * Specifies whether to use SSL (Secure Sockets Layer)
      * as the authentication method.
-     * @valid none 
-     */     
+     * 
+     * @valid none
+     */
     @XmlElement(name = "use_ssl")
     public Boolean getUseSSL() {
         return useSSL;
@@ -115,9 +120,10 @@ public class StorageProviderUpdateParam {
     public void setUseSSL(Boolean useSSL) {
         this.useSSL = useSSL;
     }
-    
+
     /**
      * Interface type of the Storage Provider
+     * 
      * @valid example: hicommand,smis,vplex,cinder,scaleio,ddmc,ibmxiv
      */
     @XmlElement(name = "interface_type")
@@ -131,6 +137,7 @@ public class StorageProviderUpdateParam {
 
     /**
      * Secondary credentials that may be required for management
+     * 
      * @valid none
      */
     @XmlElement(required = false, name = "secondary_username")
@@ -140,6 +147,7 @@ public class StorageProviderUpdateParam {
 
     /**
      * Secondary credentials that may be required for management
+     * 
      * @valid none
      */
     public void setSecondaryUsername(String secondaryUsername) {
@@ -157,7 +165,7 @@ public class StorageProviderUpdateParam {
 
     /**
      * URL of the Element Management system that is associated with the Provider.
-     *
+     * 
      * @valid none
      */
     @XmlElement(required = false, name = "element_manager_url")

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc.stream;
 
@@ -38,6 +28,7 @@ import com.emc.vipr.model.sys.logging.LogRequest;
 /**
  * Reader that reads logs from the specific file, regular or compressed file.
  * Parse each log to LogMessage
+ * 
  * @author siy
  */
 public class LogReader implements LogStream {
@@ -45,17 +36,17 @@ public class LogReader implements LogStream {
     private LogRequest request;
     private long logCount;
     private LogMessage currentLog = null;
-    private LogParser parser =  null;
+    private LogParser parser = null;
     private static List<LogParser> parserTable = new LinkedList<>();
     private LogStatusInfo status = null;
     private final String filePath;
     private int fileLineNumber = 0;
     private String service;
     private Pattern pattern;
-    
-     // Logger reference.
+
+    // Logger reference.
     private static final Logger logger = LoggerFactory.getLogger(LogReader.class);
-    
+
     static {
         LogParser logSvcParser = new LogServiceParser();
         LogParser logSyslogParser = new LogSyslogParser();
@@ -66,7 +57,7 @@ public class LogReader implements LogStream {
         parserTable.add(logNginxAccessParser);
         parserTable.add(logNginxErrorParser);
     }
-    
+
     public LogReader(String path, LogRequest req, LogStatusInfo status, String service) throws IOException,
             CompressorException {
         if (LogUtil.logFileZipped(path)) {
@@ -75,8 +66,9 @@ public class LogReader implements LogStream {
             reader = new BufferedReader(new FileReader(path));
         }
         request = req;
-        if (req.getRegex() != null)
-            pattern = Pattern.compile(req.getRegex(), Pattern.DOTALL|Pattern.MULTILINE);
+        if (req.getRegex() != null) {
+            pattern = Pattern.compile(req.getRegex(), Pattern.DOTALL | Pattern.MULTILINE);
+        }
         this.status = status;
         this.filePath = path;
         this.service = service;
@@ -90,8 +82,8 @@ public class LogReader implements LogStream {
      */
     @Override
     public LogMessage readNextLogMessage() {
-//        logger.info("readMessage()");
-        try{
+        // logger.info("readMessage()");
+        try {
             if (reader == null) {
                 return null;
             }
@@ -107,18 +99,18 @@ public class LogReader implements LogStream {
                 }
                 fileLineNumber++;
                 LogMessage nextLog = null;
-                if(parser != null) { // already find the match parser
+                if (parser != null) { // already find the match parser
                     nextLog = parser.parseLine(line, request);
                 } else { // match parser
-                    for(LogParser parser : parserTable) {
+                    for (LogParser parser : parserTable) {
                         nextLog = parser.parseLine(line, request);
-                        if(!nextLog.isContinuation()) {
-                            this.parser  = parser;
+                        if (!nextLog.isContinuation()) {
+                            this.parser = parser;
                             break;
                         }
                     }
                     // this line does not match all parsers, skip it and write it into status
-                    if(nextLog == null || nextLog.isContinuation()) {
+                    if (nextLog == null || nextLog.isContinuation()) {
                         status.appendInfo(this.filePath, fileLineNumber);
                         continue;
                     }
@@ -159,16 +151,18 @@ public class LogReader implements LogStream {
 
                         // in case of multiple adjacent header logs
                         // skip all but the last one
-                        if (returnedLog.isHeader() && currentLog.isHeader())
+                        if (returnedLog.isHeader() && currentLog.isHeader()) {
                             continue;
+                        }
 
                         if (matchRegex(returnedLog)) {
                             incrementLogCount(returnedLog);
                             return returnedLog;
                         }
                         // else read the next line
-                    } else
+                    } else {
                         currentLog = nextLog;
+                    }
                 }
             }
         } catch (IOException e) {
@@ -178,8 +172,9 @@ public class LogReader implements LogStream {
     }
 
     private void incrementLogCount(LogMessage returnedLog) {
-        if (!returnedLog.isHeader())
+        if (!returnedLog.isHeader()) {
             logCount++;
+        }
     }
 
     private void close() {
@@ -195,11 +190,13 @@ public class LogReader implements LogStream {
     }
 
     private boolean matchRegex(LogMessage message) {
-        if (pattern == null)
+        if (pattern == null) {
             return true;
+        }
 
-        if (message == null)
+        if (message == null) {
             return false;
+        }
 
         return pattern.matcher(new String(message.getLogContent())).matches();
     }

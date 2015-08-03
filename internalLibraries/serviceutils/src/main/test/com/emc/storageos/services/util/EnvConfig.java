@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.services.util;
@@ -12,76 +12,84 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class EnvConfig {
 
-	private static String properties_location = System.getenv("PROP_FILE_LOC");
-	private static Map<String, Properties> properties = null;
-	
-    private static void readConfig(String propertyFile) throws Exception{
-    	Properties props = new Properties();
-    	if(properties_location == null) {
-    		properties_location = System.getProperty("user.home");
-    	}
-    	InputStream in = null;
-    	try {
-    		in = new FileInputStream(properties_location + "/" + propertyFile);
-    		if(in != null)
-    			props.load(in);
-			
-			if(properties == null)
-				properties = new ConcurrentHashMap<String, Properties>();
-			
-			if(properties.get(propertyFile) == null)
-				properties.put(propertyFile, props);
-			
-    	} catch (FileNotFoundException e) {
-    		System.out.println("Could not locate the file " + propertyFile + " at " + properties_location);
-    		e.printStackTrace();
-    		throw e;
-    	} catch (IOException ex) {
-    		System.out.println("Could not read the file " + propertyFile + " at " + properties_location);
-    		ex.printStackTrace();
-    		throw ex;
-    	} finally {
-    		try {
-    			if(in != null) {
-    				in.close();
-    			}
-    		} catch (IOException e) {
-    			System.out.println("Failed while closing inputstream");
-    			e.printStackTrace();
-    		}
-    	}
+    private static volatile String properties_location = System.getenv("PROP_FILE_LOC");
+    private static volatile Map<String, Properties> properties = null;
+    private static final Logger logger = LoggerFactory.getLogger(EnvConfig.class);
+
+    private static void readConfig(String propertyFile) throws Exception {
+        Properties props = new Properties();
+        if (properties_location == null) {
+            properties_location = System.getProperty("user.home");
+        }
+        InputStream in = null;
+        try {
+            in = new FileInputStream(properties_location + "/" + propertyFile);
+            if (in != null) {
+                props.load(in);
+            }
+
+            if (properties == null) {
+                properties = new ConcurrentHashMap<String, Properties>();
+            }
+
+            if (properties.get(propertyFile) == null) {
+                properties.put(propertyFile, props);
+            }
+
+        } catch (FileNotFoundException e) {
+            logger.error(String.format("Could not locate the file %s at %s", propertyFile, properties_location));
+            logger.error(e.getMessage(), e);
+            throw e;
+        } catch (IOException ex) {
+            logger.error(String.format("Could not read the file %s at %s", propertyFile, properties_location));
+            ex.printStackTrace();
+            throw ex;
+        } finally {
+            try {
+                if (in != null) {
+                    in.close();
+                }
+            } catch (IOException e) {
+                logger.error("Failed while closing inputstream");
+                logger.error(e.getMessage(),e);
+            }
+        }
     }
-    
-	public static String get(String propertyFile, String propertyName) {		 
-		String propertyValue = "";
-		try {
-			if(propertyName == null || propertyName.isEmpty()) {
-				System.out.println("Property name is not supplied. Please provide a property Name");
-				return "";
-			}
-			if(propertyFile == null || propertyFile.isEmpty()) {
-				System.out.println("Property file name is not supplied. Please provide a property file name");
-				return "";
-			}
-			if(!propertyFile.endsWith(".properties"))
-				propertyFile += ".properties";
-			readConfig(propertyFile);
-			Properties property = properties.get(propertyFile);
-			if(property != null) {
-				propertyValue = property.getProperty(propertyName);
-				if(propertyValue == null) {
-					System.out.println("Property " + propertyName + " not found in the properties file " 
-							+ propertyFile + " at " + properties_location);
-				}
-			} else {
-				System.out.println("Failed while loading property file " + propertyFile);
-			}
-		} catch (Exception e) {
-			System.out.println("Failed while getting the property " + propertyName + " at " + propertyFile);
-			e.printStackTrace();
-		}
-		return propertyValue;
-	}	
+
+    public static String get(String propertyFile, String propertyName) {
+        String propertyValue = "";
+        try {
+            if (propertyName == null || propertyName.isEmpty()) {
+            	logger.error("Property name is not supplied. Please provide a property Name");
+                return "";
+            }
+            if (propertyFile == null || propertyFile.isEmpty()) {
+            	logger.error("Property file name is not supplied. Please provide a property file name");
+                return "";
+            }
+            if (!propertyFile.endsWith(".properties")) {
+                propertyFile += ".properties";
+            }
+            readConfig(propertyFile);
+            Properties property = properties.get(propertyFile);
+            if (property != null) {
+                propertyValue = property.getProperty(propertyName);
+                if (propertyValue == null) {
+                    logger.error(String.format("Property %s not found in the properties file %s at %s"
+                            ,propertyName,propertyFile,properties_location));
+                }
+            } else {
+                logger.error("Failed while loading property file {}",propertyFile);
+            }
+        } catch (Exception e) {
+            logger.error(String.format("Failed while getting the property %s at %s ", propertyName, propertyFile));
+            logger.error(e.getMessage(),e);
+        }
+        return propertyValue;
+    }
 }

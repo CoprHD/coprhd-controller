@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -87,9 +77,9 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  * A service that provides APIs for viewing, updating and deleting clusters.
  * 
  */
-@DefaultPermissions( read_roles = {Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN}, 
-                     write_roles = {Role.TENANT_ADMIN},
-                     read_acls = {ACL.ANY})
+@DefaultPermissions(read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
+        write_roles = { Role.TENANT_ADMIN },
+        read_acls = { ACL.ANY })
 @Path("/compute/clusters")
 public class ClusterService extends TaskResourceService {
 
@@ -97,6 +87,7 @@ public class ClusterService extends TaskResourceService {
     protected final static Logger _log = LoggerFactory.getLogger(ClusterService.class);
 
     private static final String EVENT_SERVICE_TYPE = "cluster";
+
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
     }
@@ -104,22 +95,22 @@ public class ClusterService extends TaskResourceService {
     @Autowired
     private HostService _hostService;
 
-    /**     
-     * Updates one or more of the cluster attributes. 
+    /**
+     * Updates one or more of the cluster attributes.
      * 
      * @param id the URN of a ViPR cluster
-     * @param updateParam the parameter that has the attributes to be  
-     * updated.
+     * @param updateParam the parameter that has the attributes to be
+     *            updated.
      * @prereq none
      * @brief Update cluster attributes
-     * @return the representation of the updated cluster. 
+     * @return the representation of the updated cluster.
      */
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     @Path("/{id}")
-    public ClusterRestRep updateCluster(@PathParam("id") URI id, 
+    public ClusterRestRep updateCluster(@PathParam("id") URI id,
             ClusterUpdateParam updateParam) {
         // update the cluster
         Cluster cluster = queryObject(Cluster.class, id, true);
@@ -128,13 +119,14 @@ public class ClusterService extends TaskResourceService {
         _dbClient.persistObject(cluster);
         auditOp(OperationTypeEnum.UPDATE_CLUSTER, true, null,
                 cluster.auditParameters());
-         return map(queryObject(Cluster.class, id, false));
+        return map(queryObject(Cluster.class, id, false));
     }
-    
+
     /**
      * Validates the input parameter for create and update cluster.
+     * 
      * @param param the input parameter
-     * @param cluster the cluster to be updated. This should be null for create validation. 
+     * @param cluster the cluster to be updated. This should be null for create validation.
      * @param tid the parent tenant Id
      * @param dbClient and instance of {@link DbClient}
      */
@@ -143,85 +135,91 @@ public class ClusterService extends TaskResourceService {
         // validate the project is present and active
         if (!NullColumnValueGetter.isNullURI(param.getProject())) {
             Project project = queryObject(Project.class, param.getProject(), true);
-            if (!project.getTenantOrg().getURI().equals(tenanUri))
-            	throw APIException.badRequests.resourcedoesNotBelongToClusterTenantOrg("project");
+            if (!project.getTenantOrg().getURI().equals(tenanUri)) {
+                throw APIException.badRequests.resourcedoesNotBelongToClusterTenantOrg("project");
+            }
         }
         // make sure the cluster is unique for the tenant
         if (cluster == null || (param.findName() != null && !cluster.getLabel().equals(param.findName()))) {
-            checkDuplicateChildName(tenanUri, Cluster.class, "label", 
+            checkDuplicateChildName(tenanUri, Cluster.class, "label",
                     "tenant", param.findName(), dbClient);
         }
         // when the cluster is in a vcenter data center, validate the data center
         if (!NullColumnValueGetter.isNullURI(param.getVcenterDataCenter())) {
-            VcenterDataCenter dataCenter = queryObject(VcenterDataCenter.class, param.getVcenterDataCenter(), 
+            VcenterDataCenter dataCenter = queryObject(VcenterDataCenter.class, param.getVcenterDataCenter(),
                     true);
-            if (!dataCenter.getTenant().equals(tenanUri))
-            	throw APIException.badRequests.resourcedoesNotBelongToClusterTenantOrg("data center");          
+            if (!dataCenter.getTenant().equals(tenanUri)) {
+                throw APIException.badRequests.resourcedoesNotBelongToClusterTenantOrg("data center");
+            }
         }
         // if the cluster project is being modified, check for active exports
-        if (cluster !=null && !areEqual(cluster.getProject(), param.getProject())) {
+        if (cluster != null && !areEqual(cluster.getProject(), param.getProject())) {
             if (isClusterInUse(cluster)) {
                 throw APIException.badRequests.clusterProjectChangeNotAllowed(cluster.getLabel());
             }
         }
     }
-    
+
     /**
-     * Checks if the cluster has one or more of its hosts in use 
+     * Checks if the cluster has one or more of its hosts in use
+     * 
      * @param cluster the cluster to be checked
      * @return true if one or more of the cluster hosts is in use
      * @see HostService#isHostInUse(URI)
      */
     private boolean isClusterInUse(Cluster cluster) {
-        List<Host> hosts = 
-        		CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Host.class, 
-        				ContainmentConstraint.Factory.getContainedObjectsConstraint(cluster.getId(), Host.class, "cluster"));
-		for (Host host : hosts) {
-			if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())) {
-				return true;
-			}
-		}
-		return false;
-	}
-    
+        List<Host> hosts =
+                CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Host.class,
+                        ContainmentConstraint.Factory.getContainedObjectsConstraint(cluster.getId(), Host.class, "cluster"));
+        for (Host host : hosts) {
+            if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
-     * Updates export groups that are referenced by the given cluster by removing the cluster 
+     * Updates export groups that are referenced by the given cluster by removing the cluster
      * reference and initiators belonging to hosts in this cluster. Volumes are left intact.
+     * 
      * @param id the URN of a ViPR Cluster
      * @brief Detach storage from Cluster
      * @return OK if detaching completed successfully
-     * @throws DatabaseException when a DB error occurs     
+     * @throws DatabaseException when a DB error occurs
      */
     @POST
     @Path("/{id}/detach-storage")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep detachStorage(@PathParam("id") URI id) throws DatabaseException {
         Cluster cluster = queryObject(Cluster.class, id, true);
-        
+
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Cluster.class, id, taskId,
                 ResourceOperationTypeEnum.DETACH_VCENTER_DATACENTER_STORAGE);
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
         controller.detachClusterStorage(cluster.getId(), false, false, taskId);
         return toTask(cluster, taskId, op);
-    }    
+    }
 
     /**
      * Checks if the cluster has any export
+     * 
      * @param cluster the cluster to be checked
      * @return true if one or more of the cluster hosts is in use
      */
     private boolean isClusterInExport(Cluster cluster) {
         List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(
-                _dbClient, ExportGroup.class, 
+                _dbClient, ExportGroup.class,
                 AlternateIdConstraint.Factory.getConstraint(
                         ExportGroup.class, "clusters", cluster.getId().toString()));
         return !exportGroups.isEmpty();
     }
 
-	/**     
+    /**
      * Shows the information for one cluster.
+     * 
      * @param id the URN of a ViPR cluster
      * @prereq none
      * @brief Show cluster
@@ -232,14 +230,15 @@ public class ClusterService extends TaskResourceService {
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public ClusterRestRep getCluster(@PathParam("id") URI id) throws DatabaseException {
-    	Cluster cluster = queryObject(Cluster.class, id, false);
-    	// check the user permissions
-    	verifyAuthorizedInTenantOrg(cluster.getTenant(), getUserFromContext());
+        Cluster cluster = queryObject(Cluster.class, id, false);
+        // check the user permissions
+        verifyAuthorizedInTenantOrg(cluster.getTenant(), getUserFromContext());
         return map(cluster);
     }
 
-    /**     
+    /**
      * List the hosts of a cluster.
+     * 
      * @param id the URN of a ViPR cluster
      * @prereq none
      * @brief List cluster hosts
@@ -251,16 +250,17 @@ public class ClusterService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public HostList getClusterHosts(@PathParam("id") URI id) throws DatabaseException {
         Cluster cluster = queryObject(Cluster.class, id, true);
-    	// check the user permissions
-    	verifyAuthorizedInTenantOrg(cluster.getTenant(), getUserFromContext());
+        // check the user permissions
+        verifyAuthorizedInTenantOrg(cluster.getTenant(), getUserFromContext());
         HostList list = new HostList();
         list.setHosts(map(ResourceTypeEnum.HOST, listChildren(id, Host.class, "label", "cluster")));
         return list;
     }
 
-    /**     
+    /**
      * Deactivates the cluster and removes reference from its hosts. By passing in true for detachStorage,
      * any associated storage with the cluster can be detached.
+     * 
      * @param id the URN of a ViPR cluster to be deactivated
      * @prereq The cluster hosts must not have block or file exports if it is to be deleted without detaching storage
      * @brief Delete cluster.
@@ -270,12 +270,12 @@ public class ClusterService extends TaskResourceService {
     @POST
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = {Role.TENANT_ADMIN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep deactivateCluster(@PathParam("id") URI id,
             @DefaultValue("false") @QueryParam("detach-storage") boolean detachStorage,
             @DefaultValue("true") @QueryParam("check-vms") boolean checkVms) throws DatabaseException {
         Cluster cluster = queryObject(Cluster.class, id, true);
-        
+
         if (ComputeSystemHelper.isClusterInExport(_dbClient, cluster.getId()) && !detachStorage) {
             throw APIException.badRequests.resourceHasActiveReferences(Cluster.class.getSimpleName(), id);
         } else {
@@ -289,28 +289,29 @@ public class ClusterService extends TaskResourceService {
             return toTask(cluster, taskId, op);
         }
     }
-        
-    /**    
-    * List data for the specified clusters.
-    *
-    * @param param POST data containing the id list.
-    * @prereq none
-    * @brief List data of specified clusters
-    * @return list of representations.
-    *
-    * @throws DatabaseException When an error occurs querying the database.
-    */
+
+    /**
+     * List data for the specified clusters.
+     * 
+     * @param param POST data containing the id list.
+     * @prereq none
+     * @brief List data of specified clusters
+     * @return list of representations.
+     * 
+     * @throws DatabaseException When an error occurs querying the database.
+     */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public ClusterBulkRep getBulkResources(BulkIdParam param) {
-    	return (ClusterBulkRep) super.getBulkResources(param);
+        return (ClusterBulkRep) super.getBulkResources(param);
     }
 
     /**
      * Creates an instance of host cluster for the provided parameter
+     * 
      * @param tenant the tenant organization to which the cluster belongs
      * @param param the parameter that contains the cluster properties and attributes.
      * @return an instance of {@link Host}
@@ -322,20 +323,20 @@ public class ClusterService extends TaskResourceService {
         populateCluster(param, cluster);
         return cluster;
     }
-    
-    private void populateCluster( ClusterParam param, Cluster cluster) {
-        cluster.setLabel(param.findName()); 
+
+    private void populateCluster(ClusterParam param, Cluster cluster) {
+        cluster.setLabel(param.findName());
         if (param.getVcenterDataCenter() != null) {
-            cluster.setVcenterDataCenter(NullColumnValueGetter.isNullURI(param.getVcenterDataCenter()) ? 
-            		NullColumnValueGetter.getNullURI() : param.getVcenterDataCenter());
+            cluster.setVcenterDataCenter(NullColumnValueGetter.isNullURI(param.getVcenterDataCenter()) ?
+                    NullColumnValueGetter.getNullURI() : param.getVcenterDataCenter());
         }
         // Commented out because cluster project is not currently used
-//        if (param.project != null) {
-//            cluster.setProject(NullColumnValueGetter.isNullURI(param.project) ? 
-//            		NullColumnValueGetter.getNullURI() : param.project);
-//        }
+        // if (param.project != null) {
+        // cluster.setProject(NullColumnValueGetter.isNullURI(param.project) ?
+        // NullColumnValueGetter.getNullURI() : param.project);
+        // }
     }
-    
+
     @Override
     protected DataObject queryResource(URI id) {
         return queryObject(Cluster.class, id, false);
@@ -348,29 +349,29 @@ public class ClusterService extends TaskResourceService {
     }
 
     @Override
-    protected ResourceTypeEnum getResourceType(){
+    protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.CLUSTER;
     }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public Class<Cluster> getResourceClass() {
         return Cluster.class;
     }
-    
+
     @Override
     public ClusterBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<Cluster> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new ClusterBulkRep(BulkList.wrapping(_dbIterator, MapCluster.getInstance()));
     }
 
     @Override
     public ClusterBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
-    	
+
         Iterator<Cluster> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         BulkList.ResourceFilter filter = new BulkList.ClusterFilter(getUserFromContext(), _permissionsHelper);
         return new ClusterBulkRep(BulkList.wrapping(_dbIterator, MapCluster.getInstance(), filter));
     }
@@ -386,29 +387,31 @@ public class ClusterService extends TaskResourceService {
     }
 
     public static class ClusterResRepFilter<E extends RelatedResourceRep>
-    extends ResRepFilter<E> {
+            extends ResRepFilter<E> {
         public ClusterResRepFilter(StorageOSUser user,
                 PermissionsHelper permissionsHelper) {
             super(user, permissionsHelper);
         }
-        
+
         @Override
         public boolean isAccessible(E resrep) {
             boolean ret = false;
-            URI id = resrep.getId(); 
+            URI id = resrep.getId();
             Cluster obj = _permissionsHelper.getObjectById(id, Cluster.class);
-            if (obj == null)
+            if (obj == null) {
                 return false;
-            if (obj.getTenant().toString().equals(_user.getTenantId()))
+            }
+            if (obj.getTenant().toString().equals(_user.getTenantId())) {
                 return true;
-            
+            }
+
             ret = isTenantAccessible(obj.getTenant());
             return ret;
         }
     }
 
     /**
-     * Get object specific permissions filter  
+     * Get object specific permissions filter
      */
     @Override
     public ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
@@ -416,7 +419,7 @@ public class ClusterService extends TaskResourceService {
     {
         return new ClusterResRepFilter(user, permissionsHelper);
     }
-    
+
     /**
      * Gets the UnManagedVolumes exposed to a Cluster.
      * 
@@ -429,22 +432,22 @@ public class ClusterService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public UnManagedVolumeList getUnmanagedVolumes(@PathParam("id") URI id) throws DatabaseException {
         Cluster cluster = queryObject(Cluster.class, id, false);
-        
+
         // check the user permissions
         verifyAuthorizedInTenantOrg(cluster.getTenant(), getUserFromContext());
-        
+
         // get the unmanaged volumes
         List<UnManagedVolume> unmanagedVolumes = VolumeIngestionUtil.findUnManagedVolumesForCluster(id, _dbClient);
-        
+
         UnManagedVolumeList list = new UnManagedVolumeList();
         for (UnManagedVolume volume : unmanagedVolumes) {
             list.getUnManagedVolumes()
-                .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_VOLUMES, volume.getId()));
+                    .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_VOLUMES, volume.getId()));
         }
 
         return list;
     }
-    
+
     /**
      * Gets the UnManagedExportMasks found for a Cluster.
      * 
@@ -457,17 +460,17 @@ public class ClusterService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public UnManagedExportMaskList getUnmanagedExportMasks(@PathParam("id") URI id) throws DatabaseException {
         Cluster cluster = queryObject(Cluster.class, id, false);
-        
+
         // check the user permissions
         verifyAuthorizedInTenantOrg(cluster.getTenant(), getUserFromContext());
-        
+
         // get the unmanaged export masks
         List<UnManagedExportMask> uems = VolumeIngestionUtil.findUnManagedExportMasksForCluster(id, _dbClient);
-        
+
         UnManagedExportMaskList list = new UnManagedExportMaskList();
         for (UnManagedExportMask uem : uems) {
             list.getUnManagedExportMasks()
-                .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_EXPORT_MASKS, uem.getId()));
+                    .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_EXPORT_MASKS, uem.getId()));
         }
 
         return list;

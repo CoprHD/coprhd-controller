@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.model.dao;
@@ -18,14 +18,14 @@ public class VCenterFinder extends TenantResourceFinder<Vcenter> {
     public VCenterFinder(DBClientWrapper client) {
         super(Vcenter.class, client);
     }
-    
+
     public List<Vcenter> findByHostname(String tenant, String hostname) {
         if (StringUtils.isBlank(hostname) || StringUtils.isBlank(tenant)) {
             return Lists.newArrayList();
         }
         List<NamedElement> vcenterIds = client.findByAlternateId(Vcenter.class, "ipAddress", hostname);
-        
+
         return TenantUtils.filter(findByIds(toURIs(vcenterIds)), tenant);
     }
-    
+
 }

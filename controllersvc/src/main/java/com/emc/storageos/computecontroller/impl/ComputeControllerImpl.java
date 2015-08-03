@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.computecontroller.impl;
@@ -29,8 +29,8 @@ public class ComputeControllerImpl extends AbstractDiscoveredSystemController im
 
     private static final Logger _log = LoggerFactory.getLogger(ComputeControllerImpl.class);
     private Set<ComputeDeviceController> _deviceImpl;
-    private Dispatcher          _dispatcher;
-    private DbClient            _dbClient;
+    private Dispatcher _dispatcher;
+    private DbClient _dbClient;
 
     public void setDeviceImpl(Set<ComputeDeviceController> deviceImpl) {
         _deviceImpl = deviceImpl;
@@ -44,16 +44,17 @@ public class ComputeControllerImpl extends AbstractDiscoveredSystemController im
         _dbClient = dbClient;
     }
 
-	private void execCompute(String methodName,Object... args){
-		queueTask(_dbClient, ComputeSystem.class, _dispatcher, methodName, args);
+    private void execCompute(String methodName, Object... args) {
+        queueTask(_dbClient, ComputeSystem.class, _dispatcher, methodName, args);
     }
 
-	@Override
-	public void discoverComputeSystems(AsyncTask[] tasks)
-			throws InternalException {
-		_log.info("discoverComputeSystems");
+    @Override
+    public void discoverComputeSystems(AsyncTask[] tasks)
+            throws InternalException {
+        _log.info("discoverComputeSystems");
         try {
-		ControllerServiceImpl.scheduleDiscoverJobs(tasks, ControllerServiceImpl.Lock.COMPUTE_DATA_COLLECTION_LOCK,ControllerServiceImpl.COMPUTE_DISCOVERY);
+            ControllerServiceImpl.scheduleDiscoverJobs(tasks, ControllerServiceImpl.Lock.COMPUTE_DATA_COLLECTION_LOCK,
+                    ControllerServiceImpl.COMPUTE_DISCOVERY);
         } catch (Exception e) {
             _log.error("Problem in discoverStorageSystem due to {} ",
                     e.getMessage());
@@ -87,8 +88,8 @@ public class ComputeControllerImpl extends AbstractDiscoveredSystemController im
         }
     }
 
-	@Override
-	protected Controller lookupDeviceController(DiscoveredSystemObject device) {
+    @Override
+    protected Controller lookupDeviceController(DiscoveredSystemObject device) {
         if (device == null) {
             throw ClientControllerException.fatals.unableToLookupStorageDeviceIsNull();
         }
@@ -97,35 +98,35 @@ public class ComputeControllerImpl extends AbstractDiscoveredSystemController im
             throw ClientControllerException.fatals.unableToLocateDeviceController("ComputeController");
         }
         return cc;
-	}
+    }
 
     @Override
     public void clearDeviceSession(URI computeSystemId) throws InternalException {
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
-        execCompute("clearDeviceSession",cs.getId());
+        execCompute("clearDeviceSession", cs.getId());
     }
 
-	@Override
-	public void deactivateHost(AsyncTask[] tasks) throws InternalException {
+    @Override
+    public void deactivateHost(AsyncTask[] tasks) throws InternalException {
 
-		AsyncTask task = tasks[0];
+        AsyncTask task = tasks[0];
 
-		Host host = _dbClient.queryObject(Host.class, task._id);
+        Host host = _dbClient.queryObject(Host.class, task._id);
 
-		if (host != null) {
-			if (host.getComputeElement() != null) {
-				ComputeElement computeElement = _dbClient.queryObject(
-						ComputeElement.class, host.getComputeElement());
-				execCompute("deactivateHost", computeElement.getComputeSystem(),
-						task._id, task._opId);
-			} else {
-				_dbClient.error(Host.class, task._id, task._opId,
-						ComputeSystemControllerException.exceptions
-								.noComputeElementAssociatedWithHost(host
-										.getNativeGuid().toString(), host
-										.getId().toString(), null));
-			}
+        if (host != null) {
+            if (host.getComputeElement() != null) {
+                ComputeElement computeElement = _dbClient.queryObject(
+                        ComputeElement.class, host.getComputeElement());
+                execCompute("deactivateHost", computeElement.getComputeSystem(),
+                        task._id, task._opId);
+            } else {
+                _dbClient.error(Host.class, task._id, task._opId,
+                        ComputeSystemControllerException.exceptions
+                                .noComputeElementAssociatedWithHost(host
+                                        .getNativeGuid().toString(), host
+                                        .getId().toString(), null));
+            }
 
-		}
-	}
+        }
+    }
 }

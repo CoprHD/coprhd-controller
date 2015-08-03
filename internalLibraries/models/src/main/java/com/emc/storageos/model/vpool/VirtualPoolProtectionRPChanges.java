@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.vpool;
 
@@ -26,8 +16,9 @@ public class VirtualPoolProtectionRPChanges {
     private Set<VirtualPoolProtectionVirtualArraySettingsParam> remove;
     private ProtectionSourcePolicy sourcePolicy;
 
-    public VirtualPoolProtectionRPChanges() {}
-    
+    public VirtualPoolProtectionRPChanges() {
+    }
+
     public VirtualPoolProtectionRPChanges(
             Set<VirtualPoolProtectionVirtualArraySettingsParam> add,
             Set<VirtualPoolProtectionVirtualArraySettingsParam> remove,
@@ -43,7 +34,7 @@ public class VirtualPoolProtectionRPChanges {
      * 
      * @valid none
      */
-    @XmlElement(name="protection_varray_vpool", required = false)
+    @XmlElement(name = "protection_varray_vpool", required = false)
     public Set<VirtualPoolProtectionVirtualArraySettingsParam> getAdd() {
         if (add == null) {
             add = new LinkedHashSet<VirtualPoolProtectionVirtualArraySettingsParam>();
@@ -61,7 +52,7 @@ public class VirtualPoolProtectionRPChanges {
      * 
      * @valid none
      */
-    @XmlElement(name="protection_varray_vpool", required = false)
+    @XmlElement(name = "protection_varray_vpool", required = false)
     public Set<VirtualPoolProtectionVirtualArraySettingsParam> getRemove() {
         if (remove == null) {
             remove = new LinkedHashSet<VirtualPoolProtectionVirtualArraySettingsParam>();
@@ -86,5 +77,5 @@ public class VirtualPoolProtectionRPChanges {
     public void setSourcePolicy(ProtectionSourcePolicy sourcePolicy) {
         this.sourcePolicy = sourcePolicy;
     }
-    
+
 }

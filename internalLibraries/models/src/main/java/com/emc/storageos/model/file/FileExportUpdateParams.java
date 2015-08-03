@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file;
@@ -12,123 +12,126 @@ import javax.xml.bind.annotation.XmlElement;
 
 public class FileExportUpdateParams implements Serializable {
 
-	private static final long serialVersionUID = 5116290126820732256L;
-	
-	protected ExportRules exportRulesToAdd;
-	protected ExportRules exportRulesToDelete;
-	protected ExportRules exportRulesToModify;
+    private static final long serialVersionUID = 5116290126820732256L;
 
-	// Non payload models - for internal use only
-	protected String subDir;
-	public enum ExportOperationType {
-		ADD, MODIFY, DELETE
-	}
-	
-	public enum ExportOperationErrorType {
-		INVALID_SECURITY_TYPE, INVALID_ANON, EXPORT_NOT_FOUND, NO_ERROR, EXPORT_EXISTS, NO_HOSTS_FOUND, MULTIPLE_EXPORTS_WITH_SAME_SEC_FLAVOR,
-		SNAPSHOT_EXPORT_SHOULD_BE_READ_ONLY
-	}
-	public enum ExportSecurityType {
-		SYS, KRB5, KRB5I, KRB5P
-	}
+    protected ExportRules exportRulesToAdd;
+    protected ExportRules exportRulesToDelete;
+    protected ExportRules exportRulesToModify;
 
-	/**
-	 * Default Constructor
-	 */
-	public FileExportUpdateParams() {
-	}
+    // Non payload models - for internal use only
+    protected String subDir;
 
-	@XmlElement(name = "add", required = false)
-	public ExportRules getExportRulesToAdd() {
-		return exportRulesToAdd;
-	}
+    public enum ExportOperationType {
+        ADD, MODIFY, DELETE
+    }
 
-	/**
-	 * List of exportRules to be added
-	 * 
-	 * @param exportRulesToAdd
-	 */
+    public enum ExportOperationErrorType {
+        INVALID_SECURITY_TYPE, INVALID_ANON, EXPORT_NOT_FOUND, NO_ERROR, EXPORT_EXISTS, NO_HOSTS_FOUND,
+        MULTIPLE_EXPORTS_WITH_SAME_SEC_FLAVOR,
+        SNAPSHOT_EXPORT_SHOULD_BE_READ_ONLY
+    }
 
-	public void setExportRulesToAdd(ExportRules exportRulesToAdd) {
-		this.exportRulesToAdd = exportRulesToAdd;
-	}
+    public enum ExportSecurityType {
+        SYS, KRB5, KRB5I, KRB5P
+    }
 
-	@XmlElement(name = "delete", type = ExportRules.class)
-	public ExportRules getExportRulesToDelete() {
-		return exportRulesToDelete;
-	}
+    /**
+     * Default Constructor
+     */
+    public FileExportUpdateParams() {
+    }
 
-	/**
-	 * List of exportRules to be deleted
-	 * 
-	 * @param exportRulesToAdd
-	 */
-	public void setExportRulesToDelete(ExportRules exportRulesToDelete) {
-		this.exportRulesToDelete = exportRulesToDelete;
-	}
+    @XmlElement(name = "add", required = false)
+    public ExportRules getExportRulesToAdd() {
+        return exportRulesToAdd;
+    }
 
-	@XmlElement(name = "modify", required = false)
-	public ExportRules getExportRulesToModify() {
-		return exportRulesToModify;
-	}
+    /**
+     * List of exportRules to be added
+     * 
+     * @param exportRulesToAdd
+     */
 
-	/**
-	 * List of exportRules to be modified
-	 * 
-	 * @param exportRulesToAdd
-	 */
-	public void setExportRulesToModify(ExportRules exportRulesToModify) {
-		this.exportRulesToModify = exportRulesToModify;
-	}
+    public void setExportRulesToAdd(ExportRules exportRulesToAdd) {
+        this.exportRulesToAdd = exportRulesToAdd;
+    }
 
-	@Override
-	public String toString() {
+    @XmlElement(name = "delete", type = ExportRules.class)
+    public ExportRules getExportRulesToDelete() {
+        return exportRulesToDelete;
+    }
 
-		StringBuilder sb = new StringBuilder("Number of ");
-		sb.append("[ Add Rule(s) : ").append(
-				(exportRulesToAdd != null) ? exportRulesToAdd.getExportRules()
-						.size() : 0);
+    /**
+     * List of exportRules to be deleted
+     * 
+     * @param exportRulesToAdd
+     */
+    public void setExportRulesToDelete(ExportRules exportRulesToDelete) {
+        this.exportRulesToDelete = exportRulesToDelete;
+    }
 
-		sb.append(" Delete Rule(s) : ").append(
-				(exportRulesToDelete != null) ? exportRulesToDelete
-						.getExportRules().size() : 0);
+    @XmlElement(name = "modify", required = false)
+    public ExportRules getExportRulesToModify() {
+        return exportRulesToModify;
+    }
 
-		sb.append(" Modify Rule(s) : ").append(
-				(exportRulesToModify != null) ? exportRulesToModify
-						.getExportRules().size() : 0);
+    /**
+     * List of exportRules to be modified
+     * 
+     * @param exportRulesToAdd
+     */
+    public void setExportRulesToModify(ExportRules exportRulesToModify) {
+        this.exportRulesToModify = exportRulesToModify;
+    }
 
-		sb.append(" ]");
-		return sb.toString();
+    @Override
+    public String toString() {
 
-	}
+        StringBuilder sb = new StringBuilder("Number of ");
+        sb.append("[ Add Rule(s) : ").append(
+                (exportRulesToAdd != null) ? exportRulesToAdd.getExportRules()
+                        .size() : 0);
 
-	public String getSubDir() {
-		return subDir;
-	}
+        sb.append(" Delete Rule(s) : ").append(
+                (exportRulesToDelete != null) ? exportRulesToDelete
+                        .getExportRules().size() : 0);
 
-	public void setSubDir(String subDir) {
-		this.subDir = subDir;
-	}
+        sb.append(" Modify Rule(s) : ").append(
+                (exportRulesToModify != null) ? exportRulesToModify
+                        .getExportRules().size() : 0);
 
-	public List<ExportRule> retrieveAllExports() {
+        sb.append(" ]");
+        return sb.toString();
 
-		List<ExportRule> list = new ArrayList<>();
-		if (exportRulesToAdd!=null && exportRulesToAdd.getExportRules() != null
-				&& exportRulesToAdd.getExportRules().size() > 0) {
-			list.addAll(exportRulesToAdd.getExportRules());
-		}
+    }
 
-		if (exportRulesToModify!=null && exportRulesToModify.getExportRules() != null
-				&& exportRulesToModify.getExportRules().size() > 0) {
-			list.addAll(exportRulesToModify.getExportRules());
-		}
+    public String getSubDir() {
+        return subDir;
+    }
 
-		if (exportRulesToDelete!=null && exportRulesToDelete.getExportRules() != null
-				&& exportRulesToDelete.getExportRules().size() > 0) {
-			list.addAll(exportRulesToDelete.getExportRules());
-		}
+    public void setSubDir(String subDir) {
+        this.subDir = subDir;
+    }
 
-		return list;
-	}
+    public List<ExportRule> retrieveAllExports() {
+
+        List<ExportRule> list = new ArrayList<>();
+        if (exportRulesToAdd != null && exportRulesToAdd.getExportRules() != null
+                && !exportRulesToAdd.getExportRules().isEmpty()) {
+            list.addAll(exportRulesToAdd.getExportRules());
+        }
+
+        if (exportRulesToModify != null && exportRulesToModify.getExportRules() != null
+                && !exportRulesToModify.getExportRules().isEmpty()) {
+            list.addAll(exportRulesToModify.getExportRules());
+        }
+
+        if (exportRulesToDelete != null && exportRulesToDelete.getExportRules() != null
+                && !exportRulesToDelete.getExportRules().isEmpty()) {
+            list.addAll(exportRulesToDelete.getExportRules());
+        }
+
+        return list;
+    }
 
 }

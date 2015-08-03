@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vmware.tasks;
@@ -61,8 +61,7 @@ public abstract class RetryableTask<T> extends ExecutionTask<T> {
         try {
             result = tryExecute();
             return true;
-        }
-        catch (VMWareException e) {
+        } catch (VMWareException e) {
             if (!canRetry(e)) {
                 fail(e);
             }

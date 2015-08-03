@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.auth;
@@ -21,6 +21,7 @@ public class AuthnCreateParam extends AuthnProviderBaseParam {
 
     /**
      * Valid ldap or ldaps url strings.
+     * 
      * @valid Example: ldap://10.10.10.145
      * @valid Example: ldaps://10.10.10.145
      */
@@ -28,21 +29,23 @@ public class AuthnCreateParam extends AuthnProviderBaseParam {
 
     /**
      * Active Directory domain names associated with this
-     * provider.  If the server_url points to a Active Directory forest
+     * provider. If the server_url points to a Active Directory forest
      * global catalog server, you may specify all or a subset of the forest's
      * domains which this provider needs to interact with.
      * For non Active Directory servers, domain represents a logical
      * abstraction for this server which may not correspond to a network name.
+     * 
      * @valid Example: domain.com
      */
     private Set<String> domains;
 
     /**
      * Names of the groups to be included when querying Active Directory
-     * for group membership information about a user or group.  If the White List
+     * for group membership information about a user or group. If the White List
      * is set to a value, the provider will only receive group membership information
-     * about the groups matched by the value.  If the White List is empty, all group
-     * membership information will be retrieved.  (blank == "*").
+     * about the groups matched by the value. If the White List is empty, all group
+     * membership information will be retrieved. (blank == "*").
+     * 
      * @valid The value accepts regular expressions.
      * @valid When empty, all groups are included implicitly
      * @valid Example: *Users*.
@@ -50,22 +53,25 @@ public class AuthnCreateParam extends AuthnProviderBaseParam {
     private Set<String> groupWhitelistValues;
 
     /**
-     * Attribute for group search.  This is the group's objectClass attribute that will be used to represent group.
+     * Attribute for group search. This is the group's objectClass attribute that will be used to represent group.
      * Once set during creation of the provider, the value for this parameter cannot be changed.
+     * 
      * @valid Example: "group, groupOfNames, groupOfUniqueNames, posixGroup, organizationalRole"
      */
     private Set<String> groupObjectClasses;
 
     /**
-     * Attribute for group search.  This is the group's member(like) attribute that will be used to represent group's members.
+     * Attribute for group search. This is the group's member(like) attribute that will be used to represent group's members.
      * Once set during creation of the provider, the value for this parameter cannot be changed.
      * This applies only for the LDAP, for AD, usually user has the group information where as
      * in LDAP, group has the member information.
+     * 
      * @valid Example: "member, memberUid, uniqueMember, roleOccupant".
      */
     private Set<String> groupMemberAttributes;
 
-    public AuthnCreateParam() {}
+    public AuthnCreateParam() {
+    }
 
     @XmlElementWrapper(name = "server_urls")
     @XmlElement(name = "server_url")

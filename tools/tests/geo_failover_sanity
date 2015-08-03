@@ -1,0 +1,122 @@
+#!/bin/bash
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+Usage()
+{
+    echo 'Usage:' `basename $0` '<geo cfg file>'
+    exit 1
+}
+
+[ $# -eq 1 ] || Usage
+date
+
+PATH=$(dirname $0):$PATH
+echo $PATH
+WS_SETUP=$(dirname $0)/DeploymentOutput
+GEO_DEPLOYMENT_SCRIPT=../../webstorage/geo_deployment.py
+GEO_DEPLOYMENT_CONFIG=$1
+
+if [ ! -e $WS_SETUP ];
+then
+    echo 'ERROR: WS_SETUP file' $WS_SETUP 'is not found'
+    exit 2
+fi
+
+if [ ! -e $GEO_DEPLOYMENT_CONFIG ];
+then
+    echo 'ERROR: geo cfg file' $GEO_DEPLOYMENT_CONFIG 'is not found'
+    exit 2
+fi
+
+namespace=`awk -F= '/namespace/{print $2}' $WS_SETUP`
+bucket=`awk -F= '/bucket/{print $2}' $WS_SETUP | cut -f1 -d' '`
+uid=`awk -F= '/user/{print $2}' $WS_SETUP`
+secret=`awk -F= '/secretkey/{print $2}' $WS_SETUP`
+password=${VIPR_ROOT_PASSWORD:-ChangeMe}
+seed1=$RANDOM
+seed2=$RANDOM
+chunksize=819200
+
+SSH(){
+    local ip=$1
+    shift
+    local cmd="$@"
+    sshpass -p ${password} ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${ip} ${cmd}
+}
+
+ChangeConfig() {
+    local datanodes=$1
+    for i in ${datanodes[@]} 
+    do
+    echo "change config for" $i
+    SSH $i "sed -i "s/^object.ChunkSize=.*/object.ChunkSize=$chunksize/g" /opt/storageos/conf/shared.object.properties"
+    SSH $i "sed -i "s/^object.ChunkSize=.*/object.ChunkSize=$chunksize/g" /opt/storageos/conf/ssm.object.properties"
+    SSH $i 'service storageos-dataservice restart'
+    done
+}
+
+set -e
+
+zones=($(cat $GEO_DEPLOYMENT_CONFIG | awk 'match($0, /DATA:(.*);/, m) { print m[1] }'))
+
+for i in $(seq 1 ${#zones[@]})
+do
+datanodes=($(echo ${zones[`expr $i - 1` ]} | awk '{ for(j=1; j<=NF; j++) { print $j; }}'))
+echo $datanodes
+if [ $i = 1 ]; then ip_vdc1=${datanodes[0]}; fi
+if [ $i = 2 ]; then ip_vdc2=${datanodes[0]}; fi
+ChangeConfig $datanodes
+done
+
+echo ip_vdc1 $ip_vdc1
+echo ip_vdc2 $ip_vdc2
+
+echo "sleep 5 minutes for DT initialization"
+sleep 300
+
+
+echo "create keys in vdc1"
+# create key in vdc1
+for i in {1..1000}
+do
+# small object
+bucketkey create $namespace $bucket key-$seed1-$i value-$seed1-$i --uid $uid --secret $secret --data-ip $ip_vdc1
+# big object
+bucketkey create $namespace $bucket key-$seed2-$i @bourne.py --uid $uid --secret $secret --data-ip $ip_vdc1
+done
+
+echo "trigger failover"
+
+# restart blobsvc to trigger journal chunk seal
+echo "restart blobsvc"
+SSH $ip_vdc1 'kill -9 $(cat /var/run/blobsvc.pid)'
+echo "sleep for 10 mins"
+sleep 600
+
+echo "remove vdc1 from rg"
+$GEO_DEPLOYMENT_SCRIPT CompressRepGroup --cfg $GEO_DEPLOYMENT_CONFIG --vdc vdc1 --rg sanity-rg1
+ 
+echo "sleep for 10 mins"
+sleep 600
+
+echo "stop the service in vdc1"
+SSH $ip_vdc1 'service storageos-dataservice stop'
+
+echo "sleep for 2 mins"
+sleep 120
+
+echo "read keys in vdc2"
+# read key in vdc2
+for i in {1..1000}
+do
+bucketkey verify $namespace $bucket key-$seed1-$i value-$seed1-$i --uid $uid --secret $secret --data-ip $ip_vdc2
+bucketkey verify $namespace $bucket key-$seed2-$i @bourne.py --uid $uid --secret $secret --data-ip $ip_vdc2
+done
+
+
+echo "*********************************"
+echo "FAILOVER VERIFICATION SUCCEEDED!!"
+echo "*********************************"

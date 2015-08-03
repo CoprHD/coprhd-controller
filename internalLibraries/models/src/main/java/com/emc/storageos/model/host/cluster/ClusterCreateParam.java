@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.host.cluster;
@@ -14,18 +14,21 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class ClusterCreateParam extends ClusterParam {
 
     private String name;
- 
-    public ClusterCreateParam() {}
-    
+
+    public ClusterCreateParam() {
+    }
+
     public ClusterCreateParam(String name) {
         this.name = name;
     }
-    
-    /** The name label for this cluster.  It must be unique
+
+    /**
+     * The name label for this cluster. It must be unique
      * within the tenant.
+     * 
      * @valid none
      */
-    @XmlElement(required=true)
+    @XmlElement(required = true)
     public String getName() {
         return name;
     }

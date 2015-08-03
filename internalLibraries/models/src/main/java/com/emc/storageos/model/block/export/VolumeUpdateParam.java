@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block.export;
@@ -18,8 +18,9 @@ public class VolumeUpdateParam {
     private List<VolumeParam> add;
     private List<URI> remove;
 
-    public VolumeUpdateParam() {}
-    
+    public VolumeUpdateParam() {
+    }
+
     public VolumeUpdateParam(List<VolumeParam> add, List<URI> remove) {
         this.add = add;
         this.remove = remove;
@@ -27,6 +28,7 @@ public class VolumeUpdateParam {
 
     /**
      * Add lists of volume or volume snapshot changes.
+     * 
      * @valid none
      */
     @XmlElementWrapper(name = "add", required = false)
@@ -40,6 +42,7 @@ public class VolumeUpdateParam {
 
     /**
      * Remove lists of volume or volume snapshot changes.
+     * 
      * @valid none
      */
     @XmlElementWrapper(required = false)

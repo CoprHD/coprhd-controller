@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.catalog;
@@ -73,8 +73,7 @@ public class CatalogBuilder {
             CategoryDef root = gson.fromJson(catalog, CategoryDef.class);
             root.version = DigestUtils.sha1Hex(catalog);
             return root;
-        }
-        finally {
+        } finally {
             IOUtils.closeQuietly(in);
         }
     }
@@ -158,8 +157,7 @@ public class CatalogBuilder {
     protected String getMessage(String key) {
         try {
             return (key != null) ? MESSAGES.get(key) : null;
-        }
-        catch (MissingResourceException e) {
+        } catch (MissingResourceException e) {
             return key;
         }
     }

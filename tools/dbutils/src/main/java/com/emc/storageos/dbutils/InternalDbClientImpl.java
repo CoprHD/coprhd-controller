@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.dbutils;
@@ -31,7 +21,6 @@ import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbIndex;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.TypeMap;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.upgrade.InternalDbClient;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.Keyspace;
@@ -57,29 +46,29 @@ import org.slf4j.LoggerFactory;
 public class InternalDbClientImpl extends InternalDbClient {
     private static final Logger log = LoggerFactory.getLogger(InternalDbClientImpl.class);
 
-    private List<String> genTimeSeriesKeys(Calendar startTime, Calendar endTime){
-        final int KEY_SHARD = 10;//10 shard for TimeSeries column family
+    private List<String> genTimeSeriesKeys(Calendar startTime, Calendar endTime) {
+        final int KEY_SHARD = 10;// 10 shard for TimeSeries column family
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHH");
         List<String> keys = new ArrayList<String>();
         Calendar currentTime = startTime;
-        while(true){
+        while (true) {
             String timeTemp = dateFormat.format(currentTime.getTime());
-            for(int i = 0; i < KEY_SHARD; i++){
+            for (int i = 0; i < KEY_SHARD; i++) {
                 keys.add(timeTemp + "-" + i);
             }
             currentTime.add(Calendar.HOUR, 1);
-            if(currentTime.compareTo(endTime) > 0){
+            if (currentTime.compareTo(endTime) > 0) {
                 break;
             }
         }
         return keys;
     }
-    
-    public int countTimeSeries(String cfName, Calendar startTime, Calendar endTime){
+
+    public int countTimeSeries(String cfName, Calendar startTime, Calendar endTime) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd/HH");
         String startTimeStr = dateFormat.format(startTime.getTime());
-        String endTimeStr =  dateFormat.format(endTime.getTime());
+        String endTimeStr = dateFormat.format(endTime.getTime());
         int recordCount = 0;
         try {
             Keyspace keyspace = getLocalKeyspace();
@@ -88,7 +77,7 @@ public class InternalDbClientImpl extends InternalDbClient {
                     cfName, StringSerializer.get(), StringSerializer.get());
 
             List<String> keys = genTimeSeriesKeys(startTime, endTime);
-            for(String key : keys){
+            for (String key : keys) {
                 recordCount += keyspace.prepareQuery(cf).getKey(key).getCount().execute().getResult();
             }
             System.out.println(String.format("Column Family %s's record count between %s and %s is: %s",
@@ -102,14 +91,14 @@ public class InternalDbClientImpl extends InternalDbClient {
     }
 
     /**
-     * Find out all rows in DataObject CFs that can't be deserialized,  
+     * Find out all rows in DataObject CFs that can't be deserialized,
      * such as such as object id cannot be converted to URI.
      * 
      * @return True, when no corrupted data found
      */
     public boolean checkDataObjects() {
         logAndPrintToScreen("Start to check dirty data that cannot be deserialized.");
-        
+
         int cfCount = 0;
         int dirtyCount = 0;
 
@@ -135,11 +124,11 @@ public class InternalDbClientImpl extends InternalDbClient {
                                         uri, ex.getMessage()), true);
                             }
                         } catch (Exception ex) {
-                        	dirtyCount++;
+                            dirtyCount++;
                             logAndPrintToScreen(
-                            		String.format("Row key '%s' failed to convert to URI in CF %s with exception %s",
-                                    row.getKey(), doType.getDataObjectClass()
-                                    .getName(), ex.getMessage()), true);
+                                    String.format("Row key '%s' failed to convert to URI in CF %s with exception %s",
+                                            row.getKey(), doType.getDataObjectClass()
+                                                    .getName(), ex.getMessage()), true);
                         }
                     }
                 }
@@ -148,14 +137,14 @@ public class InternalDbClientImpl extends InternalDbClient {
                 throw DatabaseException.retryables.connectionFailed(e);
             }
         }
-        
-        logAndPrintToScreen(String.format("\nTotally check %d cfs, %d rows are dirty.\n",
+
+        logAndPrintToScreen(String.format("%nTotally check %d cfs, %d rows are dirty.%n",
                 cfCount, dirtyCount));
-		return dirtyCount == 0;
+        return dirtyCount == 0;
     }
-    
+
     /**
-     * Scan all the indices and related data object records, to find out 
+     * Scan all the indices and related data object records, to find out
      * the index record is existing but the related data object records is missing.
      * 
      * @return True, when no corrupted data found
@@ -163,14 +152,14 @@ public class InternalDbClientImpl extends InternalDbClient {
      */
     public boolean checkIndexingCFs() throws ConnectionException {
         logAndPrintToScreen("\nStart to check INDEX data that the related object records are missing.\n");
-        
+
         Collection<IndexAndCf> idxCfs = getAllIndices().values();
         Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = getDataObjectCFs();
         int indexRowCount = 0;
         int objCfCount = 0;
         int objRowCount = 0;
         int corruptRowCount = 0;
-        
+
         for (IndexAndCf indexAndCf : idxCfs) {
             int corruptRowCountInIdx = 0;
             log.info("Check Index CF {}", indexAndCf.cf.getName());
@@ -194,7 +183,9 @@ public class InternalDbClientImpl extends InternalDbClient {
                         ObjectEntry objEntry = DetectHelper
                                 .extractObjectEntryFromIndex(row.getKey(),
                                         column.getName(), indexAndCf.indexType);
-						if (objEntry == null) continue;
+                        if (objEntry == null) {
+                            continue;
+                        }
                         ColumnFamily<String, CompositeColumnName> objCf = objCfs
                                 .get(objEntry.getClassName());
 
@@ -212,7 +203,7 @@ public class InternalDbClientImpl extends InternalDbClient {
                     }
                 }
             }
-            
+
             objCfCount += objsToCheck.size();
             // Detect whether the DataObject CFs have the records
             for (ColumnFamily<String, CompositeColumnName> objCf : objsToCheck.keySet()) {
@@ -229,16 +220,16 @@ public class InternalDbClientImpl extends InternalDbClient {
                             corruptRowCount++;
                             corruptRowCountInIdx++;
                             logAndPrintToScreen(String.format("Index(%s, type: %s, id: %s, column: %s) is existing "
-                                    + "but the related object record(%s, id: %s) is missing.", 
-                                    indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(), 
-                                    idxEntry.getIndexKey(), idxEntry.getColumnName(), 
+                                    + "but the related object record(%s, id: %s) is missing.",
+                                    indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
+                                    idxEntry.getIndexKey(), idxEntry.getColumnName(),
                                     objCf.getName(), row.getKey()), true);
                         }
-                        
+
                     }
                 }
             }
-            
+
             if (corruptRowCountInIdx != 0) {
                 logAndPrintToScreen(String.format(
                         "\n%d corrupted index records found in Index %s of Index type %s.\n",
@@ -246,13 +237,14 @@ public class InternalDbClientImpl extends InternalDbClient {
                         indexAndCf.indexType.getSimpleName()), true);
             }
         }
-        
-        logAndPrintToScreen(String.format("\nFinish to check INDEX data, totally check %s rows of %s indices and %s rows of %s object cfs, "
-                + "%s corrupted data found.", indexRowCount, idxCfs.size(), objRowCount, objCfCount, corruptRowCount));
-        
+
+        logAndPrintToScreen(String.format(
+                "\nFinish to check INDEX data, totally check %s rows of %s indices and %s rows of %s object cfs, "
+                        + "%s corrupted data found.", indexRowCount, idxCfs.size(), objRowCount, objCfCount, corruptRowCount));
+
         return corruptRowCount == 0;
     }
-    
+
     public Map<String, IndexAndCf> getAllIndices() {
         Map<String, IndexAndCf> idxCfs = new TreeMap<>(); // Map<Index_CF_Name, <DbIndex, ColumnFamily, Map<Class_Name, object-CF_Name>>>
         for (DataObjectType objType : TypeMap.getAllDoTypes()) {
@@ -273,10 +265,10 @@ public class InternalDbClientImpl extends InternalDbClient {
                 }
             }
         }
-        
+
         return idxCfs;
     }
-    
+
     public Map<String, ColumnFamily<String, CompositeColumnName>> getDataObjectCFs() {
         Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = new TreeMap<>();
         for (DataObjectType objType : TypeMap.getAllDoTypes()) {
@@ -289,18 +281,18 @@ public class InternalDbClientImpl extends InternalDbClient {
 
         return objCfs;
     }
-    
-	private void logAndPrintToScreen(String msg, boolean isError) {
-		if (isError) {
-			log.error(msg);
-			System.err.println(msg);
-		} else {
-			log.info(msg);
-			System.out.println(msg);
-		}
-	}
 
-	private void logAndPrintToScreen(String msg) {
-		logAndPrintToScreen(msg, false);
-	}
+    private void logAndPrintToScreen(String msg, boolean isError) {
+        if (isError) {
+            log.error(msg);
+            System.err.println(msg);
+        } else {
+            log.info(msg);
+            System.out.println(msg);
+        }
+    }
+
+    private void logAndPrintToScreen(String msg) {
+        logAndPrintToScreen(msg, false);
+    }
 }

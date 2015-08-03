@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper;
@@ -54,8 +54,7 @@ public class WorkflowMapper {
         to.setEndTime(from.getEndTime());
         return to;
     }
-    
-    
+
     public static WorkflowStepRestRep map(WorkflowStep from, List<URI> childWorkflows) {
         if (from == null) {
             return null;
@@ -81,7 +80,7 @@ public class WorkflowMapper {
         to.setEndTime(from.getEndTime());
         for (URI childWorkflow : childWorkflows) {
             to.getChildWorkflows().add(
-                    toRelatedResource(ResourceTypeEnum.WORKFLOW,childWorkflow));
+                    toRelatedResource(ResourceTypeEnum.WORKFLOW, childWorkflow));
         }
         return to;
     }

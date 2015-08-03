@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
@@ -25,19 +15,18 @@ import java.util.Map;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.NewCookie;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;
 import com.emc.storageos.vplex.api.clientdata.PortInfo;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 import com.sun.jersey.api.client.ClientResponse;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * The VPlex API Client is used to get information from the VPlex and to execute
  * configuration commands on a VPlex. A VPlexApiClient instance represents a
- * connection to a single VPlex management server. Use the
- * {@link VPlexApiFactory} to get a VPlexApiClient instance for a given VPlex
+ * connection to a single VPlex management server. Use the {@link VPlexApiFactory} to get a VPlexApiClient instance for a given VPlex
  * management server.
  * 
  * NOTE: The Jersey client releases http connections automatically in two cases:
@@ -45,24 +34,24 @@ import org.slf4j.LoggerFactory;
  * 1. When the ClientResponse does not have entity.
  * 2. When the ClientResponse does have an entity and it was read from response.
  * 
- * In case when the ClientResponse has an entity and the entity is not read, 
- * the Jersey client does not release the connection (see JavaDoc for Jersey's 
+ * In case when the ClientResponse has an entity and the entity is not read,
+ * the Jersey client does not release the connection (see JavaDoc for Jersey's
  * ApacheHttpClientHandler.java), and the connection is not returned back to
  * connection pool to be available for a new request.
  * 
  * Therefore, it is incumbent upon programmer's modifying this class and its
  * associated manager classes to add new requests to ensure that the entity
- * is read from the response or that the connection is closed in a finally 
- * block. Currently, the former is the approach taken, as the entity for each 
- * response from the VPLEX is read and logged so we know the content of the 
+ * is read from the response or that the connection is closed in a finally
+ * block. Currently, the former is the approach taken, as the entity for each
+ * response from the VPLEX is read and logged so we know the content of the
  * response from the server.
  */
 public class VPlexApiClient {
-    
-    // The number of times a get request will be retried 
+
+    // The number of times a get request will be retried
     // and the wait interval between attempts.
     public static final int GET_RETRY_COUNT = 12;
-    public static final long GET_SLEEP_TIME_MS = 5000;    
+    public static final long GET_SLEEP_TIME_MS = 5000;
 
     // Logger reference.
     private static Logger s_logger = LoggerFactory.getLogger(VPlexApiClient.class);
@@ -72,25 +61,25 @@ public class VPlexApiClient {
 
     // The REST client for executing requests to the VPlex Management Station.
     private RESTClient _client;
-    
+
     // A reference to the discovery manager.
     private VPlexApiDiscoveryManager _discoveryMgr;
-    
+
     // A reference to the virtual volume manager.
     private VPlexApiVirtualVolumeManager _virtualVolumeMgr;
-    
+
     // A reference to the export manager.
     private VPlexApiExportManager _exportMgr;
-    
+
     // A reference to the migration manager.
     private VPlexApiMigrationManager _migrationMgr;
-    
+
     // A reference to the consistency group manager manager.
     private VPlexApiConsistencyGroupManager _cgMgr;
-    
-    // The ID of the VPLEX session to pass in requests to the 
+
+    // The ID of the VPLEX session to pass in requests to the
     // VPLEX management server associated with this client. Is
-    // set on the first request and updated on every response 
+    // set on the first request and updated on every response
     // in case it expires and a new session is created.
     private String _vplexSessionId = null;
 
@@ -109,14 +98,14 @@ public class VPlexApiClient {
         _migrationMgr = new VPlexApiMigrationManager(this);
         _cgMgr = new VPlexApiConsistencyGroupManager(this);
     }
-    
+
     /**
      * Verifies the client can connect to the VPLEX to identify issues
      * in the client connectivity information such as IP address, port,
      * username, and password.
      */
     public void verifyConnectivity() {
-        
+
         // Attempt to make a valid request to the VPLEX management server.
         URI requestURI = _baseURI.resolve(VPlexApiConstants.URI_CLUSTERS);
         ClientResponse response = null;
@@ -151,7 +140,7 @@ public class VPlexApiClient {
             }
         }
     }
-    
+
     /**
      * Returns the version of the VPlex management software.
      * 
@@ -163,7 +152,7 @@ public class VPlexApiClient {
         s_logger.info("Request for management software version for VPlex at {}", _baseURI);
         return _discoveryMgr.getManagementSoftwareVersion();
     }
-    
+
     /**
      * Determines the serial number of the VPlex management server.
      * 
@@ -175,29 +164,32 @@ public class VPlexApiClient {
         s_logger.info("Request for management server serial number for VPlex at {}", _baseURI);
         return _discoveryMgr.getManagementServerSerialNumber();
     }
-    
+
     /**
      * Gets information about the VPLEX clusters.
+     * 
+     * @param shallow true to get just the name and path for each cluster, false
+     *            to get additional info about the systems and volumes.
      * 
      * @return A list of VPlexClusterInfo instances.
      * 
      * @throws VPlexApiException When an error occurs querying the VPlex.
      */
-    public List<VPlexClusterInfo> getClusterInfo() throws VPlexApiException {
+    public List<VPlexClusterInfo> getClusterInfo(boolean shallow) throws VPlexApiException {
         s_logger.info("Request for cluster info for VPlex at {}", _baseURI);
-        return _discoveryMgr.getClusterInfo(true);
+        return _discoveryMgr.getClusterInfo(shallow);
     }
-    
+
     /**
      * Rediscovers the storage systems attached to the VPlex identified by the
      * passed identifiers for the purpose of discovering new volumes accessible
      * to the VPlex.
      * 
      * @param storageSystemNativeGuids The native guids of the storage systems
-     *        to be rediscovered.
+     *            to be rediscovered.
      */
     public void rediscoverStorageSystems(List<String> storageSystemNativeGuids)
-        throws VPlexApiException {
+            throws VPlexApiException {
         s_logger.info("Request to rediscover storage systems on VPlex at {}", _baseURI);
         _discoveryMgr.rediscoverStorageSystems(storageSystemNativeGuids);
     }
@@ -209,7 +201,7 @@ public class VPlexApiClient {
      *         storage systems accessible to the VPlex.
      * 
      * @throws VPlexApiException If a VPlex request returns a failed status or
-     *         an error occurs processing the response.
+     *             an error occurs processing the response.
      */
     public List<VPlexStorageSystemInfo> getStorageSystemInfo() throws VPlexApiException {
         s_logger.info("Request for storage system info for VPlex at {}", _baseURI);
@@ -220,15 +212,15 @@ public class VPlexApiClient {
      * Gets the information for the VPlex Ports.
      * 
      * @param shallow if true, the director info will not be fetched (just the PortInfo data),
-     *                otherwise, we will traverse engines and directors assembling complete list
+     *            otherwise, we will traverse engines and directors assembling complete list
      * @return A list of VPlexPortInfo specifying the info for the VPlex ports.
      * 
      * @throws VPlexApiException If a VPlex request returns a failed status or
-     *         an error occurs processing the response.
+     *             an error occurs processing the response.
      */
     public List<VPlexPortInfo> getPortInfo(boolean shallow) throws VPlexApiException {
         s_logger.info("Request for port info for VPlex at {}", _baseURI);
-        
+
         if (shallow) {
             // gets all with API URI wildcards
             return _discoveryMgr.getPortInfo();
@@ -244,24 +236,24 @@ public class VPlexApiClient {
      * @return A list of VPlexStorageViewInfo specifying the info for the VPlex storage views.
      * 
      * @throws VPlexApiException If a VPlex request returns a failed status or
-     *         an error occurs processing the response.
+     *             an error occurs processing the response.
      */
     public List<VPlexStorageViewInfo> getStorageViews() throws VPlexApiException {
         s_logger.info("Request for storage view info for VPlex at {}", _baseURI);
         return _discoveryMgr.getStorageViews();
     }
-    
+
     /**
      * Gets all virtual volumes on the VPLEX storage system.
      * 
-     * @param shallow When true does a shallow discovery of the virtual volumes. A 
-     * shallow discovery simple gets the name and context path for each virtual
-     * volume. A deep discovery will discover the component structure of the virtual
-     * volumes including the distributed devices, local devices, extents, and storage
-     * volumes used to construct the virtual volume. A deep discovery is far more
-     * expensive as many requests must be made to the VPLEX to discovery the structure
-     * for each volume. A VPLEX with thousands of volumes could requires 10's or 100's
-     * of thousands of requests.
+     * @param shallow When true does a shallow discovery of the virtual volumes. A
+     *            shallow discovery simple gets the name and context path for each virtual
+     *            volume. A deep discovery will discover the component structure of the virtual
+     *            volumes including the distributed devices, local devices, extents, and storage
+     *            volumes used to construct the virtual volume. A deep discovery is far more
+     *            expensive as many requests must be made to the VPLEX to discovery the structure
+     *            for each volume. A VPLEX with thousands of volumes could requires 10's or 100's
+     *            of thousands of requests.
      * 
      * @return A list of VPlexVirtualVolumeInfo for the virtual volumes on the VPLEX.
      * 
@@ -269,8 +261,8 @@ public class VPlexApiClient {
      */
     public Map<String, VPlexVirtualVolumeInfo> getVirtualVolumes(boolean shallow) throws VPlexApiException {
         s_logger.info("Request for {} discovery of virtual volume info for VPlex at {}",
-            (shallow ? "shallow" : "deep"), _baseURI);
-        
+                (shallow ? "shallow" : "deep"), _baseURI);
+
         Map<String, VPlexVirtualVolumeInfo> virtualVolumeInfoMap = new HashMap<String, VPlexVirtualVolumeInfo>();
         Map<String, VPlexVirtualVolumeInfo> distributedVirtualVolumesMap = new HashMap<String, VPlexVirtualVolumeInfo>();
         Map<String, Map<String, VPlexVirtualVolumeInfo>> localVirtualVolumesMap = new HashMap<String, Map<String, VPlexVirtualVolumeInfo>>();
@@ -280,7 +272,7 @@ public class VPlexApiClient {
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             String clusterId = clusterInfo.getName();
             // for each cluster get the virtual volume information.
-            List<VPlexVirtualVolumeInfo> clusterVirtualVolumeInfoList = 
+            List<VPlexVirtualVolumeInfo> clusterVirtualVolumeInfoList =
                     _discoveryMgr.getVirtualVolumesForCluster(clusterId);
             for (VPlexVirtualVolumeInfo virtualVolumeInfo : clusterVirtualVolumeInfoList) {
                 virtualVolumeInfo.addCluster(clusterId);
@@ -297,12 +289,12 @@ public class VPlexApiClient {
                     if (!shallow) {
                         String supportingDeviceName = virtualVolumeInfo.getSupportingDevice();
                         if (VPlexVirtualVolumeInfo.Locality.distributed.name().equals(
-                            virtualVolumeInfo.getLocality())) {
+                                virtualVolumeInfo.getLocality())) {
                             distributedVirtualVolumesMap.put(supportingDeviceName,
-                                virtualVolumeInfo);
+                                    virtualVolumeInfo);
                         } else {
                             Map<String, VPlexVirtualVolumeInfo> clusterLocalVolumesMap = localVirtualVolumesMap
-                                .get(clusterId);
+                                    .get(clusterId);
                             if (clusterLocalVolumesMap == null) {
                                 clusterLocalVolumesMap = new HashMap<String, VPlexVirtualVolumeInfo>();
                                 localVirtualVolumesMap.put(clusterId, clusterLocalVolumesMap);
@@ -328,16 +320,15 @@ public class VPlexApiClient {
             // Get the component structure for each local virtual volume
             // starting with the supporting local device.
             for (Map.Entry<String, Map<String, VPlexVirtualVolumeInfo>> mapEntry : localVirtualVolumesMap
-                .entrySet()) {
+                    .entrySet()) {
                 _discoveryMgr.setSupportingComponentsForLocalVirtualVolumes(
-                    mapEntry.getKey(), mapEntry.getValue());
+                        mapEntry.getKey(), mapEntry.getValue());
             }
         }
 
         return virtualVolumeInfoMap;
     }
-    
-    
+
     /**
      * Finds the volume with the passed name and discovers it's structure.
      * 
@@ -370,27 +361,29 @@ public class VPlexApiClient {
      * 
      * @param nativeVolumeInfoList The native volume information.
      * @param isDistributed true for a distributed virtual volume, false
-     *        otherwise.
+     *            otherwise.
      * @param discoveryRequired true if the passed native volumes are newly
-     *        exported and need to be discovered by the VPlex.
+     *            exported and need to be discovered by the VPlex.
      * @param preserveData true if the native volume data should be preserved
-     *        during virtual volume creation.
+     *            during virtual volume creation.
      * @param winningClusterId Used to set detach rules for distributed volumes.
+     * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
+     *            clusters.
      * 
      * @return The information for the created virtual volume.
      * 
      * @throws VPlexApiException When an error occurs creating the virtual
-     *         volume.
+     *             volume.
      */
     public VPlexVirtualVolumeInfo createVirtualVolume(
-        List<VolumeInfo> nativeVolumeInfoList, boolean isDistributed,
-        boolean discoveryRequired, boolean preserveData, String winningClusterId)
-        throws VPlexApiException {
+            List<VolumeInfo> nativeVolumeInfoList, boolean isDistributed,
+            boolean discoveryRequired, boolean preserveData, String winningClusterId, List<VPlexClusterInfo> clusterInfoList)
+            throws VPlexApiException {
         s_logger.info("Request for virtual volume creation on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.createVirtualVolume(nativeVolumeInfoList, isDistributed,
-            discoveryRequired, preserveData, winningClusterId);
+                discoveryRequired, preserveData, winningClusterId, clusterInfoList);
     }
-    
+
     /**
      * Rename a VPlex resource that subclasses VPlexResourceInfo.
      * Adjusts the path and name in the resourceInfo and returns the original object.
@@ -402,31 +395,31 @@ public class VPlexApiClient {
      * @throws VPlexApiException When an error occurs renaming resource
      */
     public <T extends VPlexResourceInfo> T renameResource(T resourceInfo, String newName)
-            throws VPlexApiException{
+            throws VPlexApiException {
         return _virtualVolumeMgr.renameVPlexResource(resourceInfo, newName);
     }
-    
+
     /**
      * Creates and attaches mirror device to the source device.
      * 
      * @param virtualVolume The virtual volume information to which mirror will be attached
      * @param nativeVolumeInfoList The native volume information.
      * @param discoveryRequired true if the passed native volumes are newly
-     *        exported and need to be discovered by the VPlex.
+     *            exported and need to be discovered by the VPlex.
      * @param preserveData true if the native volume data should be preserved
-     *        during mirror device creation.
-     *        
+     *            during mirror device creation.
+     * 
      * @return The VPlex device info that is attached as a mirror.
      * 
      * @throws VPlexApiException When an error occurs creating and attaching device as a mirror
      */
     public VPlexDeviceInfo createDeviceAndAttachAsMirror(VPlexVirtualVolumeInfo virtualVolume,
-            List<VolumeInfo> nativeVolumeInfoList,boolean discoveryRequired, boolean preserveData)
-                    throws VPlexApiException {
+            List<VolumeInfo> nativeVolumeInfoList, boolean discoveryRequired, boolean preserveData)
+            throws VPlexApiException {
         s_logger.info("Request for mirror creation on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.createDeviceAndAttachAsMirror(virtualVolume, nativeVolumeInfoList, discoveryRequired, preserveData);
     }
-    
+
     /**
      * Attaches mirror device to the source device
      * 
@@ -435,30 +428,30 @@ public class VPlexApiClient {
      * @param mirrorDeviceName Name of the mirror device
      * 
      * @throws VPlexApiException When an error occurs attaching mirror device to the
-     * source volume device
+     *             source volume device
      */
     public void attachMirror(String locality, String sourceVirtualVolumeName, String mirrorDeviceName)
-            throws VPlexApiException{
+            throws VPlexApiException {
         _virtualVolumeMgr.attachMirror(locality, sourceVirtualVolumeName, mirrorDeviceName);
     }
-    
+
     /**
      * Deletes the virtual volume by destroying all the components (i.e,
      * extents, devices) that were created in the process of creating the
      * virtual and unclaiming the storage volume(s).
      * 
      * @param nativeVolumeInfoList The same native volume info that was passed
-     *        when the virtual volume was created.
+     *            when the virtual volume was created.
      * 
      * @throws VPlexApiException When an error occurs deleted the virtual
-     *         volume.
+     *             volume.
      */
     public void deleteVirtualVolume(List<VolumeInfo> nativeVolumeInfoList)
-        throws VPlexApiException {
+            throws VPlexApiException {
         s_logger.info("Request for virtual volume deletion on VPlex at {}", _baseURI);
         _virtualVolumeMgr.deleteVirtualVolume(nativeVolumeInfoList);
     }
-    
+
     /**
      * Deletes the virtual volume by destroying all the components (i.e,
      * extents, devices) that were created in the process of creating the
@@ -467,47 +460,47 @@ public class VPlexApiClient {
      * @param virtualVolumeName The name of the virtual volume to be deleted.
      * @param unclaimVolumes true if the storage volumes should be unclaimed.
      * @param retryOnDismantleFailure When true, retries the delete if the
-     *        dismantle of the virtual volume fails, which can occur if the
-     *        volume was distributed and had previously been migrated. This is
-     *        due to a bug in the VPLEX management software (zeph-q24801)
+     *            dismantle of the virtual volume fails, which can occur if the
+     *            volume was distributed and had previously been migrated. This is
+     *            due to a bug in the VPLEX management software (zeph-q24801)
      * 
      * @throws VPlexApiException When an error occurs deleted the virtual
-     *         volume.
+     *             volume.
      */
     public void deleteVirtualVolume(String virtualVolumeName,
-        boolean unclaimVolumes, boolean retryOnDismantleFailure) throws VPlexApiException {
+            boolean unclaimVolumes, boolean retryOnDismantleFailure) throws VPlexApiException {
         s_logger.info("Request for virtual volume deletion on VPlex at {}", _baseURI);
         _virtualVolumeMgr.deleteVirtualVolume(virtualVolumeName, unclaimVolumes,
-            retryOnDismantleFailure);
+                retryOnDismantleFailure);
     }
-    
+
     /**
      * Deletes the virtual volume and leaves the underlying structure intact.
      * 
      * @param virtualVolumeName The name of the virtual volume to be destroyed.
-     *  
+     * 
      * @throws VPlexApiException When an error occurs destroying the virtual
-     *         volume.
+     *             volume.
      */
     public void destroyVirtualVolume(String virtualVolumeName) throws VPlexApiException {
         s_logger.info("Request for virtual volume destroy on VPlex at {}", _baseURI);
         _virtualVolumeMgr.destroyVirtualVolume(virtualVolumeName);
     }
-    
+
     /**
      * Causes the VPLEX to "forget" about the volumes identified by the
      * passed native volume information. Typically called when the calling
      * application has deleted backend volumes and wants the VPLEX to disregard
      * these volumes.
      * 
-     * @param nativeVolumeInfoList The native volume information for the 
-     * storage volumes to be forgotten.
+     * @param nativeVolumeInfoList The native volume information for the
+     *            storage volumes to be forgotten.
      */
     public void forgetVolumes(List<VolumeInfo> nativeVolumeInfoList) {
         s_logger.info("Request to forget volumes on VPlex at {}", _baseURI);
         _discoveryMgr.forgetVolumes(nativeVolumeInfoList);
     }
-    
+
     /**
      * Expands the virtual volume with the passed name to it's full expandable
      * capacity. This API would be invoked after natively expanding the backend
@@ -519,11 +512,11 @@ public class VPlexApiClient {
      * @throws VPlexApiException When an exception occurs expanding the volume.
      */
     public VPlexVirtualVolumeInfo expandVirtualVolume(String virtualVolumeName)
-        throws VPlexApiException {
+            throws VPlexApiException {
         s_logger.info("Request for virtual volume expansion on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.expandVirtualVolume(virtualVolumeName);
     }
-    
+
     /**
      * For the virtual volume with the passed name, migrates the data on the
      * backend volume(s) to the backend volumes identified by the passed native
@@ -531,31 +524,31 @@ public class VPlexApiClient {
      * 
      * @param migrationName The name for this migration.
      * @param virtualVolumeName The name of the virtual volume whose data is to
-     *        be migrated.
+     *            be migrated.
      * @param nativeVolumeInfoList The native information for the volume(s) to
-     *        which the data should be migrated.
+     *            which the data should be migrated.
      * @param isRemote true if the the migration is across clusters, else false.
      * @param useDeviceMigration true if device migration is required.
      * @param discoveryRequired true if the passed native volumes are newly
-     *        exported and need to be discovered by the VPlex.
+     *            exported and need to be discovered by the VPlex.
      * @param startNow true to start the migration now, else migration is
-     *        created in a paused state.
-     * 
+     *            created in a paused state.
+     * @param transferSize The transfer size for migration
      * @return A reference to the migration(s) started to migrate the virtual
      *         volume.
      * 
      * @throws VPlexApiException When an error occurs creating and/or
-     *         initializing the migration.
+     *             initializing the migration.
      */
     public List<VPlexMigrationInfo> migrateVirtualVolume(String migrationName,
-        String virtualVolumeName, List<VolumeInfo> nativeVolumeInfoList,
-        boolean isRemote, boolean useDeviceMigration, boolean discoveryRequired,
-        boolean startNow) throws VPlexApiException {
+            String virtualVolumeName, List<VolumeInfo> nativeVolumeInfoList,
+            boolean isRemote, boolean useDeviceMigration, boolean discoveryRequired,
+            boolean startNow, String transferSize) throws VPlexApiException {
         s_logger.info("Request for virtual volume migration on VPlex at {}", _baseURI);
         return _migrationMgr.migrateVirtualVolume(migrationName, virtualVolumeName,
-            nativeVolumeInfoList, isRemote, useDeviceMigration, discoveryRequired, startNow);
+                nativeVolumeInfoList, isRemote, useDeviceMigration, discoveryRequired, startNow, transferSize);
     }
-    
+
     /**
      * Returns the information, including the current status, of the migration
      * with the passed name.
@@ -565,38 +558,38 @@ public class VPlexApiClient {
      * @return A VPlex migration info reference.
      * 
      * @throws VPlexApiException When an error occurs getting the latest
-     *         information for the migration or the migration is not found.
+     *             information for the migration or the migration is not found.
      */
     public VPlexMigrationInfo getMigrationInfo(String migrationName) throws VPlexApiException {
         List<VPlexMigrationInfo> migrationInfoList = _discoveryMgr
-            .findMigrations(Arrays.asList(migrationName));
+                .findMigrations(Arrays.asList(migrationName));
         return migrationInfoList.get(0);
     }
-    
+
     /**
      * Pauses the executing migrations with the passed name.
      * 
      * @param migrationNames The names of the migrations.
-     *  
+     * 
      * @throws VPlexApiException When an error occurs pausing the migrations.
      */
     public void pauseMigrations(List<String> migrationNames) throws VPlexApiException {
         s_logger.info("Request to pause migrations on VPlex at {}", _baseURI);
         _migrationMgr.pauseMigrations(migrationNames);
     }
-    
+
     /**
      * Resume the paused migrations with with the passed names.
      * 
      * @param migrationNames The names of the migrations.
-     *  
+     * 
      * @throws VPlexApiException When an error occurs resuming the migrations.
      */
     public void resumeMigrations(List<String> migrationNames) throws VPlexApiException {
         s_logger.info("Request to resume migrations on VPlex at {}", _baseURI);
-        _migrationMgr.resumeMigrations(migrationNames);        
+        _migrationMgr.resumeMigrations(migrationNames);
     }
-    
+
     /**
      * Commits the completed migrations with the passed names and tears down the
      * old devices and unclaims the storage volumes.
@@ -615,11 +608,11 @@ public class VPlexApiClient {
      * @throws VPlexApiException When an error occurs committing the migrations.
      */
     public List<VPlexMigrationInfo> commitMigrations(List<String> migrationNames,
-        boolean cleanup, boolean remove, boolean rename) throws VPlexApiException {
+            boolean cleanup, boolean remove, boolean rename) throws VPlexApiException {
         s_logger.info("Request to commit migrations on VPlex at {}", _baseURI);
         return _migrationMgr.commitMigrations(migrationNames, cleanup, remove, rename);
     }
-    
+
     /**
      * Cleans the committed migrations with the passed names tearing down the
      * old devices and unclaiming the storage volumes.
@@ -645,7 +638,7 @@ public class VPlexApiClient {
      * @throws VPlexApiException When an error occurs canceling the migrations.
      */
     public void cancelMigrations(List<String> migrationNames, boolean cleanup,
-        boolean remove) throws VPlexApiException {
+            boolean remove) throws VPlexApiException {
         s_logger.info("Request to cancel migrations on VPlex at {}", _baseURI);
         _migrationMgr.cancelMigrations(migrationNames, cleanup, remove);
     }
@@ -657,7 +650,7 @@ public class VPlexApiClient {
      * @param migrationNames The names of the migrations.
      * 
      * @throws VPlexApiException When an error occurs removing the migration
-     *         records.
+     *             records.
      */
     public void removeMigrations(List<String> migrationNames) throws VPlexApiException {
         s_logger.info("Request to remove migrations on VPlex at {}", _baseURI);
@@ -676,8 +669,8 @@ public class VPlexApiClient {
      * @param initiatorPortInfo The info for the initiator ports.
      * @param virtualVolumeMap Map of virtual volume names to LUN ID.
      * 
-     * NOTE: If you want VPlex to pick the LUN ID pass
-     *       VPlexApiConstants.LUN_UNASSIGNED for the virtual volume.
+     *            NOTE: If you want VPlex to pick the LUN ID pass
+     *            VPlexApiConstants.LUN_UNASSIGNED for the virtual volume.
      * 
      * @return A reference to a VPlexStorageViewInfo specifying the storage view
      *         information.
@@ -685,38 +678,38 @@ public class VPlexApiClient {
      * @throws VPlexApiException When an error occurs creating the storage view.
      */
     public VPlexStorageViewInfo createStorageView(String viewName,
-        List<PortInfo> targetPortInfo, List<PortInfo> initiatorPortInfo, 
-        Map<String, Integer> virtualVolumeMap) throws VPlexApiException {
-        
+            List<PortInfo> targetPortInfo, List<PortInfo> initiatorPortInfo,
+            Map<String, Integer> virtualVolumeMap) throws VPlexApiException {
+
         s_logger.info("Request for storage view creation on VPlex at {}", _baseURI);
-        
+
         // A storage view name is required. It must be unique across all
         // clusters of the VPlex. We could do a check here, but it would
         // require an additional request, or perhaps 2 in a Metro/Geo
         // configuration.
         if ((viewName == null) || (viewName.trim().length() == 0)) {
             throw new VPlexApiException(
-                "A name for the storage view must be specified.");            
+                    "A name for the storage view must be specified.");
         }
-        
+
         // Targets are required to create a storage view.
         if (targetPortInfo.isEmpty()) {
             throw new VPlexApiException(
-                "Target ports are required to create a storage view");
+                    "Target ports are required to create a storage view");
         }
-        
+
         return _exportMgr.createStorageView(viewName, targetPortInfo, initiatorPortInfo,
-            virtualVolumeMap);
+                virtualVolumeMap);
     }
-    
+
     /**
-     * Delete the storage view with the passed name and existence 
+     * Delete the storage view with the passed name and existence
      * tracking parameter.
      * 
      * @param viewName The name of the storage view to be deleted.
      * @param viewFound An out parameter indicating whether or
-     *                  not the storage view was actually found on 
-     *                  the VPLEX device during this process.
+     *            not the storage view was actually found on
+     *            the VPLEX device during this process.
      * 
      * @throws VPlexApiException When an error occurs deleting the storage view.
      */
@@ -725,21 +718,21 @@ public class VPlexApiClient {
         _exportMgr.deleteStorageView(viewName, viewFound);
         s_logger.info("Storage view was found for deletion: {}", viewFound[0]);
     }
-    
+
     /**
      * Adds the initiators identified by the passed port information to the
      * storage view with the passed name.
      * 
      * @param viewName The name of the storage view.
      * @param initiatorPortInfo The port information for the initiators to be
-     *        added.
+     *            added.
      * 
      * @throws VPlexApiException When an error occurs adding the initiators.
      */
     public void addInitiatorsToStorageView(String viewName,
-        List<PortInfo> initiatorPortInfo) throws VPlexApiException {
+            List<PortInfo> initiatorPortInfo) throws VPlexApiException {
         s_logger.info("Request to add initiators to storage view on VPlex at {}",
-            _baseURI);
+                _baseURI);
         _exportMgr.addInitiatorsToStorageView(viewName, initiatorPortInfo);
     }
 
@@ -749,60 +742,62 @@ public class VPlexApiClient {
      * 
      * @param viewName The name of the storage view.
      * @param initiatorPortInfo The port information for the initiators to be
-     *        removed.
+     *            removed.
      * 
      * @throws VPlexApiException When an error occurs removing the initiators.
      */
     public void removeInitiatorsFromStorageView(String viewName,
-        List<PortInfo> initiatorPortInfo) throws VPlexApiException {
+            List<PortInfo> initiatorPortInfo) throws VPlexApiException {
         s_logger.info("Request to remove initiators from storage view on VPlex at {}",
-            _baseURI);
+                _baseURI);
         _exportMgr.removeInitiatorsFromStorageView(viewName, initiatorPortInfo);
     }
-    
+
     /**
      * Add targets to the storage view identified by name.
+     * 
      * @param viewName -- StorageView name
      * @param targetPortInfo -- The port information for the targets to be added.
      * @throws VPlexApiException When an error occurs adding the targets
      */
-    public void addTargetsToStorageView(String viewName, 
+    public void addTargetsToStorageView(String viewName,
             List<PortInfo> targetPortInfo) throws VPlexApiException {
         s_logger.info("Request to add targets to storage view on VPlex at {}", _baseURI);
         _exportMgr.addTargetsToStorageView(viewName, targetPortInfo);
     }
-    
+
     /**
      * Remove targets from the storage view identified by name.
+     * 
      * @param viewName -- Storage view name
      * @param targetPortInfo -- The port information for the targets to be removed.
      * @throws VPlexApiException
      */
-    public void removeTargetsFromStorageView(String viewName, 
+    public void removeTargetsFromStorageView(String viewName,
             List<PortInfo> targetPortInfo) throws VPlexApiException {
         s_logger.info("Request to remove targets to storage view on VPlex at {}", _baseURI);
         _exportMgr.removeTargetsFromStorageView(viewName, targetPortInfo);
     }
-    
+
     /**
      * Adds the virtual volumes with the passed names to the storage view with
      * the passed name.
      * 
      * @param virtualVolumeMap Map of virtual volume names to LUN ID.
      * 
-     * NOTE: If you want VPlex to pick the LUN ID pass
-     *       VPlexApiConstants.LUN_UNASSIGNED for the virtual volume.
+     *            NOTE: If you want VPlex to pick the LUN ID pass
+     *            VPlexApiConstants.LUN_UNASSIGNED for the virtual volume.
      * 
      * @return A reference to a VPlexStorageViewInfo specifying the storage view
      *         information.
-     *         
+     * 
      * @throws VPlexApiException When an error occurs adding the virtual
-     *         volumes.
+     *             volumes.
      */
     public VPlexStorageViewInfo addVirtualVolumesToStorageView(String viewName,
-        Map<String, Integer> virtualVolumeMap) throws VPlexApiException {
+            Map<String, Integer> virtualVolumeMap) throws VPlexApiException {
         s_logger.info("Request to add virtual volumes to storage view on VPlex at {}",
-            _baseURI);
+                _baseURI);
         return _exportMgr.addVirtualVolumesToStorageView(viewName, virtualVolumeMap);
     }
 
@@ -813,16 +808,16 @@ public class VPlexApiClient {
      * @param virtualVolumeNames The names of the virtual volumes to be removed.
      * 
      * @throws VPlexApiException When an error occurs removing the virtual
-     *         volumes.
+     *             volumes.
      */
     public void removeVirtualVolumesFromStorageView(String viewName,
-        List<String> virtualVolumeNames) throws VPlexApiException {
+            List<String> virtualVolumeNames) throws VPlexApiException {
         s_logger.info(
-            "Request to remove virtual volumes from storage view on VPlex at {}",
-            _baseURI);
+                "Request to remove virtual volumes from storage view on VPlex at {}",
+                _baseURI);
         _exportMgr.removeVirtualVolumesFromStorageView(viewName, virtualVolumeNames);
     }
-    
+
     /**
      * Gets the name of the cluster on which the passed storage volumes resides.
      * 
@@ -833,12 +828,12 @@ public class VPlexApiClient {
      * @throws VPlexApiException If an error occurs finding the volume.
      */
     public String getClaimedStorageVolumeClusterName(VolumeInfo volumeInfo)
-        throws VPlexApiException {
+            throws VPlexApiException {
         VPlexStorageVolumeInfo storageVolumeInfo = _discoveryMgr
-            .findStorageVolume(volumeInfo.getVolumeName());
+                .findStorageVolume(volumeInfo.getVolumeName());
         return storageVolumeInfo.getClusterId();
     }
-    
+
     /**
      * Gets all consistency groups on the VPLEX.
      * 
@@ -846,15 +841,15 @@ public class VPlexApiClient {
      *         the consistency groups on the VPLEX.
      * 
      * @throws VPlexApiException When an error occurs get the consistency
-     *         groups.
+     *             groups.
      */
     public List<VPlexConsistencyGroupInfo> getConsistencyGroups()
-        throws VPlexApiException {
+            throws VPlexApiException {
         s_logger.info("Request to get all consistency groups on VPlex at {}", _baseURI);
-        
+
         return _discoveryMgr.getConsistencyGroups();
     }
-    
+
     /**
      * Creates a consistency group with the passed name on the cluster with the
      * passed name.
@@ -864,31 +859,31 @@ public class VPlexApiClient {
      * @param isDistributed true if the CG will hold distributed volumes.
      * 
      * @throws VPlexApiException When an error occurs creating the consistency
-     *         group.
+     *             group.
      */
     public void createConsistencyGroup(String cgName, String clusterName,
-        boolean isDistributed) throws VPlexApiException {
+            boolean isDistributed) throws VPlexApiException {
         s_logger.info("Request to create consistency group on VPlex at {}", _baseURI);
         _cgMgr.createConsistencyGroup(cgName, clusterName, isDistributed);
     }
-    
+
     /**
      * Updates the consistency group properties. Should only be invoked
      * when the consistency group has no volumes.
      * 
      * @param cgName The name for the consistency group.
      * @param clusterName The name of the cluster for which the CG should be
-     *        found, when not distributed.
+     *            found, when not distributed.
      * @param isDistributed true if the CG will hold distributed volumes.
      * 
      * @throws VPlexApiException When an error occurs setting the consistency
-     *         group properties.
+     *             group properties.
      */
     public void updateConsistencyGroupProperties(String cgName, String clusterName,
-        boolean isDistributed) throws VPlexApiException {
+            boolean isDistributed) throws VPlexApiException {
         s_logger.info("Request to update consistency group properties on VPlex at {}",
-            _baseURI);
-        
+                _baseURI);
+
         List<VPlexClusterInfo> clusterInfoList = _discoveryMgr.getClusterInfoLite();
         if (!isDistributed) {
             Iterator<VPlexClusterInfo> clusterInfoIter = clusterInfoList.iterator();
@@ -898,13 +893,13 @@ public class VPlexApiClient {
                     clusterInfoIter.remove();
                 }
             }
-            
+
             // Find the consistency group.
             VPlexConsistencyGroupInfo cgInfo = _discoveryMgr.findConsistencyGroup(cgName,
-                clusterInfoList, true);
-            
+                    clusterInfoList, true);
+
             // The changes we need to make depend on if the the consistency group
-            // has visibility to both clusters indicating it previously held 
+            // has visibility to both clusters indicating it previously held
             // distributed volumes.
             List<String> visibleClusters = cgInfo.getVisibility();
             if (visibleClusters.size() > 1) {
@@ -912,10 +907,10 @@ public class VPlexApiClient {
                 // distributed volumes that had a winner set, which would cause a failure
                 // when we set update the visibility and cluster info.
                 _cgMgr.setDetachRuleNoAutomaticWinner(cgInfo);
-                
+
                 // Now we must clear the CG storage clusters.
                 _cgMgr.setConsistencyGroupStorageClusters(cgInfo, new ArrayList<VPlexClusterInfo>());
-                
+
                 // Now set visibility and cluster info for the CG in this order.
                 _cgMgr.setConsistencyGroupVisibility(cgInfo, clusterInfoList);
                 _cgMgr.setConsistencyGroupStorageClusters(cgInfo, clusterInfoList);
@@ -928,22 +923,22 @@ public class VPlexApiClient {
         } else {
             // Find the consistency group.
             VPlexConsistencyGroupInfo cgInfo = _discoveryMgr.findConsistencyGroup(cgName,
-                clusterInfoList, true);
-            
-            // We only have to make changes if the visibility is not 
+                    clusterInfoList, true);
+
+            // We only have to make changes if the visibility is not
             // currently both clusters.
             List<String> visibleClusters = cgInfo.getVisibility();
             if (visibleClusters.size() != 2) {
                 // First clear the CG storage clusters.
                 _cgMgr.setConsistencyGroupStorageClusters(cgInfo, new ArrayList<VPlexClusterInfo>());
-                
+
                 // Now set visibility and cluster info for the CG to both clusters
                 // in this order.
                 _cgMgr.setConsistencyGroupVisibility(cgInfo, clusterInfoList);
                 _cgMgr.setConsistencyGroupStorageClusters(cgInfo, clusterInfoList);
-                
+
                 // Now set the detach rule to winner for the cluster with the passed name.
-                VPlexClusterInfo winningCluster = null; 
+                VPlexClusterInfo winningCluster = null;
                 Iterator<VPlexClusterInfo> clusterInfoIter = clusterInfoList.iterator();
                 while (clusterInfoIter.hasNext()) {
                     VPlexClusterInfo clusterInfo = clusterInfoIter.next();
@@ -956,79 +951,78 @@ public class VPlexApiClient {
             }
         }
     }
-    
-    
+
     /**
-     * Updates the consistency group RP enabled tag. 
+     * Updates the consistency group RP enabled tag.
      * 
      * @param cgName The name for the consistency group.
      * @param clusterName The name of the cluster for which the CG should be
-     *        visible, when not distributed.
+     *            visible, when not distributed.
      * @param isRPEnabled true if the CG will hold RP protected VPLEX volumes.
      * 
      * @throws VPlexApiException When an error occurs setting the consistency
-     *         group visibility.
+     *             group visibility.
      */
     public void updateConsistencyRPEnabled(String cgName, String clusterName,
-        boolean isRPEnabled) throws VPlexApiException {
+            boolean isRPEnabled) throws VPlexApiException {
         s_logger.info("Request to update consistency group RP enabled on  VPlex at {}",
-            _baseURI);   
-        List<VPlexClusterInfo> clusterInfoList = _discoveryMgr.getClusterInfoLite();      
-            Iterator<VPlexClusterInfo> clusterInfoIter = clusterInfoList.iterator();
-            while (clusterInfoIter.hasNext()) {
-                VPlexClusterInfo clusterInfo = clusterInfoIter.next();
-                if (!clusterInfo.getName().equals(clusterName)) {
-                    clusterInfoIter.remove();
-                }
-            }     
+                _baseURI);
+        List<VPlexClusterInfo> clusterInfoList = _discoveryMgr.getClusterInfoLite();
+        Iterator<VPlexClusterInfo> clusterInfoIter = clusterInfoList.iterator();
+        while (clusterInfoIter.hasNext()) {
+            VPlexClusterInfo clusterInfo = clusterInfoIter.next();
+            if (!clusterInfo.getName().equals(clusterName)) {
+                clusterInfoIter.remove();
+            }
+        }
         _cgMgr.setConsistencyGroupRPEnabled(cgName, clusterInfoList, isRPEnabled);
     }
-    
+
     /**
      * Adds the volumes with the passed names to the consistency group with the
      * passed name.
      * 
      * @param cgName The name of the consistency group to which the volumes are
-     *        added.
+     *            added.
      * @param virtualVolumeNames The names of the virtual volumes to be added to
-     *        the consistency group.
+     *            the consistency group.
      * 
      * @throws VPlexApiException When an error occurs adding the volumes to the
-     *         consistency group.
+     *             consistency group.
      */
     public void addVolumesToConsistencyGroup(String cgName,
-        List<String> virtualVolumeNames) throws VPlexApiException {
+            List<String> virtualVolumeNames) throws VPlexApiException {
         s_logger.info("Request to add volumes to a consistency group on VPlex at {}",
-            _baseURI);
+                _baseURI);
         _cgMgr.addVolumesToConsistencyGroup(cgName, virtualVolumeNames);
     }
-    
+
     /**
      * Removes the volumes with the passed names from the consistency group with
      * the passed name. If the removal of the volumes results in an empty group,
      * delete the consistency group if the passed flag so indicates.
      * 
      * @param virtualVolumeNames The names of the virtual volumes to be removed
-     *        from the consistency group.
+     *            from the consistency group.
      * @param cgName The name of the consistency group from which the volume is
-     *        removed.
+     *            removed.
      * @param deleteCGWhenEmpty true to delete the consistency group if the
-     *        group is empty after removing the volumes, false otherwise.
+     *            group is empty after removing the volumes, false otherwise.
      * 
      * @return true if the consistency group was deleted, false otherwise.
      * 
      * @throws VPlexApiException When an error occurs removing the volumes from
-     *         the consistency group.
+     *             the consistency group.
      */
     public boolean removeVolumesFromConsistencyGroup(List<String> virtualVolumeNames,
-        String cgName, boolean deleteCGWhenEmpty) throws VPlexApiException {
+            String cgName, boolean deleteCGWhenEmpty) throws VPlexApiException {
         s_logger
-            .info("Request to remove volumes from a consistency group on VPlex at {}",
-                _baseURI);
+                .info("Request to remove volumes from a consistency group on VPlex at {}",
+                        _baseURI);
         return _cgMgr.removeVolumesFromConsistencyGroup(virtualVolumeNames, cgName,
-            deleteCGWhenEmpty);
+                deleteCGWhenEmpty);
     }
-    
+
     /**
      * Deletes the consistency group with the passed name.
      * 
@@ -1038,14 +1032,14 @@ public class VPlexApiClient {
      */
     public void deleteConsistencyGroup(String cgName) throws VPlexApiException {
         s_logger.info("Request to delete consistency group on VPlex at {}",
-            _baseURI);
-        _cgMgr.deleteConsistencyGroup(cgName);        
+                _baseURI);
+        _cgMgr.deleteConsistencyGroup(cgName);
     }
-    
+
     /**
      * All cached data associated with the virtual volume with the passed name
-     * is invalidated on all directors of the VPLEX cluster. Subsequent reads 
-     * from host applications will fetch data from storage volume due to cache 
+     * is invalidated on all directors of the VPLEX cluster. Subsequent reads
+     * from host applications will fetch data from storage volume due to cache
      * miss.
      * 
      * NOTE: According to VPLEX engineering, the execution of the cache-invalidate
@@ -1058,19 +1052,19 @@ public class VPlexApiClient {
      * 
      * @param virtualVolumeName The name of the virtual volume.
      * 
-     * @return true if the invalidate cache is still in progress when the 
-     * call returns and the status must be monitored until it completes,
-     * false otherwise.
+     * @return true if the invalidate cache is still in progress when the
+     *         call returns and the status must be monitored until it completes,
+     *         false otherwise.
      * 
      * @throws VPlexApiException When an error occurs invalidating the cache.
      */
     public boolean invalidateVirtualVolumeCache(String virtualVolumeName)
-        throws VPlexApiException {
+            throws VPlexApiException {
         s_logger.info("Request to invalidate virtual volume cache on VPLEX at {}",
-            _baseURI);
+                _baseURI);
         return _virtualVolumeMgr.invalidateVirtualVolumeCache(virtualVolumeName);
     }
-    
+
     /**
      * Get the cache invalidate status information for the virtual volume with
      * the passed name.
@@ -1082,45 +1076,45 @@ public class VPlexApiClient {
      */
     public VPlexCacheStatusInfo getCacheStatus(String virtualVolumeName) throws VPlexApiException {
         s_logger.info("Request to get cache invalidate status information on VPLEX at {}",
-            _baseURI);
+                _baseURI);
         return _virtualVolumeMgr.getCacheStatus(virtualVolumeName);
     }
-    
+
     /**
      * Will attempt to dismantle the local device by destroying all components used
      * to build up the device (i.e, extents).
-     *  
+     * 
      * @param deviceInfo The information specifying the device backend volume.
      * 
      * @throws VPlexApiException When an error occurs detaching the mirror from the volume.
      */
     public void deleteLocalDevice(VolumeInfo deviceInfo) throws VPlexApiException {
         s_logger.info("Request to delete local VPLex device at {}",
-            _baseURI);
+                _baseURI);
         _virtualVolumeMgr.deleteLocalDevice(deviceInfo);
     }
-    
+
     /**
      * Will attempt to dismantle the local device by destroying all components used
      * to build up the device (i.e, extents).
-     *  
+     * 
      * @param localDeviceName The name of the local device.
      * 
      * @throws VPlexApiException When an error occurs detaching the mirror from the volume.
      */
     public void deleteLocalDevice(String localDeviceName) throws VPlexApiException {
         s_logger.info("Request to delete local VPLex device at {}",
-            _baseURI);
+                _baseURI);
         _virtualVolumeMgr.deleteLocalDevice(localDeviceName);
     }
-        
+
     /**
-     * Detaches the mirror specified by the passed mirror info from the 
+     * Detaches the mirror specified by the passed mirror info from the
      * VPLEX volume with the passed name.
      * 
      * @param virtualVolumeName The name of the VPLEX volume.
      * @param mirrorDeviceName The name of the mirror device
-     * @param discard The boolean to use discard 
+     * @param discard The boolean to use discard
      * 
      * @throws VPlexApiException When an error occurs detaching the mirror from the volume.
      */
@@ -1132,12 +1126,12 @@ public class VPlexApiClient {
     }
 
     /**
-     * Detaches the mirror specified by the passed mirror info from the 
+     * Detaches the mirror specified by the passed mirror info from the
      * VPLEX volume with the passed name.
      * 
      * @param virtualVolumeName The name of the VPLEX volume.
      * @param mirrorDeviceName The name of the mirror device
-     * @param discard The boolean to use discard 
+     * @param discard The boolean to use discard
      * 
      * @throws VPlexApiException When an error occurs detaching the mirror from the volume.
      */
@@ -1148,9 +1142,8 @@ public class VPlexApiClient {
         _virtualVolumeMgr.detachLocalMirrorFromDistributedVirtualVolume(virtualVolumeName, mirrorDeviceName, discard);
     }
 
-    
     /**
-     * Detaches the mirror specified by the passed mirror info from the 
+     * Detaches the mirror specified by the passed mirror info from the
      * distributed VPLEX volume with the passed name.
      * 
      * @param virtualVolumeName The name of the VPLEX distributed volume.
@@ -1159,12 +1152,12 @@ public class VPlexApiClient {
      * @return The name of the detached mirror for use when reattaching the mirror.
      * 
      * @throws VPlexApiException When an error occurs detaching the mirror from
-     *         the volume.
+     *             the volume.
      */
     public String detachMirrorFromDistributedVolume(String virtualVolumeName,
-        String clusterId) throws VPlexApiException {
+            String clusterId) throws VPlexApiException {
         s_logger.info("Request to detach a mirror from a distributed volume at {}",
-            _baseURI);
+                _baseURI);
         return _virtualVolumeMgr.detachMirrorFromDistributedVolume(virtualVolumeName, clusterId);
     }
 
@@ -1176,23 +1169,23 @@ public class VPlexApiClient {
      * @param detachedDeviceName The local device name of the mirror previously detached.
      * 
      * @throws VPlexApiException When an error occurs reattaching the mirror to
-     *         the volume.
+     *             the volume.
      */
     public void reattachMirrorToDistributedVolume(String virtualVolumeName,
-        String detachedDeviceName) throws VPlexApiException {
+            String detachedDeviceName) throws VPlexApiException {
         s_logger.info("Request to reattach mirror to distributed volume on VPLEX at {}",
-            _baseURI);
+                _baseURI);
         _virtualVolumeMgr.reattachMirrorToDistributedVolume(virtualVolumeName, detachedDeviceName);
     }
-    
+
     public VPlexVirtualVolumeInfo upgradeVirtualVolumeToDistributed(VPlexVirtualVolumeInfo virtualVolume,
-        VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId) throws VPlexApiException {
+            VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId) throws VPlexApiException {
         return _virtualVolumeMgr.createDistributedVirtualVolume(
                 virtualVolume, newRemoteVolume, discoveryRequired, rename, clusterId);
     }
-    
+
     public WaitOnRebuildResult waitOnRebuildCompletion(String virtualVolume)
-    throws VPlexApiException {
+            throws VPlexApiException {
         return _virtualVolumeMgr.waitOnRebuildCompletion(virtualVolume);
     }
 
@@ -1230,7 +1223,7 @@ public class VPlexApiClient {
      */
     public String getClusterName(String clusterId) {
         String clusterName = null;
-        
+
         List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true);
         for (VPlexClusterInfo clusterInfo : clusterInfos) {
             if (clusterId.equals(clusterInfo.getClusterId())) {
@@ -1238,7 +1231,7 @@ public class VPlexApiClient {
                 s_logger.info("found cluster name {} for cluster id {}", clusterName, clusterId);
             }
         }
-        
+
         return clusterName;
     }
 
@@ -1249,12 +1242,12 @@ public class VPlexApiClient {
      */
     public Map<String, String> getClusterIdToNameMap() {
         Map<String, String> clusterIdToNameMap = new HashMap<String, String>();
-        
+
         List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true);
         for (VPlexClusterInfo clusterInfo : clusterInfos) {
-            clusterIdToNameMap.put(clusterInfo.getClusterId(), clusterInfo.getName()); 
+            clusterIdToNameMap.put(clusterInfo.getClusterId(), clusterInfo.getName());
         }
-        
+
         s_logger.info("cluster id to name map is " + clusterIdToNameMap.toString());
         return clusterIdToNameMap;
     }
@@ -1267,7 +1260,7 @@ public class VPlexApiClient {
     URI getBaseURI() {
         return _baseURI;
     }
-    
+
     /**
      * Package protected getter for the API client discovery manager.
      * 
@@ -1276,7 +1269,7 @@ public class VPlexApiClient {
     VPlexApiDiscoveryManager getDiscoveryManager() {
         return _discoveryMgr;
     }
-    
+
     /**
      * Package protected getter for the API client virtual volume manager.
      * 
@@ -1285,7 +1278,7 @@ public class VPlexApiClient {
     VPlexApiVirtualVolumeManager getVirtualVolumeManager() {
         return _virtualVolumeMgr;
     }
-    
+
     /**
      * Package protected getter for the API client export manager.
      * 
@@ -1303,31 +1296,31 @@ public class VPlexApiClient {
      * @return The client response.
      */
     ClientResponse get(URI resourceURI) {
-        return get(resourceURI, 
-                VPlexApiConstants.ACCEPT_JSON_FORMAT_0, 
+        return get(resourceURI,
+                VPlexApiConstants.ACCEPT_JSON_FORMAT_0,
                 VPlexApiConstants.CACHE_CONTROL_MAXAGE_ZERO);
     }
-    
+
     /**
-     * Execute a GET request with the cache control max age value of 
+     * Execute a GET request with the cache control max age value of
      * 0 seconds and JSON format set by the caller.
      * 
      * @param resourceURI The resource URI.
-     * @param jsonFormat The expected JSON response format. 
-     *                   See VPlexApiConstants.ACCEPT_JSON_FORMAT_*
+     * @param jsonFormat The expected JSON response format.
+     *            See VPlexApiConstants.ACCEPT_JSON_FORMAT_*
      * @return The client response.
      */
     ClientResponse get(URI resourceURI, String jsonFormat) {
-        return get(resourceURI, jsonFormat, 
+        return get(resourceURI, jsonFormat,
                 VPlexApiConstants.CACHE_CONTROL_MAXAGE_ZERO);
     }
-    
+
     /**
      * Package protected method for executing a GET request.
      * 
      * @param resourceURI The resource URI.
-     * @param jsonFormat The expected JSON response format. 
-     *                   See VPlexApiConstants.ACCEPT_JSON_FORMAT_*
+     * @param jsonFormat The expected JSON response format.
+     *            See VPlexApiConstants.ACCEPT_JSON_FORMAT_*
      * @param cacheControlMaxAge cache control max age
      * 
      * @return The client response.
@@ -1337,7 +1330,7 @@ public class VPlexApiClient {
         ClientResponse response = null;
         while (++retryCount <= GET_RETRY_COUNT) {
             try {
-                response = _client.get(resourceURI, _vplexSessionId, 
+                response = _client.get(resourceURI, _vplexSessionId,
                         jsonFormat, cacheControlMaxAge);
                 updateVPLEXSessionId(response);
                 break;
@@ -1352,7 +1345,7 @@ public class VPlexApiClient {
         }
         return response;
     }
-    
+
     /**
      * Execute a POST request with the default JSON format=0.
      * 
@@ -1363,7 +1356,7 @@ public class VPlexApiClient {
     ClientResponse post(URI resourceUri, String postData) {
         return post(resourceUri, postData, VPlexApiConstants.ACCEPT_JSON_FORMAT_0);
     }
-    
+
     /**
      * Package protected method for executing a POST request.
      * 
@@ -1375,14 +1368,14 @@ public class VPlexApiClient {
     ClientResponse post(URI resourceURI, String postData, String jsonFormat) {
         ClientResponse response = _client.post(resourceURI, postData, _vplexSessionId, jsonFormat);
         updateVPLEXSessionId(response);
-        
+
         // We add a sleep here to workaround an issue with the VPLEX API.
         // When a new VPLEX artifact is successfully created (response status 200),
         // and we subsequently make a request to GET all such artifacts, VPLEX
         // on occasion does not return the artifact that was just successfully
         // created. This is because the VPLEX is still asynchronously persisting
         // the new object when it returns success and the subsequent GET, which
-        // occurs over a new connection (with a new VPLEX session) will not 
+        // occurs over a new connection (with a new VPLEX session) will not
         // return the newly created object. My understanding is that we would
         // have to make the GET request using the same VPLEX session id, which
         // means we would have to get in the business of managing VPLEX session
@@ -1394,7 +1387,7 @@ public class VPlexApiClient {
         VPlexApiUtils.pauseThread(5000);
         return response;
     }
-    
+
     /**
      * Execute a PUT request with the default JSON format=0.
      * 
@@ -1404,13 +1397,13 @@ public class VPlexApiClient {
     ClientResponse put(URI resourceURI) {
         return put(resourceURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_0);
     }
-    
+
     /**
      * Package protected method for executing a PUT request.
      * 
      * @param resourceURI The resource URI.
-     * @param jsonFormat The expected JSON response format. 
-     *                   See VPlexApiConstants.ACCEPT_JSON_FORMAT_*
+     * @param jsonFormat The expected JSON response format.
+     *            See VPlexApiConstants.ACCEPT_JSON_FORMAT_*
      * 
      * @return The client response.
      */
@@ -1419,7 +1412,7 @@ public class VPlexApiClient {
         updateVPLEXSessionId(response);
         return response;
     }
-    
+
     /**
      * When a VPlex command is executed via a POST request, if that command
      * takes longer than 60 seconds to complete, the VPlex command will return a
@@ -1430,10 +1423,10 @@ public class VPlexApiClient {
      * timeout.
      * 
      * @param asyncResponse A response from the VPlex indicating a command is being run
-     * asynchronously because it is taking too long.
+     *            asynchronously because it is taking too long.
      * 
      * @throws VPlexApiException When the command completes unsuccessfully or we
-     * time out because it is taking too long.
+     *             time out because it is taking too long.
      */
     String waitForCompletion(ClientResponse asyncResponse) throws VPlexApiException {
         MultivaluedMap<String, String> headers = asyncResponse.getHeaders();
@@ -1458,18 +1451,18 @@ public class VPlexApiClient {
             } else if (taskStatus != VPlexApiConstants.TASK_PENDING_STATUS) {
                 // Task failed.
                 throw new VPlexApiException(String.format(
-                    "Task %s did not complete successfully", taskResourceStr));
+                        "Task %s did not complete successfully", taskResourceStr));
             } else {
                 // Task is still pending completion, sleep a bit and check again.
                 VPlexApiUtils.pauseThread(VPlexApiConstants.TASK_PENDING_WAIT_TIME);
             }
         }
-        
+
         // We've timed out waiting for the operation to complete.
         throw VPlexApiException.exceptions
-            .timeoutWaitingForAsyncOperationToComplete(taskResourceStr);
+                .timeoutWaitingForAsyncOperationToComplete(taskResourceStr);
     }
-    
+
     /**
      * Gets the target info for the passed ports.
      * 
@@ -1481,24 +1474,35 @@ public class VPlexApiClient {
      * @throws VPlexApiException When an error occurs getting the target info.
      */
     public Map<String, VPlexTargetInfo> getTargetInfoForPorts(
-        List<VPlexPortInfo> portInfoList) throws VPlexApiException {
+            List<VPlexPortInfo> portInfoList) throws VPlexApiException {
         s_logger.info("Request to get target info for ports at {}", _baseURI);
         return _exportMgr.getTargetInfoForPorts(portInfoList);
     }
-    
- 
+
     /**
      * Finds virtual volume by name.
      * 
      * @param virtualVolumeName Name of virtual volume.
      * @return A reference to the virtual volume info.
      */
-    public VPlexVirtualVolumeInfo findVirtualVolume(String virtualVolumeName){
+    public VPlexVirtualVolumeInfo findVirtualVolume(String virtualVolumeName) {
         return _discoveryMgr.findVirtualVolume(virtualVolumeName, false);
     }
-    
+
     /**
-     * Updates the VPLEX session id with the session specified in the 
+     * Finds virtual volume by name.
+     * 
+     * @param clusterInfoList List of detailed VPLEX cluster info.
+     * @param virtualVolumeInfos List of virtual volumes to find
+     * @return A map of virtual volume name to the virtual volume info.
+     */
+    public Map<String, VPlexVirtualVolumeInfo> findVirtualVolumes(List<VPlexClusterInfo> clusterInfoList,
+            List<VPlexVirtualVolumeInfo> virtualVolumeInfos) {
+        return _discoveryMgr.findVirtualVolumes(clusterInfoList, virtualVolumeInfos, true, true);
+    }
+
+    /**
+     * Updates the VPLEX session id with the session specified in the
      * passed response.
      * 
      * @param response A response resulting from a request to the VPLEX.
@@ -1508,15 +1512,15 @@ public class VPlexApiClient {
         for (NewCookie cookie : cookies) {
             // Look for the session cookie. It should returned in the
             // response if this is the first request from this client
-            // or the session expired since the last request, in which 
-            // case the VPLEX creates a new session and returns the 
+            // or the session expired since the last request, in which
+            // case the VPLEX creates a new session and returns the
             // id in the cookie.
             if (VPlexApiConstants.SESSION_COOKIE.equals(cookie.getName())) {
                 String newSessionId = cookie.getValue();
                 if ((_vplexSessionId == null) || (!_vplexSessionId.equals(newSessionId))) {
                     s_logger.info("VPLEX Session ID changing from {} to {}",
-                        (_vplexSessionId == null ? "null" : _vplexSessionId),
-                        newSessionId);
+                            (_vplexSessionId == null ? "null" : _vplexSessionId),
+                            newSessionId);
                     _vplexSessionId = newSessionId;
                 }
                 break;

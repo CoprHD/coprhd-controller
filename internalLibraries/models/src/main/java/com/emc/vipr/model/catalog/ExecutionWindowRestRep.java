@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -20,130 +20,139 @@ import com.emc.storageos.model.RelatedResourceRep;
 @XmlRootElement(name = "execution_window")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class ExecutionWindowRestRep extends DataObjectRestRep {
-    
+
     public static final URI NEXT = URI.create("urn:storageos:ExecutionWindow:NEXT:");
-    
+
     public static final String DAILY = "DAILY";
     public static final String MONTHLY = "MONTHLY";
     public static final String WEEKLY = "WEEKLY";
-    
+
     public static final String DAYS = "DAYS";
     public static final String HOURS = "HOURS";
     public static final String MINUTES = "MINUTES";
-    
+
     /**
      * Hour of the day for this execution window
      */
-    private Integer hourOfDayInUTC;             
-    
+    private Integer hourOfDayInUTC;
+
     /**
      * Minute of the day for this execution window
      */
-    private Integer minuteOfHourInUTC;            
-    
+    private Integer minuteOfHourInUTC;
+
     /**
      * Length of this execution window
      */
     private Integer executionWindowLength;
-    
+
     /**
      * Length type of the execution window: MINUTES, HOURS, DAYS
      */
-    private String executionWindowLengthType;           
-    
+    private String executionWindowLengthType;
+
     /**
      * Type of the execution window: DAILY, WEEKLY, MONTHLY
      */
-    private String executionWindowType;                 
-    
+    private String executionWindowType;
+
     /**
      * Day of the week for this execution window
      */
-    private Integer dayOfWeek;                          
-    
+    private Integer dayOfWeek;
+
     /**
      * Day of the month for this execution window
      */
-    private Integer dayOfMonth;                         
-    
+    private Integer dayOfMonth;
+
     /**
      * Indicates the day of the week is the last day of the month
      */
-    private Boolean lastDayOfMonth = Boolean.FALSE;     
-    
+    private Boolean lastDayOfMonth = Boolean.FALSE;
+
     /**
      * Tenant that this execution window applies to
      */
-    private RelatedResourceRep tenant;                              
-    
+    private RelatedResourceRep tenant;
+
     @XmlElement(name = "hour_of_day_in_utc")
     public Integer getHourOfDayInUTC() {
         return hourOfDayInUTC;
     }
+
     public void setHourOfDayInUTC(Integer hourOfDayInUTC) {
         this.hourOfDayInUTC = hourOfDayInUTC;
     }
-    
+
     @XmlElement(name = "minute_of_hour_in_utc")
     public Integer getMinuteOfHourInUTC() {
         return minuteOfHourInUTC;
     }
+
     public void setMinuteOfHourInUTC(Integer minuteOfHourInUTC) {
         this.minuteOfHourInUTC = minuteOfHourInUTC;
     }
-    
+
     @XmlElement(name = "execution_window_length")
     public Integer getExecutionWindowLength() {
         return executionWindowLength;
     }
+
     public void setExecutionWindowLength(Integer executionWindowLength) {
         this.executionWindowLength = executionWindowLength;
     }
-    
+
     @XmlElement(name = "execution_window_length_type")
     public String getExecutionWindowLengthType() {
         return executionWindowLengthType;
     }
+
     public void setExecutionWindowLengthType(String executionWindowLengthType) {
         this.executionWindowLengthType = executionWindowLengthType;
     }
-    
+
     @XmlElement(name = "execution_window_type")
     public String getExecutionWindowType() {
         return executionWindowType;
     }
+
     public void setExecutionWindowType(String executionWindowType) {
         this.executionWindowType = executionWindowType;
     }
-    
+
     @XmlElement(name = "day_of_week")
     public Integer getDayOfWeek() {
         return dayOfWeek;
     }
+
     public void setDayOfWeek(Integer dayOfWeek) {
         this.dayOfWeek = dayOfWeek;
     }
-    
+
     @XmlElement(name = "day_of_month")
     public Integer getDayOfMonth() {
         return dayOfMonth;
     }
+
     public void setDayOfMonth(Integer dayOfMonth) {
         this.dayOfMonth = dayOfMonth;
     }
-    
+
     @XmlElement(name = "last_day_of_month")
     public Boolean getLastDayOfMonth() {
         return lastDayOfMonth;
     }
+
     public void setLastDayOfMonth(Boolean lastDayOfMonth) {
         this.lastDayOfMonth = lastDayOfMonth;
     }
-    
+
     @XmlElement(name = "tenant")
     public RelatedResourceRep getTenant() {
         return tenant;
     }
+
     public void setTenant(RelatedResourceRep tenant) {
         this.tenant = tenant;
     }
@@ -152,17 +161,17 @@ public class ExecutionWindowRestRep extends DataObjectRestRep {
      * Determines if this ID corresponds to the 'next' execution window.
      * 
      * @param id
-     *        the ID.
+     *            the ID.
      * @return true if the ID refers to the next window.
      */
     public static boolean isNextWindow(URI id) {
         return id == null || NEXT.equals(id);
-    }    
-    
+    }
+
     public static boolean isNextWindow(RelatedResourceRep relatedResourceRep) {
         return relatedResourceRep == null || isNextWindow(relatedResourceRep.getId());
     }
-    
+
     public boolean isActive(Date date) {
         Calendar cal = Calendar.getInstance();
         cal.setTime(date);
@@ -176,13 +185,13 @@ public class ExecutionWindowRestRep extends DataObjectRestRep {
         Calendar endTime = getWindowEndTime(startTime);
         boolean duringWindow = (fromDate.compareTo(startTime) >= 0) && (fromDate.compareTo(endTime) < 0);
         return duringWindow;
-    }    
-    
+    }
+
     /**
      * Gets the calendar in UTC time.
      * 
      * @param cal
-     *        the input calendar.
+     *            the input calendar.
      * @return a calendar instance in UTC.
      */
     private Calendar inUTC(Calendar cal) {
@@ -190,7 +199,7 @@ public class ExecutionWindowRestRep extends DataObjectRestRep {
         utc.setTimeInMillis(cal.getTimeInMillis());
         return utc;
     }
-    
+
     /**
      * Gets the window's start time immediately before the given date.
      * 
@@ -224,15 +233,15 @@ public class ExecutionWindowRestRep extends DataObjectRestRep {
      * Gets the end time of the window from the given window start time.
      * 
      * @param startTime
-     *        the start time.
+     *            the start time.
      * @return the end time.
      */
     private Calendar getWindowEndTime(Calendar startTime) {
         Calendar endTime = (Calendar) startTime.clone();
         endTime.add(getWindowLengthCalendarField(), this.executionWindowLength);
         return endTime;
-    }    
-    
+    }
+
     /**
      * Determines if the window is a daily window.
      * 
@@ -258,13 +267,13 @@ public class ExecutionWindowRestRep extends DataObjectRestRep {
      */
     private boolean isMonthly() {
         return MONTHLY.equalsIgnoreCase(this.executionWindowType);
-    }    
-    
+    }
+
     /**
      * Adjusts the start time to the correct day of the week for a weekly window.
      * 
      * @param startTime
-     *        the start time.
+     *            the start time.
      */
     private void adjustDayOfWeek(Calendar startTime) {
         // Adjust the window time within the current week
@@ -277,7 +286,7 @@ public class ExecutionWindowRestRep extends DataObjectRestRep {
      * Monday as the start of the week in execution windows.
      * 
      * @param time
-     *        the calendar time.
+     *            the calendar time.
      * @return the day of the week in the same terms used for execution windows.
      */
     private static int getDayOfWeek(Calendar time) {
@@ -296,9 +305,9 @@ public class ExecutionWindowRestRep extends DataObjectRestRep {
      * day of the month, it is set to the last day of the month.
      * 
      * @param startTime
-     *        the start time.
+     *            the start time.
      * @param month
-     *        the month.
+     *            the month.
      */
     private void adjustDayOfMonth(Calendar startTime, int month) {
         // Set to the last day of the month
@@ -310,13 +319,13 @@ public class ExecutionWindowRestRep extends DataObjectRestRep {
                 startTime.set(Calendar.DAY_OF_MONTH, getDayOfMonth());
             }
         }
-    }    
-    
+    }
+
     /**
      * Changes to the previous window start time.
      * 
      * @param startTime
-     *        the window start time.
+     *            the window start time.
      */
     private void previousWindow(Calendar startTime) {
         if (isDaily()) {
@@ -329,8 +338,8 @@ public class ExecutionWindowRestRep extends DataObjectRestRep {
             int month = startTime.get(Calendar.MONTH);
             adjustDayOfMonth(startTime, month + -1);
         }
-    }    
-    
+    }
+
     /**
      * Gets the calendar field that is used for the window length.
      * 
@@ -338,30 +347,30 @@ public class ExecutionWindowRestRep extends DataObjectRestRep {
      */
     private int getWindowLengthCalendarField() {
         switch (this.executionWindowLengthType) {
-        case DAYS:
-            return Calendar.DAY_OF_MONTH;
-        case HOURS:
-            return Calendar.HOUR_OF_DAY;
-        case MINUTES:
-            return Calendar.MINUTE;
+            case DAYS:
+                return Calendar.DAY_OF_MONTH;
+            case HOURS:
+                return Calendar.HOUR_OF_DAY;
+            case MINUTES:
+                return Calendar.MINUTE;
         }
         throw new IllegalStateException("Invalid window length");
-    }   
-    
+    }
+
     /**
      * Sets the calendar to the last day of the given month.
      * 
      * @param cal
-     *        the calendar.
+     *            the calendar.
      * @param month
-     *        the month.
+     *            the month.
      */
     private void applyLastDayOfMonth(Calendar cal, int month) {
         cal.set(Calendar.MONTH, month + 1);
         cal.set(Calendar.DAY_OF_MONTH, 1);
         cal.add(Calendar.DAY_OF_MONTH, -1);
-    }    
-    
+    }
+
     public Calendar calculateCurrentOrNext() {
         return calculateCurrentOrNext(Calendar.getInstance());
     }
@@ -393,12 +402,12 @@ public class ExecutionWindowRestRep extends DataObjectRestRep {
 
         return startTime;
     }
-    
+
     /**
      * Changes to the next window start time.
      * 
      * @param startTime
-     *        the window start time.
+     *            the window start time.
      */
     private void nextWindow(Calendar startTime) {
         if (isDaily()) {
@@ -411,6 +420,6 @@ public class ExecutionWindowRestRep extends DataObjectRestRep {
             int month = startTime.get(Calendar.MONTH);
             adjustDayOfMonth(startTime, month + 1);
         }
-    }    
-    
+    }
+
 }

@@ -1,12 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) 2013. EMC Corporation All Rights Reserved This software contains the intellectual
- * property of EMC Corporation or is licensed to EMC Corporation from third parties. Use of this
- * software and the intellectual property contained therein is expressly limited to the terms and
- * conditions of the License Agreement under which it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.utils;
 
@@ -49,7 +43,7 @@ public class ImplicitPoolMatcher {
     private static final Logger _logger = LoggerFactory
             .getLogger(ImplicitPoolMatcher.class);
     private static volatile AttributeMatcherFramework _matcherFramework = null;
-    
+
     /**
      * Match block system pools with all VirtualPool. This method will be invoked only for block
      * storage systems. This method is written as per the plugin design.
@@ -67,7 +61,7 @@ public class ImplicitPoolMatcher {
                 (DbClient) dbClient, (CoordinatorClient) coordinator,
                 (URI) systemId);
     }
-    
+
     /**
      * Match all the Storage Pools in a StorageSystem to All Virtual Pools.
      * 
@@ -90,7 +84,7 @@ public class ImplicitPoolMatcher {
         ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(
                 storagePools, _dbClient, _coordinator);
     }
-    
+
     /**
      * Return the Remote protection setting objects associated with this virtual pool.
      * 
@@ -122,7 +116,7 @@ public class ImplicitPoolMatcher {
         }
         return settings;
     }
-    
+
     /**
      * Get all VirtualPool in DB and invokes matchStoragePoolsWithAllVpool which actually match all
      * given pools with all Vpooles in database. This method is invoked after completion of
@@ -169,7 +163,7 @@ public class ImplicitPoolMatcher {
             }
         }
     }
-    
+
     /**
      * Persist all the VirtualPool which are updated with matched pools.
      * 
@@ -183,7 +177,7 @@ public class ImplicitPoolMatcher {
             dbClient.updateAndReindexObject(updatedVpoolList);
         }
     }
-    
+
     /**
      * Get all VirtualPool from DB and invokes matchVpoolWithStoragePools which actually match all
      * pools and all VirtualPool in database. This method is invoked if there is any pool to varray
@@ -196,7 +190,7 @@ public class ImplicitPoolMatcher {
      *            : dbClient instance.
      */
     public static void matchModifiedStoragePoolsWithAllVirtualPool(List<StoragePool> updatedPoolList,
-                                                                   DbClient dbClient, CoordinatorClient coordinator) {
+            DbClient dbClient, CoordinatorClient coordinator) {
         List<URI> vpoolURIs = dbClient.queryByType(VirtualPool.class, true);
         Iterator<VirtualPool> vpoolListItr = dbClient.queryIterativeObjects(VirtualPool.class, vpoolURIs);
         List<VirtualPool> vPoolsToUpdate = new ArrayList<VirtualPool>();
@@ -209,7 +203,7 @@ public class ImplicitPoolMatcher {
             persistUpdatedVpoolList(vPoolsToUpdate, dbClient);
         }
     }
-    
+
     /**
      * Matches given VirtualPool with list of pools provided and update matched/invalid pools in
      * VirtualPool.
@@ -220,7 +214,8 @@ public class ImplicitPoolMatcher {
      *            : pools to match.
      * @param dbClient
      */
-    public static void matchvPoolWithStoragePools(VirtualPool vpool, List<StoragePool> pools, DbClient dbClient, CoordinatorClient coordinator) {
+    public static void matchvPoolWithStoragePools(VirtualPool vpool, List<StoragePool> pools, DbClient dbClient,
+            CoordinatorClient coordinator) {
         List<StoragePool> filterPools = getMatchedPoolWithStoragePools(vpool, pools,
                 VirtualPool.getProtectionSettings(vpool, dbClient),
                 VirtualPool.getRemoteProtectionSettings(vpool, dbClient), dbClient, coordinator);
@@ -230,24 +225,25 @@ public class ImplicitPoolMatcher {
     /**
      * Matches given VirtualPool with list of pools provided and update matched/invalid pools in
      * VirtualPool.
-     *
+     * 
      */
     public static List<StoragePool> getMatchedPoolWithStoragePools(VirtualPool vpool,
-                                                                   List<StoragePool> pools,
-                                                                   Map<URI, VpoolProtectionVarraySettings> protectionVarraySettings,
-                                                                   Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap,
-                                                                   DbClient dbClient,
-                                                                   CoordinatorClient coordinator) {
+            List<StoragePool> pools,
+            Map<URI, VpoolProtectionVarraySettings> protectionVarraySettings,
+            Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap,
+            DbClient dbClient,
+            CoordinatorClient coordinator) {
         _logger.info("Started matching {} pools with {} vpool", pools.size(), vpool.getId());
         AttributeMapBuilder vpoolMapBuilder = new VirtualPoolAttributeMapBuilder(vpool, protectionVarraySettings,
-                                 VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteSettingsMap));
+                VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteSettingsMap));
         Map<String, Object> attributeMap = vpoolMapBuilder.buildMap();
         _logger.info("Implict Pool matching populated attribute map: {}", attributeMap);
-        List<StoragePool> filterPools = _matcherFramework.matchAttributes(pools, attributeMap, dbClient, coordinator, AttributeMatcher.VPOOL_MATCHERS);
+        List<StoragePool> filterPools = _matcherFramework.matchAttributes(pools, attributeMap, dbClient, coordinator,
+                AttributeMatcher.VPOOL_MATCHERS);
         _logger.info("Ended matching pools with vpool attributes. Found {} matching pools", filterPools.size());
         return filterPools;
     }
-    
+
     /**
      * 1. Loop thru each processed pool. 2. Get the previously matched VirtualPool for this pool by
      * doing constraint query. 3. If the pool is not in any of the previously matched VirtualPool,
@@ -324,7 +320,7 @@ public class ImplicitPoolMatcher {
         vpool.addMatchedStoragePools(newMatchedPools);
         vpool.addInvalidMatchedPools(newInvalidPools);
     }
-    
+
     /**
      * Remove if new pool from invalid pools if it becomes active.
      * 
@@ -339,7 +335,7 @@ public class ImplicitPoolMatcher {
             newInvalidPools.remove(poolIdStr);
         }
     }
-    
+
     /**
      * Matches given VpoolList with all systems present in DB. This will be invoked during
      * VirtualPool Create/Update.
@@ -389,9 +385,9 @@ public class ImplicitPoolMatcher {
                 propertyChanged = true;
             }
         }
-         return propertyChanged;
+        return propertyChanged;
     }
-    
+
     /**
      * compares the two given Strings. Caller is using this to check whether a pool property has
      * changed.
@@ -414,10 +410,10 @@ public class ImplicitPoolMatcher {
                 propertyChanged = true;
             }
         }
-         return propertyChanged;
+        return propertyChanged;
     }
-    
-    public static void removeStoragePoolsfromVPools(Set<String> poolUris,  DbClient dbClient) {
+
+    public static void removeStoragePoolsfromVPools(Set<String> poolUris, DbClient dbClient) {
         List<URI> vpoolURIs = dbClient.queryByType(VirtualPool.class, true);
         List<VirtualPool> vpoolList = dbClient.queryObject(VirtualPool.class, vpoolURIs);
         for (VirtualPool vpool : vpoolList) {
@@ -436,7 +432,7 @@ public class ImplicitPoolMatcher {
         }
         dbClient.updateAndReindexObject(vpoolList);
     }
-    
+
     public static void setMatcherFramework(AttributeMatcherFramework matcherFramework) {
         _matcherFramework = matcherFramework;
     }

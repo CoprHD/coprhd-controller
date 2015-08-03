@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -30,10 +30,10 @@ import com.emc.vipr.client.impl.RestClient;
  * Base URL: <tt>/compute/images</tt>
  */
 public class ComputeImages extends AbstractCoreBulkResources<ComputeImageRestRep> implements
-TopLevelResources<ComputeImageRestRep>, TaskResources<ComputeImageRestRep>{
-	
-	public ComputeImages(ViPRCoreClient parent, RestClient client) {
-    	super(parent, client, ComputeImageRestRep.class, PathConstants.COMPUTE_IMAGE_URL);
+        TopLevelResources<ComputeImageRestRep>, TaskResources<ComputeImageRestRep> {
+
+    public ComputeImages(ViPRCoreClient parent, RestClient client) {
+        super(parent, client, ComputeImageRestRep.class, PathConstants.COMPUTE_IMAGE_URL);
     }
 
     @Override
@@ -46,11 +46,11 @@ TopLevelResources<ComputeImageRestRep>, TaskResources<ComputeImageRestRep>{
         return (ComputeImages) super.withInternal(internal);
     }
 
-	@Override
-	protected List<ComputeImageRestRep> getBulkResources(BulkIdParam input) {
-		ComputeImageBulkRep response = client.post(ComputeImageBulkRep.class, input, getBulkUrl());
+    @Override
+    protected List<ComputeImageRestRep> getBulkResources(BulkIdParam input) {
+        ComputeImageBulkRep response = client.post(ComputeImageBulkRep.class, input, getBulkUrl());
         return defaultList(response.getComputeImages());
-	}
+    }
 
     @Override
     public Tasks<ComputeImageRestRep> getTasks(URI id) {
@@ -71,7 +71,7 @@ TopLevelResources<ComputeImageRestRep>, TaskResources<ComputeImageRestRep>{
      */
     @Override
     public List<NamedRelatedResourceRep> list() {
-    	ComputeImageList response = client.get(ComputeImageList.class, baseUrl);
+        ComputeImageList response = client.get(ComputeImageList.class, baseUrl);
         return ResourceUtils.defaultList(response.getComputeImages());
     }
 
@@ -86,11 +86,10 @@ TopLevelResources<ComputeImageRestRep>, TaskResources<ComputeImageRestRep>{
     }
 
     /**
-     * Gets the list of all compute images, optionally filtering the results. This is a convenience for
-     * <tt>getByRefs(list(), filter)</tt>.
+     * Gets the list of all compute images, optionally filtering the results. This is a convenience for <tt>getByRefs(list(), filter)</tt>.
      * 
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of compute images.
      */
     @Override
@@ -105,7 +104,7 @@ TopLevelResources<ComputeImageRestRep>, TaskResources<ComputeImageRestRep>{
      * API Call: <tt>POST /compute/images</tt>
      * 
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<ComputeImageRestRep> create(ComputeImageCreate input) {
@@ -118,13 +117,13 @@ TopLevelResources<ComputeImageRestRep>, TaskResources<ComputeImageRestRep>{
      * API Call: <tt>PUT /compute/images/{id}</tt>
      * 
      * @param id
-     *        the ID of the compute image to update.
+     *            the ID of the compute image to update.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the compute image reference.
      */
     public Task<ComputeImageRestRep> update(URI id, ComputeImageUpdate input) {
-    	return putTask(input, getIdUrl(), id);
+        return putTask(input, getIdUrl(), id);
     }
 
     /**
@@ -133,24 +132,24 @@ TopLevelResources<ComputeImageRestRep>, TaskResources<ComputeImageRestRep>{
      * API Call: <tt>POST /compute/images/{id}</tt>
      * 
      * @param id
-     *        the ID of the compute image to deactivate.
+     *            the ID of the compute image to deactivate.
      */
     public void deactivate(URI id) {
-    	doDeactivate(id);
+        doDeactivate(id);
     }
 
-	/**
-	 * Filter to show only ESX/i compute images.
-	 *
-	 * @param imageType
-	 *            the type of the image (e.g. esx, linux)
-	 * @return List of ESX/i compute images.
-	 */
-	public List<NamedRelatedResourceRep> listByImageType(String imageType) {
-		URI getUri = client.uriBuilder(baseUrl).queryParam("imageType", imageType).build();
-		ComputeImageList response = client.getURI(ComputeImageList.class, getUri);
-		return ResourceUtils.defaultList(response.getComputeImages());
-	}
+    /**
+     * Filter to show only ESX/i compute images.
+     * 
+     * @param imageType
+     *            the type of the image (e.g. esx, linux)
+     * @return List of ESX/i compute images.
+     */
+    public List<NamedRelatedResourceRep> listByImageType(String imageType) {
+        URI getUri = client.uriBuilder(baseUrl).queryParam("imageType", imageType).build();
+        ComputeImageList response = client.getURI(ComputeImageList.class, getUri);
+        return ResourceUtils.defaultList(response.getComputeImages());
+    }
 
     /**
      * Begins creating a compute image as a clone.
@@ -158,11 +157,11 @@ TopLevelResources<ComputeImageRestRep>, TaskResources<ComputeImageRestRep>{
      * API Call: <tt>POST /compute/images</tt>
      * 
      * @param input
-     *        the clone configuration.
+     *            the clone configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<ComputeImageRestRep> cloneImage(ComputeImageCreate input) {
         return postTask(input, baseUrl);
     }
-	
+
 }

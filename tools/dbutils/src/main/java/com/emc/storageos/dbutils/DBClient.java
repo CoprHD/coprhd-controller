@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.dbutils;
 
@@ -69,7 +59,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
-
 /**
  * DBClient - uses coordinator to find the service
  */
@@ -102,18 +91,18 @@ public class DBClient {
     private boolean skipMigrationCheck = false;
 
     public DBClient(boolean skipMigrationCheck) {
-    	this.skipMigrationCheck = skipMigrationCheck;
+        this.skipMigrationCheck = skipMigrationCheck;
     }
 
-	public void init(){
+    public void init() {
         try {
             System.out.println("Initializing db client ...");
             ctx = new ClassPathXmlApplicationContext("/dbutils-conf.xml");
             InternalDbClientImpl dbClient = (InternalDbClientImpl) ctx.getBean("dbclient");
             _geodbContext = (DbClientContext) ctx.getBean("geodbclientcontext");
-            vdcConfHelper = (VdcConfigHelper)ctx.getBean("vdcConfHelper");
-            geoEncryptionProvider = (EncryptionProviderImpl)ctx.getBean("geoEncryptionProvider");
-            encryptionProvider = (EncryptionProviderImpl)ctx.getBean("encryptionProvider");
+            vdcConfHelper = (VdcConfigHelper) ctx.getBean("vdcConfHelper");
+            geoEncryptionProvider = (EncryptionProviderImpl) ctx.getBean("geoEncryptionProvider");
+            encryptionProvider = (EncryptionProviderImpl) ctx.getBean("encryptionProvider");
             dbClient.setBypassMigrationLock(skipMigrationCheck);
             dbClient.start();
             _dbClient = dbClient;
@@ -127,9 +116,9 @@ public class DBClient {
             Iterator<Class<?>> it = scannerListener.getAnnotatedClasses().iterator();
             while (it.hasNext()) {
                 Class clazz = it.next();
-                //For TimeSeries, "getSerializer" doesn't have Name Annotation
-                //_cfMap, doesnt need to get populated with TimeSeries
-                //The fields of SchemaRecord don't have Name annotation either.
+                // For TimeSeries, "getSerializer" doesn't have Name Annotation
+                // _cfMap, doesnt need to get populated with TimeSeries
+                // The fields of SchemaRecord don't have Name annotation either.
                 if (DataObject.class.isAssignableFrom(clazz)) {
                     DataObjectType doType = TypeMap.getDoType(clazz);
                     _cfMap.put(doType.getCF().getName(), clazz);
@@ -137,13 +126,13 @@ public class DBClient {
             }
 
         } catch (Exception e) {
-        	System.err.println("Caught Exception: " + e);
+            System.err.println("Caught Exception: " + e);
             log.error("Caught Exception: ", e);
         }
     }
 
     public InternalDbClientImpl getDbClient() {
-	    return _dbClient;
+        return _dbClient;
     }
 
     protected DbClientContext getGeoDbContext() {
@@ -151,13 +140,14 @@ public class DBClient {
     }
 
     public void stop() {
-        if(_dbClient != null){
+        if (_dbClient != null) {
             _dbClient.stop();
         }
     }
-   
+
     /**
      * Query for records with the given ids and type, and print the contents in human readable format
+     * 
      * @param ids
      * @param clazz
      * @param <T>
@@ -180,8 +170,9 @@ public class DBClient {
                 printBeanProperties(bInfo.getPropertyDescriptors(), object);
                 countLimit++;
                 countAll++;
-                if (!turnOnLimit || countLimit != listLimit)
+                if (!turnOnLimit || countLimit != listLimit) {
                     continue;
+                }
                 System.out.println(String.format("Read %s rows ", countAll));
                 do {
                     System.out.println("\nPress 'ENTER' to continue or 'q<ENTER>' to quit...");
@@ -190,8 +181,9 @@ public class DBClient {
                         countLimit = 0;
                         break;
                     }
-                    if (input.equalsIgnoreCase(QUITCHAR))
+                    if (input.equalsIgnoreCase(QUITCHAR)) {
                         return countAll;
+                    }
                 } while (!input.isEmpty());
             }
         } catch (DatabaseException ex) {
@@ -206,10 +198,11 @@ public class DBClient {
         }
         return countAll;
     }
-    
+
     /**
      * Query for a record with the given id and type, and print the contents in human readable format
      * if query URI list, use queryAndPrintRecords(ids, clazz) method instead.
+     * 
      * @param id
      * @param clazz
      * @param <T>
@@ -225,7 +218,7 @@ public class DBClient {
 
         BeanInfo bInfo;
 
-        try{
+        try {
             bInfo = Introspector.getBeanInfo(clazz);
         } catch (IntrospectionException ex) {
             throw new RuntimeException("Unexpected exception getting bean info", ex);
@@ -233,7 +226,7 @@ public class DBClient {
 
         printBeanProperties(bInfo.getPropertyDescriptors(), object);
     }
-    
+
     /**
      * Print the contents in human readable format
      * 
@@ -256,9 +249,9 @@ public class DBClient {
             if (objValue == null) {
                 continue;
             }
-            
-            if(isEmptyStr(objValue)){
-            	continue;
+
+            if (isEmptyStr(objValue)) {
+                continue;
             }
             System.out.print("\t" + pd.getName() + " = ");
 
@@ -266,7 +259,7 @@ public class DBClient {
             if (encryptAnnotation != null) {
                 System.out.println("*** ENCRYPTED CONTENT ***");
                 continue;
-            } 
+            }
 
             type = pd.getPropertyType();
             if (type == URI.class) {
@@ -284,14 +277,15 @@ public class DBClient {
     }
 
     private boolean isEmptyStr(Object objValue) {
-    	if(!(objValue instanceof String)){
-    		return false;
-    	}
-    	return StringUtils.isEmpty((String)objValue);
-	}
+        if (!(objValue instanceof String)) {
+            return false;
+        }
+        return StringUtils.isEmpty((String) objValue);
+    }
 
-	/**
+    /**
      * Query for a particular id in a ColumnFamily
+     * 
      * @param id
      * @param cfName
      * @throws Exception
@@ -312,11 +306,12 @@ public class DBClient {
 
     /**
      * Iteratively list records from DB in a user readable format
+     * 
      * @param cfName
      * @throws Exception
      */
     @SuppressWarnings("unchecked")
-    public void listRecords(String cfName) throws Exception  {
+    public void listRecords(String cfName) throws Exception {
         final Class clazz = _cfMap.get(cfName); // fill in type from cfName
         if (clazz == null) {
             System.err.println("Unknown Column Family: " + cfName);
@@ -337,7 +332,7 @@ public class DBClient {
     }
 
     /**
-     * Stat query result  - writes out the result as XML
+     * Stat query result - writes out the result as XML
      */
     private static class StatQueryResult implements TimeSeriesQueryResult<Stat> {
         private StringBuilder builder = new StringBuilder("<stats>");
@@ -350,7 +345,7 @@ public class DBClient {
 
         @Override
         public void data(Stat data, long insertionTimeMs) {
-	    BuildXML<Stat> xmlBuilder = new BuildXML<Stat>();
+            BuildXML<Stat> xmlBuilder = new BuildXML<Stat>();
             String xml = xmlBuilder.writeAsXML(data, "stat");
             builder.append(xml);
             ++recCount;
@@ -383,7 +378,7 @@ public class DBClient {
 
         @Override
         public void data(Event data, long insertionTimeMs) {
-	    BuildXML<Event> xmlBuilder = new BuildXML<Event>();
+            BuildXML<Event> xmlBuilder = new BuildXML<Event>();
             String xml = xmlBuilder.writeAsXML(data, "event");
             builder.append(xml);
             ++recCount;
@@ -416,7 +411,7 @@ public class DBClient {
 
         @Override
         public void data(AuditLog data, long insertionTimeMs) {
-	    BuildXML<AuditLog> xmlBuilder = new BuildXML<AuditLog>();
+            BuildXML<AuditLog> xmlBuilder = new BuildXML<AuditLog>();
             String xml = xmlBuilder.writeAsXML(data, "audit");
             builder.append(xml);
             ++recCount;
@@ -440,6 +435,7 @@ public class DBClient {
 
     /**
      * Query stats
+     * 
      * @param dateTime
      */
     public void queryForCustomDayStats(DateTime dateTime, String filename) {
@@ -458,6 +454,7 @@ public class DBClient {
 
     /**
      * Query events
+     * 
      * @param dateTime
      */
     public void queryForCustomDayEvents(DateTime dateTime, String filename) {
@@ -476,6 +473,7 @@ public class DBClient {
 
     /**
      * Query audit
+     * 
      * @param dateTime
      */
     public void queryForCustomDayAudits(DateTime dateTime, String filename) {
@@ -493,7 +491,8 @@ public class DBClient {
     }
 
     /**
-     * Delete object 
+     * Delete object
+     * 
      * @param id
      * @param cfName
      * @param force
@@ -507,20 +506,22 @@ public class DBClient {
 
         boolean deleted = queryAndDeleteObject(URI.create(id), clazz, force);
 
-        if (deleted)
+        if (deleted) {
             log.info("The object {} is deleted from the column family {}", id, cfName);
-        else
+        } else {
             log.info("The object {} is NOT deleted from the column family {}", id, cfName);
+        }
     }
 
     /**
      * Query for a record with the given id and type, and print the contents in human readable format
+     * 
      * @param id
      * @param clazz
      * @param <T>
      */
     private <T extends DataObject> boolean queryAndDeleteObject(URI id, Class<T> clazz, boolean force)
-                throws Exception {
+            throws Exception {
         if (_dependencyChecker == null) {
             DataObjectScanner dataObjectscanner = (DataObjectScanner) ctx.getBean("dataObjectScanner");
             DependencyTracker dependencyTracker = dataObjectscanner.getDependencyTracker();
@@ -534,27 +535,28 @@ public class DBClient {
             }
             log.info("Force to delete object {} that has active dependencies", id);
         }
-           
+
         T object = queryObject(id, clazz);
 
         if (object == null) {
-            System.err.println(String.format("The object %s has already been deleted",id));
+            System.err.println(String.format("The object %s has already been deleted", id));
             return false;
         }
 
         if ((object.canBeDeleted() == null) || force) {
-            if (object.canBeDeleted() != null)
+            if (object.canBeDeleted() != null) {
                 log.info("Force to delete object {} that can't be deleted", id);
+            }
 
             _dbClient.removeObject(object);
             return true;
         }
 
-        System.err.println(String.format("The object %s can't be deleted",id));
+        System.err.println(String.format("The object %s can't be deleted", id));
 
         return false;
     }
-    
+
     private <T extends DataObject> T queryObject(URI id, Class<T> clazz) throws Exception {
         T object = null;
         try {
@@ -568,7 +570,8 @@ public class DBClient {
     }
 
     /**
-     * Get the column family row count 
+     * Get the column family row count
+     * 
      * @param cfName
      * @param isActive
      */
@@ -582,12 +585,12 @@ public class DBClient {
         }
         List<URI> uris = null;
         uris = getColumnUris(clazz, isActive);
-        if ( uris == null || !uris.iterator().hasNext() ) {
+        if (uris == null || !uris.iterator().hasNext()) {
             System.out.println(String.format(PRINT_COUNT_RESULT, cfName, rowCount));
             return -1;
         }
-        for (URI uri: uris) {
-            rowCount ++;
+        for (URI uri : uris) {
+            rowCount++;
         }
         System.out.println(String.format(PRINT_COUNT_RESULT, cfName, rowCount));
         return rowCount;
@@ -596,14 +599,14 @@ public class DBClient {
     /**
      * Record number of column family: Stats, Evetns, AuditLogs
      */
-    public int countTimeSeries(String cfName, Calendar startTime, Calendar endTime){
+    public int countTimeSeries(String cfName, Calendar startTime, Calendar endTime) {
         return _dbClient.countTimeSeries(cfName, startTime, endTime);
-            }
+    }
 
     /**
      * get the keys of column family for list/count
      */
-    private List<URI> getColumnUris(Class clazz, boolean isActive){
+    private List<URI> getColumnUris(Class clazz, boolean isActive) {
         List<URI> uris = null;
         try {
             uris = _dbClient.queryByType(clazz, isActive);
@@ -617,7 +620,7 @@ public class DBClient {
     public void setListLimit(int listLimit) {
         this.listLimit = listLimit;
     }
-    
+
     public void setTurnOnLimit(boolean turnOnLimit) {
         this.turnOnLimit = turnOnLimit;
     }
@@ -628,7 +631,7 @@ public class DBClient {
 
     /**
      * Read the schema record from db and dump it into a specified file
-     *
+     * 
      * @param schemaVersion
      * @param dumpFilename
      */
@@ -641,7 +644,7 @@ public class DBClient {
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(dumpFilename));
                 BufferedReader reader = new BufferedReader(new StringReader(
-                schemaRecord.getSchema()))) {
+                        schemaRecord.getSchema()))) {
             DbSchemas dbSchemas = DbSchemaChecker.unmarshalSchemas(schemaVersion, reader);
             writer.write(DbSchemaChecker.marshalSchemas(dbSchemas, schemaVersion));
             System.out.println("Db Schema version " + schemaVersion + " successfully" +
@@ -651,30 +654,32 @@ public class DBClient {
             log.error("Caught IOException: ", e);
         }
     }
-    
+
     /**
      * Recover the system after add/remove vdc failures from recover file
+     * 
      * @param recoverFileName
      */
     public void recoverVdcConfigFromRecoverFile(String recoverFileName) {
         List<VdcConfig> newVdcConfigList = loadRecoverFileToRecoverInfo(recoverFileName);
-        InternalDbClient geoDbClient = (InternalDbClient)ctx.getBean("geodbclient");
+        InternalDbClient geoDbClient = (InternalDbClient) ctx.getBean("geodbclient");
         geoDbClient.stopClusterGossiping();
         vdcConfHelper.syncVdcConfig(newVdcConfigList, null, true);
         try {
             Thread.sleep(30000);
         } catch (InterruptedException e) {
-            log.error("Error in recover Vdc Config, e="+e);
+            log.error("Error in recover Vdc Config, e=" + e);
         }
         System.out.println("Recover successfully, please wait for the whole vdc reboot.");
     }
-    
+
     /**
      * Load the specific recover file to generate newVdcConfigList for recovery
+     * 
      * @param recoverFileName
      * @return
      */
-    private List<VdcConfig> loadRecoverFileToRecoverInfo(String recoverFileName){
+    private List<VdcConfig> loadRecoverFileToRecoverInfo(String recoverFileName) {
         List<VdcConfig> newVdcConfigList = new ArrayList<VdcConfig>();
         Document doc = null;
         try {
@@ -694,15 +699,15 @@ public class DBClient {
                     + "please copy the recover file from VDC1 to this VDC and then issue recover command. e= " + e);
             throw new RuntimeException("Recover file not found: " + recoverFileName);
         }
-        
+
         Element root = doc.getDocumentElement();
         NodeList vdcConfigNodes = root.getElementsByTagName("VdcConfig");
-        
+
         for (int i = 0; i < vdcConfigNodes.getLength(); i++) {
             Element vdcConfigNode = (Element) vdcConfigNodes.item(i);
             VdcConfig newVdcConfig = new VdcConfig();
             newVdcConfig.setId(URI.create(vdcConfigNode.getAttribute("id")));
-            
+
             NodeList fields = vdcConfigNode.getElementsByTagName("field");
             for (int j = 0; j < fields.getLength(); j++) {
                 Element field = (Element) fields.item(j);
@@ -714,10 +719,10 @@ public class DBClient {
                     }
                     Class type = Class.forName(field.getAttribute("type"));
                     method = newVdcConfig.getClass().getMethod(
-                            "set"+field.getAttribute("name"),
+                            "set" + field.getAttribute("name"),
                             type);
                     if (type == Integer.class) {
-                        method.invoke(newVdcConfig, 
+                        method.invoke(newVdcConfig,
                                 Integer.valueOf(field.getAttribute("value")));
                     }
                     else if (type == Long.class) {
@@ -726,11 +731,13 @@ public class DBClient {
                     }
                     else if (type == HashMap.class) {
                         String loadString = field.getAttribute("value").replaceAll("[{}]", "");
-                        if (loadString.equals("")) continue;
+                        if (loadString.equals("")) {
+                            continue;
+                        }
                         HashMap<String, String> map = new HashMap<String, String>();
                         String[] kvs = loadString.split(",");
                         for (String kv : kvs) {
-                            String[] onekv = kv.split("="); 
+                            String[] onekv = kv.split("=");
                             String key = onekv[0].trim();
                             String value = onekv[1].trim();
                             map.put(key, value);
@@ -743,7 +750,7 @@ public class DBClient {
                 } catch (Exception e) {
                     System.err.println("Reflect fail,method= " + method + "e= " + e);
                 }
-                
+
             }
             newVdcConfigList.add(newVdcConfig);
         }
@@ -752,6 +759,7 @@ public class DBClient {
 
     /**
      * Dump the vdc config backup info for recovery
+     * 
      * @param RecoverFileName
      */
     public void dumpRecoverInfoToRecoverFile(String RecoverFileName) {
@@ -782,7 +790,7 @@ public class DBClient {
                         Object type = method.getReturnType().getName();
                         fieldNode.setAttribute("name", name.toString());
                         fieldNode.setAttribute("type", type.toString());
-                        fieldNode.setAttribute("value", value==null?"":value.toString());
+                        fieldNode.setAttribute("value", value == null ? "" : value.toString());
                         vdcConfigNode.appendChild(fieldNode);
                     } catch (Exception e) {
                         System.err.println("reflect fail: " + e);
@@ -792,7 +800,7 @@ public class DBClient {
         }
 
         try (FileOutputStream fos = new FileOutputStream(RecoverFileName);
-             StringWriter sw = new StringWriter()) {
+                StringWriter sw = new StringWriter()) {
             Source source = new DOMSource(doc);
             Result result = new StreamResult(sw);
             Transformer xformer = TransformerFactory.newInstance().newTransformer();
@@ -810,8 +818,9 @@ public class DBClient {
     }
 
     private void verifyVdcConfigs(List<VdcConfig> vdcConfigs) {
-        if (vdcConfigs == null)
+        if (vdcConfigs == null) {
             throw new RuntimeException("Null vdc config list");
+        }
 
         List<URI> vdcUrisFromDb = getVdcUrisFromDb();
         if (vdcConfigs.size() + 1 != vdcUrisFromDb.size()) {
@@ -854,8 +863,9 @@ public class DBClient {
     private List<URI> getVdcUrisFromDb() {
         List<URI> vdcUriList = new ArrayList<>();
         List<URI> iterVdcUriList = _dbClient.queryByType(VirtualDataCenter.class, true);
-        if (iterVdcUriList == null)
+        if (iterVdcUriList == null) {
             throw new RuntimeException("Null vdc list");
+        }
         for (URI vdcUri : iterVdcUriList) {
             vdcUriList.add(vdcUri);
         }
@@ -905,7 +915,7 @@ public class DBClient {
 
     /**
      * Read db secret key from zk and dump it into a specified file
-     *
+     * 
      * @param dumpFileName
      */
     public void dumpSecretKey(String dumpFileName) {
@@ -923,7 +933,7 @@ public class DBClient {
             newZipEntry(zos, dbKey, KEY_DB);
             newZipEntry(zos, geodbKey, KEY_GEODB);
         } catch (IOException e) {
-            System.err.println(String.format("Failed to write the key to file:%s\n Exception=%s", dumpFileName, e));
+            System.err.println(String.format("Failed to write the key to file:%s%n Exception=%s", dumpFileName, e));
             log.error("Failed to write the key to file:{}", dumpFileName, e);
         }
     }
@@ -945,27 +955,28 @@ public class DBClient {
         try {
             Files.setPosixFilePermissions(dumpFile.toPath(), perms);
         } catch (Exception e) {
-            if (dumpFile.exists())
+            if (dumpFile.exists()) {
                 dumpFile.delete();
+            }
             System.err.println(String.format("Failed to update file permission, Exception=%s", e));
-            log.error("Failed to update file permission", e);            
+            log.error("Failed to update file permission", e);
         }
     }
 
     /**
      * Read db secret key from zk and dump it into a specified file
-     *
+     * 
      * @param restoreFileName
      */
     public void restoreSecretKey(String restoreFileName) {
-        try (ZipFile zipFile = new ZipFile(restoreFileName)){
+        try (ZipFile zipFile = new ZipFile(restoreFileName)) {
             SecretKey dbKey = readKey(zipFile, KEY_DB);
             SecretKey geodbKey = readKey(zipFile, KEY_GEODB);
             if (dbKey == null || geodbKey == null) {
                 throw new IllegalStateException("Key is null");
             }
 
-	    encryptionProvider.restoreKey(dbKey);
+            encryptionProvider.restoreKey(dbKey);
             geoEncryptionProvider.restoreKey(geodbKey);
         } catch (Exception e) {
             System.err.println(String.format("Failed to restore key, Exception=%s", e));
@@ -974,19 +985,19 @@ public class DBClient {
     }
 
     private SecretKey readKey(ZipFile zipFile, String entryName) {
-        try (InputStream ins = zipFile.getInputStream(zipFile.getEntry(entryName))){
+        try (InputStream ins = zipFile.getInputStream(zipFile.getEntry(entryName))) {
             ObjectInputStream ois = new ObjectInputStream(ins);
             return (SecretKey) (ois.readObject());
         } catch (Exception e) {
             throw new IllegalStateException("Read key failed", e);
         }
     }
-    
+
     /**
      * Show geodb black list
      */
     public Map<String, List<String>> getGeoBlacklist() {
-        InternalDbClient geoDbClient = (InternalDbClient)ctx.getBean("geodbclient");
+        InternalDbClient geoDbClient = (InternalDbClient) ctx.getBean("geodbclient");
         return geoDbClient.getBlacklist();
     }
 
@@ -996,7 +1007,7 @@ public class DBClient {
      * @param vdcShortId
      */
     public void resetGeoBlacklist(String vdcShortId) {
-        InternalDbClient geoDbClient = (InternalDbClient)ctx.getBean("geodbclient");
+        InternalDbClient geoDbClient = (InternalDbClient) ctx.getBean("geodbclient");
         List<URI> vdcList = geoDbClient.queryByType(VirtualDataCenter.class, true);
         for (URI vdcId : vdcList) {
             VirtualDataCenter vdc = geoDbClient.queryObject(VirtualDataCenter.class, vdcId);
@@ -1007,14 +1018,14 @@ public class DBClient {
             }
         }
     }
-    
+
     /**
      * Set geo blacklist
      * 
      * @param vdcShortId
      */
     public void setGeoBlacklist(String vdcShortId) {
-        InternalDbClient geoDbClient = (InternalDbClient)ctx.getBean("geodbclient");
+        InternalDbClient geoDbClient = (InternalDbClient) ctx.getBean("geodbclient");
         List<URI> vdcList = geoDbClient.queryByType(VirtualDataCenter.class, true);
         for (URI vdcId : vdcList) {
             VirtualDataCenter vdc = geoDbClient.queryObject(VirtualDataCenter.class, vdcId);
@@ -1030,16 +1041,15 @@ public class DBClient {
         try {
             _dbClient.checkDataObjects();
             _dbClient.checkIndexingCFs();
-            
+
             String msg = "\nAll the checks have been done.";
             System.out.println(msg);
             log.info(msg);
         } catch (ConnectionException e) {
             log.error("Database connection exception happens, fail to connect: ", e);
-			System.err.println("The checker has been stopped by database connection exception. "
-					+ "Please see the log for more information.");
+            System.err.println("The checker has been stopped by database connection exception. "
+                    + "Please see the log for more information.");
         }
-        
-        
+
     }
 }

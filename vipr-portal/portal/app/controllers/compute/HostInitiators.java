@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.compute;
@@ -44,7 +44,6 @@ public class HostInitiators extends ViprResourceController {
     protected static final String ADDED = "initiators.added";
     protected static final String DELETED = "initiators.deleted";
 
-
     public static void list(String hostId) {
         HostRestRep host = HostUtils.getHost(uri(hostId));
         if (host == null) {
@@ -88,14 +87,14 @@ public class HostInitiators extends ViprResourceController {
     public static void delete(String hostId, @As(",") String[] ids) {
         if (ids != null && ids.length > 0) {
             for (String initiatorId : ids) {
-            	InitiatorRestRep initiator = getViprClient().initiators().get(uri(initiatorId));
-            	HostUtils.deactivateInitiator(initiator);
+                InitiatorRestRep initiator = getViprClient().initiators().get(uri(initiatorId));
+                HostUtils.deactivateInitiator(initiator);
             }
             flash.success(MessagesUtils.get(DELETED));
         }
         list(hostId);
     }
-    
+
     @FlashException
     public static void deregisterHostInitiators(String hostId, @As(",") String[] ids) {
         deregisterHostInitiators(hostId, uris(ids));
@@ -124,24 +123,24 @@ public class HostInitiators extends ViprResourceController {
             return BlockProtocols.FC;
         }
     }
-    
-    public static class DeregisterOperation implements ResourceIdOperation<InitiatorRestRep>{
+
+    public static class DeregisterOperation implements ResourceIdOperation<InitiatorRestRep> {
 
         @Override
         public InitiatorRestRep performOperation(URI id) throws Exception {
             getViprClient().initiators().deregister(id);
             return getViprClient().initiators().get(id);
         }
-        
+
     }
-    
+
     public static class RegisterOperation implements ResourceIdOperation<InitiatorRestRep> {
 
         @Override
         public InitiatorRestRep performOperation(URI id) throws Exception {
             return getViprClient().initiators().register(id);
         }
-        
+
     }
 
     public static class InitiatorForm {

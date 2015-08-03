@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.file.tasks;
@@ -31,12 +31,12 @@ public class CreateFileSnapshotShare extends WaitForTask<FileSnapshotRestRep> {
 
     @Override
     protected Task<FileSnapshotRestRep> doExecute() throws Exception {
-	 FileSystemShareParam fileShare = new FileSystemShareParam();
-         fileShare.setShareName(shareName);
-         if (StringUtils.isNotBlank(shareComment)) {
-             fileShare.setDescription(shareComment);
-         }
+        FileSystemShareParam fileShare = new FileSystemShareParam();
+        fileShare.setShareName(shareName);
+        if (StringUtils.isNotBlank(shareComment)) {
+            fileShare.setDescription(shareComment);
+        }
 
-         return getClient().fileSnapshots().share(snapshotId, fileShare);
+        return getClient().fileSnapshots().share(snapshotId, fileShare);
     }
 }

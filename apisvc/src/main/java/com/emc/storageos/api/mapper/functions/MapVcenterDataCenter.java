@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper.functions;
@@ -18,7 +18,7 @@ public class MapVcenterDataCenter implements Function<VcenterDataCenter, Vcenter
 
     private MapVcenterDataCenter() {
     }
-    
+
     @Override
     public VcenterDataCenterRestRep apply(VcenterDataCenter resource) {
         return HostMapper.map(resource);

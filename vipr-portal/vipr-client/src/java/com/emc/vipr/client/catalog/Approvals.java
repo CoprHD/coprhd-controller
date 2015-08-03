@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.catalog;
@@ -33,7 +33,7 @@ public class Approvals extends AbstractResources<ApprovalInfo> {
      * Lists approval requests.
      * <p>
      * API Call: GET /api/approvals
-     *
+     * 
      * @return References to approval requests.
      */
     @Deprecated
@@ -45,7 +45,7 @@ public class Approvals extends AbstractResources<ApprovalInfo> {
      * Retrieves all approval requests. Convenience method to list approval requests and retrieve all.
      * <p>
      * API Call: GET /api/approvals
-     *
+     * 
      * @see #list()
      * @see #getByRefs(java.util.Collection)
      * @return All approval requests
@@ -59,12 +59,13 @@ public class Approvals extends AbstractResources<ApprovalInfo> {
      * Lists all pending approval requests.
      * <p>
      * API Call: GET /api/approvals/pending
-     *
+     * 
      * @return Pending approval request references.
      */
     @Deprecated
     public List<Reference> listPending() {
-        List<Reference> apiList = getApiList(client, new GenericType<List<Reference>>() {}, APPROVALS_PENDING_URL);
+        List<Reference> apiList = getApiList(client, new GenericType<List<Reference>>() {
+        }, APPROVALS_PENDING_URL);
         return apiList;
     }
 
@@ -72,7 +73,7 @@ public class Approvals extends AbstractResources<ApprovalInfo> {
      * Retrieves all pending approval requests. Convenience method to list and retrieve all pending approval requests.
      * <p>
      * API Call: GET /api/approvals/pending
-     *
+     * 
      * @return All pending approval requests.
      */
     @Deprecated
@@ -84,7 +85,7 @@ public class Approvals extends AbstractResources<ApprovalInfo> {
      * Approves an approval request.
      * <p>
      * API Call: POST /api/approvals/{id}/approve
-     *
+     * 
      * @param id Approval request ID to approve.
      * @param message Approval message.
      * @return Approval request information.
@@ -102,7 +103,7 @@ public class Approvals extends AbstractResources<ApprovalInfo> {
      * Rejects an approval request.
      * <p>
      * API Call: POST /api/approvals/{id}/reject
-     *
+     * 
      * @param id Approval request ID to reject.
      * @param message Rejection message.
      * @return Approval request information.

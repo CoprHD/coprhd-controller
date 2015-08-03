@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
@@ -45,7 +35,7 @@ public class VNXFileQuotaTreeProcessor extends VNXFileProcessor {
         try {
             ResponsePacket responsePacket = (ResponsePacket) _unmarshaller
                     .unmarshal(result.getResponseBodyAsStream());
-            
+
             Status status = null;
             if (null != responsePacket.getPacketFault()) {
                 status = responsePacket.getPacketFault();
@@ -85,7 +75,7 @@ public class VNXFileQuotaTreeProcessor extends VNXFileProcessor {
                     _logger.info("Received celerra session information from the Server.");
                 }
             }
-        }catch (final Exception ex) {
+        } catch (final Exception ex) {
             _logger.error(
                     "Exception occurred while processing the vnx quota tree create response due to ",
                     ex);
@@ -98,6 +88,6 @@ public class VNXFileQuotaTreeProcessor extends VNXFileProcessor {
 
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs) throws BaseCollectionException {
-        // TODO  Is this method needed?  Not used in other processors.
+        // TODO Is this method needed? Not used in other processors.
     }
 }

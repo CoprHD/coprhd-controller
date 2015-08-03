@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core.filters;
@@ -17,9 +17,9 @@ public class HostClusterFilter extends DefaultResourceFilter<HostRestRep> {
 
     @Override
     public boolean accept(HostRestRep item) {
-    	if (item.getCluster() == null) {
-    		return false;
-    	}
+        if (item.getCluster() == null) {
+            return false;
+        }
         return id.equals(item.getCluster().getId());
     }
 }

@@ -1,38 +1,27 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.hds.model;
 
 import com.emc.storageos.hds.HDSConstants;
 
-
 public class Path {
-    
+
     private String objectID;
-    
-    private String  portID;
-    
+
+    private String portID;
+
     private String domainID;
 
     private String scsiID;
-    
+
     private String lun;
-    
+
     private String devNum;
-    
+
     private String wwnSecurityValidity;
-    
+
     public Path(String portID, String domainID, String scsiID, String lun, String devNum) {
         this.portID = portID;
         this.domainID = domainID;
@@ -44,7 +33,7 @@ public class Path {
     public Path(String objectID) {
         this.objectID = objectID;
     }
-    
+
     public Path() {
         // TODO Auto-generated constructor stub
     }
@@ -128,7 +117,7 @@ public class Path {
     public void setWwnSecurityValidity(String wwnSecurityValidity) {
         this.wwnSecurityValidity = wwnSecurityValidity;
     }
-    
+
     public String toXMLString() {
         StringBuilder xmlString = new StringBuilder();
         if (null != this.portID) {
@@ -164,5 +153,5 @@ public class Path {
 
         return xmlString.toString();
     }
-    
+
 }

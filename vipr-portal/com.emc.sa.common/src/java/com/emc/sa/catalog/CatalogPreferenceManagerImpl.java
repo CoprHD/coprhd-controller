@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.catalog;
@@ -18,7 +18,7 @@ import com.emc.sa.model.dao.ModelClient;
 public class CatalogPreferenceManagerImpl implements CatalogPreferenceManager {
 
     private static final Logger log = Logger.getLogger(CatalogPreferenceManagerImpl.class);
-    
+
     @Autowired
     private ModelClient client;
 
@@ -30,20 +30,20 @@ public class CatalogPreferenceManagerImpl implements CatalogPreferenceManager {
 
         return createNewPreferences(tenantId.toString());
     }
-    
+
     private TenantPreferences createNewPreferences(String tenantId) {
         TenantPreferences newTenantPreferences = new TenantPreferences();
         newTenantPreferences.setTenant(tenantId.toString());
         client.save(newTenantPreferences);
         return newTenantPreferences;
     }
-    
+
     public TenantPreferences getPreferences(URI id) {
         return client.tenantPreferences().findById(id);
     }
-    
+
     public void updatePreferences(TenantPreferences tenantPreferences) {
         client.save(tenantPreferences);
     }
-    
+
 }

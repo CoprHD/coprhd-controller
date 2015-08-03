@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block;
@@ -18,20 +18,20 @@ import com.emc.sa.service.vipr.ViPRService;
 @Service("ExportSnapshot")
 public class ExportSnapshotService extends ViPRService {
 
-    @Param(value=SNAPSHOTS, required=false)
+    @Param(value = SNAPSHOTS, required = false)
     protected List<String> snapshotIds;
-    
+
     @Param(HOST)
     protected URI hostId;
-    
+
     @Bindable
     protected ExportBlockVolumeHelper helper = new ExportBlockVolumeHelper();
-		
+
     @Override
     public void precheck() throws Exception {
         helper.precheck();
     }
-	
+
     @Override
     public void execute() throws Exception {
         helper.exportBlockResources(uris(snapshotIds));

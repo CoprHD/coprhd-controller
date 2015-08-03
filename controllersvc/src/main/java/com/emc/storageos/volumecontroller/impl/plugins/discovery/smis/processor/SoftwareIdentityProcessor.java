@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor;
 
@@ -36,7 +26,7 @@ import com.emc.storageos.plugins.metering.smis.SMIPluginException;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
-public class SoftwareIdentityProcessor extends Processor{
+public class SoftwareIdentityProcessor extends Processor {
     private Logger _logger = LoggerFactory.getLogger(SoftwareIdentityProcessor.class);
     private static final String VERSIONSTRING = "VersionString";
     private static final String MANFACTURER = "Manufacturer";
@@ -46,7 +36,7 @@ public class SoftwareIdentityProcessor extends Processor{
     private static final String REVISIONNUMBER = "RevisionNumber";
     private static final String BUILD_NUMBER = "BuildNumber";
     private static final String BLOCKED_VER802 = "8.0.2";
-    
+
     private DbClient _dbClient;
     private CoordinatorClient coordinator;
 
@@ -84,11 +74,11 @@ public class SoftwareIdentityProcessor extends Processor{
 
     /**
      * Provider version check.
-     *
+     * 
      * @param softwareInstance
      * @param provider
      * @throws SMIPluginException
-     */    
+     */
     private void checkProviderVersion(CIMInstance softwareInstance, StorageProvider provider)
             throws SMIPluginException {
         String instanceVersion =
@@ -100,21 +90,22 @@ public class SoftwareIdentityProcessor extends Processor{
         provider.setVersionString(getCIMPropertyValue(softwareInstance, VERSIONSTRING));
 
         // Get supported version from Co-ordinator.
-        String minimumSupportedVersion = ControllerUtils.getPropertyValueFromCoordinator(coordinator, isIBMInstance(softwareInstance) ? Constants.IBMXIV_PROVIDER_VERSION : Constants.PROVIDER_VERSION);
+        String minimumSupportedVersion = ControllerUtils.getPropertyValueFromCoordinator(coordinator,
+                isIBMInstance(softwareInstance) ? Constants.IBMXIV_PROVIDER_VERSION : Constants.PROVIDER_VERSION);
 
         _logger.info("Verifying version details : Minimum Supported Version {} - Discovered Provider Version {}",
                 minimumSupportedVersion, instanceVersion);
-        
-        //Avoid 8.0.2 providers; This code is written only for VMAX providers
-        //Other arrays(VNX, XIV) don't have providers running with 802 version
+
+        // Avoid 8.0.2 providers; This code is written only for VMAX providers
+        // Other arrays(VNX, XIV) don't have providers running with 802 version
         if (instanceVersion.indexOf(BLOCKED_VER802) == 0) {
             provider.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.toString());
             _dbClient.persistObject(provider);
-        	String msg = String.format("Provider version %s is not supported.", BLOCKED_VER802);
-        	_logger.warn(msg);
-        	throw new SMIPluginException(msg, SMIPluginException.ERRORCODE_PROVIDER_NOT_SUPPORTED);
+            String msg = String.format("Provider version %s is not supported.", BLOCKED_VER802);
+            _logger.warn(msg);
+            throw new SMIPluginException(msg, SMIPluginException.ERRORCODE_PROVIDER_NOT_SUPPORTED);
         }
-        
+
         if (VersionChecker.verifyVersionDetails(minimumSupportedVersion, instanceVersion) < 0) {
             provider.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.toString());
             _dbClient.persistObject(provider);
@@ -127,7 +118,7 @@ public class SoftwareIdentityProcessor extends Processor{
             provider.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.toString());
             provider.setDescription(getCIMPropertyValue(softwareInstance, DESCRIPTION));
             provider.setManufacturer(getCIMPropertyValue(softwareInstance, MANFACTURER));
-            _dbClient.persistObject(provider);            
+            _dbClient.persistObject(provider);
         }
     }
 
@@ -135,6 +126,6 @@ public class SoftwareIdentityProcessor extends Processor{
     protected void setPrerequisiteObjects(List<Object> inputArgs)
             throws BaseCollectionException {
         // TODO Auto-generated method stub
-        
+
     }
 }

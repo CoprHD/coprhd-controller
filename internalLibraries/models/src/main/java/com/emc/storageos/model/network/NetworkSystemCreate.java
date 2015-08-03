@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.network;
@@ -30,9 +30,10 @@ public class NetworkSystemCreate {
     private String smisPassword;
     private Boolean smisUseSsl;
 
-    public NetworkSystemCreate() {}
-    
-    /** 
+    public NetworkSystemCreate() {
+    }
+
+    /**
      * Name of the Network System
      * 
      * @valid none
@@ -47,7 +48,7 @@ public class NetworkSystemCreate {
         this.name = name;
     }
 
-    /** 
+    /**
      * IP address of the Network System for SSH communication.
      * This field is required for network systems of type 'mds'.
      * It is ignored for 'brocade' type network systems and can be null.
@@ -72,7 +73,7 @@ public class NetworkSystemCreate {
      * 
      */
     @XmlElement(name = "port_number")
-    @Range(min=1,max=65535)
+    @Range(min = 1, max = 65535)
     @JsonProperty("port_number")
     public Integer getPortNumber() {
         return portNumber;
@@ -82,7 +83,7 @@ public class NetworkSystemCreate {
         this.portNumber = portNumber;
     }
 
-    /** 
+    /**
      * User name used for SSH login to the Network System.
      * This field is required for network systems of type 'mds'.
      * It is ignored for 'brocade' type network systems and can be null.
@@ -99,7 +100,6 @@ public class NetworkSystemCreate {
         this.userName = userName;
     }
 
-    
     /**
      * Password used for SSH login to the Network System.
      * This field is required for network systems of type 'mds'.
@@ -122,7 +122,7 @@ public class NetworkSystemCreate {
      * @valid brocade
      * @valid mds
      */
-    //@EnumType(NetworkSystem.Type.class)
+    // @EnumType(NetworkSystem.Type.class)
     @XmlElement(name = "system_type", required = true)
     @JsonProperty("system_type")
     public String getSystemType() {
@@ -157,7 +157,7 @@ public class NetworkSystemCreate {
      * It is ignored for 'mds' type network systems and can be null.
      */
     @XmlElement(name = "smis_port_number")
-    @Range(min=1,max=65535)
+    @Range(min = 1, max = 65535)
     @JsonProperty("smis_port_number")
     public Integer getSmisPortNumber() {
         return smisPortNumber;
@@ -167,7 +167,7 @@ public class NetworkSystemCreate {
         this.smisPortNumber = smisPortNumber;
     }
 
-    /** 
+    /**
      * User name to connect to the SMIS Provider
      * This field is required for network systems of type 'brocade'.
      * It is ignored for 'mds' type network systems and can be null.
@@ -184,7 +184,7 @@ public class NetworkSystemCreate {
         this.smisUserName = smisUserName;
     }
 
-    /** 
+    /**
      * Password to connect to the SMIS provider
      * This field is required for network systems of type 'brocade'.
      * It is ignored for 'mds' type network systems and can be null.
@@ -219,5 +219,5 @@ public class NetworkSystemCreate {
     public void setSmisUseSsl(Boolean smisUseSsl) {
         this.smisUseSsl = smisUseSsl;
     }
-    
+
 }

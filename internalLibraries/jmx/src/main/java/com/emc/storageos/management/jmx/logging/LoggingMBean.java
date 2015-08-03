@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.management.jmx.logging;
 
@@ -20,7 +10,6 @@ import java.util.Calendar;
 import java.util.Scanner;
 import java.util.Enumeration;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Level;
@@ -43,7 +32,7 @@ import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 public class LoggingMBean {
     private static final org.slf4j.Logger _log = LoggerFactory.getLogger(
             LoggingMBean.class);
-    public static final String MBEAN_NAME = 
+    public static final String MBEAN_NAME =
             "com.emc.storageos.management.jmx.logging:name=LoggingMBean";
     public static final String ATTRIBUTE_NAME = "LoggerLevel";
     public static final String OPERATION_RESET = "resetLoggerLevel";
@@ -52,7 +41,7 @@ public class LoggingMBean {
     private static final String LOG_LEVEL_DELIMITER = "/";
     private static final String LOG_LEVEL_CONFIG = "log_level";
     private static final int _DEFAULT_LOG_INIT_DELAY_SECONDS = 5;
-    private static final int _DEFAULT_LOG_LEVEL_CHECK_MINUTES = 120; //2 hours
+    private static final int _DEFAULT_LOG_LEVEL_CHECK_MINUTES = 120; // 2 hours
     private static final int _DEFAULT_LOG_LEVEL_RETRY_SECONDS = 2;
     private static final String FULL_MESSAGES_CLASS_NAME = "com.emc.storageos.svcs.errorhandling.utils.Messages";
 
@@ -73,21 +62,23 @@ public class LoggingMBean {
 
     /**
      * Setter for the initialization delay time in milliseconds.
-     *
+     * 
      * @param initDelay initialization delay time in milliseconds.
      */
     public void setInitDelayInSeconds(int initDelay) {
-        if (initDelay == 0)
+        if (initDelay == 0) {
             return;
-        if (initDelay < 0)
+        }
+        if (initDelay < 0) {
             throw new IllegalArgumentException("negative initDelay provided");
+        }
         _initDelayInSeconds = initDelay;
         _isInitDelayed = true;
     }
 
     /**
      * Setter for the coordinator client reference.
-     *
+     * 
      * @param coordinator A reference to the coordinator client.
      */
     public void setCoordinator(CoordinatorClient coordinator) {
@@ -96,9 +87,9 @@ public class LoggingMBean {
 
     /**
      * Setter for the service for getting Bourne cluster information.
-     *
+     * 
      * @param service A reference to the service for getting Bourne cluster
-     *                information.
+     *            information.
      */
     public void setService(Service service) {
         _logName = service.getName();
@@ -131,14 +122,14 @@ public class LoggingMBean {
     }
 
     /**
-     * There is bug in log4j which will cause deadlock when calling LogManager.resetConfiguration() 
-     * and Application is performing log.error(msg,e), log4j will call e.toString() method which 
+     * There is bug in log4j which will cause deadlock when calling LogManager.resetConfiguration()
+     * and Application is performing log.error(msg,e), log4j will call e.toString() method which
      * eventually create new Messages instance, LogFactory.getLogger() will be called when loading
-     * Messages first time and try to get lock on ht which probably hold by another thread 
+     * Messages first time and try to get lock on ht which probably hold by another thread
      * (resetConfiguration); before calling LogManager.resetConfiguration() we will load Messages
      * class first to avoid race condition.
      * */
-    private void loadMessagesClass(){
+    private void loadMessagesClass() {
         try {
             Class.forName(FULL_MESSAGES_CLASS_NAME);
         } catch (ClassNotFoundException e) {
@@ -174,7 +165,7 @@ public class LoggingMBean {
         }
 
         _log.debug("Starting the log level resetter thread");
-        Thread thread =  new Thread(_resetterRunnable);
+        Thread thread = new Thread(_resetterRunnable);
         thread.setName("LogLevelResetter");
         thread.start();
 
@@ -192,10 +183,10 @@ public class LoggingMBean {
                     Calendar.getInstance().getTime());
         } else {
             _log.info("Setting log level for {} to level {} and scope {} according to previous change",
-                    new Object[]{_logName, logLevelConfig.level, logLevelConfig.scope});
+                    new Object[] { _logName, logLevelConfig.level, logLevelConfig.scope });
             setLoggerLevelByScope(logLevelConfig.level, getLogScope(logLevelConfig.scope));
 
-            //Schedule the polling thread which reverts expired dynamic log level changes.
+            // Schedule the polling thread which reverts expired dynamic log level changes.
             long nextRun = logLevelConfig.expiration.getTimeInMillis() -
                     System.currentTimeMillis();
             _log.info("Try to reset the log level in {} milliseconds", nextRun);
@@ -211,9 +202,9 @@ public class LoggingMBean {
         if (scope == null) {
             return LogScopeEnum.SCOPE_DEFAULT;
         }
-        try{
+        try {
             return LogScopeEnum.valueOf(scope);
-        }catch (IllegalArgumentException e ) {
+        } catch (IllegalArgumentException e) {
             _log.error("Exception getting LogScopeEnum, e=", e);
             return LogScopeEnum.SCOPE_DEFAULT;
         }
@@ -233,7 +224,7 @@ public class LoggingMBean {
 
     private void setCurrentLogger(String level) {
         Enumeration cats = LogManager.getCurrentLoggers();
-        while(cats.hasMoreElements()) {
+        while (cats.hasMoreElements()) {
             Logger c = (Logger) cats.nextElement();
             if (c.getLevel() != null) {
                 c.setLevel(Level.toLevel(level));
@@ -249,7 +240,7 @@ public class LoggingMBean {
 
         long expiration = System.currentTimeMillis() + expirInMin * 60 * 1000;
         String configStr = level + LOG_LEVEL_DELIMITER + String.valueOf(expiration)
-                           + LOG_LEVEL_DELIMITER + scope;
+                + LOG_LEVEL_DELIMITER + scope;
         config.setConfig(LOG_LEVEL_CONFIG, configStr);
 
         try {
@@ -272,8 +263,9 @@ public class LoggingMBean {
             return null;
         }
 
-        if (config == null || config.getConfig(LOG_LEVEL_CONFIG) == null)
+        if (config == null || config.getConfig(LOG_LEVEL_CONFIG) == null) {
             return null;
+        }
 
         return config;
     }
@@ -290,21 +282,23 @@ public class LoggingMBean {
             logLevelConfig.expiration.setTimeInMillis(scanner.nextLong());
             // the scope field was added in ViPR V1.1. When parsing a Configration
             // from V1, just leave this field as null.
-            if (scanner.hasNext())
+            if (scanner.hasNext()) {
                 logLevelConfig.scope = scanner.next().trim();
-            else
+            } else {
                 logLevelConfig.scope = null;
+            }
 
             return logLevelConfig;
         } finally {
-            if (scanner != null)
+            if (scanner != null) {
                 scanner.close();
+            }
         }
     }
 
     /**
      * Class for resetting dynamic log level changes.
-     * Borrowed from CustomAuthenticationManager.LogLevelResetter 
+     * Borrowed from CustomAuthenticationManager.LogLevelResetter
      */
     private class LogLevelResetter implements Runnable {
         private final org.slf4j.Logger _log = LoggerFactory.getLogger(
@@ -314,6 +308,7 @@ public class LoggingMBean {
 
         private class Waiter {
             private long _t = 0;
+
             public synchronized void sleep(long milliSeconds) {
                 _t = System.currentTimeMillis() + milliSeconds;
                 while (true) {
@@ -356,8 +351,8 @@ public class LoggingMBean {
 
         @Override
         public void run() {
-            while(_doRun) {
-                _log.info("Starting log level config reset, lastResetTime = {}", 
+            while (_doRun) {
+                _log.info("Starting log level config reset, lastResetTime = {}",
                         _lastResetTime);
                 try {
                     long timeNow = System.currentTimeMillis();
@@ -374,9 +369,9 @@ public class LoggingMBean {
                             _log.debug("Log level configuration not yet expired, " +
                                     "skipping reset log level");
                             // Reschedule the task
-                            nextRunMillis = 
-                                    logLevelConfig.expiration.getTimeInMillis() - 
-                                    timeNow;
+                            nextRunMillis =
+                                    logLevelConfig.expiration.getTimeInMillis() -
+                                            timeNow;
                         } else {
                             _log.info("resetting log level");
                             resetLoggerLevel();
@@ -393,9 +388,9 @@ public class LoggingMBean {
                     _log.error("Exception loading log level configuration from zk"
                             + ", will retry in {} secs", _logLevelResetRetrySeconds, e);
                     // schedule a retry
-                    try{
+                    try {
                         Thread.sleep(_logLevelResetRetrySeconds * 1000);
-                    }catch(Exception ignore){
+                    } catch (Exception ignore) {
                         _log.error("Got Exception in thread.sleep()", e);
                     }
                 }

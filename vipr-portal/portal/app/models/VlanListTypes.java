@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models;
@@ -11,7 +11,7 @@ import util.StringOption;
 import com.google.common.collect.Lists;
 
 public class VlanListTypes {
-   
+
     public static String NO_OSINSTALL_NONE = "None";
 
     public static StringOption option(String type) {

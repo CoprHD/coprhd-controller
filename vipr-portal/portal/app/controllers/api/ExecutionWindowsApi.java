@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.api;
@@ -99,7 +99,7 @@ public class ExecutionWindowsApi extends Controller {
         } else {
             ExecutionWindowCreateParam createParam = new ExecutionWindowCreateParam();
             map(createParam, info);
-            
+
             ExecutionWindowUtils.createExecutionWindow(createParam);
             info.setId(window.getId().toString());
             renderApi(info);
@@ -122,7 +122,7 @@ public class ExecutionWindowsApi extends Controller {
             } else {
                 ExecutionWindowUpdateParam updateParam = new ExecutionWindowUpdateParam();
                 map(updateParam, info);
-                
+
                 ExecutionWindowUtils.updateExecutionWindow(uri(executionWindowId), updateParam);
                 info.setId(window.getId().toString());
                 renderApi(info);
@@ -142,7 +142,7 @@ public class ExecutionWindowsApi extends Controller {
         }
 
     }
-    
+
     private static void map(ExecutionWindowCommonParam commonParam, ExecutionWindowInfo info) {
         commonParam.setDayOfMonth(info.getDayOfMonth());
         commonParam.setDayOfWeek(info.getDayOfWeek());
@@ -151,7 +151,7 @@ public class ExecutionWindowsApi extends Controller {
         commonParam.setExecutionWindowType(info.getExecutionWindowType());
         commonParam.setHourOfDayInUTC(info.getHourOfDayInUTC());
         commonParam.setLastDayOfMonth(info.getLastDayOfMonth());
-        commonParam.setMinuteOfHourInUTC(info.getMinuteOfHourInUTC());        
+        commonParam.setMinuteOfHourInUTC(info.getMinuteOfHourInUTC());
     }
 
 }

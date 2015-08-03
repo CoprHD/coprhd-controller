@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -13,7 +13,7 @@ import play.vfs.VirtualFile;
 /**
  * Utility to map the controller to the corresponding documentation link. This is driven by a file
  * 'conf/documentation.topics'.
- *
+ * 
  * @author Chris Dail
  */
 public class DocUtils {
@@ -42,10 +42,10 @@ public class DocUtils {
     private static String getDocumentationTopic() {
         if (docTopics == null) {
             VirtualFile file = Play.getVirtualFile("conf/documentation.topics");
-            synchronized(DocUtils.class) {
-            	if (docTopics == null) {
-            		docTopics = IO.readUtf8Properties(file.inputstream());
-            	}
+            synchronized (DocUtils.class) {
+                if (docTopics == null) {
+                    docTopics = IO.readUtf8Properties(file.inputstream());
+                }
             }
         }
 

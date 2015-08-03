@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.usermanagement.authorization;
@@ -19,19 +19,15 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
-
 
 public class TenantModificationTest extends TenantMode {
     static ViPRCoreClient tenantAdminClient;
     static ViPRCoreClient secAdminClient;
 
     @BeforeClass
-    public synchronized static void  setupTest() throws Exception{
+    public synchronized static void setupTest() throws Exception {
         String rootTenantAdmin = getUserByRole(rootTenantID, RoleOrAcl.TenantAdmin);
         tenantAdminClient = new ViPRCoreClient(controllerNodeEndpoint, true).withLogin(rootTenantAdmin, PASSWORD);
 
@@ -40,7 +36,7 @@ public class TenantModificationTest extends TenantMode {
     }
 
     @AfterClass
-    public synchronized static void teardownTest() throws Exception{
+    public synchronized static void teardownTest() throws Exception {
         if (tenantAdminClient != null) {
             tenantAdminClient.auth().logout();
             tenantAdminClient = null;
@@ -52,8 +48,10 @@ public class TenantModificationTest extends TenantMode {
         }
     }
 
-    @Test  // negative test
-    public void tenantAdminModifyUserMapping() throws Exception{
+    @Test
+    // negative test
+            public
+            void tenantAdminModifyUserMapping() throws Exception {
         TenantUpdateParam tenantUpdateParam = new TenantUpdateParam();
         UserMappingChanges changes = new UserMappingChanges();
         List<UserMappingParam> listAdd = new ArrayList<UserMappingParam>();
@@ -72,8 +70,10 @@ public class TenantModificationTest extends TenantMode {
         }
     }
 
-    @Test  // negative test
-    public void tenantAdminModifyTenantQuota() throws Exception {
+    @Test
+    // negative test
+            public
+            void tenantAdminModifyTenantQuota() throws Exception {
         QuotaUpdateParam quotaUpdateParam = new QuotaUpdateParam();
         quotaUpdateParam.setEnable(true);
         quotaUpdateParam.setQuotaInGb(50L);
@@ -86,8 +86,10 @@ public class TenantModificationTest extends TenantMode {
         }
     }
 
-    @Test  // negative test
-    public void providerTenantAdminCreateTenant() throws Exception {
+    @Test
+    // negative test
+            public
+            void providerTenantAdminCreateTenant() throws Exception {
         ViPRClientHelper viPRClientHelper1 = new ViPRClientHelper(tenantAdminClient);
         try {
             viPRClientHelper1.createTenant("testTenant", "secqe.com", "attr", "value");
@@ -98,8 +100,10 @@ public class TenantModificationTest extends TenantMode {
         }
     }
 
-    @Test  // positive test
-    public void securityAdminModifyUserMapping() throws Exception {
+    @Test
+    // positive test
+            public
+            void securityAdminModifyUserMapping() throws Exception {
         TenantUpdateParam tenantUpdateParam = new TenantUpdateParam();
         UserMappingChanges changes = new UserMappingChanges();
         List<UserMappingParam> listAdd = new ArrayList<UserMappingParam>();
@@ -119,8 +123,10 @@ public class TenantModificationTest extends TenantMode {
         }
     }
 
-    @Test  // positive test
-    public void securityAdminModifyTenantQuota() throws Exception {
+    @Test
+    // positive test
+            public
+            void securityAdminModifyTenantQuota() throws Exception {
         QuotaInfo original = secAdminClient.tenants().getQuota(rootTenantID);
 
         QuotaUpdateParam quotaUpdateParam = new QuotaUpdateParam();
@@ -136,8 +142,10 @@ public class TenantModificationTest extends TenantMode {
         // should no exception
     }
 
-    @Test  // positive test
-    public void securityAdminCreateTenant() throws Exception {
+    @Test
+    // positive test
+            public
+            void securityAdminCreateTenant() throws Exception {
         ViPRClientHelper viPRClientHelper1 = new ViPRClientHelper(secAdminClient);
         try {
             viPRClientHelper1.createTenant("testTenant", "not-exist.com", "attr", "value");

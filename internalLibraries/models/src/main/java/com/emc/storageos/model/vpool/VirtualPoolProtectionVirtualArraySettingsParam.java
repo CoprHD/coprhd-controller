@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.vpool;
 
@@ -22,15 +12,16 @@ import javax.xml.bind.annotation.XmlRootElement;
 /**
  * Specifies protection parameters for the VirtualPool when created or retrieved.
  */
-@XmlRootElement(name="protection_varray_vpool")
+@XmlRootElement(name = "protection_varray_vpool")
 public class VirtualPoolProtectionVirtualArraySettingsParam {
 
     private URI varray;
     private URI vpool;
     private ProtectionCopyPolicy copyPolicy;
 
-    public VirtualPoolProtectionVirtualArraySettingsParam() {}
-    
+    public VirtualPoolProtectionVirtualArraySettingsParam() {
+    }
+
     public VirtualPoolProtectionVirtualArraySettingsParam(URI varray,
             URI vpool, ProtectionCopyPolicy copyPolicy) {
         this.varray = varray;
@@ -92,31 +83,40 @@ public class VirtualPoolProtectionVirtualArraySettingsParam {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         VirtualPoolProtectionVirtualArraySettingsParam other = (VirtualPoolProtectionVirtualArraySettingsParam) obj;
         if (copyPolicy == null) {
-            if (other.copyPolicy != null)
+            if (other.copyPolicy != null) {
                 return false;
+            }
         }
-        else if (!copyPolicy.equals(other.copyPolicy))
+        else if (!copyPolicy.equals(other.copyPolicy)) {
             return false;
+        }
         if (varray == null) {
-            if (other.varray != null)
+            if (other.varray != null) {
                 return false;
+            }
         }
-        else if (!varray.equals(other.varray))
+        else if (!varray.equals(other.varray)) {
             return false;
+        }
         if (vpool == null) {
-            if (other.vpool != null)
+            if (other.vpool != null) {
                 return false;
+            }
         }
-        else if (!vpool.equals(other.vpool))
+        else if (!vpool.equals(other.vpool)) {
             return false;
+        }
         return true;
     }
 }

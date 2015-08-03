@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.constraint.impl;
 
@@ -28,9 +18,8 @@ import com.netflix.astyanax.query.RowQuery;
 
 import java.net.URI;
 
-
 /**
- *  Constrained query to get list of decommissioned object URIs of a given type
+ * Constrained query to get list of decommissioned object URIs of a given type
  */
 public class AggregatedConstraintImpl extends ConstraintImpl implements AggregatedConstraint {
 
@@ -41,21 +30,20 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
     private final String rowKey;
     private final Class<? extends DataObject> entryType;
 
-
     /*
      * Constraint for listing all objects of a given type with index value
      * if value is null, gives full list for the type - used by queryByType.
      */
     public AggregatedConstraintImpl(Class<? extends DataObject> clazz, ColumnField groupByField, String groupByValue, ColumnField field) {
 
-        super(clazz, field, groupByField.getName(),groupByValue);
+        super(clazz, field, groupByField.getName(), groupByValue);
 
         cf = field.getIndexCF();
         entryType = clazz;
         this.field = field;
         fieldName = field.getName();
 
-        rowKey = String.format("%s:%s",clazz.getSimpleName(),groupByValue);
+        rowKey = String.format("%s:%s", clazz.getSimpleName(), groupByValue);
     }
 
     public AggregatedConstraintImpl(Class<? extends DataObject> clazz, ColumnField field) {
@@ -88,23 +76,23 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
     @Override
     protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName> column) {
         return result.createQueryHit(URI.create(column.getName().getTwo()),
-                                     ColumnValue.getPrimitiveColumnValue(column, field.getPropertyDescriptor()));
+                ColumnValue.getPrimitiveColumnValue(column, field.getPropertyDescriptor()));
     }
 
     @Override
     protected RowQuery<String, IndexColumnName> genQuery() {
         return keyspace.prepareQuery(cf).getKey(rowKey)
-                       .withColumnRange(
-                               CompositeColumnNameSerializer.get().buildRange()
-                                       .greaterThanEquals(fieldName)
-                                       .lessThanEquals(fieldName)
-                                       .limit(pageCount)
-                       );
+                .withColumnRange(
+                        CompositeColumnNameSerializer.get().buildRange()
+                                .greaterThanEquals(fieldName)
+                                .lessThanEquals(fieldName)
+                                .limit(pageCount)
+                );
 
     }
 
     @Override
     public Class<? extends DataObject> getDataObjectType() {
         return entryType;
-}
+    }
 }

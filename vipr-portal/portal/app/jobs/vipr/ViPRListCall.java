@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package jobs.vipr;
@@ -17,7 +17,7 @@ import com.emc.vipr.client.core.util.CachedResources;
  * Base class for ViPR calls that return lists of DataObjectRestRep.
  * 
  * @param <T>
- *        the item return type.
+ *            the item return type.
  */
 public abstract class ViPRListCall<T extends DataObjectRestRep> extends ViPRCall<List<T>> {
     protected CachedResources<T> cache;

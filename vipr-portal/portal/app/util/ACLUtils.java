@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -37,33 +37,33 @@ public class ACLUtils {
         String tenant = Models.currentAdminTenant();
         return Validator.isValidPrincipal(principal, URI.create(tenant));
     }
-    
+
     public static String extractDomainName(String name) {
-    	String domain = null;
-    	if (StringUtils.isNotBlank(name) && name.contains("@")) {
-    		domain = name.substring(name.indexOf("@") + 1, name.length());
-    	}
-    	return domain;
-    }  
-    
+        String domain = null;
+        if (StringUtils.isNotBlank(name) && name.contains("@")) {
+            domain = name.substring(name.indexOf("@") + 1, name.length());
+        }
+        return domain;
+    }
+
     public static String stripDomainName(String name) {
-    	String userOrGroupName = null;
-    	if (StringUtils.isNotBlank(name) && name.contains("@")) {
-    		userOrGroupName = name.substring(0, name.indexOf("@"));
-    	}
-    	return userOrGroupName;
-    }      
-    
+        String userOrGroupName = null;
+        if (StringUtils.isNotBlank(name) && name.contains("@")) {
+            userOrGroupName = name.substring(0, name.indexOf("@"));
+        }
+        return userOrGroupName;
+    }
+
     public static boolean validateDomain(String name) {
-    	return StringUtils.isNotBlank(extractDomainName(name));
+        return StringUtils.isNotBlank(extractDomainName(name));
     }
-    
+
     public static boolean validateAuthProviderDomain(String name) {
-    	String domain = extractDomainName(name);
-    	List<AuthnProviderRestRep> authnProviderRestReps = AuthnProviderUtils.getAuthProvidersByDomainName(domain);
-    	return authnProviderRestReps != null && !authnProviderRestReps.isEmpty();
+        String domain = extractDomainName(name);
+        List<AuthnProviderRestRep> authnProviderRestReps = AuthnProviderUtils.getAuthProvidersByDomainName(domain);
+        return authnProviderRestReps != null && !authnProviderRestReps.isEmpty();
     }
-    
+
     private static Pattern[] getCompiledPatterns(Set<String> valueSet) {
         String[] values = valueSet.toArray(new String[0]);
         Pattern[] compiledPatterns = null;
@@ -93,24 +93,24 @@ public class ACLUtils {
     }
 
     public static boolean validateActiveDirectoryGroupName(String name) {
-    	if (StringUtils.isNotBlank(name)) {
-	    	String group = stripDomainName(name);
-	    	String domain = extractDomainName(name);
-	    	if (StringUtils.isNotBlank(group) && StringUtils.isNotBlank(domain)) {
-		    	List<AuthnProviderRestRep> authnProviderRestReps = AuthnProviderUtils.getAuthProvidersByDomainName(domain);
-		    	for (AuthnProviderRestRep authnProviderRestRep : authnProviderRestReps) {
-		            if (isActiveDirectoryProvider(authnProviderRestRep)
-		                    && isGroupOnWhiteList(authnProviderRestRep.getGroupWhitelistValues(), group)) {
-		                return true;
-		            }
-		    	}
-	    	}
-    	}
-    	return false;
+        if (StringUtils.isNotBlank(name)) {
+            String group = stripDomainName(name);
+            String domain = extractDomainName(name);
+            if (StringUtils.isNotBlank(group) && StringUtils.isNotBlank(domain)) {
+                List<AuthnProviderRestRep> authnProviderRestReps = AuthnProviderUtils.getAuthProvidersByDomainName(domain);
+                for (AuthnProviderRestRep authnProviderRestRep : authnProviderRestReps) {
+                    if (isActiveDirectoryProvider(authnProviderRestRep)
+                            && isGroupOnWhiteList(authnProviderRestRep.getGroupWhitelistValues(), group)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
-    
+
     public static boolean isActiveDirectoryProvider(AuthnProviderRestRep authnProviderRestRep) {
-    	return authnProviderRestRep != null && AuthSourceType.ad.equals(AuthSourceType.valueOf(authnProviderRestRep.getMode()));
+        return authnProviderRestRep != null && AuthSourceType.ad.equals(AuthSourceType.valueOf(authnProviderRestRep.getMode()));
     }
 
     public static void validateAclEntries(String fieldName, List<AclEntryForm> aclEntries) {
@@ -127,8 +127,8 @@ public class ACLUtils {
                 if (StringUtils.isBlank(aclEntryForm.access)) {
                     String fieldPath = aclEntryPath + ".access";
                     Validation.addError(fieldPath, "security.accessControlList.access.required");
-                }                
-                
+                }
+
                 if (StringUtils.isBlank(aclEntryForm.type)) {
                     String fieldPath = aclEntryPath + ".type";
                     Validation.addError(fieldPath, "security.accessControlList.type.required");
@@ -136,10 +136,10 @@ public class ACLUtils {
                 else if (StringUtils.isNotBlank(aclEntryForm.aclName)) {
                     RoleAssignmentType type = RoleAssignmentType.valueOf(aclEntryForm.type);
                     if (RoleAssignmentType.GROUP.name().equals(aclEntryForm.type)) {
-                        //Removed all the "@domain" suffix validation here to allow the
-                        //user group configuration from the portal.
-                        //All the required validations done in isValidPrincipal().
-                    	if (ACLUtils.isValidPrincipal(type, aclEntryForm.aclName) == false) {
+                        // Removed all the "@domain" suffix validation here to allow the
+                        // user group configuration from the portal.
+                        // All the required validations done in isValidPrincipal().
+                        if (ACLUtils.isValidPrincipal(type, aclEntryForm.aclName) == false) {
                             Validation.addError(aclNamePath, "security.accessControlList.group.notvalid");
                         }
                     }
@@ -148,15 +148,15 @@ public class ACLUtils {
                             Validation.addError(aclNamePath, "security.accessControlList.localuser.notpermitted");
                         }
                         else if (validateDomain(aclEntryForm.aclName) == false) {
-                    		Validation.addError(aclNamePath, "security.accessControlList.domain.required");
-                    	}
-                    	else if(validateAuthProviderDomain(aclEntryForm.aclName) == false) {
-                    		Validation.addError(aclNamePath, "security.accessControlList.domain.notfound");
-                    	}
+                            Validation.addError(aclNamePath, "security.accessControlList.domain.required");
+                        }
+                        else if (validateAuthProviderDomain(aclEntryForm.aclName) == false) {
+                            Validation.addError(aclNamePath, "security.accessControlList.domain.notfound");
+                        }
                         else if (ACLUtils.isValidPrincipal(type, aclEntryForm.aclName) == false) {
                             Validation.addError(aclNamePath, "security.accessControlList.user.notvalid");
                         }
-                    }                     
+                    }
                 }
 
             }
@@ -167,7 +167,7 @@ public class ACLUtils {
         List<AclEntryForm> aclEntries = Lists.newArrayList();
         if (acls != null && acls.isEmpty() == false) {
             for (ACLEntry acl : acls) {
-                for (String role: acl.getAces()) {
+                for (String role : acl.getAces()) {
                     AclEntryForm entry = new AclEntryForm();
                     if (StringUtils.isNotBlank(acl.getGroup())) {
                         entry.type = RoleAssignmentType.GROUP.name();

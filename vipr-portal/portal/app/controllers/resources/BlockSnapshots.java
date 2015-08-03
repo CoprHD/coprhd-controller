@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.resources;
@@ -11,7 +11,6 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.vipr.client.exceptions.ViPRHttpException;
 import models.datatable.BlockSnapshotsDataTable;
 
 import org.apache.commons.lang.StringUtils;
@@ -85,7 +84,7 @@ public class BlockSnapshots extends ResourceController {
         Map<URI, List<ITLRestRep>> exportGroupItlMap = Maps.newHashMap();
 
         List<ITLRestRep> itls = client.blockSnapshots().listExports(uri(snapshotId));
-        for (ITLRestRep itl: itls) {
+        for (ITLRestRep itl : itls) {
             NamedRelatedResourceRep export = itl.getExport();
             if (export != null && export.getId() != null) {
                 List<ITLRestRep> exportGroupItls = exportGroupItlMap.get(export.getId());
@@ -101,7 +100,7 @@ public class BlockSnapshots extends ResourceController {
                 }
             }
         }
-    
+
         render(itls, exportGroups, exportGroupItlMap);
     }
 
@@ -111,7 +110,7 @@ public class BlockSnapshots extends ResourceController {
             ViPRCoreClient client = BourneUtil.getViprClient();
 
             Tasks<BlockSnapshotRestRep> task = client.blockSnapshots().deactivate(uri(snapshotId));
-            flash.put("info", MessagesUtils.get("resources.snapshot.deactivate",snapshotId));
+            flash.put("info", MessagesUtils.get("resources.snapshot.deactivate", snapshotId));
         }
         snapshotDetails(snapshotId);
     }

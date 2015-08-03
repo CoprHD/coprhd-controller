@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service;
@@ -137,19 +127,19 @@ public class MonitoringServiceTest {
 
     @Test
     public void testEventRetriverNonSupportedType() {
-           EventRetriever eventRetriever = new DummyEventRetriever();
-          MonitoringService eventResource = new MonitoringService();
-            eventResource.setEventRetriever(eventRetriever);
-    
-            DummyHttpHeaders header = new DummyHttpHeaders(MediaType.TEXT_PLAIN_TYPE);
-    
-            Response r = eventResource
-                    .getEvents("2012-05-05T00", header);
-    
-            Assert.assertNotNull(r);
-            Assert.assertEquals(Status.OK.getStatusCode(), r.getStatus(), r.getStatus());
-       }
-   
+        EventRetriever eventRetriever = new DummyEventRetriever();
+        MonitoringService eventResource = new MonitoringService();
+        eventResource.setEventRetriever(eventRetriever);
+
+        DummyHttpHeaders header = new DummyHttpHeaders(MediaType.TEXT_PLAIN_TYPE);
+
+        Response r = eventResource
+                .getEvents("2012-05-05T00", header);
+
+        Assert.assertNotNull(r);
+        Assert.assertEquals(Status.OK.getStatusCode(), r.getStatus(), r.getStatus());
+    }
+
     private void deleteIfExists(String fname) {
         File f = new File(fname);
 

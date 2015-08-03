@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.ports;
 
@@ -32,13 +22,14 @@ public class StoragePortUpdate extends VirtualArrayResourceUpdateParam {
 
     private String portNetworkId;
 
-    public StoragePortUpdate() {}
-    
+    public StoragePortUpdate() {
+    }
+
     public StoragePortUpdate(URI network) {
         super(new VirtualArrayAssignmentChanges());
         this.network = network;
     }
-    
+
     public StoragePortUpdate(URI network, VirtualArrayAssignmentChanges varrayChanges) {
         super(varrayChanges);
         this.network = network;
@@ -46,8 +37,8 @@ public class StoragePortUpdate extends VirtualArrayResourceUpdateParam {
 
     /**
      * The new network for a storage port update request
-     *
-     * @valid example:  a valid URI.
+     * 
+     * @valid example: a valid URI.
      */
     @XmlElement(name = "network")
     public URI getNetwork() {
@@ -63,9 +54,9 @@ public class StoragePortUpdate extends VirtualArrayResourceUpdateParam {
      * 
      * This is only applicable to Cinder storage system
      * as currently there is no API to discover it from Cinder.
-     *
+     * 
      * @valid example: FC - port WWN,
-     *                 IP - iSCSI Qualified Name (IQN) or Extended Unique Identifier (EUI)
+     *        IP - iSCSI Qualified Name (IQN) or Extended Unique Identifier (EUI)
      */
     @XmlElement(name = "port_network_id", nillable = true)
     public String getPortNetworkId() {

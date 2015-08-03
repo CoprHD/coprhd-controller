@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.project;
@@ -16,14 +16,16 @@ public class ResourceList {
 
     private List<TypedRelatedResourceRep> resources;
 
-    public ResourceList() {}
-    
+    public ResourceList() {
+    }
+
     public ResourceList(List<TypedRelatedResourceRep> resources) {
         this.resources = resources;
     }
 
     /**
-     * The list of resources associated with this project 
+     * The list of resources associated with this project
+     * 
      * @valid none
      */
     @XmlElement(name = "project_resource")
@@ -37,5 +39,5 @@ public class ResourceList {
     public void setResources(List<TypedRelatedResourceRep> resources) {
         this.resources = resources;
     }
-    
+
 }

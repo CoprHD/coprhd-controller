@@ -1,11 +1,9 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.auth;
 
-import static controllers.Common.flashException;
-import static controllers.Common.hasRequestMethod;
 import static util.RoleAssignmentUtils.createRoleAssignmentEntry;
 import static util.RoleAssignmentUtils.deleteVDCRoleAssignment;
 import static util.RoleAssignmentUtils.getVDCRoleAssignment;
@@ -24,14 +22,12 @@ import models.datatable.VDCRoleAssignmentDataTable;
 
 import org.apache.commons.lang.StringUtils;
 
-import play.Play;
 import play.data.binding.As;
 import play.data.validation.MaxSize;
 import play.data.validation.MinSize;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Messages;
-import play.mvc.Catch;
 import play.mvc.Controller;
 import play.mvc.Util;
 import play.mvc.With;
@@ -50,12 +46,12 @@ import controllers.security.Security;
 import controllers.util.FlashException;
 
 @With(Common.class)
-@Restrictions({@Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN")})
+@Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
 public class VDCRoleAssignments extends Controller {
 
     @Util
     private static void addRolesToRenderArgs() {
-    	renderArgs.put("roles", Roles.options(Roles.VDC_ROLES));
+        renderArgs.put("roles", Roles.options(Roles.VDC_ROLES));
     }
 
     public static void list() {
@@ -84,7 +80,7 @@ public class VDCRoleAssignments extends Controller {
     @FlashException("list")
     public static void edit(@Required String id) {
         String name = VDCRoleAssignmentForm.extractNameFromId(id);
-        RoleAssignmentType type = VDCRoleAssignmentForm.extractTypeFromId(id);      
+        RoleAssignmentType type = VDCRoleAssignmentForm.extractTypeFromId(id);
         RoleAssignmentEntry roleAssignmentEntry = getVDCRoleAssignment(name, type);
         if (roleAssignmentEntry != null) {
             addRolesToRenderArgs();
@@ -101,8 +97,8 @@ public class VDCRoleAssignments extends Controller {
             list();
         }
     }
-    
-    @FlashException(keep=true, referrer={"create","edit"})
+
+    @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(VDCRoleAssignmentForm roleAssignment) {
         roleAssignment.validate("roleAssignment");
         if (Validation.hasErrors()) {
@@ -112,7 +108,8 @@ public class VDCRoleAssignments extends Controller {
         roleAssignment.save();
         flash.success(MessagesUtils.get("roleAssignments.saved", roleAssignment.name));
 
-        if (RoleAssignmentType.USER.equals(roleAssignment.type) && Security.getUserInfo().getIdentifier().equalsIgnoreCase(roleAssignment.name)) {
+        if (RoleAssignmentType.USER.equals(roleAssignment.type)
+                && Security.getUserInfo().getIdentifier().equalsIgnoreCase(roleAssignment.name)) {
             Security.clearUserInfo();
         }
         list();
@@ -166,7 +163,7 @@ public class VDCRoleAssignments extends Controller {
         private static final String ID_DELIMITER = "~~~~";
 
         public String id;
-        
+
         @Required
         @MaxSize(128)
         @MinSize(2)
@@ -180,7 +177,7 @@ public class VDCRoleAssignments extends Controller {
         public Boolean securityAdmin = Boolean.FALSE;
 
         public Boolean systemMonitor = Boolean.FALSE;
-        
+
         public Boolean systemAuditor = Boolean.FALSE;
 
         public static String createId(String name, RoleAssignmentType type) {
@@ -213,7 +210,7 @@ public class VDCRoleAssignments extends Controller {
         public boolean isNew() {
             return StringUtils.isBlank(id);
         }
-        
+
         public void validate(String formName) {
             Validation.valid(formName, this);
 
@@ -223,19 +220,19 @@ public class VDCRoleAssignments extends Controller {
                 if (roleAssignmentEntry != null) {
                     Validation.addError(formName + ".name", Messages.get("roleAssignments." + type + ".alreadyExists"));
                 }
-                
+
                 boolean atLeastOneChecked = systemAdmin || securityAdmin || systemMonitor || systemAuditor;
                 if (atLeastOneChecked == false) {
                     flash.error(Messages.get("roleAssignments.atLeastOneChecked"));
                     Validation.addError(formName, Messages.get("roleAssignments.atLeastOneChecked"));  // here to fail validation
-                }            
+                }
             }
-            
+
         }
 
-        public void save() {            
+        public void save() {
             RoleAssignmentEntry roleAssignmentEntry = getVDCRoleAssignment(name, type);
-            
+
             if (Security.isSecurityAdminOrRestrictedSecurityAdmin()) {
                 List<RoleAssignmentEntry> vdcRolesToAdd = Lists.newArrayList();
                 List<RoleAssignmentEntry> vdcRolesToRemove = Lists.newArrayList();
@@ -256,7 +253,7 @@ public class VDCRoleAssignments extends Controller {
                 type = RoleAssignmentType.GROUP;
             }
             id = createId(name, type);
-            
+
             systemAdmin = isRoleAssigned(bourneRoleAssignment, Security.SYSTEM_ADMIN);
             securityAdmin = isRoleAssigned(bourneRoleAssignment, Security.SECURITY_ADMIN);
             systemMonitor = isRoleAssigned(bourneRoleAssignment, Security.SYSTEM_MONITOR);
@@ -266,10 +263,10 @@ public class VDCRoleAssignments extends Controller {
         private boolean isRoleAssigned(RoleAssignmentEntry roleAssignParamEntry, String findRole) {
             if (roleAssignParamEntry.getRoles() != null && findRole != null) {
                 return roleAssignParamEntry.getRoles().contains(findRole);
-            }      
+            }
             return false;
         }
-        
+
         private boolean hasRoleChanged(RoleAssignmentEntry roleAssignParamEntry, String findRole) {
             if (roleAssignParamEntry != null) {
                 boolean value = isRoleAssigned(roleAssignParamEntry, findRole);
@@ -288,8 +285,9 @@ public class VDCRoleAssignments extends Controller {
             }
             return true;
         }
-        
-        public void writeVdcRoleChangesTo(RoleAssignmentEntry roleAssignmentEntry, List<RoleAssignmentEntry> add, List<RoleAssignmentEntry> remove) {
+
+        public void writeVdcRoleChangesTo(RoleAssignmentEntry roleAssignmentEntry, List<RoleAssignmentEntry> add,
+                List<RoleAssignmentEntry> remove) {
             RoleAssignmentEntry rae = createRoleAssignmentEntry(type, name, Security.SYSTEM_ADMIN);
             if (hasRoleChanged(roleAssignmentEntry, Security.SYSTEM_ADMIN)) {
                 if (systemAdmin != null && systemAdmin == true) {
@@ -319,7 +317,7 @@ public class VDCRoleAssignments extends Controller {
                     remove.add(rae);
                 }
             }
-            
+
             rae = createRoleAssignmentEntry(type, name, Security.SYSTEM_AUDITOR);
             if (hasRoleChanged(roleAssignmentEntry, Security.SYSTEM_AUDITOR)) {
                 if (systemAuditor != null && systemAuditor == true) {
@@ -327,7 +325,7 @@ public class VDCRoleAssignments extends Controller {
                 }
                 else {
                     remove.add(rae);
-                }            
+                }
             }
         }
 

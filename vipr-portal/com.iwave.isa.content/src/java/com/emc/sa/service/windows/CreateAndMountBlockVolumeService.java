@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.windows;
@@ -29,7 +29,7 @@ public class CreateAndMountBlockVolumeService extends WindowsService {
     public void precheck() throws Exception {
         super.precheck();
         createBlockVolumeHelper.precheck();
-        
+
         long capacityInBytes = createBlockVolumeHelper.getSizeInGb().longValue() * 1024 * 1024 * 1024;
         mountBlockVolumeHelpers = MountBlockVolumeHelper.createHelpers(windowsSystems, capacityInBytes);
         for (MountBlockVolumeHelper mountBlockVolumeHelper : mountBlockVolumeHelpers) {
@@ -50,7 +50,7 @@ public class CreateAndMountBlockVolumeService extends WindowsService {
         DiskDrive diskDrive = mountBlockVolumeHelpers.get(0).mountVolume(volume);
 
         if (isClustered()) {
-            for (int i=1;i<mountBlockVolumeHelpers.size();i++) {
+            for (int i = 1; i < mountBlockVolumeHelpers.size(); i++) {
                 mountBlockVolumeHelpers.get(i).rescanDisks();
             }
 
@@ -58,14 +58,14 @@ public class CreateAndMountBlockVolumeService extends WindowsService {
         }
 
         // Only perform formatting on ONE machine
-//        for (MountBlockVolumeHelper mountBlockVolumeHelper : mountBlockVolumeHelper) {
-//            mountBlockVolumeHelper.doFormat = false;
-//        }
-//        mountBlockVolumeHelper.get(0).doFormat = true;
-//
-//
-//        for (MountBlockVolumeHelper mountBlockVolumeHelper : mountBlockVolumeHelper) {
-//            mountBlockVolumeHelper.mountVolumes(volumes, false);
-//        }
+        // for (MountBlockVolumeHelper mountBlockVolumeHelper : mountBlockVolumeHelper) {
+        // mountBlockVolumeHelper.doFormat = false;
+        // }
+        // mountBlockVolumeHelper.get(0).doFormat = true;
+        //
+        //
+        // for (MountBlockVolumeHelper mountBlockVolumeHelper : mountBlockVolumeHelper) {
+        // mountBlockVolumeHelper.mountVolumes(volumes, false);
+        // }
     }
 }

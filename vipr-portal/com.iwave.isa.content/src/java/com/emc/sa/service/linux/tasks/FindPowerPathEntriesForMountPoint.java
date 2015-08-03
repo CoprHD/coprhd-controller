@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.linux.tasks;
@@ -15,31 +15,31 @@ import com.iwave.ext.linux.model.PowerPathDevice;
 
 public class FindPowerPathEntriesForMountPoint extends LinuxExecutionTask<Void> {
 
-	private final List<VolumeSpec> volumes;
-	
-	public FindPowerPathEntriesForMountPoint(List<VolumeSpec> volumes) {
-		this.volumes = volumes;
-	}
-	
-	@Override
-	public Void executeTask() throws Exception {
-		List<PowerPathDevice> powerPathDevices = executeCommand(new PowerPathInquiry());
-		
-		for (VolumeSpec volume : volumes) {
-		    volume.powerpathDevices = Lists.newArrayList();
-		    String device = volume.mountPoint.getDevice();
-		    for (PowerPathDevice powerpathDevice : powerPathDevices) {
-		        logDebug("FindPowerPathEntriesForMountPoint.checking", powerpathDevice.getDeviceName(), powerpathDevice.getDevice(), device);
-		        if (StringUtils.equals(device, powerpathDevice.getDevice())) {
-		            volume.powerpathDevices.add(powerpathDevice);
-		            break;
+    private final List<VolumeSpec> volumes;
+
+    public FindPowerPathEntriesForMountPoint(List<VolumeSpec> volumes) {
+        this.volumes = volumes;
+    }
+
+    @Override
+    public Void executeTask() throws Exception {
+        List<PowerPathDevice> powerPathDevices = executeCommand(new PowerPathInquiry());
+
+        for (VolumeSpec volume : volumes) {
+            volume.powerpathDevices = Lists.newArrayList();
+            String device = volume.mountPoint.getDevice();
+            for (PowerPathDevice powerpathDevice : powerPathDevices) {
+                logDebug("FindPowerPathEntriesForMountPoint.checking", powerpathDevice.getDeviceName(), powerpathDevice.getDevice(), device);
+                if (StringUtils.equals(device, powerpathDevice.getDevice())) {
+                    volume.powerpathDevices.add(powerpathDevice);
+                    break;
                 }
-		    }
-		    if (volume.powerpathDevices.size() == 0) {
-		        logWarn("FindPowerPathEntriesForMountPoint.noDevices", volume.mountPoint.getPath());
-		    }
-		}
-		return null;
-	}
+            }
+            if (volume.powerpathDevices.size() == 0) {
+                logWarn("FindPowerPathEntriesForMountPoint.noDevices", volume.mountPoint.getPath());
+            }
+        }
+        return null;
+    }
 
 }

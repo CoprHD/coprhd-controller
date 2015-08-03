@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.server.upgrade.impl.callback;
@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.junit.Assert;
@@ -28,10 +27,9 @@ import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
 
 public class FullCopyVolumeReplicaStateMigrationTest extends DbSimpleMigrationTestBase {
     private static final Logger log = LoggerFactory.getLogger(FullCopyVolumeReplicaStateMigrationTest.class);
-    
 
     private static Map<URI, URI> _sourceCloneMap = new HashMap<URI, URI>();
-    
+
     private final int INSTANCES_TO_CREATE = 3;
 
     @BeforeClass
@@ -57,7 +55,7 @@ public class FullCopyVolumeReplicaStateMigrationTest extends DbSimpleMigrationTe
     }
 
     @Override
-    protected void prepareData() throws Exception { 
+    protected void prepareData() throws Exception {
         prepareVolumeData();
     }
 
@@ -65,7 +63,7 @@ public class FullCopyVolumeReplicaStateMigrationTest extends DbSimpleMigrationTe
     protected void verifyResults() throws Exception {
         verifyVolumeResults();
     }
-    
+
     /**
      * Prepares the data for RP volume tests.
      * 
@@ -94,7 +92,7 @@ public class FullCopyVolumeReplicaStateMigrationTest extends DbSimpleMigrationTe
      * Verifies the results for migrating volumes
      * 
      * @throws Exception When an error occurs verifying the Volume
-     *         migration results.
+     *             migration results.
      */
     private void verifyVolumeResults() throws Exception {
         log.info("Verifying updated full copy Volume sresults for FullCopyVolumeReplicaStateMigration.");
@@ -102,10 +100,10 @@ public class FullCopyVolumeReplicaStateMigrationTest extends DbSimpleMigrationTe
             Volume source = _dbClient.queryObject(Volume.class, sourceURI);
             URI cloneURI = _sourceCloneMap.get(sourceURI);
             Volume clone = _dbClient.queryObject(Volume.class, cloneURI);
-            
+
             Assert.assertNotNull("replicaState shouldn't be null", clone.getReplicaState());
             Assert.assertEquals("replica state should be DETACHED", ReplicationState.DETACHED.name(),
-                                    clone.getReplicaState());
+                    clone.getReplicaState());
             Assert.assertEquals("associated source should be null", clone.getAssociatedSourceVolume(), NullColumnValueGetter.getNullURI());
             
             StringSet clones = source.getFullCopies();

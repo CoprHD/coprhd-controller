@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -51,9 +51,9 @@ public class IpInterfaces extends AbstractCoreBulkResources<IpInterfaceRestRep> 
      * Gets a list of IP interface references from the given path.
      * 
      * @param path
-     *        the path to get.
+     *            the path to get.
      * @param args
-     *        the path arguments.
+     *            the path arguments.
      * @return the list of IP interface references.
      */
     protected List<NamedRelatedResourceRep> getList(String path, Object... args) {
@@ -67,9 +67,9 @@ public class IpInterfaces extends AbstractCoreBulkResources<IpInterfaceRestRep> 
      * API Call: <tt>POST /compute/hosts/{hostId}/ip-interfaces</tt>
      * 
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return the created IP interface.
      */
     public IpInterfaceRestRep create(URI hostId, IpInterfaceCreateParam input) {
@@ -82,9 +82,9 @@ public class IpInterfaces extends AbstractCoreBulkResources<IpInterfaceRestRep> 
      * API Call: <tt>PUT /compute/ip-interfaces/{id}</tt>
      * 
      * @param id
-     *        the ID of the IP interface.
+     *            the ID of the IP interface.
      * @param input
-     *        the updated configuration.
+     *            the updated configuration.
      * @return the updated IP interface.
      */
     public IpInterfaceRestRep update(URI id, IpInterfaceUpdateParam input) {
@@ -97,7 +97,7 @@ public class IpInterfaces extends AbstractCoreBulkResources<IpInterfaceRestRep> 
      * API Call: <tt>POST /compute/ip-interfaces/{id}</tt>
      * 
      * @param id
-     *        the ID of the IP interface.
+     *            the ID of the IP interface.
      */
     public void deactivate(URI id) {
         doDeactivate(id);
@@ -109,7 +109,7 @@ public class IpInterfaces extends AbstractCoreBulkResources<IpInterfaceRestRep> 
      * API Call: <tt>GET /compute/hosts/{hostId}/ip-interfaces</tt>
      * 
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @return the list of IP interface references.
      */
     public List<NamedRelatedResourceRep> listByHost(URI hostId) {
@@ -120,7 +120,7 @@ public class IpInterfaces extends AbstractCoreBulkResources<IpInterfaceRestRep> 
      * Gets the list of IP interfaces for the given host.
      * 
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @return the list of IP interfaces.
      */
     public List<IpInterfaceRestRep> getByHost(URI hostId) {
@@ -131,9 +131,9 @@ public class IpInterfaces extends AbstractCoreBulkResources<IpInterfaceRestRep> 
      * Gets the list of IP interfaces for the given host, optionally filtering the results.
      * 
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of IP interfaces.
      */
     public List<IpInterfaceRestRep> getByHost(URI hostId, ResourceFilter<IpInterfaceRestRep> filter) {
@@ -147,7 +147,7 @@ public class IpInterfaces extends AbstractCoreBulkResources<IpInterfaceRestRep> 
      * API Call: <tt>GET /vdc/networks/{networkId}/ip-interfaces</tt>
      * 
      * @param networkId
-     *        the ID of the network.
+     *            the ID of the network.
      * @return the list of IP interface references in the given network.
      */
     public List<NamedRelatedResourceRep> listByNetwork(URI networkId) {
@@ -158,7 +158,7 @@ public class IpInterfaces extends AbstractCoreBulkResources<IpInterfaceRestRep> 
      * Gets the list of IP interfaces in the given network.
      * 
      * @param networkId
-     *        the ID of the network.
+     *            the ID of the network.
      * @return the list of IP interfaces in the given network.
      */
     public List<IpInterfaceRestRep> getByNetwork(URI networkId) {
@@ -169,36 +169,36 @@ public class IpInterfaces extends AbstractCoreBulkResources<IpInterfaceRestRep> 
      * Gets the list of IP interfaces in the given network, optionally filtering the results.
      * 
      * @param networkId
-     *        the ID of the network.
+     *            the ID of the network.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of IP interfaces in the given network.
      */
     public List<IpInterfaceRestRep> getByNetwork(URI networkId, ResourceFilter<IpInterfaceRestRep> filter) {
         List<NamedRelatedResourceRep> refs = listByNetwork(networkId);
         return getByRefs(refs, filter);
-    }  
-    
+    }
+
     /**
      * Registers the given IP interface by ID.
      * <p>
      * API Call: <tt>POST /compute/ip-interfaces/{id}/register</tt>
      * 
      * @param id
-     *        the ID of the IP interface.
+     *            the ID of the IP interface.
      * @return the updated IP interface.
      */
     public IpInterfaceRestRep register(URI id) {
         return client.post(IpInterfaceRestRep.class, getIdUrl() + "/register", id);
     }
-    
+
     /**
      * De-registers the given IP interface by ID.
      * <p>
      * API Call: <tt>POST /computer/ip-interfaces/{id}/deregister</tt>
      * 
      * @param id
-     *        the ID of the IP interface.
+     *            the ID of the IP interface.
      * @return the updated IP interface.
      */
     public IpInterfaceRestRep deregister(URI id) {

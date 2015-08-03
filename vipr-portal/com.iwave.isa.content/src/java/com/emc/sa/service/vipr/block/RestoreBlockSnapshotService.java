@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block;
@@ -22,7 +22,7 @@ public class RestoreBlockSnapshotService extends ViPRService {
 
     @Override
     public void execute() {
-        for (String snapshotId: snapshotIds) {
+        for (String snapshotId : snapshotIds) {
             Task<BlockSnapshotRestRep> task = execute(new RestoreBlockSnapshot(snapshotId));
             addAffectedResource(task);
         }

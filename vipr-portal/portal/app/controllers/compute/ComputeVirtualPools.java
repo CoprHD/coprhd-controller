@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.compute;
@@ -138,18 +138,18 @@ public class ComputeVirtualPools extends ViprResourceController {
         computeVirtualPool.selectedTemplates = selectedTemplates;
         renderArgs.put("computeVirtualPoolElementDataTable", createComputeVirtualPoolElementDataTable());
         render("@edit", computeVirtualPool);
-    }    
-    
+    }
+
     private static ComputeVirtualPoolElementDataTable createComputeVirtualPoolElementDataTable() {
         ComputeVirtualPoolElementDataTable dataTable = new ComputeVirtualPoolElementDataTable();
         dataTable.alterColumn("computeVirtualPool").hidden();
         dataTable.alterColumn("computeSystem").setVisible(true);
         dataTable.setDefaultSort("computeSystem", "asc");
         dataTable.alterColumn("name").hidden();
-        
+
         return dataTable;
     }
-    
+
     public static void edit(String id) {
         try {
             addReferenceData();
@@ -161,17 +161,18 @@ public class ComputeVirtualPools extends ViprResourceController {
             }
             ComputeVirtualPoolsForm form = new ComputeVirtualPoolsForm(computeVirtualPool);
             form.loadTenant(computeVirtualPool);
-            edit(form);            
-            
+            edit(form);
+
         } catch (Exception e) {
             flashException(e);
             list();
         }
     }
+
     private static void edit(ComputeVirtualPoolsForm computeVirtualPool) {
         addStaticOptions();
         addDynamicOptions(computeVirtualPool);
-        renderArgs.put("computeVirtualPoolElementDataTable", createComputeVirtualPoolElementDataTable());        
+        renderArgs.put("computeVirtualPoolElementDataTable", createComputeVirtualPoolElementDataTable());
         render("@edit", computeVirtualPool);
     }
 
@@ -182,7 +183,7 @@ public class ComputeVirtualPools extends ViprResourceController {
             error(MessagesUtils.get(UNKNOWN, id));
         }
         render(computeElement);
-    }    
+    }
 
     public static void computeVirtualPoolDetails(String id) {
         ComputeVirtualPoolRestRep computeVirtualPool = ComputeVirtualPoolUtils
@@ -191,10 +192,10 @@ public class ComputeVirtualPools extends ViprResourceController {
             error(MessagesUtils.get(UNKNOWN, id));
         }
         render(computeVirtualPool);
-    }    
-    
+    }
+
     private static void handleError(ComputeVirtualPoolsForm computeVirtualPool) {
-        //JiRA CTRL-7628
+        // JiRA CTRL-7628
         // Only flash compute parameters to reduce amount stored in flash scope
         for (String param : params.all().keySet()) {
             if (param.startsWith("compute")) {
@@ -219,7 +220,7 @@ public class ComputeVirtualPools extends ViprResourceController {
 
             ComputeVirtualPoolRestRep vpool = computeVirtualPool.save();
             if (TenantUtils.canReadAllTenants() && VirtualPoolUtils.canUpdateACLs()) {
-                saveTenantACLs(vpool.getId().toString(),computeVirtualPool.tenants, computeVirtualPool.enableTenants);
+                saveTenantACLs(vpool.getId().toString(), computeVirtualPool.tenants, computeVirtualPool.enableTenants);
             }
             flash.success(MessagesUtils.get(SAVED, computeVirtualPool.name));
             list();
@@ -228,15 +229,16 @@ public class ComputeVirtualPools extends ViprResourceController {
             handleError(computeVirtualPool);
         }
     }
+
     /**
      * Saves tenant ACLs on the virtual compute pool.
      * 
      * @param vpoolId
-     *        the virtual compute pool ID.
+     *            the virtual compute pool ID.
      * @param tenants
-     *        the tenant ACLs.
+     *            the tenant ACLs.
      * @param enableTenants
-     *        the checked status for "Grant Access to Tenants".
+     *            the checked status for "Grant Access to Tenants".
      */
     private static void saveTenantACLs(String vpoolId, List<String> tenants, Boolean enableTenants) {
         Set<String> tenantIds = Sets.newHashSet();
@@ -248,8 +250,7 @@ public class ComputeVirtualPools extends ViprResourceController {
 
         try {
             ComputeVirtualPoolUtils.updateComputeACLs(vpoolId, builder.getACLUpdate());
-        }
-        catch (ViPRException e) {
+        } catch (ViPRException e) {
             Logger.error(e, "Failed to update Compute Virtual Pool ACLs");
             String errorDesc = e.getMessage();
             if (e instanceof ServiceErrorException) {
@@ -258,8 +259,7 @@ public class ComputeVirtualPools extends ViprResourceController {
             flash.error(MessagesUtils.get("computeVirtualPool.updateComputeVirtualPoolACLs.failed", errorDesc));
         }
     }
-    
-    
+
     public static void delete(@As(",") String[] ids) {
         delete(uris(ids));
     }
@@ -305,89 +305,89 @@ public class ComputeVirtualPools extends ViprResourceController {
         }
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
-    
-    public static void getServiceProfileTemplates(ComputeVirtualPoolsForm computeVirtualPool){
-      List<ComputeSystemRestRep> allComputes = Lists.newArrayList();
-      List<StringOption> templateList = Lists.newArrayList();
-      List<String> temps = Lists.newArrayList();
-      if (computeVirtualPool.id != null) {
-          ComputeVirtualPoolRestRep computePool = ComputeVirtualPoolUtils
-                  .getComputeVirtualPool(computeVirtualPool.id);      
-          for (NamedRelatedResourceRep tmp : computePool.getServiceProfileTemplates()) {
-              temps.add(tmp.getId().toString());
-          }
-      }
-      
-      Map<String,Set<String>> csTemplatesMap = new HashMap<String,Set<String>>();
-      Map<String,String> computeSystemsMap = new HashMap<String,String>();
-      Map<String,String> templatesMap = new HashMap<String,String>();
 
-      if (computeVirtualPool.virtualArrays != null) {       
-        for (String arrayId : computeVirtualPool.virtualArrays) {
-            List<ComputeSystemRestRep> arrayComputes = VirtualArrayUtils.getComputeSystems(uri(arrayId));
-            for (ComputeSystemRestRep comp : arrayComputes) {
-                for (ComputeSystemRestRep acomp : arrayComputes) {
-                    String compId = acomp.getId().toString();
-                    if (!computeSystemsMap.containsKey(compId)){
-                        computeSystemsMap.put(compId,acomp.getName());
-                    }
-                    Set<String> spts = csTemplatesMap.get(compId);
-                    if (spts==null){
-                        spts = new HashSet<String>();
-                    }
-                    for (NamedRelatedResourceRep spt : acomp.getServiceProfileTemplates()){
-                        spts.add(spt.getId().toString());
-                        if (!templatesMap.containsKey(spt.getId().toString())){
-                            templatesMap.put(spt.getId().toString(), spt.getName());
-                        }
-                    }
-                    csTemplatesMap.put(compId,spts);
-                }
-                
+    public static void getServiceProfileTemplates(ComputeVirtualPoolsForm computeVirtualPool) {
+        List<ComputeSystemRestRep> allComputes = Lists.newArrayList();
+        List<StringOption> templateList = Lists.newArrayList();
+        List<String> temps = Lists.newArrayList();
+        if (computeVirtualPool.id != null) {
+            ComputeVirtualPoolRestRep computePool = ComputeVirtualPoolUtils
+                    .getComputeVirtualPool(computeVirtualPool.id);
+            for (NamedRelatedResourceRep tmp : computePool.getServiceProfileTemplates()) {
+                temps.add(tmp.getId().toString());
             }
         }
 
-        for (Entry<String, Set<String>> comp: csTemplatesMap.entrySet()){
-            Set<String> compTemplates = comp.getValue();
-            if (compTemplates!=null && !compTemplates.isEmpty()){
-                String systemName = ComputeSystemTypes.getDisplayValue(ComputeSystemTypes.UCS) + " " + computeSystemsMap.get(comp);
-                computeVirtualPool.systems.add(new StringOption(comp.getKey(),systemName));
-                List<StringOption> templateOptions = Lists.newArrayList();
-                templateOptions.add(new StringOption("NONE",""));
-                for (String template : compTemplates){
-                    templateOptions.add(new StringOption(template,templatesMap.get(template)));
-                    if (!temps.isEmpty()){
-                        for (String templateId : temps){
-                            if (templateId.contains(template)){
-                                templateList.add(new StringOption(comp.getKey(),template));
+        Map<String, Set<String>> csTemplatesMap = new HashMap<String, Set<String>>();
+        Map<String, String> computeSystemsMap = new HashMap<String, String>();
+        Map<String, String> templatesMap = new HashMap<String, String>();
+
+        if (computeVirtualPool.virtualArrays != null) {
+            for (String arrayId : computeVirtualPool.virtualArrays) {
+                List<ComputeSystemRestRep> arrayComputes = VirtualArrayUtils.getComputeSystems(uri(arrayId));
+                for (ComputeSystemRestRep comp : arrayComputes) {
+                    for (ComputeSystemRestRep acomp : arrayComputes) {
+                        String compId = acomp.getId().toString();
+                        if (!computeSystemsMap.containsKey(compId)) {
+                            computeSystemsMap.put(compId, acomp.getName());
+                        }
+                        Set<String> spts = csTemplatesMap.get(compId);
+                        if (spts == null) {
+                            spts = new HashSet<String>();
+                        }
+                        for (NamedRelatedResourceRep spt : acomp.getServiceProfileTemplates()) {
+                            spts.add(spt.getId().toString());
+                            if (!templatesMap.containsKey(spt.getId().toString())) {
+                                templatesMap.put(spt.getId().toString(), spt.getName());
+                            }
+                        }
+                        csTemplatesMap.put(compId, spts);
+                    }
+
+                }
+            }
+
+            for (Entry<String, Set<String>> comp : csTemplatesMap.entrySet()) {
+                Set<String> compTemplates = comp.getValue();
+                if (compTemplates != null && !compTemplates.isEmpty()) {
+                    String systemName = ComputeSystemTypes.getDisplayValue(ComputeSystemTypes.UCS) + " " + computeSystemsMap.get(comp);
+                    computeVirtualPool.systems.add(new StringOption(comp.getKey(), systemName));
+                    List<StringOption> templateOptions = Lists.newArrayList();
+                    templateOptions.add(new StringOption("NONE", ""));
+                    for (String template : compTemplates) {
+                        templateOptions.add(new StringOption(template, templatesMap.get(template)));
+                        if (!temps.isEmpty()) {
+                            for (String templateId : temps) {
+                                if (templateId.contains(template)) {
+                                    templateList.add(new StringOption(comp.getKey(), template));
+                                }
                             }
                         }
                     }
+                    computeVirtualPool.systemOptions.put(comp.getKey(), templateOptions);
                 }
-                computeVirtualPool.systemOptions.put(comp.getKey(), templateOptions);
+
             }
 
-        }
-       
-        computeVirtualPool.selectedTemplates = "{}";
-        if (!templateList.isEmpty()) {
-            String jsonString = "{\"" ;
-            
-            for (int index = 0; index < templateList.size(); index++) {
-               if (jsonString.indexOf("urn")>0) {
-                   jsonString = jsonString + ",\"";
-               }                 
-             jsonString = jsonString + templateList.get(index).id + "\":\"" + templateList.get(index).name + "\"";
+            computeVirtualPool.selectedTemplates = "{}";
+            if (!templateList.isEmpty()) {
+                String jsonString = "{\"";
+
+                for (int index = 0; index < templateList.size(); index++) {
+                    if (jsonString.indexOf("urn") > 0) {
+                        jsonString = jsonString + ",\"";
+                    }
+                    jsonString = jsonString + templateList.get(index).id + "\":\"" + templateList.get(index).name + "\"";
+                }
+                jsonString = jsonString + "}";
+                computeVirtualPool.selectedTemplates = jsonString;
             }
-            jsonString = jsonString + "}";
-            computeVirtualPool.selectedTemplates = jsonString;
         }
-      } 
-      else {
-          computeVirtualPool.selectedTemplates = "{}";
-      }
-      render("@templates",computeVirtualPool);
-        
+        else {
+            computeVirtualPool.selectedTemplates = "{}";
+        }
+        render("@templates", computeVirtualPool);
+
     }
 
     public static void listComputeElementsJson(String cvpid, ComputeVirtualPoolsForm computeVirtualPool) {
@@ -395,24 +395,26 @@ public class ComputeVirtualPools extends ViprResourceController {
         List<ComputeVirtualElementInfo> results = Lists.newArrayList();
         computeVirtualPool.validateQualifiers("computeVirtualPool");
         if (Validation.hasErrors()) {
-            //cannot call the errorhandler from inside the json call
+            // cannot call the errorhandler from inside the json call
             Logger.info("has errors error: %s", Validation.errors().toString());
-        } 
+        }
         else {
             List<ComputeSystemRestRep> allComputes = ComputeSystemUtils.getComputeSystems();
             List<ComputeElementRestRep> allComputeElements = (List<ComputeElementRestRep>) ComputeSystemUtils
-                .getAllComputeElements();
+                    .getAllComputeElements();
 
             if (cvpid != null) {
                 ComputeVirtualPoolRestRep origComputePool = ComputeVirtualPoolUtils.getComputeVirtualPool(cvpid);
                 List<ComputeElementRestRep> assignedList = Lists.newArrayList();
-                //We always show the full list of matching elements - in case of manual - selected ones will be checked
-                List<ComputeElementRestRep> matchedElements = ComputeVirtualPoolUtils.listMatchingComputeElements(computeVirtualPool.createMatch());
-                //The returned list will not include any that are already assigned - 
-                //Check if the computePool is in use and using assigned  OR if using assigned from the current form - protecting against npe
-                if ( (isTrue(origComputePool.getInUse()) && isFalse(origComputePool.getUseMatchedElements()))
-                     || (StringUtils.isNotEmpty(computeVirtualPool.elementSelection) && computeVirtualPool.elementSelection.equalsIgnoreCase(PoolAssignmentTypes.MANUAL))
-                     || (StringUtils.isEmpty(computeVirtualPool.elementSelection) && isFalse(origComputePool.getUseMatchedElements())) ) {
+                // We always show the full list of matching elements - in case of manual - selected ones will be checked
+                List<ComputeElementRestRep> matchedElements = ComputeVirtualPoolUtils.listMatchingComputeElements(computeVirtualPool
+                        .createMatch());
+                // The returned list will not include any that are already assigned -
+                // Check if the computePool is in use and using assigned OR if using assigned from the current form - protecting against npe
+                if ((isTrue(origComputePool.getInUse()) && isFalse(origComputePool.getUseMatchedElements()))
+                        || (StringUtils.isNotEmpty(computeVirtualPool.elementSelection) && computeVirtualPool.elementSelection
+                                .equalsIgnoreCase(PoolAssignmentTypes.MANUAL))
+                        || (StringUtils.isEmpty(computeVirtualPool.elementSelection) && isFalse(origComputePool.getUseMatchedElements()))) {
                     ComputeElementListRestRep elementList = ComputeVirtualPoolUtils.getAssignedComputeElements(cvpid);
                     assignedList = elementList.getList();
                 }
@@ -424,25 +426,26 @@ public class ComputeVirtualPools extends ViprResourceController {
                             break;
                         }
                     }
-                    //make sure the element is part of this computevirtualpool      
+                    // make sure the element is part of this computevirtualpool
                     for (ComputeElementRestRep assignedElement : assignedList) {
                         if (assignedElement.getId().equals(element.getId())) {
-                             results.add(new ComputeVirtualElementInfo(element,
-                                element.getName(), computeSystemName));
-                             break;
+                            results.add(new ComputeVirtualElementInfo(element,
+                                    element.getName(), computeSystemName));
+                            break;
                         }
                     }
                     for (ComputeElementRestRep matchedElement : matchedElements) {
                         if (matchedElement.getId().equals(element.getId())) {
-                             results.add(new ComputeVirtualElementInfo(element,
-                                element.getName(), computeSystemName));
-                             break;
+                            results.add(new ComputeVirtualElementInfo(element,
+                                    element.getName(), computeSystemName));
+                            break;
                         }
                     }
-                }        
-            } 
+                }
+            }
             else {
-                List<ComputeElementRestRep> matchedElements = ComputeVirtualPoolUtils.listMatchingComputeElements(computeVirtualPool.createMatch());
+                List<ComputeElementRestRep> matchedElements = ComputeVirtualPoolUtils.listMatchingComputeElements(computeVirtualPool
+                        .createMatch());
                 for (ComputeElementRestRep elementA : allComputeElements) {
                     String computeSystemName = ": " + elementA.getName();
                     for (ComputeSystemRestRep compSys : allComputes) {
@@ -454,7 +457,7 @@ public class ComputeVirtualPools extends ViprResourceController {
                     for (ComputeElementRestRep elementM : matchedElements) {
                         if (elementM.getId().toString().equals(elementA.getId().toString())) {
                             results.add(new ComputeVirtualElementInfo(elementA,
-                              elementA.getName(), computeSystemName));
+                                    elementA.getName(), computeSystemName));
                         }
                     }
                 }
@@ -463,7 +466,6 @@ public class ComputeVirtualPools extends ViprResourceController {
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
 
-    
     public static class ComputeVirtualPoolsForm {
 
         public String id;
@@ -474,7 +476,7 @@ public class ComputeVirtualPools extends ViprResourceController {
         public String name;
 
         public String description;
-        
+
         public Integer minProcessors;
         public Integer maxProcessors;
         public Integer minTotalCores;
@@ -489,25 +491,25 @@ public class ComputeVirtualPools extends ViprResourceController {
         public Integer maxNics;
         public Integer minHbas;
         public Integer maxHbas;
-        
+
         public String systemType;
         public String elementSelection;
 
         public List<String> virtualArrays;
-        
+
         public Boolean enableTenants = Boolean.FALSE;
         public List<String> tenants = new ArrayList<String>();
-        
+
         public List<String> computeElements = Lists.newArrayList();;
 
         public List<StringOption> systems = Lists.newArrayList();
         public Map<String, List<StringOption>> systemOptions = Maps.newHashMap();
-        
+
         public String selectedTemplates;
         public Boolean useMatchedElements;
 
         public Boolean inUse;
-        
+
         public ComputeVirtualPoolsForm() {
         }
 
@@ -524,7 +526,7 @@ public class ComputeVirtualPools extends ViprResourceController {
             this.minTotalThreads = computeVirtualPool.getMinTotalThreads();
             this.maxTotalThreads = computeVirtualPool.getMaxTotalThreads();
             this.minCpuSpeed = computeVirtualPool.getMinCpuSpeed();
-            this.maxCpuSpeed = computeVirtualPool.getMaxCpuSpeed(); 
+            this.maxCpuSpeed = computeVirtualPool.getMaxCpuSpeed();
             this.minMemory = computeVirtualPool.getMinMemory();
             this.maxMemory = computeVirtualPool.getMaxMemory();
             this.minNics = computeVirtualPool.getMinNics();
@@ -532,14 +534,15 @@ public class ComputeVirtualPools extends ViprResourceController {
             this.minHbas = computeVirtualPool.getMinHbas();
             this.maxHbas = computeVirtualPool.getMaxHbas();
             this.systemType = computeVirtualPool.getSystemType();
-            
+
             this.virtualArrays = ResourceUtils.stringRefIds(computeVirtualPool.getVirtualArrays());
             this.useMatchedElements = computeVirtualPool.getUseMatchedElements();
             if (computeVirtualPool.getUseMatchedElements()) {
                 this.elementSelection = PoolAssignmentTypes.AUTOMATIC;
             } else {
                 this.elementSelection = PoolAssignmentTypes.MANUAL;
-                ComputeElementListRestRep elementList = ComputeVirtualPoolUtils.getAssignedComputeElements(computeVirtualPool.getId().toString());
+                ComputeElementListRestRep elementList = ComputeVirtualPoolUtils.getAssignedComputeElements(computeVirtualPool.getId()
+                        .toString());
                 for (ComputeElementRestRep ce : elementList.getList()) {
                     this.computeElements.add(ce.getId().toString());
                 }
@@ -562,28 +565,29 @@ public class ComputeVirtualPools extends ViprResourceController {
                 this.enableTenants = true;
             }
         }
-        
-        
+
         public ComputeVirtualPoolRestRep save() {
             ComputeVirtualPoolRestRep computeVirtualPool;
             if (isNew()) {
                 computeVirtualPool = create();
                 this.id = ResourceUtils.stringId(computeVirtualPool);
-                //return create();
+                // return create();
             } else {
                 computeVirtualPool = update();
-                //return update();
+                // return update();
             }
             computeVirtualPool = saveComputeElements(computeVirtualPool);
             return computeVirtualPool;
         }
+
         @SuppressWarnings("unchecked")
         private ComputeVirtualPoolRestRep update() {
             ComputeVirtualPoolUpdateParam param = new ComputeVirtualPoolUpdateParam();
             ComputeVirtualPoolRestRep oldComputePool = ComputeVirtualPoolUtils.getComputeVirtualPool(id);
             param.setName(this.name);
             param.setDescription(StringUtils.trimToNull(this.description));
-            //when the virtualComputePool is inuse - keep the setting the same since we don't allow them to change it - protecting against npe
+            // when the virtualComputePool is inuse - keep the setting the same since we don't allow them to change it - protecting against
+            // npe
             if (oldComputePool.getInUse() || StringUtils.isEmpty(this.elementSelection)) {
                 param.setUseMatchedElements(oldComputePool.getUseMatchedElements());
             }
@@ -595,7 +599,7 @@ public class ComputeVirtualPools extends ViprResourceController {
                 }
             }
 
-            setUpdateQualifiers(oldComputePool,param);
+            setUpdateQualifiers(oldComputePool, param);
             List<String> newArrays = Lists.newArrayList();
             if (this.virtualArrays != null) {
                 for (String vaobj : this.virtualArrays) {
@@ -614,18 +618,19 @@ public class ComputeVirtualPools extends ViprResourceController {
             }
             param.setVarrayChanges(changes);
             List<String> templates = Lists.newArrayList();
-            if (this.selectedTemplates.indexOf("urn")>0) {
-                //when qualifiers change but selectedTemplates do not - fix the selectedTemplate string
-                if (this.selectedTemplates.indexOf(",")==0) {
+            if (this.selectedTemplates.indexOf("urn") > 0) {
+                // when qualifiers change but selectedTemplates do not - fix the selectedTemplate string
+                if (this.selectedTemplates.indexOf(",") == 0) {
                     this.selectedTemplates = this.selectedTemplates.substring(1);
                 }
-                //HashMap<String, String> map = (HashMap<String, String>) JSON.parse(this.selectedTemplates);
+                // HashMap<String, String> map = (HashMap<String, String>) JSON.parse(this.selectedTemplates);
                 try {
-                    String jsonString = this.selectedTemplates.substring(0,this.selectedTemplates.indexOf("}")+1);
+                    String jsonString = this.selectedTemplates.substring(0, this.selectedTemplates.indexOf("}") + 1);
                     Gson gson = new Gson();
-                    Type type = new TypeToken<Map<String, String>>(){}.getType();
+                    Type type = new TypeToken<Map<String, String>>() {
+                    }.getType();
                     Map<String, String> map = gson.fromJson(jsonString, type);
-                    
+
                     for (Iterator<String> it = map.values().iterator(); it.hasNext();) {
                         Object value = it.next();
                         if (!(value.equals("NONE"))) {
@@ -655,7 +660,7 @@ public class ComputeVirtualPools extends ViprResourceController {
             ComputeVirtualPoolCreateParam param = new ComputeVirtualPoolCreateParam();
             param.setName(StringUtils.trimToNull(this.name));
             param.setDescription(StringUtils.trimToNull(this.description));
-            param.setSystemType("Cisco_UCSM"); //StringUtils.defaultIfEmpty(systemType, ComputeSystemTypes.UCS));
+            param.setSystemType("Cisco_UCSM"); // StringUtils.defaultIfEmpty(systemType, ComputeSystemTypes.UCS));
             if (virtualArrays != null) {
                 param.setVarrays(Sets.newHashSet(virtualArrays));
             }
@@ -683,14 +688,15 @@ public class ComputeVirtualPools extends ViprResourceController {
                 param.setUseMatchedElements(true);
             }
             List<String> templates = Lists.newArrayList();
-            if (this.selectedTemplates.indexOf("urn")>0) {           
-                //HashMap<String, String> map = (HashMap<String, String>) JSON.parse(this.selectedTemplates);
+            if (this.selectedTemplates.indexOf("urn") > 0) {
+                // HashMap<String, String> map = (HashMap<String, String>) JSON.parse(this.selectedTemplates);
                 try {
-                    String jsonString = this.selectedTemplates.substring(0,this.selectedTemplates.indexOf("}")+1);
+                    String jsonString = this.selectedTemplates.substring(0, this.selectedTemplates.indexOf("}") + 1);
                     Gson gson = new Gson();
-                    Type type = new TypeToken<Map<String, String>>(){}.getType();
+                    Type type = new TypeToken<Map<String, String>>() {
+                    }.getType();
                     Map<String, String> map = gson.fromJson(jsonString, type);
-                    
+
                     for (Iterator<String> it = map.values().iterator(); it.hasNext();) {
                         Object value = it.next();
                         if (!(value.equals("NONE"))) {
@@ -711,7 +717,7 @@ public class ComputeVirtualPools extends ViprResourceController {
             ComputeVirtualPoolCreateParam param = new ComputeVirtualPoolCreateParam();
             param.setName(StringUtils.trimToNull(this.name));
             param.setDescription(StringUtils.trimToNull(this.description));
-            param.setSystemType("Cisco_UCSM"); //StringUtils.defaultIfEmpty(systemType, ComputeSystemTypes.UCS));
+            param.setSystemType("Cisco_UCSM"); // StringUtils.defaultIfEmpty(systemType, ComputeSystemTypes.UCS));
             if (virtualArrays != null) {
                 param.setVarrays(Sets.newHashSet(virtualArrays));
             }
@@ -733,12 +739,13 @@ public class ComputeVirtualPools extends ViprResourceController {
             param.setMaxNics(this.maxNics);
             param.setMinHbas(this.minHbas);
             param.setMaxHbas(this.maxHbas);
-               param.setUseMatchedElements(true);
+            param.setUseMatchedElements(true);
 
             return param;
         }
+
         private void setUpdateQualifiers(ComputeVirtualPoolRestRep oldComputePool, ComputeVirtualPoolUpdateParam param) {
-            //send all qualifiers (changed or not)
+            // send all qualifiers (changed or not)
             param.setMinProcessors(this.minProcessors);
             param.setMaxProcessors(this.maxProcessors);
             param.setMinTotalCores(this.minTotalCores);
@@ -753,13 +760,13 @@ public class ComputeVirtualPools extends ViprResourceController {
             param.setMaxNics(this.maxNics);
             param.setMinHbas(this.minHbas);
             param.setMaxHbas(this.maxHbas);
-        }        
-        
+        }
+
         /**
          * Saves the compute elements associated with the given virtual compute pool.
          * 
          * @param pool
-         *        the virtual pool.
+         *            the virtual pool.
          */
         public ComputeVirtualPoolRestRep saveComputeElements(ComputeVirtualPoolRestRep pool) {
             Set<String> oldValues = Sets.newHashSet(ResourceUtils.stringRefIds(pool.getMatchedComputeElements()));
@@ -777,113 +784,116 @@ public class ComputeVirtualPools extends ViprResourceController {
                 pool = updateComputeElements(add, remove);
             }
             return pool;
-        }        
+        }
+
         public ComputeVirtualPoolRestRep updateComputeElements(Set<String> add, Set<String> remove) {
             return ComputeVirtualPoolUtils.updateAssignedComputeElements(id, add, remove);
-        }        
+        }
+
         public void validate(String fieldName) {
             Validation.valid(fieldName, this);
             validateQualifiers(fieldName);
         }
+
         public void validateQualifiers(String fieldName) {
-            if (this.minProcessors !=null && (this.minProcessors <=0 || this.minProcessors>65535)) {
+            if (this.minProcessors != null && (this.minProcessors <= 0 || this.minProcessors > 65535)) {
                 Validation.addError(fieldName + ".minProcessors",
-                    MessagesUtils.get("computeVirtualPool.range"));
+                        MessagesUtils.get("computeVirtualPool.range"));
             }
-            if (this.maxProcessors !=null && (this.maxProcessors <=0 || this.maxProcessors>65535)) {
+            if (this.maxProcessors != null && (this.maxProcessors <= 0 || this.maxProcessors > 65535)) {
                 Validation.addError(fieldName + ".maxProcessors",
-                    MessagesUtils.get("computeVirtualPool.range"));
+                        MessagesUtils.get("computeVirtualPool.range"));
             }
-            if (this.minTotalCores !=null && (this.minTotalCores <=0 || this.minTotalCores>65535)) {
+            if (this.minTotalCores != null && (this.minTotalCores <= 0 || this.minTotalCores > 65535)) {
                 Validation.addError(fieldName + ".minTotalCores",
-                    MessagesUtils.get("computeVirtualPool.range"));
+                        MessagesUtils.get("computeVirtualPool.range"));
             }
-            if (this.maxTotalCores !=null && (this.maxTotalCores <=0 || this.maxTotalCores>65535)) {
+            if (this.maxTotalCores != null && (this.maxTotalCores <= 0 || this.maxTotalCores > 65535)) {
                 Validation.addError(fieldName + ".maxTotalCores",
-                    MessagesUtils.get("computeVirtualPool.range"));
+                        MessagesUtils.get("computeVirtualPool.range"));
             }
-            if (this.minTotalThreads !=null && (this.minTotalThreads <=0 || this.minTotalThreads>65535)) {
+            if (this.minTotalThreads != null && (this.minTotalThreads <= 0 || this.minTotalThreads > 65535)) {
                 Validation.addError(fieldName + ".minTotalThreads",
-                    MessagesUtils.get("computeVirtualPool.range"));
+                        MessagesUtils.get("computeVirtualPool.range"));
             }
-            if (this.maxTotalThreads !=null && (this.maxTotalThreads <=0 || this.maxTotalThreads>65535)) {
+            if (this.maxTotalThreads != null && (this.maxTotalThreads <= 0 || this.maxTotalThreads > 65535)) {
                 Validation.addError(fieldName + ".maxTotalThreads",
-                    MessagesUtils.get("computeVirtualPool.range"));
+                        MessagesUtils.get("computeVirtualPool.range"));
             }
-            if (this.minCpuSpeed !=null && (this.minCpuSpeed <=0 || this.minCpuSpeed>65535)) {
+            if (this.minCpuSpeed != null && (this.minCpuSpeed <= 0 || this.minCpuSpeed > 65535)) {
                 Validation.addError(fieldName + ".minCpuSpeed",
-                    MessagesUtils.get("computeVirtualPool.range"));
+                        MessagesUtils.get("computeVirtualPool.range"));
             }
-            if (this.maxCpuSpeed !=null && (this.maxCpuSpeed <=0 || this.maxCpuSpeed >65535)) {
+            if (this.maxCpuSpeed != null && (this.maxCpuSpeed <= 0 || this.maxCpuSpeed > 65535)) {
                 Validation.addError(fieldName + ".maxCpuSpeed",
-                    MessagesUtils.get("computeVirtualPool.range"));
-            }            
-            if (this.minMemory !=null && (this.minMemory <=0 || this.minMemory>65535)) {
+                        MessagesUtils.get("computeVirtualPool.range"));
+            }
+            if (this.minMemory != null && (this.minMemory <= 0 || this.minMemory > 65535)) {
                 Validation.addError(fieldName + ".minMemory",
-                    MessagesUtils.get("computeVirtualPool.range"));
+                        MessagesUtils.get("computeVirtualPool.range"));
             }
-            if (this.maxMemory !=null && (this.maxMemory <=0 || this.maxMemory>65535)) {
+            if (this.maxMemory != null && (this.maxMemory <= 0 || this.maxMemory > 65535)) {
                 Validation.addError(fieldName + ".maxMemory",
-                    MessagesUtils.get("computeVirtualPool.range"));
+                        MessagesUtils.get("computeVirtualPool.range"));
             }
-            if (this.minNics !=null && (this.minNics <=0 || this.minNics>65535)) {
+            if (this.minNics != null && (this.minNics <= 0 || this.minNics > 65535)) {
                 Validation.addError(fieldName + ".minNics",
-                    MessagesUtils.get("computeVirtualPool.range"));
+                        MessagesUtils.get("computeVirtualPool.range"));
             }
-            if (this.maxNics !=null && (this.maxNics <=0 || this.maxNics>65535)) {
+            if (this.maxNics != null && (this.maxNics <= 0 || this.maxNics > 65535)) {
                 Validation.addError(fieldName + ".maxNics",
-                    MessagesUtils.get("computeVirtualPool.range"));
-            }            
-            if (this.minHbas !=null && (this.minHbas <=0 || this.minHbas>65535)) {
-                Validation.addError(fieldName + ".minHbas",
-                    MessagesUtils.get("computeVirtualPool.range"));
+                        MessagesUtils.get("computeVirtualPool.range"));
             }
-            if (this.maxHbas !=null && (this.maxHbas <=0 || this.maxHbas>65535)) {
+            if (this.minHbas != null && (this.minHbas <= 0 || this.minHbas > 65535)) {
+                Validation.addError(fieldName + ".minHbas",
+                        MessagesUtils.get("computeVirtualPool.range"));
+            }
+            if (this.maxHbas != null && (this.maxHbas <= 0 || this.maxHbas > 65535)) {
                 Validation.addError(fieldName + ".maxHbas",
-                    MessagesUtils.get("computeVirtualPool.range"));
-            } 
-            if (this.minProcessors !=null && this.maxProcessors !=null && this.minProcessors>this.maxProcessors) {
+                        MessagesUtils.get("computeVirtualPool.range"));
+            }
+            if (this.minProcessors != null && this.maxProcessors != null && this.minProcessors > this.maxProcessors) {
                 Validation.addError(fieldName + ".minProcessors",
                         MessagesUtils.get("computeVirtualPool.minAndmax"));
                 Validation.addError(fieldName + ".maxProcessors",
                         MessagesUtils.get("computeVirtualPool.minAndmax"));
-            }            
-            if (this.minTotalCores !=null && this.maxTotalCores !=null && this.minTotalCores>this.maxTotalCores) {
+            }
+            if (this.minTotalCores != null && this.maxTotalCores != null && this.minTotalCores > this.maxTotalCores) {
                 Validation.addError(fieldName + ".minTotalCores",
                         MessagesUtils.get("computeVirtualPool.minAndmax"));
                 Validation.addError(fieldName + ".maxTotalCores",
                         MessagesUtils.get("computeVirtualPool.minAndmax"));
-            }  
-            if (this.minTotalThreads !=null && this.maxTotalThreads !=null && this.minTotalThreads>this.maxTotalThreads) {
+            }
+            if (this.minTotalThreads != null && this.maxTotalThreads != null && this.minTotalThreads > this.maxTotalThreads) {
                 Validation.addError(fieldName + ".minTotalThreads",
                         MessagesUtils.get("computeVirtualPool.minAndmax"));
                 Validation.addError(fieldName + ".maxTotalThreads",
                         MessagesUtils.get("computeVirtualPool.minAndmax"));
-            }            
-            if (this.minCpuSpeed !=null && this.maxCpuSpeed !=null && this.minCpuSpeed>this.maxCpuSpeed) {
+            }
+            if (this.minCpuSpeed != null && this.maxCpuSpeed != null && this.minCpuSpeed > this.maxCpuSpeed) {
                 Validation.addError(fieldName + ".minCpuSpeed",
                         MessagesUtils.get("computeVirtualPool.minAndmax"));
                 Validation.addError(fieldName + ".maxCpuSpeed",
                         MessagesUtils.get("computeVirtualPool.minAndmax"));
-            }  
-            if (this.minMemory !=null && this.maxMemory !=null && this.minMemory>this.maxMemory) {
+            }
+            if (this.minMemory != null && this.maxMemory != null && this.minMemory > this.maxMemory) {
                 Validation.addError(fieldName + ".minMemory",
                         MessagesUtils.get("computeVirtualPool.minAndmax"));
                 Validation.addError(fieldName + ".maxMemory",
                         MessagesUtils.get("computeVirtualPool.minAndmax"));
-            }  
-            if (this.minNics !=null && this.maxNics !=null && this.minNics>this.maxNics) {
+            }
+            if (this.minNics != null && this.maxNics != null && this.minNics > this.maxNics) {
                 Validation.addError(fieldName + ".minNics",
                         MessagesUtils.get("computeVirtualPool.minAndmax"));
                 Validation.addError(fieldName + ".maxNics",
                         MessagesUtils.get("computeVirtualPool.minAndmax"));
-            }            
-            if (this.minHbas !=null && this.maxHbas !=null && this.minHbas>this.maxHbas) {
+            }
+            if (this.minHbas != null && this.maxHbas != null && this.minHbas > this.maxHbas) {
                 Validation.addError(fieldName + ".minHbas",
                         MessagesUtils.get("computeVirtualPool.minAndmax"));
                 Validation.addError(fieldName + ".maxHbas",
                         MessagesUtils.get("computeVirtualPool.minAndmax"));
-            } 
+            }
         }
 
         public Map<String, Set<String>> getVirtualPoolAttributes() {
@@ -900,14 +910,14 @@ public class ComputeVirtualPools extends ViprResourceController {
         }
 
         public Map<String, Set<String>> getTemplateAttributes(List<String> templateInfo) {
- 
+
             Map<String, Set<String>> attrs = Maps.newHashMap();
             attrs.put("templateOptions", Sets.newHashSet(templateInfo));
             attrs.get("templateOptions").add(DriveTypes.NONE);
 
             return attrs;
         }
-        
+
     }
 
     protected static class JsonItemOperation implements
@@ -919,14 +929,13 @@ public class ComputeVirtualPools extends ViprResourceController {
         }
     }
 
-    
     public static void listVirtualArrayAttributesJson(ComputeVirtualPoolsForm computeVirtualPool) {
         if (computeVirtualPool == null) {
             renderJSON(Collections.emptyList());
         }
-        renderJSON(computeVirtualPool.getVirtualPoolAttributes());//NOSONAR ("Suppressing Sonar violation of Possible null pointer deference of computeVirtualPool")
+        renderJSON(computeVirtualPool.getVirtualPoolAttributes());// NOSONAR
+                                                                  // ("Suppressing Sonar violation of Possible null pointer deference of computeVirtualPool")
     }
-
 
     private static void addDynamicOptions(ComputeVirtualPoolsForm vpool) {
         renderArgs.put("virtualArrayOptions", dataObjectOptions(VirtualArrayUtils.getVirtualArrays()));
@@ -934,14 +943,14 @@ public class ComputeVirtualPools extends ViprResourceController {
             addDataObjectOptions("tenantOptions", new TenantsCall().asPromise());
         }
     }
-    
+
     private static void addStaticOptions() {
         renderArgs.put("poolAssignmentOptions", PoolAssignmentTypes.options(
                 PoolAssignmentTypes.AUTOMATIC,
                 PoolAssignmentTypes.MANUAL
-        ));        
+                ));
     }
-    
+
     protected static class DeleteOperation implements ResourceIdOperation<Void> {
         @Override
         public Void performOperation(URI id) throws Exception {
@@ -949,5 +958,5 @@ public class ComputeVirtualPools extends ViprResourceController {
             return null;
         }
     }
-   
+
 }

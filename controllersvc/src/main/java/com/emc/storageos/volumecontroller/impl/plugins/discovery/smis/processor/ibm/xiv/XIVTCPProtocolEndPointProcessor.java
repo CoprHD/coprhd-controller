@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.ibm.xiv;
 
@@ -37,7 +27,7 @@ public class XIVTCPProtocolEndPointProcessor extends StorageEndPointProcessor {
     private DbClient _dbClient;
     private static final String PORTNUMBER = "portNumber";
     private List<Object> args;
-    
+
     @Override
     public void processResult(
             Operation operation, Object resultObj, Map<String, Object> keyMap)
@@ -52,7 +42,7 @@ public class XIVTCPProtocolEndPointProcessor extends StorageEndPointProcessor {
                 try {
                     tcpPointInstance = it.next();
                     String portInstanceID = getObjectPathfromCIMArgument(args).toString();
-                    port = _dbClient.queryObject(StoragePort.class, (URI)keyMap.get(portInstanceID));
+                    port = _dbClient.queryObject(StoragePort.class, (URI) keyMap.get(portInstanceID));
                     updateTCPEndPointDetails(port, tcpPointInstance);
                 } catch (Exception e) {
                     _logger.warn("Port TCP End Point Discovery failed for {}-->{}", "",

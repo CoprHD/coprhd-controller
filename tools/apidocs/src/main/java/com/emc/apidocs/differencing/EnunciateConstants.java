@@ -1,9 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.apidocs.differencing;
-
 
 import javax.xml.xpath.XPathExpression;
 
@@ -30,7 +29,6 @@ public class EnunciateConstants {
     public static XPathExpression RESOURCE_PATH = XMLUtils.getXPath("@name");
     public static XPathExpression RESOURCE_REQUEST_ELEMENT_TYPE = XMLUtils.getXPath("operation/inValue/xmlElement/@elementName");
     public static XPathExpression RESOURCE_RESPONSE_ELEMENT_TYPE = XMLUtils.getXPath("operation/outValue/xmlElement/@elementName");
-
 
     public static XPathExpression GROUP = XMLUtils.getXPath("groups/group");
 }

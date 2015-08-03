@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.ibm.xiv;
 
@@ -92,21 +82,21 @@ public class XIVSupportedCopyTypesProcessor extends PoolProcessor {
         StringSet set = new StringSet();
         for (UnsignedInteger16 n : copyTypes) {
             switch (n.intValue()) {
-            case Constants.ASYNC_COPY_TYPE:
-                set.add(StoragePool.CopyTypes.ASYNC.name());
-                break;
-            case Constants.SYNC_COPY_TYPE:
-                set.add(StoragePool.CopyTypes.SYNC.name());
-                break;
-            case Constants.UNSYNC_ASSOC_COPY_TYPE:
-                set.add(StoragePool.CopyTypes.UNSYNC_ASSOC.name());
-                break;
-            case Constants.UNSYNC_UNASSOC_COPY_TYPE:
-                set.add(StoragePool.CopyTypes.UNSYNC_UNASSOC.name());
-                break;
-            default:
-                _log.warn("Encountered unknown copy type {} for pool {}",
-                        n.intValue(), storagePool.getId());
+                case Constants.ASYNC_COPY_TYPE:
+                    set.add(StoragePool.CopyTypes.ASYNC.name());
+                    break;
+                case Constants.SYNC_COPY_TYPE:
+                    set.add(StoragePool.CopyTypes.SYNC.name());
+                    break;
+                case Constants.UNSYNC_ASSOC_COPY_TYPE:
+                    set.add(StoragePool.CopyTypes.UNSYNC_ASSOC.name());
+                    break;
+                case Constants.UNSYNC_UNASSOC_COPY_TYPE:
+                    set.add(StoragePool.CopyTypes.UNSYNC_UNASSOC.name());
+                    break;
+                default:
+                    _log.warn("Encountered unknown copy type {} for pool {}",
+                            n.intValue(), storagePool.getId());
             }
         }
 

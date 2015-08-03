@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.netapp;
@@ -10,7 +10,7 @@ import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
-@SuppressWarnings({"squid:S00100"})
+@SuppressWarnings({ "squid:S00100" })
 /**
  * This interface holds all the methods used to create {@link NetAppException}s
  * <p/>
@@ -26,22 +26,22 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
  */
 @MessageBundle
 public interface NetAppExceptions {
-	
+
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
-        public NetAppException createFSFailed(final String fsName, final String message);
-    
+    public NetAppException createFSFailed(final String fsName, final String message);
+
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException deleteFSFailed(final String volName,
             final String ip, final String message);
-  
+
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
-        public NetAppException deleteNFSFailed(final String volName,
-                final String ip, final String message);
-	
+    public NetAppException deleteNFSFailed(final String volName,
+            final String ip, final String message);
+
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException exportFSFailed(final String mountPath,
             final String exportPath, final String message);
-    
+
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException unexportFSFailed(final String mountPath,
             final String exportPath, final String message);
@@ -57,7 +57,7 @@ public interface NetAppExceptions {
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException setVolumeSizeFailed(final String volume, final String size);
-    
+
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException setVolumeQtreeModeFailed(final String volumePath, final String mode);
 
@@ -71,38 +71,37 @@ public interface NetAppExceptions {
     public NetAppException systemInfoFailed(final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
-    public NetAppException createSnapshotFailed(final String volumeName, 
+    public NetAppException createSnapshotFailed(final String volumeName,
             final String snapshotName, final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
-    public NetAppException deleteSnapshotFailed(final String volumeName, 
+    public NetAppException deleteSnapshotFailed(final String volumeName,
             final String snapshotName, final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
-    public NetAppException restoreSnapshotFailed(final String volumeName, 
+    public NetAppException restoreSnapshotFailed(final String volumeName,
             final String snapshotName, final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
-    public NetAppException doShareFailed(final String mountPath, 
+    public NetAppException doShareFailed(final String mountPath,
             final String shareName, final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
-    public NetAppException	modifyShareFailed(final String ip, final String message);
+    public NetAppException modifyShareFailed(final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException deleteShareFailed(final String ip, final String message);
-  
+
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException modifyShareNameFailed(final String shareName,
             final String ip, final String message);
-    
-    
+
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException modifyCifsShareAclFailed(final String shareName, final String message);
-    
+
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException listCIFSShareAclFailed(final String shareName, final String message);
-    
+
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException deleteCIFSShareAclFailed(final String shareName, final String message);
 
@@ -112,24 +111,24 @@ public interface NetAppExceptions {
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException statisticsCollectionfailed(final URI storageSystemId, final Throwable e);
-    
+
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException listFileSystems(final String ip, final String message);
-    
+
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException getFileSystemInfo(final String fileSystem,
             final String ip, final String message);
-    
+
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException collectStatsFailed(final String ip,
             final String type, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException discoveryFailed(final String ip, final Throwable e);
-    
+
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException createQtreeFailed(final String QtreeName, final String message);
-    
+
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException deleteQtreeFailed(final String QtreeName, final String message);
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.server.upgrade.util.callbacks2;
 
@@ -32,17 +22,17 @@ public class Resource5Initializer extends BaseTestCustomMigrationCallback {
     public static final int COUNT = 10;
 
     @Override
-    public void process(){
+    public void process() {
         DbClient dbClient = getDbClient();
-        for (int i=0; i <COUNT ; i++) {
+        for (int i = 0; i < COUNT; i++) {
             Resource5 res5 = new Resource5();
             res5.setId(URIUtil.createId(Resource5.class));
             dbClient.createObject(res5);
         }
     }
-    
+
     @Override
-    public void verify(){
+    public void verify() {
         DbClient dbClient = getDbClient();
         List<URI> res5Ids = dbClient.queryByType(Resource5.class, false);
         Iterator<Resource5> res5Objs =
@@ -56,4 +46,3 @@ public class Resource5Initializer extends BaseTestCustomMigrationCallback {
         Assert.assertEquals(COUNT, count);
     }
 }
-

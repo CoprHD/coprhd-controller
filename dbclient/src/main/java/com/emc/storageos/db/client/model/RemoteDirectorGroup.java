@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -10,35 +10,35 @@ import com.emc.storageos.model.valid.EnumType;
 import com.google.common.base.Objects;
 
 @Cf("RemoteDirectorGroup")
-public class RemoteDirectorGroup extends DiscoveredDataObject{
+public class RemoteDirectorGroup extends DiscoveredDataObject {
     private String sourceGroupId;
-    
+
     private String remoteGroupId;
-    
+
     private URI sourcePort;
-    
+
     private URI remotePort;
-    
+
     private StringSet volumes;
-    
+
     private URI sourceStorageSystemUri;
-    
+
     private URI remoteStorageSystemUri;
-    
+
     private Boolean active;
-    
+
     private String supportedCopyMode;
-    
+
     private String connectivityStatus;
-    
+
     private String copyState;
-    
+
     private Boolean supported = true;
-       
+
     private String sourceReplicationGroupName;
-    
-    private String targetReplicationGroupName; 
-    
+
+    private String targetReplicationGroupName;
+
     public enum CopyStates {
         CONSISTENT,
         IN_CONSISTENT
@@ -46,13 +46,13 @@ public class RemoteDirectorGroup extends DiscoveredDataObject{
 
     public enum ConnectivityStatus {
         UP("2"),
-        DOWN ("3"),
+        DOWN("3"),
         PARTITIONED("4"),
-        UNKNOWN ("0");
+        UNKNOWN("0");
 
         private String statusIdentifier;
 
-        private static final ConnectivityStatus[] copyValues  = values();
+        private static final ConnectivityStatus[] copyValues = values();
 
         ConnectivityStatus(String identifier) {
             statusIdentifier = identifier;
@@ -61,8 +61,8 @@ public class RemoteDirectorGroup extends DiscoveredDataObject{
         public String getIdentifier() {
             return statusIdentifier;
         }
-        
-        public static String getConnectivityStatus (String identifier) {
+
+        public static String getConnectivityStatus(String identifier) {
             for (ConnectivityStatus status : copyValues) {
                 if (status.getIdentifier().equalsIgnoreCase(identifier)) {
                     return status.name();
@@ -71,26 +71,26 @@ public class RemoteDirectorGroup extends DiscoveredDataObject{
             return null;
         }
     }
-    
+
     public enum SupportedCopyModes {
         SYNCHRONOUS("2"),
         ASYNCHRONOUS("3"),
         UNKNOWN("0"),
         ADAPTIVECOPY("32768"),
         ALL("-1,32769,32770");
-        
+
         private String modeIdentifier;
-        
+
         private static final SupportedCopyModes[] copyModes = values();
-        
+
         private SupportedCopyModes(String identifier) {
-           modeIdentifier = identifier;
+            modeIdentifier = identifier;
         }
-        
+
         public String getIdentifier() {
             return modeIdentifier;
         }
-        
+
         public static String getCopyMode(String identifier) {
             for (SupportedCopyModes mode : copyModes) {
                 if (mode.getIdentifier().contains(identifier)) {
@@ -100,8 +100,7 @@ public class RemoteDirectorGroup extends DiscoveredDataObject{
             return UNKNOWN.name();
         }
     }
-    
-    
+
     @Name("sourceGroupId")
     public String getSourceGroupId() {
         return sourceGroupId;
@@ -112,7 +111,6 @@ public class RemoteDirectorGroup extends DiscoveredDataObject{
         setChanged("sourceGroupId");
     }
 
-   
     @Name("remoteGroupId")
     public String getRemoteGroupId() {
         return remoteGroupId;
@@ -122,7 +120,7 @@ public class RemoteDirectorGroup extends DiscoveredDataObject{
         this.remoteGroupId = remoteGroupId;
         setChanged("remoteGroupId");
     }
-    
+
     @Name("remotePortUri")
     public URI getRemotePort() {
         return remotePort;
@@ -132,7 +130,7 @@ public class RemoteDirectorGroup extends DiscoveredDataObject{
         this.remotePort = remotePort;
         setChanged("remotePortUri");
     }
-    
+
     @Name("sourcePortUri")
     public URI getSourcePort() {
         return sourcePort;
@@ -142,7 +140,7 @@ public class RemoteDirectorGroup extends DiscoveredDataObject{
         this.sourcePort = sourcePort;
         setChanged("sourcePortUri");
     }
-    
+
     @Name("volumes")
     public StringSet getVolumes() {
         return volumes;
@@ -150,10 +148,10 @@ public class RemoteDirectorGroup extends DiscoveredDataObject{
 
     public void setVolumes(StringSet volumes) {
         this.volumes = volumes;
-       
+
     }
- 
-    @RelationIndex(cf = "RelationIndex" , type = StorageSystem.class)
+
+    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
     @Name("sourceStorageSystem")
     public URI getSourceStorageSystemUri() {
         return sourceStorageSystemUri;
@@ -163,8 +161,7 @@ public class RemoteDirectorGroup extends DiscoveredDataObject{
         this.sourceStorageSystemUri = sourceStorageSystemUri;
         setChanged("sourceStorageSystem");
     }
-    
-    
+
     @Name("remoteStorageSystem")
     public URI getRemoteStorageSystemUri() {
         return remoteStorageSystemUri;
@@ -174,9 +171,7 @@ public class RemoteDirectorGroup extends DiscoveredDataObject{
         this.remoteStorageSystemUri = remoteStorageSystemUri;
         setChanged("remoteStorageSystem");
     }
-    
-  
-    
+
     @Name("active")
     public Boolean getActive() {
         return active;
@@ -208,7 +203,7 @@ public class RemoteDirectorGroup extends DiscoveredDataObject{
         this.supportedCopyMode = supportedCopyMode;
         setChanged("supportedCopyMode");
     }
-    
+
     @Name("copyState")
     public String getCopyState() {
         return copyState;
@@ -218,7 +213,6 @@ public class RemoteDirectorGroup extends DiscoveredDataObject{
         this.copyState = copyState;
         setChanged("copyState");
     }
-
 
     @Override
     public String toString() {
@@ -238,14 +232,14 @@ public class RemoteDirectorGroup extends DiscoveredDataObject{
     }
 
     @Name("isSupported")
-	public Boolean getSupported() {
-		return supported;
-	}
+    public Boolean getSupported() {
+        return supported;
+    }
 
-	public void setSupported(Boolean isSupported) {
-		this.supported = isSupported;
-		setChanged("isSupported");
-	}
+    public void setSupported(Boolean isSupported) {
+        this.supported = isSupported;
+        setChanged("isSupported");
+    }
 
     @Name("sourceGroup")
     public String getSourceReplicationGroupName() {
@@ -265,5 +259,5 @@ public class RemoteDirectorGroup extends DiscoveredDataObject{
     public void setTargetReplicationGroupName(String targetReplicationGroupName) {
         this.targetReplicationGroupName = targetReplicationGroupName;
         setChanged("targetGroup");
-    }  
+    }
 }

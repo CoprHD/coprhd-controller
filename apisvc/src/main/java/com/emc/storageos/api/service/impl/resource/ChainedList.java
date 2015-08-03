@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.resource;
@@ -29,16 +19,16 @@ public class ChainedList<T> implements List<T> {
 
         @Override
         public boolean hasNext() {
-            
-        	if (_currentIt.hasNext()) {
+
+            if (_currentIt.hasNext()) {
                 return true;
             }
-            
+
             while (_iterators.hasNext()) {
-               _currentIt = _iterators.next();
-               if(_currentIt.hasNext()){
-            	   return true;
-               }
+                _currentIt = _iterators.next();
+                if (_currentIt.hasNext()) {
+                    return true;
+                }
             }
             return false;
         }
@@ -54,7 +44,7 @@ public class ChainedList<T> implements List<T> {
         }
     }
 
-    public ChainedList(Iterator<T> ...iterator) {
+    public ChainedList(Iterator<T>... iterator) {
         _iterators = Arrays.asList(iterator).iterator();
         _chained = new ChainedIterator();
     }

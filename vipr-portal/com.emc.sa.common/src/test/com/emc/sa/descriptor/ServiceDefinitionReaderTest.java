@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.descriptor;
@@ -42,11 +42,9 @@ public class ServiceDefinitionReaderTest {
         try {
             ServiceDefinitionReader reader = new ServiceDefinitionReader();
             return reader.readService(new ByteArrayInputStream(content.getBytes()));
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

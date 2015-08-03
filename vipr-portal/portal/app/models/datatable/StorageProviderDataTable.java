@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -56,18 +56,18 @@ public class StorageProviderDataTable extends DataTable {
     }
 
     private static String getManageUrl(StorageProviderRestRep storageProvider) {
-    	String manageUrl = storageProvider.getElementManagerURL();
-    	String prefix = !StringUtils.isEmpty(manageUrl) && !manageUrl.matches("^(https?)://.*$") ? "https://" : "";
-        if (StorageProviderTypes.SCALEIO.equals(storageProvider.getInterface())&&!StringUtils.isEmpty(manageUrl)) {
+        String manageUrl = storageProvider.getElementManagerURL();
+        String prefix = !StringUtils.isEmpty(manageUrl) && !manageUrl.matches("^(https?)://.*$") ? "https://" : "";
+        if (StorageProviderTypes.SCALEIO.equals(storageProvider.getInterface()) && !StringUtils.isEmpty(manageUrl)) {
             if (StringUtils.startsWith(storageProvider.getVersionString(), SUPPORTED_SCALEIO_DASHBOARD_VERSION)) {
                 return Common.reverseRoute(ScaleIO.class, "dashboard", "id", storageProvider.getId());
             } else if (StringUtils.startsWith(storageProvider.getVersionString(), SUPPORTED_SCALEIO_JNLP_VERSION)) {
-            	return String.format(SCALEIO_JNLP_URL, prefix + manageUrl);
+                return String.format(SCALEIO_JNLP_URL, prefix + manageUrl);
             }
         } else if (!StringUtils.isEmpty(manageUrl)) {
-        	return prefix + manageUrl;
+            return prefix + manageUrl;
         }
-        
+
         return "";
     }
 }

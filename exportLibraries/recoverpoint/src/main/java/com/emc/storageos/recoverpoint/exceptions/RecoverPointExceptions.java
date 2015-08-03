@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.recoverpoint.exceptions;
@@ -15,21 +15,18 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 /**
  * This interface holds all the methods used to create {@link RecoverPointException}s
  * <p/>
- * Remember to add the English message associated to the method in
- * RecoverPointExceptions.properties and use the annotation {@link DeclareServiceCode}
- * to set the service code associated to this error condition. You may need to
- * create a new service code if there is no an existing one suitable for your
- * error condition.
+ * Remember to add the English message associated to the method in RecoverPointExceptions.properties and use the annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
+ * is no an existing one suitable for your error condition.
  * <p/>
- * For more information or to see an example, check the Developers Guide section
- * in the Error Handling Wiki page:
+ * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
  * http://confluence.lab.voyence.com/display/OS/Error+Handling+Framework+and+Exceptions+in+ViPR
  */
 @MessageBundle
 public interface RecoverPointExceptions {
-	
-	@DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
-	public RecoverPointException errorCreatingServerURL(final String host, final int port, final Throwable e);	
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException errorCreatingServerURL(final String host, final int port, final Throwable e);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedConnectingForMonitoring(final URI systemId);
@@ -60,7 +57,7 @@ public interface RecoverPointExceptions {
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException exceptionGettingArrays(final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException invalidCrendentialsPassedIn(final String username, final String password);
 
@@ -99,7 +96,7 @@ public interface RecoverPointExceptions {
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToSetCopyAsProduction(final String cgCopyName, final String cgName, final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToResumeProtectionAfterRecover();
 
@@ -161,10 +158,10 @@ public interface RecoverPointExceptions {
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToAddReplicationSetInvalidCopySpecified(final String copyName);
-    
+
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToCreateConsistencyGroupCGExists(final String cgName);
-    
+
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException noWWNsFoundInRequest();
 
@@ -255,48 +252,48 @@ public interface RecoverPointExceptions {
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException nonsourceVolumeSpecified();
-    
+
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException anotherOperationInProgress(final String rpLabel, final String setLabel);
-    
+
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException notAllObjectsCouldBeRetrieved(final URI id);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
-	public RecoverPointException databaseExceptionActivateSnapshot(final URI protectionDevice);
+    public RecoverPointException databaseExceptionActivateSnapshot(final URI protectionDevice);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
-	public RecoverPointException databaseExceptionDeactivateSnapshot(final URI protectionDevice);
+    public RecoverPointException databaseExceptionDeactivateSnapshot(final URI protectionDevice);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
-	public RecoverPointException failedDisableAccessOnRP();
+    public RecoverPointException failedDisableAccessOnRP();
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
-	public RecoverPointException failedEnableAccessOnRP();
-    
+    public RecoverPointException failedEnableAccessOnRP();
+
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
-	public RecoverPointException noAssociatedRPSitesFound(final String address);
-    
+    public RecoverPointException noAssociatedRPSitesFound(final String address);
+
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
-	public RecoverPointException versionNotSupported(final String version,
+    public RecoverPointException versionNotSupported(final String version,
             final String minimumSupportedVersion);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException verifyVersionFailed(final String message, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
-	public RecoverPointException invalidUnlock(final String lockedName);
-    
+    public RecoverPointException invalidUnlock(final String lockedName);
+
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
-    public RecoverPointException cgCannotBeCreatedInvalidVolumeSizes(String sourceStorageSystemType, 
-    		String sourceVolumeSize, String targetStorageSystemType, String targetVolumeSizes);
-    
+    public RecoverPointException cgCannotBeCreatedInvalidVolumeSizes(String sourceStorageSystemType,
+            String sourceVolumeSize, String targetStorageSystemType, String targetVolumeSizes);
+
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException getInitiatorPortsForArrayFailed(String rpSystem, String targetStorage);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
-    public RecoverPointException didNotFindLocalRemoteCopyWWNs();    
-    
+    public RecoverPointException didNotFindLocalRemoteCopyWWNs();
+
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToDisableProtection(final long id, final Throwable cause);
 
@@ -308,12 +305,12 @@ public interface RecoverPointExceptions {
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToResumeProtection(final long id, final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToLookupConsistencyGroup(final String cgName, final Throwable cause);
 
-	@DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
-	public RecoverPointException discoveryFailure(final String string);
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException discoveryFailure(final String string);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException cgDeleteStepInvalidParam(final String string);

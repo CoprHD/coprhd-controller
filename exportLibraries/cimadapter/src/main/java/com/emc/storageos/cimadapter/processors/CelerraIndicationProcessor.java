@@ -1,13 +1,7 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
  */
-// Copyright 2012 by EMC Corporation ("EMC").
-//
-//UNPUBLISHED  CONFIDENTIAL  AND  PROPRIETARY  PROPERTY OF EMC. The copyright
-//notice above does not evidence any actual  or  intended publication of this
-//software. Disclosure and dissemination are pursuant to separate agreements.
-//Unauthorized use, distribution or dissemination are strictly prohibited.
 
 package com.emc.storageos.cimadapter.processors;
 
@@ -27,8 +21,7 @@ import com.emc.storageos.cimadapter.connections.celerra.CelerraMessageSpecList;
 import com.emc.storageos.cimadapter.connections.cim.CimConstants;
 
 /**
- * The CelerraIndicationProcessor class extends the
- * {@link DefaultCimIndicationProcessor} class and does some additional
+ * The CelerraIndicationProcessor class extends the {@link DefaultCimIndicationProcessor} class and does some additional
  * processing for indications received from Celerra connections.
  */
 public class CelerraIndicationProcessor extends DefaultCimIndicationProcessor {
@@ -96,13 +89,13 @@ public class CelerraIndicationProcessor extends DefaultCimIndicationProcessor {
 
                 // Create "tags" suitable for use in NOTIF ECI names.
                 eventData.set(CimConstants.OTHER_ALERT_TYPE_COMP_TAG_KEY,
-                    eventData.get(CimConstants.OTHER_ALERT_TYPE_COMP_KEY).replace('_', '-'));
+                        eventData.get(CimConstants.OTHER_ALERT_TYPE_COMP_KEY).replace('_', '-'));
 
                 eventData.set(CimConstants.OTHER_ALERT_TYPE_FACILITY_TAG_KEY,
-                    eventData.get(CimConstants.OTHER_ALERT_TYPE_FACILITY_KEY).replace('_', '-'));
+                        eventData.get(CimConstants.OTHER_ALERT_TYPE_FACILITY_KEY).replace('_', '-'));
 
                 eventData.set(CimConstants.OTHER_ALERT_TYPE_EVENT_ID_TAG_KEY,
-                    eventData.get(CimConstants.OTHER_ALERT_TYPE_EVENT_ID_KEY).replace('_', '-'));
+                        eventData.get(CimConstants.OTHER_ALERT_TYPE_EVENT_ID_KEY).replace('_', '-'));
             }
 
             // Generate a message digest from the ProbableCauseDescription

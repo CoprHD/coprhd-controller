@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models;
@@ -34,7 +34,7 @@ public class SupportedResourceTypes {
     public static boolean supportsThick(String type) {
         return isThickOnly(type) || isThinAndThick(type);
     }
-    
+
     public static StringOption option(String type) {
         return new StringOption(type, getDisplayValue(type));
     }

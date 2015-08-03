@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.windows.parser;
@@ -15,7 +15,9 @@ import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-import com.iwave.ext.windows.model.DiskSummary;;
+import com.iwave.ext.windows.model.DiskSummary;
+
+;
 
 public class ListDiskParserTest {
 
@@ -25,9 +27,9 @@ public class ListDiskParserTest {
     private static final String OFFLINE = "Offline";
     private static final String RESERVED = "Reserved";
     private static Logger log = Logger.getLogger(ListDiskParserTest.class);
-    
+
     private static final String FLAG = "*";
-    
+
     @Test
     public void test() {
         String listDiskOutput = readFile(LIST_DISK_FILENAME);
@@ -44,7 +46,7 @@ public class ListDiskParserTest {
         assertEquals(FLAG, device.getDyn());
         assertEquals(" ", device.getGpt());
     }
-    
+
     private void assertDevice2(DiskSummary device) {
         assertEquals("Disk 5", device.getDiskNumber());
         assertEquals(ONLINE, device.getStatus());
@@ -58,15 +60,14 @@ public class ListDiskParserTest {
         assertEquals(FLAG, device.getDyn());
         assertEquals(FLAG, device.getGpt());
     }
-    
+
     protected String readFile(String filename) {
         InputStream diskUtilFile = getClass().getResourceAsStream(filename);
-        
+
         StringWriter writer = new StringWriter();
         try {
             IOUtils.copy(diskUtilFile, writer);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             // TODO Auto-generated catch block
             log.error(e.getMessage(), e);
             throw new RuntimeException(e);

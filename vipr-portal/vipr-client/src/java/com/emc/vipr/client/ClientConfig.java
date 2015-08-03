@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client;
@@ -29,7 +29,7 @@ public class ClientConfig {
     public static final int SESSION_KEY_RENEW_TIMEOUT = 1000 * 60 * 60 * 7; // 7 hours
 
     private int maxConcurrentTaskRequests = DEFAULT_MAX_CONCURRENT_TASK_REQUESTS;
-	private int tasksExecutionTimeoutSeconds = DEFAULT_TASKS_EXECUTION_TIMEOUT_SECONDS;
+    private int tasksExecutionTimeoutSeconds = DEFAULT_TASKS_EXECUTION_TIMEOUT_SECONDS;
     private String mediaType = MediaType.APPLICATION_XML;
     private boolean requestLoggingEnabled = true;
     private int loggingEntityLength = DEFAULT_LOGGING_ENTITY_LENGTH;
@@ -46,7 +46,7 @@ public class ClientConfig {
     private String host;
     private SSLSocketFactory socketFactory;
     private HostnameVerifier hostnameVerifier;
-    
+
     public boolean isRequestLoggingEnabled() {
         return requestLoggingEnabled;
     }
@@ -54,7 +54,7 @@ public class ClientConfig {
     /**
      * Sets if request logging should be enabled. This will log each called made
      * to the API. Defaults to true.
-     *
+     * 
      * @param requestLoggingEnabled True to enable logging each request, False to disable.
      */
     public void setRequestLoggingEnabled(boolean requestLoggingEnabled) {
@@ -69,7 +69,7 @@ public class ClientConfig {
      * Sets the maximum length of an HTTP request to be logged. If the size of the
      * request exceeds the specified length, it will be truncated. Defaults to
      * logging 2048 characters.
-     *
+     * 
      * @param loggingEntityLength Maximum length of HTTP request before truncation.
      */
     public void setLoggingEntityLength(int loggingEntityLength) {
@@ -84,7 +84,7 @@ public class ClientConfig {
      * Sets the maximum number of retries for any retryable errors. Retry will
      * automatically happen on any request that is marked as retriable. Setting
      * this to 0 disables retries. Defaults to 3.
-     *
+     * 
      * @param maxRetries Maximum number of retries.
      */
     public void setMaxRetries(int maxRetries) {
@@ -98,7 +98,7 @@ public class ClientConfig {
     /**
      * Interval in milliseconds before retrying a request after recieving an error.
      * Defaults to 60 seconds.
-     *
+     * 
      * @param retryInterval Milliseconds between retry requests.
      */
     public void setRetryInterval(int retryInterval) {
@@ -112,7 +112,7 @@ public class ClientConfig {
     /**
      * Sets the media type to be used for API requests. This can be either 'application/xml' or
      * 'application/json'. Defaults to 'application/xml'.
-     *
+     * 
      * @param mediaType Media type to use.
      */
     public void setMediaType(String mediaType) {
@@ -126,7 +126,7 @@ public class ClientConfig {
     /**
      * Interval in milliseconds between polling requests to check task status. Defaults
      * to 10 seconds.
-     *
+     * 
      * @param taskPollingInterval Milliseconds between task poll requests.
      */
     public void setTaskPollingInterval(int taskPollingInterval) {
@@ -139,7 +139,7 @@ public class ClientConfig {
 
     /**
      * Sets the connection timeout in milliseconds for API requests. Defaults to 5 minutes.
-     *
+     * 
      * @param connectionTimeout Timeout in millliseconds.
      */
     public void setConnectionTimeout(int connectionTimeout) {
@@ -152,7 +152,7 @@ public class ClientConfig {
 
     /**
      * Sets the read timeout in milliseconds for API requests. Defaults to 5 minutes.
-     *
+     * 
      * @param readTimeout Timeout in millliseconds.
      */
     public void setReadTimeout(int readTimeout) {
@@ -165,7 +165,7 @@ public class ClientConfig {
 
     /**
      * Sets the host of the target environment.
-     *
+     * 
      * @param host Hostname or IP address for the Virtual IP of the target environment.
      */
     public void setHost(String host) {
@@ -178,11 +178,11 @@ public class ClientConfig {
 
     /**
      * Sets the target port for HTTP requests to the API. Defaults to 4443.
-     *
+     * 
      * @param port Target port.
      */
     public void setPort(int port) {
-        if (port <=0 || port > 65535) {
+        if (port <= 0 || port > 65535) {
             throw new ViPRException("Port specified is not a valid port");
         }
         this.port = port;
@@ -195,7 +195,7 @@ public class ClientConfig {
     /**
      * Sets the protocol for HTTP requests to the API. This should be either
      * 'http' or 'https'. Defaults to 'https'.
-     *
+     * 
      * @param protocol HTTP Protocol.
      */
     public void setProtocol(String protocol) {
@@ -214,7 +214,7 @@ public class ClientConfig {
 
     /**
      * Sets the target port for HTTP requests to the portal API. Defaults to 443.
-     *
+     * 
      * @param portalPort Target port for the portal.
      */
     public void setPortalPort(int portalPort) {
@@ -228,7 +228,7 @@ public class ClientConfig {
     /**
      * Sets the number of items to retrieve per bulk request. When doing large queries it will query the
      * bulk API in chucks of the size set by this option. Defaults to 500.
-     *
+     * 
      * @param bulkSize Number of items to retrieve per bulk request. Maximum is 4000.
      */
     public void setBulkSize(int bulkSize) {
@@ -240,7 +240,7 @@ public class ClientConfig {
 
     /**
      * Provide an alternate socket factory for the clients
-     *
+     * 
      * @param socketFactory custom socket factory
      */
     public void setSocketFactory(SSLSocketFactory socketFactory) {
@@ -249,7 +249,7 @@ public class ClientConfig {
 
     /**
      * Returns the provided SSLSocketFactory, or null
-     *
+     * 
      * @return The custom SSLSocketFactory
      */
     public SSLSocketFactory getSocketFactory() {
@@ -258,7 +258,7 @@ public class ClientConfig {
 
     /**
      * Returns the provided HostnameVerifier, or null
-     *
+     * 
      * @return The custom HostnameVerifier
      */
     public HostnameVerifier getHostnameVerifier() {
@@ -267,13 +267,13 @@ public class ClientConfig {
 
     /**
      * Provide and alternate Hostname Verifier for the clients
-     *
+     * 
      * @param hostnameVerifier custom hostname verifier
      */
     public void setHostnameVerifier(HostnameVerifier hostnameVerifier) {
         this.hostnameVerifier = hostnameVerifier;
     }
-    
+
     /**
      * Returns the maximum concurrent task threads that this client can
      * spawn
@@ -281,48 +281,48 @@ public class ClientConfig {
      * @return Maximum concurrent task threads
      */
     public int getMaxConcurrentTaskRequests() {
-		return maxConcurrentTaskRequests;
-	}
+        return maxConcurrentTaskRequests;
+    }
 
-	/**
-	 * Sets the Maximum concurrent task threads that this client can spawn
-	 * 
-	 * @param maxConcurrentTaskRequests
-	 */
-	public void setMaxConcurrentTaskRequests(int maxConcurrentTaskRequests) {
-		this.maxConcurrentTaskRequests = maxConcurrentTaskRequests;
-	}
-	
-	/**
-	 * Adds maximum concurrent task request thread count
-	 * 
-	 * @param maxConcurrentTaskRequests
-	 * @return this Config
-	 */
-	public ClientConfig withMaxConcurrentTaskRequests(int maxConcurrentTaskRequests) {
-		this.setMaxConcurrentTaskRequests(maxConcurrentTaskRequests);
-		return this;
-	}
+    /**
+     * Sets the Maximum concurrent task threads that this client can spawn
+     * 
+     * @param maxConcurrentTaskRequests
+     */
+    public void setMaxConcurrentTaskRequests(int maxConcurrentTaskRequests) {
+        this.maxConcurrentTaskRequests = maxConcurrentTaskRequests;
+    }
 
-	/**
-	 * Returns task execution timeout in seconds
-	 * 
-	 * @return
-	 */
-	public int getTasksExecutionTimeoutSeconds() {
-		return tasksExecutionTimeoutSeconds;
-	}
+    /**
+     * Adds maximum concurrent task request thread count
+     * 
+     * @param maxConcurrentTaskRequests
+     * @return this Config
+     */
+    public ClientConfig withMaxConcurrentTaskRequests(int maxConcurrentTaskRequests) {
+        this.setMaxConcurrentTaskRequests(maxConcurrentTaskRequests);
+        return this;
+    }
 
-	/**
-	 * Sets the total task execution timeout in seconds
-	 * 
-	 * @param tasksExecutionTimeoutSeconds
-	 */
-	public void setTasksExecutionTimeoutSeconds(int tasksExecutionTimeoutSeconds) {
-		this.tasksExecutionTimeoutSeconds = tasksExecutionTimeoutSeconds;
-	}
-	
-	/**
+    /**
+     * Returns task execution timeout in seconds
+     * 
+     * @return
+     */
+    public int getTasksExecutionTimeoutSeconds() {
+        return tasksExecutionTimeoutSeconds;
+    }
+
+    /**
+     * Sets the total task execution timeout in seconds
+     * 
+     * @param tasksExecutionTimeoutSeconds
+     */
+    public void setTasksExecutionTimeoutSeconds(int tasksExecutionTimeoutSeconds) {
+        this.tasksExecutionTimeoutSeconds = tasksExecutionTimeoutSeconds;
+    }
+
+    /**
      * Returns session key renew timeout
      * 
      * @return
@@ -339,23 +339,23 @@ public class ClientConfig {
     public void setSessionKeyRenewTimeout(int sessionKeyRenewTimeout) {
         this.sessionKeyRenewTimeout = sessionKeyRenewTimeout;
     }
-	
-	/**
-	 * Adds the total tasks execution timeout in seconds
-	 * 
-	 * @param tasksExecutionTimeoutSeconds
-	 * @return This configuration
-	 */
-	public ClientConfig withTasksExecutionTimeoutSeconds(int tasksExecutionTimeoutSeconds) {
-		this.setTasksExecutionTimeoutSeconds(tasksExecutionTimeoutSeconds);
-		return this;
-	}
+
+    /**
+     * Adds the total tasks execution timeout in seconds
+     * 
+     * @param tasksExecutionTimeoutSeconds
+     * @return This configuration
+     */
+    public ClientConfig withTasksExecutionTimeoutSeconds(int tasksExecutionTimeoutSeconds) {
+        this.setTasksExecutionTimeoutSeconds(tasksExecutionTimeoutSeconds);
+        return this;
+    }
 
     /**
      * Sets the SSLSocketFactory and HostnameVerifier to ignore all SSL certificates. This is suitable for a default
      * installation using self-signed certificates. This is <b>not</b> intended for production use as it bypasses
      * important SSL security.
-     *
+     * 
      * @param ignoreCertificates True if SSL trust should be disabled
      * @see #setSocketFactory(javax.net.ssl.SSLSocketFactory)
      * @see #setHostnameVerifier(javax.net.ssl.HostnameVerifier)
@@ -369,7 +369,7 @@ public class ClientConfig {
 
     /**
      * Sets the bulk size and returns the updated configuration.
-     *
+     * 
      * @param bulkSize Number of items to retrieve per bulk request. Maximum is 4000.
      * @return The updated ClientConfig object.
      */
@@ -380,7 +380,7 @@ public class ClientConfig {
 
     /**
      * Sets the host and returns the updated configuration.
-     *
+     * 
      * @see #setHost(String)
      * @param host Hostname or IP address for the Virtual IP of the target environment.
      * @return The updated ClientConfig object.
@@ -392,7 +392,7 @@ public class ClientConfig {
 
     /**
      * Sets the port and returns the updated configuration.
-     *
+     * 
      * @see #setPort(int)
      * @param port Target port to set.
      * @return The updated ClientConfig object.
@@ -404,7 +404,7 @@ public class ClientConfig {
 
     /**
      * Sets the protocol and returns the updated configuration.
-     *
+     * 
      * @see #setProtocol(String)
      * @param protocol HTTP Protocol to use.
      * @return The updated ClientConfig object.
@@ -416,7 +416,7 @@ public class ClientConfig {
 
     /**
      * Sets the connection timeout and returns the updated configuration.
-     *
+     * 
      * @see #setConnectionTimeout(int)
      * @param connectionTimeout Connection timeout to set.
      * @return The updated ClientConfig object.
@@ -428,7 +428,7 @@ public class ClientConfig {
 
     /**
      * Sets the read timeout and returns the updated configuration.
-     *
+     * 
      * @see #setReadTimeout(int)
      * @param readTimeout Read timeout to set.
      * @return The updated ClientConfig object.
@@ -440,7 +440,7 @@ public class ClientConfig {
 
     /**
      * Sets the media type and returns the updated configuration.
-     *
+     * 
      * @see #setMediaType(String)
      * @param mediaType Media type to set.
      * @return The updated ClientConfig object.
@@ -452,7 +452,7 @@ public class ClientConfig {
 
     /**
      * Sets the request logging enabled and returns the updated configuration.
-     *
+     * 
      * @see #setRequestLoggingEnabled(boolean)
      * @return The updated ClientConfig object.
      */
@@ -463,7 +463,7 @@ public class ClientConfig {
 
     /**
      * Sets the request logging disabled and returns the updated configuration.
-     *
+     * 
      * @see #setRequestLoggingEnabled(boolean)
      * @return The updated ClientConfig object.
      */
@@ -474,7 +474,7 @@ public class ClientConfig {
 
     /**
      * Sets the logging entity length and returns the updated configuration.
-     *
+     * 
      * @see #setLoggingEntityLength(int)
      * @param loggingEntityLength Logging entity length to set.
      * @return The updated ClientConfig object.
@@ -486,7 +486,7 @@ public class ClientConfig {
 
     /**
      * Sets the max retries and returns the updated configuration.
-     *
+     * 
      * @see #setMaxRetries(int)
      * @param maxRetries Max retries to set.
      * @return The updated ClientConfig object.
@@ -498,7 +498,7 @@ public class ClientConfig {
 
     /**
      * Sets the retry interval and returns the updated configuration.
-     *
+     * 
      * @see #withRetryInterval(int)
      * @param retryInterval Retry interval to set.
      * @return The updated ClientConfig object.
@@ -510,7 +510,7 @@ public class ClientConfig {
 
     /**
      * Sets the task polling interval and returns the updated configuration.
-     *
+     * 
      * @see #setTaskPollingInterval(int)
      * @param taskPollingInterval Task polling interval to set
      * @return The updated ClientConfig object.
@@ -522,7 +522,7 @@ public class ClientConfig {
 
     /**
      * Sets the portal port and returns the updated configuration.
-     *
+     * 
      * @see #setPortalPort(int)
      * @param portalPort Target portal port to set.
      * @return The updated ClientConfig object.
@@ -534,7 +534,7 @@ public class ClientConfig {
 
     /**
      * Sets the SSLSocketFactory and returns the updated configuration.
-     *
+     * 
      * @see #setSocketFactory(javax.net.ssl.SSLSocketFactory)
      * @param factory The SSLSocketFactory to use
      * @return the updated ClientConfig object
@@ -546,7 +546,7 @@ public class ClientConfig {
 
     /**
      * Sets the HostnameVerifier and returns the updated configuration.
-     *
+     * 
      * @see #setHostnameVerifier(javax.net.ssl.HostnameVerifier)
      * @param verifier The HostnameVerifier to use
      * @return the updated ClientConfig object
@@ -560,7 +560,7 @@ public class ClientConfig {
      * Sets the SSLSocketFactory and HostnameVerifier to ignore all SSL certificates and returns the updated
      * configuration. This is suitable for a default installation using self-signed certificates. This
      * is <b>not</b> intended for production use as it bypasses important SSL security.
-     *
+     * 
      * @see #setIgnoreCertificates(boolean)
      * @return the updated ClientConfig object
      */
@@ -568,10 +568,10 @@ public class ClientConfig {
         setIgnoreCertificates(ignoringCertificates);
         return this;
     }
-    
+
     /**
      * Sets the session key renew timeout.
-     *
+     * 
      * @see #setSessionKeyRenewTimeout(int)
      * @return the updated ClientConfig object
      */

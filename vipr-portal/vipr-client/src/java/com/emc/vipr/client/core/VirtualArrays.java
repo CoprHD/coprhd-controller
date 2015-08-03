@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -96,10 +96,10 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
     public List<NamedRelatedResourceRep> listByVDC(String shortVdcId) {
         UriBuilder builder = client.uriBuilder(baseUrl);
         builder.queryParam(SearchConstants.VDC_ID_PARAM, shortVdcId);
-        VirtualArrayList response =  client.getURI(VirtualArrayList.class, builder.build());
+        VirtualArrayList response = client.getURI(VirtualArrayList.class, builder.build());
         return ResourceUtils.defaultList(response.getVirtualArrays());
-    }    
-    
+    }
+
     /**
      * Gets the list of all virtual arrays. This is a convenience method for: <tt>getByRefs(list())</tt>.
      * 
@@ -115,7 +115,7 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      * <tt>getByRefs(list(), filter)</tt>.
      * 
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of virtual arrays.
      */
     @Override
@@ -129,7 +129,7 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      * API Call: <tt>POST /vdc/varrays</tt>
      * 
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return the newly create virtual array.
      */
     public VirtualArrayRestRep create(VirtualArrayCreateParam input) {
@@ -142,9 +142,9 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      * API Call: <tt>PUT /vdc/varrays/{id}</tt>
      * 
      * @param id
-     *        the ID of the virtual array to update.
+     *            the ID of the virtual array to update.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated virtual array.
      */
     public VirtualArrayRestRep update(URI id, VirtualArrayUpdateParam input) {
@@ -157,7 +157,7 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      * API Call: <tt>POST /vdc/varrays/{id}/deactivate</tt>
      * 
      * @param id
-     *        the ID of the virtual array to deactivate.
+     *            the ID of the virtual array to deactivate.
      */
     public void deactivate(URI id) {
         doDeactivate(id);
@@ -173,32 +173,32 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      * API Call: <tt>GET /vdc/varrays/{id}/available-attributes</tt>
      * 
      * @param id
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @return the list of available attributes.
      */
     public List<VirtualPoolAvailableAttributesResourceRep> getAvailableAttributes(URI id) {
         AttributeList response = client.get(AttributeList.class, getIdUrl() + "/available-attributes", id);
         return defaultList(response.getAttributes());
     }
-    
+
     /**
      * Gets the available attributes for the given virtual arrays.
      * <p>
      * API Call: <tt>GET /vdc/varrays/available-attributes</tt>
      * 
      * @param ids
-     *        the IDs of the virtual arrays.
+     *            the IDs of the virtual arrays.
      * @return the list of available attributes.
      */
     public Map<URI, List<VirtualPoolAvailableAttributesResourceRep>> getAvailableAttributes(Collection<URI> virtualArrayIds) {
         BulkIdParam input = new BulkIdParam((List<URI>) virtualArrayIds);
         VArrayAttributeList response = client.post(VArrayAttributeList.class, input, PathConstants.AVAILABLE_ATTRIBUTES_FOR_ALL_VARRAY);
-        
+
         Map<URI, List<VirtualPoolAvailableAttributesResourceRep>> availableAttributes = new HashMap<URI, List<VirtualPoolAvailableAttributesResourceRep>>();
         for (AttributeList attributes : response.getAttributes()) {
             availableAttributes.put(attributes.getVArrayId(), attributes.getAttributes());
         }
-        
+
         return availableAttributes;
     }
 
@@ -208,7 +208,7 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      * API Call: <tt>GET /vdc/varrays/{id}/connectivity</tt>
      * 
      * @param id
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @return the list of connectivity information.
      */
     public List<VirtualArrayConnectivityRestRep> getConnectivity(URI id) {
@@ -242,7 +242,7 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      * <tt>search().byInitiatorPort(initiatorPort).run()</tt>
      * 
      * @param initiatorPort
-     *        the initiator port.
+     *            the initiator port.
      * @return the list of connected virtual arrays.
      */
     public List<VirtualArrayRestRep> findByInitiatorPort(String initiatorPort) {
@@ -254,9 +254,9 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      * a convenience method for <tt>search().byInitiatorPort(initiatorPort).filter(filter).run()</tt>
      * 
      * @param initiatorPort
-     *        the initiator port.
+     *            the initiator port.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of connected virtual arrays.
      */
     public List<VirtualArrayRestRep> findByInitiatorPort(String initiatorPort,
@@ -268,7 +268,7 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      * Finds the list of virtual arrays connected to any of the given initiators.
      * 
      * @param initiators
-     *        the initiators.
+     *            the initiators.
      * @return the list of connected virtual arrays.
      */
     public List<VirtualArrayRestRep> findByInitiators(Collection<InitiatorRestRep> initiators) {
@@ -279,9 +279,9 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      * Finds the list of virtual arrays connected to any of the given initiators, optionally filtering the results.
      * 
      * @param initiators
-     *        the initiators.
+     *            the initiators.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of connected virtual arrays.
      */
     public List<VirtualArrayRestRep> findByInitiators(Collection<InitiatorRestRep> initiators,
@@ -299,7 +299,7 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      * Finds the list of virtual arrays connected to the given host.
      * 
      * @param host
-     *        the host.
+     *            the host.
      * @return the list of connected virtual arrays.
      */
     public List<VirtualArrayRestRep> findByConnectedHost(HostRestRep host) {
@@ -310,9 +310,9 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      * Finds the list of virtual arrays connected to the given host, optionally filtering the results.
      * 
      * @param host
-     *        the host.
+     *            the host.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of connected virtual arrays.
      */
     public List<VirtualArrayRestRep> findByConnectedHost(HostRestRep host, ResourceFilter<VirtualArrayRestRep> filter) {
@@ -324,7 +324,7 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      * <tt>search().byHost(hostId).run()</tt>
      * 
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @return the list of connected virtual arrays.
      */
     public List<VirtualArrayRestRep> findByConnectedHost(URI hostId) {
@@ -336,9 +336,9 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      * a convenience method for <tt>search().byHost(hostId).filter(filter).run()</tt>
      * 
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of connected virtual arrays.
      */
     public List<VirtualArrayRestRep> findByConnectedHost(URI hostId, ResourceFilter<VirtualArrayRestRep> filter) {
@@ -348,9 +348,9 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
     /**
      * Finds the list of virtual arrays connected to the given cluster by ID. This is a convenience method for:
      * <tt>search().byCluster(clusterId).run()</tt>
-     *
+     * 
      * @param clusterId
-     *        the ID of the cluster.
+     *            the ID of the cluster.
      * @return the list of connected virtual arrays.
      */
     public List<VirtualArrayRestRep> findByConnectedCluster(URI clusterId) {
@@ -360,11 +360,11 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
     /**
      * Finds the list of virtual arrays connected to the given cluster by ID, optionally filtering the results. This is
      * a convenience method for <tt>search().byCluster(clusterId).filter(filter).run()</tt>
-     *
+     * 
      * @param clusterId
-     *        the ID of the cluster.
+     *            the ID of the cluster.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of connected virtual arrays.
      */
     public List<VirtualArrayRestRep> findByConnectedCluster(URI clusterId, ResourceFilter<VirtualArrayRestRep> filter) {
@@ -382,15 +382,15 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
         VDCCapacities response = client.get(VDCCapacities.class, PathConstants.VDC_URL + "/capacities");
         return defaultList(response.getArrayCapacities());
     }
-    
-    
+
     /**
      * Gets the list of Compute Systems that are visible in this vArray
+     * 
      * @param id the ID of the virtual array
      * @return List of Compute Systems that belong to the vArray
      */
-    public List<ComputeSystemRestRep> getComputeSystems(URI id){
-    	ComputeSystemBulkRep response = client.get(ComputeSystemBulkRep.class, getIdUrl()
+    public List<ComputeSystemRestRep> getComputeSystems(URI id) {
+        ComputeSystemBulkRep response = client.get(ComputeSystemBulkRep.class, getIdUrl()
                 + "/compute-systems", id);
         return defaultList(response.getComputeSystems());
     }

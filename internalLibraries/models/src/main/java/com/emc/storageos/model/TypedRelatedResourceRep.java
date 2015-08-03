@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model;
 
@@ -26,7 +16,8 @@ public class TypedRelatedResourceRep extends NamedRelatedResourceRep {
     @XmlElement(name = "resource_type")
     private String type;
 
-    public TypedRelatedResourceRep() {}
+    public TypedRelatedResourceRep() {
+    }
 
     public TypedRelatedResourceRep(URI id, RestLinkRep selfLink, String name, ResourceTypeEnum type) {
         super(id, selfLink, name);
@@ -35,14 +26,15 @@ public class TypedRelatedResourceRep extends NamedRelatedResourceRep {
 
     /**
      * The type of the resource
+     * 
      * @valid none
      */
     @XmlTransient
     public ResourceTypeEnum getType() {
         return ResourceTypeEnum.fromString(type);
     }
-    
-    public void setType(ResourceTypeEnum type){
+
+    public void setType(ResourceTypeEnum type) {
         this.type = type.getType();
     }
 }

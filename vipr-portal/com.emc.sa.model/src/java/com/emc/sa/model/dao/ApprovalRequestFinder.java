@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.model.dao;
@@ -34,13 +34,11 @@ public class ApprovalRequestFinder extends TenantModelFinder<ApprovalRequest> {
         if (StringUtils.isBlank(tenant)) {
             return Lists.newArrayList();
         }
-        
+
         List<NamedElement> ids = client.findByAlternateId(ApprovalRequest.class, ApprovalRequest.APPROVAL_STATUS,
                 approvalStatus.name());
         List<ApprovalRequest> approvalRequests = findByIds(toURIs(ids));
-        return TenantUtils.filter(approvalRequests, tenant) ;
+        return TenantUtils.filter(approvalRequests, tenant);
     }
-    
-    
-    
+
 }

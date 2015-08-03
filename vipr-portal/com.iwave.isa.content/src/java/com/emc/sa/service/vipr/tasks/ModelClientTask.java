@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.tasks;
@@ -11,6 +11,7 @@ import com.google.common.collect.Lists;
 import javax.inject.Inject;
 import java.net.URI;
 import java.util.List;
+
 public abstract class ModelClientTask<T> extends ExecutionTask<T> {
     @Inject
     protected ModelClient modelClient;
@@ -19,7 +20,7 @@ public abstract class ModelClientTask<T> extends ExecutionTask<T> {
      * Converts strings to a list of URIs.
      * 
      * @param ids
-     *        the IDs, as strings.
+     *            the IDs, as strings.
      * @return the list of URIs.
      */
     protected static List<URI> toURIs(Iterable<String> ids) {

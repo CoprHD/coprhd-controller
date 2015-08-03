@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.windows.winrm;
@@ -56,7 +56,7 @@ public class WinRMRequest {
     }
 
     public void setTimeoutSeconds(int timeoutSeconds) {
-        setParameter(TIMEOUT_SECONDS, ""+timeoutSeconds);
+        setParameter(TIMEOUT_SECONDS, "" + timeoutSeconds);
     }
 
     public void setSelectorSet(String selectorSet) {
@@ -136,8 +136,7 @@ public class WinRMRequest {
         InputStream in = WinRMRequest.class.getResourceAsStream("WinRMRequest.xml");
         try {
             return IOUtils.toString(in, "UTF-8");
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new Error(e);
         }
     }

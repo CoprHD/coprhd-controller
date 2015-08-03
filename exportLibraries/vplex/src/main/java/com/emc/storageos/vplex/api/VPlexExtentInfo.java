@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
@@ -18,13 +8,13 @@ package com.emc.storageos.vplex.api;
  * Info for a VPlex extent.
  */
 public class VPlexExtentInfo extends VPlexResourceInfo {
-    
+
     // Info about the storage volume for this extent.
     private VPlexStorageVolumeInfo storageVolumeInfo = null;
-    
+
     // The cluster id.
     private String clusterId = null;
-    
+
     /**
      * Getter for the storage volume info for the extent.
      * 
@@ -33,7 +23,7 @@ public class VPlexExtentInfo extends VPlexResourceInfo {
     public VPlexStorageVolumeInfo getStorageVolumeInfo() {
         return storageVolumeInfo;
     }
-    
+
     /**
      * Setter for the storage volume info for the extent.
      * 
@@ -42,7 +32,7 @@ public class VPlexExtentInfo extends VPlexResourceInfo {
     public void setStorageVolumeInfo(VPlexStorageVolumeInfo volumeInfo) {
         storageVolumeInfo = volumeInfo;
     }
-    
+
     /**
      * Getter for the extent cluster id.
      * 
@@ -51,7 +41,7 @@ public class VPlexExtentInfo extends VPlexResourceInfo {
     public String getClusterId() {
         return clusterId;
     }
-    
+
     /**
      * Setter for the extent cluster id.
      * 

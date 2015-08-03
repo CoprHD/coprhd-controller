@@ -1,20 +1,9 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package controllers.util;
-
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.NodeListener;
@@ -35,12 +24,12 @@ public class CatalogAclListener implements NodeListener {
     /**
      * called when category/service acl changed from sasvc.
      * it will clear play.Cache entirely.
-     *
+     * 
      * since there are objects other than catalog list cached in play.Cache, this
      * may have some performance impact to VDC/Varray/license/userinfo. since all
      * other objects are live relative short and not that heavy, the impact should
      * small.
-     *
+     * 
      */
     @Override
     public void nodeChanged() {

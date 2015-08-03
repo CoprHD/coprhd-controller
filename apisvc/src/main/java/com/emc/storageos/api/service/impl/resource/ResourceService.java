@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.resource;
@@ -60,8 +50,8 @@ import com.sun.jersey.api.NotFoundException;
  */
 public abstract class ResourceService {
     public final static URI INTERNAL_DATASVC_USER = URI.create("datasvc");
-    public final static String VDC_ID_QUERY_PARAM = "vdc-id"; 
-    
+    public final static String VDC_ID_QUERY_PARAM = "vdc-id";
+
     protected final static String CONTROLLER_SVC = "controllersvc";
     protected final static String CONTROLLER_SVC_VER = "1";
     @SuppressWarnings("unused")
@@ -74,10 +64,10 @@ public abstract class ResourceService {
     protected GeoDependencyChecker geoDependencyChecker;
 
     @Autowired
-    protected DbDependencyPurger  _dbPurger;
+    protected DbDependencyPurger _dbPurger;
 
     @Autowired
-    protected AsynchJobExecutorService  _asynchJobService;
+    protected AsynchJobExecutorService _asynchJobService;
 
     @Autowired
     protected AuditLogManager _auditMgr;
@@ -87,7 +77,7 @@ public abstract class ResourceService {
 
     @Context
     protected UriInfo uriInfo;
-    
+
     @Context
     protected HttpServletRequest _request;
 
@@ -108,6 +98,7 @@ public abstract class ResourceService {
 
     /**
      * Check if a resource can be inactivated safely
+     * 
      * @return detail type of the depedency if exist, null otherwise
      * @throws DatabaseException for db errors
      */
@@ -123,13 +114,13 @@ public abstract class ResourceService {
         return object.canBeDeleted();
     }
 
-    
     /**
      * Check if a resource with the same name exists
+     * 
      * @param name
      */
     protected <T extends DataObject> List<T> listFileSystemsWithLabelName(String name, Class<T> type,
-                                            URI parentToScope, String parentFieldName) {
+            URI parentToScope, String parentFieldName) {
         List<T> objectList = new ArrayList<T>();
         if (parentToScope != null && parentFieldName != null) {
             objectList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, type,
@@ -139,17 +130,17 @@ public abstract class ResourceService {
             objectList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, type,
                     PrefixConstraint.Factory.getFullMatchConstraint(type, "label", name));
         }
-        
+
         return objectList;
     }
 
-    
     /**
      * Check if a resource with the same name exists
+     * 
      * @param name
      */
     public static <T extends DataObject> void checkForDuplicateName(String name, Class<T> type,
-                                            URI parentToScope, String parentFieldName, DbClient dbClient) {
+            URI parentToScope, String parentFieldName, DbClient dbClient) {
         List<T> objectList = new ArrayList<T>();
         if (parentToScope != null && parentFieldName != null) {
             objectList = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, type,
@@ -166,6 +157,7 @@ public abstract class ResourceService {
 
     /**
      * Check if a resource with the same name exists at zone level
+     * 
      * @param name
      */
     protected void checkForDuplicateName(String name, Class<? extends DataObject> type) {
@@ -174,7 +166,7 @@ public abstract class ResourceService {
 
     /**
      * Looks up controller dependency for given hardware
-     *
+     * 
      * @param clazz controller interface
      * @param hw hardware name
      * @param <T>
@@ -182,18 +174,19 @@ public abstract class ResourceService {
      */
     protected <T extends Controller> T getController(Class<T> clazz, String hw) {
         return _coordinator.locateService(
-                   clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
+                clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
     }
 
     /**
      * Get StorageOSUser from the security context
+     * 
      * @return
      */
     protected StorageOSUser getUserFromContext() {
         if (!hasValidUserInContext()) {
-            throw APIException.forbidden.invalidSecurityContext();            
+            throw APIException.forbidden.invalidSecurityContext();
         }
-        return (StorageOSUser)sc.getUserPrincipal();
+        return (StorageOSUser) sc.getUserPrincipal();
     }
 
     /**
@@ -201,34 +194,38 @@ public abstract class ResourceService {
      * 
      * @return true if the StorageOSUser is present
      */
-    protected boolean hasValidUserInContext() {        
+    protected boolean hasValidUserInContext() {
         if ((sc != null) && (sc.getUserPrincipal() instanceof StorageOSUser)) {
             return true;
         } else {
             return false;
         }
-    }    
-    
+    }
+
     // Helper function to check if the user has authorization to access the project
     // This is used by all search functions
     protected boolean isAuthorized(URI projectUri) {
         final StorageOSUser user = getUserFromContext();
-        if (_permissionsHelper == null) return false;
-        Project project = _permissionsHelper.getObjectById(projectUri, Project.class);
-        if (project == null) return false;
-        if ((_permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(),
-              Role.SYSTEM_MONITOR, Role.TENANT_ADMIN) || _permissionsHelper.userHasGivenACL(user,
-              projectUri, ACL.ANY))) {
-            return true;
+        if (_permissionsHelper == null) {
+            return false;
         }
-        else return false;
+        Project project = _permissionsHelper.getObjectById(projectUri, Project.class);
+        if (project == null) {
+            return false;
+        }
+        if ((_permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(),
+                Role.SYSTEM_MONITOR, Role.TENANT_ADMIN) || _permissionsHelper.userHasGivenACL(user,
+                projectUri, ACL.ANY))) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     protected RestLinkRep getCurrentSelfLink() {
-        try   {
+        try {
             return new RestLinkRep("self", new URI("/" + uriInfo.getPath()));
-        }
-        catch (Exception ex)  {
+        } catch (Exception ex) {
             return new RestLinkRep("self", null);
         }
     }
@@ -238,10 +235,11 @@ public abstract class ResourceService {
      * throws {@link com.emc.storageos.svcs.errorhandling.resources.BadRequestException} when id is not a valid
      * URI or when the object has been marked for deletion and checkInactive
      * is true. Throws {@link NotFoundException} when the object has been delete.
+     * 
      * @param id the URN of a ViPR object to be fetched.
      * @param checkInactive a flag to indicate if the object inactive flag should be
-     *        checked. In general, this check should be performed when the object
-     *        is going to be modified or deleted.
+     *            checked. In general, this check should be performed when the object
+     *            is going to be modified or deleted.
      * @return the instance of dataobject for the given id.
      */
     protected <T extends DataObject> T queryObject(Class<T> clzz, URI id, boolean checkInactive) {
@@ -250,7 +248,7 @@ public abstract class ResourceService {
         ArgValidator.checkEntity(dataObject, id, isIdEmbeddedInURL(id), checkInactive);
         return dataObject;
     }
-    
+
     /**
      * Check all path parameters for the specified id
      * 
@@ -260,31 +258,32 @@ public abstract class ResourceService {
     protected boolean isIdEmbeddedInURL(final URI id) {
         return BlockServiceUtils.isIdEmbeddedInURL(id, uriInfo);
     }
-    
+
     /**
      * This function is to retrieve the children of a given class.
+     * 
      * @param id the URN of parent
      * @param clzz the child class
      * @param nameField the name of the field of the child class that will be displayed as
-     *        name in {@link NamedRelatedResourceRep}. Note this field should be a required
-     *        field because, objects for which this field is null will not be returned by
-     *        this function.
+     *            name in {@link NamedRelatedResourceRep}. Note this field should be a required
+     *            field because, objects for which this field is null will not be returned by
+     *            this function.
      * @param linkField the name of the field in the child class that stored the parent id
      * @return a list of children of tenant for the given class
      */
     protected <T extends DataObject> List<NamedElementQueryResultList.NamedElement> listChildren(URI id, Class<T> clzz,
             String nameField, String linkField) {
         @SuppressWarnings("deprecation")
-        List<URI> uris=  _dbClient.queryByConstraint(
+        List<URI> uris = _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getContainedObjectsConstraint(id, clzz, linkField));
         if (uris != null && !uris.isEmpty()) {
             List<T> dataObjects = _dbClient.queryObjectField(clzz, nameField, uris);
             List<NamedElementQueryResultList.NamedElement> elements =
                     new ArrayList<NamedElementQueryResultList.NamedElement>(dataObjects.size());
-            for (T dataObject: dataObjects) {
+            for (T dataObject : dataObjects) {
                 Object name = DataObjectUtils.getPropertyValue(clzz, dataObject, nameField);
                 elements.add(NamedElementQueryResultList.NamedElement.createElement(
-                        dataObject.getId(), name==null?"":name.toString()));
+                        dataObject.getId(), name == null ? "" : name.toString()));
             }
             return elements;
         } else {
@@ -295,6 +294,7 @@ public abstract class ResourceService {
     /**
      * A utility function that checks of an alternate ID uniqueness constraints
      * will be violated when an object is created or modified.
+     * 
      * @param type The class of object being validated
      * @param fieldName the name of the alternate ID field
      * @param value the value being checked
@@ -302,28 +302,29 @@ public abstract class ResourceService {
      */
     protected <T extends DataObject> void checkDuplicateAltId(Class<T> type,
             String fieldName, String value, String entityName) {
-        checkDuplicateAltId(type,fieldName, value, entityName, null);
+        checkDuplicateAltId(type, fieldName, value, entityName, null);
     }
-    
+
     /**
      * A utility function that checks of an alternate ID uniqueness constraints
      * will be violated when an object is created or modified.
+     * 
      * @param type The class of object being validated
      * @param fieldName the name of the alternate ID field
      * @param value the value being checked
      * @param entityName the name of the entity to be used in the error message
-     * @param errorFriendlyFieldName - user friendly value of fieldName to put in error message 
-     *          (Example 'Initiator Port' rather than 'iniport').
+     * @param errorFriendlyFieldName - user friendly value of fieldName to put in error message
+     *            (Example 'Initiator Port' rather than 'iniport').
      */
     protected <T extends DataObject> void checkDuplicateAltId(Class<T> type,
             String fieldName, String value, String entityName, String errorFriendlyFieldName) {
         List<T> objectList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, type,
                 AlternateIdConstraint.Factory.getConstraint(type, fieldName, value));
-        if(!objectList.isEmpty()) {
-            if( errorFriendlyFieldName == null ) {
-                throw APIException.badRequests.duplicateEntityWithField(entityName,fieldName);
+        if (!objectList.isEmpty()) {
+            if (errorFriendlyFieldName == null) {
+                throw APIException.badRequests.duplicateEntityWithField(entityName, fieldName);
             } else {
-                throw APIException.badRequests.duplicateEntityWithField(entityName,errorFriendlyFieldName);
+                throw APIException.badRequests.duplicateEntityWithField(entityName, errorFriendlyFieldName);
             }
         }
     }
@@ -331,15 +332,16 @@ public abstract class ResourceService {
     /**
      * A utility function that checks for label uniqueness constraint for a single
      * class type.
+     * 
      * @param type The class of object being validated
      * @param value the value of label being checked
      * @param entityName the name of the entity to be used in the error message
      */
     protected <T extends DataObject> void checkDuplicateLabel(Class<T> type,
-           String value, String entityName) {
+            String value, String entityName) {
         List<T> objectList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, type,
                 PrefixConstraint.Factory.getFullMatchConstraint(type, "label", value));
-        if(!objectList.isEmpty()) {
+        if (!objectList.isEmpty()) {
             throw APIException.badRequests.duplicateLabel(entityName);
         }
     }
@@ -347,6 +349,7 @@ public abstract class ResourceService {
     /**
      * For some object such as vcenter clusters and vcenter data centers, the name
      * must be unique within the children of the same parent.
+     * 
      * @param id the URN of the parent object
      * @param clzz the class of the child object
      * @param nameField the field in the child object that needs to be unique
@@ -357,42 +360,42 @@ public abstract class ResourceService {
     protected void checkDuplicateChildName(URI id, Class<? extends DataObject> clzz,
             String nameField, String linkField, String value, DbClient dbClient) {
 
-    	URIQueryResultList uris = new URIQueryResultList();
-    	dbClient.queryByConstraint(
+        URIQueryResultList uris = new URIQueryResultList();
+        dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getContainedObjectsConstraint(id, clzz, linkField), uris);
-    	Iterator<?> objs = dbClient.queryIterativeObjects(clzz, uris);
-    	while (objs.hasNext()) {
-    	    DataObject obj = (DataObject) objs.next();
-    	    if (value.equals(obj.getLabel()) && !obj.getInactive()) {
-            	throw APIException.badRequests.duplicateChildForParent(id);
+        Iterator<?> objs = dbClient.queryIterativeObjects(clzz, uris);
+        while (objs.hasNext()) {
+            DataObject obj = (DataObject) objs.next();
+            if (value.equals(obj.getLabel()) && !obj.getInactive()) {
+                throw APIException.badRequests.duplicateChildForParent(id);
             }
         }
     }
-    
+
     /**
-     * For two URIs which can be null as defined in {@link NullColumnValueGetter#getNullURI()}, 
+     * For two URIs which can be null as defined in {@link NullColumnValueGetter#getNullURI()},
      * compare the two URI and return true if they are both null or both not null but equal.
      * 
      * @param uri1 the first URI
      * @param uri2 the second URI
-     * @return true if both URIs are null as defined in {@link NullColumnValueGetter#getNullURI()}
-     * or both are equal.
+     * @return true if both URIs are null as defined in {@link NullColumnValueGetter#getNullURI()} or both are equal.
      */
-    protected boolean areEqual (URI uri1, URI uri2) {
-    	if (NullColumnValueGetter.isNullURI(uri1)) {
-    		return NullColumnValueGetter.isNullURI(uri2);
-    	} else {
-    		return uri1.equals(uri2);
-    	}
+    protected boolean areEqual(URI uri1, URI uri2) {
+        if (NullColumnValueGetter.isNullURI(uri1)) {
+            return NullColumnValueGetter.isNullURI(uri2);
+        } else {
+            return uri1.equals(uri2);
+        }
     }
 
     /**
      * Record audit log for services
+     * 
      * @param opType audit event type (e.g. CREATE_VPOOL|TENANT etc.)
      * @param operationalStatus Status of operation (true|false)
      * @param operationStage Stage of operation.
-     *          For sync operation, it should be null;
-     *          For async operation, it should be "BEGIN" or "END";
+     *            For sync operation, it should be null;
+     *            For async operation, it should be "BEGIN" or "END";
      * @param descparams Description paramters
      */
     protected void auditOp(OperationTypeEnum opType,
@@ -400,15 +403,15 @@ public abstract class ResourceService {
             String operationStage,
             Object... descparams) {
 
-        URI tenantId;        
+        URI tenantId;
         URI username;
 
         if (!hasValidUserInContext() && InterNodeHMACAuthFilter.isInternalRequest(_request)) {
             // use default values for internal datasvc requests that lack a user context
-            tenantId = _permissionsHelper.getRootTenant().getId();            
+            tenantId = _permissionsHelper.getRootTenant().getId();
             username = INTERNAL_DATASVC_USER;
         } else {
-            tenantId = URI.create(getUserFromContext().getTenantId());            
+            tenantId = URI.create(getUserFromContext().getTenantId());
             username = URI.create(getUserFromContext().getName());
         }
         _auditMgr.recordAuditLog(tenantId,
@@ -416,30 +419,33 @@ public abstract class ResourceService {
                 getServiceType(),
                 opType,
                 System.currentTimeMillis(),
-                operationalStatus? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE,
+                operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE,
                 operationStage,
                 descparams);
     }
 
     /**
-     * Checks if the user is authorized to view resources in a tenant organization. The 
-     * user can see resources if:<ul>
+     * Checks if the user is authorized to view resources in a tenant organization. The
+     * user can see resources if:
+     * <ul>
      * <li>The user is in the tenant organization</li>
      * <li>The user has SYSTEM_ADMIN or SYSTEM_MONITOR role</li>
      * <li>the user has TENANT_ADMIN role to this tenant organization even if the user is in another tenant org</li>
      * </ul>
+     * 
      * @param tenantId the tenant organization URI
      * @param user the user
      */
     protected void verifyAuthorizedInTenantOrg(URI tenantId, StorageOSUser user) {
-        if(!(tenantId.toString().equals(user.getTenantId()) || isSystemAdminOrMonitorUser() ||
-        		_permissionsHelper.userHasGivenRole(user, tenantId, Role.TENANT_ADMIN))) {
+        if (!(tenantId.toString().equals(user.getTenantId()) || isSystemAdminOrMonitorUser() || _permissionsHelper.userHasGivenRole(user,
+                tenantId, Role.TENANT_ADMIN))) {
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
     }
 
     /**
      * A utility function to check if the context user has system admin or monitor role.
+     * 
      * @return True if if the context user has system admin or monitor role.
      */
     protected boolean isSystemAdminOrMonitorUser() {
@@ -448,13 +454,13 @@ public abstract class ResourceService {
     }
 
     /**
-     * A utility function to check if the context user has system admin or monitor role and 
+     * A utility function to check if the context user has system admin or monitor role and
      * throws an exception when the check fails.
      */
     protected void verifySystemAdminOrMonitorUser() {
-        if(!isSystemAdminOrMonitorUser()) {
+        if (!isSystemAdminOrMonitorUser()) {
             throw APIException.forbidden
-            .insufficientPermissionsForUser(getUserFromContext().getName());
+                    .insufficientPermissionsForUser(getUserFromContext().getName());
         }
-    }    
+    }
 }

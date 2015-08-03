@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.hds.api;
 
@@ -42,7 +32,7 @@ import com.sun.jersey.api.client.ClientResponse;
 /**
  * This class is responsible to perform the Batch API operations using REST
  * calls like POST to HiCommand DM server.
- *
+ * 
  */
 public class HDSBatchApiExportManager {
 
@@ -127,7 +117,7 @@ public class HDSBatchApiExportManager {
      * This method makes a HTTP POST call to HiCommand with a payload of muliple
      * HSD's and each with a set of WWNs. This method can only be used for FC
      * HSD's.
-     *
+     * 
      * @param systemId
      *            - represents Storage System ObjectID.
      * @param hsdList
@@ -182,7 +172,7 @@ public class HDSBatchApiExportManager {
      * This method makes a HTTP POST call to HiCommand with a payload of muliple
      * HSD's and each with a set of ISCSINames. This method can only be used for
      * ISCSI HSD's.
-     *
+     * 
      * @param systemId
      *            - represents Storage System ObjectID.
      * @param hsdList

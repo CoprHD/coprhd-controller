@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.impl.resource.utils;
@@ -20,13 +20,13 @@ import com.vmware.vim25.AboutInfo;
 import com.vmware.vim25.InvalidLogin;
 
 public class VCenterConnectionValidator {
-    
+
     protected final static Logger log = LoggerFactory.getLogger(VCenterConnectionValidator.class);
 
     public VCenterConnectionValidator() {
         // TODO Auto-generated constructor stub
     }
-    
+
     public static String isVCenterConnectionValid(VcenterParam vcenterParam) {
         String ipAddress = null;
         if (vcenterParam instanceof VcenterCreateParam) {
@@ -35,13 +35,13 @@ public class VCenterConnectionValidator {
         else if (vcenterParam instanceof VcenterUpdateParam) {
             ipAddress = ((VcenterUpdateParam) vcenterParam).getIpAddress();
         }
-        return validateVCenterAPIConnection(ipAddress, vcenterParam);        
+        return validateVCenterAPIConnection(ipAddress, vcenterParam);
     }
 
     protected static String validateVCenterAPIConnection(String hostname, VcenterParam vcenterParam) {
         try {
-            URL url = new URL("https",  hostname, vcenterParam.getPortNumber(), "/sdk");
-            
+            URL url = new URL("https", hostname, vcenterParam.getPortNumber(), "/sdk");
+
             VCenterAPI vcenterAPI = new VCenterAPI(url);
             try {
                 vcenterAPI.login(vcenterParam.getUserName(), vcenterParam.getPassword());
@@ -50,32 +50,30 @@ public class VCenterConnectionValidator {
                     throw APIException.badRequests.invalidNotAVCenter(hostname, aboutInfo.getFullName());
                 }
                 log.info(String.format("vCenter version: %s", aboutInfo.getVersion()));
-            }
-            finally {
+            } finally {
                 vcenterAPI.logout();
             }
-            
-        }
-        catch (Exception e) {
+
+        } catch (Exception e) {
             return getVcenterAPIMessage(e);
         }
-        
+
         return null;
-    }       
-    
+    }
+
     protected static String getVcenterAPIMessage(Throwable t) {
         String message = null;
-        
+
         if (ExceptionUtils.getRootCause(t) instanceof InvalidLogin) {
             message = "Login failed";
         }
-        
+
         if (message == null) {
             return "Failed to validate vCenter (Invalid host, port, username or password)";
         }
         else {
             return String.format("Failed to validate vCenter (%s)", message);
         }
-    }        
+    }
 
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.server.upgrade.impl.callback;
@@ -43,33 +33,35 @@ import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
  * 
  * Here's the basic execution flow for the test case:
  * - setup() runs, bringing up a "pre-migration" version
- *   of the database, using the DbSchemaScannerInterceptor
- *   you supply to hide your new field or column family
- *   when generating the "before" schema. 
+ * of the database, using the DbSchemaScannerInterceptor
+ * you supply to hide your new field or column family
+ * when generating the "before" schema.
  * - Your implementation of prepareData() is called, allowing
- *   you to use the internal _dbClient reference to create any 
- *   needed pre-migration test data.
+ * you to use the internal _dbClient reference to create any
+ * needed pre-migration test data.
  * - The database is then shutdown and restarted (without using
- *   the interceptor this time), so the full "after" schema
- *   is available.
+ * the interceptor this time), so the full "after" schema
+ * is available.
  * - The dbsvc detects the diffs in the schema and executes the
- *   migration callbacks as part of the startup process.
+ * migration callbacks as part of the startup process.
  * - Your implementation of verifyResults() is called to
- *   allow you to confirm that the migration of your prepared
- *   data went as expected.
+ * allow you to confirm that the migration of your prepared
+ * data went as expected.
  * 
  */
 public class BlockObjectNormalizeWwnMigrationTest extends DbSimpleMigrationTestBase {
-    
+
     private final int INSTANCES_TO_CREATE = 10;
     private final int WWN_LENGTH = 32;
     private Map<URI, String> blockObjectWwns = new HashMap<URI, String>();
-    
+
     @BeforeClass
     public static void setup() throws IOException {
-        customMigrationCallbacks.put("2.1", new ArrayList<BaseCustomMigrationCallback>() {{
-            add(new BlockObjectNormalizeWwnMigration());
-        }});
+        customMigrationCallbacks.put("2.1", new ArrayList<BaseCustomMigrationCallback>() {
+            {
+                add(new BlockObjectNormalizeWwnMigration());
+            }
+        });
         DbsvcTestBase.setup();
     }
 
@@ -96,7 +88,7 @@ public class BlockObjectNormalizeWwnMigrationTest extends DbSimpleMigrationTestB
         verifyBlockObjectData(BlockSnapshot.class);
         verifyBlockObjectData(BlockMirror.class);
     }
-    
+
     private void prepareBlockObjectData(Class<? extends BlockObject> clazz) throws Exception {
 
         for (int i = 0; i < INSTANCES_TO_CREATE; i++) {
@@ -107,17 +99,19 @@ public class BlockObjectNormalizeWwnMigrationTest extends DbSimpleMigrationTestB
             blockObject.setWWN(lowerCaseWwn);
             _dbClient.createObject(blockObject);
         }
-        
+
         List<URI> keys = _dbClient.queryByType(clazz, false);
-        int count = 0;       
-        for (@SuppressWarnings("unused") URI ignore : keys) {
+        int count = 0;
+        for (@SuppressWarnings("unused")
+        URI ignore : keys) {
             count++;
         }
-        Assert.assertTrue("Expected " + INSTANCES_TO_CREATE + " prepared " + clazz.getSimpleName() + ", found only " + count, count == INSTANCES_TO_CREATE); 
+        Assert.assertTrue("Expected " + INSTANCES_TO_CREATE + " prepared " + clazz.getSimpleName() + ", found only " + count,
+                count == INSTANCES_TO_CREATE);
     }
-    
+
     private void verifyBlockObjectData(Class<? extends BlockObject> clazz) throws Exception {
-        
+
         List<URI> keys = _dbClient.queryByType(clazz, false);
         int count = 0;
         Iterator<? extends BlockObject> objs =
@@ -127,15 +121,17 @@ public class BlockObjectNormalizeWwnMigrationTest extends DbSimpleMigrationTestB
             count++;
             Assert.assertTrue("Wwn should be upper case ", isUpperCase(blockObject.getWWN()));
             Assert.assertTrue("Block object id should be in the map", blockObjectWwns.containsKey(blockObject.getId()));
-            Assert.assertEquals("Wwn should be upper case equivalent of lower case Wwn", blockObjectWwns.get(blockObject.getId()).toUpperCase(), blockObject.getWWN());
+            Assert.assertEquals("Wwn should be upper case equivalent of lower case Wwn", blockObjectWwns.get(blockObject.getId())
+                    .toUpperCase(), blockObject.getWWN());
         }
-        Assert.assertTrue("We should still have " + INSTANCES_TO_CREATE + " " + clazz.getSimpleName() + " after migration, not " + count, count == INSTANCES_TO_CREATE);        
+        Assert.assertTrue("We should still have " + INSTANCES_TO_CREATE + " " + clazz.getSimpleName() + " after migration, not " + count,
+                count == INSTANCES_TO_CREATE);
     }
-    
+
     private String generateLowerCaseWwn() {
         Random r = new Random();
         StringBuffer sb = new StringBuffer();
-        while(sb.length() < WWN_LENGTH){
+        while (sb.length() < WWN_LENGTH) {
             sb.append(Integer.toHexString(r.nextInt()));
         }
         return sb.toString().substring(0, WWN_LENGTH).toLowerCase();
@@ -144,7 +140,7 @@ public class BlockObjectNormalizeWwnMigrationTest extends DbSimpleMigrationTestB
     private boolean isUpperCase(String s) {
         int size = s.length();
         for (int i = 0; i < size; i++) {
-            if (!Character.isDigit(s.charAt(i)) 
+            if (!Character.isDigit(s.charAt(i))
                     && !Character.isUpperCase(s.charAt(i))) {
                 return false;
             }

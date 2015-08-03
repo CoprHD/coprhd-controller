@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.host;
@@ -18,6 +18,7 @@ public class InitiatorBulkRep extends BulkRestRep {
 
     /**
      * List of initiator objects that exists in ViPR.
+     * 
      * @valid none
      */
     @XmlElement(name = "initiators")

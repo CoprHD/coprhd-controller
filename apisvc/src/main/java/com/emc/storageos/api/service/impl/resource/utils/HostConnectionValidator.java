@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.impl.resource.utils;
@@ -12,16 +12,16 @@ import com.emc.storageos.model.host.HostParam;
 import com.google.common.collect.Maps;
 
 public abstract class HostConnectionValidator {
-    
+
     protected static Map<HostType, HostConnectionValidator> validators = Maps.newHashMap();
-    
+
     protected static void addValidator(HostConnectionValidator hostConnectionValidator) {
         validators.put(hostConnectionValidator.getType(), hostConnectionValidator);
     }
-    
+
     public static boolean isHostConnectionValid(HostParam hostParam, Host existingHost) {
         HostType hostType = HostType.valueOf(hostParam.getType());
-        
+
         HostConnectionValidator hostConnectionValidator = validators.get(hostType);
         if (hostConnectionValidator != null) {
             return hostConnectionValidator.validateConnection(hostParam, existingHost);
@@ -29,9 +29,9 @@ public abstract class HostConnectionValidator {
 
         return true;
     }
-    
+
     public abstract HostType getType();
-    
-    public abstract boolean validateConnection(HostParam hostParam, Host existingHost);   
-    
+
+    public abstract boolean validateConnection(HostParam hostParam, Host existingHost);
+
 }

@@ -1,12 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package jobs;
 
 import org.slf4j.bridge.SLF4JBridgeHandler;
-
-import com.emc.storageos.security.validator.Validator;
 
 import play.jobs.Job;
 import play.jobs.OnApplicationStart;
@@ -17,7 +15,7 @@ public class Bootstrap extends Job<String> {
         initLogging();
 
         new DependencyInjectionJob().doJob();
-        
+
         // Synchronously load initial data
         new LoadInitialData().doJob();
     }
@@ -27,5 +25,5 @@ public class Bootstrap extends Job<String> {
         java.util.logging.LogManager.getLogManager().reset();
         SLF4JBridgeHandler.install();
     }
-    
+
 }

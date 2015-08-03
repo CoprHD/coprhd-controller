@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -11,10 +11,11 @@ public class StringSetMap extends AbstractChangeTrackingSetMap<String> {
     /**
      * Default constructor
      */
-    public StringSetMap() { }
+    public StringSetMap() {
+    }
 
     @Override
-    public AbstractChangeTrackingSet<String> createSetInstance(){
+    public AbstractChangeTrackingSet<String> createSetInstance() {
         return new StringSet();
     }
 

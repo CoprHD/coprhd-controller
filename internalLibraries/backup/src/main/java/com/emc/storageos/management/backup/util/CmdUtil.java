@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
- * All Rights Reserved 
- *
- * This software contains the intellectual property of EMC Corporation 
- * or is licensed to EMC Corporation from third parties.  Use of this 
- * software and the intellectual property contained therein is expressly 
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
+ * All Rights Reserved
  */
 
 package com.emc.storageos.management.backup.util;
@@ -18,11 +8,7 @@ package com.emc.storageos.management.backup.util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.LineNumberReader;
-import java.io.InputStreamReader;
-
 import sun.jvmstat.monitor.*;
-import sun.jvmstat.perfdata.monitor.protocol.local.*;
 import java.net.URISyntaxException;
 
 import java.util.Set;
@@ -39,12 +25,11 @@ public class CmdUtil {
 
         try {
             HostIdentifier hostIdentifier = new HostIdentifier("local://localhost");
-            MonitoredHostProvider hostProvider = new MonitoredHostProvider(hostIdentifier);
-
             MonitoredHost monitoredHost;
             try {
                 monitoredHost = MonitoredHost.getMonitoredHost(hostIdentifier);
             } catch (MonitorException e) {
+                log.warn("Failed to get monitore host", e);
                 return false;
             }
 
@@ -66,10 +51,11 @@ public class CmdUtil {
                         }
                     }
                 } catch (MonitorException e) {
+                    log.debug("Ignoring monitor failure", e);
                 }
             }
-        } catch (URISyntaxException e) {
-        } catch (MonitorException e) {
+        } catch (URISyntaxException | MonitorException e) {
+            log.debug("Ignoring uri syntax or monitor error", e);
         }
         return result;
     }

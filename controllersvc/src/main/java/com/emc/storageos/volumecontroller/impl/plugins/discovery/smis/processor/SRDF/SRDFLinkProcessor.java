@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.SRDF;
@@ -29,7 +29,7 @@ import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.
 public class SRDFLinkProcessor extends StorageProcessor {
     private static final Logger _log = LoggerFactory.getLogger(SRDFLinkProcessor.class);
     private static final String REMOTE_MIRROR = "6";
-    
+
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap) throws BaseCollectionException {
         try {
@@ -44,35 +44,37 @@ public class SRDFLinkProcessor extends StorageProcessor {
                     .toString();
             String copyState = instance.getProperty(Constants.COPY_STATE).getValue()
                     .toString();
-           
+
             if (syncType.equalsIgnoreCase(REMOTE_MIRROR)) {
                 String newStatus = instance.getProperty(Constants.COPY_STATE_DESC).getValue()
-                        .toString();;
+                        .toString();
+                ;
                 String sourceVolumeNativeGuid = getVolumeNativeGuid(sourcePath);
                 Volume expectedSourceVolume = checkStorageVolumeExistsInDB(sourceVolumeNativeGuid, dbClient);
                 String targetVolumeNativeGuid = getVolumeNativeGuid(destPath);
                 Volume expectedTargetVolume = checkStorageVolumeExistsInDB(targetVolumeNativeGuid, dbClient);
-                
+
                 if (PersonalityTypes.TARGET.toString().equalsIgnoreCase(expectedSourceVolume.getPersonality()) &&
                         PersonalityTypes.SOURCE.toString().equalsIgnoreCase(expectedTargetVolume.getPersonality()) &&
                         !LinkStatus.SWAPPED.toString().equalsIgnoreCase(expectedSourceVolume.getLinkStatus())) {
                     // expected target Volume is acting as a source in ViPr and viceversa
                     StringSet srdfTargets = new StringSet();
-                    srdfTargets.addAll(expectedTargetVolume.getSrdfTargets()) ;
+                    srdfTargets.addAll(expectedTargetVolume.getSrdfTargets());
                     URI raGroupUri = expectedSourceVolume.getSrdfGroup();
                     String copyMode = expectedSourceVolume.getSrdfCopyMode();
                     NamedURI parent = expectedSourceVolume.getSrdfParent();
-                    
-                   // targetVolumefromprovider is acting as a source in ViPr, change it back to target
+
+                    // targetVolumefromprovider is acting as a source in ViPr, change it back to target
                     expectedTargetVolume.setPersonality(PersonalityTypes.TARGET.toString());
                     expectedTargetVolume.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
                     expectedTargetVolume.setSrdfParent(new NamedURI(expectedSourceVolume.getId(), parent.getName()));
                     expectedTargetVolume.setSrdfCopyMode(copyMode);
                     expectedTargetVolume.setSrdfGroup(raGroupUri);
                     expectedTargetVolume.getSrdfTargets().replace(new StringSet());
-                    //SourceVolumefromprovider is acting as a target in ViPr, change it back to source
+                    // SourceVolumefromprovider is acting as a target in ViPr, change it back to source
                     expectedSourceVolume.setPersonality(PersonalityTypes.SOURCE.toString());
-                    expectedSourceVolume.setSrdfParent(new NamedURI(NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullStr()));
+                    expectedSourceVolume
+                            .setSrdfParent(new NamedURI(NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullStr()));
                     expectedSourceVolume.setSrdfCopyMode(NullColumnValueGetter.getNullStr());
                     expectedSourceVolume.setSrdfGroup(NullColumnValueGetter.getNullURI());
                     expectedSourceVolume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
@@ -93,7 +95,7 @@ public class SRDFLinkProcessor extends StorageProcessor {
             _log.error("Validating SRDF Source and Target characteristics failed :", e);
         }
     }
-    
+
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs) throws BaseCollectionException {
     }

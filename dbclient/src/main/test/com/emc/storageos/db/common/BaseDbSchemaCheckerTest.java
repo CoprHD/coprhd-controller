@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.common;
@@ -46,7 +36,7 @@ public class BaseDbSchemaCheckerTest {
     protected DbSchema tgtSchema;
     protected DbSchemas srcSchemas;
     protected DbSchemas tgtSchemas;
-    
+
     protected DbSchemasDiff diff;
 
     @Before
@@ -61,34 +51,34 @@ public class BaseDbSchemaCheckerTest {
     public void testMoveFieldToBaseClass() {
         srcSchemas.setSchemas(new ArrayList<DbSchema>());
         tgtSchemas.setSchemas(new ArrayList<DbSchema>());
-        
+
         srcSchema = new DataObjectSchema(ChildClassUTBefore.class);
-        srcSchema.setType(srcSchema.getType()); 
+        srcSchema.setType(srcSchema.getType());
         srcSchemas.addSchema(srcSchema);
-        
+
         tgtSchema = new DataObjectSchema(ChildClassUTAfter1.class);
-        tgtSchema.setType(tgtSchema.getType()); 
+        tgtSchema.setType(tgtSchema.getType());
         tgtSchemas.addSchema(tgtSchema);
-        
+
         tgtSchema = new DataObjectSchema(ChildClassUTAfter2.class);
-        tgtSchema.setType(tgtSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
-        
+        tgtSchema.setType(tgtSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
+
         diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
-        
+
         Assert.assertTrue(diff.isUpgradable());
         Assert.assertTrue(diff.isChanged());
     }
-    
+
     @Test
     public void testCustomMigrationExistingField() {
-        
+
         tgtSchema = new DataObjectSchema(CustomMigrationExistingField.class);
-        tgtSchema.setType(tgtSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
-        
+        tgtSchema.setType(tgtSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
+
         diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
-        
+
         Assert.assertTrue(diff.isUpgradable());
         Assert.assertFalse(diff.isChanged());
     }
@@ -97,17 +87,17 @@ public class BaseDbSchemaCheckerTest {
     public void testCustomMigrationPreUpgrade() {
         srcSchemas.setSchemas(new ArrayList<DbSchema>());
         tgtSchemas.setSchemas(new ArrayList<DbSchema>());
-        
+
         srcSchema = new DataObjectSchema(CustomMigrationExistingField.class);
-        srcSchema.setType(srcSchema.getType()); 
+        srcSchema.setType(srcSchema.getType());
         srcSchemas.addSchema(srcSchema);
-      
+
         tgtSchema = new DataObjectSchema(CustomMigrationExistingAndNewField.class);
-        tgtSchema.setType(tgtSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
-        
+        tgtSchema.setType(tgtSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
+
         diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
-        
+
         Assert.assertTrue(diff.isUpgradable());
         Assert.assertTrue(diff.isChanged());
     }
@@ -128,7 +118,7 @@ public class BaseDbSchemaCheckerTest {
             this.fieldUT = fieldUT;
         }
     }
-    
+
     @Cf("schema_ut")
     @Shards(10)
     protected static class NewClassAnnotation extends DataObject {
@@ -283,7 +273,7 @@ public class BaseDbSchemaCheckerTest {
             this.fieldUT = fieldUT;
         }
     }
-    
+
     @Cf("schema_ut")
     protected static class NewPermittedFieldAnnotation extends DataObject {
         private String fieldUT;
@@ -355,7 +345,7 @@ public class BaseDbSchemaCheckerTest {
             this.fieldUT = fieldUT;
         }
     }
-    
+
     @Cf("schema_ut_2")
     protected static class ClassUT7 extends DataObject {
         private String fieldUT;
@@ -369,7 +359,7 @@ public class BaseDbSchemaCheckerTest {
             this.fieldUT = fieldUT;
         }
     }
-    
+
     @Cf("schema_ut_2")
     protected static class ClassUT3 extends DataObject {
         private String fieldUT;
@@ -384,7 +374,7 @@ public class BaseDbSchemaCheckerTest {
             this.fieldUT = fieldUT;
         }
     }
-    
+
     @Cf("schema_ut_3")
     protected static class ClassUT4 extends DataObject {
         private String fieldUT;
@@ -398,7 +388,7 @@ public class BaseDbSchemaCheckerTest {
             this.fieldUT = fieldUT;
         }
     }
-    
+
     @Cf("schema_ut_4")
     protected static class ClassUT5 extends DataObject {
         private String fieldUT;
@@ -412,7 +402,7 @@ public class BaseDbSchemaCheckerTest {
             this.fieldUT = fieldUT;
         }
     }
-    
+
     @Cf("schema_ut_4")
     protected static class ClassUT6 extends DataObject {
         private String fieldUT;
@@ -425,7 +415,7 @@ public class BaseDbSchemaCheckerTest {
             this.fieldUT = fieldUT;
         }
     }
-    
+
     @Cf("schema_ut")
     protected static class WithNamedRelationIndex extends DataObject {
         private String fieldUT;
@@ -440,7 +430,7 @@ public class BaseDbSchemaCheckerTest {
             this.fieldUT = fieldUT;
         }
     }
-    
+
     protected static class BaseClassUTBefore extends DataObject {
     }
 
@@ -467,12 +457,12 @@ public class BaseDbSchemaCheckerTest {
             this.unchangedField = unchangedField;
         }
     }
-    
+
     protected static class BaseClassUTAfter extends DataObject {
         private String fieldUT;
 
         @Name("field_ut")
-        @CustomMigrationCallback(callback=MyTestMigrationCallback.class)
+        @CustomMigrationCallback(callback = MyTestMigrationCallback.class)
         public String getFieldUT() {
             return fieldUT;
         }
@@ -481,7 +471,7 @@ public class BaseDbSchemaCheckerTest {
             this.fieldUT = fieldUT;
         }
     }
-    
+
     @Cf("schema_ut")
     protected static class ChildClassUTAfter1 extends BaseClassUTAfter {
         private String unchangedField;
@@ -497,17 +487,17 @@ public class BaseDbSchemaCheckerTest {
         }
 
     }
-    
+
     @Cf("schema_ut2")
     protected static class ChildClassUTAfter2 extends BaseClassUTAfter {
     }
-    
+
     protected static class MyTestMigrationCallback extends BaseCustomMigrationCallback {
 
         private static final Logger log = LoggerFactory.getLogger(MyTestMigrationCallback.class);
-        
+
         public MyTestMigrationCallback() {
-            
+
         }
 
         @Override
@@ -520,9 +510,9 @@ public class BaseDbSchemaCheckerTest {
     protected static class MyTestMigrationCallback2 extends BaseCustomMigrationCallback {
 
         private static final Logger log = LoggerFactory.getLogger(MyTestMigrationCallback2.class);
-        
+
         public MyTestMigrationCallback2() {
-            
+
         }
 
         @Override
@@ -531,13 +521,13 @@ public class BaseDbSchemaCheckerTest {
 
         }
     }
-    
+
     @Cf("schema_ut")
     protected static class CustomMigrationExistingField extends DataObject {
         private String fieldUT;
 
         @Name("field_ut")
-        @CustomMigrationCallback(callback=MyTestMigrationCallback2.class)
+        @CustomMigrationCallback(callback = MyTestMigrationCallback2.class)
         public String getFieldUT() {
             return fieldUT;
         }
@@ -546,14 +536,14 @@ public class BaseDbSchemaCheckerTest {
             this.fieldUT = fieldUT;
         }
     }
-    
+
     @Cf("schema_ut")
     protected static class CustomMigrationExistingAndNewField extends DataObject {
         private String fieldUT;
         private String newField;
 
         @Name("field_ut")
-        @CustomMigrationCallback(callback=MyTestMigrationCallback2.class)
+        @CustomMigrationCallback(callback = MyTestMigrationCallback2.class)
         public String getFieldUT() {
             return fieldUT;
         }
@@ -563,7 +553,7 @@ public class BaseDbSchemaCheckerTest {
         }
 
         @Name("new_field")
-        @CustomMigrationCallback(callback=MyTestMigrationCallback.class)
+        @CustomMigrationCallback(callback = MyTestMigrationCallback.class)
         public String getNewField() {
             return newField;
         }
@@ -572,7 +562,7 @@ public class BaseDbSchemaCheckerTest {
             this.newField = newField;
         }
     }
-    
+
     @Cf("geoSchema_ut")
     @DbKeyspace(Keyspaces.GLOBAL)
     protected static class GeoClassUT extends DataObject {
@@ -587,7 +577,7 @@ public class BaseDbSchemaCheckerTest {
             this.geoFieldUT = geoFieldUT;
         }
     }
-    
+
     @Cf("geoSchema_ut")
     @DbKeyspace(Keyspaces.GLOBAL)
     protected static class GeoNewAnnotationOnExistingField extends DataObject {
@@ -603,7 +593,7 @@ public class BaseDbSchemaCheckerTest {
             this.geoFieldUT = geoFieldUT;
         }
     }
-    
+
     @Cf("geoSchema_ut")
     @DbKeyspace(Keyspaces.GLOBAL)
     protected static class GeoNewField extends DataObject {
@@ -618,7 +608,7 @@ public class BaseDbSchemaCheckerTest {
         public void setGeoFieldUT(String geoFieldUT) {
             this.geoFieldUT = geoFieldUT;
         }
-        
+
         @Name("new_field")
         @AlternateId("geoField_ut")
         public String getNewField() {
@@ -629,7 +619,7 @@ public class BaseDbSchemaCheckerTest {
             this.newField = newField;
         }
     }
-    
+
     @Cf("geoSchema_ut_new")
     @DbKeyspace(Keyspaces.GLOBAL)
     protected static class GeoNewCF extends DataObject {

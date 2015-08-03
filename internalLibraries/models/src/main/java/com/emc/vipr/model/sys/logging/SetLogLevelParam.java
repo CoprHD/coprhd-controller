@@ -14,6 +14,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class SetLogLevelParam {
 
     private List<String> nodeIds;
+    private List<String> nodeNames;
     private List<String> logNames;
     private Integer severity;
     private Integer expirInMin;
@@ -44,6 +45,23 @@ public class SetLogLevelParam {
     public void setNodeIds(List<String> nodeIds) {
         this.nodeIds = nodeIds;
     }
+
+    /**
+     *  Optional, A list of node names to be updated.
+     *  All the nodes in the cluster will be updated by default
+     */
+    @XmlElement(required = false, name = "node_name")
+    public List<String> getNodeNames(){
+        if (nodeNames == null) {
+            nodeNames = new ArrayList<String>();
+        }
+        return nodeNames;
+    }
+
+    public void setNodeNames(List<String> nodeNames){
+        this.nodeNames=nodeNames;
+    }
+
     /**
      *  Optional, A list of service names to be updated with new log level. 
      *  All the services will be updated by default

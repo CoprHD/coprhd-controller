@@ -37,7 +37,8 @@ public class JSONMarshaller extends Marshaller {
     private static final byte[] CLASS = "class".getBytes();
     private static final byte[] LINE = "line".getBytes();
     private static final byte[] MESSAGE = "message".getBytes();
-    private static final byte[] NODE = "node".getBytes();
+    private static final byte[] NODE_ID = "nodeId".getBytes();
+    private static final byte[] NODE_NAME = "nodeName".getBytes();
     private static final byte[] SERVICE = "service".getBytes();
     private static final byte[] SEVERITY = "severity".getBytes();
     private static final byte[] THREAD = "thread".getBytes();
@@ -93,7 +94,9 @@ public class JSONMarshaller extends Marshaller {
         outputStream.write(QUOTE);
 
         outputStream.write(COMMA);
-        writeEntry(NODE, log.getNodeId(), true);
+        writeEntry(NODE_ID, log.getNodeId(), true);
+        outputStream.write(COMMA);
+        writeEntry(NODE_NAME, log.getNodeName(), true);
         outputStream.write(COMMA);
         writeEntry(SERVICE, log.getService(), true);
         outputStream.write(COMMA);

@@ -200,7 +200,7 @@ public class CoordinatorClientExt {
             ConfigurationImpl cfg = new ConfigurationImpl();
             cfg.setId(id); 
             cfg.setKind(kind); // We can use service id as the "id" and the type of info as "kind", then we can persist certain type of info about a particular node in coordinator 
-            cfg.setConfig(NODE_INFO, info.encodeAsString());
+            cfg.setConfig(NODE_INFO,info.encodeAsString());
             _coordinator.persistServiceConfiguration(cfg);
         } catch (Exception e) {
             _log.error("Failed to set node global scope info", e);
@@ -424,7 +424,7 @@ public class CoordinatorClientExt {
      */
     public <T extends CoordinatorSerializable> Map<Service,
     T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter) throws Exception {
-        return _coordinator.getAllNodeInfos(clazz, nodeIdFilter);
+        return _coordinator.getAllNodeInfos(clazz,nodeIdFilter);
                     }
 
     public <T extends CoordinatorSerializable> T getNodeInfo(String node, Class<T> clazz) throws CoordinatorClientException {
@@ -542,7 +542,7 @@ public class CoordinatorClientExt {
      */
     public URI getNodeEndpoint(String nodeName) {
         try {
-            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(), _svc.getVersion(), (String)null, null);
+            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(),_svc.getVersion(),(String)null,null);
             for (Service svc : svcs) {
                 if (svc.getNodeName().equals(nodeName)) {
                     return svc.getEndpoint();
@@ -593,7 +593,7 @@ public class CoordinatorClientExt {
                 }
             }
         } catch (Exception e) {
-            _log.error("Can not get {} lock owner ", lockId);
+            _log.error("Can not get {} lock owner ",lockId);
         }
         return false;
     }
@@ -616,7 +616,7 @@ public class CoordinatorClientExt {
                 return true;
             }
         } catch (Exception e) {
-            _log.info("Can not get {} lock", lockId, e);
+            _log.info("Can not get {} lock",lockId,e);
         }
         return false;
     }
@@ -901,8 +901,8 @@ public class CoordinatorClientExt {
         try {
             List<Service> svcs = getAllServices();
             for (Service svc : svcs) {
-                if (customNames.contains(svc.getName())){
-                    final String nodeId =svc.getId();
+                if (customNames.contains(svc.getNodeCustomName())){
+                    final String nodeId =svc.getNodeName();
                     nodeIds.add(nodeId);
                 }
             }
@@ -926,8 +926,8 @@ public class CoordinatorClientExt {
         try {
             List<Service> svcs = getAllServices();
             for (Service svc : svcs) {
-                if (customName.equals(svc.getName())){
-                    nodeId =svc.getId();
+                if (customName.equals(svc.getNodeCustomName())){
+                    nodeId =svc.getNodeName();
                     break;
                 }
             }
@@ -942,6 +942,37 @@ public class CoordinatorClientExt {
         }
 
         return nodeId;
+    }
+
+    /**
+     * The utility method to find the corresponding nodeId for the provided
+     * custom name. When each node starts, the system management service on each
+     * node, registers themselves with the coordninator. This method iterates
+     * over that registration namespace to find the node in the cluster
+     *
+     * @return NodeHandle for mathing node in the cluster
+     */
+    public String getMatchingNodeCustomName(String nodeId) {
+        String nodeName = null;
+        try {
+            List<Service> svcs = getAllServices();
+            for (Service svc : svcs) {
+                if (nodeId.equals(svc.getNodeName())){
+                    nodeName=svc.getNodeCustomName();
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            _log.error("getMatchingNodeCustomName(): Failed to get all nodes while searching for {}: {}",nodeId, e);
+        }
+
+        if (nodeId==null) {
+            _log.error("getMatchingNodeCustomName(): Failed to get Node Custom Name for Node Id {}",nodeId);
+        } else {
+            _log.info("getMatchingNodeCustomName(): Node Custom Name: {}", nodeName);
+        }
+
+        return nodeName;
     }
 
 

@@ -48,6 +48,8 @@ public class LogLevels {
     public static class LogLevel {
         // The Bourne node identifier.
         private String nodeId = "";
+        // The ViPR node name.
+        private String nodeName = "";
         // The name of the Bourne service.
         private String svcName = "";
         // The severity of the message.
@@ -58,8 +60,9 @@ public class LogLevels {
         }
     
         //Constructor for Service logs
-        public LogLevel(String nodeId, String svcName, String severity) {
+        public LogLevel(String nodeId, String nodeName, String svcName, String severity) {
             this.nodeId = nodeId;
+            this.nodeName = nodeName;
             this.svcName = svcName;
             this.severity = LogSeverity.find(severity.toUpperCase());
         }
@@ -69,7 +72,7 @@ public class LogLevels {
          *
          * @return The Bourne node identifier on which the message was logged.
          */
-        @XmlElement(name = "node")
+        @XmlElement(name = "node_id")
         public String getNodeId() {
             return nodeId;
         }
@@ -82,7 +85,26 @@ public class LogLevels {
         public void setNodeId(String nodeId) {
             this.nodeId = nodeId;
         }
-    
+
+        /**
+         * Getter for the ViPR node name on which the message was logged.
+         *
+         * @return The ViPR node name on which the message was logged.
+         */
+        @XmlElement(name = "node_name")
+        public String getNodeName() {
+            return nodeName;
+        }
+
+        /**
+         * Setter for the ViPR node name on which the message was logged.
+         *
+         * @param nodeName The ViPR node name on which the message was logged.
+         */
+        public void setNodeName(String nodeName) {
+            this.nodeName = nodeName;
+        }
+
         /**
          * Getter for the name of the service that logged the message.
          *

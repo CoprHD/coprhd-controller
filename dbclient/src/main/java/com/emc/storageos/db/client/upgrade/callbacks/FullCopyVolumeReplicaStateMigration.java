@@ -56,7 +56,6 @@ public class FullCopyVolumeReplicaStateMigration extends BaseCustomMigrationCall
                 volume.setReplicaState(ReplicationState.DETACHED.name());
                 dbClient.persistObject(volume);
             }
-            dbClient.persistObject(volume);
         }
     }
 }

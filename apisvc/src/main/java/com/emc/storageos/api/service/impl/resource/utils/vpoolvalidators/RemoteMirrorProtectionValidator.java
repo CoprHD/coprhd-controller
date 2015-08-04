@@ -216,13 +216,13 @@ public class RemoteMirrorProtectionValidator extends
         if (null != vPool) {
             if (null != vPool.getVirtualArrays()
                     && !vPool.getVirtualArrays().contains(remoteSettings.getVarray().toString())) {
-                throw APIException.badRequests.VArrayUnSupportedForGivenVPool(vPool.getId(),
+                throw APIException.badRequests.vArrayUnSupportedForGivenVPool(vPool.getId(),
                         remoteSettings.getVarray());
             }
         } else {
             Set<String> vArrays = createParam.getVarrays();
             if (null != vArrays && !vArrays.contains(remoteSettings.getVarray().toString())) {
-                throw APIException.badRequests.VArrayUnSupportedForGivenVPool(remoteSettings.getVarray(),
+                throw APIException.badRequests.vArrayUnSupportedForGivenVPool(remoteSettings.getVarray(),
                         remoteSettings.getVarray());
             }
         }

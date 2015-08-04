@@ -1356,10 +1356,10 @@ public class TenantsService extends TaggedResource {
 
             if (CollectionUtils.isEmpty(userTenants)) {
                 _log.error("User {} will not match any tenant after this user mapping change", user);
-                throw APIException.badRequests.UserMappingNotAllowed(user);
+                throw APIException.badRequests.userMappingNotAllowed(user);
             } else if (userTenants.size() > 1) {
                 _log.error("User {} will map to multiple tenants {} after this user mapping change", user, userTenants.toArray());
-                throw APIException.badRequests.UserMappingNotAllowed(user);
+                throw APIException.badRequests.userMappingNotAllowed(user);
             } else {
                 String tenantUri = userTenants.get(0)._id.toString();
                 String providerTenantId = _permissionsHelper.getRootTenant().getId().toString();
@@ -1368,7 +1368,7 @@ public class TenantsService extends TaggedResource {
 
                 if (!providerTenantId.equalsIgnoreCase(tenantUri)) {
                     _log.error("User {} will map to tenant {}, which is not provider tenant", user, tenant.getLabel());
-                    throw APIException.badRequests.UserMappingNotAllowed(user);
+                    throw APIException.badRequests.userMappingNotAllowed(user);
                 }
             }
 

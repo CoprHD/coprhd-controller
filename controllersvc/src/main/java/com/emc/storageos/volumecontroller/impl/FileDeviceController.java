@@ -292,7 +292,7 @@ public class FileDeviceController implements FileController {
     }
 
     @Override
-    public void delete(URI storage, URI pool, URI uri, boolean forceDelete,String deleteType, String opId) throws ControllerException {
+    public void delete(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(uri, opId);
         StorageSystem storageObj = null;
         FileObject fileObject = null;
@@ -314,21 +314,21 @@ public class FileDeviceController implements FileController {
                 args.setFileOperation(isFile);
                 BiosCommandResult result;
                 
-                if(FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType)){
+                if(FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType) && !fsObj.getInactive()){
                     result = BiosCommandResult.createSuccessfulResult();
                 }else{
                     if(!fsObj.getInactive()) {
                         result = getDevice(storageObj.getSystemType()).doDeleteFS(storageObj, args);
-                    } else {
+                    }else{
                         result = BiosCommandResult.createSuccessfulResult();
                     }
-
+                } 
                 if (result.getCommandPending()) {
                     return;
                 }
                 fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
-                if (result.isCommandSuccess()) {
+                if (result.isCommandSuccess() && (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(deleteType)))  {
                     fsObj.setInactive(true);  // set inactive
 
                     // Mark Snapshots as InActive in case of force delete as snapshots will deleted from array when a file system deleted in
@@ -373,6 +373,22 @@ public class FileDeviceController implements FileController {
                     }
                     // Generate zero metering record.
                     generateZeroStatisticsRecord(fsObj);
+                }
+                if (result.isCommandSuccess() && (FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType))){
+                    if ((snapshotsExistsOnFS(fsObj) || quotaDirectoriesExistsOnFS(fsObj))){
+                        
+                        String errMsg = new String("Unable to delete file system from DB due to snapshots or QDs exist on FS " + fsObj.getLabel() );
+                        _log.error(errMsg);
+                        final ServiceCoded serviceCoded = DeviceControllerException.errors.jobFailedOpMsg(
+                                OperationTypeEnum.DELETE_FILE_SYSTEM.toString(), errMsg);
+                        result = BiosCommandResult.createErrorResult(serviceCoded);
+                        fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+                        recordFileDeviceOperation(_dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM, result.isCommandSuccess(), "", "", fsObj, storageObj);
+                        return; 
+                    }
+                    deleteShareACLsFromDB(args);
+                    doDeleteExportRulesFromDB(true, null, args);
+                    generateZeroStatisticsRecord(fsObj); 
                 }
                 _dbClient.persistObject(fsObj);
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM, result.isCommandSuccess(), "", "", fsObj,
@@ -2617,6 +2633,57 @@ public class FileDeviceController implements FileController {
         }
 
         return acls;
+    }
+    
+    private boolean snapshotsExistsOnFS(FileShare fs){
+        
+        
+        URIQueryResultList snapIDList = new URIQueryResultList();
+        
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                        .getFileshareSnapshotConstraint(fs.getId()), snapIDList);
+        
+        
+        
+        _log.info("getSnapshots: FS {}: {} ", fs.getId().toString(),
+                snapIDList.toString());
+        List<Snapshot> snapList = _dbClient.queryObject(
+                Snapshot.class, snapIDList);
+        
+        if(snapList != null){
+            _log.info(" No of Snapshots on FS {} ", snapList.size());
+            for(Snapshot snapshot : snapList){
+                if(!snapshot.getInactive())
+                    return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    private boolean quotaDirectoriesExistsOnFS(FileShare fs){
+        _log.info(" Setting Snapshots to InActive with Force Delete ");
+        
+        URIQueryResultList qdIDList = new URIQueryResultList();
+        
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                        .getQuotaDirectoryConstraint(fs.getId()), qdIDList);
+        
+        
+        
+        _log.info("getQuotaDirectories : FS {}: {} ", fs.getId().toString(),
+                qdIDList.toString());
+        List<QuotaDirectory> qdList = _dbClient.queryObject(
+                QuotaDirectory.class, qdIDList);
+        
+        if(qdList != null){
+            for(QuotaDirectory qd : qdList){
+                if(!qd.getInactive())
+                    return true;
+            }
+        }
+        
+        return false;
     }
 
     private List<ShareACL> queryExistingShareAcls(FileDeviceInputOutput args) {

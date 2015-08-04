@@ -58,6 +58,9 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     // A reference to the security context
     private SecurityContext _securityContext;
 
+    // A reference to the snapshot session manager
+    protected BlockSnapshotSessionManager _blockSnapshotSessionMgr;
+
     @SuppressWarnings("unused")
     private static final Logger s_logger = LoggerFactory.getLogger(DefaultBlockSnapshotSessionApiImpl.class);
 
@@ -74,13 +77,15 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * @param coordinator A reference to the coordinator client.
      * @param permissionsHelper A reference to a permission helper.
      * @param securityContext A reference to the security context.
+     * @param blockSnapshotSessionMgr A reference to the snapshot session manager.
      */
     public DefaultBlockSnapshotSessionApiImpl(DbClient dbClient, CoordinatorClient coordinator, PermissionsHelper permissionsHelper,
-            SecurityContext securityContext) {
+            SecurityContext securityContext, BlockSnapshotSessionManager blockSnapshotSessionMgr) {
         _dbClient = dbClient;
         _coordinator = coordinator;
         _permissionsHelper = permissionsHelper;
         _securityContext = securityContext;
+        _blockSnapshotSessionMgr = blockSnapshotSessionMgr;
     }
 
     /**
@@ -122,6 +127,9 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume(sourceVolume,
                         ResourceOperationTypeEnum.CREATE_SNAPSHOT_SESSION, _dbClient);
 
+                // Verify the source is not an internal object.
+                BlockServiceUtils.validateNotAnInternalBlockObject(sourceObj, false);
+
                 // Verify that array snapshots are allowed.
                 VirtualPool vpool = BlockSnapshotSessionUtils.querySnapshotSessionSourceVPool(sourceObj, _dbClient);
                 int maxNumberOfArraySnapsForSource = vpool.getMaxNativeSnapshots();
@@ -131,27 +139,26 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
 
                 // Verify the number of array snapshots does not exceed
                 // the limit specified by the virtual pool.
+                // TBD - In my mind this should be a bad request exception. Inherited from create snapshot.
                 if (getNumNativeSnapshots(sourceVolume) >= maxNumberOfArraySnapsForSource) {
                     throw APIException.methodNotAllowed.maximumNumberSnapshotsReached();
                 }
 
                 // Check for duplicate name.
                 checkForDuplicateSnapshotName(name, sourceVolume);
+
+                // Verify the new target count. There can be restrictions on the
+                // number of targets that can be linked to the snapshot sessions
+                // for a given source.
+                verifyNewTargetCount(sourceObj, newTargetsCount);
             } else {
-                // TBD Future - What is source if a BlockSnapshot?
+                // TBD Future - What if source is a BlockSnapshot i.e., cascaded snapshot?
                 // What about when the source is a BlockSnapshot. It has no vpool
                 // and no max snaps value. It could be determined from and be the
                 // same as the source device. Or, these cascaded snaps could be
                 // cumulative and count against the max for the source.
+                throw APIException.badRequests.createSnapSessionNotSupportForSnapshotSource();
             }
-
-            // Verify the new target count. There can be restrictions on the
-            // number of targets that can be linked to the snapshot sessions
-            // for a given source.
-            verifyNewTargetCount(sourceObj, newTargetsCount);
-
-            // Verify the source is not an internal object.
-            BlockServiceUtils.validateNotAnInternalBlockObject(sourceObj, false);
         }
 
         // Some systems, such as VMAX3, don't support array snapshots when there

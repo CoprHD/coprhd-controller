@@ -2340,4 +2340,10 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidNewLinkedTargetsCount(int requestedCount, String sourceId, int validCount);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException createSnapSessionNotSupportForSnapshotSource();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException createSnapSessionNotSupportedForRPProtected();
 }

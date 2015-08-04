@@ -44,7 +44,7 @@ import com.emc.storageos.security.audit.AuditLogManager;
 public class BlockSnapshotSessionManager {
 
     // Enumeration specifying the valid keys for the snapshot session implementations map.
-    private enum SnapshotSessionImpl {
+    public enum SnapshotSessionImpl {
         dflt, vmax, vmax3, vnx, vnxe, hds, openstack, scaleio, xtremio, xiv, rp, vplex
     }
 
@@ -102,29 +102,40 @@ public class BlockSnapshotSessionManager {
     private void createPlatformSpecificImpls(CoordinatorClient coordinator, PermissionsHelper permissionsHelper,
             SecurityContext securityContext) {
         _snapshotSessionImpls.put(SnapshotSessionImpl.dflt.name(), new DefaultBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext));
+                permissionsHelper, securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.vmax.name(), new VMAXBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext));
+                permissionsHelper, securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.vmax3.name(), new VMAX3BlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext));
+                permissionsHelper, securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.vnx.name(), new VNXBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext));
+                permissionsHelper, securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.vnxe.name(), new VNXEBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext));
+                permissionsHelper, securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.hds.name(), new HDSBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext));
+                permissionsHelper, securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.openstack.name(), new OpenstackBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext));
+                permissionsHelper, securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.scaleio.name(), new ScaleIOBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext));
+                permissionsHelper, securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.xtremio.name(), new XtremIOBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext));
+                permissionsHelper, securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.xiv.name(), new XIVBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext));
+                permissionsHelper, securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.vplex.name(), new VPlexBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext));
+                permissionsHelper, securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.rp.name(), new RPBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext));
+                permissionsHelper, securityContext, this));
+    }
+
+    /**
+     * Gets a specific platform implementation.
+     * 
+     * @param implType The specific implementation desired.
+     * 
+     * @return The platform specific snapshot session implementation.
+     */
+    public BlockSnapshotSessionApi getPlatformSpecificImpl(SnapshotSessionImpl implType) {
+        return _snapshotSessionImpls.get(implType.name());
     }
 
     /**
@@ -159,7 +170,7 @@ public class BlockSnapshotSessionManager {
         Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObj, _dbClient);
 
         // Get the platform specific block snapshot session implementation.
-        BlockSnapshotSessionApi snapSessionApiImpl = getPlatformSpecificImpl(snapSessionSourceObj);
+        BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObj);
 
         // Get the list of all block objects for which we need to
         // create snapshot sessions. For example, when creating a
@@ -194,7 +205,7 @@ public class BlockSnapshotSessionManager {
      * 
      * @return The platform specific snapshot session implementation.
      */
-    private BlockSnapshotSessionApi getPlatformSpecificImpl(BlockObject sourceObj) {
+    private BlockSnapshotSessionApi determinePlatformSpecificImplForSource(BlockObject sourceObj) {
 
         BlockSnapshotSessionApi snapSessionApi = null;
         if (BlockObject.checkForRP(_dbClient, sourceObj.getId())) {

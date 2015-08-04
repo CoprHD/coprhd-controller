@@ -42,10 +42,11 @@ public class OpenstackBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSe
      * @param coordinator A reference to the coordinator client.
      * @param permissionsHelper A reference to a permission helper.
      * @param securityContext A reference to the security context.
+     * @param blockSnapshotSessionMgr A reference to the snapshot session manager.
      */
     public OpenstackBlockSnapshotSessionApiImpl(DbClient dbClient, CoordinatorClient coordinator, PermissionsHelper permissionsHelper,
-            SecurityContext securityContext) {
-        super(dbClient, coordinator, permissionsHelper, securityContext);
+            SecurityContext securityContext, BlockSnapshotSessionManager blockSnapshotSessionMgr) {
+        super(dbClient, coordinator, permissionsHelper, securityContext, blockSnapshotSessionMgr);
     }
 
     /**

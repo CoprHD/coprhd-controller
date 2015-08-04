@@ -56,7 +56,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#createVolumes(java.util.List, java.lang.String)
      */
     @Override
@@ -117,7 +117,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#deleteVolumes(java.util.List, java.lang.String)
      */
     @Override
@@ -171,7 +171,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#expandVolume(java.net.URI, long, java.lang.String)
      */
     @Override
@@ -213,52 +213,56 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             completer.error(s_dbClient, _locker, serviceError);
         }
     }
-    
-    /* (non-Javadoc)
-     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#restoreVolume(java.net.URI, java.net.URI, java.net.URI, java.net.URI, java.lang.String)
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#restoreVolume(java.net.URI, java.net.URI,
+     * java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
-    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, String taskId) throws ControllerException {       
-         List<URI> volUris = Arrays.asList(volume);
-         BlockSnapshotRestoreCompleter completer = new BlockSnapshotRestoreCompleter(snapshot, taskId);    
+    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, String taskId) throws ControllerException {
+        List<URI> volUris = Arrays.asList(volume);
+        BlockSnapshotRestoreCompleter completer = new BlockSnapshotRestoreCompleter(snapshot, taskId);
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     RESTORE_VOLUME_FROM_SNAPSHOT_WF_NAME, true, taskId);
             String waitFor = null;    // the wait for key returned by previous call
-            
+
             // First, call the RP controller to add RP steps for volume restore from snapshot
             waitFor = _rpDeviceController.addPreRestoreVolumeSteps(
-                    workflow, storage, volume, snapshot, taskId); 
-            
+                    workflow, storage, volume, snapshot, taskId);
+
             // Call the VplexDeviceController to add its steps for restore volume from snapshot
             waitFor = _vplexDeviceController.addStepsForRestoreVolume(
                     workflow, waitFor, storage, pool, volume, snapshot, null, taskId, completer);
-            
+
             // Call the BlockDeviceController to add its steps for restore volume from snapshot
             waitFor = _blockDeviceController.addStepsForRestoreVolume(
                     workflow, waitFor, storage, pool, volume, snapshot, Boolean.TRUE, taskId, completer);
-            
+
             // Call the RPDeviceController to add its steps for post restore volume from snapshot
             waitFor = _rpDeviceController.addStepsForRestoreVolume(
                     workflow, waitFor, storage, pool, volume, snapshot, null, taskId, completer);
-                 
+
             // Call the RP controller to add RP post restore steps
             waitFor = _rpDeviceController.addPostRestoreVolumeSteps(
-                    workflow, waitFor, storage, volume, snapshot, taskId); 
-            
+                    workflow, waitFor, storage, volume, snapshot, taskId);
+
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
             String successMessage = String.format("Restore of volume %s from %s completed successfully", volume, snapshot);
-            Object[] callbackArgs = new Object[] { new ArrayList<URI>( volUris ) };
+            Object[] callbackArgs = new Object[] { new ArrayList<URI>(volUris) };
             workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
         } catch (Exception ex) {
             s_logger.error("Could not restore volume: " + volUris.toString(), ex);
             String opName = ResourceOperationTypeEnum.RESTORE_VOLUME_SNAPSHOT.getName();
-            ServiceError serviceError = DeviceControllerException.errors.restoreVolumeFromSnapshotFailed(volUris.toString(), snapshot.toString(), opName, ex);
+            ServiceError serviceError = DeviceControllerException.errors.restoreVolumeFromSnapshotFailed(volUris.toString(),
+                    snapshot.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
-    }     
+    }
 
     /*
      * (non-Javadoc)
@@ -376,7 +380,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
     /**
      * Needed to perform post change vpool operations on RP volumes.
-     * 
+     *
      * @param workflow The current workflow
      * @param waitFor The previous operation to wait for
      * @param volumeDescriptors All the volume descriptors

@@ -169,20 +169,22 @@ public class NetworkUtil {
 
     /**
      * Returns a NetworkLite set for a collection of network URIs
+     * 
      * @param uris the network URIs in string form
      * @param dbClient an instance of DbClient
      * @return the NetworkLite set for a collection of network URIs
      */
-    public static Set<NetworkLite>  queryNetworkLites (Collection<URI> uris, DbClient dbClient) {
+    public static Set<NetworkLite> queryNetworkLites(Collection<URI> uris, DbClient dbClient) {
         Set<NetworkLite> networks = new HashSet<NetworkLite>();
         NetworkLite networkLite = null;
         for (URI uri : uris) {
             networkLite = getNetworkLite(uri, dbClient);
-            if (networkLite != null) networks.add(networkLite);
+            if (networkLite != null)
+                networks.add(networkLite);
         }
         return networks;
     }
-    
+
     /**
      * Get the network the endpoint is associated with if any
      * 

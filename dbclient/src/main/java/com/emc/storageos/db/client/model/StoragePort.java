@@ -360,9 +360,10 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
         this._discoveryStatus = discoveryStatus;
         setChanged("discoveryStatus");
     }
-    
+
     /**
      * Returns a port name guaranteed to have the director identification.
+     * 
      * @param port
      * @return
      */

@@ -1115,9 +1115,10 @@ public class ExportUtils {
 
         dbClient.updateAndReindexObject(updatedObjects);
     }
-    
+
     /**
-     * Find all the ports in a storage system that can be assigned in a given virtual array. 
+     * Find all the ports in a storage system that can be assigned in a given virtual array.
+     * 
      * @param dbClient an instance of {@link DbClient}
      * @param storageSystemURI the URI of the storage system
      * @param varrayURI the virtual array
@@ -1126,7 +1127,7 @@ public class ExportUtils {
     public static List<StoragePort> getStorageSystemAssignablePorts(DbClient dbClient, URI storageSystemURI, URI varrayURI) {
         URIQueryResultList sports = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory.
-                                    getStorageDeviceStoragePortConstraint(storageSystemURI), sports);
+                getStorageDeviceStoragePortConstraint(storageSystemURI), sports);
         Iterator<URI> it = sports.iterator();
         List<StoragePort> spList = new ArrayList<StoragePort>();
         List<String> notRegisteredOrOk = new ArrayList<String>();
@@ -1134,32 +1135,36 @@ public class ExportUtils {
         while (it.hasNext()) {
             StoragePort sp = dbClient.queryObject(StoragePort.class, it.next());
             if (sp.getInactive() || sp.getNetwork() == null
-                || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name().equals(sp.getCompatibilityStatus())
-                || !DiscoveryStatus.VISIBLE.name().equals(sp.getDiscoveryStatus())
-                || !sp.getRegistrationStatus().equals(StoragePort.RegistrationStatus.REGISTERED.name())
-                || StoragePort.OperationalStatus.NOT_OK.equals(StoragePort.OperationalStatus.valueOf(sp.getOperationalStatus()))
-                || StoragePort.PortType.valueOf(sp.getPortType()) != StoragePort.PortType.frontend ) {
-                    _log.debug("Storage port {} is not selected because it is inactive, is not compatible, is not visible, has no network assignment, " +
-                              "is not registered, has a status other than OK, or is not a frontend port", sp.getLabel());
+                    || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name().equals(sp.getCompatibilityStatus())
+                    || !DiscoveryStatus.VISIBLE.name().equals(sp.getDiscoveryStatus())
+                    || !sp.getRegistrationStatus().equals(StoragePort.RegistrationStatus.REGISTERED.name())
+                    || StoragePort.OperationalStatus.NOT_OK.equals(StoragePort.OperationalStatus.valueOf(sp.getOperationalStatus()))
+                    || StoragePort.PortType.valueOf(sp.getPortType()) != StoragePort.PortType.frontend) {
+                _log.debug(
+                        "Storage port {} is not selected because it is inactive, is not compatible, is not visible, has no network assignment, "
+                                +
+                                "is not registered, has a status other than OK, or is not a frontend port", sp.getLabel());
                 notRegisteredOrOk.add(sp.qualifiedPortName());
             } else if (sp.getTaggedVirtualArrays() == null || !sp.getTaggedVirtualArrays().contains(varrayURI.toString())) {
                 _log.debug("Storage port {} not selected because it is not connected " +
                         "or assigned to requested virtual array {}", sp.getNativeGuid(), varrayURI);
-                    notInVarray.add(sp.qualifiedPortName());
+                notInVarray.add(sp.qualifiedPortName());
             } else {
                 spList.add(sp);
             }
         }
-        if (!notRegisteredOrOk.isEmpty()) _log.info("Ports not selected because they are inactive, have no network assignment, " +
-                "are not registered, bad operational status, or not type front-end: " 
-                + Joiner.on(" ").join(notRegisteredOrOk));
-        if (!notInVarray.isEmpty()) _log.info("Ports not selected because they are not assigned to the requested virtual array: " 
-                + varrayURI + " " + Joiner.on(" ").join(notInVarray));
+        if (!notRegisteredOrOk.isEmpty())
+            _log.info("Ports not selected because they are inactive, have no network assignment, " +
+                    "are not registered, bad operational status, or not type front-end: "
+                    + Joiner.on(" ").join(notRegisteredOrOk));
+        if (!notInVarray.isEmpty())
+            _log.info("Ports not selected because they are not assigned to the requested virtual array: "
+                    + varrayURI + " " + Joiner.on(" ").join(notInVarray));
         return spList;
     }
-    
-    public static Map<NetworkLite, List<StoragePort>> mapStoragePortsToNetworks(Collection<StoragePort> ports, 
-            Collection<NetworkLite> networks , DbClient _dbClient) {
+
+    public static Map<NetworkLite, List<StoragePort>> mapStoragePortsToNetworks(Collection<StoragePort> ports,
+            Collection<NetworkLite> networks, DbClient _dbClient) {
         Map<NetworkLite, List<StoragePort>> localPorts = new HashMap<NetworkLite, List<StoragePort>>();
         Map<NetworkLite, List<StoragePort>> remotePorts = new HashMap<NetworkLite, List<StoragePort>>();
         for (NetworkLite network : networks) {
@@ -1171,9 +1176,9 @@ public class ExportUtils {
                 }
             }
         }
-        //consolidate local and remote ports
+        // consolidate local and remote ports
         for (NetworkLite network : networks) {
-            if (localPorts.get(network) == null && remotePorts.get(network)!= null) {
+            if (localPorts.get(network) == null && remotePorts.get(network) != null) {
                 localPorts.put(network, remotePorts.get(network));
             }
         }

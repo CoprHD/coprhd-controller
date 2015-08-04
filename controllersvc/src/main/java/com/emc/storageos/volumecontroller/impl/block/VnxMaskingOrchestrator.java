@@ -100,62 +100,62 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      */
     @Override
     public String generateExportMaskAddInitiatorsWorkflow(Workflow workflow,
-    		String previousStep,
-    		StorageSystem storage,
-    		ExportGroup exportGroup,
-    		ExportMask exportMask,
-    		List<URI> initiatorURIs,
-    		Set<URI> newVolumeURIs,
-    		String token)
-    				throws Exception {
-    	URI exportGroupURI = exportGroup.getId();
-    	URI exportMaskURI = exportMask.getId();
-    	URI storageURI = storage.getId();
-    	List<URI> newTargetURIs = new ArrayList<>();
+            String previousStep,
+            StorageSystem storage,
+            ExportGroup exportGroup,
+            ExportMask exportMask,
+            List<URI> initiatorURIs,
+            Set<URI> newVolumeURIs,
+            String token)
+            throws Exception {
+        URI exportGroupURI = exportGroup.getId();
+        URI exportMaskURI = exportMask.getId();
+        URI storageURI = storage.getId();
+        List<URI> newTargetURIs = new ArrayList<>();
 
-    	// Only update the ports of a mask that we created.
-    	List<Initiator> initiators =
-    			_dbClient.queryObject(Initiator.class, initiatorURIs);
-    	// Allocate any new ports that are required for the initiators
-    	// and update the zoning map in the exportMask.
-    	Collection<URI> volumeURIs = (exportMask.getVolumes() == null) ? newVolumeURIs : 
-    		(Collection<URI>)(Collections2.transform(exportMask.getVolumes().keySet(), 
-    				CommonTransformerFunctions.FCTN_STRING_TO_URI));
-    	ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-    			volumeURIs, exportGroup.getNumPaths());
-    	if (exportGroup.getType() != null) {
-    		pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
-    	}
-        StringSetMap existingZoningMap = _blockScheduler.discoverExistingZonesMap(storage, exportGroup, initiators, 
+        // Only update the ports of a mask that we created.
+        List<Initiator> initiators =
+                _dbClient.queryObject(Initiator.class, initiatorURIs);
+        // Allocate any new ports that are required for the initiators
+        // and update the zoning map in the exportMask.
+        Collection<URI> volumeURIs = (exportMask.getVolumes() == null) ? newVolumeURIs :
+                (Collection<URI>) (Collections2.transform(exportMask.getVolumes().keySet(),
+                        CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
+                volumeURIs, exportGroup.getNumPaths());
+        if (exportGroup.getType() != null) {
+            pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+        }
+        StringSetMap existingZoningMap = _blockScheduler.discoverExistingZonesMap(storage, exportGroup, initiators,
                 exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray());
-    	Map<URI, List<URI>> assignments =
-    			_blockScheduler.assignStoragePorts(storage, exportGroup.getVirtualArray(), initiators,
-    					pathParams, existingZoningMap, null);
-    	newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, existingZoningMap);
-    	exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments, existingZoningMap));
-    	_dbClient.persistObject(exportMask);
+        Map<URI, List<URI>> assignments =
+                _blockScheduler.assignStoragePorts(storage, exportGroup.getVirtualArray(), initiators,
+                        pathParams, existingZoningMap, null);
+        newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, existingZoningMap);
+        exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments, existingZoningMap));
+        _dbClient.persistObject(exportMask);
 
-    	String maskingStep = workflow.createStepId();
-    	ExportTaskCompleter exportTaskCompleter = new ExportMaskAddInitiatorCompleter(
-    			exportGroupURI, exportMask.getId(), initiatorURIs, newTargetURIs,
-    			maskingStep);
+        String maskingStep = workflow.createStepId();
+        ExportTaskCompleter exportTaskCompleter = new ExportMaskAddInitiatorCompleter(
+                exportGroupURI, exportMask.getId(), initiatorURIs, newTargetURIs,
+                maskingStep);
 
-    	Workflow.Method maskingExecuteMethod = new Workflow.Method(
-    			"doExportGroupAddInitiators", storageURI, exportGroupURI,
-    			exportMaskURI, initiatorURIs, newTargetURIs, exportTaskCompleter);
+        Workflow.Method maskingExecuteMethod = new Workflow.Method(
+                "doExportGroupAddInitiators", storageURI, exportGroupURI,
+                exportMaskURI, initiatorURIs, newTargetURIs, exportTaskCompleter);
 
-    	Workflow.Method rollbackMethod = new Workflow.Method(
-    			"rollbackExportGroupAddInitiators", storageURI, exportGroupURI,
-    			exportMaskURI, initiatorURIs, maskingStep);
+        Workflow.Method rollbackMethod = new Workflow.Method(
+                "rollbackExportGroupAddInitiators", storageURI, exportGroupURI,
+                exportMaskURI, initiatorURIs, maskingStep);
 
-    	maskingStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
-    			String.format("Adding initiators to mask %s (%s)",
-    					exportMask.getMaskName(), exportMask.getId().toString()),
-    					previousStep, storageURI, storage.getSystemType(),
-    					MaskingWorkflowEntryPoints.class, maskingExecuteMethod,
-    					rollbackMethod, maskingStep);
+        maskingStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
+                String.format("Adding initiators to mask %s (%s)",
+                        exportMask.getMaskName(), exportMask.getId().toString()),
+                previousStep, storageURI, storage.getSystemType(),
+                MaskingWorkflowEntryPoints.class, maskingExecuteMethod,
+                rollbackMethod, maskingStep);
 
-    	return maskingStep;
+        return maskingStep;
     }
 
     /**

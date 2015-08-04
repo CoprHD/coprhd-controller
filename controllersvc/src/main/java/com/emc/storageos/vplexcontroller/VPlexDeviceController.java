@@ -3248,7 +3248,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             // Assign additional StoragePorts if needed.
-            StringSetMap existingZoningMap = _blockScheduler.discoverExistingZonesMap(vplex, exportGroup, 
+            StringSetMap existingZoningMap = _blockScheduler.discoverExistingZonesMap(vplex, exportGroup,
                     initiators, exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, varrayURI);
             Map<URI, List<URI>> assignments =
                     _blockScheduler.assignStoragePorts(vplex, varrayURI, initiators,
@@ -7510,12 +7510,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
         // Assign additional storage port(s).
         // Assign additional storage port(s).
-        StringSetMap existingZoningMap = _blockScheduler.discoverExistingZonesMap(vplex, exportGroup, 
+        StringSetMap existingZoningMap = _blockScheduler.discoverExistingZonesMap(vplex, exportGroup,
                 initiators, exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, varrayURI);
         Map<URI, List<URI>> assignments =
-              _blockScheduler.
-              assignStoragePorts(vplex, varrayURI, initiators,
-                      pathParams, existingZoningMap, volumeURIs);
+                _blockScheduler.
+                        assignStoragePorts(vplex, varrayURI, initiators,
+                                pathParams, existingZoningMap, volumeURIs);
         List<URI> newTargets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, existingZoningMap);
         exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments, existingZoningMap));
         _dbClient.persistObject(exportMask);
@@ -9543,14 +9543,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         if (exportGroup.getType() != null) {
             pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
         }
-        StringSetMap existingZoningMap = _blockScheduler.discoverExistingZonesMap(storage, exportGroup, 
+        StringSetMap existingZoningMap = _blockScheduler.discoverExistingZonesMap(storage, exportGroup,
                 initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, varrayURI);
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts
                 (storage, varrayURI, initiators, pathParams, existingZoningMap, volumeMap.keySet());
         List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, existingZoningMap);
-        String maskName = getComputedExportMaskName(storage, varrayURI, initiators, 
-                CustomConfigConstants.VPLEX_STORAGE_VIEW_NAME);        
-        ExportMask exportMask = ExportMaskUtils.initializeExportMask(storage, 
+        String maskName = getComputedExportMaskName(storage, varrayURI, initiators,
+                CustomConfigConstants.VPLEX_STORAGE_VIEW_NAME);
+        ExportMask exportMask = ExportMaskUtils.initializeExportMask(storage,
                 exportGroup, initiators, volumeMap, targets, assignments, existingZoningMap, maskName, _dbClient);
         _dbClient.persistObject(exportMask);
         return exportMask;

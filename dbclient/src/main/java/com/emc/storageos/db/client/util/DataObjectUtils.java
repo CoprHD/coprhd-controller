@@ -24,6 +24,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
  * A utility class for implementing {@link DataObject} common functions.
  */
 public class DataObjectUtils {
+
     /**
      * This function returns the property value for an object of {@link DataObject} subtype.
      * 
@@ -200,12 +201,12 @@ public class DataObjectUtils {
     public static <T extends DataObject> Map<String, T> mapByProperty(Collection<T> col, String property) {
         Map<String, T> map = new HashMap<String, T>();
         Object prop = null;
-        for (T t : col ) {
-           prop = getPropertyValue(t.getClass(), t, property);
-           if (prop != null) {
-               map.put(prop.toString(), t);
-           }
-           
+        for (T t : col) {
+            prop = getPropertyValue(t.getClass(), t, property);
+            if (prop != null) {
+                map.put(prop.toString(), t);
+            }
+
         }
         return map;
     }

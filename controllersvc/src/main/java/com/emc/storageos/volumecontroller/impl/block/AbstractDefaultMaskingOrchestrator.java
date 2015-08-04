@@ -686,14 +686,14 @@ abstract public class AbstractDefaultMaskingOrchestrator implements MaskingOrche
         if (exportGroup.getZoneAllInitiators()) {
             pathParams.setAllowFewerPorts(true);
         }
-        
-        StringSetMap existingZoningMap = _blockScheduler.discoverExistingZonesMap(storage, exportGroup, 
+
+        StringSetMap existingZoningMap = _blockScheduler.discoverExistingZonesMap(storage, exportGroup,
                 initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, exportGroup.getVirtualArray());
         Map<URI, List<URI>> assignments =
                 _blockScheduler.assignStoragePorts(storage, exportGroup.getVirtualArray(), initiators,
                         pathParams, existingZoningMap, volumeMap.keySet());
         List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, existingZoningMap);
-        
+
         String maskName = useComputedMaskName() ? getComputedExportMaskName(storage, exportGroup, initiators) : null;
 
         ExportMask exportMask = ExportMaskUtils.initializeExportMask(storage, exportGroup,
@@ -878,27 +878,27 @@ abstract public class AbstractDefaultMaskingOrchestrator implements MaskingOrche
         List<URI> newTargetURIs = new ArrayList<>();
 
         // Only update the ports of a mask that we created.
-    	List<Initiator> initiators =
-    			_dbClient.queryObject(Initiator.class, initiatorURIs);
+        List<Initiator> initiators =
+                _dbClient.queryObject(Initiator.class, initiatorURIs);
 
-    	// Allocate any new ports that are required for the initiators
-    	// and update the zoning map in the exportMask.
-    	Collection<URI> volumeURIs = (exportMask.getVolumes() == null) ? newVolumeURIs : 
-    		(Collection<URI>)(Collections2.transform(exportMask.getVolumes().keySet(), 
-    				CommonTransformerFunctions.FCTN_STRING_TO_URI));
-    	ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-    			volumeURIs, exportGroup.getNumPaths());
-    	if (exportGroup.getType() != null) {
-    		pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
-    	}
-        StringSetMap existingZoningMap = _blockScheduler.discoverExistingZonesMap(storage, exportGroup, initiators, 
+        // Allocate any new ports that are required for the initiators
+        // and update the zoning map in the exportMask.
+        Collection<URI> volumeURIs = (exportMask.getVolumes() == null) ? newVolumeURIs :
+                (Collection<URI>) (Collections2.transform(exportMask.getVolumes().keySet(),
+                        CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
+                volumeURIs, exportGroup.getNumPaths());
+        if (exportGroup.getType() != null) {
+            pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+        }
+        StringSetMap existingZoningMap = _blockScheduler.discoverExistingZonesMap(storage, exportGroup, initiators,
                 exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray());
-    	Map<URI, List<URI>> assignments =
-    			_blockScheduler.assignStoragePorts(storage, exportGroup.getVirtualArray(), initiators,
-    					pathParams, exportMask.getZoningMap(), newVolumeURIs);
-    	newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, existingZoningMap);
-    	exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments, existingZoningMap));
-    	_dbClient.persistObject(exportMask);
+        Map<URI, List<URI>> assignments =
+                _blockScheduler.assignStoragePorts(storage, exportGroup.getVirtualArray(), initiators,
+                        pathParams, exportMask.getZoningMap(), newVolumeURIs);
+        newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, existingZoningMap);
+        exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments, existingZoningMap));
+        _dbClient.persistObject(exportMask);
 
         String maskingStep = workflow.createStepId();
         ExportTaskCompleter exportTaskCompleter = new ExportMaskAddInitiatorCompleter(

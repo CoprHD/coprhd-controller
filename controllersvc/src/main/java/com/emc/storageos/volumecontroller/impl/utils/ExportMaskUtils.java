@@ -523,44 +523,44 @@ public class ExportMaskUtils {
      * @return new ExportMask object, persisted in database
      * @throws Exception
      */
-	static public ExportMask initializeExportMask(
-	        StorageSystem storage, ExportGroup exportGroup,
-	        List<Initiator> initiators, Map<URI, Integer> volumeMap,
-	        List<URI> targets, Map<URI, List<URI>> zoneAssignments, StringSetMap zoningMap, String maskName, DbClient dbClient) 
-	        throws Exception {
-		if(maskName == null) {
-			maskName = ExportMaskUtils.getMaskName(dbClient, initiators, exportGroup, storage);
-		}
-	    ExportMask exportMask = ExportMaskUtils.createExportMask(dbClient, exportGroup,
-	            storage.getId(), maskName);
-	    String resourceRef;
-	    if (exportGroup.getType() != null) {
-	        if (exportGroup.getType().equals(ExportGroup.ExportGroupType.Cluster.name())) {
-	            resourceRef = initiators.get(0).getClusterName();
-	        } else {	        	
-	        		resourceRef = initiators.get(0).getHost().toString();	        	
-	        }
-	        exportMask.setResource(resourceRef);
-	    } else {
-	        // This resource is used when we add initiators to existing masks on VMAX, which should not be
-	        // case with VPLEX and RP, which do not associate their initiators with hosts or clusters.
-	        exportMask.setResource(NullColumnValueGetter.getNullURI().toString());
-	    }
+    static public ExportMask initializeExportMask(
+            StorageSystem storage, ExportGroup exportGroup,
+            List<Initiator> initiators, Map<URI, Integer> volumeMap,
+            List<URI> targets, Map<URI, List<URI>> zoneAssignments, StringSetMap zoningMap, String maskName, DbClient dbClient)
+            throws Exception {
+        if (maskName == null) {
+            maskName = ExportMaskUtils.getMaskName(dbClient, initiators, exportGroup, storage);
+        }
+        ExportMask exportMask = ExportMaskUtils.createExportMask(dbClient, exportGroup,
+                storage.getId(), maskName);
+        String resourceRef;
+        if (exportGroup.getType() != null) {
+            if (exportGroup.getType().equals(ExportGroup.ExportGroupType.Cluster.name())) {
+                resourceRef = initiators.get(0).getClusterName();
+            } else {
+                resourceRef = initiators.get(0).getHost().toString();
+            }
+            exportMask.setResource(resourceRef);
+        } else {
+            // This resource is used when we add initiators to existing masks on VMAX, which should not be
+            // case with VPLEX and RP, which do not associate their initiators with hosts or clusters.
+            exportMask.setResource(NullColumnValueGetter.getNullURI().toString());
+        }
 
-	    exportMask.setCreatedBySystem(true);
-	    exportMaskUpdate(exportMask, volumeMap, initiators, targets);
-	    if(!exportGroup.getZoneAllInitiators() && null != zoneAssignments){
-	        StringSetMap zoneMap = getZoneMapFromAssignments(zoneAssignments,zoningMap);
-	        if (!zoneMap.isEmpty()) {
-	            exportMask.setZoningMap(zoneMap);
-	        }
-	    }
-	    dbClient.updateAndReindexObject(exportMask);
-	    return exportMask;
-	}
-	
-	//don't want to disturb the existing method, hence overloaded
-	static public <T extends BlockObject> ExportMask initializeExportMaskWithVolumes(
+        exportMask.setCreatedBySystem(true);
+        exportMaskUpdate(exportMask, volumeMap, initiators, targets);
+        if (!exportGroup.getZoneAllInitiators() && null != zoneAssignments) {
+            StringSetMap zoneMap = getZoneMapFromAssignments(zoneAssignments, zoningMap);
+            if (!zoneMap.isEmpty()) {
+                exportMask.setZoningMap(zoneMap);
+            }
+        }
+        dbClient.updateAndReindexObject(exportMask);
+        return exportMask;
+    }
+
+    // don't want to disturb the existing method, hence overloaded
+    static public <T extends BlockObject> ExportMask initializeExportMaskWithVolumes(
             StorageSystem storage, ExportGroup exportGroup, String maskName, String maskLabel,
             List<Initiator> initiators, Map<URI, Integer> volumeMap,
             List<URI> targets, ZoneInfoMap zoneInfoMap,
@@ -727,7 +727,8 @@ public class ExportMaskUtils {
      */
     static public StringSetMap getZoneMapFromAssignments(Map<URI, List<URI>> assignments, StringSetMap existingZones) {
         StringSetMap zoneMap = new StringSetMap();
-        if (existingZones != null) zoneMap.putAll(existingZones);
+        if (existingZones != null)
+            zoneMap.putAll(existingZones);
         for (URI initiatorURI : assignments.keySet()) {
             StringSet portIds = new StringSet();
             List<URI> portURIs = assignments.get(initiatorURI);

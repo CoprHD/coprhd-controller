@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.server;
@@ -743,13 +733,13 @@ public class PersistingChangesTest extends DbsvcTestBase {
 
         SumPrimitiveFieldAggregator aggregator = CustomQueryUtility.aggregateActiveObject(
                 this.dbClient, Volume.class, new String[] { "allocatedCapacity" });
-        Assert.assertTrue(aggregator.get_NRecords() == 3);
+        Assert.assertTrue(aggregator.getRecordNum() == 3);
         Assert.assertTrue((long) aggregator.getAggregate("allocatedCapacity") == 9500L);
 
         aggregator = CustomQueryUtility.aggregateActiveObject(
                 this.dbClient, Volume.class,
                 new String[] { "allocatedCapacity" });
-        Assert.assertTrue(aggregator.get_NRecords() == 3);
+        Assert.assertTrue(aggregator.getRecordNum() == 3);
         Assert.assertTrue((long) aggregator.getAggregate("allocatedCapacity") == 9500L);
         aggregator = CustomQueryUtility.aggregateActiveObject(
                 this.dbClient, Volume.class,
@@ -766,7 +756,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
         aggregator = CustomQueryUtility.aggregateActiveObject(
                 this.dbClient, Volume.class,
                 new String[] { "allocatedCapacity" }, volFromPools.iterator());
-        Assert.assertTrue(aggregator.get_NRecords() == 2);
+        Assert.assertTrue(aggregator.getRecordNum() == 2);
         Assert.assertTrue((long) aggregator.getAggregate("allocatedCapacity") == 8500L);
         aggregator = CustomQueryUtility.aggregateActiveObject(
                 this.dbClient, Volume.class,

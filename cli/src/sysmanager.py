@@ -1000,7 +1000,6 @@ class Configuration(object):
         params = dict()
         properties = dict()
         params['properties'] = properties
-        properties['entry'] = []
         for prop in props:
             matching = re.match("(.+?)=(.*)\n?", prop)
             if matching:
@@ -1010,21 +1009,14 @@ class Configuration(object):
                     print "Skipping the update for the property "+key
                     continue
 
-                entry = dict()
-                entry['key'] = key
-                entry['value'] = value
-                properties['entry'].append(entry)
+                properties[key] = value
         return params
 
     def prepare_custom_properties_body(self, propertyname, propertyvalue):
         params = dict()
         properties = dict()
         params['properties'] = properties
-        properties['entry'] = []
-        entry = dict()
-        entry['key'] = propertyname
-        entry['value'] = propertyvalue
-        properties['entry'].append(entry)
+        properties[propertyname] = propertyvalue
 
         return params
 
@@ -1257,34 +1249,22 @@ def get_cluster_state(args):
         res = obj.get_cluster_state(args.force)
 
         state = dict()
-        node = dict()
+        node = []
         state["cluster_state"] = res["cluster_state"]
 
         if 'target_state' in res:
             targetState = res['target_state']
             state["current_version"] = targetState['current_version']
-            state["available_versions"] = targetState[
-                'available_versions']['available_version']
+            state["available_versions"] = targetState['available_versions']
 
-        if 'nodes' in res:
-            nodestatemap = res['nodes']
-            nodestates = nodestatemap['entry']
-            try:
-                for entry in nodestates:
-                    key = entry['key']
-                    value = entry['value']
-                    node["node_id"] = key
-                    node["current_version"] = value['current_version']
-                    node["available_versions"] = value[
-                        'available_versions']['available_version']
-
-            except:
-                key = nodestates['key']
-                value = nodestates['value']
-                node["node_id"] = key
-                node["current_version"] = value['current_version']
-                node["available_versions"] = value[
-                    'available_versions']['available_version']
+        if 'control_nodes' in res:
+            nodestatemap = res['control_nodes']
+            for key, value in nodestatemap.iteritems():
+                entry = dict()
+                node.append(entry)
+                entry["node_id"] = key
+                entry["current_version"] = value['current_version']
+                entry["available_versions"] = value['available_versions']
 
         if 'removable_versions' in res:
             if(res['removable_versions'] is not None):
@@ -1295,8 +1275,7 @@ def get_cluster_state(args):
 
         if(len(node) > 0):
             print "NODE_INFORMATION"
-            node_list = [node]
-            TableGenerator(node_list,
+            TableGenerator(node,
                            ["node_id",
                             "current_version",
                             "available_versions"]).printTable()

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.apidocs.model;
@@ -37,7 +37,7 @@ public class ApiField implements Comparable<ApiField> {
     }
 
     public boolean isOptional() {
-        return !required && min == 0 & max == 1;
+        return !required && min == 0 && max == 1;
     }
 
     /** Indicates if this Field has a type that has child elements, really only useful for XML generation */

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.server;
@@ -2000,7 +1990,7 @@ public class DbClientTest extends DbsvcTestBase {
         _logger.info("Aggregation byCF : " + oldTime + "msec; by AggregatedIdx : " + newTime +
                 "msec.");
 
-        Assert.assertTrue((long) aggregatedValue.getValue() == agg.getAggregate("allocatedCapacity"));
+        Assert.assertTrue((long) aggregatedValue.getValue() == (long) agg.getAggregate("allocatedCapacity"));
     }
 
     private void checkAggregatedValues(String groupBy, String groupByValue,

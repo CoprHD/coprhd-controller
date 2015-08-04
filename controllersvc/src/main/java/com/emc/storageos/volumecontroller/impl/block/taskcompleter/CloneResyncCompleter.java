@@ -15,7 +15,6 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -29,16 +28,15 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public class CloneResyncCompleter extends VolumeTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(CloneResyncCompleter.class);
-    
+
     public CloneResyncCompleter(URI fullCopyVolumeURI, String task) {
         super(Volume.class, fullCopyVolumeURI, task);
         setNotifyWorkflow(true);
     }
-    
+
     public CloneResyncCompleter(List<URI> fullCopyVolumeURIs, String task) {
         super(Volume.class, fullCopyVolumeURIs, task);
     }
-    
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) {
@@ -47,13 +45,13 @@ public class CloneResyncCompleter extends VolumeTaskCompleter {
         try {
             for (URI clone : getIds()) {
                 switch (status) {
-                case error:
-                    setErrorOnDataObject(dbClient, Volume.class, clone, coded);
-                    break;
-                default:
-                    setReadyOnDataObject(dbClient, Volume.class, clone);
+                    case error:
+                        setErrorOnDataObject(dbClient, Volume.class, clone, coded);
+                        break;
+                    default:
+                        setReadyOnDataObject(dbClient, Volume.class, clone);
                 }
-            
+
             }
             if (isNotifyWorkflow()) {
                 super.updateWorkflowStatus(status, coded);
@@ -65,6 +63,5 @@ public class CloneResyncCompleter extends VolumeTaskCompleter {
             _log.error(msg, e);
         }
     }
-
 
 }

@@ -41,7 +41,7 @@ public class MSClusterNetworkInterface {
     public void setName(String name) {
         this.name = name;
     }
-    
+
     public String toString() {
         return String.format("MSClusterNetworkInterface node: %s, ipAddress: %s, network: %s, name: %s", node,
                 ipaddress, network, name);

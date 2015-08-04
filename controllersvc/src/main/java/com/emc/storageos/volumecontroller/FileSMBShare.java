@@ -3,6 +3,7 @@
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller;
+
 /**
  *  Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
@@ -50,54 +51,53 @@ public class FileSMBShare implements Serializable {
     private boolean _isSubDirPath;
     private String _NetBIOSName;
 
-
     /**
      * Construction of SMB share
+     * 
      * @param name
      * @param description
      * @param permissionType
      * @param permission
      * @param maxUsers
      */
-    public FileSMBShare(String name, String description, String permissionType, String permission, 
+    public FileSMBShare(String name, String description, String permissionType, String permission,
             String maxUsers, String nativeId, String path) {
         this._name = name;
         this._description = description;
         this._path = path;
-        //convert permission and permissionType to lower case to avoid unnecessary exception
+        // convert permission and permissionType to lower case to avoid unnecessary exception
         try {
-        	this._permissionType = Enum.valueOf(PermissionType.class, permissionType.toLowerCase());	
+            this._permissionType = Enum.valueOf(PermissionType.class, permissionType.toLowerCase());
         } catch (Exception e) {
-        	throw new IllegalArgumentException("Invalid Permission Type:  Must be one of \"allow\" or \"deny\"");
+            throw new IllegalArgumentException("Invalid Permission Type:  Must be one of \"allow\" or \"deny\"");
         }
-        
+
         try {
-        	this._permission = Enum.valueOf(Permission.class, permission.toLowerCase());        	
+            this._permission = Enum.valueOf(Permission.class, permission.toLowerCase());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid Permission:  Must be one of \"read\" or \"change\" or \"full\"");
         }
-        catch (Exception e) {
-        	throw new IllegalArgumentException("Invalid Permission:  Must be one of \"read\" or \"change\" or \"full\"");
-        }
-        
+
         this._maxUsers = Integer.parseInt(maxUsers);
         this._nativeId = nativeId;
     }
 
-
     public FileSMBShare(String name, String description, String maxUsers, String nativeId) {
-		super();
-		this._name = name;
-		this._description = description;
-		this._maxUsers = Integer.parseInt(maxUsers);
-		this._nativeId = nativeId;
-		
-	}
+        super();
+        this._name = name;
+        this._description = description;
+        this._maxUsers = Integer.parseInt(maxUsers);
+        this._nativeId = nativeId;
+
+    }
 
     public FileSMBShare(String name, String description, String maxUsers) {
-		this(name, description, maxUsers, null);
-	}
+        this(name, description, maxUsers, null);
+    }
 
-	/**
+    /**
      * Construction of FileSMBShare
+     * 
      * @param smb SMBFileShare
      */
     public FileSMBShare(SMBFileShare smb) {
@@ -111,7 +111,7 @@ public class FileSMBShare implements Serializable {
         this._path = smb.getPath();
         this._isSubDirPath = Boolean.valueOf(smb.isSubdir());
     }
-    
+
     public String getName() {
         return _name;
     }
@@ -147,7 +147,7 @@ public class FileSMBShare implements Serializable {
     public void setStoragePortNetworkId(String storagePortNetworkId) {
         this._storagePortNetworkId = storagePortNetworkId;
     }
-    
+
     public String getNetBIOSName() {
         return _NetBIOSName;
     }
@@ -155,11 +155,11 @@ public class FileSMBShare implements Serializable {
     public void setNetBIOSName(String NetBIOSName) {
         this._NetBIOSName = NetBIOSName;
     }
-    
+
     public String getStoragePortGroup() {
         return _storagePortGroup;
     }
-    
+
     public void setStoragePortGroup(String storagePortGroup) {
         this._storagePortGroup = storagePortGroup;
     }
@@ -179,21 +179,17 @@ public class FileSMBShare implements Serializable {
     public String getPath() {
         return _path;
     }
-    
-    
 
     public boolean isSubDirPath() {
-		return _isSubDirPath;
-	}
+        return _isSubDirPath;
+    }
 
+    public void setSubDirPath(boolean isSubDirPath) {
+        this._isSubDirPath = isSubDirPath;
+    }
 
-	public void setSubDirPath(boolean isSubDirPath) {
-		this._isSubDirPath = isSubDirPath;
-	}
+    public SMBFileShare getSMBFileShare() {
 
-
-	public SMBFileShare getSMBFileShare() {
-		
         SMBFileShare smbShare = new SMBFileShare(_name, _description, _permissionType.toString(),
                 _permission.toString(), _maxUsers, _mountPoint);
         smbShare.setNativeId(_nativeId);

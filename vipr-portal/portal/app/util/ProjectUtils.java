@@ -22,9 +22,8 @@ import com.emc.vipr.client.exceptions.ViPRHttpException;
 public class ProjectUtils {
     public static ProjectRestRep getProject(String id) {
         try {
-        return getProject(uri(id));
-        }
-        catch (ViPRHttpException e) {
+            return getProject(uri(id));
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
@@ -35,8 +34,7 @@ public class ProjectUtils {
     public static ProjectRestRep getProject(URI id) {
         try {
             return (id != null) ? getViprClient().projects().get(id) : null;
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }

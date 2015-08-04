@@ -20,13 +20,13 @@ import com.iwave.ext.command.Command;
 /**
  * Basic ScaleIO command is to invoke the /opt/scaleio/ecs/mdm/bin/cli
  * that is on the primary MDM host.
- *
+ * 
  * Classes that derive from command are expected to add arguments for
  * the specific ScaleIO command. For example if there was ScaleIO
  * command called --foo that was called list ./cli --foo, then the
  * derived implementation would have to call addArgument("--foo") before
  * the command should be executed.
- *
+ * 
  */
 public class ScaleIOCLICommand extends Command {
 
@@ -53,7 +53,7 @@ public class ScaleIOCLICommand extends Command {
      * Need to do something special for SIO 1.30. There is an MDM username and password
      * required for running commands. This needs to be specified, so we will do it
      * at the ScaleIOCLICommand level.
-     *
+     * 
      * @param mdmUsername [in] - MDM username
      * @param mdmPassword [in] - MDM password
      */

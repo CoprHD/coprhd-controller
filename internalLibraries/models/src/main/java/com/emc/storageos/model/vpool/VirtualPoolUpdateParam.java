@@ -25,7 +25,7 @@ import com.emc.storageos.model.valid.Length;
  */
 @XmlRootElement(name = "vpool_update")
 public class VirtualPoolUpdateParam {
-    
+
     private VirtualArrayAssignmentChanges varrayChanges;
     private String name;
     private String description;
@@ -33,8 +33,9 @@ public class VirtualPoolUpdateParam {
     private Boolean useMatchedPools;
     private String systemType;
     private String provisionType;
-    
-    public VirtualPoolUpdateParam() {}
+
+    public VirtualPoolUpdateParam() {
+    }
 
     public VirtualPoolUpdateParam(VirtualArrayAssignmentChanges varrayChanges,
             String name, String description, ProtocolChanges protocolChanges,
@@ -106,7 +107,7 @@ public class VirtualPoolUpdateParam {
     }
 
     /**
-     * Determines if matched or valid assigned pools are returned from 
+     * Determines if matched or valid assigned pools are returned from
      * command to retrieve the list of storage pools.
      * 
      * @valid true
@@ -126,10 +127,10 @@ public class VirtualPoolUpdateParam {
      * 
      * @valid NONE
      * @valid vnxblock (Block)
-     * @valid vmax     (Block)
-     * @valid vnxfile  (File)
-     * @valid isilon   (File)
-     * @valid netapp   (File)
+     * @valid vmax (Block)
+     * @valid vnxfile (File)
+     * @valid isilon (File)
+     * @valid netapp (File)
      */
     @XmlElement(name = "system_type")
     public String getSystemType() {
@@ -155,6 +156,5 @@ public class VirtualPoolUpdateParam {
     public void setProvisionType(String provisionType) {
         this.provisionType = provisionType;
     }
-    
-    
+
 }

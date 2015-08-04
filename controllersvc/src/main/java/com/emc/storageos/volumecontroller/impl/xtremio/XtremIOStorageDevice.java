@@ -16,6 +16,7 @@ package com.emc.storageos.volumecontroller.impl.xtremio;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,16 +67,16 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
     XtremIOClientFactory xtremioRestClientFactory;
     DbClient dbClient;
-    
+
     @Autowired
     private DataSourceFactory dataSourceFactory;
     @Autowired
     private CustomConfigHandler customConfigHandler;
-    
+
     private XtremIOExportOperations xtremioExportOperationHelper;
     private XtremIOSnapshotOperations snapshotOperations;
     private NameGenerator _nameGenerator;
-    
+
     private static final String noOpOnThisStorageArrayString = "No operation to perform on this storage array...";
 
     public void setXtremioExportOperationHelper(XtremIOExportOperations xtremioExportOperationHelper) {
@@ -109,7 +110,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         try {
             client = getXtremIOClient(storage);
             URI projectUri = volumes.get(0).getProject().getURI();
-            String volumesFolderName = client.createFoldersForVolumeAndSnaps(getVolumeFolderName(projectUri, storage)).
+            String volumesFolderName = XtremIOProvUtils.createFoldersForVolumeAndSnaps(client, getVolumeFolderName(projectUri, storage)).
             		get(XtremIOConstants.VOLUME_KEY);
             Random randomNumber = new Random();
             for (Volume volume : volumes) {
@@ -119,39 +120,36 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                     String userDefinedLabel = _nameGenerator.generate("", volume.getLabel(), "",
                             '_', XtremIOConstants.XTREMIO_MAX_VOL_LENGTH);
                     volume.setLabel(userDefinedLabel);
-                    while(null != XtremIOProvUtils.isVolumeAvailableInArray(client,
-                                volume.getLabel())) {
-                    	 _log.info("Volume with name {} already exists", volume.getLabel());
-                         String tempLabel = userDefinedLabel.concat("_").concat(
-                                 String.valueOf(randomNumber.nextInt(1000)));
-                         volume.setLabel(tempLabel);
-                         _log.info("Retrying volume creation with label {}", tempLabel);
+                    while (null != XtremIOProvUtils.isVolumeAvailableInArray(client,
+                            volume.getLabel(), null)) {
+                        _log.info("Volume with name {} already exists", volume.getLabel());
+                        String tempLabel = userDefinedLabel.concat("_").concat(
+                                String.valueOf(randomNumber.nextInt(1000)));
+                        volume.setLabel(tempLabel);
+                        _log.info("Retrying volume creation with label {}", tempLabel);
                     }
-                    
- 
+
                     // If the volume is a protected Vplex backend volume the capacity has already been
                     // adjusted in the RPBlockServiceApiImpl class therefore there is no need to adjust it here.
                     // If it is not, add 1 MB extra to make up the missing bytes due to divide by 1024
-                    int amountToAdjustCapacity = Volume.checkForProtectedVplexBackendVolume(dbClient, volume) ? 0 : 1;                    
+                    int amountToAdjustCapacity = Volume.checkForProtectedVplexBackendVolume(dbClient, volume) ? 0 : 1;
                     Long capacityInMB = new Long(volume.getCapacity() / (1024 * 1024) + amountToAdjustCapacity);
                     String capacityInMBStr = String.valueOf(capacityInMB).concat("m");
-                     _log.info("Sending create volume request with name: {}, size: {}",
-                                volume.getLabel(), capacityInMBStr);
+                    _log.info("Sending create volume request with name: {}, size: {}",
+                            volume.getLabel(), capacityInMBStr);
                     client.createVolume(volume.getLabel(), capacityInMBStr,
-                            volumesFolderName);
-                        createdVolume = client.getVolumeDetails(volume.getLabel());
-                        _log.info("Created volume details {}", createdVolume.toString());
-
-                   
+                            volumesFolderName, null);
+                    createdVolume = client.getVolumeDetails(volume.getLabel(), null);
+                    _log.info("Created volume details {}", createdVolume.toString());
 
                     volume.setNativeId(createdVolume.getVolInfo().get(0));
                     volume.setWWN(createdVolume.getVolInfo().get(0));
                     volume.setDeviceLabel(volume.getLabel());
-                    //When a volume is created, the WWN field will be empty, hence use the volume's native Id as WWN
-                    //If the REST API wwn field is populated, then use it.
+                    // When a volume is created, the WWN field will be empty, hence use the volume's native Id as WWN
+                    // If the REST API wwn field is populated, then use it.
                     if (!createdVolume.getWwn().isEmpty()) {
                         volume.setWWN(createdVolume.getWwn());
-                    } 
+                    }
 
                     String nativeGuid = NativeGUIDGenerator.generateNativeGuid(dbClient, volume);
 
@@ -196,10 +194,10 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         try {
             XtremIOClient client = getXtremIOClient(storage);
             Long sizeInGB = new Long(sizeInBytes / (1024 * 1024 * 1024));
-            //XtremIO Rest API supports only expansion in GBs.
+            // XtremIO Rest API supports only expansion in GBs.
             String capacityInGBStr = String.valueOf(sizeInGB).concat("g");
-            client.expandVolume(volume.getLabel(), capacityInGBStr);
-            XtremIOVolume createdVolume = client.getVolumeDetails(volume.getLabel());
+            client.expandVolume(volume.getLabel(), capacityInGBStr, null);
+            XtremIOVolume createdVolume = client.getVolumeDetails(volume.getLabel(), null);
             volume.setProvisionedCapacity(Long.parseLong(createdVolume
                     .getAllocatedCapacity()) * 1024);
             volume.setAllocatedCapacity(Long.parseLong(createdVolume.getAllocatedCapacity()) * 1024);
@@ -233,8 +231,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             for (Volume volume : volumes) {
                 try {
                     if (null != XtremIOProvUtils
-                            .isVolumeAvailableInArray(client, volume.getLabel())) {
-                        client.deleteVolume(volume.getLabel());
+                            .isVolumeAvailableInArray(client, volume.getLabel(), null)) {
+                        client.deleteVolume(volume.getLabel(), null);
                     }
                     volume.setInactive(true);
                     dbClient.persistObject(volume);
@@ -425,22 +423,28 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     public void doDeleteSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("SnapShot Deletion..... Started");
-        try {
-            XtremIOClient client = getXtremIOClient(storage);
-            BlockSnapshot snap = dbClient.queryObject(BlockSnapshot.class, snapshot);
-            client.deleteSnapshot(snap.getLabel());
-            snap.setInactive(true);
-            dbClient.persistObject(snap);
-            taskCompleter.ready(dbClient);
-            _log.info("SnapShot Deletion..... End");
-        } catch (Exception e) {
-            _log.error("Delete Snapshot Operations failed ", e);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            taskCompleter.error(dbClient, serviceError);
+        List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
+        if (ControllerUtils.inReplicationGroup(snapshots, dbClient)) {
+            snapshotOperations.deleteGroupSnapshots(storage, snapshot, taskCompleter);
+        } else {
+            snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
         }
-
+        _log.info("SnapShot Deletion..... End");
     }
     
+    @Override
+    public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter) 
+            throws DeviceControllerException {
+        _log.info("SnapShot Restore..... Started");
+        List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
+        if (ControllerUtils.inReplicationGroup(snapshots, dbClient)) {
+            snapshotOperations.restoreGroupSnapshots(storage, volume, snapshot, taskCompleter);
+        } else {
+            snapshotOperations.restoreSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);
+        }
+        _log.info("SnapShot Restore..... End");
+    }
+
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
                                          Boolean markInactive, final TaskCompleter taskCompleter) throws DeviceControllerException {
@@ -449,7 +453,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         	// Check if the consistency group exists
         	BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
             XtremIOClient client = getXtremIOClient(storage);
-            XtremIOConsistencyGroup cg = client.getConsistencyGroupDetails(consistencyGroup.getLabel());
+            XtremIOConsistencyGroup cg = client.getConsistencyGroupDetails(consistencyGroup.getLabel(), null);
             if(cg == null) {
             	_log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
@@ -499,7 +503,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             taskCompleter.error(dbClient, serviceError);
         }
     }
-    
+
     @Override
     public void doAddToConsistencyGroup(StorageSystem storage,
             URI consistencyGroupId, List<URI> blockObjects,
@@ -509,7 +513,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         try {
         	// Check if the consistency group exists
         	XtremIOClient client = getXtremIOClient(storage);
-            XtremIOConsistencyGroup cg = client.getConsistencyGroupDetails(consistencyGroup.getLabel());
+            XtremIOConsistencyGroup cg = client.getConsistencyGroupDetails(consistencyGroup.getLabel(), null);
             if(cg == null) {
             	_log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
@@ -556,7 +560,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         try {
         	// Check if the consistency group exists
         	XtremIOClient client = getXtremIOClient(storage);
-            XtremIOConsistencyGroup cg = client.getConsistencyGroupDetails(consistencyGroup.getLabel());
+            XtremIOConsistencyGroup cg = client.getConsistencyGroupDetails(consistencyGroup.getLabel(), null);
             if(cg == null) {
             	_log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
@@ -588,12 +592,12 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames, boolean mustHaveAllPorts) {
-      return new HashMap<String, Set<URI>>();
+        return new HashMap<String, Set<URI>>();
     }
 
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
-       return mask;
+        return mask;
     }
 
     @Override
@@ -607,18 +611,18 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                         system.getPortNumber())), system.getUsername(), system.getPassword(), true);
         return client;
     }
-    
+
     private String getVolumeFolderName(URI projectURI, StorageSystem storage) {
         String volumeGroupFolderName = "";
         Project project = dbClient.queryObject(Project.class, projectURI);
         DataSource dataSource = dataSourceFactory.createXtremIOVolumeFolderNameDataSource(project, storage);
         volumeGroupFolderName = customConfigHandler.getComputedCustomConfigValue(
                 CustomConfigConstants.XTREMIO_VOLUME_FOLDER_NAME, storage.getSystemType(), dataSource);
-        
+
         return volumeGroupFolderName;
     }
 
-    private void cleanupVolumeFoldersIfNeeded(XtremIOClient client, URI projectURI, 
+    private void cleanupVolumeFoldersIfNeeded(XtremIOClient client, URI projectURI,
             StorageSystem storageSystem) throws Exception {
 
         String tempRootFolderName = getVolumeFolderName(projectURI, storageSystem);
@@ -629,24 +633,24 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         // Find the # volumes in folder, if the Volume folder is empty,
         // then delete the folder too
         try {
-            int numberOfVolumes = client.getNumberOfVolumesInFolder(rootFolderName);
+            int numberOfVolumes = client.getNumberOfVolumesInFolder(rootFolderName, null);
             if (numberOfVolumes == 0) {
                 try {
                     _log.info("Deleting Volumes Folder ...");
-                    client.deleteVolumeFolder(volumesFolderName);
+                    client.deleteVolumeFolder(volumesFolderName, null);
                 } catch (Exception e) {
                     _log.warn("Deleting volumes folder {} failed", volumesFolderName, e);
                 }
 
                 try {
                     _log.info("Deleting Snapshots Folder ...");
-                    client.deleteVolumeFolder(snapshotsFolderName);
+                    client.deleteVolumeFolder(snapshotsFolderName, null);
                 } catch (Exception e) {
                     _log.warn("Deleting snapshots folder {} failed", snapshotsFolderName, e);
                 }
 
                 _log.info("Deleting Root Folder ...");
-                client.deleteVolumeFolder(rootFolderName);
+                client.deleteVolumeFolder(rootFolderName, null);
             }
         } catch (Exception e) {
             _log.warn("Deleting root folder {} failed", rootFolderName, e);

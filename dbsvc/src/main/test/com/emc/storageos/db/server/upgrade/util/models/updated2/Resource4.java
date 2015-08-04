@@ -18,7 +18,6 @@ import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Name;
-import com.emc.storageos.db.client.upgrade.CustomMigrationCallback;
 
 @Cf("Resource4")
 public class Resource4 extends DataObject {

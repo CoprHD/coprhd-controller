@@ -15,8 +15,6 @@
 package com.emc.storageos.datadomain.restapi.model;
 
 import com.google.gson.Gson;
-import com.google.gson.annotations.SerializedName;
-import org.codehaus.jackson.annotate.JsonProperty;
 
 /**
  * Created by zeldib on 2/10/14.
@@ -32,21 +30,24 @@ public class DDCapacity {
     public long getTotal() {
         return total;
     }
-    public void setTotal(long total){
+
+    public void setTotal(long total) {
         this.total = total;
     }
 
     public long getUsed() {
         return used;
     }
-    public void setUsed(long used){
+
+    public void setUsed(long used) {
         this.used = used;
     }
 
     public long getAvailable() {
         return available;
     }
-    public void setAvailable(long available){
+
+    public void setAvailable(long available) {
         this.available = available;
     }
 

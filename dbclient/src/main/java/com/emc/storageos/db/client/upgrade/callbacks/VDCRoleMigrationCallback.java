@@ -68,7 +68,6 @@ public class VDCRoleMigrationCallback extends BaseCustomMigrationCallback {
             throw new IllegalStateException("the CF of Local VDC is not found.");
         }
 
-
         // only copy VDC role assignments
         copyRoleAssignments(tenantRoles, vdc);
         removeRoleFromRootTenant(vdc, rootTenant);
@@ -123,6 +122,7 @@ public class VDCRoleMigrationCallback extends BaseCustomMigrationCallback {
 
     /**
      * remove VDC roles from rootTenantOrg
+     * 
      * @param vdc
      * @param rootTenant
      */
@@ -145,8 +145,7 @@ public class VDCRoleMigrationCallback extends BaseCustomMigrationCallback {
     private boolean isVDCRole(String role) {
         return (role.equalsIgnoreCase(Role.SYSTEM_ADMIN.toString()) ||
                 role.equalsIgnoreCase(Role.SECURITY_ADMIN.toString()) ||
-                role.equalsIgnoreCase(Role.SYSTEM_MONITOR.toString()) ||
-                role.equalsIgnoreCase(Role.SYSTEM_AUDITOR.toString()));
+                role.equalsIgnoreCase(Role.SYSTEM_MONITOR.toString()) || role.equalsIgnoreCase(Role.SYSTEM_AUDITOR.toString()));
     }
 
     // below all are for test only

@@ -5,8 +5,6 @@
 package com.emc.storageos.volumecontroller.impl.scaleio;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -45,7 +43,7 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
 
     @Override
     public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive,
-                                           Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
+            Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             ScaleIOCLI scaleIOCLI = scaleIOCLIFactory.using(dbClient).getCLI(storage);
             BlockSnapshot blockSnapshot = dbClient.queryObject(BlockSnapshot.class, snapshot);
@@ -78,7 +76,7 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
 
     @Override
     public void createGroupSnapshots(StorageSystem storage, List<URI> snapshotList, Boolean createInactive,
-                                     Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
+            Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             ScaleIOCLI scaleIOCLI = scaleIOCLIFactory.using(dbClient).getCLI(storage);
             List<BlockSnapshot> blockSnapshots = dbClient.queryObject(BlockSnapshot.class, snapshotList);
@@ -227,7 +225,7 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
 
     @Override
     public void restoreSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot,
-                                            TaskCompleter taskCompleter) throws DeviceControllerException {
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
@@ -251,7 +249,7 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
 
     @Override
     public void terminateAnyRestoreSessions(StorageSystem storage, BlockObject from, URI volume,
-                                            TaskCompleter taskCompleter) throws Exception {
+            TaskCompleter taskCompleter) throws Exception {
         throw new UnsupportedOperationException("Not supported");
     }
 

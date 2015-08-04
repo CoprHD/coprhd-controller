@@ -38,7 +38,7 @@ public class DbAuditLogRetrieverTest {
     private static final String XmlTestOutputFile = "xmlAuditLogsOutput.xml";
     private static final String JsonTestOutputFile = "jsonAuditLogsOutput.json";
     private static final int queryThreadCount = 10;
-   
+
     @Test
     public void auditServiceDBRetrieverTestXML()
             throws WebApplicationException, IOException, JAXBException {
@@ -149,8 +149,7 @@ public class DbAuditLogRetrieverTest {
         os.close();
 
     }
-    
-    
+
     @Test
     public void auditServiceDBExceptionsTestJSON()
             throws WebApplicationException, IOException, JAXBException {
@@ -186,7 +185,7 @@ public class DbAuditLogRetrieverTest {
                 introspector);
 
         AuditLogs auditLogs = mapper.readValue(new File(JsonTestOutputFile),
-        		AuditLogs.class);
+                AuditLogs.class);
 
         Assert.assertEquals(10, auditLogs.auditLogs.size());
         deleteIfExists(JsonTestOutputFile);

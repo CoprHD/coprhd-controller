@@ -19,16 +19,15 @@ import java.util.List;
 
 import com.emc.storageos.vnxe.models.VNXeNfsServer;
 
-
-public class NfsServerListRequest extends KHRequests<VNXeNfsServer>{
+public class NfsServerListRequest extends KHRequests<VNXeNfsServer> {
     private static final String URL = "/api/types/nfsServer/instances";
+
     public NfsServerListRequest(KHClient client) {
         super(client);
         _url = URL;
     }
 
-
-    public List<VNXeNfsServer> get(){
+    public List<VNXeNfsServer> get() {
         return getDataForObjects(VNXeNfsServer.class);
 
     }

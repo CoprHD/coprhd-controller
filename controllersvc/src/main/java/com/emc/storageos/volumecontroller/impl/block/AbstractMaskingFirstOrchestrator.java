@@ -28,7 +28,6 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.google.common.base.Joiner;
@@ -58,8 +57,8 @@ abstract public class AbstractMaskingFirstOrchestrator extends
      * mask will only allow for addition and removal of those initiators/volumes
      * that were added by a Bourne request. Existing initiators/volumes will be
      * maintained.
-     *
-     *
+     * 
+     * 
      * @param storageURI - URI referencing underlying storage array
      * @param exportGroupURI - URI referencing Bourne-level masking, ExportGroup
      * @param initiatorURIs - List of Initiator URIs
@@ -92,16 +91,14 @@ abstract public class AbstractMaskingFirstOrchestrator extends
                 _log.info("export_create: initiator list is empty");
                 taskCompleter.ready(_dbClient);
             }
-        }
-        catch (DeviceControllerException dex)
+        } catch (DeviceControllerException dex)
         {
             if (taskCompleter != null)
             {
                 taskCompleter.error(_dbClient, DeviceControllerException.errors
                         .vmaxExportGroupCreateError(dex.getMessage()));
             }
-        }
-        catch (Exception ex)
+        } catch (Exception ex)
         {
             _log.error("ExportGroup Orchestration failed.", ex);
             // TODO add service code here
@@ -154,8 +151,7 @@ abstract public class AbstractMaskingFirstOrchestrator extends
                     .format("exportAddVolume END - Array: %s ExportMask: %s Volume: %s",
                             storageURI.toString(), exportGroupURI.toString(),
                             volumeMap.toString()));
-        }
-        catch (Exception e)
+        } catch (Exception e)
         {
             if (taskCompleter != null)
             {
@@ -203,7 +199,7 @@ abstract public class AbstractMaskingFirstOrchestrator extends
          */
         Map<URI, List<URI>> zoneMasksToInitiatorsURIs = new HashMap<URI, List<URI>>();
         zoneMasksToInitiatorsURIs.put(exportMask.getId(), newInitiators);
-        
+
         String maskinStep = generateExportMaskAddInitiatorsWorkflow(workflow,
                 null, storageSystem, exportGroup, exportMask, newInitiators, null,
                 token);
@@ -229,12 +225,12 @@ abstract public class AbstractMaskingFirstOrchestrator extends
      */
     @Override
     public String generateDeviceSpecificAddInitiatorWorkFlow(Workflow workflow,
-                                                             String previousStep,
-                                                             StorageSystem storage, 
-                                                             ExportGroup exportGroup,
-                                                             ExportMask mask, List<URI> initiatorsURIs,
-                                                             Map<URI, List<URI>> maskToInitiatorsMap,
-                                                             String token) throws Exception
+            String previousStep,
+            StorageSystem storage,
+            ExportGroup exportGroup,
+            ExportMask mask, List<URI> initiatorsURIs,
+            Map<URI, List<URI>> maskToInitiatorsMap,
+            String token) throws Exception
     {
         // First masking step is created
         String maskingStep = generateExportMaskAddInitiatorsWorkflow(workflow,
@@ -336,16 +332,16 @@ abstract public class AbstractMaskingFirstOrchestrator extends
      * @param token
      * @throws Exception
      */
-	@Override
+    @Override
     public String generateDeviceSpecificExportMaskAddInitiatorsWorkflow(Workflow workflow,
-    		String zoningGroupId,
-    		StorageSystem storage,
-    		ExportGroup exportGroup,
-    		ExportMask mask, List<URI> newInitiators,
-    		String token) throws Exception 
+            String zoningGroupId,
+            StorageSystem storage,
+            ExportGroup exportGroup,
+            ExportMask mask, List<URI> newInitiators,
+            String token) throws Exception
     {
-    	//Removed the dependency for zoning, hence masking will be performed first
-		return generateExportMaskAddInitiatorsWorkflow(workflow, null, storage, exportGroup, mask, newInitiators, null, token);
+        // Removed the dependency for zoning, hence masking will be performed first
+        return generateExportMaskAddInitiatorsWorkflow(workflow, null, storage, exportGroup, mask, newInitiators, null, token);
     }
 
     /**
@@ -356,11 +352,11 @@ abstract public class AbstractMaskingFirstOrchestrator extends
      * @param object
      * @param exportGroup
      * @param zoneMasksToInitiatorsURIs
-     */ 
-	@Override
+     */
+    @Override
     public String generateDeviceSpecificZoningAddInitiatorsWorkflow(Workflow workflow,
-    		String previousStep, ExportGroup exportGroup,
-    		Map<URI, List<URI>> zoneMasksToInitiatorsURIs)
+            String previousStep, ExportGroup exportGroup,
+            Map<URI, List<URI>> zoneMasksToInitiatorsURIs)
     {
         return generateZoningAddInitiatorsWorkflow(workflow, previousStep, exportGroup, zoneMasksToInitiatorsURIs);
     }

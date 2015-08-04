@@ -38,7 +38,7 @@ public class AnnotationType implements SchemaObject {
     // the following fields are used to distinguish instances
     private String name;
     private List<AnnotationValue> valueList = new ArrayList<AnnotationValue>();
-    
+
     SchemaObject parent;
 
     public AnnotationType() {
@@ -47,11 +47,11 @@ public class AnnotationType implements SchemaObject {
     public AnnotationType(RuntimeType runtimeType, Annotation annotation, SchemaObject parent) {
         this.runtimeType = new RuntimeType(runtimeType);
         this.runtimeType.setAnnotation(annotation);
-        
+
         this.parent = parent;
 
         this.name = annotation.annotationType().getSimpleName();
-        
+
         Method[] methods = annotation.annotationType().getDeclaredMethods();
         for (int i = 0; i < methods.length; i++) {
             this.valueList.add(new AnnotationValue(this.runtimeType, methods[i], this));
@@ -60,8 +60,9 @@ public class AnnotationType implements SchemaObject {
 
     @XmlAttribute
     public String getType() {
-        if (runtimeType == null || runtimeType.getAnnotation() == null)
+        if (runtimeType == null || runtimeType.getAnnotation() == null) {
             return type;
+        }
 
         return runtimeType.getAnnotation().annotationType().getCanonicalName();
     }
@@ -91,13 +92,15 @@ public class AnnotationType implements SchemaObject {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof AnnotationType))
+        if (!(o instanceof AnnotationType)) {
             return false;
+        }
 
-        AnnotationType annotationType = (AnnotationType)o;
+        AnnotationType annotationType = (AnnotationType) o;
 
-        if (!annotationType.getName().equals(getName()))
+        if (!annotationType.getName().equals(getName())) {
             return false;
+        }
 
         return Objects.equal(this.valueList, annotationType.valueList);
     }
@@ -136,4 +139,3 @@ public class AnnotationType implements SchemaObject {
         this.parent = parent;
     }
 }
-

@@ -50,12 +50,14 @@ public class RestoreHandler {
         this.viprDataDir = new File(viprDataDir);
     }
 
-    RestoreHandler() {}
+    RestoreHandler() {
+    }
 
     /**
      * Sets root directory of ViPR db/zk
+     * 
      * @param rootDir
-     *          The path of ViPR db/zk root directory
+     *            The path of ViPR db/zk root directory
      */
     void setRootDir(File rootDir) {
         this.rootDir = rootDir;
@@ -63,8 +65,9 @@ public class RestoreHandler {
 
     /**
      * Sets ViPR service data directory
+     * 
      * @param viprDataDir
-     *          The directory which saves ViPR service data
+     *            The directory which saves ViPR service data
      */
     void setViprDataDir(File viprDataDir) {
         this.viprDataDir = viprDataDir;
@@ -72,18 +75,21 @@ public class RestoreHandler {
 
     /**
      * Sets extra directories which should be clean before restore
+     * 
      * @param extraCleanDirs
-     *          The extra clean directory list
+     *            The extra clean directory list
      */
     public void setExtraCleanDirs(List<String> extraCleanDirs) {
-        if (extraCleanDirs != null)
+        if (extraCleanDirs != null) {
             this.extraCleanDirs = extraCleanDirs;
+        }
     }
 
     /**
      * Sets backup compress package
+     * 
      * @param backupArchive
-     *          The backup package
+     *            The backup package
      */
     public void setBackupArchive(File backupArchive) {
         this.backupArchive = backupArchive;
@@ -91,18 +97,20 @@ public class RestoreHandler {
 
     /**
      * Purges ViPR data files before restore.
-     */ 
+     */
     public void purge() throws IOException {
-        if (!viprDataDir.getParentFile().exists())
+        if (!viprDataDir.getParentFile().exists()) {
             throw new FileNotFoundException(String.format(
                     "%s is not exist, please initialize ViPR first", viprDataDir.getParent()));
+        }
         log.info("\tDelete: {}", viprDataDir.getAbsolutePath());
         FileUtils.deleteDirectory(viprDataDir);
         for (String fileName : extraCleanDirs) {
             log.info("\tDelete: {}", fileName);
             File file = new File(fileName);
-            if (file.exists())
+            if (file.exists()) {
                 FileUtils.forceDelete(file);
+            }
         }
     }
 
@@ -115,7 +123,7 @@ public class RestoreHandler {
 
     /**
      * Uncompresses backup file into vipr data directory.
-     */ 
+     */
     public void replace(final boolean geoRestoreFromScratch) throws IOException {
         String backupName = backupArchive.getName().substring(0,
                 backupArchive.getName().lastIndexOf('.'));
@@ -128,17 +136,19 @@ public class RestoreHandler {
             tmpDir.renameTo(viprDataDir);
             chown(viprDataDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
         } finally {
-            if (tmpDir.exists())
+            if (tmpDir.exists()) {
                 FileUtils.deleteQuietly(tmpDir);
+            }
         }
     }
 
     /**
      * Checks reinit flag for (geo)db to pull data from remote vdc/nodes
+     * 
      * @param backupName
-     *          The name of backup file
+     *            The name of backup file
      * @param geoRestoreFromScratch
-     *          True if restore geodb from scratch, or else if false
+     *            True if restore geodb from scratch, or else if false
      * @throws IOException
      */
     private void checkReinit(final String backupName, final boolean geoRestoreFromScratch) throws IOException {
@@ -153,16 +163,18 @@ public class RestoreHandler {
 
     /**
      * Checks reinit file according to argument needReinit
+     * 
      * @param needReinit
-     *          Need to add reinit marker or not
+     *            Need to add reinit marker or not
      * @throws IOException
      */
     public void checkReinitFile(final boolean needReinit) throws IOException {
         File bootModeFile = new File(rootDir, Constants.STARTUPMODE);
         if (!needReinit) {
             log.info("Reinit flag is false");
-            if (bootModeFile.exists())
+            if (bootModeFile.exists()) {
                 bootModeFile.delete();
+            }
             return;
         }
         if (!bootModeFile.exists()) {

@@ -69,8 +69,7 @@ public class JAXBUtils {
                 LOG.debug("Found jaxb-index: " + url);
                 readPackages(url, packageNames);
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             LOG.info("Failed to load META-INF/jaxb-index files", e);
             throw new JAXBException(e);
         }
@@ -87,8 +86,7 @@ public class JAXBUtils {
                     packageNames.add(s);
                 }
             }
-        }
-        finally {
+        } finally {
             r.close();
         }
     }

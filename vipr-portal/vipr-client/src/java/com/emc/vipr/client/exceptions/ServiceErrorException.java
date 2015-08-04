@@ -27,11 +27,11 @@ public class ServiceErrorException extends ViPRHttpException {
     public String getLocalizedMessage() {
         if (getHttpCode() >= 100) {
             return String.format("Error %s (http: %s): %s. %s",
-                getCode(), getHttpCode(), getCodeDescription(), getDetailedMessage());
+                    getCode(), getHttpCode(), getCodeDescription(), getDetailedMessage());
         }
         else {
             return String.format("Error %s: %s. %s",
-                getCode(), getCodeDescription(), getDetailedMessage());
+                    getCode(), getCodeDescription(), getDetailedMessage());
         }
     }
 

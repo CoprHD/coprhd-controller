@@ -53,7 +53,7 @@ import com.emc.storageos.services.util.EnvConfig;
  * or else please uncomment @Service annotation and move to actual package out
  * of test where the real spring context will be created from
  */
-//@Service
+// @Service
 public class IndicationTest {
 
     @SuppressWarnings("unused")
@@ -68,7 +68,7 @@ public class IndicationTest {
 
     // To verify immediate trigger or not
     private Boolean _isIntialLoad = Boolean.TRUE;
-    
+
     private static final String UNIT_TEST_CONFIG_FILE = "sanity";
     private static final String providerIP = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "smis.host.ipaddress");
     private static final String providerPortStr = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "smis.host.port");
@@ -99,10 +99,10 @@ public class IndicationTest {
             // Create a CIM connection info and add the connection.
             CimConnectionInfo connectionInfo = new CimConnectionInfo();
             connectionInfo.setType(CimConstants.ECOM_CONNECTION_TYPE);
-            
-            //connectionInfo.setHost("10.247.87.240");
+
+            // connectionInfo.setHost("10.247.87.240");
             connectionInfo.setHost(providerIP);
-            
+
             connectionInfo.setPort(providerPort);
             connectionInfo.setUser(providerUser);
             connectionInfo.setPassword(providerPassword);
@@ -127,7 +127,7 @@ public class IndicationTest {
             return;
         }
         _logger.info("Shutting down CIM Indication Listener....");
-        //_connectionManager.shutdown();
+        // _connectionManager.shutdown();
 
     }
 

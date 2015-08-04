@@ -22,9 +22,10 @@ public class VirtualArrayInternalFlags {
     private String protectionType;
     private Boolean deviceRegistered;
 
-    public VirtualArrayInternalFlags() {}
+    public VirtualArrayInternalFlags() {
+    }
 
-    @XmlElement(name="protectionType")
+    @XmlElement(name = "protectionType")
     public String getProtectionType() {
         return protectionType;
     }
@@ -33,7 +34,7 @@ public class VirtualArrayInternalFlags {
         this.protectionType = protectionType;
     }
 
-    @XmlElement(name="deviceRegistered")
+    @XmlElement(name = "deviceRegistered")
     public Boolean getDeviceRegistered() {
         return deviceRegistered;
     }

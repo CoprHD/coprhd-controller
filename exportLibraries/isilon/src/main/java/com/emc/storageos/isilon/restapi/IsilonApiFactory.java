@@ -44,7 +44,7 @@ public class IsilonApiFactory {
     private static final int DEFAULT_MAX_CONN_PER_HOST = 100;
     private static final int DEFAULT_CONN_TIMEOUT = 1000 * 30;
     private static final int DEFAULT_SOCKET_CONN_TIMEOUT = 1000 * 60 * 60;
-    
+
     private int _maxConn = DEFAULT_MAX_CONN;
     private int _maxConnPerHost = DEFAULT_MAX_CONN_PER_HOST;
     private int _connTimeout = DEFAULT_CONN_TIMEOUT;
@@ -56,7 +56,7 @@ public class IsilonApiFactory {
 
     /**
      * Maximum number of outstanding connections
-     *
+     * 
      * @param maxConn
      */
     public void setMaxConnections(int maxConn) {
@@ -65,7 +65,7 @@ public class IsilonApiFactory {
 
     /**
      * Maximum number of outstanding connections per host
-     *
+     * 
      * @param maxConnPerHost
      */
     public void setMaxConnectionsPerHost(int maxConnPerHost) {
@@ -74,7 +74,7 @@ public class IsilonApiFactory {
 
     /**
      * Connection timeout
-     *
+     * 
      * @param connectionTimeoutMs
      */
     public void setConnectionTimeoutMs(int connectionTimeoutMs) {
@@ -83,7 +83,7 @@ public class IsilonApiFactory {
 
     /**
      * Socket connection timeout
-     *
+     * 
      * @param connectionTimeoutMs
      */
     public void setSocketConnectionTimeoutMs(int connectionTimeoutMs) {
@@ -122,41 +122,41 @@ public class IsilonApiFactory {
     /**
      * shutdown http connection manager.
      */
-    protected void shutdown()  {
+    protected void shutdown() {
         _connectionManager.shutdown();
     }
 
     /**
      * Create Isilon API client
-     *
+     * 
      * @param endpoint isilon endpoint
      * @return
      */
     public IsilonApi getRESTClient(URI endpoint) {
-        IsilonApi isilonApi = _clientMap.get(endpoint.toString()+":"+":");
+        IsilonApi isilonApi = _clientMap.get(endpoint.toString() + ":" + ":");
         if (isilonApi == null) {
             Client jerseyClient = new ApacheHttpClient(_clientHandler);
             RESTClient restClient = new RESTClient(jerseyClient);
             isilonApi = new IsilonApi(endpoint, restClient);
-            _clientMap.putIfAbsent(endpoint.toString()+":"+":", isilonApi);
+            _clientMap.putIfAbsent(endpoint.toString() + ":" + ":", isilonApi);
         }
         return isilonApi;
     }
 
     /**
      * Create Isilon API client
-     *
+     * 
      * @param endpoint isilon endpoint
      * @return
      */
     public IsilonApi getRESTClient(URI endpoint, String username, String password) {
-        IsilonApi isilonApi = _clientMap.get(endpoint.toString() +":"+ username +":"+ password);
+        IsilonApi isilonApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
         if (isilonApi == null) {
             Client jerseyClient = new ApacheHttpClient(_clientHandler);
             jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
             RESTClient restClient = new RESTClient(jerseyClient);
             isilonApi = new IsilonApi(endpoint, restClient);
-            _clientMap.putIfAbsent(endpoint.toString()+":"+username+":"+password, isilonApi);
+            _clientMap.putIfAbsent(endpoint.toString() + ":" + username + ":" + password, isilonApi);
         }
         return isilonApi;
     }

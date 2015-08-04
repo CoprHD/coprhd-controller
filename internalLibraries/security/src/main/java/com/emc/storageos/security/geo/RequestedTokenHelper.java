@@ -13,7 +13,6 @@
  * it is provided by or on behalf of EMC.
  */
 
-
 package com.emc.storageos.security.geo;
 
 import java.net.URI;
@@ -46,21 +45,22 @@ import com.sun.jersey.api.client.ClientResponse;
  */
 public class RequestedTokenHelper {
     private static final Logger log = LoggerFactory.getLogger(RequestedTokenHelper.class);
-    
+
     @Autowired
     private DbClient dbClient;
-    
+
     @Autowired
     private CoordinatorClient coordinator;
-    
+
     @Autowired
     protected GeoClientCacheManager geoClientCacheMgt;
-    
+
     @Autowired
-    protected TokenEncoder tokenEncoder;  
-    
+    protected TokenEncoder tokenEncoder;
+
     /**
      * Sets the field called 'dbClient' to the given value.
+     * 
      * @param dbClient The dbClient to set.
      */
     public void setDbClient(DbClient dbClient) {
@@ -69,18 +69,22 @@ public class RequestedTokenHelper {
 
     /**
      * Sets the field called 'coordinator' to the given value.
+     * 
      * @param coordinator The coordinator to set.
      */
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
     }
-    
+
     private static final String TOKEN_MAP_LOCK_PREFIX = "TokenMap_%s";
-    
-    public enum Operation { ADD_VDC, REMOVE_VDC };
+
+    public enum Operation {
+        ADD_VDC, REMOVE_VDC
+    };
 
     /**
      * Adds or removes a VDCid to the list of VDCids that requested the given token
+     * 
      * @param op ADD_VDC or REMOVE_VDC
      * @param tokenId the token for which the map should be updated
      * @param requestingVDC the short vdcid of the vdc to add or remove
@@ -90,7 +94,7 @@ public class RequestedTokenHelper {
         String lockName = String.format(TOKEN_MAP_LOCK_PREFIX, tokenId.toString());
         try {
             tokenLock = coordinator.getLock(lockName);
-            if(tokenLock == null) {
+            if (tokenLock == null) {
                 log.error("Could not acquire lock for requested token map update");
                 throw SecurityException.fatals.couldNotAcquireRequestedTokenMapCaching();
             }
@@ -102,18 +106,17 @@ public class RequestedTokenHelper {
             }
         } catch (Exception ex) {
             log.error("Could not acquire lock while trying to update requested token map.", ex);
-        } 
-        finally {
+        } finally {
             try {
-                if(tokenLock != null) {
+                if (tokenLock != null) {
                     tokenLock.release();
                 }
-            } catch(Exception ex) {
+            } catch (Exception ex) {
                 log.error("Unable to release requested token map lock", ex);
             }
         }
     }
-    
+
     private void addRequestingVDC(String tokenId, String requestingVDC) {
         RequestedTokenMap map = getTokenMap(tokenId);
         if (map == null) {
@@ -127,7 +130,7 @@ public class RequestedTokenHelper {
             dbClient.persistObject(map);
         }
     }
-    
+
     private void removeRequestingVDC(String tokenId, String requestingVDC) {
         RequestedTokenMap map = getTokenMap(tokenId);
         if (map != null) {
@@ -135,7 +138,7 @@ public class RequestedTokenHelper {
                 map.removeVDCID(requestingVDC);
                 if (map.getVDCIDs().isEmpty()) {
                     log.info("Last vdcid entry removed from requested token map.  Removing map.");
-                    dbClient.removeObject(map);   
+                    dbClient.removeObject(map);
                 } else {
                     dbClient.persistObject(map);
                 }
@@ -145,12 +148,13 @@ public class RequestedTokenHelper {
 
     /**
      * Retrieves the list of vdcid that have requested a copy of this token
+     * 
      * @param tokenId
      * @return
      */
     public RequestedTokenMap getTokenMap(String tokenId) {
         URIQueryResultList maps = new URIQueryResultList();
-        List<URI> mapsURI = new ArrayList<URI>();     
+        List<URI> mapsURI = new ArrayList<URI>();
         dbClient.queryByConstraint(
                 AlternateIdConstraint.Factory.getRequestedTokenMapTokenIdConstraint(tokenId.toString()), maps);
         if (maps == null) {
@@ -165,25 +169,26 @@ public class RequestedTokenHelper {
             log.info("No requested token map found.  Empty map.");
             return null;
         }
-        return objects.get(0);   
+        return objects.get(0);
     }
 
     /**
      * Notify the originatorVDC of the token or follows the map of VDCs that have a copy of this token
      * depending on whether or not the passed in token is from this VDC or not.
+     * 
      * @param tokenId token URI for lookups in the requested token map
      */
-    public void notifyExternalVDCs(String rawToken) {       
+    public void notifyExternalVDCs(String rawToken) {
         String tokenId = tokenEncoder.decode(rawToken).getTokenId().toString();
         // If this is a token this VDC did not create, it needs to call back the
         // originator
         String originatorVDCId = URIUtil.parseVdcIdFromURI(tokenId);
         if (!VdcUtil.getLocalShortVdcId().equals(originatorVDCId)) {
-            // Call originator.  If this fails, this is a problem.
+            // Call originator. If this fails, this is a problem.
             log.info("Calling token originator to propagate deletion of token");
             boolean failed = false;
             try {
-                ClientResponse resp = geoClientCacheMgt.getGeoClient(originatorVDCId).logoutToken(rawToken, null, false);            
+                ClientResponse resp = geoClientCacheMgt.getGeoClient(originatorVDCId).logoutToken(rawToken, null, false);
                 if (resp.getStatus() != ClientResponse.Status.OK.getStatusCode()) {
                     failed = true;
                 }
@@ -200,12 +205,12 @@ public class RequestedTokenHelper {
         if (map == null || map.getVDCIDs().isEmpty()) {
             return;
         }
-       
+
         log.info("This token had potential copies still active in other VDCs.  Notifying...");
         for (String shortId : map.getVDCIDs()) {
             try {
                 ClientResponse resp = geoClientCacheMgt.getGeoClient(shortId).logoutToken(rawToken, null, false);
-                // whether this succeeded or not, we remote the entry from the map.  We log a warning,
+                // whether this succeeded or not, we remote the entry from the map. We log a warning,
                 // but the remote VDC will expire the copy of the token automatically in less than 10 minutes.
                 // The remove logout notification is a best effort attempt to remove the remote token quicker.
                 if (resp.getStatus() != ClientResponse.Status.OK.getStatusCode()) {
@@ -221,6 +226,7 @@ public class RequestedTokenHelper {
     /**
      * Iterates through the list of VDCs, skips the local vdc, and sends a logout?force=true request to
      * each vdc found, with optionally the ?username= parameter if supplied.
+     * 
      * @param rawToken
      * @param username optional
      */

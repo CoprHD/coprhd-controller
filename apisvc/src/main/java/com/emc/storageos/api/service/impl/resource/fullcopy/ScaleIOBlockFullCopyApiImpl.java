@@ -14,7 +14,6 @@
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,7 +34,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  * The ScaleIO storage system implementation for the block full copy API.
  */
 public class ScaleIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
-    
+
     /**
      * Constructor
      * 
@@ -44,10 +43,10 @@ public class ScaleIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      * @param scheduler A reference to a scheduler.
      */
     public ScaleIOBlockFullCopyApiImpl(DbClient dbClient,
-        CoordinatorClient coordinator, Scheduler scheduler) {
+            CoordinatorClient coordinator, Scheduler scheduler) {
         super(dbClient, coordinator, scheduler);
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -64,7 +63,7 @@ public class ScaleIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public Map<URI, Volume> getFullCopySetMap(BlockObject fcSourceObj,
-        Volume fullCopyVolume) {
+            Volume fullCopyVolume) {
         Map<URI, Volume> fullCopyMap = new HashMap<URI, Volume>();
         fullCopyMap.put(fullCopyVolume.getId(), fullCopyVolume);
         return fullCopyMap;
@@ -77,16 +76,16 @@ public class ScaleIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
         super.validateFullCopyCreateRequest(fcSourceObjList, count);
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-        String name, boolean createInactive, int count, String taskId) {
+            String name, boolean createInactive, int count, String taskId) {
         return super.create(fcSourceObjList, varray, name, createInactive, count, taskId);
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -101,7 +100,7 @@ public class ScaleIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     @Override
     public TaskList detach(BlockObject fcSourceObj, Volume fullCopyVolume) {
         return super.detach(fcSourceObj, fullCopyVolume);
-    }    
+    }
 
     /**
      * {@inheritDoc}
@@ -125,8 +124,8 @@ public class ScaleIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     @Override
     public VolumeRestRep checkProgress(URI sourceURI, Volume fullCopyVolume) {
         return super.checkProgress(sourceURI, fullCopyVolume);
-    }    
-    
+    }
+
     /**
      * {@inheritDoc}
      */

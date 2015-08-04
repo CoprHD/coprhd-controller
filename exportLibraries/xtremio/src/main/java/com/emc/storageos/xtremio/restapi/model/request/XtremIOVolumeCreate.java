@@ -19,20 +19,24 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="xtremio_volume_create")
+@JsonRootName(value = "xtremio_volume_create")
 public class XtremIOVolumeCreate {
     @SerializedName("vol-name")
     @JsonProperty(value = "vol-name")
     private String name;
-    
+
     @SerializedName("vol-size")
     @JsonProperty(value = "vol-size")
     private String size;
-    
+
     @SerializedName("parent-folder-id")
     @JsonProperty(value = "parent-folder-id")
     private String parentFolderId;
     
+    @SerializedName("cluster-id")
+    @JsonProperty(value = "cluster-id")
+    private String clusterName;
+
     public String getName() {
         return name;
     }
@@ -57,7 +61,17 @@ public class XtremIOVolumeCreate {
         this.parentFolderId = parentFolderId;
     }
 
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
+    @Override
     public String toString() {
-    	return "Name: " + name + ". Size: " + size + ", Parent Folder Id: " + parentFolderId;
+        return "XtremIOVolumeCreate [name=" + name + ", size=" + size + ", parentFolderId=" + parentFolderId + ", clusterName="
+                + clusterName + "]";
     }
 }

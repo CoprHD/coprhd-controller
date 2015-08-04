@@ -33,10 +33,10 @@ import com.sun.jersey.spi.container.ContainerResponseFilter;
 import com.sun.jersey.spi.container.ResourceFilter;
 
 /**
- *  Abstract filter class for permission checker, implements filter method
+ * Abstract filter class for permission checker, implements filter method
  */
 public abstract class AbstractPermissionFilter implements ResourceFilter, ContainerRequestFilter {
-	private static final Logger _log = LoggerFactory.getLogger(AbstractPermissionFilter.class);
+    private static final Logger _log = LoggerFactory.getLogger(AbstractPermissionFilter.class);
     protected final Role[] _roles;
     protected final ACL[] _acls;
     protected final boolean _blockProxies;
@@ -44,17 +44,17 @@ public abstract class AbstractPermissionFilter implements ResourceFilter, Contai
     protected BasePermissionsHelper _permissionsHelper;
 
     protected AbstractPermissionFilter(Role[] roles, ACL[] acls, boolean blockProxies,
-                                       Class resourceClazz, BasePermissionsHelper helper) {
+            Class resourceClazz, BasePermissionsHelper helper) {
         // To Do - sort permissions
         _roles = (roles != null) ? roles : new Role[] {};
-        _acls = (acls != null) ? acls: new ACL[] {};
+        _acls = (acls != null) ? acls : new ACL[] {};
         _blockProxies = blockProxies;
         _resourceClazz = resourceClazz;
         _permissionsHelper = helper;
     }
 
     @Override
-    public ContainerRequestFilter  getRequestFilter() {
+    public ContainerRequestFilter getRequestFilter() {
         return this;
     }
 
@@ -65,18 +65,21 @@ public abstract class AbstractPermissionFilter implements ResourceFilter, Contai
 
     /**
      * Get tenant id from the uri
+     * 
      * @return
      */
     protected abstract URI getTenantIdFromURI(final UriInfo uriInfo);
 
     /**
      * Get project id from the uri
+     * 
      * @return
      */
     protected abstract URI getProjectIdFromURI(final UriInfo uriInfo);
 
     /**
      * Get usage acls for the given tenant on the resource
+     * 
      * @param tenantId
      * @return
      */
@@ -84,6 +87,7 @@ public abstract class AbstractPermissionFilter implements ResourceFilter, Contai
 
     /**
      * Get UriInfo from the context
+     * 
      * @return
      */
     protected abstract UriInfo getUriInfo();
@@ -102,14 +106,14 @@ public abstract class AbstractPermissionFilter implements ResourceFilter, Contai
         if (!(p instanceof StorageOSUser)) {
             throw APIException.forbidden.invalidSecurityContext();
         }
-        StorageOSUser user = (StorageOSUser)p;
+        StorageOSUser user = (StorageOSUser) p;
         if (_blockProxies && user.isProxied()) {
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
         boolean good = false;
         // Step 1: Roles check - see if the user has one of the allowed roles
         Set<String> tenantRoles = null;
-        for (Role role: _roles) {
+        for (Role role : _roles) {
             if (user.getRoles().contains(role.toString())) {
                 good = true;
                 break;
@@ -142,16 +146,16 @@ public abstract class AbstractPermissionFilter implements ResourceFilter, Contai
                 } catch (DatabaseException ex) {
                     throw APIException.forbidden.failedReadingProjectACLs(ex);
                 }
-            } else {    /* other resource acls */
+            } else { /* other resource acls */
                 acls = getUsageAclsFromURI(user.getTenantId(), getUriInfo());
             }
             // see if we got any and we got a hit
             if (acls != null) {
-                for (ACL acl: _acls) {
+                for (ACL acl : _acls) {
                     if (acl.equals(ACL.ANY) &&
                             (acls.contains(ACL.OWN.toString()) ||
                                     acls.contains(ACL.BACKUP.toString()) ||
-                                    acls.contains(ACL.ALL.toString()))) {
+                            acls.contains(ACL.ALL.toString()))) {
                         good = true;
                         break;
                     } else if (acls.contains(acl.toString())) {
@@ -191,4 +195,3 @@ public abstract class AbstractPermissionFilter implements ResourceFilter, Contai
         return idEmbeddedInURL;
     }
 }
-

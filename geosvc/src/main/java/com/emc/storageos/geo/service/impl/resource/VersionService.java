@@ -28,7 +28,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 import static com.emc.storageos.security.geo.GeoServiceClient.VERSION_URI;
 
-@Path(value=VERSION_URI)
+@Path(value = VERSION_URI)
 public class VersionService {
     @Autowired
     private CoordinatorClient coordinator;
@@ -39,7 +39,7 @@ public class VersionService {
      * @return the version string (e.g. vipr-1.0.0.1.1)
      */
     @GET
-    @Produces({ MediaType.TEXT_PLAIN })    
+    @Produces({ MediaType.TEXT_PLAIN })
     public String getVersion() {
         try {
             RepositoryInfo info = coordinator.getTargetInfo(RepositoryInfo.class);

@@ -13,7 +13,8 @@ public class NetworkDeviceControllerException extends DeviceControllerException 
     private static final long serialVersionUID = -6900306922128500639L;
 
     /** Holds the methods used to create network devices related exceptions */
-    public static final NetworkDeviceControllerExceptions exceptions = ExceptionMessagesProxy.create(NetworkDeviceControllerExceptions.class);
+    public static final NetworkDeviceControllerExceptions exceptions = ExceptionMessagesProxy
+            .create(NetworkDeviceControllerExceptions.class);
 
     /** Holds the methods used to create network devices related error conditions */
     public static final NetworkDeviceControllerErrors errors = ExceptionMessagesProxy.create(NetworkDeviceControllerErrors.class);

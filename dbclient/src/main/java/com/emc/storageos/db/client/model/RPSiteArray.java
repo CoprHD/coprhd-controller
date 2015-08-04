@@ -22,7 +22,7 @@ import javax.xml.bind.annotation.XmlElement;
 /**
  * Object that helps to identify RP systems, their sites and arrays.
  * Helps with placement, replication, and connectivity tables.
- *
+ * 
  */
 @Cf("RPSiteArray")
 public class RPSiteArray extends DataObject {
@@ -102,8 +102,8 @@ public class RPSiteArray extends DataObject {
 
     // Identity helper in logs
     public String toString() {
-        return _rpProtectionSystem.toString() + ":" + _rpInternalSiteName + ":" + _rpSiteName + ":" + _arraySerialNumber + ":" + _storageSystem.toString();
+        return _rpProtectionSystem.toString() + ":" + _rpInternalSiteName + ":" + _rpSiteName + ":" + _arraySerialNumber + ":"
+                + _storageSystem.toString();
     }
-
 
 }

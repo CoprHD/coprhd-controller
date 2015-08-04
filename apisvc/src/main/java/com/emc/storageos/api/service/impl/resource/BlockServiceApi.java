@@ -45,7 +45,7 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
  * creating a volume.
  */
 public interface BlockServiceApi {
-    
+
     /**
      * Define the default BlockServiceApi implementation.
      */
@@ -71,9 +71,9 @@ public interface BlockServiceApi {
      * @throws InternalException
      */
     public TaskList createVolumes(VolumeCreate param, Project project,
-        VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations,
-        String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-        throws InternalException;
+            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations,
+            String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+            throws InternalException;
 
     /**
      * Delete the passed volumes for the passed system.
@@ -86,7 +86,7 @@ public interface BlockServiceApi {
      * @throws InternalException
      */
     public void deleteVolumes(URI systemURI, List<URI> volumeURIs, String deletionType,
-        String task) throws InternalException;
+            String task) throws InternalException;
 
     /**
      * Check if a resource can be deactivated safely.
@@ -99,7 +99,7 @@ public interface BlockServiceApi {
 
     /**
      * Attaches and starts new continuous copies for the given volume.
-     *
+     * 
      * @param storageSystem
      * @param sourceVolume
      * @param sourceVpool
@@ -112,9 +112,9 @@ public interface BlockServiceApi {
      * @throws ControllerException
      */
     public TaskList startNativeContinuousCopies(StorageSystem storageSystem,
-        Volume sourceVolume, VirtualPool sourceVpool,
-        VirtualPoolCapabilityValuesWrapper capabilities,
-        NativeContinuousCopyCreate param, String task) throws ControllerException;
+            Volume sourceVolume, VirtualPool sourceVpool,
+            VirtualPoolCapabilityValuesWrapper capabilities,
+            NativeContinuousCopyCreate param, String task) throws ControllerException;
 
     /**
      * For each continuous copy on the given volume, if any, detach them and
@@ -131,23 +131,23 @@ public interface BlockServiceApi {
      * @throws ControllerException
      */
     public TaskList stopNativeContinuousCopies(StorageSystem storageSystem,
-        Volume sourceVolume, List<URI> mirrors, String taskId) throws ControllerException;
+            Volume sourceVolume, List<URI> mirrors, String taskId) throws ControllerException;
 
     /**
      * Pause a volume mirror
-     *
+     * 
      * @param storageSystem StorageSystem requested
-     * @param blockMirrors  BlockMirror instance to be paused
-     * @param sync          Boolean flag for pause operation; true=split, false=fracture
-     * @param taskId        Task ID
+     * @param blockMirrors BlockMirror instance to be paused
+     * @param sync Boolean flag for pause operation; true=split, false=fracture
+     * @param taskId Task ID
      * 
-     * @return              Task resource
+     * @return Task resource
      * 
-     * @throws              ControllerException
+     * @throws ControllerException
      */
     public TaskResourceRep pauseNativeContinuousCopies(StorageSystem storageSystem,
-        Volume sourceVolume, List<BlockMirror> blockMirrors, Boolean sync, String taskId)
-        throws ControllerException;
+            Volume sourceVolume, List<BlockMirror> blockMirrors, Boolean sync, String taskId)
+            throws ControllerException;
 
     /**
      * For each continuous copy on the given volume, resume them.
@@ -162,8 +162,8 @@ public interface BlockServiceApi {
      * @throws ControllerException
      */
     public TaskResourceRep resumeNativeContinuousCopies(StorageSystem storageSystem,
-        Volume sourceVolume, List<BlockMirror> blockMirrors, String taskId)
-        throws ControllerException;
+            Volume sourceVolume, List<BlockMirror> blockMirrors, String taskId)
+            throws ControllerException;
 
     /**
      * Deactivate a volume mirror This operation will attempt to both detach and
@@ -177,19 +177,19 @@ public interface BlockServiceApi {
      * @return Task resource
      */
     public TaskResourceRep deactivateMirror(StorageSystem device, URI mirrorURI,
-        String task) throws ControllerException;
-    
+            String task) throws ControllerException;
+
     /**
      * Gets the list of potential vpools for a vpool change for the passed volume.
      * 
      * @param volume The volume for which a vpool change is proposed.
      */
     public VirtualPoolChangeList getVirtualPoolForVirtualPoolChange(Volume volume);
-    
+
     /**
      * Defines the API to change the vpool for the passed volume to the passed
      * vpool.
-     *
+     * 
      * @param systemURI URI of the storage system on which the volume resides.
      * @param volume A reference to the volume.
      * @param targetVpool A reference to the new vpool.
@@ -199,13 +199,13 @@ public interface BlockServiceApi {
      * @throws InternalException
      */
     public void changeVolumeVirtualPool(URI systemURI, Volume volume,
-        VirtualPool targetVpool, VirtualPoolChangeParam vpoolChangeParam, String taskId)
-        throws InternalException;
+            VirtualPool targetVpool, VirtualPoolChangeParam vpoolChangeParam, String taskId)
+            throws InternalException;
 
     /**
      * Defines the API to change the vpool for the passed volumes to the passed
      * vpool.
-     *
+     * 
      * @param volumes List of volumes.
      * @param targetVpool A reference to the new vpool.
      * @param vpoolChangeParam vpool change request
@@ -213,8 +213,8 @@ public interface BlockServiceApi {
      * @throws InternalException the internal exception
      */
     public void changeVolumeVirtualPool(List<Volume> volumes,
-        VirtualPool targetVpool, VirtualPoolChangeParam vpoolChangeParam, String taskId)
-        throws InternalException;
+            VirtualPool targetVpool, VirtualPoolChangeParam vpoolChangeParam, String taskId)
+            throws InternalException;
 
     /**
      * Defines the API to change the varray for the passed volumes to the passed
@@ -229,9 +229,9 @@ public interface BlockServiceApi {
      * @throws InternalException
      */
     public void changeVirtualArrayForVolumes(List<Volume> volume,
-        BlockConsistencyGroup cg, List<Volume> cgVolumes, VirtualArray varray,
-        String taskId) throws InternalException;
-    
+            BlockConsistencyGroup cg, List<Volume> cgVolumes, VirtualArray varray,
+            String taskId) throws InternalException;
+
     /**
      * Determines whether or not the virtual array for the passed volume can be
      * changed to the passed virtual array. Throws a APIException when the
@@ -243,8 +243,8 @@ public interface BlockServiceApi {
      * @throws APIException
      */
     public void verifyVarrayChangeSupportedForVolumeAndVarray(Volume volume,
-        VirtualArray newVarray) throws APIException;
-    
+            VirtualArray newVarray) throws APIException;
+
     /**
      * Returns the connectivity for protection, vplex, etc. for various StorageSystems.
      * 
@@ -254,7 +254,7 @@ public interface BlockServiceApi {
      */
     public StorageSystemConnectivityList getStorageSystemConnectivity(
             StorageSystem storageSystem);
-    
+
     /**
      * Delete an existing consistency group
      * 
@@ -265,8 +265,8 @@ public interface BlockServiceApi {
      * @return
      */
     public TaskResourceRep deleteConsistencyGroup(StorageSystem device,
-        BlockConsistencyGroup consistencyGroup, String task) throws ControllerException;
-    
+            BlockConsistencyGroup consistencyGroup, String task) throws ControllerException;
+
     /**
      * Updates the consistency to add/remove the passed volumes to/from the
      * consistency group.
@@ -281,12 +281,12 @@ public interface BlockServiceApi {
      * @return A reference to the task response.
      * 
      * @throws ControllerException When an error occurs in the controller
-     *         configuring the workflow to update the consistency group.
+     *             configuring the workflow to update the consistency group.
      */
     public TaskResourceRep updateConsistencyGroup(StorageSystem cgStorageSystem,
-        List<Volume> cgVolumes, BlockConsistencyGroup consistencyGroup,
-        List<URI> addVolumesList, List<URI> removeVolumesList, String taskId)
-        throws ControllerException;
+            List<Volume> cgVolumes, BlockConsistencyGroup consistencyGroup,
+            List<URI> addVolumesList, List<URI> removeVolumesList, String taskId)
+            throws ControllerException;
 
     /**
      * Verify the passed volume is capable of being expanded to the passed size.
@@ -306,21 +306,21 @@ public interface BlockServiceApi {
      * @throws ControllerException
      */
     public void expandVolume(Volume volume, long newSize, String taskId)
-        throws InternalException;
-    
+            throws InternalException;
+
     /**
      * Validates a snapshot request.
      * 
      * @param reqVolume The volume from the snapshot request.
      * @param volumesToSnap The volumes for which snapshots will be created.
-     *        Could be more than the requested due to CGs.
+     *            Could be more than the requested due to CGs.
      * @param snapshotType The snapshot technology type.
      * @param snapshotName The snapshot name.
      * @param A reference to the block full copy manager.
      */
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
-        String snapshotType, String snapshotName, BlockFullCopyManager fcManager);
-    
+            String snapshotType, String snapshotName, BlockFullCopyManager fcManager);
+
     /**
      * When a request is made to create a snapshot for a specific volume, this
      * function should determine all volumes that should be snapped as a result
@@ -334,7 +334,7 @@ public interface BlockServiceApi {
      *         snapshot request for a specific volume.
      */
     public List<Volume> getVolumesToSnap(Volume reqVolume, String snapshotType);
-    
+
     /**
      * Gets the active volumes for the consistency group.
      * 
@@ -343,7 +343,7 @@ public interface BlockServiceApi {
      * @return A list of all the active volumes for the passed consistency group.
      */
     public List<Volume> getActiveCGVolumes(BlockConsistencyGroup cg);
-    
+
     /**
      * Prepares the snapshots for a snapshot request.
      * 
@@ -356,8 +356,8 @@ public interface BlockServiceApi {
      * @return The list of snapshots
      */
     public List<BlockSnapshot> prepareSnapshots(List<Volume> volumes, String snapShotType,
-        String snapshotName, List<URI> snapshotURIs, String taskId);
-    
+            String snapshotName, List<URI> snapshotURIs, String taskId);
+
     /**
      * Uses the appropriate controller to create the snapshots.
      * 
@@ -365,13 +365,13 @@ public interface BlockServiceApi {
      * @param snapshotURIs The URIs of the prepared snapshots
      * @param snapshotType The snapshot technology type.
      * @param createInactive true if the snapshots should be created but not
-     *        activated, false otherwise.
+     *            activated, false otherwise.
      * @param readOnly TODO
      * @param taskId The unique task identifier.
      */
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-        String snapshotType, Boolean createInactive, Boolean readOnly, String taskId);
-    
+            String snapshotType, Boolean createInactive, Boolean readOnly, String taskId);
+
     /**
      * Uses the appropriate controller to delete the snapshot.
      * 
@@ -379,24 +379,24 @@ public interface BlockServiceApi {
      * @param taskId The unique task identifier
      */
     public void deleteSnapshot(BlockSnapshot snapshot, String taskId);
-    
+
     /**
      * Get the snapshots for the passed volume.
      * 
      * @param volume A reference to a volume.
-     *  
+     * 
      * @return The snapshots for the passed volume.
      */
     public List<BlockSnapshot> getSnapshots(Volume volume);
-    
+
     /**
      * Validates a restore snapshot request.
-     *
+     * 
      * @param snapshot The snapshot to restore.
      * @param volume
      */
     public void validateRestoreSnapshot(BlockSnapshot snapshot, Volume volume);
-    
+
     /**
      * Restore the passed parent volume from the passed snapshot of that parent volume.
      * 
@@ -404,7 +404,7 @@ public interface BlockServiceApi {
      * @param parentVolume The volume to be restored.
      * @param taskId The unique task identifier.
      */
-    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId); 
+    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId);
 
     /**
      * Returns the maximum number of volumes that are allowed in the passed consistency group.
@@ -414,15 +414,15 @@ public interface BlockServiceApi {
      * @return The maximum number of volumes that are allowed in the group.
      */
     public int getMaxVolumesForConsistencyGroup(BlockConsistencyGroup consistencyGroup);
-    
+
     /**
-     * Verifies that the name of the CG is valid for the system on which 
+     * Verifies that the name of the CG is valid for the system on which
      * it will be created. Throws an exception when the name is not valid.
      * 
      * @param consistencyGroup A reference to the consistency group.
      */
     public void validateConsistencyGroupName(BlockConsistencyGroup consistencyGroup);
-    
+
     /**
      * Verifies that the volume can be removed from the CG.
      * 
@@ -430,7 +430,7 @@ public interface BlockServiceApi {
      * @param cgVolumes The active volumes in the CG
      */
     public void verifyRemoveVolumeFromCG(Volume volume, List<Volume> cgVolumes);
-    
+
     /**
      * Verifies that the volume can be added to the CG.
      * 
@@ -440,5 +440,5 @@ public interface BlockServiceApi {
      * @param cgStorageSystem A reference to the CG storage controller.
      */
     public void verifyAddVolumeToCG(Volume volume, BlockConsistencyGroup cg,
-        List<Volume> cgVolumes, StorageSystem cgStorageSystem);
+            List<Volume> cgVolumes, StorageSystem cgStorageSystem);
 }

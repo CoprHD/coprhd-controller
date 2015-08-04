@@ -9,8 +9,8 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.host.HostRestRep;
 import com.google.common.base.Function;
 
-public class MapHost implements Function<Host, HostRestRep>{
-	public static final MapHost instance = new MapHost();
+public class MapHost implements Function<Host, HostRestRep> {
+    public static final MapHost instance = new MapHost();
 
     public static MapHost getInstance() {
         return instance;

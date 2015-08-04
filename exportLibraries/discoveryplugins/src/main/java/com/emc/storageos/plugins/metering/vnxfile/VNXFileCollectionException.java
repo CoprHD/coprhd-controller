@@ -23,13 +23,14 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
  */
 public class VNXFileCollectionException extends BaseCollectionException {
 
-    protected VNXFileCollectionException(final boolean retryable, final ServiceCode serviceCode, final Throwable cause, final String detailBase, final String detailKey,
+    protected VNXFileCollectionException(final boolean retryable, final ServiceCode serviceCode, final Throwable cause,
+            final String detailBase, final String detailKey,
             final Object[] detailParams) {
         super(retryable, serviceCode, cause, detailBase, detailKey, detailParams);
     }
 
     @Deprecated
-    public VNXFileCollectionException(String message,Throwable cause) {
+    public VNXFileCollectionException(String message, Throwable cause) {
         super(message, cause);
     }
 

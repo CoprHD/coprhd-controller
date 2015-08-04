@@ -86,14 +86,14 @@ import com.emc.storageos.workflow.WorkflowService;
  * 1. VM arguments -Dproduct.home=/opt/storageos
  * 
  * 2. Classpath
- *  Folders 
- *      cimadapter/src/main/resources
- *      controllersvc/src/main/test/resources 
- *      discoveryplugins/src/main/resources
- *      dbutils/src/conf
+ * Folders
+ * cimadapter/src/main/resources
+ * controllersvc/src/main/test/resources
+ * discoveryplugins/src/main/resources
+ * dbutils/src/conf
  * 
- *  Project
- *      dbutils (project only, no exported entries and required projects)
+ * Project
+ * dbutils (project only, no exported entries and required projects)
  * 
  * Log file will be in controllersvc/logs dir. Configure
  * cimadapter/src/main/resources/log4j.properties as necessary
@@ -109,7 +109,7 @@ public class BlockStorageDeviceTest {
     private static final String LABEL_PREFIX = "DummyVolTestJ";
 
     static private int initIndex = 22;
-    
+
     @Autowired
     private DbClient _dbClient = null;
     @Autowired
@@ -117,7 +117,7 @@ public class BlockStorageDeviceTest {
     @Autowired
     private BlockStorageDevice _deviceController = null;
     @Autowired
-    private ExportMaskOperations _exportMaksHelper = null;       
+    private ExportMaskOperations _exportMaksHelper = null;
 
     private StorageSystem _storageSystem = null;
     private StoragePool _storagePool = null;
@@ -145,7 +145,7 @@ public class BlockStorageDeviceTest {
                         _storageSystem.getId(), StoragePool.class,
                         "storageDevice");
         Assert.notEmpty(pools);
-        
+
         // use a thin pool
         for (StoragePool pool : pools) {
             if (pool.getMaximumThinVolumeSize() > 0) {
@@ -153,7 +153,7 @@ public class BlockStorageDeviceTest {
                 break;
             }
         }
-        
+
         Assert.notNull(_storagePool);
     }
 
@@ -187,70 +187,70 @@ public class BlockStorageDeviceTest {
     public void testExportGroupCreation() {
         ExportGroup exportGroup = getExportGroup();
         ExportMask exportMask = getExportMask();
-    
+
         int lun = 1;
         Map<URI, Integer> volumeMap = new HashMap<URI, Integer>();
         for (Volume volume : getVolumes(_storageSystem)) {
-            volumeMap.put(volume.getId(), lun++);   
+            volumeMap.put(volume.getId(), lun++);
             break;
-        }       
+        }
 
         List<Initiator> initiatorList = getInitiators();
         List<URI> initiatorURIs = new ArrayList<URI>();
         for (Initiator initiator : initiatorList) {
             initiatorURIs.add(initiator.getId());
         }
-        
-        String maskingStep = UUID.randomUUID().toString() + UUID.randomUUID().toString(); 
+
+        String maskingStep = UUID.randomUUID().toString() + UUID.randomUUID().toString();
         ExportTaskCompleter taskCompleter = new ExportMaskCreateCompleter(
                 exportGroup.getId(), exportMask.getId(), initiatorURIs, volumeMap,
                 maskingStep);
         _deviceController.doExportGroupCreate(_storageSystem, exportMask, volumeMap, initiatorList, null,
-                taskCompleter);               
+                taskCompleter);
     }
-    
+
     @Test
     public void testExportGroupDeletion() {
         ExportGroup exportGroup = getExportGroup();
         ExportMask exportMask = getExportMask();
-        
+
         String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();
         ExportTaskCompleter taskCompleter = new ExportDeleteCompleter(exportGroup.getId(), false, token);
         _deviceController.doExportGroupDelete(_storageSystem, exportMask, taskCompleter);
     }
-    
+
     @Test
     public void testExportAddVolume() {
         ExportGroup exportGroup = getExportGroup();
         ExportMask exportMask = getExportMask();
-        
+
         List<Volume> volumes = getVolumes(_storageSystem);
         Volume volume = volumes.get(0);
         Map<URI, Integer> volumeMap = new HashMap<URI, Integer>();
         int lun = 1;
         volumeMap.put(volume.getId(), lun);
-        
+
         String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();
         ExportTaskCompleter taskCompleter = new ExportAddVolumeCompleter(exportGroup.getId(), volumeMap, token);
         _deviceController.doExportAddVolume(_storageSystem, exportMask, volume.getId(), lun, taskCompleter);
     }
-           
+
     @Test
     public void testExportAddVolumes() {
         ExportGroup exportGroup = getExportGroup();
         ExportMask exportMask = getExportMask();
-        List<Volume> volumes = getVolumes(_storageSystem);  
+        List<Volume> volumes = getVolumes(_storageSystem);
         Map<URI, Integer> volumeMap = new HashMap<URI, Integer>();
         int lun = 1;
         for (Volume volume : volumes) {
             volumeMap.put(volume.getId(), lun++);
         }
-        
+
         String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();
         ExportTaskCompleter taskCompleter = new ExportAddVolumeCompleter(exportGroup.getId(), volumeMap, token);
         _deviceController.doExportAddVolumes(_storageSystem, exportMask, volumeMap, taskCompleter);
     }
-   
+
     @Test
     public void testExportRemoveVolume() {
         ExportGroup exportGroup = getExportGroup();
@@ -259,28 +259,28 @@ public class BlockStorageDeviceTest {
         Volume volume = volumes.get(0);
         List<URI> volumeURIs = new ArrayList<URI>(1);
         volumeURIs.add(volume.getId());
-        
-        String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();     
+
+        String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();
         ExportTaskCompleter taskCompleter = new ExportRemoveVolumeCompleter(exportGroup.getId(), volumeURIs, token);
         _deviceController.doExportRemoveVolume(_storageSystem, exportMask, volume.getId(), taskCompleter);
     }
-    
+
     @Test
     public void testExportRemoveVolumes() {
         ExportGroup exportGroup = getExportGroup();
         ExportMask exportMask = getExportMask();
         List<Volume> volumes = getVolumes(_storageSystem);
-        
+
         List<URI> volumeURIs = new ArrayList<URI>();
         for (Volume volume : volumes) {
             volumeURIs.add(volume.getId());
         }
-        
+
         String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();
         ExportTaskCompleter taskCompleter = new ExportRemoveVolumeCompleter(exportGroup.getId(), volumeURIs, token);
         _deviceController.doExportRemoveVolumes(_storageSystem, exportMask, volumeURIs, taskCompleter);
     }
-    
+
     @Test
     public void testExportAddInitiator() {
         ExportGroup exportGroup = getExportGroup();
@@ -291,77 +291,78 @@ public class BlockStorageDeviceTest {
         List<URI> targets = new ArrayList<URI>();
 
         String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();
-        ExportTaskCompleter taskCompleter = new ExportAddInitiatorCompleter(exportGroup.getId(), initiatorURIs, token);                
-        _deviceController.doExportAddInitiator(_storageSystem, exportMask, initiator, targets, taskCompleter);        
+        ExportTaskCompleter taskCompleter = new ExportAddInitiatorCompleter(exportGroup.getId(), initiatorURIs, token);
+        _deviceController.doExportAddInitiator(_storageSystem, exportMask, initiator, targets, taskCompleter);
     }
-    
+
     @Test
     public void testExportAddInitiators() {
         ExportGroup exportGroup = getExportGroup();
         ExportMask exportMask = getExportMask();
         List<Initiator> initiators = getInitiators();
-        
+
         List<URI> initiatorURIs = new ArrayList<URI>();
-        List<Initiator> initiatorArgs = new ArrayList<Initiator>();  
+        List<Initiator> initiatorArgs = new ArrayList<Initiator>();
         for (Initiator initiator : initiators) {
             if (initiator.getInitiatorPort().endsWith("2")) {
                 initiatorURIs.add(initiator.getId());
                 initiatorArgs.add(initiator);
             }
         }
-        
+
         List<URI> targets = new ArrayList<URI>();
 
         String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();
-        ExportTaskCompleter taskCompleter = new ExportAddInitiatorCompleter(exportGroup.getId(), initiatorURIs, token);                
-        _deviceController.doExportAddInitiators(_storageSystem, exportMask, initiatorArgs, targets, taskCompleter);        
+        ExportTaskCompleter taskCompleter = new ExportAddInitiatorCompleter(exportGroup.getId(), initiatorURIs, token);
+        _deviceController.doExportAddInitiators(_storageSystem, exportMask, initiatorArgs, targets, taskCompleter);
     }
-    
+
     @Test
     public void testExportRemoveInitiator() {
         ExportGroup exportGroup = getExportGroup();
         ExportMask exportMask = getExportMask();
-        Initiator initiator = getInitiators().get(0);;
+        Initiator initiator = getInitiators().get(0);
+        ;
 
         List<URI> initiatorURIs = new ArrayList<URI>(1);
         initiatorURIs.add(initiator.getId());
-        
+
         String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();
-        ExportTaskCompleter taskCompleter = new ExportRemoveInitiatorCompleter(exportGroup.getId(), initiatorURIs, token);                
-        _deviceController.doExportRemoveInitiator(_storageSystem, exportMask, initiator, null, taskCompleter);                   
+        ExportTaskCompleter taskCompleter = new ExportRemoveInitiatorCompleter(exportGroup.getId(), initiatorURIs, token);
+        _deviceController.doExportRemoveInitiator(_storageSystem, exportMask, initiator, null, taskCompleter);
     }
-    
+
     @Test
     public void testExportRemoveInitiators() {
         ExportGroup exportGroup = getExportGroup();
         ExportMask exportMask = getExportMask();
         List<Initiator> initiators = getInitiators();
-        
-        List<URI> initiatorURIs = new ArrayList<URI>();        
-        List<Initiator> initiatorArgs = new ArrayList<Initiator>();  
+
+        List<URI> initiatorURIs = new ArrayList<URI>();
+        List<Initiator> initiatorArgs = new ArrayList<Initiator>();
         for (Initiator initiator : initiators) {
             if (initiator.getInitiatorPort().endsWith("1")) {
                 initiatorURIs.add(initiator.getId());
                 initiatorArgs.add(initiator);
             }
-        } 
-        
+        }
+
         String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();
-        ExportTaskCompleter taskCompleter = new ExportRemoveInitiatorCompleter(exportGroup.getId(), initiatorURIs, token);                
-        _deviceController.doExportRemoveInitiators(_storageSystem, exportMask, initiators, null, taskCompleter);                   
+        ExportTaskCompleter taskCompleter = new ExportRemoveInitiatorCompleter(exportGroup.getId(), initiatorURIs, token);
+        _deviceController.doExportRemoveInitiators(_storageSystem, exportMask, initiators, null, taskCompleter);
     }
-    
+
     @Test
-    public void testFindMasks() { 
-        List<Initiator> initiators = getInitiators();        
+    public void testFindMasks() {
+        List<Initiator> initiators = getInitiators();
         List<String> initiatorNames = new ArrayList<String>();
         for (Initiator initiator : initiators) {
             initiatorNames.add(initiator.getInitiatorPort());
         }
-        
+
         _deviceController.findExportMasks(_storageSystem, initiatorNames, true);
     }
-    
+
     @Test
     public void testRefreshExportMask() {
         ExportMask exportMask = getExportMask();
@@ -589,10 +590,10 @@ public class BlockStorageDeviceTest {
         _dbClient.createObject(project);
         _logger.info("Project :" + project.getId());
         _logger.info("TenantOrg-Proj :" + project.getTenantOrg());
-        
+
         return project;
     }
-    
+
     private StorageSystem getStorageSystem() {
         StorageSystem storageSystem = null;
         List<URI> objectURIs = _dbClient
@@ -646,7 +647,7 @@ public class BlockStorageDeviceTest {
             Volume volume = volumeIter.next();
             String label = volume.getLabel();
             _logger.info("Volume: " + label);
-            
+
             if (label.startsWith(LABEL_PREFIX)) {
                 volumes.add(volume);
             }
@@ -654,7 +655,7 @@ public class BlockStorageDeviceTest {
 
         return volumes;
     }
-    
+
     private ExportGroup getExportGroup() {
         ExportGroup exportGroup = null;
         List<URI> objectURIs = _dbClient
@@ -670,22 +671,22 @@ public class BlockStorageDeviceTest {
             exportGroup = new ExportGroup();
             exportGroup.setId(URIUtil.createId(ExportGroup.class));
             exportGroup.setLabel("EMCViPR");
-            exportGroup.setInactive(false);            
+            exportGroup.setInactive(false);
             exportGroup.setProject(new NamedURI(_project.getId(), exportGroup.getLabel()));
             exportGroup.setTenant(new NamedURI(_project.getTenantOrg().getURI(), exportGroup.getLabel()));
             exportGroup.setVirtualArray(URIUtil.createId(VirtualArray.class));
             _dbClient.createObject(exportGroup);
         }
-        
+
         StringSet masks = exportGroup.getExportMasks();
         if (masks == null) {
             exportGroup.addExportMask(getExportMask().getId());
             _dbClient.persistObject(exportGroup);
         }
-        
+
         return exportGroup;
     }
-        
+
     private ExportMask getExportMask() {
         ExportMask exportMask = null;
         List<URI> objectURIs = _dbClient
@@ -697,7 +698,7 @@ public class BlockStorageDeviceTest {
             mask.setMaskName("host2278");
             mask.setStorageDevice(_storageSystem.getId());
             _dbClient.persistObject(mask);
-            return mask;  
+            return mask;
         }
 
         exportMask = new ExportMask();
@@ -705,10 +706,10 @@ public class BlockStorageDeviceTest {
         exportMask.setLabel("EMCViPR2");
         exportMask.setInactive(false);
         _dbClient.createObject(exportMask);
-        
+
         return exportMask;
     }
-    
+
     private Host getHost() {
         Host host = null;
         List<URI> objectURIs = _dbClient
@@ -716,7 +717,7 @@ public class BlockStorageDeviceTest {
         Iterator<Host> iter = _dbClient.queryIterativeObjects(
                 Host.class, objectURIs);
         while (iter.hasNext()) {
-            return iter.next();      
+            return iter.next();
         }
 
         host = new Host();
@@ -731,20 +732,20 @@ public class BlockStorageDeviceTest {
         host.setLabel("EMCViPR");
         host.setInactive(false);
         _dbClient.createObject(host);
-        
+
         return host;
     }
-    
+
     private List<Initiator> getInitiators() {
         List<Initiator> initiators = new ArrayList<Initiator>();
-        
+
         List<URI> objectURIs = _dbClient
                 .queryByType(Initiator.class, true);
         Iterator<Initiator> iter = _dbClient.queryIterativeObjects(
                 Initiator.class, objectURIs);
 
         while (iter.hasNext()) {
-            initiators.add(iter.next()); 
+            initiators.add(iter.next());
         }
 
         if (initiators.isEmpty()) {
@@ -752,12 +753,12 @@ public class BlockStorageDeviceTest {
             initiators.add(createInitiator(initIndex++));
         }
         else if (initiators.size() == 1) {
-            initiators.add(createInitiator(initIndex + 1));    
+            initiators.add(createInitiator(initIndex + 1));
         }
-        
+
         return initiators;
     }
-    
+
     private Initiator createInitiator(int index) {
         Initiator initiator = new Initiator();
         initiator.setId(URIUtil.createId(Initiator.class));
@@ -772,10 +773,10 @@ public class BlockStorageDeviceTest {
         initiator.setLabel("EMCViPR" + index);
         initiator.setInactive(false);
         _dbClient.createObject(initiator);
-        
+
         return initiator;
     }
-    
+
     private List<BlockSnapshot> getSnapshots(StorageSystem storeageSystem) {
         // get all object URIs contained by the StorageSystem
         URIQueryResultList queryResults = new URIQueryResultList();

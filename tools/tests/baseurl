@@ -1,0 +1,176 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import time
+from bourne import Bourne
+import random
+import uuid
+import zk_utils
+
+S3_PORT                         = '9021'
+#setting IP addresses of control and data nodes
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+try:
+    bourne_data_ip = os.environ['BOURNE_DATA_IPADDR']
+except:
+    bourne_data_ip = bourne_ip
+
+
+def baseurl_create(args):
+    bourne.connect(args.ip)
+    print bourne.baseurl_create(args.baseurl, args.name, args.isNamespaceInHost)
+
+def baseurl_delete(args):
+    bourne.connect(args.ip)
+    print bourne.baseurl_delete(args.id)
+
+def baseurl_list(args):
+    bourne.connect(args.ip)
+    print bourne.baseurl_list()
+
+def baseurl_get(args):
+    bourne.connect(args.ip)
+    print bourne.baseurl_get(args.id)
+
+def baseurl_delete_all(args):
+    bourne.connect(args.ip)
+    entries = bourne.baseurl_list()
+    for entry in entries:
+        if(entry['id']):
+            bourne.baseurl_delete(entry['id'])
+    print 'Successfully deleted all the Base URL entries'
+
+def baseurl_sanity(args):
+    bourne.connect(args.ip)
+    baseUrlId1 = bourne.baseurl_create('vipr1.emc.com', 'baseurl_sanity_1', 'false')
+    baseUrlId2 = bourne.baseurl_create('vipr2.emc.com', 'baseurl_sanity_2', 'true')
+    
+    response = bourne.baseurl_get(baseUrlId1)
+    if(response['id'] != baseUrlId1 and response['baseurl'] != 'vipr1.emc.com'):
+        raise Exception('Base URL get operation failing to return the right value')
+    
+    bourne.baseurl_list()
+    
+    bad = True
+    #should fail (conflicting base URL)
+    try:
+        bourne.baseurl_create('node1.vipr1.emc.com', 'baseurl_sanity_3', 'false')
+    except:
+        bad = False
+    
+    if(bad):
+        raise Exception('Base URL creation operation should have failed here')
+    
+    print 'Base URL sanity tests related to namespaceInHost flag'
+    bourne_data = Bourne()
+    bourne_data.connect(args.data_ip, S3_PORT)
+    
+    bucket_name_with_dot = args.bucket + '.baseurl-test'
+    bourne_data.bucket_create(args.namespace, bucket_name_with_dot, args.uid, args.secret)
+    
+    #should pass inspite of having dots in the bucket name bcoz of the namespaceInHost flag
+    bourne_data.bucket_key_create(args.namespace, bucket_name_with_dot, 'baseurl-namespaceInHost-test-key1', 'value1', args.uid, None, args.secret,'vipr1.emc.com', 2, 1)
+    
+    bad = True
+    try:
+        #should fail bcoz baseurl-test will be considered as namespace instead of being considered to be part of the bucket name
+        bourne_data.bucket_key_create(args.namespace, bucket_name_with_dot, 'baseurl-namespaceInHost-test-key2', 'value2', args.uid, None, args.secret,'vipr2.emc.com', 2, 1)
+    except:
+        bad = False
+    
+    if(bad):
+        raise Exception('The key creation operation should have failed here')
+    
+    print 'Removing entities inserted as part of the base URL\'s namespaceInHost flag test'
+    bourne_data.bucket_key_delete(args.namespace, bucket_name_with_dot, 'baseurl-namespaceInHost-test-key1', None, args.uid, args.secret)
+    
+    bourne_data.bucket_delete(args.namespace, bucket_name_with_dot, args.uid, args.secret)
+    print 'Base URL tests related to namespaceInHost flag successful'
+    
+    bourne.baseurl_delete(baseUrlId1)
+    print 'Delete successful for the base URL entry vipr1.emc.com'
+    bourne.baseurl_delete(baseUrlId2)
+    print 'Delete successful for the base URL entry vipr2.emc.com'
+    print 'Base URL Sanity succeeded'
+
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+
+# baseurl <cmd> <cmd_args>  [--ip ipaddr --uid uid --secret secret]
+parser = argparse.ArgumentParser(description = 'Bourne Base URL Service CLI usage.')
+parser.add_argument('cmd',                                  help = 'cmd = (create | delete | list | get | sanity | resetdb)')
+parser.add_argument('--ip',         metavar = 'ipaddr',     help = 'IP address of Vipr Control Node', default=bourne_ip)
+
+
+#baseurl create
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('name',                                 help = 'name(just for ease of use, need not be unique)')
+create.add_argument('baseurl',                              help = 'baseUrl of the tenant(should not conflict with existing URLs)')
+create.add_argument('isNamespaceInHost',                    help = 'is namespace part of the host name(Host header)')
+
+#baseurl sanity
+sanity = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+sanity.add_argument('namespace',                            help = 'namespace to use in sanity test')
+sanity.add_argument('bucket',                               help = 'bucket name prefix to use in sanity test')
+sanity.add_argument('--uid',        metavar = 'uid',        help = 'user id', default = 'sysadmin')
+sanity.add_argument('--secret',     metavar = 'secret',     help = 'user secret key', default = 'secret')
+sanity.add_argument('--data-ip',    metavar = 'ipaddr',     help = 'IP address of Vipr Data Node', default=bourne_data_ip)
+
+#baseurl delete
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('id',                                   help = 'Base URL ID')
+
+#baseurl delete all
+delete_all = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+#baseurl list
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+#baseurl get
+get = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+get.add_argument('id',                                      help = 'Base URL ID')
+
+try:
+    
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+    
+    bourne = Bourne()
+    
+    if(cmd == 'create'):
+        args = create.parse_args()
+        baseurl_create(args)
+    elif (cmd == 'delete'):
+        args = delete.parse_args()
+        baseurl_delete(args)
+    elif (cmd == 'delete_all'):
+        args = delete_all.parse_args()
+        baseurl_delete_all(args)
+    elif (cmd == 'list'): # used to get all the baseurl entries
+        args = list.parse_args()
+        baseurl_list(args)
+    elif (cmd == 'get'):  # used to get one baseurl entry
+        args= get.parse_args()
+        baseurl_get(args)
+    elif (cmd == 'sanity'):
+        args = sanity.parse_args()
+        baseurl_sanity(args)
+    else:
+        parser.print_help()
+except:
+    raise

@@ -28,8 +28,9 @@ public class AttributeList {
 
     private List<VirtualPoolAvailableAttributesResourceRep> attributes;
 
-    public AttributeList() {}
-    
+    public AttributeList() {
+    }
+
     public AttributeList(
             List<VirtualPoolAvailableAttributesResourceRep> attributes,
             URI vArrayId) {
@@ -58,9 +59,9 @@ public class AttributeList {
 
     /**
      * ID of the VArray for this Attributes
-     *
+     * 
      * @valid none
-     *
+     * 
      * @return A list of virtual pool available attribute response instances.
      */
     @XmlElement(name = "virtual_array")

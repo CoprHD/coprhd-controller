@@ -33,21 +33,22 @@ public class InstallerMain {
         System.out.println("\t<boot_mode>: init|install|config|redeploy");
         System.out.println("\t<dev_mode>: true|false(default), , only valid for init, install and config mode");
         System.out.println("\tmulticast: valid for redeploy mode, to multi-cast cluster config for redeploying node");
-        System.out.println("\t<alive node id> ..: alive node IDs in the cluster which is going to multicast for redeploying node. E.g. \"vipr1 vipr3\"");
+        System.out
+                .println("\t<alive node id> ..: alive node IDs in the cluster which is going to multicast for redeploying node. E.g. \"vipr1 vipr3\"");
         System.exit(1);
     }
-    
-	public static void main(String[] args) {
+
+    public static void main(String[] args) {
         if (args.length < 2) {
             usage();
         }
 
         String release_version = args[0];
         String boot_mode = args[1];
-        if ( !(boot_mode.equals(PropertyConstants.INIT_MODE)) &&
-             !(boot_mode.equals(PropertyConstants.INSTALL_MODE)) &&
-             !(boot_mode.equals(PropertyConstants.CONFIG_MODE))  &&
-             !(boot_mode.equals(PropertyConstants.REDEPLOY_MODE)) ) {
+        if (!(boot_mode.equals(PropertyConstants.INIT_MODE)) &&
+                !(boot_mode.equals(PropertyConstants.INSTALL_MODE)) &&
+                !(boot_mode.equals(PropertyConstants.CONFIG_MODE)) &&
+                !(boot_mode.equals(PropertyConstants.REDEPLOY_MODE))) {
             usage();
         }
 
@@ -70,23 +71,23 @@ public class InstallerMain {
                 for (int i = 3; i < args.length; i++) {
                     aliveNodes.add(args[i]);
                 }
-//                TODO: read from ovfenv partition later for majority node recovery later
-//                try {
-//                    Configuration config = (Configuration) InstallerUtil.readObjectFromFile(InstallerConstants.CONFIG_FILE_PATH);
-//                    config.setScenario(InstallerConstants.REDEPLOY_MODE);
-//                    config.setAliveNodes(aliveNodes);
-//
-//                    InstallerUtil.doBroadcast(release_version, config, InstallerConstants.REDEPLOY_MULTICAST_TIMEOUT);
-//                } catch (Exception e) {
-//                    log.error("redeploy multicast task threw", e);
-//                    System.exit(1);
-//                }
+                // TODO: read from ovfenv partition later for majority node recovery later
+                // try {
+                // Configuration config = (Configuration) InstallerUtil.readObjectFromFile(InstallerConstants.CONFIG_FILE_PATH);
+                // config.setScenario(InstallerConstants.REDEPLOY_MODE);
+                // config.setAliveNodes(aliveNodes);
+                //
+                // InstallerUtil.doBroadcast(release_version, config, InstallerConstants.REDEPLOY_MULTICAST_TIMEOUT);
+                // } catch (Exception e) {
+                // log.error("redeploy multicast task threw", e);
+                // System.exit(1);
+                // }
                 System.exit(0);
             }
         }
 
-		InstallerWizardController wizardController = new InstallerWizardController(new InstallerWizard(), manager);
-	    log.info("Starting Installer UI with options : {} - {}", release_version, boot_mode);
-		wizardController.start();
-	}
+        InstallerWizardController wizardController = new InstallerWizardController(new InstallerWizard(), manager);
+        log.info("Starting Installer UI with options : {} - {}", release_version, boot_mode);
+        wizardController.start();
+    }
 }

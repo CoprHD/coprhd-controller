@@ -84,10 +84,10 @@ public class ServiceErrorFactory {
             return error.toString();
         }
     }
-    
+
     private static synchronized void initContext() throws JAXBException {
         if (context == null) {
             context = JAXBContext.newInstance(ServiceErrorRestRep.class);
-        }   
+        }
     }
 }

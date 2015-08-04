@@ -36,7 +36,7 @@ import com.emc.vipr.model.catalog.Parameter;
 import com.google.common.collect.Lists;
 
 public class OrderMapper {
-    
+
     private static final String ENCRYPTED_FIELD_MASK = "**********";
 
     public static OrderRestRep map(Order from, List<OrderParameter> orderParameters) {
@@ -45,7 +45,7 @@ public class OrderMapper {
         }
         OrderRestRep to = new OrderRestRep();
         mapDataObjectFields(from, to);
-        
+
         if (from.getCatalogServiceId() != null) {
             to.setCatalogService(toRelatedResource(ResourceTypeEnum.CATALOG_SERVICE, from.getCatalogServiceId()));
         }
@@ -62,7 +62,7 @@ public class OrderMapper {
             to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, uri(from.getTenant())));
         }
         to.setLastUpdated(from.getLastUpdated());
-        
+
         if (orderParameters != null) {
             for (OrderParameter orderParameter : orderParameters) {
                 Parameter parameter = new Parameter();
@@ -73,7 +73,7 @@ public class OrderMapper {
                 }
                 else {
                     parameter.setFriendlyValue(orderParameter.getFriendlyValue());
-                    parameter.setValue(orderParameter.getValue());    
+                    parameter.setValue(orderParameter.getValue());
                 }
                 parameter.setFriendlyLabel(orderParameter.getFriendlyLabel());
                 parameter.setLabel(orderParameter.getLabel());
@@ -82,14 +82,14 @@ public class OrderMapper {
         }
 
         return to;
-    }           
-    
+    }
+
     public static ExecutionStateRestRep map(ExecutionState from) {
         if (from == null) {
             return null;
         }
         ExecutionStateRestRep to = new ExecutionStateRestRep();
-        
+
         to.setAffectedResources(Lists.newArrayList(from.getAffectedResources()));
         to.setCurrentTask(from.getCurrentTask());
         to.setEndDate(from.getEndDate());
@@ -98,14 +98,14 @@ public class OrderMapper {
         to.setLastUpdated(from.getLastUpdated());
 
         return to;
-    }        
-    
+    }
+
     public static OrderLogRestRep map(ExecutionLog from) {
         if (from == null) {
             return null;
         }
         OrderLogRestRep to = new OrderLogRestRep();
-        
+
         to.setDate(from.getDate());
         to.setLevel(from.getLevel());
         to.setMessage(from.getMessage());
@@ -113,14 +113,14 @@ public class OrderMapper {
         to.setStackTrace(from.getStackTrace());
 
         return to;
-    }         
-    
+    }
+
     public static ExecutionLogRestRep map(ExecutionTaskLog from) {
         if (from == null) {
             return null;
         }
         ExecutionLogRestRep to = new ExecutionLogRestRep();
-        
+
         to.setDate(from.getDate());
         to.setLevel(from.getLevel());
         to.setMessage(from.getMessage());
@@ -131,28 +131,28 @@ public class OrderMapper {
         to.setLastUpdated(from.getLastUpdated());
 
         return to;
-    }    
-    
+    }
+
     public static Order createNewObject(URI tenantId, OrderCreateParam param) {
         Order newObject = new Order();
         newObject.setId(URIUtil.createId(Order.class));
         newObject.setTenant(tenantId.toString());
         newObject.setCatalogServiceId(param.getCatalogService());
-        
+
         updateObject(newObject, param);
-        
+
         return newObject;
     }
-    
+
     public static List<OrderParameter> createOrderParameters(Order order, OrderCreateParam param, EncryptionProvider encryption) {
-        
+
         List<OrderParameter> orderParams = new ArrayList<OrderParameter>();
-        
+
         if (param.getParameters() != null) {
             int parameterIndex = 0;
             for (Parameter parameter : param.getParameters()) {
                 OrderParameter orderParameter = new OrderParameter();
-                orderParameter.setSortedIndex(parameterIndex++);                
+                orderParameter.setSortedIndex(parameterIndex++);
                 orderParameter.setFriendlyLabel(parameter.getFriendlyLabel());
                 orderParameter.setLabel(parameter.getLabel());
                 orderParameter.setUserInput(parameter.isUserInput());
@@ -175,30 +175,30 @@ public class OrderMapper {
                 orderParams.add(orderParameter);
             }
         }
-        
+
         return orderParams;
 
     }
-    
+
     public static void updateObject(Order object, OrderCommonParam param) {
 
-    }       
-    
+    }
+
     public static OrderLogList toOrderLogList(List<ExecutionLog> executionLogs) {
         OrderLogList list = new OrderLogList();
-        for (ExecutionLog executionLog: executionLogs) {
+        for (ExecutionLog executionLog : executionLogs) {
             OrderLogRestRep orderLogRestRep = map(executionLog);
             list.getOrderLogs().add(orderLogRestRep);
-        }      
+        }
         return list;
-    }        
-    
+    }
+
     public static ExecutionLogList toExecutionLogList(List<ExecutionTaskLog> executionTaskLogs) {
         ExecutionLogList list = new ExecutionLogList();
-        for (ExecutionTaskLog executionTaskLog: executionTaskLogs) {
+        for (ExecutionTaskLog executionTaskLog : executionTaskLogs) {
             ExecutionLogRestRep executionLogRestRep = map(executionTaskLog);
             list.getExecutionLogs().add(executionLogRestRep);
-        }      
+        }
         return list;
-    }        
+    }
 }

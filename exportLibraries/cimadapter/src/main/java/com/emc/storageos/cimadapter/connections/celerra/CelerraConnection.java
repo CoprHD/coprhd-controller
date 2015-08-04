@@ -35,13 +35,13 @@ public class CelerraConnection extends CimConnection {
      * @param connectionInfo The bean containing the connection information.
      * @param listener The CIM indication listener for this connection.
      * @param filterMap The indication filters to be subscribed for this
-     *        connection.
+     *            connection.
      * @param messageSpecs The list of Celerra message specifications from the
-     *        connection manager configuration.
+     *            connection manager configuration.
      */
     public CelerraConnection(CimConnectionInfo connectionInfo,
-        CimListener listener, CimFilterMap filterMap, CelerraMessageSpecList messageSpecs)
-        throws Exception {
+            CimListener listener, CimFilterMap filterMap, CelerraMessageSpecList messageSpecs)
+            throws Exception {
         super(connectionInfo, listener, filterMap);
         s_messageSpecs = messageSpecs;
     }

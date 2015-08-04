@@ -91,6 +91,7 @@ public class ProtectionSystemService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(ProtectionSystemService.class);
     private static final String EVENT_SERVICE_TYPE = "ProtectionSystem";
+
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
@@ -111,7 +112,7 @@ public class ProtectionSystemService extends TaskResourceService {
 
         @Override
         public ResourceOperationTypeEnum getOperation() {
-            return  ResourceOperationTypeEnum.DISCOVER_STORAGE_SYSTEM;
+            return ResourceOperationTypeEnum.DISCOVER_STORAGE_SYSTEM;
         }
     }
 
@@ -125,13 +126,13 @@ public class ProtectionSystemService extends TaskResourceService {
 
     /**
      * Gets the protection system with the passed id from the database.
-     *
+     * 
      * @param id the URN of a ViPR protection system
-     *
+     * 
      * @return A reference to the registered ProtectionSystem.
-     *
+     * 
      * @throws BadRequestException When the protection system is not
-     *         registered.
+     *             registered.
      */
     @Override
     protected ProtectionSystem queryResource(URI id) {
@@ -139,38 +140,37 @@ public class ProtectionSystemService extends TaskResourceService {
         ProtectionSystem system = _dbClient.queryObject(ProtectionSystem.class, id);
         ArgValidator.checkEntityNotNull(system, id, isIdEmbeddedInURL(id));
 
-
         if (!RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
-            system.getRegistrationStatus())) {
-        	throw APIException.badRequests.resourceAlreadyRegistered(ProtectionSystem.class.getSimpleName(), id);
+                system.getRegistrationStatus())) {
+            throw APIException.badRequests.resourceAlreadyRegistered(ProtectionSystem.class.getSimpleName(), id);
         }
         return system;
     }
 
-    /**     
-     * Allow the user to manually create a protection system. 
-     *
+    /**
+     * Allow the user to manually create a protection system.
+     * 
      * @param param The protection system details.
-     *
+     * 
      * @brief Create protection system
      * @return An asynchronous task corresponding to the discovery job scheduled for the new Protection System.
-     *
+     * 
      * @throws BadRequestException When the system type is not valid or a
-     *         protection system with the same native guid already exists.
+     *             protection system with the same native guid already exists.
      * @throws DatabaseException When an error occurs querying the database.
      * @throws ControllerException When an error occurs discovering the protection
-     *         system.
+     *             system.
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep createProtectionSystem(ProtectionSystemRequestParam param)
             throws Exception {
         ProtectionSystem system = null;
         ProtectionSystem.Type systemType = ProtectionSystem.Type.valueOf(param.getSystemType());
         if (!systemType.equals(ProtectionSystem.Type.rp)) {
-        	throw APIException.badRequests.cannotRegisterSystemWithType(systemType.name());
+            throw APIException.badRequests.cannotRegisterSystemWithType(systemType.name());
         }
 
         system = new ProtectionSystem();
@@ -193,73 +193,72 @@ public class ProtectionSystemService extends TaskResourceService {
         startProtectionSystem(system);
 
         ProtectionController controller = getController(RPController.class, ProtectionSystem._RP);
-        ArrayList<AsyncTask> tasks = new  ArrayList<AsyncTask>(1);
+        ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
         String taskId = UUID.randomUUID().toString();
-        tasks.add(new AsyncTask(ProtectionSystem.class,system.getId(),taskId));
+        tasks.add(new AsyncTask(ProtectionSystem.class, system.getId(), taskId));
         TaskList taskList = discoverProtectionSystems(tasks, controller);
         return taskList.getTaskList().listIterator().next();
     }
 
-    /**     
+    /**
      * Allows the user to update credentials for a manually created protection systems.
-     *
+     * 
      * @param id the URN of a ViPR protection system
      * @param param The protection system details to update.
-     *
+     * 
      * @brief Update protection system credentials
      * @return A ProtectionSystemRestRep reference specifying the protection system
      *         data.
-     *
+     * 
      * @throws InternalException When an error occurs discovering the protection
-     *         system.
+     *             system.
      */
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep updateProtectionSystem(@PathParam("id") URI id,
             ProtectionSystemUpdateRequestParam param)
-                    throws InternalException {
+            throws InternalException {
         ProtectionSystem system = _dbClient.queryObject(ProtectionSystem.class, id);
         ArgValidator.checkEntityNotNull(system, id, isIdEmbeddedInURL(id));
- 
+
         // If the IP Address is changing, this could be a brand new Protection System, reset the Version
         // and Compatibility Status.
         if (!system.getIpAddress().equals(param.getIpAddress())) {
-        	 system.setMajorVersion("");
-             system.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.UNKNOWN.toString());
+            system.setMajorVersion("");
+            system.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.UNKNOWN.toString());
         }
-        
+
         // Update the IP, port, username, and password with the new incoming values
         system.setIpAddress(param.getIpAddress());
         system.setPortNumber(param.getPortNumber());
         system.setUsername(param.getUserName());
         system.setPassword(param.getPassword());
-        
+
         // Must force a discover during an update.
-        system.setLastDiscoveryRunTime(new Long (0));
-        
+        system.setLastDiscoveryRunTime(new Long(0));
+
         // Make necessary changes to the protection system's cluster->varray assignments
         modifyClusterVarrayAssignments(system, param.getVarrayChanges());
-        
+
         // Persist the object changes
         _dbClient.persistObject(system);
-       
+
         auditOp(OperationTypeEnum.UPDATE_PROTECTION_SYSTEM, true, null,
-            system.getId().toString(), param.getIpAddress(), param.getPortNumber(), param.getUserName());
+                system.getId().toString(), param.getIpAddress(), param.getPortNumber(), param.getUserName());
 
         startProtectionSystem(system);
 
         // execute discovery
         ProtectionController controller = getController(RPController.class, system.getSystemType());
-        ArrayList<AsyncTask> tasks = new  ArrayList<AsyncTask>(1);
+        ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
         String taskId = UUID.randomUUID().toString();
-        tasks.add(new AsyncTask(ProtectionSystem.class,system.getId(),taskId));
+        tasks.add(new AsyncTask(ProtectionSystem.class, system.getId(), taskId));
         TaskList taskList = discoverProtectionSystems(tasks, controller);
         return taskList.getTaskList().iterator().next();
     }
-
 
     /**
      * Validate and modify the protection system cluster varray assignments.
@@ -280,80 +279,82 @@ public class ProtectionSystemService extends TaskResourceService {
      * @param varrayChanges virtual array cluster changes.
      */
     private void modifyClusterVarrayAssignments(ProtectionSystem system, Set<RPClusterVirtualArrayAssignmentChanges> varrayChanges) {
-    	if (varrayChanges == null || varrayChanges.isEmpty())
-    		return;
-    	
-    	// Go through each cluster entry and process adds and removes
-    	for (RPClusterVirtualArrayAssignmentChanges varrayChange : varrayChanges) {
-    		if (varrayChange != null && varrayChange.getClusterId() == null) {
-    			throw APIException.badRequests.rpClusterVarrayNoClusterId(system.getLabel());
-    		}
-    		
-    		// Cluster ID can be the name or the ID, but we'll store the ID since that's unique
-    		String clusterId = varrayChange.getClusterId();
-    		if (system.getRpSiteNames().containsValue(clusterId)) {
-    			for (Map.Entry<String, String> entry : system.getRpSiteNames().entrySet()) {
-    				if (entry.getValue().equalsIgnoreCase(clusterId)) {
-        				clusterId = entry.getKey();    					
-    				}
-    			}
-    		} else if (!system.getRpSiteNames().containsKey(clusterId)) {	
-    			throw APIException.badRequests.rpClusterVarrayInvalidClusterId(system.getLabel());
-    		}
-    		
-    		if (varrayChange.hasAdded()) {
-    			VirtualArrayAssignments add = varrayChange.getAdd();
-    			if (add.getVarrays() != null) {
-    				for (String varray : add.getVarrays()) {
-    					// Validate the varray ID
-    					try {
-    						_dbClient.queryObject(VirtualArray.class, URI.create(varray));
-    					} catch (Exception e) {
-    		    			throw APIException.badRequests.rpClusterVarrayInvalidVarray(system.getLabel(), clusterId);
-    					}
-    					
-    					// Add the virtual array to this cluster in the protection system
-    					system.addSiteAssignedVirtualArrayEntry(clusterId, varray);
-    				}
-    			}
-    		}
+        if (varrayChanges == null || varrayChanges.isEmpty()) {
+            return;
+        }
 
-    		if (varrayChange.hasRemoved()) {
-    			VirtualArrayAssignments rem = varrayChange.getRemove();
-    			if (rem.getVarrays() != null) {
-    				for (String varray : rem.getVarrays()) {
-    					// Validate the varray ID
-    					try {
-    						_dbClient.queryObject(VirtualArray.class, URI.create(varray));
-    					} catch (Exception e) {
-    		    			throw APIException.badRequests.rpClusterVarrayInvalidVarray(system.getLabel(), clusterId);
-    					}
-    					
-    					// Add the virtual array to this cluster in the protection system
-    					system.removeSiteAssignedVirtualArrayEntry(clusterId, varray);
-    				}
-    			}
-    		}
-    	}		
-	}
+        // Go through each cluster entry and process adds and removes
+        for (RPClusterVirtualArrayAssignmentChanges varrayChange : varrayChanges) {
+            if (varrayChange != null && varrayChange.getClusterId() == null) {
+                throw APIException.badRequests.rpClusterVarrayNoClusterId(system.getLabel());
+            }
 
-	/**     
+            // Cluster ID can be the name or the ID, but we'll store the ID since that's unique
+            String clusterId = varrayChange.getClusterId();
+            if (system.getRpSiteNames().containsValue(clusterId)) {
+                for (Map.Entry<String, String> entry : system.getRpSiteNames().entrySet()) {
+                    if (entry.getValue().equalsIgnoreCase(clusterId)) {
+                        clusterId = entry.getKey();
+                    }
+                }
+            } else if (!system.getRpSiteNames().containsKey(clusterId)) {
+                throw APIException.badRequests.rpClusterVarrayInvalidClusterId(system.getLabel());
+            }
+
+            if (varrayChange.hasAdded()) {
+                VirtualArrayAssignments add = varrayChange.getAdd();
+                if (add.getVarrays() != null) {
+                    for (String varray : add.getVarrays()) {
+                        // Validate the varray ID
+                        try {
+                            _dbClient.queryObject(VirtualArray.class, URI.create(varray));
+                        } catch (Exception e) {
+                            throw APIException.badRequests.rpClusterVarrayInvalidVarray(system.getLabel(), clusterId);
+                        }
+
+                        // Add the virtual array to this cluster in the protection system
+                        system.addSiteAssignedVirtualArrayEntry(clusterId, varray);
+                    }
+                }
+            }
+
+            if (varrayChange.hasRemoved()) {
+                VirtualArrayAssignments rem = varrayChange.getRemove();
+                if (rem.getVarrays() != null) {
+                    for (String varray : rem.getVarrays()) {
+                        // Validate the varray ID
+                        try {
+                            _dbClient.queryObject(VirtualArray.class, URI.create(varray));
+                        } catch (Exception e) {
+                            throw APIException.badRequests.rpClusterVarrayInvalidVarray(system.getLabel(), clusterId);
+                        }
+
+                        // Add the virtual array to this cluster in the protection system
+                        system.removeSiteAssignedVirtualArrayEntry(clusterId, varray);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Allows the user to manually discover all protection systems.
+     * 
      * @brief Discover all protection systems
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Path("/discover")
     public TaskList discoverProtectionSystemsAll() {
 
-        Iterator<URI> protectionIter = _dbClient.queryByType(ProtectionSystem.class,true).iterator();
+        Iterator<URI> protectionIter = _dbClient.queryByType(ProtectionSystem.class, true).iterator();
         ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>();
-        while( protectionIter.hasNext() ) {
+        while (protectionIter.hasNext()) {
             URI protection = protectionIter.next();
             String taskId = UUID.randomUUID().toString();
-            tasks.add(new AsyncTask(ProtectionSystem.class,protection,taskId));
+            tasks.add(new AsyncTask(ProtectionSystem.class, protection, taskId));
         }
         ProtectionController controller = getController(RPController.class, ProtectionSystem._RP);
         return discoverProtectionSystems(tasks, controller);
@@ -361,44 +362,44 @@ public class ProtectionSystemService extends TaskResourceService {
 
     private TaskList discoverProtectionSystems(List<AsyncTask> protectionTasks,
             ProtectionController controller) {
-        DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient,new DiscoverJobExec(controller));
+        DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient, new DiscoverJobExec(controller));
         return scheduler.scheduleAsyncTasks(protectionTasks);
     }
 
-    /**     
+    /**
      * Allows the user to manually discover the registered protection system with
      * the passed id.
-     *
+     * 
      * @param id the URN of a ViPR protection system.
-     *
+     * 
      * @brief Discover protection system
      * @throws ControllerException When an error occurs discovering the protection
-     *         system.
+     *             system.
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Path("/{id}/discover")
     public TaskResourceRep discoverProtectionSystem(@PathParam("id") URI id) {
 
         ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, id);
-        ArgValidator.checkEntity(protectionSystem, id, isIdEmbeddedInURL(id),true);
+        ArgValidator.checkEntity(protectionSystem, id, isIdEmbeddedInURL(id), true);
 
         String deviceType = protectionSystem.getSystemType();
         ProtectionController controller = getController(RPController.class, deviceType);
-        DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient,new DiscoverJobExec(controller));
+        DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient, new DiscoverJobExec(controller));
         ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
         String taskId = UUID.randomUUID().toString();
-        tasks.add(new AsyncTask(ProtectionSystem.class,protectionSystem.getId(),taskId));
+        tasks.add(new AsyncTask(ProtectionSystem.class, protectionSystem.getId(), taskId));
         TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
 
         return taskList.getTaskList().listIterator().next();
     }
 
-    /**     
+    /**
      * Gets the id, name, and self link for all registered protection systems.
-     *
+     * 
      * @brief List protection systems
      * @return A reference to a ProtectionSystemList.
      */
@@ -413,19 +414,19 @@ public class ProtectionSystemService extends TaskResourceService {
         for (URI id : ids) {
             system = _dbClient.queryObject(ProtectionSystem.class, id);
             if (system != null
-                && RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
-                    system.getRegistrationStatus())) {
+                    && RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
+                            system.getRegistrationStatus())) {
                 systemsList.getSystems().add(toNamedRelatedResource(system));
             }
         }
         return systemsList;
     }
 
-    /**     
+    /**
      * Get information about the registered protection system with the passed id.
-     *
+     * 
      * @param id the URN of a ViPR protection system.
-     *
+     * 
      * @brief Show protection system
      * @return A reference to a ProtectionSystemRestRep
      */
@@ -438,11 +439,11 @@ public class ProtectionSystemService extends TaskResourceService {
         return map(queryResource(id));
     }
 
-    /**     
+    /**
      * Get information about the connectivity of the registered protection system with the passed id.
-     *
+     * 
      * @param id the URN of a ViPR protection system.
-     *
+     * 
      * @brief Show protection system connectivity
      * @return A ProtectionSystemConnectivityRestRep object
      */
@@ -455,10 +456,11 @@ public class ProtectionSystemService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, ProtectionSystem.class, "id");
         return getConnectivity(queryResource(id));
     }
-    
+
     /**
      * checks for the existence of any volumes associated with a protection sysem
      * also compiles a list of empty protection sets associated with the protection system that can be deleted
+     * 
      * @param system protection system
      * @param protectionSetsToDelete (return) empty list to be populated by this method
      * @return true if volumes exist; else false
@@ -491,31 +493,30 @@ public class ProtectionSystemService extends TaskResourceService {
         return volumesExist;
     }
 
-    /**     
+    /**
      * Deactivate protection system, this will move it to a "marked-for-delete" state.
      * It will be deleted in the next iteration of garbage collector
-     *
+     * 
      * @param id the URN of a ViPR protection system
      * @brief Delete protection system
      * @return No data returned in response body
      */
     @POST
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response deleteProtectionSystem(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, ProtectionSystem.class, "id");
         ProtectionSystem system = _dbClient.queryObject(ProtectionSystem.class, id);
         ArgValidator.checkEntityNotNull(system, id, isIdEmbeddedInURL(id));
 
-
         // Check to make sure there are no volumes associated with this protection system
         List<ProtectionSet> protectionSetsToDelete = new ArrayList<ProtectionSet>();
         if (checkForVolumes(id, protectionSetsToDelete)) {
             // don't allow the delete protection system if there are volumes
-            throw APIException.badRequests.unableToDeactivateDueToDependencies(id);            
+            throw APIException.badRequests.unableToDeactivateDueToDependencies(id);
         }
-        
+
         // delete any empty protection sets
         _dbClient.markForDeletion(protectionSetsToDelete);
 
@@ -536,35 +537,34 @@ public class ProtectionSystemService extends TaskResourceService {
         _dbClient.markForDeletion(system);
 
         auditOp(OperationTypeEnum.DELETE_PROTECTION_SYSTEM, true, null,
-            system.getId().toString());
+                system.getId().toString());
 
         return Response.ok().build();
     }
 
-    /**     
+    /**
      * Retrieve resource representations based on input ids.
-     *
+     * 
      * @param param POST data containing the id list.
      * @brief List data of protection system resources
      * @return list of representations.
-     *
+     * 
      * @throws DatabaseException When an error occurs querying the database.
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public ProtectionSystemBulkRep getBulkResources(BulkIdParam param) {
         return (ProtectionSystemBulkRep) super.getBulkResources(param);
     }
 
-
     /**
      * This method will assemble a connectivity table that expresses all of the storage systems
-     * that are connected via this protection system.  We will mark which RP site each storage
+     * that are connected via this protection system. We will mark which RP site each storage
      * system is visible on.
-     *
+     * 
      * @param system protection system
      * @return rest response
      */
@@ -592,7 +592,7 @@ public class ProtectionSystemService extends TaskResourceService {
         for (RPSiteArray rpSiteArray : rpSiteArrays) {
             _log.info("dicoverProtectionSystem(): analyzing rpsitearray: " + rpSiteArray.toString());
 
-            if (siteStorageSystemMap.get(rpSiteArray.getRpSiteName())==null) {
+            if (siteStorageSystemMap.get(rpSiteArray.getRpSiteName()) == null) {
                 siteStorageSystemMap.put(rpSiteArray.getRpSiteName(), new HashSet<URI>());
             }
             // Add this storage system associated with this RP Site
@@ -612,7 +612,7 @@ public class ProtectionSystemService extends TaskResourceService {
                 }
             }
 
-            if (response.getProtectionSites()==null) {
+            if (response.getProtectionSites() == null) {
                 response.setProtectionSites(new ArrayList<ProtectionSystemConnectivitySiteRestRep>());
             }
             response.getProtectionSites().add(site);
@@ -625,32 +625,32 @@ public class ProtectionSystemService extends TaskResourceService {
     /**
      * Invoke connect protection. Once system is verified to be registered.
      * Statistics, Events will be collected for only registered systems.
-     *
+     * 
      * @param system Protection system to start Metering & Monitoring.
      * @throws InternalException
      */
     private void startProtectionSystem(ProtectionSystem system) throws InternalException {
         ProtectionController controller = getProtectionController(system.getSystemType());
-            controller.connect(system.getId());
+        controller.connect(system.getId());
     }
 
     /**
      * Invoke disconnect protection to stop events and statistics gathering of this
      * protection system.
-     *
+     * 
      * @param protectionSystem A reference to the protection system.
      * @throws InternalException
-    */
+     */
     private void stopProtectionSystem(ProtectionSystem protectionSystem) throws InternalException {
         ProtectionController controller = getProtectionController(protectionSystem.getSystemType());
-            controller.disconnect(protectionSystem.getId());
+        controller.disconnect(protectionSystem.getId());
     }
 
     /**
      * Return the protection controller for a given system type.
-     *
+     * 
      * @param systemType The type of the protection system.
-     *
+     * 
      * @return A reference to the protection controller
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -663,9 +663,9 @@ public class ProtectionSystemService extends TaskResourceService {
     /**
      * Checks if this system supports FileShare Ops FIX ME -- hook this up into
      * the placement logic's supported protocols check
-     *
+     * 
      * @param systemType
-     *
+     * 
      * @return The file/block class of protection system
      */
     @SuppressWarnings("rawtypes")
@@ -675,7 +675,7 @@ public class ProtectionSystemService extends TaskResourceService {
     }
 
     @Override
-    protected ResourceTypeEnum getResourceType(){
+    protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.PROTECTION_SYSTEM;
     }
 
@@ -689,7 +689,7 @@ public class ProtectionSystemService extends TaskResourceService {
     public ProtectionSystemBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<ProtectionSystem> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new ProtectionSystemBulkRep(BulkList.wrapping(_dbIterator, MapProtectionSystem.getInstance()));
     }
 

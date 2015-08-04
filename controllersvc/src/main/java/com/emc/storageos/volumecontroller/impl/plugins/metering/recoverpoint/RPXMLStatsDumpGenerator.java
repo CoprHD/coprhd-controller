@@ -18,10 +18,11 @@ import java.io.PrintWriter;
 import java.util.Map;
 
 import com.emc.storageos.volumecontroller.impl.plugins.metering.XMLStatsDumpGenerator;
+
 /**
  * Dump the RP stat records using the below header & tailer format
- * to identify the RP stats. 
- *
+ * to identify the RP stats.
+ * 
  */
 public class RPXMLStatsDumpGenerator extends XMLStatsDumpGenerator {
 

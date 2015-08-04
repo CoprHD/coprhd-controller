@@ -21,8 +21,10 @@ public class ConnectEmcEmailFtpsBase {
     // Yes and No indicators.
     protected final static String YES = "Yes";
     protected final static String NO = "No";
+
     /**
      * Optional, Encrypt ConnectEMC Service data using RSA BSAFE
+     * 
      * @valid Yes
      * @valid No
      */

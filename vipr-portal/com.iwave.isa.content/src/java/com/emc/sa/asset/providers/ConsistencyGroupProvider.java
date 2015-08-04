@@ -26,7 +26,7 @@ import java.util.List;
 public class ConsistencyGroupProvider extends BaseAssetOptionsProvider {
 
     @Asset("consistencyGroup")
-    @AssetDependencies({"project","blockVirtualPool"})
+    @AssetDependencies({ "project", "blockVirtualPool" })
     public List<AssetOption> getConsistencyGroups(AssetOptionsContext ctx, URI projectId, URI virtualPoolId) {
         BlockVirtualPoolRestRep vpool = api(ctx).blockVpools().get(virtualPoolId);
 
@@ -37,10 +37,10 @@ public class ConsistencyGroupProvider extends BaseAssetOptionsProvider {
             return Collections.emptyList();
         }
     }
-    
+
     @Asset("consistencyGroupWithVirtualPoolChangeOperation")
-    @AssetDependencies({"project","virtualPoolChangeOperation","targetVirtualPool"})
-    public List<AssetOption> getConsistencyGroupsChangeVPool(AssetOptionsContext ctx, URI projectId, 
+    @AssetDependencies({ "project", "virtualPoolChangeOperation", "targetVirtualPool" })
+    public List<AssetOption> getConsistencyGroupsChangeVPool(AssetOptionsContext ctx, URI projectId,
             String virtualPoolChangeOperation, URI virtualPoolId) {
         // Only support for RP Protection for now
         if (virtualPoolChangeOperation.equals(VirtualPoolChangeOperationEnum.RP_PROTECTED.name())) {

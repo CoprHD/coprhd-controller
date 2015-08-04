@@ -19,21 +19,25 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="xtremio_create")
+@JsonRootName(value = "xtremio_create")
 public class XtremIOInitiatorCreate {
-    
+
     @SerializedName("initiator-name")
     @JsonProperty(value = "initiator-name")
     private String name;
-    
+
     @SerializedName("ig-id")
     @JsonProperty(value = "ig-id")
     private String initiatorGroup;
-    
+
     @SerializedName("port-address")
     @JsonProperty(value = "port-address")
     private String portAddress;
-
+    
+    @SerializedName("cluster-id")
+    @JsonProperty(value = "cluster-id")
+    private String clusterName;
+    
     public String getInitiatorGroup() {
         return initiatorGroup;
     }
@@ -57,9 +61,19 @@ public class XtremIOInitiatorCreate {
     public void setName(String name) {
         this.name = name;
     }
-    
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
+    @Override
     public String toString() {
-        return "initiator-name: " + name + ". ig-id: " + initiatorGroup + ", port-address: " + portAddress;
+        return "XtremIOInitiatorCreate [name=" + name + ", initiatorGroup=" + initiatorGroup + ", portAddress=" + portAddress
+                + ", clusterName=" + clusterName + "]";
     }
 
 }

@@ -58,7 +58,8 @@ public class InternalAlertsClient {
         SysClientFactory.init();
     }
 
-    public InternalAlertsClient(String host, int port, InternalApiSignatureKeyGenerator keyGenerator, int timeout, CoordinatorClient coordinatorClient) {
+    public InternalAlertsClient(String host, int port, InternalApiSignatureKeyGenerator keyGenerator, int timeout,
+            CoordinatorClient coordinatorClient) {
         this(host, port);
         this.coordinatorClient = coordinatorClient;
         SysClientFactory.setKeyGenerator(keyGenerator);
@@ -106,15 +107,15 @@ public class InternalAlertsClient {
     }
 
     public void sendInternalAlert(String src,
-                                  int eventId,
-                                  List<String> nodeIds,
-                                  List<String> logNames,
-                                  int severity,
-                                  Date start,
-                                  Date end,
-                                  String msgRegex,
-                                  String user,
-                                  String contact) throws SysClientException {
+            int eventId,
+            List<String> nodeIds,
+            List<String> logNames,
+            int severity,
+            Date start,
+            Date end,
+            String msgRegex,
+            String user,
+            String contact) throws SysClientException {
 
         UriBuilder b = UriBuilder.fromUri(URI_SEND_INTERNAL_ALERT);
         b.queryParam("source", src).queryParam("event_id", Integer.toString(eventId));

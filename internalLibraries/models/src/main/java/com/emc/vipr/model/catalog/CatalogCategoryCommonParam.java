@@ -13,15 +13,15 @@ import com.emc.storageos.model.valid.Length;
 public class CatalogCategoryCommonParam {
 
     private URI catalogCategoryId;
-    
+
     private String name;
 
     private String title;
-    
-    private String description;    
+
+    private String description;
 
     private String image;
-    
+
     @XmlElement(required = true, name = "name")
     @Length(min = 2, max = 128)
     public String getName() {

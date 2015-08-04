@@ -5,6 +5,6 @@
 package com.emc.storageos.volumecontroller.impl.monitoring.cim.enums;
 
 public enum RecordType {
-	Event,
-	Alert;
+    Event,
+    Alert;
 }

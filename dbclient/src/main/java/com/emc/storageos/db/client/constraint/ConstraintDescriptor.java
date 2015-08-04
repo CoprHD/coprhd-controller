@@ -90,7 +90,7 @@ public class ConstraintDescriptor {
     }
 
     public Constraint toConstraint() throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException
-                                      , InvocationTargetException, InstantiationException {
+            , InvocationTargetException, InstantiationException {
         log.info("ConstraintDescriptor {}", this);
 
         Class type = Class.forName(dataObjectClassName);
@@ -99,8 +99,8 @@ public class ConstraintDescriptor {
 
         Class constraintClass = Class.forName(constraintClassName);
 
-        List<Class> parameterTypes = new ArrayList(arguments.size()+1);
-        List<Object> args = new ArrayList(arguments.size()+1);
+        List<Class> parameterTypes = new ArrayList(arguments.size() + 1);
+        List<Object> args = new ArrayList(arguments.size() + 1);
 
         int i = 1;
         for (Object arg : arguments) {
@@ -120,7 +120,7 @@ public class ConstraintDescriptor {
         }
 
         Constructor constructor = constraintClass.getConstructor(parameterTypes.toArray(new Class[0]));
-        Constraint  constraint = (Constraint)constructor.newInstance(args.toArray());
+        Constraint constraint = (Constraint) constructor.newInstance(args.toArray());
 
         return constraint;
     }

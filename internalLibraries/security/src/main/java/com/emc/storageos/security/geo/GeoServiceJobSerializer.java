@@ -27,46 +27,45 @@ public class GeoServiceJobSerializer implements QueueSerializer<GeoServiceJob> {
     @Override
     public byte[] serialize(GeoServiceJob job) {
         byte[] Objbytes = null;
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ObjectOutput out = null;
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        ObjectOutput out = null;
+        try {
+            out = new ObjectOutputStream(bos);
+            out.writeObject(job);
+            Objbytes = bos.toByteArray();
+        } catch (Exception e) {
+            log.error("Serializing Object to byte Array Exception  :", e);
+        } finally {
             try {
-                out = new ObjectOutputStream(bos);
-                out.writeObject(job);
-                Objbytes = bos.toByteArray();
-            } catch (Exception e) {
-                log.error("Serializing Object to byte Array Exception  :", e);
-            } finally {
-                try {
-                    out.close();
-                    bos.close();
-                } catch (IOException e) {
-                    log.error("Error while closing Streams ", e);
-                }
+                out.close();
+                bos.close();
+            } catch (IOException e) {
+                log.error("Error while closing Streams ", e);
             }
-            return Objbytes;
+        }
+        return Objbytes;
     }
 
     @Override
     public GeoServiceJob deserialize(byte[] bytes) {
-            Object job = null;
-            ByteArrayInputStream bis = null;
-            ObjectInput in = null;
+        Object job = null;
+        ByteArrayInputStream bis = null;
+        ObjectInput in = null;
+        try {
+            bis = new ByteArrayInputStream(bytes);
+            in = new ObjectInputStream(bis);
+            job = in.readObject();
+        } catch (Exception e) {
+            log.error("DeSerializing Object to byte Array Exception  :", e);
+        } finally {
             try {
-                bis = new ByteArrayInputStream(bytes);
-                in = new ObjectInputStream(bis);
-                job = in.readObject();
-            } catch (Exception e) {
-                log.error("DeSerializing Object to byte Array Exception  :", e);
-            } finally {
-                try {
-                    in.close();
-                    bis.close();
-                } catch (IOException e) {
-                    log.error("Error while closing Streams ", e);
-                }
+                in.close();
+                bis.close();
+            } catch (IOException e) {
+                log.error("Error while closing Streams ", e);
             }
-            return (GeoServiceJob) job;
+        }
+        return (GeoServiceJob) job;
     }
 
 }
-

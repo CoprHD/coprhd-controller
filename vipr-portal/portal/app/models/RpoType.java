@@ -18,7 +18,7 @@ public class RpoType {
     public static final String TB = "TB";
 
     public static final String[] VALUES = {
-        SECONDS, MINUTES, HOURS, WRITES, BYTES, KB, MB, GB, TB
+            SECONDS, MINUTES, HOURS, WRITES, BYTES, KB, MB, GB, TB
     };
 
     public static final StringOption[] OPTIONS = StringOption.options(VALUES, "RpoType", false);

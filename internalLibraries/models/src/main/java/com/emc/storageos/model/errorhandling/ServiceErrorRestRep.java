@@ -29,6 +29,7 @@ public class ServiceErrorRestRep {
 
     /**
      * The numerical code associated with the error encountered when processing a service request
+     * 
      * @valid none
      */
     @XmlElement(required = true, name = "code")
@@ -42,6 +43,7 @@ public class ServiceErrorRestRep {
 
     /**
      * The description of the error
+     * 
      * @valid none
      */
     @XmlElement(required = true, name = "description")
@@ -56,6 +58,7 @@ public class ServiceErrorRestRep {
 
     /**
      * Detailed information concerning the error
+     * 
      * @valid none
      */
     @XmlElement(required = true, name = "details")
@@ -69,9 +72,10 @@ public class ServiceErrorRestRep {
     }
 
     /**
-     * Indicates whether the error is retryable which 
-     * means service is temporarily unavailable and 
+     * Indicates whether the error is retryable which
+     * means service is temporarily unavailable and
      * the client could retry after a while.
+     * 
      * @valid true = it is retryable.
      * @valid false = it is not retryable.
      */

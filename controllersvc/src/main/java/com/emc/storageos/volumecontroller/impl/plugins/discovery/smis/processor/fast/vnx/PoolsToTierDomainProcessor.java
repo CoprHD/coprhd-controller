@@ -15,7 +15,6 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.Processor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 
-
 public class PoolsToTierDomainProcessor extends Processor {
 
     private Logger _logger = LoggerFactory.getLogger(PoolsToTierDomainProcessor.class);

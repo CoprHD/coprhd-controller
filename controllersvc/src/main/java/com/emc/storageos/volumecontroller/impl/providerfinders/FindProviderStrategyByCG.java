@@ -35,10 +35,10 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.google.common.collect.Collections2;
 
 /**
- * FindProviderStrategyByCG returns 
- *      storage system (as is) if CG is found on its active provider,
- *      or storage system (updated with provider info) if CG is found on its passive provider,
- *      or null (if CG is not found on any of its provider).
+ * FindProviderStrategyByCG returns
+ * storage system (as is) if CG is found on its active provider,
+ * or storage system (updated with provider info) if CG is found on its passive provider,
+ * or null (if CG is not found on any of its provider).
  */
 public class FindProviderStrategyByCG implements FindProviderStrategy {
 
@@ -83,8 +83,8 @@ public class FindProviderStrategyByCG implements FindProviderStrategy {
          * 
          * Get all providers managing this system
          * for each provider (except active provider)
-         *      get 1 storage system which is actively managed by this provider
-         *      (list should contain unique systems (except this.system))
+         * get 1 storage system which is actively managed by this provider
+         * (list should contain unique systems (except this.system))
          * look for the group name for this system
          */
 
@@ -126,8 +126,8 @@ public class FindProviderStrategyByCG implements FindProviderStrategy {
         }
 
         // make this passive provider with CG active for this system
-        //   Scanner process does not change active provider as long as the previous one is UP.
-        //   So, there won't be conflict if we update it here.
+        // Scanner process does not change active provider as long as the previous one is UP.
+        // So, there won't be conflict if we update it here.
         if (systemWithCGFound != null) {
             URI providerURI = systemWithCGFound.getActiveProviderURI();
             log.info("Passive provider {} with Replication Group found. Making it active for system {}",

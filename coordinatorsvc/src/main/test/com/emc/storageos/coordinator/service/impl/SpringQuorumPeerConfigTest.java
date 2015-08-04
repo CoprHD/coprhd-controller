@@ -19,7 +19,7 @@ public class SpringQuorumPeerConfigTest {
     public void setup() {
         properties = new Properties();
         properties.setProperty("tickTime", "2000");
-        properties.setProperty("dataDir", "C:\\yaoyuan");
+        properties.setProperty("dataDir", "/data/zk");
         properties.setProperty("clientPort", "2181");
         properties.setProperty("initLimit", "5");
         properties.setProperty("syncLimit", "2");

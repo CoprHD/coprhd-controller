@@ -324,7 +324,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                             processedUnManagedVolume.getLabel(), "check the logs for more details");
                 }
                 
-                if (null == processedUnManagedVolume.getUnmanagedExportMasks()) {
+                if (processedUnManagedVolume.getUnmanagedExportMasks().isEmpty()) {
                     _logger.info("ingested block object {} has no unmanaged export masks", processedUnManagedVolume.getLabel());
                     continue;
                 }

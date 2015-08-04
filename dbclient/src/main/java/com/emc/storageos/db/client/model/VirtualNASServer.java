@@ -6,59 +6,139 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 
+import com.emc.storageos.db.client.model.StorageHADomain.HADomainType;
 import com.emc.storageos.model.valid.EnumType;
 
-@Cf("StorageHADomain")
+@Cf("VirtualNASServer")
 public class VirtualNASServer extends DiscoveredDataObject {
-    // storageSystem, which it belongs
-    private URI _storageDeviceURI;
-    // Name of the Adapter (Clariion+APM156345420001+SP_A)
-    private String _vNASServerName;
-    // Serial Number of Adapter
-    private String _serialNumber;
-    // Slot Number
-    private String _slotNumber;
-    // Number of Ports
-    private String _numberofPorts;
-    // Protocol
-    private String _protocol;
-    // SP_A
-    private String _name;
 
-    private String adapterType;
-
-    private StringSet _fileSharingProtocols;
+	// vNAS Server name 
+    private String vNASServerName;
 
     // Virtual or Physical
-    private Boolean _virtual;
+    private Boolean virtual;
 
-    // parent Domain if it is virtual
-    private URI _parentDomainURI;
+    // Project name which this VNAS belongs to
+    private String project;
+    
+    // Base directory Path for the VNAS applicable in AccessZones & vFiler device types
+    private String baseDirPath;
+    
+    // Place holder for Tag
+    private StringSet  vNAStag;
+    
+    // NetWork Interface of VNas Map should contain InterfaceName, IPAddress, IP Mask, IP Broadcast Address
+    private StringMap  netWorkInterface;
+    
+    //State of the vNAS server
+    private String nasState;
+    
+    // Technology Type of the NAS server 
+    private String technologyType;
+    
+    // storageSystem, which it belongs
+    private URI storageDeviceURI;
+    
+        
+    // Serial Number of Adapter
+    private String serialNumber;
+    // Slot Number
+    private String slotNumber;
+    // Number of Ports
+    private String numberofPorts;
+    // Protocol
+    private String protocol;
+    
+    private String adapterType;
 
-    // Defines the supported port types.
-    public static enum NASTechnologyType {
+    private StringSet fileSharingProtocols;
+
+    
+    
+    public StringSet getvNAStag() {
+		return vNAStag;
+	}
+
+	public void setvNAStag(StringSet vNAStag) {
+		this.vNAStag = vNAStag;
+	}
+
+	public URI getStorageDeviceURI() {
+		return storageDeviceURI;
+	}
+
+	public void setStorageDeviceURI(URI storageDeviceURI) {
+		this.storageDeviceURI = storageDeviceURI;
+	}
+
+	public String getSerialNumber() {
+		return serialNumber;
+	}
+
+	public void setSerialNumber(String serialNumber) {
+		this.serialNumber = serialNumber;
+	}
+
+	public String getSlotNumber() {
+		return slotNumber;
+	}
+
+	public void setSlotNumber(String slotNumber) {
+		this.slotNumber = slotNumber;
+	}
+
+	public String getNumberofPorts() {
+		return numberofPorts;
+	}
+
+	public void setNumberofPorts(String numberofPorts) {
+		this.numberofPorts = numberofPorts;
+	}
+
+	public String getProtocol() {
+		return protocol;
+	}
+
+	public void setProtocol(String protocol) {
+		this.protocol = protocol;
+	}
+
+	public StringSet getFileSharingProtocols() {
+		return fileSharingProtocols;
+	}
+
+	public void setFileSharingProtocols(StringSet fileSharingProtocols) {
+		this.fileSharingProtocols = fileSharingProtocols;
+	}
+
+	public String getvNASServerName() {
+		return vNASServerName;
+	}
+
+	// Defines the NAS technology types.
+    public static enum SupportedStorageSystemType {
         VDM("VDM"),
         vFILER("vFiler"),
         vServer("vServer"),
-        Isilon("Isilon"),
-        VNXe("VNXe"),
+        AccessZone("AccessZone"),
+        NasServer("NasServer"),
         UNKNOWN("N/A");
 
-        private String vNASTechType;
+        private String supportedStorageSytemType;
 
-        private NASTechnologyType(String haDomType) {
-        	vNASTechType = haDomType;
+        private SupportedStorageSystemType(String haDomType) {
+        	supportedStorageSytemType = haDomType;
         }
 
-        public String getvNASTechType() {
-            return vNASTechType;
+        public String getSupportedStorageSystemType() {
+            return supportedStorageSytemType;
         }
 
-        private static NASTechnologyType[] copyValues = values();
+        private static SupportedStorageSystemType[] copyValues = values();
 
-        public static String getHADomainTypeName(String name) {
-            for (NASTechnologyType type : copyValues) {
-                if (type.getvNASTechType().equalsIgnoreCase(name)) {
+        public static String getSupportedStorageSystemType(String name) {
+            for (SupportedStorageSystemType type : copyValues) {
+                if (type.getSupportedStorageSystemType().equalsIgnoreCase(name)) {
                     return type.name();
                 }
             }
@@ -67,12 +147,12 @@ public class VirtualNASServer extends DiscoveredDataObject {
 
     };
     
- // Defines the supported port types.
+ // Defines diffrent States of the NAS server.
     public static enum NasState {
         VdmLoaded("Loded"),
         VdmMounted("Mounted"),
-        VdmTempUnLoaded("Temporarily unloaded"),
-        VdmPermUnLoaded("Permanently unloaded"),
+        VdmTempUnLoaded("Temporarily-unloaded"),
+        VdmPermUnLoaded("Permanently-unloaded"),
         UNKNOWN("N/A");
         
         private String NasState;
@@ -96,98 +176,19 @@ public class VirtualNASServer extends DiscoveredDataObject {
             return UNKNOWN.toString();
         }
     };
+    
 
-
-    private StringMap _metrics;
-
-    /**********************************************
-     * AlternateIDIndex - HADomainName *
-     * RelationIndex - StorageDevice *
-     * *
-     **********************************************/
-
-    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
-    @Name("storageDevice")
-    public URI getStorageDeviceURI() {
-        return _storageDeviceURI;
-    }
-
-    public void setStorageDeviceURI(URI storageDeviceURI) {
-        _storageDeviceURI = storageDeviceURI;
-        setChanged("storageDevice");
-    }
-
-    @Name("haDomainName")
+    @Name("vNASServerName")
     public String getName() {
-        return _vNASServerName;
+        return vNASServerName;
     }
 
     public void setName(String haDomainName) {
-        _vNASServerName = haDomainName;
+        vNASServerName = haDomainName;
         setChanged("haDomainName");
     }
 
-    public void setSerialNumber(String serialNumber) {
-        _serialNumber = serialNumber;
-        setChanged("serialNumber");
-    }
-
-    @Name("serialNumber")
-    public String getSerialNumber() {
-        return _serialNumber;
-    }
-
-    public void setSlotNumber(String slotNumber) {
-        _slotNumber = slotNumber;
-        setChanged("slotNumber");
-    }
-
-    @Name("slotNumber")
-    public String getSlotNumber() {
-        return _slotNumber;
-    }
-
-    public void setNumberofPorts(String numberofPorts) {
-        _numberofPorts = numberofPorts;
-        setChanged("ports");
-    }
-
-    @Name("ports")
-    public String getNumberofPorts() {
-        return _numberofPorts;
-    }
-
-    public void setProtocol(String protocol) {
-        _protocol = protocol;
-        setChanged("protocol");
-    }
-
-    @Name("protocol")
-    public String getProtocol() {
-        return _protocol;
-    }
-
-    public void setFileSharingProtocols(StringSet fileSharingProtocols) {
-        _fileSharingProtocols = fileSharingProtocols;
-        setChanged("fileSharingProtocols");
-    }
-
-    @Name("fileSharingProtocols")
-    public StringSet getFileSharingProtocols() {
-        return _fileSharingProtocols;
-    }
-
-    public void setAdapterName(String name) {
-        this._name = name;
-        setChanged("adapterName");
-    }
-
-    @Name("adapterName")
-    public String getAdapterName() {
-        return _name;
-    }
-
-    @EnumType(NASTechnologyType.class)
+    @EnumType(HADomainType.class)
     @Name("adapterType")
     public String getAdapterType() {
         return adapterType;
@@ -197,39 +198,79 @@ public class VirtualNASServer extends DiscoveredDataObject {
         this.adapterType = type;
         setChanged("adapterType");
     }
+    
+    @EnumType(NasState.class)
+	@Name("nasState")
+	public String getNasState() {
+		return nasState;
+	}
+
+	public void setNasState(String _nasState) {
+		this.nasState = _nasState;
+	}
 
     @Name("virtual")
     public Boolean getVirtual() {
-        return (_virtual != null) && _virtual;
+        return (virtual != null) && virtual;
     }
 
     public void setVirtual(Boolean virtual) {
-        this._virtual = virtual;
+        this.virtual = virtual;
         setChanged("virtual");
     }
 
-    // @RelationIndex(cf = "RelationIndex", type = StorageHADomain.class)
-    @Name("parentHADomain")
-    public URI getParentHADomainURI() {
-        return _parentDomainURI;
-    }
+    @Name("vNASserverName")
+	public String getVNASServerName() {
+		return vNASServerName;
+	}
 
-    public void setParentHADomainURI(URI parentDomainURI) {
-        _parentDomainURI = parentDomainURI;
-        setChanged("parentHADomain");
-    }
+	public void setvNASServerName(String _vNASServerName) {
+		this.vNASServerName = _vNASServerName;
+	}
 
-    @Name("metrics")
-    public StringMap getMetrics() {
-        if (_metrics == null) {
-            _metrics = new StringMap();
-        }
-        return _metrics;
-    }
+	@Name("project")
+	public String getProject() {
+		return project;
+	}
 
-    public void setMetrics(StringMap metrics) {
-        this._metrics = metrics;
-        setChanged("metrics");
-    }
+	public void setProject(String _project) {
+		this.project = _project;
+	}
+
+	@Name("baseDirPath")
+	public String getBaseDirPath() {
+		return baseDirPath;
+	}
+
+	public void setBaseDirPath(String _baseDirPath) {
+		this.baseDirPath = _baseDirPath;
+	}
+
+	@Name("tag")
+	public StringSet getVNASTag() {
+		return vNAStag;
+	}
+
+	public void setVNASTag(StringSet _tag) {
+		this.vNAStag = _tag;
+	}
+
+	@Name("netWorkInterface")
+	public StringMap getNetWorkInterface() {
+		return netWorkInterface;
+	}
+
+	public void setNetWorkInterface(StringMap netWorkInterface) {
+		this.netWorkInterface = netWorkInterface;
+	}
+
+	@Name("technologyType")
+	public String getTechnologyType() {
+		return technologyType;
+	}
+
+	public void setTechnologyType(String _technologyType) {
+		this.technologyType = _technologyType;
+	}
 
 }

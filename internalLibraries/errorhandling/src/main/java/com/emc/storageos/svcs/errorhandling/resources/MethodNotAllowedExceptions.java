@@ -72,4 +72,7 @@ public interface MethodNotAllowedExceptions {
 
     @DeclareServiceCode(ServiceCode.API_METHOD_NOT_SUPPORTED)
     public MethodNotAllowedException notSupportedForVNX();
+
+    @DeclareServiceCode(ServiceCode.API_METHOD_NOT_SUPPORTED)
+    public MethodNotAllowedException notSupportedForHDS();
 }

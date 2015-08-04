@@ -12,18 +12,17 @@ package com.emc.storageos.model.block;
 
 import javax.xml.bind.annotation.XmlElement;
 
-
 /**
  * 
  */
 public class SnapshotSessionTargetsParam {
-    
+
     Integer count;
     String copyMode;
-    
+
     public SnapshotSessionTargetsParam() {
     }
-    
+
     public SnapshotSessionTargetsParam(Integer count, String copyMode) {
         this.count = count;
         this.copyMode = copyMode;
@@ -46,21 +45,21 @@ public class SnapshotSessionTargetsParam {
     /**
      * The copy mode for the new target volumes to be linked to
      * the block snapshot session. A volume that is linked to a
-     * snapshot session using "copy" copy_mode and achieves the 
-     * "copied" state will contain a full, usable copy of the 
-     * snapshot session source device upon being unlinked from 
-     * the session. This is not true for volumes linked in "nocopy" 
+     * snapshot session using "copy" copy_mode and achieves the
+     * "copied" state will contain a full, usable copy of the
+     * snapshot session source device upon being unlinked from
+     * the session. This is not true for volumes linked in "nocopy"
      * copy-mode.
      * 
      * @valid copy
      * @valid nocopy
      */
-    @XmlElement(name = "copy_mode", required = false, defaultValue = "noCopy")
+    @XmlElement(name = "copy_mode", required = false, defaultValue = "nocopy")
     public String getCopyMode() {
         return copyMode;
     }
 
     public void setCopyMode(String copyMode) {
         this.copyMode = copyMode;
-    }    
+    }
 }

@@ -10,13 +10,22 @@
  */
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
+import java.util.List;
+
+import javax.ws.rs.core.SecurityContext;
+
+import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
  *
  */
-public class RPBlockSnapshotSessionApiImpl extends AbstractBlockSnapshotSessionApiImpl{
+public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionApiImpl {
     /**
      * Private default constructor should not be called outside class.
      */
@@ -30,8 +39,21 @@ public class RPBlockSnapshotSessionApiImpl extends AbstractBlockSnapshotSessionA
      * 
      * @param dbClient A reference to a data base client.
      * @param coordinator A reference to the coordinator client.
+     * @param permissionsHelper A reference to a permission helper.
+     * @param securityContext A reference to the security context.
      */
-    public RPBlockSnapshotSessionApiImpl(DbClient dbClient, CoordinatorClient coordinator) {
-        super(dbClient, coordinator);
+    public RPBlockSnapshotSessionApiImpl(DbClient dbClient, CoordinatorClient coordinator, PermissionsHelper permissionsHelper,
+            SecurityContext securityContext) {
+        super(dbClient, coordinator, permissionsHelper, securityContext);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj, List<BlockObject> sourceObjList, Project project,
+            String name, boolean createInactive, int newTargetsCount, String newTargetCopyMode, BlockFullCopyManager fcManager) {
+        // TBD - RP and RP + VPLEX
+        throw APIException.methodNotAllowed.notSupportedForRP();
     }
 }

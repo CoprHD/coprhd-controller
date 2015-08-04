@@ -61,7 +61,7 @@ public class SpringQuorumPeerConfig extends QuorumPeerConfig {
         parseProperties(_properties);
     }
 
-    private void preprocessQuorumServers(Properties zkProp) throws ConfigException {
+    protected void preprocessQuorumServers(Properties zkProp) throws ConfigException {
         log.info("Preprocess quorum server from properties before send to ZK");
 
         Iterator<Entry<Object, Object>> iterator = _properties.entrySet().iterator();

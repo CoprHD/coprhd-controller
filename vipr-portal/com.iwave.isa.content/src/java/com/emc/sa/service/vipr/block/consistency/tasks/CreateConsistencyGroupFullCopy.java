@@ -8,27 +8,27 @@ import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.vipr.client.Tasks;
 
 public class CreateConsistencyGroupFullCopy extends
-		WaitForTasks<BlockConsistencyGroupRestRep> {
+        WaitForTasks<BlockConsistencyGroupRestRep> {
 
-	private URI consistencyGroupId;
-	private String name;
-	private int count;
+    private URI consistencyGroupId;
+    private String name;
+    private int count;
 
-	public CreateConsistencyGroupFullCopy(URI consistencyGroupId, String name,
-			int count) {
-		this.consistencyGroupId = consistencyGroupId;
-		this.name = name;
-		this.count = count;
-	}
+    public CreateConsistencyGroupFullCopy(URI consistencyGroupId, String name,
+            int count) {
+        this.consistencyGroupId = consistencyGroupId;
+        this.name = name;
+        this.count = count;
+    }
 
-	@Override
-	protected Tasks<BlockConsistencyGroupRestRep> doExecute() throws Exception {
+    @Override
+    protected Tasks<BlockConsistencyGroupRestRep> doExecute() throws Exception {
 
-		VolumeFullCopyCreateParam param = new VolumeFullCopyCreateParam();
-		param.setName(name);
-		param.setCount(count);
+        VolumeFullCopyCreateParam param = new VolumeFullCopyCreateParam();
+        param.setName(name);
+        param.setCount(count);
 
-		return getClient().blockConsistencyGroups().createFullCopy(
-				consistencyGroupId, param);
-	}
+        return getClient().blockConsistencyGroups().createFullCopy(
+                consistencyGroupId, param);
+    }
 }

@@ -16,7 +16,7 @@ import com.emc.vipr.client.Tasks;
 
 @Service("ConsistencyGroupCreateFullCopy")
 public class CreateFullCopyService extends ViPRService {
-	
+
     @Param(CONSISTENCY_GROUP)
     protected URI consistencyGroupId;
 

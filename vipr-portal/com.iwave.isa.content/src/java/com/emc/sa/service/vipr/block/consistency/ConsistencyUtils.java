@@ -22,49 +22,49 @@ import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 
 final class ConsistencyUtils {
-	
-	public static Tasks<BlockConsistencyGroupRestRep> createFullCopy(URI consistencyGroupId, String name, Integer count) {
+
+    public static Tasks<BlockConsistencyGroupRestRep> createFullCopy(URI consistencyGroupId, String name, Integer count) {
         int countValue = (count != null) ? count : 1;
         Tasks<BlockConsistencyGroupRestRep> copies = execute(new CreateConsistencyGroupFullCopy(consistencyGroupId, name, countValue));
         addAffectedResources(copies);
         return copies;
     }
-	
-	public static Tasks<BlockConsistencyGroupRestRep> removeFullCopy(URI consistencyGroupId, URI fullCopyId) {
-		Tasks<BlockConsistencyGroupRestRep> tasks = execute( new DetachConsistencyGroupFullCopy(consistencyGroupId, fullCopyId) );
-		removeBlockResources(Collections.singletonList(fullCopyId), VolumeDeleteTypeEnum.FULL);
-		return tasks;
-	}
-	
-	public static Tasks<BlockConsistencyGroupRestRep> restoreFullCopy(URI consistencyGroupId, URI fullCopyId) {
-		return execute( new RestoreConsistencyGroupFullCopy(consistencyGroupId, fullCopyId) );
-	}
-	
-	public static Tasks<BlockConsistencyGroupRestRep> detachFullCopy(URI consistencyGroupId, URI fullCopyId) {
-		return execute( new DetachConsistencyGroupFullCopy(consistencyGroupId, fullCopyId) );
-	}
-	
-	public static Tasks<BlockConsistencyGroupRestRep> resynchronizeFullCopy(URI consistencyGroupId, URI fullCopyId) {
-		return execute( new ResynchronizeConsistencyGroupFullCopy(consistencyGroupId, fullCopyId) );
-	}
-	
-	public static Tasks<BlockConsistencyGroupRestRep> activateFullCopy(URI consistencyGroupId, URI fullCopyId){
-		return execute( new ActivateConsistencyGroupFullCopy(consistencyGroupId, fullCopyId) );
-	}
-	
-	public static Tasks<BlockConsistencyGroupRestRep> deactivateFullCopy(URI consistencyGroupId, URI fullCopyId){
-		return execute( new DeactivateConsistencyGroupFullCopy(consistencyGroupId, fullCopyId) );
-	}
-	
-	public static Tasks<BlockConsistencyGroupRestRep> createSnapshot(URI consistencyGroupId, String snapshotName) {
-		return execute( new CreateConsistencyGroupSnapshot(consistencyGroupId, snapshotName) );
-	}
-	
-	public static Task<BlockConsistencyGroupRestRep> restoreSnapshot(URI consistencyGroupId, URI snapshotId) {
-		return execute( new RestoreConsistencyGroupSnapshot(consistencyGroupId, snapshotId) );
-	}
-	
-	public static Tasks<BlockConsistencyGroupRestRep> removeSnapshot(URI consistencyGroupId, URI snapshotId) {
-		return execute( new DeactivateConsistencyGroupSnapshot(consistencyGroupId, snapshotId) );
-	}
+
+    public static Tasks<BlockConsistencyGroupRestRep> removeFullCopy(URI consistencyGroupId, URI fullCopyId) {
+        Tasks<BlockConsistencyGroupRestRep> tasks = execute(new DetachConsistencyGroupFullCopy(consistencyGroupId, fullCopyId));
+        removeBlockResources(Collections.singletonList(fullCopyId), VolumeDeleteTypeEnum.FULL);
+        return tasks;
+    }
+
+    public static Tasks<BlockConsistencyGroupRestRep> restoreFullCopy(URI consistencyGroupId, URI fullCopyId) {
+        return execute(new RestoreConsistencyGroupFullCopy(consistencyGroupId, fullCopyId));
+    }
+
+    public static Tasks<BlockConsistencyGroupRestRep> detachFullCopy(URI consistencyGroupId, URI fullCopyId) {
+        return execute(new DetachConsistencyGroupFullCopy(consistencyGroupId, fullCopyId));
+    }
+
+    public static Tasks<BlockConsistencyGroupRestRep> resynchronizeFullCopy(URI consistencyGroupId, URI fullCopyId) {
+        return execute(new ResynchronizeConsistencyGroupFullCopy(consistencyGroupId, fullCopyId));
+    }
+
+    public static Tasks<BlockConsistencyGroupRestRep> activateFullCopy(URI consistencyGroupId, URI fullCopyId) {
+        return execute(new ActivateConsistencyGroupFullCopy(consistencyGroupId, fullCopyId));
+    }
+
+    public static Tasks<BlockConsistencyGroupRestRep> deactivateFullCopy(URI consistencyGroupId, URI fullCopyId) {
+        return execute(new DeactivateConsistencyGroupFullCopy(consistencyGroupId, fullCopyId));
+    }
+
+    public static Tasks<BlockConsistencyGroupRestRep> createSnapshot(URI consistencyGroupId, String snapshotName) {
+        return execute(new CreateConsistencyGroupSnapshot(consistencyGroupId, snapshotName));
+    }
+
+    public static Task<BlockConsistencyGroupRestRep> restoreSnapshot(URI consistencyGroupId, URI snapshotId) {
+        return execute(new RestoreConsistencyGroupSnapshot(consistencyGroupId, snapshotId));
+    }
+
+    public static Tasks<BlockConsistencyGroupRestRep> removeSnapshot(URI consistencyGroupId, URI snapshotId) {
+        return execute(new DeactivateConsistencyGroupSnapshot(consistencyGroupId, snapshotId));
+    }
 }

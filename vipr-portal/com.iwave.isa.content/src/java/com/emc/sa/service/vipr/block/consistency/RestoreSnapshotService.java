@@ -14,16 +14,16 @@ import com.emc.sa.service.vipr.ViPRService;
 @Service("ConsistencyGroupRestoreSnapshot")
 public class RestoreSnapshotService extends ViPRService {
 
-	@Param(CONSISTENCY_GROUP)
-	protected URI consistencyGroupId;
+    @Param(CONSISTENCY_GROUP)
+    protected URI consistencyGroupId;
 
-	@Param(SNAPSHOTS)
-	protected List<String> snapshotIds;
+    @Param(SNAPSHOTS)
+    protected List<String> snapshotIds;
 
-	@Override
-	public void execute() throws Exception {
-		for (URI snapshotId : uris(snapshotIds)) {
-			restoreSnapshot(consistencyGroupId, snapshotId);
-		}
-	}
+    @Override
+    public void execute() throws Exception {
+        for (URI snapshotId : uris(snapshotIds)) {
+            restoreSnapshot(consistencyGroupId, snapshotId);
+        }
+    }
 }

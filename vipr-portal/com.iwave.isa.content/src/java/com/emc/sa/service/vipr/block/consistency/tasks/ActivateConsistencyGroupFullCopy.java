@@ -7,18 +7,18 @@ import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.vipr.client.Tasks;
 
 public class ActivateConsistencyGroupFullCopy extends
-		WaitForTasks<BlockConsistencyGroupRestRep> {
+        WaitForTasks<BlockConsistencyGroupRestRep> {
 
-	private URI consistencyGroup;
-	private URI fullCopy;
+    private URI consistencyGroup;
+    private URI fullCopy;
 
-	public ActivateConsistencyGroupFullCopy(URI consistencyGroup, URI fullCopy) {
-		this.consistencyGroup = consistencyGroup;
-		this.fullCopy = fullCopy;
-	}
+    public ActivateConsistencyGroupFullCopy(URI consistencyGroup, URI fullCopy) {
+        this.consistencyGroup = consistencyGroup;
+        this.fullCopy = fullCopy;
+    }
 
-	@Override
-	protected Tasks<BlockConsistencyGroupRestRep> doExecute() throws Exception {
-		return getClient().blockConsistencyGroups().activateFullCopy(consistencyGroup, fullCopy);
-	}
+    @Override
+    protected Tasks<BlockConsistencyGroupRestRep> doExecute() throws Exception {
+        return getClient().blockConsistencyGroups().activateFullCopy(consistencyGroup, fullCopy);
+    }
 }

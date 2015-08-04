@@ -15,7 +15,7 @@ import com.emc.vipr.client.Tasks;
 
 @Service("ConsistencyGroupCreateSnapshot")
 public class CreateSnapshotService extends ViPRService {
-	
+
     @Param(CONSISTENCY_GROUP)
     protected URI consistencyGroupId;
 

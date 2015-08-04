@@ -8,23 +8,23 @@ import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.vipr.client.Tasks;
 
 public class CreateConsistencyGroupSnapshot extends
-		WaitForTasks<BlockConsistencyGroupRestRep> {
+        WaitForTasks<BlockConsistencyGroupRestRep> {
 
-	private URI consistencyGroupId;
-	private String name;
+    private URI consistencyGroupId;
+    private String name;
 
-	public CreateConsistencyGroupSnapshot(URI consistencyGroupId, String name) {
-		this.consistencyGroupId = consistencyGroupId;
-		this.name = name;
-	}
+    public CreateConsistencyGroupSnapshot(URI consistencyGroupId, String name) {
+        this.consistencyGroupId = consistencyGroupId;
+        this.name = name;
+    }
 
-	@Override
-	protected Tasks<BlockConsistencyGroupRestRep> doExecute() throws Exception {
+    @Override
+    protected Tasks<BlockConsistencyGroupRestRep> doExecute() throws Exception {
 
-		BlockConsistencyGroupSnapshotCreate param = new BlockConsistencyGroupSnapshotCreate();
-		param.setName(name);
+        BlockConsistencyGroupSnapshotCreate param = new BlockConsistencyGroupSnapshotCreate();
+        param.setName(name);
 
-		return getClient().blockConsistencyGroups().createSnapshot(
-				consistencyGroupId, param);
-	}
+        return getClient().blockConsistencyGroups().createSnapshot(
+                consistencyGroupId, param);
+    }
 }

@@ -14,16 +14,16 @@ import com.emc.sa.service.vipr.ViPRService;
 @Service("ConsistencyGroupRemoveFullCopy")
 public class RemoveFullCopyService extends ViPRService {
 
-	@Param(CONSISTENCY_GROUP)
-	protected URI consistencyGroupId;
+    @Param(CONSISTENCY_GROUP)
+    protected URI consistencyGroupId;
 
-	@Param(COPIES)
-	protected List<String> copyIds;
+    @Param(COPIES)
+    protected List<String> copyIds;
 
-	@Override
-	public void execute() throws Exception {
-		for (URI copyId : uris(copyIds)) {
-			removeFullCopy(consistencyGroupId, copyId);
-		}
-	}
+    @Override
+    public void execute() throws Exception {
+        for (URI copyId : uris(copyIds)) {
+            removeFullCopy(consistencyGroupId, copyId);
+        }
+    }
 }

@@ -9,11 +9,11 @@ import java.net.URI;
 import com.emc.storageos.model.valid.EnumType;
 
 @Cf("StorageHADomain")
-public class VirtualNAS extends DiscoveredDataObject {
+public class VirtualNASServer extends DiscoveredDataObject {
     // storageSystem, which it belongs
     private URI _storageDeviceURI;
     // Name of the Adapter (Clariion+APM156345420001+SP_A)
-    private String _haDomainName;
+    private String _vNASServerName;
     // Serial Number of Adapter
     private String _serialNumber;
     // Slot Number
@@ -36,28 +36,29 @@ public class VirtualNAS extends DiscoveredDataObject {
     private URI _parentDomainURI;
 
     // Defines the supported port types.
-    public static enum HADomainType {
-        FRONTEND("Front End"),
-        BACKEND("Back End"),
-        REMOTE("Remote"),
-        VIRTUAL("Virtual"),
+    public static enum NASTechnologyType {
+        VDM("VDM"),
+        vFILER("vFiler"),
+        vServer("vServer"),
+        Isilon("Isilon"),
+        VNXe("VNXe"),
         UNKNOWN("N/A");
 
-        private String haDomainType;
+        private String vNASTechType;
 
-        private HADomainType(String haDomType) {
-            haDomainType = haDomType;
+        private NASTechnologyType(String haDomType) {
+        	vNASTechType = haDomType;
         }
 
-        public String getHaDomainType() {
-            return haDomainType;
+        public String getvNASTechType() {
+            return vNASTechType;
         }
 
-        private static HADomainType[] copyValues = values();
+        private static NASTechnologyType[] copyValues = values();
 
         public static String getHADomainTypeName(String name) {
-            for (HADomainType type : copyValues) {
-                if (type.getHaDomainType().equalsIgnoreCase(name)) {
+            for (NASTechnologyType type : copyValues) {
+                if (type.getvNASTechType().equalsIgnoreCase(name)) {
                     return type.name();
                 }
             }
@@ -87,11 +88,11 @@ public class VirtualNAS extends DiscoveredDataObject {
 
     @Name("haDomainName")
     public String getName() {
-        return _haDomainName;
+        return _vNASServerName;
     }
 
     public void setName(String haDomainName) {
-        _haDomainName = haDomainName;
+        _vNASServerName = haDomainName;
         setChanged("haDomainName");
     }
 
@@ -155,7 +156,7 @@ public class VirtualNAS extends DiscoveredDataObject {
         return _name;
     }
 
-    @EnumType(HADomainType.class)
+    @EnumType(NASTechnologyType.class)
     @Name("adapterType")
     public String getAdapterType() {
         return adapterType;

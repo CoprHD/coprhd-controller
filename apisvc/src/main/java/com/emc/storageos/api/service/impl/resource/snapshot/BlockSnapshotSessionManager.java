@@ -44,7 +44,7 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionExistingTargetParam;
 import com.emc.storageos.model.block.SnapshotSessionLinkedTargetsParam;
-import com.emc.storageos.model.block.SnapshotSessionNewTargetsParam;
+import com.emc.storageos.model.block.SnapshotSessionTargetsParam;
 import com.emc.storageos.security.audit.AuditLogManager;
 
 /**
@@ -154,7 +154,7 @@ public class BlockSnapshotSessionManager {
         Map<URI, String> existingTargetsMap = new HashMap<URI, String>();
         SnapshotSessionLinkedTargetsParam linkedTargetsParam = param.getLinkedTargets();
         if (linkedTargetsParam != null) {
-            SnapshotSessionNewTargetsParam newTargetsParam = linkedTargetsParam.getNewTargets();
+            SnapshotSessionTargetsParam newTargetsParam = linkedTargetsParam.getNewTargets();
             if (newTargetsParam != null) {
                 newLinkedTargetsCount = newTargetsParam.getCount().intValue();
                 newTargetsCopyMode = newTargetsParam.getCopyMode();

@@ -19,13 +19,13 @@ import javax.xml.bind.annotation.XmlElementWrapper;
  *
  */
 public class SnapshotSessionLinkedTargetsParam {
-    SnapshotSessionNewTargetsParam newTargets;
+    SnapshotSessionTargetsParam newTargets;
     List<SnapshotSessionExistingTargetParam> existingTargets;
     
     SnapshotSessionLinkedTargetsParam() {
     }
     
-    SnapshotSessionLinkedTargetsParam(SnapshotSessionNewTargetsParam newTargets, List<SnapshotSessionExistingTargetParam> existingTargets) {
+    SnapshotSessionLinkedTargetsParam(SnapshotSessionTargetsParam newTargets, List<SnapshotSessionExistingTargetParam> existingTargets) {
         this.newTargets = newTargets;
         this.existingTargets = existingTargets;
     }
@@ -36,11 +36,11 @@ public class SnapshotSessionLinkedTargetsParam {
      * @valid none
      */
     @XmlElement(name = "new_targets", required = false)
-    public SnapshotSessionNewTargetsParam getNewTargets() {
+    public SnapshotSessionTargetsParam getNewTargets() {
         return newTargets;
     }
 
-    public void setNewTargets(SnapshotSessionNewTargetsParam newTargets) {
+    public void setNewTargets(SnapshotSessionTargetsParam newTargets) {
         this.newTargets = newTargets;
     }
     

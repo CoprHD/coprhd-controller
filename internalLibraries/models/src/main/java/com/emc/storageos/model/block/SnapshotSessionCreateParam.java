@@ -13,20 +13,19 @@ package com.emc.storageos.model.block;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-
 /**
  * 
  */
 @XmlRootElement(name = "snapshot_session_create")
 public class SnapshotSessionCreateParam {
-    
+
     private String name;
     private Boolean createInactive;
-    private SnapshotSessionLinkedTargetsParam linkedTargets;
-    
+    private SnapshotSessionTargetsParam linkedTargets;
+
     public SnapshotSessionCreateParam() {
     }
-    
+
     public SnapshotSessionCreateParam(String name, Boolean createInactive) {
         this.name = name;
         this.createInactive = createInactive;
@@ -47,16 +46,16 @@ public class SnapshotSessionCreateParam {
     }
 
     /**
-     * If create_inactive is set to true, then the 
-     * operation will create the snapshot session, but 
+     * If create_inactive is set to true, then the
+     * operation will create the snapshot session, but
      * not activate the synchronization between source
-     * and specified target volumes, if any. The 
+     * and specified target volumes, if any. The
      * activation would have to be done using the block
      * snapshot session activate API. This parameter
      * only applies when linked targets are specified.
-     *
-     * The default value for the parameter is false. 
-     * That is, the operation will create and activate 
+     * 
+     * The default value for the parameter is false.
+     * That is, the operation will create and activate
      * the synchronization for the snapshot session.
      * 
      * @valid true
@@ -70,21 +69,21 @@ public class SnapshotSessionCreateParam {
     public void setCreateInactive(Boolean createInactive) {
         this.createInactive = createInactive;
     }
-    
+
     /**
-     * Specifies the target volumes to linked to the newly created 
+     * Specifies the target volumes to linked to the newly created
      * block snapshot session. When not specified, no targets volumes
      * will be linked to the newly created snapshot session.
      * 
      * @valid none
-     *
+     * 
      */
     @XmlElement(name = "linked_targets", required = false)
-    public SnapshotSessionLinkedTargetsParam getLinkedTargets() {
+    public SnapshotSessionTargetsParam getLinkedTargets() {
         return linkedTargets;
     }
 
-    public void setLinkedTargets(SnapshotSessionLinkedTargetsParam linkedTargets) {
+    public void setLinkedTargets(SnapshotSessionTargetsParam linkedTargets) {
         this.linkedTargets = linkedTargets;
     }
 }

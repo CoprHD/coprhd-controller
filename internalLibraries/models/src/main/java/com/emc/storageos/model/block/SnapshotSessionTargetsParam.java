@@ -16,15 +16,15 @@ import javax.xml.bind.annotation.XmlElement;
 /**
  * 
  */
-public class SnapshotSessionNewTargetsParam {
+public class SnapshotSessionTargetsParam {
     
     Integer count;
     String copyMode;
     
-    public SnapshotSessionNewTargetsParam() {
+    public SnapshotSessionTargetsParam() {
     }
     
-    public SnapshotSessionNewTargetsParam(Integer count, String copyMode) {
+    public SnapshotSessionTargetsParam(Integer count, String copyMode) {
         this.count = count;
         this.copyMode = copyMode;
     }

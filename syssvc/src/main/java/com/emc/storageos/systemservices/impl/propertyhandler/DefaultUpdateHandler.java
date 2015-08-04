@@ -10,13 +10,6 @@ public class DefaultUpdateHandler implements UpdateHandler {
 
     private static final Logger _log = LoggerFactory.getLogger(DefaultUpdateHandler.class);
 
-    private String _propertyName = Constants.AUTH_LOGIN_ATTEMPTS;
-
-    public String getPropertyName() {
-        return _propertyName;
-    }
-
-
     @Override
     public void before(PropertyInfoRestRep oldValue, PropertyInfoRestRep newValue) {
         // empty implementation

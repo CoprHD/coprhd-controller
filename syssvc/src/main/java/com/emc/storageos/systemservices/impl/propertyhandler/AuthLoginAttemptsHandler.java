@@ -21,7 +21,15 @@ import org.slf4j.LoggerFactory;
 public class AuthLoginAttemptsHandler extends DefaultUpdateHandler {
     private static final Logger _log = LoggerFactory.getLogger(AuthLoginAttemptsHandler.class);
 
+    private String _propertyName = Constants.AUTH_LOGIN_ATTEMPTS;
+
     private InvalidLoginManager _invalidLoginManager;
+
+    /**
+     * setter for InvalidLoginManager
+     *
+     * @param invalidLoginManager
+     */
     public void setInvalidLoginManager(InvalidLoginManager invalidLoginManager) {
         this._invalidLoginManager = invalidLoginManager;
     }
@@ -33,16 +41,16 @@ public class AuthLoginAttemptsHandler extends DefaultUpdateHandler {
      * @param newProps
      */
     public void before(PropertyInfoRestRep oldProps, PropertyInfoRestRep newProps) {
-        if (!isProprotyChanged(oldProps, newProps, getPropertyName())) {
+        if (!isProprotyChanged(oldProps, newProps, _propertyName)) {
             return;
         }
 
-        String newValue = newProps.getProperty(getPropertyName());
+        String newValue = newProps.getProperty(_propertyName);
         ArgumentValidator.checkRange(
                 Integer.parseInt(newValue),
                 Constants.MIN_AUTH_LOGIN_ATTEMPTS,
                 Constants.MAX_AUTH_LOGIN_ATTEMPTS,
-                getPropertyName());
+                _propertyName);
     }
 
     /**
@@ -51,7 +59,7 @@ public class AuthLoginAttemptsHandler extends DefaultUpdateHandler {
      * @param newProps
      */
     public void after(PropertyInfoRestRep oldProps, PropertyInfoRestRep newProps) {
-        if (!isProprotyChanged(oldProps, newProps, getPropertyName())) {
+        if (!isProprotyChanged(oldProps, newProps, _propertyName)) {
             return;
         }
 

@@ -66,6 +66,37 @@ public class VirtualNASServer extends DiscoveredDataObject {
         }
 
     };
+    
+ // Defines the supported port types.
+    public static enum NasState {
+        VdmLoaded("Loded"),
+        VdmMounted("Mounted"),
+        VdmTempUnLoaded("Temporarily unloaded"),
+        VdmPermUnLoaded("Permanently unloaded"),
+        UNKNOWN("N/A");
+        
+        private String NasState;
+
+        private NasState(String state) {
+        	NasState = state;
+        }
+
+        public String getNasState() {
+            return NasState;
+        }
+
+        private static NasState[] copyValues = values();
+
+        public static String getNasState(String name) {
+            for (NasState type : copyValues) {
+                if (type.getNasState().equalsIgnoreCase(name)) {
+                    return type.name();
+                }
+            }
+            return UNKNOWN.toString();
+        }
+    };
+
 
     private StringMap _metrics;
 

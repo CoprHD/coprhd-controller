@@ -19,6 +19,8 @@ import com.emc.storageos.model.host.TenantResourceRestRep;
 public class ClusterRestRep extends TenantResourceRestRep {
     private RelatedResourceRep project;
     private RelatedResourceRep VcenterDataCenter;
+    private Boolean autoExportEnabled;
+    private Boolean autoUnexportEnabled;
 
     public ClusterRestRep() {
     }
@@ -57,5 +59,33 @@ public class ClusterRestRep extends TenantResourceRestRep {
 
     public void setVcenterDataCenter(RelatedResourceRep vcenterDataCenter) {
         VcenterDataCenter = vcenterDataCenter;
+    }
+
+    /**
+     * If discovery will auto export to this cluster.
+     * 
+     * @return
+     */
+    @XmlElement(name = "auto_export_enabled")
+    public Boolean getAutoExportEnabled() {
+        return autoExportEnabled;
+    }
+
+    public void setAutoExportEnabled(Boolean autoExportEnabled) {
+        this.autoExportEnabled = autoExportEnabled;
+    }
+
+    /**
+     * If discovery will auto unexport from this cluster.
+     * 
+     * @return
+     */
+    @XmlElement(name = "auto_unexport_enabled")
+    public Boolean getAutoUnexportEnabled() {
+        return autoUnexportEnabled;
+    }
+
+    public void setAutoUnexportEnabled(Boolean autoUnexportEnabled) {
+        this.autoUnexportEnabled = autoUnexportEnabled;
     }
 }

@@ -330,6 +330,12 @@ public class ClusterService extends TaskResourceService {
             cluster.setVcenterDataCenter(NullColumnValueGetter.isNullURI(param.getVcenterDataCenter()) ?
                     NullColumnValueGetter.getNullURI() : param.getVcenterDataCenter());
         }
+        if (param.getAutoExportEnabled() != null) {
+            cluster.setAutoExportEnabled(param.getAutoExportEnabled());
+        }
+        if (param.getAutoUnexportEnabled() != null) {
+            cluster.setAutoUnexportEnabled(param.getAutoUnexportEnabled());
+        }
         // Commented out because cluster project is not currently used
         // if (param.project != null) {
         // cluster.setProject(NullColumnValueGetter.isNullURI(param.project) ?

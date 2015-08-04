@@ -9,6 +9,14 @@ import java.net.URI;
 import com.emc.storageos.db.client.model.StorageHADomain.HADomainType;
 import com.emc.storageos.model.valid.EnumType;
 
+/**
+ * VirtualNAS Server will contain the details of NAS server depending on StorageArray type
+ *  eg. VDM, vFiler, vServer or AccessZone or NasServer.
+ *  It will hold information about the Ip interfaces, cifs Server & NFS servers mapped to NasServer 
+ * @author ganeso
+ *
+ */
+
 @Cf("VirtualNASServer")
 public class VirtualNASServer extends DiscoveredDataObject {
 
@@ -51,6 +59,30 @@ public class VirtualNASServer extends DiscoveredDataObject {
     private String adapterType;
 
     private StringSet fileSharingProtocols;
+
+    // Set of Authentication providers for the VNasServer - set values will of type AunthnProvider
+    private StringSet authProviders;
+
+    // Set of IPInterfaces available for this vNASServer
+    private StringSet ipInterfaces;
+
+    @Name("authProviders")
+    public StringSet getAuthProviders() {
+        return authProviders;
+    }
+
+    public void setAuthProviders(StringSet authProviders) {
+        this.authProviders = authProviders;
+    }
+
+    @Name("ipInterfaces")
+    public StringSet getIpInterfaces() {
+        return ipInterfaces;
+    }
+
+    public void setIpInterfaces(StringSet ipInterfaces) {
+        this.ipInterfaces = ipInterfaces;
+    }
 
     @Name("vNAStag")
     public StringSet getvNAStag() {

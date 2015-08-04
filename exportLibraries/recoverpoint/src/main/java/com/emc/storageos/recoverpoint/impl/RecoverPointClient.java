@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,7 +124,7 @@ import com.emc.storageos.recoverpoint.utils.WwnUtils;
 
 /**
  * Client implementation of the RecoverPoint controller
- * 
+ *
  */
 
 public class RecoverPointClient {
@@ -178,6 +179,7 @@ public class RecoverPointClient {
             return this.equals(RecoverPointCGCopyType.REMOTE);
         }
 
+        @Override
         public String toString() {
             return asString;
         }
@@ -218,7 +220,7 @@ public class RecoverPointClient {
 
     /**
      * tests credentials to ensure they are correct, and that the RP site is up and running
-     * 
+     *
      * @return 0 for success
      * @throws RecoverPointException
      **/
@@ -271,9 +273,9 @@ public class RecoverPointClient {
     /**
      * Returns a list of sites associated with any given site (or RPA). The user can/should enter a site mgmt IP addr, but they can also
      * support the mgmt IP addr of an RPA. This method will return sites, not RPAs
-     * 
+     *
      * @return set of discovered RP sites
-     * 
+     *
      * @throws RecoverPointException
      **/
     public Set<RPSite> getAssociatedRPSites() throws RecoverPointException {
@@ -298,7 +300,7 @@ public class RecoverPointClient {
             Iterator<String> iter = siteNames.iterator();
             String installationId = "";
             while (iter.hasNext()) {
-                installationId += (String) iter.next();
+                installationId += iter.next();
                 if (iter.hasNext()) {
                     installationId += "_";
                 }
@@ -360,7 +362,7 @@ public class RecoverPointClient {
 
     /**
      * Checks to see if the given CG exists.
-     * 
+     *
      * @param cgName the consistency group name
      * @return true if the consistency group exists, false otherwise
      * @throws RecoverPointException
@@ -391,7 +393,7 @@ public class RecoverPointClient {
 
     /**
      * scans all sites until all volumes involved in the Recoverpoint protection are visible
-     * 
+     *
      * @param request
      */
     public void waitForVolumesToBeVisible(CGRequestParams request) {
@@ -400,11 +402,11 @@ public class RecoverPointClient {
 
     /**
      * Updates an existing CG by adding new replication sets.
-     * 
+     *
      * @param request - contains all the information required to create the consistency group
-     * 
+     *
      * @return RecoverPointCGResponse - response as to success or fail of creating the consistency group
-     * 
+     *
      * @throws RecoverPointException
      **/
     public RecoverPointCGResponse addReplicationSetsToCG(CGRequestParams request, boolean metropoint) throws RecoverPointException {
@@ -503,11 +505,11 @@ public class RecoverPointClient {
 
     /**
      * Creates a consistency group
-     * 
+     *
      * @param request - contains all the information required to create the consistency group
-     * 
+     *
      * @return CreateCGResponse - response as to success or fail of creating the consistency group
-     * 
+     *
      * @throws RecoverPointException
      **/
     public RecoverPointCGResponse createCG(CGRequestParams request, boolean metropoint) throws RecoverPointException {
@@ -604,7 +606,7 @@ public class RecoverPointClient {
 
     /**
      * returns cluster uid for a copy
-     * 
+     *
      * @param copyParam
      * @param clusterIdCache
      * @return
@@ -621,7 +623,7 @@ public class RecoverPointClient {
 
     /**
      * get copy type (local, remote, production)
-     * 
+     *
      * @param copyParam
      * @param prodSites
      * @param clusterUID
@@ -645,7 +647,7 @@ public class RecoverPointClient {
 
     /**
      * construct a CG copy UID
-     * 
+     *
      * @param clusterUID
      * @param copyType
      * @param cgUID
@@ -837,7 +839,7 @@ public class RecoverPointClient {
     /**
      * configure links between each production and each local and/or remote copy in a new CG
      * configured links are added to fullConsistencyGroupPolicy
-     * 
+     *
      * @param fullConsistencyGroupPolicy cg policy with copies populated
      * @param copyType prod, local or remote
      * @param request create cg request used for copy mode and rpo
@@ -895,7 +897,7 @@ public class RecoverPointClient {
 
     /**
      * Get the root cause of the failure, if available
-     * 
+     *
      * @param e the base exception
      * @return the exception with valuable information in it
      */
@@ -908,7 +910,7 @@ public class RecoverPointClient {
 
     /**
      * Walk through the journals and source/target volumes to see where the WWNS lie.
-     * 
+     *
      * @param copies
      * @param rSets
      * @return set of discovered RP sites
@@ -1040,7 +1042,7 @@ public class RecoverPointClient {
 
     /**
      * Convenience method to set the link policy.
-     * 
+     *
      * @param remote whether to set the "protect over wan" to true
      * @param prodCopyUID production copy id
      * @param targetCopyUID target copy id
@@ -1096,7 +1098,7 @@ public class RecoverPointClient {
 
     /**
      * Convenience method for creating a link policy object
-     * 
+     *
      * @param remote whether to set the "protect over wan" to true
      */
     private ConsistencyGroupLinkPolicy createLinkPolicy(RecoverPointCGCopyType copyType, String copyMode, String rpoType, Long rpoValue) {
@@ -1161,7 +1163,7 @@ public class RecoverPointClient {
 
     /**
      * Rollback the replication sets for a CG.
-     * 
+     *
      * @param functionalAPI
      * @param cgUID
      * @param replicationSetsRollback
@@ -1194,7 +1196,7 @@ public class RecoverPointClient {
 
     /**
      * Gets a ReplicationSetUID given the name of the replication set.
-     * 
+     *
      * @param functionalAPI the functional API instance.
      * @param cgUID the consistency group UID.
      * @param replicationSetName the replication set name.
@@ -1216,11 +1218,11 @@ public class RecoverPointClient {
 
     /**
      * Creates a bookmark against one or more consistency group
-     * 
+     *
      * @param CreateBookmarkRequestParams request - contains the information about which CGs to create bookmarks on
-     * 
+     *
      * @return CreateBookmarkResponse - response as to success or fail of creating the bookmarks
-     * 
+     *
      * @throws RecoverPointException
      **/
     public CreateBookmarkResponse createBookmarks(CreateBookmarkRequestParams request) throws RecoverPointException {
@@ -1259,7 +1261,7 @@ public class RecoverPointClient {
 
     /**
      * Get all RP bookmarks for all CGs specified
-     * 
+     *
      * @param request - set of CG integer IDs
      * @return GetBookmarkResponse - a map of CGs to bookmarks for that CG
      * @throws RecoverPointException
@@ -1286,11 +1288,11 @@ public class RecoverPointClient {
 
     /**
      * Enables copy images for one or more consistency group copies
-     * 
+     *
      * @param MultiCopyEnableImageRequestParams request - contains the information about which CG copies to enable
-     * 
+     *
      * @return MultiCopyEnableImageResponse - response as to success or fail of enabling the image copies
-     * 
+     *
      * @throws RecoverPointException
      **/
     public MultiCopyEnableImageResponse enableImageCopies(MultiCopyEnableImageRequestParams request) throws RecoverPointException {
@@ -1370,11 +1372,11 @@ public class RecoverPointClient {
 
     /**
      * Disables copy images for one or more consistency group copies
-     * 
+     *
      * @param MultiCopyDisableImageRequestParams request - contains the information about which CG copies to disable
-     * 
+     *
      * @return MultiCopyDisableImageResponse - response as to success or fail of disabling the image copies
-     * 
+     *
      * @throws RecoverPointException
      **/
     public MultiCopyDisableImageResponse disableImageCopies(MultiCopyDisableImageRequestParams request) throws RecoverPointException {
@@ -1421,11 +1423,11 @@ public class RecoverPointClient {
 
     /**
      * Restore copy images for one or more consistency group copies
-     * 
+     *
      * @param MultiCopyRestoreImageRequestParams request - contains the information about which CG copies to restore
-     * 
+     *
      * @return MultiCopyRestoreImageResponse - response as to success or fail of restoring the image copies
-     * 
+     *
      * @throws RecoverPointException
      **/
     public MultiCopyRestoreImageResponse restoreImageCopies(MultiCopyRestoreImageRequestParams request) throws RecoverPointException {
@@ -1522,11 +1524,11 @@ public class RecoverPointClient {
 
     /**
      * Get a list of WWNs given a site ID
-     * 
+     *
      * @param int siteID - Site ID to get WWNs for
-     * 
+     *
      * @return Map<String, String> - a list of WWNs
-     * 
+     *
      * @throws RecoverPointException
      */
     public Map<String, String> getInitiatorWWNs(String internalSiteName) throws RecoverPointException {
@@ -1567,11 +1569,11 @@ public class RecoverPointClient {
      * The getProtectionInfoForVolume method takes the WWN, and looks for it in the RP site protection environment.
      * If it finds the WWN as a member of a consistency group, it fills in the information, and returns it to the caller.
      * If it does not find the WWN as a member of a consistency group, it returns null
-     * 
+     *
      * @param String volumeWWN - The WWN being checked for RecoverPoint protection
-     * 
+     *
      * @return RecoverPointVolumeProtectionInfo - description of protection information about the WWN, or null if not protected in CG
-     * 
+     *
      * @throws RecoverPointException
      **/
     public RecoverPointVolumeProtectionInfo getProtectionInfoForVolume(String volumeWWN) throws RecoverPointException {
@@ -1657,18 +1659,19 @@ public class RecoverPointClient {
      * Disable (stop) the consistency group protection specified by the input volume info.
      * If a target volume is specified, disable the copy associated with the target.
      * Disable requires a full sweep when enabled
-     * 
+     *
      * @param RecoverPointVolumeProtectionInfo volumeInfo - Volume info for the CG to disable
-     * 
+     *
      * @return void
-     * 
+     *
      * @throws RecoverPointException
      **/
     public void disableProtection(RecoverPointVolumeProtectionInfo volumeInfo) throws RecoverPointException {
         try {
             ConsistencyGroupUID cgUID = new ConsistencyGroupUID();
             cgUID.setId(volumeInfo.getRpVolumeGroupID());
-            if (volumeInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE) {
+            if (volumeInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE
+                    || (volumeInfo.isMetroPoint() && volumeInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_TARGET)) {
                 // Disable the whole CG
                 functionalAPI.disableConsistencyGroup(cgUID);
                 String cgName = functionalAPI.getGroupName(cgUID);
@@ -1702,11 +1705,11 @@ public class RecoverPointClient {
     /**
      * Enable (start) the consistency group protection specified by the input volume info
      * Requires a full sweep.
-     * 
+     *
      * @param RecoverPointVolumeProtectionInfo volumeInfo - Volume info for the CG to enable
-     * 
+     *
      * @return void
-     * 
+     *
      * @throws RecoverPointException
      **/
     public void enableProtection(RecoverPointVolumeProtectionInfo volumeInfo) throws RecoverPointException {
@@ -1739,11 +1742,11 @@ public class RecoverPointClient {
 
     /**
      * Return the state of a consistency group.
-     * 
+     *
      * @param RecoverPointVolumeProtectionInfo volumeInfo - Volume info for the CG to get CG state for
-     * 
+     *
      * @return void
-     * 
+     *
      * @throws RecoverPointException
      **/
     public RecoverPointCGState getCGState(RecoverPointVolumeProtectionInfo volumeInfo) throws RecoverPointException {
@@ -1814,11 +1817,11 @@ public class RecoverPointClient {
 
     /**
      * Pause (suspend) the consistency group protection specified by the input volume info.
-     * 
+     *
      * @param RecoverPointVolumeProtectionInfo volumeInfo - Volume info for the CG to pause
-     * 
+     *
      * @return void
-     * 
+     *
      * @throws RecoverPointException
      **/
     public void pauseTransfer(RecoverPointVolumeProtectionInfo volumeInfo) throws RecoverPointException {
@@ -1849,11 +1852,11 @@ public class RecoverPointClient {
 
     /**
      * Resume the consistency group protection specified by the input volume info.
-     * 
+     *
      * @param RecoverPointVolumeProtectionInfo volumeInfo - Volume info for the CG to resume
-     * 
+     *
      * @return void
-     * 
+     *
      * @throws RecoverPointException
      **/
     public void resumeTransfer(RecoverPointVolumeProtectionInfo volumeInfo) throws RecoverPointException {
@@ -1884,12 +1887,12 @@ public class RecoverPointClient {
 
     /**
      * Perform a failover test to the consistency group copy specified by the input request params.
-     * 
+     *
      * @param RPCopyRequestParams copyToFailoverTo - Volume info for the CG to perform a failover test to. Also contains bookmark and APIT
      *            info. If no bookmark or APIT specified, failover test to most recent image.
-     * 
+     *
      * @return void
-     * 
+     *
      * @throws RecoverPointException
      **/
     public void failoverCopyTest(RPCopyRequestParams copyToFailoverTo) throws RecoverPointException {
@@ -1915,11 +1918,11 @@ public class RecoverPointClient {
 
     /**
      * Cancel a failover test for a consistency group copy specified by the input request params.
-     * 
+     *
      * @param RPCopyRequestParams copyToFailoverTo - Volume info for the CG that a previous failover test was performed on
-     * 
+     *
      * @return void
-     * 
+     *
      * @throws RecoverPointException
      **/
     public void failoverCopyTestCancel(RPCopyRequestParams copyToFailoverTo) throws RecoverPointException {
@@ -1931,12 +1934,12 @@ public class RecoverPointClient {
 
     /**
      * Perform a failover to the consistency group copy specified by the input request params.
-     * 
+     *
      * @param RPCopyRequestParams copyToFailoverTo - Volume info for the CG to perform a failover to. Also contains bookmark and APIT info.
      *            If no bookmark or APIT specified, failover to most recent image.
-     * 
+     *
      * @return void
-     * 
+     *
      * @throws RecoverPointException
      **/
     public void failoverCopy(RPCopyRequestParams copyToFailoverTo) throws RecoverPointException {
@@ -1962,11 +1965,11 @@ public class RecoverPointClient {
 
     /**
      * Cancel a failover operation, usually a failover after a failover without a swap.
-     * 
+     *
      * @param RPCopyRequestParams copyToFailoverTo - Volume info for the CG that a previous failover test was performed on
-     * 
+     *
      * @return void
-     * 
+     *
      * @throws RecoverPointException
      **/
     public void failoverCopyCancel(RPCopyRequestParams copyToFailoverTo) throws RecoverPointException {
@@ -1976,11 +1979,11 @@ public class RecoverPointClient {
 
     /**
      * Perform a swap to the consistency group copy specified by the input request params.
-     * 
+     *
      * @param RPCopyRequestParams copyToFailoverTo - Volume info for the CG to perform a swap to.
-     * 
+     *
      * @return void
-     * 
+     *
      * @throws RecoverPointException
      **/
     public void swapCopy(RPCopyRequestParams copyParams) throws RecoverPointException {
@@ -2022,7 +2025,7 @@ public class RecoverPointClient {
 
     /**
      * Find the link settings corresponding to the given production and target copy identifiers.
-     * 
+     *
      * @param linkSettings the consistency group link settings
      * @param prodCopyUID the production copy
      * @param targetCopyUID the target copy
@@ -2055,7 +2058,7 @@ public class RecoverPointClient {
     /**
      * Convenience method used to determine if the provided production copy and target copy
      * are points on the given link settings.
-     * 
+     *
      * @param linkSetting the link settings to examine.
      * @param prodCopyUID the production copy end of the link settings.
      * @param targetCopyUID the target copy end of the link settings.
@@ -2087,7 +2090,7 @@ public class RecoverPointClient {
 
     /**
      * Prepares the link settings between the new production copy and all other copies.
-     * 
+     *
      * @param cgCopyUID the failover/new production copy
      * @throws RecoverPointException
      */
@@ -2176,11 +2179,11 @@ public class RecoverPointClient {
 
     /**
      * Delete the consistency group copy specified by the input volume info.
-     * 
+     *
      * @param RecoverPointVolumeProtectionInfo volumeInfo - Volume info for the CG copy to delete (can't be production)
-     * 
+     *
      * @return void
-     * 
+     *
      * @throws RecoverPointException
      **/
     public void deleteCopy(RecoverPointVolumeProtectionInfo copyToDelete) throws RecoverPointException {
@@ -2209,11 +2212,11 @@ public class RecoverPointClient {
 
     /**
      * Delete the consistency group specified by the input volume info.
-     * 
+     *
      * @param RecoverPointVolumeProtectionInfo volumeInfo - Volume info for the CG to delete
-     * 
+     *
      * @return void
-     * 
+     *
      * @throws RecoverPointException
      **/
     public void deleteCG(RecoverPointVolumeProtectionInfo cgToDelete) throws RecoverPointException {
@@ -2242,13 +2245,13 @@ public class RecoverPointClient {
 
     /**
      * Delete a journal volume (WWN) from the consistency group copy specified by the input volume info.
-     * 
+     *
      * @param RecoverPointVolumeProtectionInfo copyToModify - Volume info for the CG to add a journal volume to
-     * 
+     *
      * @param String journalWWNToDelete - WWN of the journal volume to delete
-     * 
+     *
      * @return void
-     * 
+     *
      * @throws RecoverPointException
      **/
     public void deleteJournalFromCopy(RecoverPointVolumeProtectionInfo copyToModify, String journalWWNToDelete)
@@ -2279,11 +2282,11 @@ public class RecoverPointClient {
 
     /**
      * Delete a replication set based on the volume info sent in.
-     * 
+     *
      * @param RecoverPointVolumeProtectionInfo volume - Volume info for the CG to remove the replication set from
      * @param String volumeWWNToDelete - WWN of the volume to delete the entire replication set for
      * @return void
-     * 
+     *
      * @throws RecoverPointException
      **/
     public void deleteReplicationSet(RecoverPointVolumeProtectionInfo volume, String volumeWWNToDelete) throws RecoverPointException {
@@ -2318,13 +2321,13 @@ public class RecoverPointClient {
 
     /**
      * Get RP site statistics for use in collectStatisticsInformation
-     * 
+     *
      * @param RecoverPointVolumeProtectionInfo copyToModify - Volume info for the CG to add a journal volume to
-     * 
+     *
      * @param String journalWWNToDelete - WWN of the journal volume to delete
-     * 
+     *
      * @return RecoverPointStatisticsResponse
-     * 
+     *
      * @throws RecoverPointException
      **/
     public RecoverPointStatisticsResponse getRPSystemStatistics() throws RecoverPointException {
@@ -2441,7 +2444,7 @@ public class RecoverPointClient {
     /**
      * Find the transient site ID, given the permanent/unchanging unique internal site name.
      * Needed for some external operations, like filling in proper copy info in a snapshot.
-     * 
+     *
      * @param internalSiteName internal site name, never changes
      * @param clusterIdCache cache of already discovered cluster ids (can be null)
      * @return ClusterUID corresponding to the site that has that internal site name.
@@ -2464,7 +2467,7 @@ public class RecoverPointClient {
     /**
      * Find the transient site ID, given the permanent/unchanging unique internal site name.
      * Needed for some external operations, like filling in proper copy info in a snapshot.
-     * 
+     *
      * @param internalSiteName internal site name, never changes
      * @return ClusterUID corresponding to the site that has that internal site name.
      * @throws RecoverPointException
@@ -2482,17 +2485,17 @@ public class RecoverPointClient {
     /**
      * Get the replication set information associated with this volume. This is important when assembling a workflow to
      * recreate the replication set for the purpose of expanding volumes.
-     * 
+     *
      * Steps are as follows:
      * This method: Get the state information associated with the replication set
      * Delete method below: Delete the replication set
      * RP Controller: Expand volumes
      * Recreate method below: Perform a rescan_san
      * Recreate method below: Create the replication set
-     * 
+     *
      * @param RecoverPointVolumeProtectionInfo volume - Volume info for the CG to remove the replication set from
      * @return void
-     * 
+     *
      * @throws RecoverPointException
      **/
     public RecreateReplicationSetRequestParams getReplicationSet(RecoverPointVolumeProtectionInfo volume) throws RecoverPointException {
@@ -2535,10 +2538,10 @@ public class RecoverPointClient {
     /**
      * Delete the Replication Set associated with the volume sent in. This is useful when volumes are resized.
      * It is step one of a multi-step process.
-     * 
+     *
      * @param RecoverPointVolumeProtectionInfo volume - Volume info for the CG to remove the replication set from
      * @return void
-     * 
+     *
      * @throws RecoverPointException
      **/
     public void deleteReplicationSet(RecoverPointVolumeProtectionInfo volume) throws RecoverPointException {
@@ -2571,7 +2574,7 @@ public class RecoverPointClient {
 
     /**
      * Perform Step 2 of expanding a volume, Recreate a replication set that was previously removed.
-     * 
+     *
      * @param volume volume base of replication set
      * @param rsetSettings replication set information used to create replication set
      * @throws RecoverPointException
@@ -2643,7 +2646,7 @@ public class RecoverPointClient {
     /**
      * Returns the array serial numbers associated with each RP Cluster.
      * That is, all arrays that have "visibility" according to the RP Cluster.
-     * 
+     *
      * @return a Map of RP Cluster ID -> a Set of array serial numbers
      * @throws RecoverPointException
      */
@@ -2691,7 +2694,7 @@ public class RecoverPointClient {
 
     /**
      * in a Metropoint environment, adds a link between the standby production copy and the remote/DR copy
-     * 
+     *
      * @param activeProdCopy the CG copy uid of the active production copy
      * @param standbyProdCopy the CG copy uid of the standby production copy
      * @throws FunctionalAPIInternalError_Exception
@@ -2759,7 +2762,7 @@ public class RecoverPointClient {
 
     /**
      * adds one copy to an existing CG
-     * 
+     *
      * @param cgUID CG uid where new copy should be added
      * @param allSites list of sites that see journal and copy file WWN's
      * @param copyParams the copy to be added
@@ -2840,12 +2843,12 @@ public class RecoverPointClient {
     /**
      * In a metropoint environment, adds the standby production and CDP copies to the CG after failover
      * and set as production back to the original vplex metro
-     * 
+     *
      * @param standbyProdCopy has info about the standby production copy to be added
      * @param standbyLocalCopyParams local standby copies
      * @param rSet contains volume info for standby local copies
      * @param activeProdCopy has info about the active production copy
-     * 
+     *
      */
     public void addStandbyProductionCopy(CreateCopyParams standbyProdCopy,
             CreateCopyParams standbyLocalCopyParams, List<CreateRSetParams> rSets,
@@ -2914,7 +2917,7 @@ public class RecoverPointClient {
 
     /**
      * checks to see if there is a protection volume with a given wwn
-     * 
+     *
      * @param volumeWWN the WWN of the volume being checked for existence
      * @return
      */

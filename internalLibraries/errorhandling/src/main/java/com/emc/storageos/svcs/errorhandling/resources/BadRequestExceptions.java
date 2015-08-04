@@ -1,14 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2013-2014 EMC Corporation All Rights Reserved
- * 
- * This software contains the intellectual property of EMC Corporation or is licensed to EMC
- * Corporation from third parties. Use of this software and the intellectual property contained
- * therein is expressly limited to the terms and conditions of the License Agreement under which it
- * is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.svcs.errorhandling.resources;
@@ -622,11 +614,11 @@ public interface BadRequestExceptions {
     public BadRequestException invalidParameterSystemTypeforAutoTiering();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidParameterTenantsQuotaExceedsProject(long quota_gb,
+    public BadRequestException invalidParameterTenantsQuotaExceedsProject(long quotaGb,
             long totalProjects);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidParameterTenantsQuotaExceedsSubtenants(long quota_gb,
+    public BadRequestException invalidParameterTenantsQuotaExceedsSubtenants(long quotaGb,
             long totalSubtenants);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -1012,7 +1004,7 @@ public interface BadRequestExceptions {
     public BadRequestException parameterOnlySupportedForVmax(final String propertyName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException VArrayUnSupportedForGivenVPool(final URI vPool, final URI vArray);
+    public BadRequestException vArrayUnSupportedForGivenVPool(final URI vPool, final URI vArray);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException parameterTooShortOrEmpty(final String parameterName,
@@ -1772,7 +1764,7 @@ public interface BadRequestExceptions {
     public BadRequestException invalidParameterTenantNamespaceIsEmpty();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException TenantNamespaceMappingConflict(final String tenantId, final String namespace);
+    public BadRequestException tenantNamespaceMappingConflict(final String tenantId, final String namespace);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumeNotInVirtualPool(final String volumeName, final String vpoolName);
@@ -2194,7 +2186,7 @@ public interface BadRequestExceptions {
     public BadRequestException userMappingAttributeIsEmpty();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException UserMappingNotAllowed(final String user);
+    public BadRequestException userMappingNotAllowed(final String user);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteOrEditUserGroup(final int numResources, final Set<URI> resourceIDs);
@@ -2301,10 +2293,10 @@ public interface BadRequestExceptions {
     public BadRequestException volumeForSRDFVpoolChangeHasFullCopies(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException NoFullCopiesForVMAX3VolumeWithActiveSnapshot(final String type);
+    public BadRequestException noFullCopiesForVMAX3VolumeWithActiveSnapshot(final String type);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException NoSnapshotsForVMAX3VolumeWithActiveFullCopy();
+    public BadRequestException noSnapshotsForVMAX3VolumeWithActiveFullCopy();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException expansionNotSupportedForVMAX3Volumes();
@@ -2332,7 +2324,7 @@ public interface BadRequestExceptions {
     public BadRequestException fullCopyNotSupportedByBackendSystem(final URI volume);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException NoAuthnProviderFound(String userId);
+    public BadRequestException noAuthnProviderFound(String userId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidPrincipals(String details);

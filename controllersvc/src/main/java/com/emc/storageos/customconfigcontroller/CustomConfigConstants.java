@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.customconfigcontroller;
 
@@ -74,4 +64,5 @@ public interface CustomConfigConstants {
     public String PORT_ALLOCATION_DAYS_TO_AVERAGE_UTILIZATION = "PortAllocationDaysToAverageUtilization";
     public String PORT_ALLOCATION_EMA_FACTOR = "PortAllocationEmaFactor";
     public String PORT_ALLOCATION_METRICS_ENABLED = "PortAllocationMetricsEnabled";
+    public String MIGRATION_SPEED = "VPlexMigrationSpeed";
 }

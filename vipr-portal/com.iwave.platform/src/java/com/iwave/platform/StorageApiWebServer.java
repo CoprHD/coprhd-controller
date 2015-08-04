@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.platform;
@@ -73,7 +73,7 @@ public class StorageApiWebServer {
 
     @Required
     public void setCiphers(String[] ciphers) {
-        this.ciphers = ciphers;
+        this.ciphers = ciphers; //NOSONAR Suppressing sonar violation on user-supplied array is stored directly
     }
 
     @Required

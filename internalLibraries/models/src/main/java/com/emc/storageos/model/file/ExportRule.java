@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file;
@@ -195,7 +195,7 @@ public class ExportRule implements Serializable {
 
     private String getHostsPrintLog(Set<String> hosts) {
         StringBuilder sb = new StringBuilder();
-        if (hosts != null && hosts.size() > 0) {
+        if (hosts != null && !hosts.isEmpty()) {
             for (String endPoint : hosts) {
                 sb.append("{").append(endPoint).append("}");
             }

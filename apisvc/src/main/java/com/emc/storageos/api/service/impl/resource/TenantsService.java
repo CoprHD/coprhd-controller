@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -1366,10 +1356,10 @@ public class TenantsService extends TaggedResource {
 
             if (CollectionUtils.isEmpty(userTenants)) {
                 _log.error("User {} will not match any tenant after this user mapping change", user);
-                throw APIException.badRequests.UserMappingNotAllowed(user);
+                throw APIException.badRequests.userMappingNotAllowed(user);
             } else if (userTenants.size() > 1) {
                 _log.error("User {} will map to multiple tenants {} after this user mapping change", user, userTenants.toArray());
-                throw APIException.badRequests.UserMappingNotAllowed(user);
+                throw APIException.badRequests.userMappingNotAllowed(user);
             } else {
                 String tenantUri = userTenants.get(0)._id.toString();
                 String providerTenantId = _permissionsHelper.getRootTenant().getId().toString();
@@ -1378,7 +1368,7 @@ public class TenantsService extends TaggedResource {
 
                 if (!providerTenantId.equalsIgnoreCase(tenantUri)) {
                     _log.error("User {} will map to tenant {}, which is not provider tenant", user, tenant.getLabel());
-                    throw APIException.badRequests.UserMappingNotAllowed(user);
+                    throw APIException.badRequests.userMappingNotAllowed(user);
                 }
             }
 

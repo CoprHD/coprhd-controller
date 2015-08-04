@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vmware;
@@ -484,7 +484,7 @@ public class VMwareSupport {
      *            the hosts to refresh;
      */
     public void refreshStorage(List<HostSystem> hosts) {
-        if (hosts.size() > 0) {
+        if (!hosts.isEmpty()) {
             execute(new RefreshStorage(hosts));
         }
     }

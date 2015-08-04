@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
@@ -78,7 +68,7 @@ public class VMAX3BlockFullCopyApiImpl extends VMAXBlockFullCopyApiImpl {
             if ((BlockFullCopyUtils.isVolumeFullCopy(volumeToSnap, _dbClient)) &&
                     (!BlockFullCopyUtils.isFullCopyDetached(volumeToSnap, _dbClient)) &&
                     (!BlockFullCopyUtils.isFullCopyInactive(volumeToSnap, _dbClient))) {
-                throw APIException.badRequests.NoSnapshotsForVMAX3VolumeWithActiveFullCopy();
+                throw APIException.badRequests.noSnapshotsForVMAX3VolumeWithActiveFullCopy();
             }
 
             // Now check if the volume to be snapped is a full copy source
@@ -92,7 +82,7 @@ public class VMAX3BlockFullCopyApiImpl extends VMAXBlockFullCopyApiImpl {
                     if ((fullCopyVolume != null) && (!fullCopyVolume.getInactive()) &&
                             (!BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient)) &&
                             (!BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient))) {
-                        throw APIException.badRequests.NoSnapshotsForVMAX3VolumeWithActiveFullCopy();
+                        throw APIException.badRequests.noSnapshotsForVMAX3VolumeWithActiveFullCopy();
                     }
                 }
             }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
@@ -77,6 +67,8 @@ public class VPlexApiVirtualVolumeManager {
      * @param preserveData true if the native volume data should be preserved
      *            during virtual volume creation.
      * @param winningClusterId Used to set detach rules for distributed volumes.
+     * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
+     *            clusters.
      * 
      * @return The information for the created virtual volume.
      * 
@@ -85,7 +77,7 @@ public class VPlexApiVirtualVolumeManager {
      */
     VPlexVirtualVolumeInfo createVirtualVolume(List<VolumeInfo> nativeVolumeInfoList,
             boolean isDistributed, boolean discoveryRequired, boolean preserveData,
-            String winningClusterId)
+            String winningClusterId, List<VPlexClusterInfo> clusterInfoList)
             throws VPlexApiException {
 
         s_logger.info("Request to create {} virtual volume.",
@@ -99,10 +91,12 @@ public class VPlexApiVirtualVolumeManager {
 
         // Find the storage volumes corresponding to the passed native
         // volume information, discovery them if required.
-        List<VPlexClusterInfo> clusterInfoList = new ArrayList<VPlexClusterInfo>();
+        if (null == clusterInfoList) {
+            clusterInfoList = new ArrayList<VPlexClusterInfo>();
+        }
+
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = findStorageVolumes(
                 nativeVolumeInfoList, discoveryRequired, clusterInfoList);
-
         // For a distributed virtual volume, verify logging volumes
         // have been configured on each cluster.
         if (isDistributed) {
@@ -172,7 +166,11 @@ public class VPlexApiVirtualVolumeManager {
             StringBuilder volumeNameBuilder = new StringBuilder();
             volumeNameBuilder.append(deviceName);
             volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
-            return discoveryMgr.findVirtualVolume(clusterId, volumeNameBuilder.toString(), true, true);
+
+            VPlexVirtualVolumeInfo virtualVolumeInfo = new VPlexVirtualVolumeInfo();
+            virtualVolumeInfo.setName(volumeNameBuilder.toString());
+            virtualVolumeInfo.addCluster(clusterId);
+            return virtualVolumeInfo;
         } catch (Exception e) {
             // An error occurred. Clean up any VPLEX artifacts created for
             // virtual volume and unclaim the storage volumes.
@@ -719,8 +717,10 @@ public class VPlexApiVirtualVolumeManager {
             s_logger.info("Storage volume discovery is not required.");
 
             // Get the cluster information.
-            clusterInfoList.addAll(discoveryMgr.getClusterInfo(false));
-            s_logger.info("Retrieved storage volume info for VPlex clusters");
+            if (clusterInfoList.isEmpty()) {
+                clusterInfoList.addAll(discoveryMgr.getClusterInfo(false));
+                s_logger.info("Retrieved storage volume info for VPlex clusters");
+            }
 
             // Find the backend storage volumes. If a volume cannot be
             // found, then an exception will be thrown.

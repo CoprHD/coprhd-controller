@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 /**
@@ -327,7 +327,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 
     }
 
-    public void testSetContext() throws java.lang.Exception {
+    public synchronized void testSetContext() throws java.lang.Exception {
 
         com.emc.storageos.vasa.VasaServiceStub.SetContext request = (com.emc.storageos.vasa.VasaServiceStub.SetContext) getTestObject(com.emc.storageos.vasa.VasaServiceStub.SetContext.class);
 

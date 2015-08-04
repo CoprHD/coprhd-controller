@@ -11,6 +11,7 @@
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import java.net.URI;
+import java.util.Iterator;
 
 import javax.ws.rs.core.UriInfo;
 
@@ -18,6 +19,8 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Project;
@@ -25,12 +28,11 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
-
 /**
  * 
  */
 public class BlockSnapshotSessionUtils {
-    
+
     /**
      * Returns the volume or block snapshot instance for the passed URI.
      * 
@@ -50,7 +52,7 @@ public class BlockSnapshotSessionUtils {
         ArgValidator.checkEntity(sourceObj, sourceURI, BlockServiceUtils.isIdEmbeddedInURL(sourceURI, uriInfo), true);
         return sourceObj;
     }
-    
+
     /**
      * Returns the project for the snapshot session source.
      * 
@@ -65,19 +67,26 @@ public class BlockSnapshotSessionUtils {
         if (URIUtil.isType(sourceURI, Volume.class)) {
             projectURI = ((Volume) sourceObj).getProject().getURI();
         } else if (URIUtil.isType(sourceURI, BlockSnapshot.class)) {
-            projectURI = ((BlockSnapshot) sourceObj).getProject().getURI();            
+            projectURI = ((BlockSnapshot) sourceObj).getProject().getURI();
         }
-        
+
         if (projectURI == null) {
             throw APIException.badRequests.invalidSnapshotSessionSource(sourceURI.toString());
         }
-        
+
         Project project = dbClient.queryObject(Project.class, projectURI);
         return project;
     }
-    
+
     /**
      * Returns the vpool for the snapshot session source.
+     * 
+     * TBD Future - Tried to write this to be generic such that the source
+     * may be a Volume or BlockSnapshot even though we don't currently support
+     * creating a snapshot session of a BlockSnapshot. However, if we do
+     * support this then we can't assume that parent of the passed source is
+     * a Volume. We may need to do something recursively to get back the
+     * originating source volume for these cascaded snapshots.
      * 
      * @param sourceObj A reference to the Volume or BlockSnapshot instance.
      * @param dbClient A reference to a database client.
@@ -90,23 +99,28 @@ public class BlockSnapshotSessionUtils {
         if (URIUtil.isType(sourceURI, Volume.class)) {
             vpoolURI = ((Volume) sourceObj).getVirtualPool();
         } else if (URIUtil.isType(sourceURI, BlockSnapshot.class)) {
-            // TBD VPLEX. Right now it does not matter because we snap only the source
-            // side, which means the parent volume of the snapshot will have the same
-            // vpool as the VPLEX volume itself. In Darth we may snap both sides, so
-            // this then becomes an issue, as this method is used to determine the
-            // platform specific snapshot session implementation, and we could miss
-            // VPLEX in the case where the snap is of the HA side. It is also
-            // used in validation during snapshot session creation.
-            URI parentVolURI = ((BlockSnapshot) sourceObj).getParent().getURI();
-            Volume parentVolume = dbClient.queryObject(Volume.class, parentVolURI);
+            URI parentURI = ((BlockSnapshot) sourceObj).getParent().getURI();
+            // It may be possible that the source for the snapshot
+            // session is a backend source volume for a VPLEX volume
+            // when we support creating snapshot sessions for VPLEX
+            // volumes backed by storage that supports snapshot sessions.
+            // In this case, we want the VPLEX volume vpool.
+            URIQueryResultList results = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(parentURI.toString()), results);
+            Iterator<URI> resultsIter = results.iterator();
+            if (resultsIter.hasNext()) {
+                parentURI = resultsIter.next();
+            }
+
+            Volume parentVolume = dbClient.queryObject(Volume.class, parentURI);
             vpoolURI = parentVolume.getVirtualPool();
         }
-        
+
         if (vpoolURI == null) {
             throw APIException.badRequests.invalidSnapshotSessionSource(sourceURI.toString());
         }
-        
+
         VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolURI);
         return vpool;
-    }    
+    }
 }

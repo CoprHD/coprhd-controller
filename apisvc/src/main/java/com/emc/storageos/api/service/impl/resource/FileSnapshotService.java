@@ -100,10 +100,8 @@ import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 
 @Path("/file/snapshots")
-@DefaultPermissions(read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        read_acls = { ACL.ANY },
-        write_roles = { Role.TENANT_ADMIN },
-        write_acls = { ACL.ANY })
+@DefaultPermissions(read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, read_acls = { ACL.ANY }, write_roles = {
+        Role.TENANT_ADMIN }, write_acls = { ACL.ANY })
 public class FileSnapshotService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(FileService.class);
@@ -193,8 +191,7 @@ public class FileSnapshotService extends TaskResourceService {
         return project.getTenantOrg().getURI();
     }
 
-    private void verifyFileSnapshotExports(Snapshot snap, FileSystemExportParam param, String path)
-    {
+    private void verifyFileSnapshotExports(Snapshot snap, FileSystemExportParam param, String path) {
         FSExportMap snapExports = snap.getFsExports();
         URI id = snap.getId();
 
@@ -215,8 +212,7 @@ public class FileSnapshotService extends TaskResourceService {
                             break;
                         }
                     }
-                    if (isAlreadyExportedToSameEndpoint)
-                    {
+                    if (isAlreadyExportedToSameEndpoint) {
                         _log.info(String.format(
                                 "Existing Export params for Snapshot id: %1$s,  SecurityType: %2$s, " +
                                         "Permissions: %3$s, Root user mapping: %4$s, ",
@@ -414,8 +410,7 @@ public class FileSnapshotService extends TaskResourceService {
 
     }
 
-    private List<FileExportRule> queryDBSnapshotExports(Snapshot snapshot)
-    {
+    private List<FileExportRule> queryDBSnapshotExports(Snapshot snapshot) {
         _log.info("Querying all ExportRules Using Snapshot Id {}", snapshot.getId());
         try {
             ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getSnapshotExportRulesConstraint(snapshot.getId());
@@ -768,7 +763,8 @@ public class FileSnapshotService extends TaskResourceService {
                 task, ResourceOperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE);
         FileSMBShare fileSMBShare = new FileSMBShare(shareName, smbShare.getDescription(),
                 smbShare.getPermissionType(), smbShare.getPermission(), Integer.toString(smbShare
-                        .getMaxUsers()), smbShare.getNativeId(), smbShare.getPath());
+                        .getMaxUsers()),
+                smbShare.getNativeId(), smbShare.getPath());
         controller.deleteShare(device.getId(), snap.getId(), fileSMBShare, task);
         auditOp(OperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE, true, AuditLogManager.AUDITOP_BEGIN,
                 smbShare.getName(), smbShare.getPermissionType(), smbShare.getPermission(),
@@ -1026,10 +1022,11 @@ public class FileSnapshotService extends TaskResourceService {
                     op = _dbClient.createTaskOpStatus(Snapshot.class, snap
                             .getId(), task, ResourceOperationTypeEnum.DELETE_FILE_SNAPSHOT);
                     controller.delete(device.getId(), null, snap.getId(),
-                            false, task);
+                            false, "FULL", task);
                     auditOp(OperationTypeEnum.DELETE_FILE_SNAPSHOT, true,
                             AuditLogManager.AUDITOP_BEGIN, snap.getId()
-                                    .toString(), device.getId().toString());
+                                    .toString(),
+                            device.getId().toString());
                 }
             }
 
@@ -1090,8 +1087,7 @@ public class FileSnapshotService extends TaskResourceService {
     @Override
     public FileSnapshotBulkRep queryBulkResourceReps(List<URI> ids) {
 
-        Iterator<Snapshot> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<Snapshot> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new FileSnapshotBulkRep(BulkList.wrapping(_dbIterator, MapFileSnapshot.getInstance()));
     }
 
@@ -1099,8 +1095,7 @@ public class FileSnapshotService extends TaskResourceService {
     protected BulkRestRep queryFilteredBulkResourceReps(
             List<URI> ids) {
 
-        Iterator<Snapshot> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<Snapshot> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         ResourceFilter<Snapshot> filter = new FileSnapshotFilter(getUserFromContext(), _permissionsHelper);
         return new FileSnapshotBulkRep(BulkList.wrapping(_dbIterator, MapFileSnapshot.getInstance(), filter));
     }
@@ -1154,7 +1149,8 @@ public class FileSnapshotService extends TaskResourceService {
         } else {
             _dbClient.queryByConstraint(
                     ContainmentPrefixConstraint.Factory.getSnapshotUnderProjectConstraint(
-                            projectId, name), resRepList);
+                            projectId, name),
+                    resRepList);
         }
         return resRepList;
     }

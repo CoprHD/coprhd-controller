@@ -11,7 +11,6 @@ import java.util.List;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.block.BlockConsistencyGroupBulkRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupCreate;
@@ -64,7 +63,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
     public Task<BlockConsistencyGroupRestRep> getTask(URI id, URI taskId) {
         return doGetTask(id, taskId);
     }
-    
+
     /**
      * Begins creating a full copy of the given block volume.
      * <p>
@@ -77,73 +76,184 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * @return tasks for monitoring the progress of the operation(s).
      */
     public Tasks<BlockConsistencyGroupRestRep> createFullCopy(URI consistencyGroupId, VolumeFullCopyCreateParam input) {
-    	final String url = getIdUrl() + "/protection/full-copies";
-    	return postTasks(input, url, consistencyGroupId);
+        final String url = getIdUrl() + "/protection/full-copies";
+        return postTasks(input, url, consistencyGroupId);
     }
-    
+
+    /**
+     * List full copies for a consistency group
+     * <p>
+     * API Call: <tt>GET /block/consistency-groups/{id}/protection/full-copies</tt>
+     * 
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @return The list of full copies for the consistency group
+     */
     public List<NamedRelatedResourceRep> getFullCopies(URI consistencyGroupId) {
-    	final String url = getIdUrl() + "/protection/full-copies";
+        final String url = getIdUrl() + "/protection/full-copies";
         NamedVolumesList response = client.get(NamedVolumesList.class, url, consistencyGroupId);
         return defaultList(response.getVolumes());
     }
-    
-    public Tasks<BlockConsistencyGroupRestRep> activateFullCopy(URI consistencyGroupId, URI fullCopyId){
-    	final String url = getIdUrl() + "/protection/full-copies/{fcid}/activate";
-    	return postTasks(url, consistencyGroupId, fullCopyId);
-    }
-    
-    public Tasks<BlockConsistencyGroupRestRep> detachFullCopy(URI consistencyGroupId, URI fullCopyId){
-    	final String url = getIdUrl() + "/protection/full-copies/{fcid}/detach";
-    	return postTasks(url, consistencyGroupId, fullCopyId);
-    }
-    
-    public Tasks<BlockConsistencyGroupRestRep> restoreFullCopy(URI consistencyGroupId, URI fullCopyId){
-    	final String url = getIdUrl() + "/protection/full-copies/{fcid}/restore";
-    	return postTasks(url, consistencyGroupId, fullCopyId);
-    }
-    
-    public Tasks<BlockConsistencyGroupRestRep> resynchronizeFullCopy(URI consistencyGroupId, URI fullCopyId){
-    	final String url = getIdUrl() + "/protection/full-copies/{fcid}/resynchronize";
-    	return postTasks(url, consistencyGroupId, fullCopyId);
-    }
-    
-    public Tasks<BlockConsistencyGroupRestRep> deactivateFullCopy(URI consistencyGroupId, URI fullCopyId){
-    	final String url = getIdUrl() + "/protection/full-copies/{fcid}/deactivate";
-    	return postTasks(url, consistencyGroupId, fullCopyId);
-    }
-    
-    /*
-     * TODO
-     * Snapshots
+
+    /**
+     * Activate consistency group full copy
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/full-copies/{fcid}/activate</tt>
+     * 
+     * @param consistencyGroupId
+     *            the ID of the consistency group.
+     * @param fullCopyId
+     *            the Id of the full copy
+     * @return An asychronous operation realized as a <code>Tasks</code> object
      */
-    
+    public Tasks<BlockConsistencyGroupRestRep> activateFullCopy(URI consistencyGroupId, URI fullCopyId) {
+        final String url = getIdUrl() + "/protection/full-copies/{fcid}/activate";
+        return postTasks(url, consistencyGroupId, fullCopyId);
+    }
+
+    /**
+     * Detach consistency group full copy
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/full-copies/{fcid}/detach</tt>
+     * 
+     * @param consistencyGroupId
+     *            the ID of the consistency group.
+     * @param fullCopyId
+     *            the Id of the full copy
+     * @return An asychronous operation realized as a <code>Tasks</code> object
+     */
+    public Tasks<BlockConsistencyGroupRestRep> detachFullCopy(URI consistencyGroupId, URI fullCopyId) {
+        final String url = getIdUrl() + "/protection/full-copies/{fcid}/detach";
+        return postTasks(url, consistencyGroupId, fullCopyId);
+    }
+
+    /**
+     * Restore consistency group full copy
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/full-copies/{fcid}/restore</tt>
+     * 
+     * @param consistencyGroupId
+     *            the ID of the consistency group.
+     * @param fullCopyId
+     *            the Id of the full copy
+     * @return An asychronous operation realized as a <code>Tasks</code> object
+     */
+    public Tasks<BlockConsistencyGroupRestRep> restoreFullCopy(URI consistencyGroupId, URI fullCopyId) {
+        final String url = getIdUrl() + "/protection/full-copies/{fcid}/restore";
+        return postTasks(url, consistencyGroupId, fullCopyId);
+    }
+
+    /**
+     * Resynchronize consistency group full copy
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/full-copies/{fcid}/resynchronize</tt>
+     * 
+     * @param consistencyGroupId
+     *            the ID of the consistency group.
+     * @param fullCopyId
+     *            the Id of the full copy
+     * @return An asychronous operation realized as a <code>Tasks</code> object
+     */
+    public Tasks<BlockConsistencyGroupRestRep> resynchronizeFullCopy(URI consistencyGroupId, URI fullCopyId) {
+        final String url = getIdUrl() + "/protection/full-copies/{fcid}/resynchronize";
+        return postTasks(url, consistencyGroupId, fullCopyId);
+    }
+
+    /**
+     * Deactivate consistency group full copy
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/full-copies/{fcid}/deactivate</tt>
+     * 
+     * @param consistencyGroupId
+     *            the ID of the consistency group.
+     * @param fullCopyId
+     *            the Id of the full copy
+     * @return An asychronous operation realized as a <code>Tasks</code> object
+     */
+    public Tasks<BlockConsistencyGroupRestRep> deactivateFullCopy(URI consistencyGroupId, URI fullCopyId) {
+        final String url = getIdUrl() + "/protection/full-copies/{fcid}/deactivate";
+        return postTasks(url, consistencyGroupId, fullCopyId);
+    }
+
+    /**
+     * List snapshots in the consistency group
+     * <p>
+     * API Call: <tt>GET /block/consistency-groups/{id}/protection/snapshots</tt>
+     * 
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @return The list of snapshots in the consistency group
+     */
     public List<NamedRelatedResourceRep> getSnapshots(URI consistencyGroupId) {
-    	final String url = getIdUrl() + "/protection/snapshots";
-    	SnapshotList response = client.get(SnapshotList.class, url, consistencyGroupId);
+        final String url = getIdUrl() + "/protection/snapshots";
+        SnapshotList response = client.get(SnapshotList.class, url, consistencyGroupId);
         return response.getSnapList();
     }
-    
+
+    /**
+     * Create consistency group snapshot
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/snapshots</tt>
+     * 
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @param input
+     *            the create snapshot specification
+     * @return An asychronous operation realized as a <code>Tasks</code> object
+     */
     public Tasks<BlockConsistencyGroupRestRep> createSnapshot(URI consistencyGroupId, BlockConsistencyGroupSnapshotCreate input) {
-    	final String url = getIdUrl() + "/protection/snapshots";
-    	return postTasks(input, url, consistencyGroupId);
+        final String url = getIdUrl() + "/protection/snapshots";
+        return postTasks(input, url, consistencyGroupId);
     }
-    
-    public Task<BlockConsistencyGroupRestRep> activateSnapshot(URI consistencyGroupId, URI snapshotId){
-    	final String url = getIdUrl() + "/protection/snapshots/{fcid}/activate";
-    	return postTask(url, consistencyGroupId, snapshotId);
+
+    /**
+     * Activate consistency group snapshot
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/snapshots/{sid}/activate</tt>
+     * 
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @param snapshotId
+     *            the ID of the snapshot
+     * @return An asychronous operation realized as a <code>Task</code> object
+     */
+    public Task<BlockConsistencyGroupRestRep> activateSnapshot(URI consistencyGroupId, URI snapshotId) {
+        final String url = getIdUrl() + "/protection/snapshots/{fcid}/activate";
+        return postTask(url, consistencyGroupId, snapshotId);
     }
-    
-    public Tasks<BlockConsistencyGroupRestRep> deactivateSnapshot(URI consistencyGroupId, URI snapshotId){
-    	final String url = getIdUrl() + "/protection/snapshots/{fcid}/deactivate";
-    	return postTasks(url, consistencyGroupId, snapshotId);
+
+    /**
+     * Deactivate consistency group snapshot
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/snapshots/{sid}/deactivate</tt>
+     * 
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @param snapshotId
+     *            the ID of the snapshot
+     * @return An asychronous operation realized as a <code>Tasks</code> object
+     */
+    public Tasks<BlockConsistencyGroupRestRep> deactivateSnapshot(URI consistencyGroupId, URI snapshotId) {
+        final String url = getIdUrl() + "/protection/snapshots/{fcid}/deactivate";
+        return postTasks(url, consistencyGroupId, snapshotId);
     }
-    
-    public Task<BlockConsistencyGroupRestRep> restoreSnapshot(URI consistencyGroupId, URI snapshotId){
-    	final String url = getIdUrl() + "/protection/snapshots/{fcid}/restore";
-    	return postTask(url, consistencyGroupId, snapshotId);
+
+    /**
+     * Restore consistency group snapshot
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/snapshots/{sid}/restore</tt>
+     * 
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @param snapshotId
+     *            the ID of the snapshot
+     * @return An asychronous operation realized as a <code>Task</code> object
+     */
+    public Task<BlockConsistencyGroupRestRep> restoreSnapshot(URI consistencyGroupId, URI snapshotId) {
+        final String url = getIdUrl() + "/protection/snapshots/{fcid}/restore";
+        return postTask(url, consistencyGroupId, snapshotId);
     }
-    
-    
+
     /**
      * Creates a block consistency group.
      * <p>

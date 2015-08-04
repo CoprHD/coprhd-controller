@@ -12,7 +12,7 @@ ext {
         log4j,
         "jline:jline:0.9.94",
         "org.jboss.netty:netty:3.2.8.Final",
-        "org.apache.zookeeper:zookeeper:3.4.6-11-vipr"
+        "org.apache.zookeeper:zookeeper:3.4.6"
     ]
 
     rsa_bsafe = [

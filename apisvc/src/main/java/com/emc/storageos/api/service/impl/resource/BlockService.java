@@ -3402,7 +3402,7 @@ public class BlockService extends TaskResourceService {
                     resourceTask.setMessage(errorMsg);
                     _dbClient.error(Volume.class, resourceTask.getResource().getId(), taskId,
                             InternalServerErrorException.internalServerErrors
-                                    .UnexpectedErrorDuringVarrayChange(e));
+                                    .unexpectedErrorDuringVarrayChange(e));
                 }
             }
         } else {
@@ -3433,7 +3433,7 @@ public class BlockService extends TaskResourceService {
                             resourceTask.setMessage(errorMsg);
                             _dbClient.error(Volume.class, resourceTask.getResource().getId(), taskId,
                                     InternalServerErrorException.internalServerErrors
-                                            .UnexpectedErrorDuringVarrayChange(e));
+                                            .unexpectedErrorDuringVarrayChange(e));
                         }
                     }
                 }

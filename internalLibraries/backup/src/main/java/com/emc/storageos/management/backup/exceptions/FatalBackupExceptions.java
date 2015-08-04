@@ -107,7 +107,7 @@ public interface FatalBackupExceptions {
     public FatalBackupException noNeedBackup();
 
     @DeclareServiceCode(ServiceCode.BACKUP_DISABLED_AS_DISK_FULL)
-    public FatalBackupException backupDisabledAsDiskFull(final int ActualPercentage, final int maxPercentage);
+    public FatalBackupException backupDisabledAsDiskFull(final int actualPercentage, final int maxPercentage);
 
     @DeclareServiceCode(ServiceCode.BACKUP_INTERNAL_ERROR)
     public FatalBackupException failedToGetValidDualInetAddress(final String message);

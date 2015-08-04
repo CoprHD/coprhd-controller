@@ -29,8 +29,10 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StorageTier;
 import com.emc.storageos.db.client.model.StringSet;
@@ -50,6 +52,7 @@ import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.MigrationRestRep;
 import com.emc.storageos.model.block.UnManagedExportMaskRestRep;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
@@ -274,6 +277,79 @@ public class BlockMapper {
         to.setNewVolumeNativeId(from.getNewVolumeNativeId());
         to.setSourceNativeId(from.getSourceNativeId());
         to.setSyncActive(from.getIsSyncActive());
+        return to;
+    }
+
+    /**
+     * Maps a BlockSnapshotSession instance to its Rest representation.
+     * 
+     * @param dbClient A reference to a database client.
+     * @param from An instance of BlockSnapshotSession.
+     * 
+     * @return An instance of BlockSnapshotSessionRestRep
+     */
+    public static BlockSnapshotSessionRestRep map(DbClient dbClient, BlockSnapshotSession from) {
+        if (from == null) {
+            return null;
+        }
+        BlockSnapshotSessionRestRep to = new BlockSnapshotSessionRestRep();
+
+        // Map base class fields.
+        mapDataObjectFields(from, to);
+
+        // Map snapshot session parent i.e., the snapshot session source.
+        NamedURI parentNamedURI = from.getParent();
+        if (parentNamedURI != null) {
+            URI parentURI = parentNamedURI.getURI();
+
+            // It may be possible that the source for the snapshot
+            // session is a backend source volume for a VPLEX volume
+            // if we support creating snapshot sessions for VPLEX
+            // volumes backed by storage that supports snapshot sessions.
+            // In this case, the parent we want to reflect in the response
+            // is the VPLEX volume.
+            URIQueryResultList results = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(parentURI.toString()), results);
+            Iterator<URI> resultsIter = results.iterator();
+            if (resultsIter.hasNext()) {
+                parentURI = resultsIter.next();
+            }
+
+            // This theoretically could be a Volume or BlockSnspshot instance
+            // when we support creating a snapshot session of a linked target
+            // volume for an array snapshot, which is a BlockSnapshot.
+            if (URIUtil.isType(parentURI, Volume.class)) {
+                to.setParent(toRelatedResource(ResourceTypeEnum.VOLUME, parentURI));
+            }
+            else {
+                to.setParent(toRelatedResource(ResourceTypeEnum.BLOCK_SNAPSHOT, parentURI));
+            }
+        }
+
+        // Map project
+        NamedURI projectURI = from.getProject();
+        if (projectURI != null) {
+            to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, projectURI.getURI()));
+        }
+
+        // Map linked targets.
+        StringSet linkedTargetIds = from.getLinkedTargets();
+        if ((linkedTargetIds != null) && (!linkedTargetIds.isEmpty())) {
+            List<RelatedResourceRep> linkedTargetReps = new ArrayList<RelatedResourceRep>();
+            for (String linkedTargetId : linkedTargetIds) {
+                URI linkedTargetURI = URI.create(linkedTargetId);
+                // Linked targets are instances of BlockSnapshot.
+                linkedTargetReps.add(toRelatedResource(ResourceTypeEnum.BLOCK_SNAPSHOT, linkedTargetURI));
+            }
+            to.setLinkedTargets(linkedTargetReps);
+        }
+
+        // Map session label.
+        to.setSessionLabel(from.getSessionLabel());
+
+        // Map is sync active.
+        to.setSyncActive(from.getIsSyncActive());
+
         return to;
     }
 

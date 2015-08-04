@@ -75,9 +75,9 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     }
 
     @Override
-    public void delete(URI storage, URI pool, URI uri, boolean forceDelete, String opId)
+    public void delete(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId)
             throws InternalException {
-        execFS("delete", storage, pool, uri, forceDelete, opId);
+        execFS("delete", storage, pool, uri, forceDelete, deleteType, opId);
     }
 
     @Override

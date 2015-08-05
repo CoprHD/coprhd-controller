@@ -878,14 +878,28 @@ public class CinderExportOperations implements ExportMaskOperations {
         			//Format is - <InitiatorWWPN>-<TargetWWPN>-<LunId>
         			String itl = initiatorWWPN +"-"+ targetPortWWN +"-"+ String.valueOf(targetLunId);
         			
-        			log.info(String.format("Adding ITL %s", itl));
         			//ITL keys will be formed as ITL-00, ITL-01, ITL-10, ITL-11 so on
-        			volume.getExtensions().put(CinderConstants.PREFIX_ITL+String.valueOf(initiatorIndex)+String.valueOf(targetIndex), itl);
+        			String itlKey = CinderConstants.PREFIX_ITL+String.valueOf(initiatorIndex)+String.valueOf(targetIndex);
+        			log.info(String.format("Adding ITL %s with key %s", itl, itlKey));
+        			StringMap extensionsMap = volume.getExtensions();        			
+        			if(null==extensionsMap)
+        			{
+        				extensionsMap = new StringMap();
+        				extensionsMap.put(itlKey, itl);
+        				volume.setExtensions(extensionsMap);
+        			}
+        			else
+        			{
+            			volume.getExtensions().put(itlKey, itl);
+        			}
+        			
         			targetIndex++;
         		}
         		
         		initiatorIndex++;
         	}
+        	
+        	dbClient.updateAndReindexObject(volume);
         	
         }
     	

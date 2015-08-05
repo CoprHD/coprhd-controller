@@ -356,6 +356,7 @@ public class VPlexApiDiscoveryManager {
                 }
             }
         } catch (Exception e) {
+        	s_logger.error(e.getLocalizedMessage(), e);
             throw VPlexApiException.exceptions.errorProcessingClusterInfo(e.getLocalizedMessage());
         }
 
@@ -1212,7 +1213,7 @@ public class VPlexApiDiscoveryManager {
         uriBuilder.append(VPlexApiConstants.URI_STORAGE_VOLUMES_DETAILS.toString());
         URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
         s_logger.info("Storage Volumes Request URI is {}", requestURI.toString());
-        ClientResponse response = _vplexApiClient.get(requestURI);
+        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
         String responseStr = response.getEntity(String.class);
         s_logger.info("Response is {}", responseStr);
         int status = response.getStatus();

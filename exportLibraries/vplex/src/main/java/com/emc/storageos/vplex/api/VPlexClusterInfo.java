@@ -206,9 +206,10 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
                 s_logger.info("Trimmed cluster volume name is {}", clusterVolumeName);
                 
                 s_logger.info("Doing the ITLs lookup");
-                if(!storageVolumeInfo.getItls().isEmpty())
+                List<String> vplexVolItls = storageVolumeInfo.getItls();
+                if(null!=vplexVolItls && !vplexVolItls.isEmpty())
                 {
-                	if(storageVolumeInfo.getItls().contains(backendVolumeItlsList.get(0)))
+                	if(vplexVolItls.contains(backendVolumeItlsList.get(0).trim().toLowerCase()))
                 	{
                 		s_logger.info("Found volume '{}' using ITL lookup", storageVolumeName);
                 		return storageVolumeInfo;

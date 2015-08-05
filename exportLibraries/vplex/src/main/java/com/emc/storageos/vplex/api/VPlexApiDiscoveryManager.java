@@ -1328,7 +1328,7 @@ public class VPlexApiDiscoveryManager {
      * @throws VPlexApiException If a VPlex request returns a failed status or
      *             an error occurs processing the response.
      */
-    private List<VPlexStorageVolumeITLsInfo> getStorageVolumeITLInfoForCluster(String clusterName)
+    public List<VPlexStorageVolumeITLsInfo> getStorageVolumeITLInfoForCluster(String clusterName)
             throws VPlexApiException
     {
     	// Get the URI for the storage volume details request and make the request.

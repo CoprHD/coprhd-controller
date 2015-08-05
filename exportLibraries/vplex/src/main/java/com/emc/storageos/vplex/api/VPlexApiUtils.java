@@ -358,7 +358,7 @@ public class VPlexApiUtils {
      * @param volInfo
      * @return
      */
-    public static boolean isITLFetch(List<VolumeInfo> volInfos)
+    public static boolean isCinder(List<VolumeInfo> volInfos)
     {
     	boolean isFetch = false;
     	VolumeInfo vi = volInfos.get(0);

@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.vplex.api.VPlexApiBackendSystemType;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
+import com.emc.storageos.vplex.api.clientdata.formatter.CinderVPlexVolumeNameFormatter;
 import com.emc.storageos.vplex.api.clientdata.formatter.DefaultVplexVolumeNameFormatter;
 import com.emc.storageos.vplex.api.clientdata.formatter.XtremioVplexVolumeNameFormatter;
 
@@ -173,6 +174,9 @@ public class VolumeInfo implements Serializable {
                 case XTREMIO:
                     _volumeName = new XtremioVplexVolumeNameFormatter(this).format();
                     break;
+                case OPENSTACK:
+                	_volumeName = new CinderVPlexVolumeNameFormatter(this).format();
+                	break;
                 default:
                     _volumeName = new DefaultVplexVolumeNameFormatter(this).format();
                     break;

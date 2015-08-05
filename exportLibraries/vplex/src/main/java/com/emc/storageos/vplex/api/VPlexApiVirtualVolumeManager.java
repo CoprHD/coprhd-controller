@@ -97,7 +97,7 @@ public class VPlexApiVirtualVolumeManager {
             clusterInfoList = new ArrayList<VPlexClusterInfo>();
         }
         
-        boolean isCinderStorage = VPlexApiUtils.isITLFetch(nativeVolumeInfoList);
+        boolean isCinderStorage = VPlexApiUtils.isCinder(nativeVolumeInfoList);
         
         Map<VolumeInfo, T> storageVolumeInfoMap = null;
         if(isCinderStorage)
@@ -737,8 +737,12 @@ public class VPlexApiVirtualVolumeManager {
             s_logger.info("Storage volume discovery is not required.");
 
             // Get the cluster information.
-            clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, false));
-            s_logger.info("Retrieved storage volume info for VPlex clusters");
+            if(clusterInfoList.isEmpty())
+            {
+            	clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, false));
+                s_logger.info("Retrieved storage volume info for VPlex clusters");
+            }
+            
 
             // Find the backend storage volumes. If a volume cannot be
             // found, then an exception will be thrown.
@@ -773,23 +777,17 @@ public class VPlexApiVirtualVolumeManager {
         // to give the newly exported volumes some time to be accessible by
         // the VPlex.
         Map<VolumeInfo, VPlexStorageVolumeITLsInfo> storageVolumeInfoMap = new HashMap<VolumeInfo, VPlexStorageVolumeITLsInfo>();
-        boolean isCinderStorage = false;
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
         if (discoveryRequired) 
         {
             refreshStorageVolumes(nativeVolumeInfoList, clusterInfoList,
-            		              storageVolumeInfoMap, discoveryMgr);
+            		              storageVolumeInfoMap, discoveryMgr, true);
         } 
         else
         {
             s_logger.info("Storage volume discovery is not required.");
 
-            // Get the cluster information.
-            if (clusterInfoList.isEmpty()) 
-            {
-            	clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, isCinderStorage));
-                s_logger.info("Retrieved storage volume info for VPlex clusters");
-            }
+            getClusterInfo(clusterInfoList, true, discoveryMgr);
 
             // Find the backend storage volumes. If a volume cannot be
             // found, then an exception will be thrown.
@@ -799,6 +797,35 @@ public class VPlexApiVirtualVolumeManager {
 
         return storageVolumeInfoMap;
     }
+
+	/**
+	 * Gets the cluster info if the passed clusterInfoLoist is empty,
+	 * otherwise just fetches storage volume details with ITLs for
+	 * each cluster.
+	 * 
+	 * @param clusterInfoList
+	 * @param isCinderStorage
+	 * @param discoveryMgr
+	 */
+	private void getClusterInfo(List<VPlexClusterInfo> clusterInfoList,
+			               boolean isCinderStorage,
+			               VPlexApiDiscoveryManager discoveryMgr)
+	{
+		// Get the cluster information.
+		if (clusterInfoList.isEmpty()) 
+		{
+			clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, isCinderStorage));
+		    s_logger.info("Retrieved storage volume info for VPlex clusters");
+		}
+		else
+		{
+			for(VPlexClusterInfo clusterInfo : clusterInfoList)
+			{
+				clusterInfo.setStorageVolumeITLsInfoList(
+						discoveryMgr.getStorageVolumeITLInfoForCluster(clusterInfo.getName()));
+			}
+		}
+	}
 
 	/**
 	 * Rediscover storage systems to fetch newly created storage volumes
@@ -813,9 +840,8 @@ public class VPlexApiVirtualVolumeManager {
 	private void refreshStorageVolumes(List<VolumeInfo> nativeVolumeInfoList,
 			                           List<VPlexClusterInfo> clusterInfoList,
 			                           Map<VolumeInfo, VPlexStorageVolumeITLsInfo> storageVolumeInfoMap,
-			                           VPlexApiDiscoveryManager discoveryMgr)
+			                           VPlexApiDiscoveryManager discoveryMgr, boolean isCinderStorage)
     {
-		boolean isCinderStorage = false;
 		s_logger.info("Storage volume discovery is required.");
 		int retryCount = 0;
 		while (++retryCount <= VPlexApiConstants.FIND_STORAGE_VOLUME_RETRY_COUNT)
@@ -838,10 +864,8 @@ public class VPlexApiVirtualVolumeManager {
 		        discoveryMgr.rediscoverStorageSystems(storageSystemGuids);
 		        s_logger.info("Discovery completed");
 
-		        //Get the cluster information.
-		        isCinderStorage = VPlexApiUtils.isITLFetch(nativeVolumeInfoList);
-		        clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, isCinderStorage));
-		        s_logger.info("Retrieved storage volume info for VPlex clusters");
+		        getClusterInfo(clusterInfoList, isCinderStorage, discoveryMgr);
+		        
 
 		        // Find the back-end storage volumes. If a volume cannot be
 		        // found, an exception is thrown.

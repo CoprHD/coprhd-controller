@@ -157,7 +157,11 @@ public class FileDeviceController implements FileController {
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
+<<<<<<< HEAD
                 URI.create("ViPR-User"),    // user ID TODO when AAA fixed
+=======
+                URI.create("ViPR-User"),  // user ID TODO when AAA fixed
+>>>>>>> 61cefd7ecd358987235c151305a46fb25dd7b8e5
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -189,7 +193,11 @@ public class FileDeviceController implements FileController {
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
+<<<<<<< HEAD
                 URI.create("ViPR-User"),    // user ID TODO when AAA fixed
+=======
+                URI.create("ViPR-User"),  // user ID TODO when AAA fixed
+>>>>>>> 61cefd7ecd358987235c151305a46fb25dd7b8e5
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -388,9 +396,12 @@ public class FileDeviceController implements FileController {
                     }
                     deleteShareACLsFromDB(args);
                     doDeleteExportRulesFromDB(true, null, args);
+<<<<<<< HEAD
                     SMBShareMap cifsSharesMap = args.getFileObjShares();
                     cifsSharesMap.clear();
                     fsObj.setInactive(true);
+=======
+>>>>>>> 61cefd7ecd358987235c151305a46fb25dd7b8e5
                     generateZeroStatisticsRecord(fsObj);
                 }
                 _dbClient.persistObject(fsObj);
@@ -550,7 +561,11 @@ public class FileDeviceController implements FileController {
 
             if (result.getCommandPending()) {
                 return;
+<<<<<<< HEAD
             }                  // Set Mount path info for the exports
+=======
+            }                // Set Mount path info for the exports
+>>>>>>> 61cefd7ecd358987235c151305a46fb25dd7b8e5
             FSExportMap fsExports = fsObj.getFsExports();
 
             // Per New model get the rules and see if any rules that are already saved and available.

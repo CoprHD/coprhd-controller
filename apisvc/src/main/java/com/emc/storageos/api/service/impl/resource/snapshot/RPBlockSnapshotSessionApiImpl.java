@@ -1,17 +1,11 @@
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
+/*
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import java.net.URI;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -61,7 +55,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj, List<BlockObject> sourceObjList, Project project,
-            String name, boolean createInactive, int newTargetsCount, String newTargetCopyMode, BlockFullCopyManager fcManager) {
+            String name, int newTargetsCount, String newTargetCopyMode, BlockFullCopyManager fcManager) {
         // TBD Future - Other platforms that support creation of arrays snapshots
         // without linked targets. Also RP protected VPLEX volumes backed by VMAX3
         // and these other platforms.
@@ -78,21 +72,21 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
                 && (srcSystem.checkIfVmax3())) {
             BlockSnapshotSessionApi vmax3Impl = _blockSnapshotSessionMgr
                     .getPlatformSpecificImpl(BlockSnapshotSessionManager.SnapshotSessionImpl.vmax3);
-            vmax3Impl.validateSnapshotSessionCreateRequest(requestedSourceObj, sourceObjList, project, name, createInactive,
-                    newTargetsCount, newTargetCopyMode, fcManager);
+            vmax3Impl.validateSnapshotSessionCreateRequest(requestedSourceObj, sourceObjList, project, name, newTargetsCount,
+                    newTargetCopyMode, fcManager);
         } else {
             throw APIException.badRequests.createSnapSessionNotSupportedForRPProtected();
         }
     }
 
     @Override
-    protected Map<URI, BlockSnapshot> prepareSnapshotsForSession(int newTargetCount, BlockObject sourceObj, String sessionLabel,
+    protected List<URI> prepareSnapshotsForSession(int newTargetCount, BlockObject sourceObj, String sessionLabel,
             String sessionInstanceLabel) {
-        Map<URI, BlockSnapshot> snapshotsMap = new HashMap<URI, BlockSnapshot>();
+        List<URI> snapshotURIs = new ArrayList<URI>();
         for (int i = 1; i <= newTargetCount; i++) {
         }
 
-        return snapshotsMap;
+        return snapshotURIs;
     }
 
     /**
@@ -100,7 +94,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
-            Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap, String copyMode, boolean createInactive, String taskId) {
+            Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, Boolean createInactive, String taskId) {
         BlockSnapshotSessionApi vmax3Impl = _blockSnapshotSessionMgr
                 .getPlatformSpecificImpl(BlockSnapshotSessionManager.SnapshotSessionImpl.vmax3);
         vmax3Impl.createSnapshotSession(sourceObj, snapSessionURIs, snapSessionSnapshotMap, copyMode, createInactive, taskId);

@@ -1,12 +1,6 @@
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
+/*
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
@@ -34,7 +28,6 @@ import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.BlockSnapshotSession.CopyMode;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -167,7 +160,7 @@ public class BlockSnapshotSessionManager {
 
         // Get whether or not the snapshot session should be created inactive.
         // Check if the request calls for activation of the snapshot session.
-        boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE : param.getCreateInactive();
+        Boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE : param.getCreateInactive();
 
         // Get the target device information, if any.
         int newLinkedTargetsCount = 0;
@@ -196,7 +189,7 @@ public class BlockSnapshotSessionManager {
 
         // Validate the create snapshot session request.
         snapSessionApiImpl.validateSnapshotSessionCreateRequest(snapSessionSourceObj, snapSessionSourceObjList, project, snapSessionLabel,
-                createInactive, newLinkedTargetsCount, newTargetsCopyMode, fcManager);
+                newLinkedTargetsCount, newTargetsCopyMode, fcManager);
 
         // Create a unique task identifier.
         String taskId = UUID.randomUUID().toString();
@@ -205,7 +198,7 @@ public class BlockSnapshotSessionManager {
         // instances for any new targets to be created and linked to the
         // snapshot sessions.
         List<URI> snapSessionURIs = new ArrayList<URI>();
-        Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap = new HashMap<URI, Map<URI, BlockSnapshot>>();
+        Map<URI, List<URI>> snapSessionSnapshotMap = new HashMap<URI, List<URI>>();
         List<BlockSnapshotSession> snapSessions = snapSessionApiImpl.prepareSnapshotSessions(snapSessionSourceObjList, snapSessionLabel,
                 newLinkedTargetsCount, snapSessionURIs, snapSessionSnapshotMap, taskId);
 

@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -64,6 +65,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
      * @return
      * @throws ControllerException
      */
+    @Override
     protected Controller lookupDeviceController(DiscoveredSystemObject device)
             throws ControllerException {
         if (device == null) {
@@ -101,15 +103,18 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
         queueTask(_dbClient, StorageSystem.class, _dispatcher, methodName, args);
     }
 
+    @Override
     public void createVolumes(URI storage, URI pool, List<URI> volumes, VirtualPoolCapabilityValuesWrapper capabilities, String opId)
             throws InternalException {
         blockRMI("createVolumes", storage, pool, volumes, capabilities, opId);
     }
 
+    @Override
     public void modifyVolumes(URI storage, URI pool, List<URI> volumes, String opId) throws InternalException {
         blockRMI("modifyVolumes", storage, pool, volumes, opId);
     }
 
+    @Override
     public void createMetaVolume(URI storage, URI pool, URI volume, VirtualPoolCapabilityValuesWrapper capabilities, String opId)
             throws InternalException {
         blockRMI("createMetaVolume", storage, pool, volume, capabilities, opId);
@@ -423,4 +428,10 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
 
     }
 
+    @Override
+    public void createSnapshotSession(URI storage, List<URI> snapSessionURIs, Map<URI, List<URI>> sessionSnapshotURIMap, String copyMode,
+            Boolean createInactive, String opId)
+            throws InternalException {
+        blockRMI("createSnapshotSession", storage, snapSessionURIs, sessionSnapshotURIMap, copyMode, createInactive, opId);
+    }
 }

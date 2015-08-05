@@ -1,18 +1,11 @@
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
+/*
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,8 +14,10 @@ import javax.ws.rs.core.SecurityContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.Controller;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
+import com.emc.storageos.api.service.impl.resource.BlockServiceApi;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
@@ -110,7 +105,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj, List<BlockObject> sourceObjList, Project project,
-            String name, boolean createInactive, int newTargetsCount, String newTargetCopyMode, BlockFullCopyManager fcManager) {
+            String name, int newTargetsCount, String newTargetCopyMode, BlockFullCopyManager fcManager) {
 
         // Validate the project tenant.
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
@@ -237,7 +232,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public List<BlockSnapshotSession> prepareSnapshotSessions(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
-            List<URI> snapSessionURIs, Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap, String taskId) {
+            List<URI> snapSessionURIs, Map<URI, List<URI>> snapSessionSnapshotMap, String taskId) {
 
         int sourceCount = 1;
         List<BlockSnapshotSession> snapSessions = new ArrayList<BlockSnapshotSession>();
@@ -253,14 +248,14 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
             // If new targets are to be created and linked to the snapshot session, prepare
             // the BlockSnapshot instances to represent those targets.
             if (newTargetCount > 0) {
-                Map<URI, BlockSnapshot> snapshotsMap = prepareSnapshotsForSession(newTargetCount, sourceObj, snapSessionLabel,
+                List<URI> snapshotURIs = prepareSnapshotsForSession(newTargetCount, sourceObj, snapSessionLabel,
                         instanceLabel);
                 StringSet linkedTargetIds = new StringSet();
-                for (URI snapshotURI : snapshotsMap.keySet()) {
+                for (URI snapshotURI : snapshotURIs) {
                     linkedTargetIds.add(snapshotURI.toString());
                 }
                 snapSession.setLinkedTargets(linkedTargetIds);
-                snapSessionSnapshotMap.put(snapSession.getId(), snapshotsMap);
+                snapSessionSnapshotMap.put(snapSession.getId(), snapshotURIs);
             }
 
             // Update the snap sessions and URIs lists.
@@ -309,10 +304,11 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * 
      * @return
      */
-    protected Map<URI, BlockSnapshot> prepareSnapshotsForSession(int newTargetCount, BlockObject sourceObj, String sessionLabel,
+    protected List<URI> prepareSnapshotsForSession(int newTargetCount, BlockObject sourceObj, String sessionLabel,
             String sessionInstanceLabel) {
 
-        Map<URI, BlockSnapshot> snapshotsMap = new HashMap<URI, BlockSnapshot>();
+        List<URI> snapshotURIs = new ArrayList<URI>();
+        List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         for (int i = 1; i <= newTargetCount; i++) {
             // Create distinct snapset and instance labels for each snapshot
             String snapsetLabel = sessionLabel;
@@ -340,10 +336,11 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
             snapshot.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(
                     snapsetLabel, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
             snapshot.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
-            snapshotsMap.put(snapshot.getId(), snapshot);
+            snapshotURIs.add(snapshot.getId());
+            snapshots.add(snapshot);
         }
-        _dbClient.createObject(snapshotsMap.values());
-        return snapshotsMap;
+        _dbClient.createObject(snapshots);
+        return snapshotURIs;
     }
 
     /**
@@ -351,8 +348,22 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
-            Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap, String copyMode, boolean createInactive, String taskId) {
+            Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, Boolean createInactive, String taskId) {
         // Must be implemented by platform implementations for which this is supported.
         APIException.methodNotAllowed.notSupported();
+    }
+
+    /**
+     * Looks up controller dependency for given hardware
+     * 
+     * @param clazz controller interface
+     * @param hw hardware name
+     * @param <T>
+     * 
+     * @return
+     */
+    protected <T extends Controller> T getController(Class<T> clazz, String hw) {
+        return _coordinator.locateService(clazz, BlockServiceApi.CONTROLLER_SVC,
+                BlockServiceApi.CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
     }
 }

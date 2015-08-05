@@ -94,6 +94,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshot
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockWaitForSynchronizedCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CleanupMetaVolumeMembersCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneActivateCompleter;
@@ -157,6 +158,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
     private static final String TERMINATE_RESTORE_SESSIONS_METHOD = "terminateRestoreSessions";
     private static final String FRACTURE_CLONE_METHOD = "fractureClone";
+    private static final String CREATE_SAPSHOT_SESSION_WF_NAME = "createSnapshotSession";
 
     public static final String BLOCK_VOLUME_EXPAND_GROUP = "BlockDeviceExpandVolume";
 
@@ -3506,4 +3508,31 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         this.srdfDeviceController = srdfDeviceController;
     }
 
+    @Override
+    public void createSnapshotSession(URI storage, List<URI> snapSessionURIs, Map<URI, List<URI>> sessionSnapshotURIMap, String copyMode,
+            Boolean createInactive, String opId)
+            throws InternalException {
+
+        TaskCompleter completer = new BlockSnapshotSessionCreateCompleter(snapSessionURIs, sessionSnapshotURIMap, opId);
+        try {
+            // Get a new workflow to execute creation of the snapshot session and if
+            // necessary creation and linking of target volumes to the new session.
+            Workflow workflow = _workflowService.getNewWorkflow(this, CREATE_SAPSHOT_SESSION_WF_NAME, false, opId);
+            _log.info("Created new workflow to create a new snapshot session for source with operation id {}", opId);
+
+            // Create a step to create the session.
+            // TBD - only handle single volume for now. need to add group.
+
+            // If necessary add a step to create the new targets and link them to the session.
+            if (!sessionSnapshotURIMap.isEmpty()) {
+
+            }
+
+            workflow.executePlan(completer, "Create block snapshot session successful");
+        } catch (Exception e) {
+            _log.error("Create block snapshot session failed", e);
+            ServiceCoded serviceException = DeviceControllerException.exceptions.createBlockSnapshotSessionFailed(e);
+            completer.error(_dbClient, serviceException);
+        }
+    }
 }

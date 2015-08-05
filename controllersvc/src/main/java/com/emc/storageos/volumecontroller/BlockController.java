@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -391,4 +392,17 @@ public interface BlockController extends BlockStorageManagementController {
             List<URI> volumeURIs,
             String opId) throws ControllerException;
 
+    /**
+     * 
+     * @param storage
+     * @param snapSessionURIs
+     * @param sessionSnapshotURIMap
+     * @param copyMode
+     * @param createInactive
+     * @param opId
+     * @throws InternalException
+     */
+    public void createSnapshotSession(URI storage, List<URI> snapSessionURIs, Map<URI, List<URI>> sessionSnapshotURIMap, String copyMode,
+            Boolean createInactive, String opId)
+            throws InternalException;
 }

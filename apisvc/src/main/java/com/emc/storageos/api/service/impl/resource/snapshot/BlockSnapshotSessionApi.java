@@ -1,12 +1,6 @@
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
+/*
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
@@ -16,7 +10,6 @@ import java.util.Map;
 
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 
@@ -39,13 +32,12 @@ public interface BlockSnapshotSessionApi {
      * @param sourceObjList A list of all source objects to be processed for the request.
      * @param project A reference to the source project.
      * @param name The requested name for the new block snapshot session.
-     * @param createInactive Whether or not the session should be activated.
      * @param newTargetsCount The number of new target to create and link to the session.
      * @param newTargetCopyMode The copy mode for newly linked targets.
      * @param fcManager A reference to a full copy manager.
      */
     public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj, List<BlockObject> sourceObjList, Project project,
-            String name, boolean createInactive, int newTargetsCount, String newTargetCopyMode, BlockFullCopyManager fcManager);
+            String name, int newTargetsCount, String newTargetCopyMode, BlockFullCopyManager fcManager);
 
     /**
      * Prepare a ViPR BlockSnapshotSession instance for each source. Also, if new linked
@@ -62,7 +54,7 @@ public interface BlockSnapshotSessionApi {
      * @return
      */
     public List<BlockSnapshotSession> prepareSnapshotSessions(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
-            List<URI> snapSessionURIs, Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap, String taskId);
+            List<URI> snapSessionURIs, Map<URI, List<URI>> snapSessionSnapshotMap, String taskId);
 
     /**
      * Creates a new block snapshot session.
@@ -70,5 +62,5 @@ public interface BlockSnapshotSessionApi {
      * @return TaskList
      */
     public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
-            Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap, String copyMode, boolean createInactive, String taskId);
+            Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, Boolean createInactive, String taskId);
 }

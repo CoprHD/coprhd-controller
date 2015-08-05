@@ -880,6 +880,8 @@ public abstract class BlockIngestOrchestrator {
             unmanagedReplicaGUIDs.addAll(snaps);
             StringSet snapGUIDs = VolumeIngestionUtil.getListofVolumeIds(snaps);
             expectedIngestedReplicas.addAll(snapGUIDs);
+            _logger.error("snapGUIDs " + snapGUIDs);
+            _logger.error("createdObjectMap " + createdObjectMap);
             foundIngestedReplicas.addAll(VolumeIngestionUtil.getSnapObjects(snapGUIDs, createdObjectMap, _dbClient));
         }
 
@@ -957,8 +959,13 @@ public abstract class BlockIngestOrchestrator {
      * @param foundIngestedReplicaNativeGuids
      */
     private void getFoundIngestedReplicaURIs(List<BlockObject> foundIngestedReplicas, List<String> foundIngestedReplicaNativeGuids) {
+        
+        _logger.error("foundIngestedReplicas: " + foundIngestedReplicas);
+        _logger.error("foundIngestedReplicaNativeGuids: " + foundIngestedReplicaNativeGuids);
+        
         if (null != foundIngestedReplicas && !foundIngestedReplicas.isEmpty()) {
             for (BlockObject blockObj : foundIngestedReplicas) {
+_logger.error("blockObj: " + blockObj);
                 foundIngestedReplicaNativeGuids.add(blockObj.getNativeGuid());
             }
         }

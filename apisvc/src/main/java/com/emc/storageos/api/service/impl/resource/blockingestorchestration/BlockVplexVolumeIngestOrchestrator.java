@@ -147,10 +147,30 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 List<BlockObject> ingestedObjects = new ArrayList<BlockObject>();
 
                 ingestBackendExportMasks(system, vPool, virtualArray, vplexProject,
-                        tenant, unManagedVolumesToBeDeleted, updatedObjectMap,
+                        tenant, unManagedVolumesToBeDeleted, vplexUpdatedObjectMap,
                         taskStatusMap, associatedVolumes,
                         processedUnManagedVolumeMap, vplexCreatedObjectMap,
                         ingestedObjects);
+                
+                for (Entry e : vplexUpdatedObjectMap.entrySet()) {
+                    _logger.info("updated object map: " + e.getKey() + " : " + e.getValue());
+                }
+                
+                for (BlockObject o : vplexCreatedObjectMap.values()) {
+                    _logger.info("vplex created object map: " + o.getNativeGuid());
+                }
+                
+                for (BlockObject o : ingestedObjects) {
+                    _logger.info("ingested object: " + o.getNativeGuid());
+                }
+                
+                for (UnManagedVolume umv : processedUnManagedVolumeMap.values()) {
+                    _logger.info("processed unmanaged volume: " + umv.getNativeGuid());
+                }
+                
+                for (UnManagedVolume umv : unManagedVolumesToBeDeleted) {
+                    _logger.info("unmanaged volume to be deleted: " + umv.getNativeGuid());
+                }
                 
                 _dbClient.createObject(ingestedObjects);
                 _dbClient.persistObject(processedUnManagedVolumeMap.values());
@@ -159,6 +179,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             
             // TODO: error handlin'
             _logger.error("error!!!", ex);
+            return null;
         }
 
         _logger.info("About to ingest the actual VPLEX virtual volume...");
@@ -295,6 +316,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 // TODO: throw exception? sort out error handling
             } catch ( Exception ex ) {
                 _logger.warn(ex.getLocalizedMessage(), ex);
+                throw ex;
                 // TODO: throw exception? sort out error handling
             }
         }
@@ -394,6 +416,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 // TODO: throw exception? sort out error handling
             } catch ( Exception ex ) {
                 _logger.warn(ex.getLocalizedMessage(), ex);
+                throw ex;
                 // TODO: throw exception? sort out error handling
             }
         }

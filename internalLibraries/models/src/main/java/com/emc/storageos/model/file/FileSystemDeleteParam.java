@@ -39,13 +39,16 @@ public class FileSystemDeleteParam {
     public void setForceDelete(boolean forceDelete) {
         this.forceDelete = forceDelete;
     }
-    
+
     @XmlElement(name = "delete_type")
     public String getDeleteType() {
         return deleteType;
     }
 
     public void setDeleteType(String deleteType) {
+        if (deleteType == null) {
+            deleteType = "FULL";
+        }
         this.deleteType = deleteType;
     }
 

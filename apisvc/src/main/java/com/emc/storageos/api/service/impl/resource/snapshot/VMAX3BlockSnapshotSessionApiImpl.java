@@ -10,7 +10,9 @@
  */
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
+import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.core.SecurityContext;
 
@@ -20,6 +22,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringSet;
@@ -106,5 +109,15 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
                         MAX_LINKED_TARGETS_PER_SOURCE - totalLinkedTargets);
             }
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
+            Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap, String copyMode, boolean createInactive, String taskId) {
+        // Invoke the BlockDeviceController to create the array snapshot session and create and link
+        // target volumes as necessary.
     }
 }

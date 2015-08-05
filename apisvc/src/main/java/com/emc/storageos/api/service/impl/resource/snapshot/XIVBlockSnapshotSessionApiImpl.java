@@ -20,7 +20,6 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.model.TaskList;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
@@ -56,14 +55,6 @@ public class XIVBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionA
     @Override
     public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj, List<BlockObject> sourceObjList, Project project,
             String name, boolean createInactive, int newTargetsCount, String newTargetCopyMode, BlockFullCopyManager fcManager) {
-        throw APIException.methodNotAllowed.notSupportedForXIV();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public TaskList createSnapshotSession() {
         throw APIException.methodNotAllowed.notSupportedForXIV();
     }
 }

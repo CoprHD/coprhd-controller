@@ -41,8 +41,8 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
@@ -61,8 +61,8 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
@@ -83,8 +83,8 @@ import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
-import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Protection;
 import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
@@ -1903,7 +1903,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         if (isProtectionBasedSnapshot(reqVolume, snapshotType)) {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageControllerURI);
-            RPController controller = (RPController) getController(RPController.class, protectionSystem.getSystemType());
+            RPController controller = getController(RPController.class, protectionSystem.getSystemType());
             controller.createSnapshot(protectionSystem.getId(), storageSystem.getId(), snapshotURIs, createInactive, taskId);
         } else {
             if (vplex) {
@@ -1945,7 +1945,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * 
      * @return true if this is a protection based snapshot, false otherwise.
      */
-    private boolean isProtectionBasedSnapshot(Volume volume, String snapshotType) {
+    public static boolean isProtectionBasedSnapshot(Volume volume, String snapshotType) {
         // This is a protection based snapshot request if:
         // The volume allows for bookmarking (it's under protection) and
         // - The param either asked for a bookmark, or
@@ -1964,6 +1964,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param snapshot The snapshot to restore.
      * @param parent The parent of the snapshot
      */
+    @Override
     public void validateRestoreSnapshot(BlockSnapshot snapshot, Volume parent) {
         // RecoverPoint snapshots (bookmarks) will be automatically activated
         // before restore.

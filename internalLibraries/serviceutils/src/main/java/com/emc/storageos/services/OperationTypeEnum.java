@@ -43,6 +43,7 @@ public enum OperationTypeEnum {
     EXPAND_BLOCK_VOLUME("VolumeExpanded", "VolumeExpandFailed", "Volume expand"),
 
     CREATE_VOLUME_SNAPSHOT("VolumeSnapshotCreated", "VolumeSnapshotCreateFailed", "VolumeSnapshot Create"),
+    CREATE_SNAPSHOT_SESSION("BlockSnapshotSessionCreated", "BlockSnapshotSessionCreateFailed", "BlockSnapshotSession Create"),
     ASSIGN_VOLUME_TAG("ASSIGN VOLUME TAG", "", "operation to tag a volume"),
     DELETE_VOLUME_SNAPSHOT("VolumeSnapshotDeleted", "VolumeSnapshotDeleteFailed", "VolumeSnapshot Delete"),
     RESTORE_VOLUME_SNAPSHOT("VolumeSnapshotRestored", "VolumeSnapshotRestoreFailed", "VolumeSnapshot Restore"),

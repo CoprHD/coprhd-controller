@@ -10,6 +10,8 @@
  */
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,7 +27,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.api.service.impl.resource.BlockService;
+import com.emc.storageos.api.service.impl.resource.ResourceService;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -40,6 +45,9 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionTargetsParam;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.authentication.InterNodeHMACAuthFilter;
+import com.emc.storageos.security.authentication.StorageOSUser;
+import com.emc.storageos.services.OperationTypeEnum;
 
 /**
  * 
@@ -54,9 +62,14 @@ public class BlockSnapshotSessionManager {
     // A reference to a database client.
     private final DbClient _dbClient;
 
+    // A reference to a permissions helper.
+    private PermissionsHelper _permissionsHelper = null;
+
     // A reference to the audit log manager.
-    @SuppressWarnings("unused")
     private AuditLogManager _auditLogManager = null;
+
+    // A reference to the security context
+    private final SecurityContext _securityContext;
 
     // A reference to the snapshot session request.
     protected HttpServletRequest _request;
@@ -87,47 +100,46 @@ public class BlockSnapshotSessionManager {
             AuditLogManager auditLogManager, CoordinatorClient coordinator,
             SecurityContext securityContext, UriInfo uriInfo, HttpServletRequest request) {
         _dbClient = dbClient;
+        _permissionsHelper = permissionsHelper;
         _auditLogManager = auditLogManager;
+        _securityContext = securityContext;
         _uriInfo = uriInfo;
         _request = request;
 
         // Create snapshot session implementations.
-        createPlatformSpecificImpls(coordinator, permissionsHelper, securityContext);
+        createPlatformSpecificImpls(coordinator);
     }
 
     /**
      * Create all platform specific snapshot session implementations.
      * 
      * @param coordinator A reference to the coordinator.
-     * @param permissionsHelper A reference to a permission helper.
-     * @param securityContext A reference to the security context.
      */
-    private void createPlatformSpecificImpls(CoordinatorClient coordinator, PermissionsHelper permissionsHelper,
-            SecurityContext securityContext) {
+    private void createPlatformSpecificImpls(CoordinatorClient coordinator) {
         _snapshotSessionImpls.put(SnapshotSessionImpl.dflt.name(), new DefaultBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext, this));
+                _permissionsHelper, _securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.vmax.name(), new VMAXBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext, this));
+                _permissionsHelper, _securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.vmax3.name(), new VMAX3BlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext, this));
+                _permissionsHelper, _securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.vnx.name(), new VNXBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext, this));
+                _permissionsHelper, _securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.vnxe.name(), new VNXEBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext, this));
+                _permissionsHelper, _securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.hds.name(), new HDSBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext, this));
+                _permissionsHelper, _securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.openstack.name(), new OpenstackBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext, this));
+                _permissionsHelper, _securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.scaleio.name(), new ScaleIOBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext, this));
+                _permissionsHelper, _securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.xtremio.name(), new XtremIOBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext, this));
+                _permissionsHelper, _securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.xiv.name(), new XIVBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext, this));
+                _permissionsHelper, _securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.vplex.name(), new VPlexBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext, this));
+                _permissionsHelper, _securityContext, this));
         _snapshotSessionImpls.put(SnapshotSessionImpl.rp.name(), new RPBlockSnapshotSessionApiImpl(_dbClient, coordinator,
-                permissionsHelper, securityContext, this));
+                _permissionsHelper, _securityContext, this));
     }
 
     /**
@@ -194,19 +206,24 @@ public class BlockSnapshotSessionManager {
         // snapshot sessions.
         List<URI> snapSessionURIs = new ArrayList<URI>();
         Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap = new HashMap<URI, Map<URI, BlockSnapshot>>();
-        List<URI> snapshotURIs = new ArrayList<URI>();
-        List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         List<BlockSnapshotSession> snapSessions = snapSessionApiImpl.prepareSnapshotSessions(snapSessionSourceObjList, snapSessionLabel,
                 newLinkedTargetsCount, snapSessionURIs, snapSessionSnapshotMap, taskId);
 
-        // TBD - Prepare tasks
-        // TBD - Make platform specific create request
-        // TBD - Create audit log
+        // Create tasks for each snapshot session.
+        TaskList response = new TaskList();
+        for (BlockSnapshotSession snapSession : snapSessions) {
+            response.getTaskList().add(toTask(snapSession, taskId));
+        }
 
         // Create the snapshot sessions.
-        TaskList taskList = snapSessionApiImpl.createSnapshotSession();
+        snapSessionApiImpl.createSnapshotSession(snapSessionSourceObj, snapSessionURIs, snapSessionSnapshotMap, newTargetsCopyMode,
+                createInactive, taskId);
+
+        // Record a message in the audit log.
+        auditOp(OperationTypeEnum.CREATE_SNAPSHOT_SESSION, true, AuditLogManager.AUDITOP_BEGIN, snapSessionLabel, sourceURI.toString());
+
         s_logger.info("FINISH create snapshot session for source {}", sourceURI);
-        return taskList;
+        return response;
     }
 
     /**
@@ -256,5 +273,36 @@ public class BlockSnapshotSessionManager {
         }
 
         return snapSessionApi;
+    }
+
+    /**
+     * Record audit log for services.
+     * 
+     * @param opType audit event type (e.g. CREATE_VPOOL|TENANT etc.)
+     * @param operationalStatus Status of operation (true|false)
+     * @param operationStage Stage of operation. For sync operation, it should
+     *            be null; For async operation, it should be "BEGIN" or "END";
+     * @param descparams Description parameters
+     */
+    private void auditOp(OperationTypeEnum opType, boolean operationalStatus,
+            String operationStage, Object... descparams) {
+
+        URI tenantId;
+        URI username;
+        if (!BlockServiceUtils.hasValidUserInContext(_securityContext)
+                && InterNodeHMACAuthFilter.isInternalRequest(_request)) {
+            // Use default values for internal datasvc requests that lack a user
+            // context
+            tenantId = _permissionsHelper.getRootTenant().getId();
+            username = ResourceService.INTERNAL_DATASVC_USER;
+        } else {
+            StorageOSUser user = BlockServiceUtils.getUserFromContext(_securityContext);
+            tenantId = URI.create(user.getTenantId());
+            username = URI.create(user.getName());
+        }
+        _auditLogManager.recordAuditLog(tenantId, username,
+                BlockService.EVENT_SERVICE_TYPE, opType, System.currentTimeMillis(),
+                operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS
+                        : AuditLogManager.AUDITLOG_FAILURE, operationStage, descparams);
     }
 }

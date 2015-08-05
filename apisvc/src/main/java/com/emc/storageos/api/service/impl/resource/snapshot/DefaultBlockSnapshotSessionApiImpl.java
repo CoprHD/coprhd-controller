@@ -44,7 +44,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
-import com.emc.storageos.model.TaskList;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
@@ -351,7 +350,9 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * {@inheritDoc}
      */
     @Override
-    public TaskList createSnapshotSession() {
-        return new TaskList();
+    public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
+            Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap, String copyMode, boolean createInactive, String taskId) {
+        // Must be implemented by platform implementations for which this is supported.
+        APIException.methodNotAllowed.notSupported();
     }
 }

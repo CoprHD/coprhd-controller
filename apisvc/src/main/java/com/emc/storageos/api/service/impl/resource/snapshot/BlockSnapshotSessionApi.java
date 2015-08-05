@@ -19,7 +19,6 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.model.TaskList;
 
 public interface BlockSnapshotSessionApi {
 
@@ -70,5 +69,6 @@ public interface BlockSnapshotSessionApi {
      * 
      * @return TaskList
      */
-    public TaskList createSnapshotSession();
+    public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
+            Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap, String copyMode, boolean createInactive, String taskId);
 }

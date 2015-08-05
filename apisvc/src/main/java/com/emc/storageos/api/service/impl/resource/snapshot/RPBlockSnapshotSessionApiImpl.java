@@ -18,13 +18,16 @@ import java.util.Map;
 import javax.ws.rs.core.SecurityContext;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.api.service.impl.resource.RPBlockServiceApiImpl;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
@@ -65,9 +68,14 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
 
         // If the requested source is a simple VMAX3 volume that is RP protected,
         // then we simply do VMAX3 platform validation.
+        // TBD - Need a check to allow only local, native snapshots of RP source volumes.
+        URI requestedSourceURI = requestedSourceObj.getId();
         URI srcSystemURI = requestedSourceObj.getStorageController();
         StorageSystem srcSystem = _dbClient.queryObject(StorageSystem.class, srcSystemURI);
-        if (srcSystem.checkIfVmax3()) {
+        if ((URIUtil.isType(requestedSourceURI, Volume.class))
+                && (!RPBlockServiceApiImpl.isProtectionBasedSnapshot((Volume) requestedSourceObj,
+                        BlockSnapshot.TechnologyType.NATIVE.name()))
+                && (srcSystem.checkIfVmax3())) {
             BlockSnapshotSessionApi vmax3Impl = _blockSnapshotSessionMgr
                     .getPlatformSpecificImpl(BlockSnapshotSessionManager.SnapshotSessionImpl.vmax3);
             vmax3Impl.validateSnapshotSessionCreateRequest(requestedSourceObj, sourceObjList, project, name, createInactive,
@@ -84,47 +92,17 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
         for (int i = 1; i <= newTargetCount; i++) {
         }
 
-        /*
-         * boolean isRPTarget = false;
-         * if (NullColumnValueGetter.isNotNullValue(volume.getPersonality()) &&
-         * volume.getPersonality().equals(PersonalityTypes.TARGET.name())) {
-         * isRPTarget = true;
-         * }
-         * 
-         * BlockSnapshot snapshot = prepareSnapshotFromVolume(volumeToSnap, snapshotName, (isRPTarget ? volume : null));
-         * snapshot.setTechnologyType(snapshotType);
-         * 
-         * // Check to see if the requested volume is a former target that is now the
-         * // source as a result of a swap. This is done by checking the source volume's
-         * // virtual pool for RP protection. If RP protection does not exist, we know this
-         * // is a former target.
-         * // TODO: In the future the swap functionality should update the vpools accordingly to
-         * // add/remove protection. This check should be removed at that point and another
-         * // method to check for a swapped state should be used.
-         * boolean isFormerTarget = false;
-         * VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-         * if (NullColumnValueGetter.isNotNullValue(volume.getPersonality()) &&
-         * volume.getPersonality().equals(PersonalityTypes.SOURCE.name()) &&
-         * !VirtualPool.vPoolSpecifiesProtection(vpool)) {
-         * isFormerTarget = true;
-         * }
-         * 
-         * if (((isRPTarget || isFormerTarget) && vplex) || !vplex) {
-         * // For RP+Vplex target and former target volumes, we do not want to create a
-         * // backing array CG snap. To avoid doing this, we do not set the consistency group.
-         * // OR
-         * // This is a native snapshot so do not set the consistency group, otherwise
-         * // the SMIS code/array will get confused trying to look for a consistency
-         * // group that only exists in RecoverPoint.
-         * snapshot.setConsistencyGroup(null);
-         * }
-         * 
-         * snapshots.add(snapshot);
-         * 
-         * _log.info(String.format("Prepared snapshot : [%s]", snapshot.getLabel()));
-         * }
-         */
-
         return snapshotsMap;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
+            Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap, String copyMode, boolean createInactive, String taskId) {
+        BlockSnapshotSessionApi vmax3Impl = _blockSnapshotSessionMgr
+                .getPlatformSpecificImpl(BlockSnapshotSessionManager.SnapshotSessionImpl.vmax3);
+        vmax3Impl.createSnapshotSession(sourceObj, snapSessionURIs, snapSessionSnapshotMap, copyMode, createInactive, taskId);
     }
 }

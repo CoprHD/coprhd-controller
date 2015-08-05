@@ -5,8 +5,12 @@
 package com.emc.storageos.model.property;
 
 import static com.emc.storageos.model.property.PropertyConstants.*;
+
+import java.util.Arrays;
+
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+
 import org.codehaus.jackson.annotate.JsonProperty;
 
 @XmlRootElement
@@ -93,13 +97,18 @@ public class PropertyMetadata {
     }
 
     public void setAllowedValues(String[] allowedValues) {
-        this.allowedValues = allowedValues;
+    	if(allowedValues != null){
+    		this.allowedValues =  Arrays.copyOf(allowedValues, allowedValues.length);
+    	} else{
+    		this.allowedValues = new String[0];
+    	}
+        
     }
 
     @XmlElement(name = "allowedValues")
     @JsonProperty("allowedValues")
     public String[] getAllowedValues() {
-        return allowedValues;
+        return allowedValues.clone();
     }
 
     public void setUserConfigurable(Boolean userConfigurable) {
@@ -163,13 +172,18 @@ public class PropertyMetadata {
     }
 
     public void setNotifiers(String[] notifiers) {
-        this.notifiers = notifiers;
+    	if(notifiers == null){
+    		this.notifiers = new String[0];
+    	}else{
+    		this.notifiers = Arrays.copyOf(notifiers, notifiers.length);
+    	}
+        
     }
 
     @XmlElement(name = "notifiers")
     @JsonProperty("notifiers")
     public String[] getNotifiers() {
-        return notifiers;
+        return notifiers.clone();
     }
 
     public void setValue(String value) {

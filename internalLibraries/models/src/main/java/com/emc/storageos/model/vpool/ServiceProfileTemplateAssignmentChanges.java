@@ -45,11 +45,11 @@ public class ServiceProfileTemplateAssignmentChanges {
     }
 
     public boolean hasRemoved() {
-        return remove != null && remove.getServiceProfileTemplates().size() > 0;
+        return (remove != null && !remove.getServiceProfileTemplates().isEmpty());
     }
 
     public boolean hasAdded() {
-        return add != null && add.getServiceProfileTemplates().size() > 0;
+        return (add != null && !add.getServiceProfileTemplates().isEmpty());
     }
 
 }

@@ -14,18 +14,18 @@ public class BrowserUtil {
 
     public static boolean supportsCSSRotate() {
         double ieVersion = getIEVersion();
-        return ieVersion == (double) -1 || ieVersion >= (double) 10;
+        return ieVersion == -1.0 || ieVersion >= 10.0;
     }
 
     public static double getIEVersion() {
         Http.Request request = Http.Request.current();
         if (request == null) {
-            return -1;
+            return -1.0;
         }
 
         Http.Header header = request.headers.get(USER_AGENT_HEADER);
         if (header == null) {
-            return -1;
+            return -1.0;
         }
 
         String userAgent = header.value();
@@ -33,6 +33,6 @@ public class BrowserUtil {
         if (matcher.find()) {
             return Double.parseDouble(matcher.group(1));
         }
-        return -1;
+        return -1.0;
     }
 }

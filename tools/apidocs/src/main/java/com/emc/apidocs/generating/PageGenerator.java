@@ -48,7 +48,7 @@ public class PageGenerator {
         this.buildNumber = buildNumber;
     }
 
-    public void generatePages(ApiDifferences apiDifferences, List<ApiService> apiServices, List<ApiErrorCode> errorCodes) {
+    public synchronized void generatePages(ApiDifferences apiDifferences, List<ApiService> apiServices, List<ApiErrorCode> errorCodes) {
         StaticPageIndex staticPageIndex = new StaticPageIndex();
 
         generatedFooter = generateFooter();
@@ -178,7 +178,7 @@ public class PageGenerator {
      */
     private Map<String, String> getServiceDiff(ApiReferenceTocOrganizer grouping) {
         List<String> allList = grouping.groups.get(API_DIFFERENCES);
-        if (allList == null || allList.size() == 0) {
+        if (allList == null || allList.isEmpty()) {
             return null;
         }
         Map<String, String> diffMap = new HashMap<String, String>();

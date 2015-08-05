@@ -733,13 +733,13 @@ public class PersistingChangesTest extends DbsvcTestBase {
 
         SumPrimitiveFieldAggregator aggregator = CustomQueryUtility.aggregateActiveObject(
                 this.dbClient, Volume.class, new String[] { "allocatedCapacity" });
-        Assert.assertTrue(aggregator.get_NRecords() == 3);
+        Assert.assertTrue(aggregator.getRecordNum() == 3);
         Assert.assertTrue((long) aggregator.getAggregate("allocatedCapacity") == 9500L);
 
         aggregator = CustomQueryUtility.aggregateActiveObject(
                 this.dbClient, Volume.class,
                 new String[] { "allocatedCapacity" });
-        Assert.assertTrue(aggregator.get_NRecords() == 3);
+        Assert.assertTrue(aggregator.getRecordNum() == 3);
         Assert.assertTrue((long) aggregator.getAggregate("allocatedCapacity") == 9500L);
         aggregator = CustomQueryUtility.aggregateActiveObject(
                 this.dbClient, Volume.class,
@@ -756,7 +756,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
         aggregator = CustomQueryUtility.aggregateActiveObject(
                 this.dbClient, Volume.class,
                 new String[] { "allocatedCapacity" }, volFromPools.iterator());
-        Assert.assertTrue(aggregator.get_NRecords() == 2);
+        Assert.assertTrue(aggregator.getRecordNum() == 2);
         Assert.assertTrue((long) aggregator.getAggregate("allocatedCapacity") == 8500L);
         aggregator = CustomQueryUtility.aggregateActiveObject(
                 this.dbClient, Volume.class,

@@ -27,9 +27,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class ServicesMetadata implements InitializingBean {
 
-    private static Map<String, ServiceMetadata> _serviceMetadataMap = null;
-    private static Map<String, RoleMetadata> _roleMetadataMap = null;
-    private static Map<String, List<String>> _roleServiceIndex = null;
+    private static volatile Map<String, ServiceMetadata> _serviceMetadataMap = null;
+    private static volatile Map<String, RoleMetadata> _roleMetadataMap = null;
+    private static volatile Map<String, List<String>> _roleServiceIndex = null;
 
     public void setServiceMetadataMap(LinkedHashMap<String,
             ServiceMetadata> serviceMetadataMap) {

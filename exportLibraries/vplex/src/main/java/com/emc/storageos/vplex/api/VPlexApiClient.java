@@ -15,13 +15,13 @@ import java.util.Map;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.NewCookie;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;
 import com.emc.storageos.vplex.api.clientdata.PortInfo;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 import com.sun.jersey.api.client.ClientResponse;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The VPlex API Client is used to get information from the VPlex and to execute
@@ -168,13 +168,16 @@ public class VPlexApiClient {
     /**
      * Gets information about the VPLEX clusters.
      * 
+     * @param shallow true to get just the name and path for each cluster, false
+     *            to get additional info about the systems and volumes.
+     * 
      * @return A list of VPlexClusterInfo instances.
      * 
      * @throws VPlexApiException When an error occurs querying the VPlex.
      */
-    public List<VPlexClusterInfo> getClusterInfo() throws VPlexApiException {
+    public List<VPlexClusterInfo> getClusterInfo(boolean shallow) throws VPlexApiException {
         s_logger.info("Request for cluster info for VPlex at {}", _baseURI);
-        return _discoveryMgr.getClusterInfo(true, false);
+        return _discoveryMgr.getClusterInfo(shallow, false);
     }
 
     /**
@@ -364,6 +367,8 @@ public class VPlexApiClient {
      * @param preserveData true if the native volume data should be preserved
      *            during virtual volume creation.
      * @param winningClusterId Used to set detach rules for distributed volumes.
+     * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
+     *            clusters.
      * 
      * @return The information for the created virtual volume.
      * 
@@ -372,11 +377,11 @@ public class VPlexApiClient {
      */
     public VPlexVirtualVolumeInfo createVirtualVolume(
             List<VolumeInfo> nativeVolumeInfoList, boolean isDistributed,
-            boolean discoveryRequired, boolean preserveData, String winningClusterId)
+            boolean discoveryRequired, boolean preserveData, String winningClusterId, List<VPlexClusterInfo> clusterInfoList)
             throws VPlexApiException {
         s_logger.info("Request for virtual volume creation on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.createVirtualVolume(nativeVolumeInfoList, isDistributed,
-                discoveryRequired, preserveData, winningClusterId);
+                discoveryRequired, preserveData, winningClusterId, clusterInfoList);
     }
 
     /**
@@ -528,7 +533,7 @@ public class VPlexApiClient {
      *            exported and need to be discovered by the VPlex.
      * @param startNow true to start the migration now, else migration is
      *            created in a paused state.
-     * 
+     * @param transferSize The transfer size for migration
      * @return A reference to the migration(s) started to migrate the virtual
      *         volume.
      * 
@@ -538,10 +543,10 @@ public class VPlexApiClient {
     public List<VPlexMigrationInfo> migrateVirtualVolume(String migrationName,
             String virtualVolumeName, List<VolumeInfo> nativeVolumeInfoList,
             boolean isRemote, boolean useDeviceMigration, boolean discoveryRequired,
-            boolean startNow) throws VPlexApiException {
+            boolean startNow, String transferSize) throws VPlexApiException {
         s_logger.info("Request for virtual volume migration on VPlex at {}", _baseURI);
         return _migrationMgr.migrateVirtualVolume(migrationName, virtualVolumeName,
-                nativeVolumeInfoList, isRemote, useDeviceMigration, discoveryRequired, startNow);
+                nativeVolumeInfoList, isRemote, useDeviceMigration, discoveryRequired, startNow, transferSize);
     }
 
     /**
@@ -1480,6 +1485,18 @@ public class VPlexApiClient {
      */
     public VPlexVirtualVolumeInfo findVirtualVolume(String virtualVolumeName) {
         return _discoveryMgr.findVirtualVolume(virtualVolumeName, false);
+    }
+
+    /**
+     * Finds virtual volume by name.
+     * 
+     * @param clusterInfoList List of detailed VPLEX cluster info.
+     * @param virtualVolumeInfos List of virtual volumes to find
+     * @return A map of virtual volume name to the virtual volume info.
+     */
+    public Map<String, VPlexVirtualVolumeInfo> findVirtualVolumes(List<VPlexClusterInfo> clusterInfoList,
+            List<VPlexVirtualVolumeInfo> virtualVolumeInfos) {
+        return _discoveryMgr.findVirtualVolumes(clusterInfoList, virtualVolumeInfos, true, true);
     }
 
     /**

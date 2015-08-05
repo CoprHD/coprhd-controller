@@ -68,6 +68,8 @@ public class VPlexApiVirtualVolumeManager {
      * @param preserveData true if the native volume data should be preserved
      *            during virtual volume creation.
      * @param winningClusterId Used to set detach rules for distributed volumes.
+     * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
+     *            clusters.
      * 
      * @return The information for the created virtual volume.
      * 
@@ -77,7 +79,7 @@ public class VPlexApiVirtualVolumeManager {
     @SuppressWarnings("unchecked")
 	<T extends VPlexStorageVolumeInfo> VPlexVirtualVolumeInfo createVirtualVolume(List<VolumeInfo> nativeVolumeInfoList,
             boolean isDistributed, boolean discoveryRequired, boolean preserveData,
-            String winningClusterId)
+            String winningClusterId, List<VPlexClusterInfo> clusterInfoList)
             throws VPlexApiException {
 
         s_logger.info("Request to create {} virtual volume.",
@@ -91,7 +93,10 @@ public class VPlexApiVirtualVolumeManager {
 
         // Find the storage volumes corresponding to the passed native
         // volume information, discovery them if required.
-        List<VPlexClusterInfo> clusterInfoList = new ArrayList<VPlexClusterInfo>();
+        if (null == clusterInfoList) {
+            clusterInfoList = new ArrayList<VPlexClusterInfo>();
+        }
+        
         boolean isCinderStorage = VPlexApiUtils.isITLFetch(nativeVolumeInfoList);
         
         Map<VolumeInfo, T> storageVolumeInfoMap = null;
@@ -108,7 +113,6 @@ public class VPlexApiVirtualVolumeManager {
         			                                  clusterInfoList);
         }
         
-
         // For a distributed virtual volume, verify logging volumes
         // have been configured on each cluster.
         if (isDistributed)
@@ -180,7 +184,11 @@ public class VPlexApiVirtualVolumeManager {
             StringBuilder volumeNameBuilder = new StringBuilder();
             volumeNameBuilder.append(deviceName);
             volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
-            return discoveryMgr.findVirtualVolume(clusterId, volumeNameBuilder.toString(), true, true);
+
+            VPlexVirtualVolumeInfo virtualVolumeInfo = new VPlexVirtualVolumeInfo();
+            virtualVolumeInfo.setName(volumeNameBuilder.toString());
+            virtualVolumeInfo.addCluster(clusterId);
+            return virtualVolumeInfo;
         } catch (Exception e) {
             // An error occurred. Clean up any VPLEX artifacts created for
             // virtual volume and unclaim the storage volumes.
@@ -777,8 +785,11 @@ public class VPlexApiVirtualVolumeManager {
             s_logger.info("Storage volume discovery is not required.");
 
             // Get the cluster information.
-            clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, isCinderStorage));
-            s_logger.info("Retrieved storage volume info for VPlex clusters");
+            if (clusterInfoList.isEmpty()) 
+            {
+            	clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, isCinderStorage));
+                s_logger.info("Retrieved storage volume info for VPlex clusters");
+            }
 
             // Find the backend storage volumes. If a volume cannot be
             // found, then an exception will be thrown.
@@ -790,7 +801,7 @@ public class VPlexApiVirtualVolumeManager {
     }
 
 	/**
-	 * Rediscover storage systems to fecth newly created storage volumes
+	 * Rediscover storage systems to fetch newly created storage volumes
 	 * on the backend system.
 	 * 
 	 * @param nativeVolumeInfoList

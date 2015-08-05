@@ -144,7 +144,8 @@ public class StorageProvider extends DataObject {
         vplex,
         cinder,
         scaleio,
-        ibmxiv;
+        ibmxiv,
+        xtremio;
 
         /**
          * Gets the supported system types for the given interface type.
@@ -166,6 +167,8 @@ public class StorageProvider extends DataObject {
                 systemTypes.add(Type.ibmxiv.name());
             } else if (ddmc.equals(interfaceType)) {
                 systemTypes.add(Type.datadomain.name());
+            } else if(xtremio.equals(interfaceType)) {
+                systemTypes.add(Type.xtremio.name());
             }
             return systemTypes;
         }

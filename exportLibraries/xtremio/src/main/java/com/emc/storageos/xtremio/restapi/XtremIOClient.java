@@ -26,6 +26,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOResponse;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumeInfo;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMS;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMSsInfo;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
@@ -61,6 +62,8 @@ public abstract class XtremIOClient extends StandardRestClient {
      * @throws Exception
      */
     public abstract List<XtremIOSystem> getXtremIOSystemInfo() throws Exception;
+    
+    public abstract XtremIOXMS getXtremIOXMSInfo() throws Exception;
 
     public abstract List<XtremIOPort> getXtremIOPortInfo(String clusterName) throws Exception;
     
@@ -155,6 +158,8 @@ public abstract class XtremIOClient extends StandardRestClient {
     public abstract XtremIOVolume getSnapShotDetails(String snapName, String clusterName) throws Exception;
     
     public abstract XtremIOConsistencyGroup getConsistencyGroupDetails(String cgName, String clusterName) throws Exception;
+    
+    public abstract XtremIOSystem getClusterDetails(String clusterSerialNumber) throws Exception;
 
     /**
      * Deletes a volume

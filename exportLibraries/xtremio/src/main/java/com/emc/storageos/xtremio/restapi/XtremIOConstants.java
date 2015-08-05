@@ -33,6 +33,7 @@ public class XtremIOConstants {
     public static final String XTREMIO_INITIATORS_STR = XTREMIO_BASE_STR.concat("/initiators");
     public static final String XTREMIO_INITIATOR_GROUPS_STR = XTREMIO_BASE_STR.concat("/initiator-groups");
     public static final String XTREMIO_LUNMAPS_STR = XTREMIO_BASE_STR.concat("/lun-maps");
+    public static final String XTREMIO_XMS_STR = XTREMIO_BASE_STR.concat("/xms");
     
     public static final URI XTREMIO_BASE_CLUSTERS_URI = URI.create(XTREMIO_BASE_CLUSTERS_STR);
     public static final URI XTREMIO_VOLUMES_URI = URI.create(XTREMIO_VOLUMES_STR);
@@ -43,6 +44,7 @@ public class XtremIOConstants {
     public static final URI XTREMIO_INITIATORS_URI = URI.create(XTREMIO_INITIATORS_STR);
     public static final URI XTREMIO_INITIATOR_GROUPS_URI = URI.create(XTREMIO_INITIATOR_GROUPS_STR);
     public static final URI XTREMIO_LUNMAPS_URI = URI.create(XTREMIO_LUNMAPS_STR);
+    public static final URI XTREMIO_XMS_URI = URI.create(XTREMIO_XMS_STR);
     
     //Version 2 API strings and uris
 	public static final String XTREMIO_V2_BASE_STR = "/api/json/v2/types";
@@ -78,6 +80,7 @@ public class XtremIOConstants {
     public static final String XTREMIO_INPUT_CLUSTER_STR = "?cluster-name=%s";
     public static final String XTREMIO_INPUT_NAME_CLUSTER_STR = "?name=%s&cluster-name=%s";
     public static final String XTREMIO_XMS_FILTER_STR = "?prop=restapi-protocol-version";
+    public static final String XTREMIO_CLUSTER_FILTER_STR = "?filter=sys-psnt-serial-number:eq:%s";
     public static final String XTREMIO_REGULAR_TYPE="regular";
     public static final String XTREMIO_READ_ONLY_TYPE="readonly";
     public static final int XTREMIO_MAX_VOL_LENGTH= 55;

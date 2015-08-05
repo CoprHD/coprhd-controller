@@ -85,12 +85,14 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             Boolean readOnly, TaskCompleter taskCompleter) throws Exception {
         Volume parentVolume = dbClient.queryObject(Volume.class, snap.getParent().getURI());
         URI projectUri = snap.getProject().getURI();
+        String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+        
         String snapFolderName = XtremIOProvUtils.createFoldersForVolumeAndSnaps(client, getVolumeFolderName(projectUri, storage))
                 .get(XtremIOConstants.SNAPSHOT_KEY);
         String snapshotType = readOnly ? XtremIOConstants.XTREMIO_READ_ONLY_TYPE : XtremIOConstants.XTREMIO_REGULAR_TYPE;
         
-        client.createVolumeSnapshot(parentVolume.getLabel(), snapLabel, snapFolderName, snapshotType, null);
-        XtremIOVolume createdSnap = client.getSnapShotDetails(snap.getLabel(), null);
+        client.createVolumeSnapshot(parentVolume.getLabel(), snapLabel, snapFolderName, snapshotType, clusterName);
+        XtremIOVolume createdSnap = client.getSnapShotDetails(snap.getLabel(), clusterName);
 
         return createdSnap;
     }
@@ -99,11 +101,13 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             Boolean readOnly, TaskCompleter taskCompleter) throws Exception {
         Volume parentVolume = dbClient.queryObject(Volume.class, snap.getParent().getURI());
         URI projectUri = snap.getProject().getURI();
-        String snapTagName = XtremIOProvUtils.createTagsForVolumeAndSnaps(client, getVolumeFolderName(projectUri, storage), null)
+        String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+        
+        String snapTagName = XtremIOProvUtils.createTagsForVolumeAndSnaps(client, getVolumeFolderName(projectUri, storage), clusterName)
                 .get(XtremIOConstants.SNAPSHOT_KEY);
         String snapshotType = readOnly ? XtremIOConstants.XTREMIO_READ_ONLY_TYPE : XtremIOConstants.XTREMIO_REGULAR_TYPE;
-        client.createVolumeSnapshot(parentVolume.getLabel(), snapLabel, snapTagName, snapshotType, null);
-        XtremIOVolume createdSnap = client.getSnapShotDetails(snapLabel, null);
+        client.createVolumeSnapshot(parentVolume.getLabel(), snapLabel, snapTagName, snapshotType, clusterName);
+        XtremIOVolume createdSnap = client.getSnapShotDetails(snapLabel, clusterName);
 
         return createdSnap;
 
@@ -117,11 +121,13 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             XtremIOClient client = getXtremIOClient(storage);
             URI snapshot = snapshotList.get(0);
             BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
+            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+            
             URI cgId = snapshotObj.getConsistencyGroup();
             if (cgId != null) {
                 BlockConsistencyGroup group = dbClient.queryObject(BlockConsistencyGroup.class, cgId);
                 String snapType = readOnly ? XtremIOConstants.XTREMIO_READ_ONLY_TYPE : XtremIOConstants.XTREMIO_REGULAR_TYPE;
-                client.createConsistencyGroupSnapshot(group.getLabel(), snapshotObj.getSnapsetLabel(), "", snapType, null);
+                client.createConsistencyGroupSnapshot(group.getLabel(), snapshotObj.getSnapsetLabel(), "", snapType, clusterName);
             }
 
             // TODO - Handle updating the snapshots in db with info from created xio snaps
@@ -152,7 +158,9 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
         try {
             XtremIOClient client = getXtremIOClient(storage);
             BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
-            client.deleteSnapshot(snapshotObj.getLabel(), null);
+            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+            
+            client.deleteSnapshot(snapshotObj.getLabel(), clusterName);
             snapshotObj.setIsSyncActive(false);
             snapshotObj.setInactive(true);
             dbClient.persistObject(snapshotObj);
@@ -170,7 +178,9 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
         try {
             XtremIOClient client = getXtremIOClient(storage);
             BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
-            client.deleteSnapshotSet(snapshotObj.getSnapsetLabel(), null);
+            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+            
+            client.deleteSnapshotSet(snapshotObj.getSnapsetLabel(), clusterName);
             // Set inactive=true for all snapshots in the snap
             List<BlockSnapshot> snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshotObj, dbClient);
             for (BlockSnapshot snap : snapshots) {
@@ -194,7 +204,9 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             XtremIOClient client = getXtremIOClient(storage);
             BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
             Volume sourceVol = dbClient.queryObject(Volume.class, snapshotObj.getParent());
-            client.restoreVolumeFromSnapshot(null, sourceVol.getLabel(), snapshotObj.getLabel());
+            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+            
+            client.restoreVolumeFromSnapshot(clusterName, sourceVol.getLabel(), snapshotObj.getLabel());
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot restore failed", e);
@@ -211,7 +223,9 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             XtremIOClient client = getXtremIOClient(storage);
             BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
             BlockConsistencyGroup group = dbClient.queryObject(BlockConsistencyGroup.class, snapshotObj.getConsistencyGroup());
-            client.restoreCGFromSnapshot(null, group.getLabel(), snapshotObj.getSnapsetLabel());
+            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+            
+            client.restoreCGFromSnapshot(clusterName, group.getLabel(), snapshotObj.getSnapsetLabel());
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot restore failed", e);

@@ -11,6 +11,7 @@
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,8 @@ import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.BlockSnapshotSession.CopyMode;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Project;
@@ -183,14 +186,22 @@ public class BlockSnapshotSessionManager {
         snapSessionApiImpl.validateSnapshotSessionCreateRequest(snapSessionSourceObj, snapSessionSourceObjList, project, snapSessionLabel,
                 createInactive, newLinkedTargetsCount, newTargetsCopyMode, fcManager);
 
-        // TBD - Prepare snapshot sessions
+        // Create a unique task identifier.
+        String taskId = UUID.randomUUID().toString();
+
+        // Prepare the ViPR BlockSnapshotSession instances and BlockSnapshot
+        // instances for any new targets to be created and linked to the
+        // snapshot sessions.
+        List<URI> snapSessionURIs = new ArrayList<URI>();
+        Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap = new HashMap<URI, Map<URI, BlockSnapshot>>();
+        List<URI> snapshotURIs = new ArrayList<URI>();
+        List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
+        List<BlockSnapshotSession> snapSessions = snapSessionApiImpl.prepareSnapshotSessions(snapSessionSourceObjList, snapSessionLabel,
+                newLinkedTargetsCount, snapSessionURIs, snapSessionSnapshotMap, taskId);
+
         // TBD - Prepare tasks
         // TBD - Make platform specific create request
         // TBD - Create audit log
-
-        // Create a unique task identifier.
-        @SuppressWarnings("unused")
-        String taskId = UUID.randomUUID().toString();
 
         // Create the snapshot sessions.
         TaskList taskList = snapSessionApiImpl.createSnapshotSession();

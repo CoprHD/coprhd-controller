@@ -12,7 +12,9 @@ package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.core.SecurityContext;
 
@@ -29,8 +31,13 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -170,14 +177,6 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public TaskList createSnapshotSession() {
-        return new TaskList();
-    }
-
-    /**
      * Counts and returns the number of arrays snapshots for
      * the passed volume.
      * 
@@ -232,5 +231,127 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     protected void verifyNewTargetCount(BlockObject sourceObj, int newTargetsCount) {
         // NoOp by default.
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<BlockSnapshotSession> prepareSnapshotSessions(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
+            List<URI> snapSessionURIs, Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap, String taskId) {
+
+        int sourceCount = 1;
+        List<BlockSnapshotSession> snapSessions = new ArrayList<BlockSnapshotSession>();
+        for (BlockObject sourceObj : sourceObjList) {
+            // Attempt to create distinct labels here when creating sessions
+            // for more than one source.
+            String instanceLabel = snapSessionLabel;
+            if (sourceObjList.size() > 1) {
+                instanceLabel = String.format("%s-%s", snapSessionLabel, sourceCount++);
+            }
+            BlockSnapshotSession snapSession = prepareSnapshotSessionFromSource(sourceObj, snapSessionLabel, instanceLabel, taskId);
+
+            // If new targets are to be created and linked to the snapshot session, prepare
+            // the BlockSnapshot instances to represent those targets.
+            if (newTargetCount > 0) {
+                Map<URI, BlockSnapshot> snapshotsMap = prepareSnapshotsForSession(newTargetCount, sourceObj, snapSessionLabel,
+                        instanceLabel);
+                StringSet linkedTargetIds = new StringSet();
+                for (URI snapshotURI : snapshotsMap.keySet()) {
+                    linkedTargetIds.add(snapshotURI.toString());
+                }
+                snapSession.setLinkedTargets(linkedTargetIds);
+                snapSessionSnapshotMap.put(snapSession.getId(), snapshotsMap);
+            }
+
+            // Update the snap sessions and URIs lists.
+            snapSessionURIs.add(snapSession.getId());
+            snapSessions.add(snapSession);
+        }
+
+        // Create and return the prepares snapshot sessions.
+        _dbClient.createObject(snapSessions);
+        return snapSessions;
+    }
+
+    /**
+     * Prepare a ViPR BlockSnapshotSession instance for the passed source object.
+     * 
+     * @param sourceObj The snapshot session source.
+     * @param snapSessionLabel The snapshot session label.
+     * @param instanceLabel The unique snapshot session instance label.
+     * @param taskId The unique task identifier.
+     * 
+     * @return
+     */
+    protected BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel,
+            String taskId) {
+        BlockSnapshotSession snapSession = new BlockSnapshotSession();
+        snapSession.setId(URIUtil.createId(BlockSnapshotSession.class));
+        snapSession.setLabel(instanceLabel);
+        snapSession.setSessionLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(snapSessionLabel,
+                SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
+        snapSession.setParent(new NamedURI(sourceObj.getId(), sourceObj.getLabel()));
+        Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
+        snapSession.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
+        snapSession.setOpStatus(new OpStatusMap());
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.CREATE_SNAPSHOT_SESSION);
+        snapSession.getOpStatus().createTaskStatus(taskId, op);
+        return snapSession;
+    }
+
+    /**
+     * 
+     * @param newTargetCount
+     * @param sourceObj
+     * @param snapSessionLabel
+     * @param instanceLabel
+     * 
+     * @return
+     */
+    protected Map<URI, BlockSnapshot> prepareSnapshotsForSession(int newTargetCount, BlockObject sourceObj, String sessionLabel,
+            String sessionInstanceLabel) {
+
+        Map<URI, BlockSnapshot> snapshotsMap = new HashMap<URI, BlockSnapshot>();
+        for (int i = 1; i <= newTargetCount; i++) {
+            // Create distinct snapset and instance labels for each snapshot
+            String snapsetLabel = sessionLabel;
+            String snapshotLabel = sessionInstanceLabel;
+            if (newTargetCount > 1) {
+                snapsetLabel = String.format("%s-%s", sessionLabel, i);
+                snapshotLabel = String.format("%s-%s", sessionInstanceLabel, i);
+            }
+
+            BlockSnapshot snapshot = new BlockSnapshot();
+            snapshot.setId(URIUtil.createId(BlockSnapshot.class));
+            URI cgUri = sourceObj.getConsistencyGroup();
+            if (cgUri != null) {
+                snapshot.setConsistencyGroup(cgUri);
+            }
+            snapshot.setSourceNativeId(sourceObj.getNativeId());
+            snapshot.setParent(new NamedURI(sourceObj.getId(), sourceObj.getLabel()));
+            snapshot.setLabel(snapshotLabel);
+            snapshot.setStorageController(sourceObj.getStorageController());
+            snapshot.setVirtualArray(sourceObj.getVirtualArray());
+            snapshot.setProtocol(new StringSet());
+            snapshot.getProtocol().addAll(sourceObj.getProtocol());
+            Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
+            snapshot.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
+            snapshot.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(
+                    snapsetLabel, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
+            snapshot.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
+            snapshotsMap.put(snapshot.getId(), snapshot);
+        }
+        _dbClient.createObject(snapshotsMap.values());
+        return snapshotsMap;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TaskList createSnapshotSession() {
+        return new TaskList();
     }
 }

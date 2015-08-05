@@ -11,7 +11,9 @@
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.core.SecurityContext;
 
@@ -20,6 +22,7 @@ import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -72,5 +75,56 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
         } else {
             throw APIException.badRequests.createSnapSessionNotSupportedForRPProtected();
         }
+    }
+
+    @Override
+    protected Map<URI, BlockSnapshot> prepareSnapshotsForSession(int newTargetCount, BlockObject sourceObj, String sessionLabel,
+            String sessionInstanceLabel) {
+        Map<URI, BlockSnapshot> snapshotsMap = new HashMap<URI, BlockSnapshot>();
+        for (int i = 1; i <= newTargetCount; i++) {
+        }
+
+        /*
+         * boolean isRPTarget = false;
+         * if (NullColumnValueGetter.isNotNullValue(volume.getPersonality()) &&
+         * volume.getPersonality().equals(PersonalityTypes.TARGET.name())) {
+         * isRPTarget = true;
+         * }
+         * 
+         * BlockSnapshot snapshot = prepareSnapshotFromVolume(volumeToSnap, snapshotName, (isRPTarget ? volume : null));
+         * snapshot.setTechnologyType(snapshotType);
+         * 
+         * // Check to see if the requested volume is a former target that is now the
+         * // source as a result of a swap. This is done by checking the source volume's
+         * // virtual pool for RP protection. If RP protection does not exist, we know this
+         * // is a former target.
+         * // TODO: In the future the swap functionality should update the vpools accordingly to
+         * // add/remove protection. This check should be removed at that point and another
+         * // method to check for a swapped state should be used.
+         * boolean isFormerTarget = false;
+         * VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+         * if (NullColumnValueGetter.isNotNullValue(volume.getPersonality()) &&
+         * volume.getPersonality().equals(PersonalityTypes.SOURCE.name()) &&
+         * !VirtualPool.vPoolSpecifiesProtection(vpool)) {
+         * isFormerTarget = true;
+         * }
+         * 
+         * if (((isRPTarget || isFormerTarget) && vplex) || !vplex) {
+         * // For RP+Vplex target and former target volumes, we do not want to create a
+         * // backing array CG snap. To avoid doing this, we do not set the consistency group.
+         * // OR
+         * // This is a native snapshot so do not set the consistency group, otherwise
+         * // the SMIS code/array will get confused trying to look for a consistency
+         * // group that only exists in RecoverPoint.
+         * snapshot.setConsistencyGroup(null);
+         * }
+         * 
+         * snapshots.add(snapshot);
+         * 
+         * _log.info(String.format("Prepared snapshot : [%s]", snapshot.getLabel()));
+         * }
+         */
+
+        return snapshotsMap;
     }
 }

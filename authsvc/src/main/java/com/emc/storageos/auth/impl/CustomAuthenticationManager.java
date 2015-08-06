@@ -159,7 +159,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
             _log.error(
                     "Could not find an authentication provider that supports the user {}",
                     userId);
-            throw APIException.badRequests.NoAuthnProviderFound(userId);
+            throw APIException.badRequests.noAuthnProviderFound(userId);
         }
     }
 

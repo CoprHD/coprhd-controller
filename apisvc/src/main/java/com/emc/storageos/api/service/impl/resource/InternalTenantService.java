@@ -64,7 +64,7 @@ public class InternalTenantService extends ResourceService {
 
         TenantOrg tenant = getTenantById(id, true);
         if (tenant.getNamespace() != null && !tenant.getNamespace().isEmpty()) {
-            throw APIException.badRequests.TenantNamespaceMappingConflict(id.toString(), tenant.getNamespace());
+            throw APIException.badRequests.tenantNamespaceMappingConflict(id.toString(), tenant.getNamespace());
         }
 
         tenant.setNamespace(namespace);

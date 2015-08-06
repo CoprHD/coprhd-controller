@@ -103,6 +103,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneCreateWo
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneFractureCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CreateBlockSnapshotSessionCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MultiVolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SimpleTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateCompleter;
@@ -3574,15 +3575,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public void createSnapshotSession(URI systemURI, List<URI> snapSessionURIs, Boolean createInactive, String stepId) {
         TaskCompleter completer = null;
         try {
-            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-            // completer = new SimpleTaskCompleter(snapSessionURIs, stepId);
-            getDevice(storageObj.getSystemType()).doCreateSnapshot(storageObj, snapshotList, createInactive, completer);
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+            completer = new CreateBlockSnapshotSessionCompleter(snapSessionURIs, stepId);
+            getDevice(system.getSystemType()).doCreateSnapshotSession(system, snapSessionURIs, createInactive, completer);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
                 completer.error(_dbClient, serviceError);
             } else {
-                throw DeviceControllerException.exceptions.createVolumeSnapshotFailed(e);
+                throw DeviceControllerException.exceptions.createBlockSnapshotSessionFailed(e);
             }
         }
     }

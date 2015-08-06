@@ -703,4 +703,13 @@ public interface BlockStorageDevice {
      */
     public void doResyncGroupClone(StorageSystem storageDevice, List<URI> clone,
             TaskCompleter completer) throws Exception;
+
+    /**
+     * 
+     * @param system
+     * @param snapSessionURIs
+     * @param createInactive
+     * @param completer
+     */
+    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, Boolean createInactive, TaskCompleter completer);
 }

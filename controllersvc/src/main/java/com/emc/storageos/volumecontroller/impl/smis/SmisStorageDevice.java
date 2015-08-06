@@ -24,7 +24,6 @@ import javax.cim.CIMObjectPath;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
-import com.emc.storageos.volumecontroller.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,11 +32,10 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
@@ -48,6 +46,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NameGenerator;
@@ -60,6 +59,13 @@ import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.volumecontroller.CloneOperations;
+import com.emc.storageos.volumecontroller.ControllerLockingService;
+import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
+import com.emc.storageos.volumecontroller.Job;
+import com.emc.storageos.volumecontroller.MetaVolumeOperations;
+import com.emc.storageos.volumecontroller.SnapshotOperations;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -1891,11 +1897,13 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         _srdfOperations.rollbackSRDFMirrors(system, sourceURIs, targetURIs, isGroupRollback, completer);
     }
 
+    @Override
     public void doSplitLink(final StorageSystem system, final Volume targetVolume, boolean rollback,
             final TaskCompleter completer) {
         _srdfOperations.performSplit(system, targetVolume, completer);
     }
 
+    @Override
     public void doSuspendLink(StorageSystem system, Volume targetVolume, boolean consExempt, TaskCompleter completer) {
         _srdfOperations.performSuspend(system, targetVolume, consExempt, completer);
     }
@@ -1937,6 +1945,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         _srdfOperations.startSRDFLink(system, targetVolume, completer);
     }
 
+    @Override
     public void doStopLink(final StorageSystem system, final Volume targetVolume,
             final TaskCompleter completer) {
         _srdfOperations.performStop(system, targetVolume, completer);
@@ -1985,11 +1994,13 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         return _helper.getExportMaskPolicy(storage, mask);
     }
 
+    @Override
     public void doSyncLink(StorageSystem targetSystem, Volume targetVolume, TaskCompleter completer)
             throws Exception {
         _srdfOperations.performRestore(targetSystem, targetVolume, completer);
     }
 
+    @Override
     public void doUpdateSourceAndTargetPairings(List<URI> sourceURIs, List<URI> targetURIs) {
         _srdfOperations.updateSourceAndTargetPairings(sourceURIs, targetURIs);
     }
@@ -2075,5 +2086,32 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
             }
         }
+    }
+
+    @Override
+    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs,
+            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+        /*
+         * try {
+         * List<BlockSnapshot> snapshots = _dbClient
+         * .queryObject(BlockSnapshot.class, snapshotList);
+         * if (inReplicationGroup(snapshots)) {
+         * _snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive,
+         * taskCompleter);
+         * } else {
+         * URI snapshot = snapshots.get(0).getId();
+         * _snapshotOperations.createSingleVolumeSnapshot(storage, snapshot, createInactive,
+         * taskCompleter);
+         * }
+         * } catch (DatabaseException e) {
+         * String message = String.format(
+         * "IO exception when trying to create snapshot(s) on array %s",
+         * storage.getSerialNumber());
+         * _log.error(message, e);
+         * ServiceError error = DeviceControllerErrors.smis.methodFailed("doCreateSnapshot",
+         * e.getMessage());
+         * taskCompleter.error(_dbClient, error);
+         * }
+         */
     }
 }

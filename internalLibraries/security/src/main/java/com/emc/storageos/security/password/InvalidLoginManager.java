@@ -40,7 +40,7 @@ public class InvalidLoginManager {
     private static final String MAX_AUTH_LOGIN_ATTEMPTS = "max_auth_login_attempts";
     private static final String AUTH_LOCKOUT_TIME_IN_MINUTES = "auth_lockout_time_in_minutes";
     private static final int MAX_AUTHN_LOGIN_ATTEMPTS_NODE_COUNT = 5000;
-    private static final int CLEANUP_THREAD_INITIAL_DELAY_IN_MINS = 10;
+    private static final int CLEANUP_THREAD_SCHEDULE_INTERVAL_IN_MINS = 10;
     private static final long MIN_TO_MSECS = 60 * 1000;
     private static final String INVALID_LOGIN_CLEANER_LOCK = "invalid_login_cleaner_lock";
     private static final String INVALID_LOGIN_VERSION = "_2.2";
@@ -53,7 +53,6 @@ public class InvalidLoginManager {
 
     protected int _maxAuthnLoginAttemtsCount;
     protected int _maxAuthnLoginAttemtsLifeTimeInMins;
-    protected int _cleanupThreadInitialDelay = CLEANUP_THREAD_INITIAL_DELAY_IN_MINS;
 
     public int getMaxAuthnLoginAttemtsCount() {
         return _maxAuthnLoginAttemtsCount;
@@ -63,18 +62,11 @@ public class InvalidLoginManager {
         return _maxAuthnLoginAttemtsLifeTimeInMins;
     }
 
-    public void setCleanupThreadInitialDelay(int cleanupThreadInitialDelay) {
-        this._cleanupThreadInitialDelay = cleanupThreadInitialDelay;
-    }
-
-    public int getCleanupThreadInitialDelay() {
-        return _cleanupThreadInitialDelay;
-    }
-
-
     public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
-        _distDataManager = _coordinator.createDistributedDataManager(ZkPath.AUTHN.toString(), MAX_AUTHN_LOGIN_ATTEMPTS_NODE_COUNT);
+        _distDataManager = _coordinator.createDistributedDataManager(
+                ZkPath.AUTHN.toString(),
+                MAX_AUTHN_LOGIN_ATTEMPTS_NODE_COUNT);
         if (null == _distDataManager) {
             throw SecurityException.fatals.coordinatorNotInitialized();
         }
@@ -119,7 +111,8 @@ public class InvalidLoginManager {
     }
 
     private boolean isClientInvalidRecordExpired(InvalidLogins invLogins) {
-        if (null != invLogins && (getCurrentTimeInMins() - invLogins.getLastAccessTime()) > _maxAuthnLoginAttemtsLifeTimeInMins) {
+        if (null != invLogins &&
+                (getCurrentTimeInMins() - invLogins.getLastAccessTime()) > _maxAuthnLoginAttemtsLifeTimeInMins) {
             return true;
         }
         return false;
@@ -148,7 +141,8 @@ public class InvalidLoginManager {
                 try {
                     lock = _coordinator.getLock(INVALID_LOGIN_CLEANER_LOCK);
                     lock.acquire();
-                    _log.info("Got ZK lock to remove a record created for invalid logins from this client IP: {}", clientIP);
+                    _log.info("Got ZK lock to remove a record created for invalid logins from this client IP: {}",
+                            clientIP);
                     String zkPath = getZkPath(clientIP);
                     _distDataManager.removeNode(zkPath);
                     _log.info("Removed an invalid record entry: {}", zkPath);
@@ -185,7 +179,8 @@ public class InvalidLoginManager {
     }
 
     /**
-     * The client failed to login. If an invalid login record exists for that client, increment the error count of that record.
+     * The client failed to login. If an invalid login record exists for that client,
+     * increment the error count of that record.
      * If that record does nor exists, create new entry.
      * 
      * @brief Update the invalid login record for this client
@@ -294,12 +289,13 @@ public class InvalidLoginManager {
         loadParameterFromZK();
         _invalidLoginCleanupExecutor.scheduleWithFixedDelay(
                 new InvalidLoginCleaner(),
-                _cleanupThreadInitialDelay,
-                _maxAuthnLoginAttemtsLifeTimeInMins,
+                CLEANUP_THREAD_SCHEDULE_INTERVAL_IN_MINS,
+                CLEANUP_THREAD_SCHEDULE_INTERVAL_IN_MINS,
                 TimeUnit.MINUTES);
         _log.info("Max invalid login attempts from the same client IP: {}", _maxAuthnLoginAttemtsCount);
-        _log.info("Life time in minutes of invalid login records for a client IP: {}", _maxAuthnLoginAttemtsLifeTimeInMins);
-        _log.info("Cleanup thread initial delay: {}", _cleanupThreadInitialDelay);
+        _log.info("Life time in minutes of invalid login records for a client IP: {}",
+                _maxAuthnLoginAttemtsLifeTimeInMins);
+        _log.info("Cleanup thread schedule interval: {} minutes", CLEANUP_THREAD_SCHEDULE_INTERVAL_IN_MINS);
     }
 
     /**
@@ -330,7 +326,8 @@ public class InvalidLoginManager {
                     try {
                         lock.release();
                     } catch (Exception ex) {
-                        _log.warn("Unexpected exception unlocking the lock for invalid login records cleanup thread", ex);
+                        _log.warn("Unexpected exception unlocking the lock for invalid login records cleanup thread",
+                                ex);
                     }
                 }
             }

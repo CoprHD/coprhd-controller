@@ -351,7 +351,6 @@
 
     <bean id="invalidLoginManager" class="com.emc.storageos.security.password.InvalidLoginManager">
         <property name="coordinator" ref="coordinator"/>
-        <property name="cleanupThreadInitialDelay" value="10"/>
     </bean>
 
     <bean id="backupScheduler" class="com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupScheduler" init-method="startLeaderSelector">

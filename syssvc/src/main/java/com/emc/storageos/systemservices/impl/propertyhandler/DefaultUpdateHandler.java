@@ -1,14 +1,19 @@
+/**
+ *  Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ */
+
 package com.emc.storageos.systemservices.impl.propertyhandler;
 
 import com.emc.storageos.model.property.PropertyInfoRestRep;
-import com.emc.storageos.security.password.Constants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 
 public class DefaultUpdateHandler implements UpdateHandler {
-
-    private static final Logger _log = LoggerFactory.getLogger(DefaultUpdateHandler.class);
 
     @Override
     public void before(PropertyInfoRestRep oldValue, PropertyInfoRestRep newValue) {
@@ -20,6 +25,14 @@ public class DefaultUpdateHandler implements UpdateHandler {
         // empty implementation
     }
 
+    /**
+     * check if the value of specified property get changed.
+     *
+     * @param oldProps
+     * @param newProps
+     * @param property
+     * @return
+     */
     public boolean isProprotyChanged(PropertyInfoRestRep oldProps, PropertyInfoRestRep newProps, String property) {
         String oldValue = oldProps.getProperty(property);
         String newValue = newProps.getProperty(property);

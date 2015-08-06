@@ -69,7 +69,6 @@
     </bean>    
     <bean id="invalidLoginManager" class="com.emc.storageos.security.password.InvalidLoginManager">
         <property name="coordinator" ref="coordinator"/>
-        <property name="cleanupThreadInitialDelay" value="10"/>
     </bean>
        
     <bean id="tokenManager" class="com.emc.storageos.auth.impl.CassandraTokenManager"/>

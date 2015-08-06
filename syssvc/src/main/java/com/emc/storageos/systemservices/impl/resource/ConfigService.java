@@ -902,7 +902,7 @@ public class ConfigService {
 
 
     /**
-     * remove specified IP from block-ip list, * for clear all IPs.
+     * remove specified IP from block-ip list.
      *
      * @param ip
      * @return
@@ -915,11 +915,7 @@ public class ConfigService {
             throw APIException.badRequests.propertyIsNullOrEmpty();
         }
 
-        if (ip.trim().equals("*")) {
-            _invLoginManager.invLoginCleanup(true);
-        } else {
-            _invLoginManager.removeInvalidRecord(ip);
-        }
+        _invLoginManager.removeInvalidRecord(ip);
 
         return Response.ok().build();
     }

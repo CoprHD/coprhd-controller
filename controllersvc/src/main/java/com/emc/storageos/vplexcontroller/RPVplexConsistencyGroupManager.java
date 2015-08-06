@@ -11,6 +11,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -21,6 +22,7 @@ import org.springframework.util.StringUtils;
 
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -70,14 +72,25 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
         BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cgURI, dbClient);
         
         // Create a step to create the CG.
-        nextStep = workflow.createStep(CREATE_CG_STEP,
-                String.format("VPLEX %s creating consistency group for %s", vplexURI, cg.getLabel()),
+        String stepMsg = String.format("Create and add volumes to VPLEX consistency group. VPlEX: %s (%s) Consistency group: %s (%s) Volumes: %s (%s) ", 
+        		vplexSystem.getLabel(), vplexURI, cg.getLabel(), cg.getId(), 
+        		getVolumeLabels(vplexVolumeURIs), StringUtils.collectionToCommaDelimitedString(vplexVolumeURIs));
+        nextStep = workflow.createStep(CREATE_CG_STEP, stepMsg,
                 nextStep, vplexURI, vplexSystem.getSystemType(), this.getClass(),
                 createCGMethod(vplexURI, cgURI, vplexVolumeURIs), 
                 createRemoveVolumesFromCGMethod(vplexURI, cgURI, vplexVolumeURIs), null);
         log.info("Created step for consistency group creation and add volumes.");
                 
         return nextStep;
+    }
+    
+    private String getVolumeLabels(Collection<URI> volUris) {
+    	List<String> labels = new ArrayList<String>();
+    	Iterator<Volume> volItr = dbClient.queryIterativeObjects(Volume.class, volUris);
+    	while (volItr.hasNext()) {
+    		labels.add(volItr.next().getLabel());
+    	}
+    	return StringUtils.collectionToCommaDelimitedString(labels);
     }
     
     /**

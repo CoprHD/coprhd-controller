@@ -1314,7 +1314,6 @@ public class FileService extends TaskResourceService {
                 task, ResourceOperationTypeEnum.DELETE_FILE_SYSTEM);
         op.setDescription("Filesystem deactivate");
         // where does pool come from?
-        // controller.delete(device.getId(), null, fs.getId(), param.getForceDelete(), task);
         controller.delete(device.getId(), null, fs.getId(), param.getForceDelete(), param.getDeleteType(), task);
         auditOp(OperationTypeEnum.DELETE_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                 fs.getId().toString(), device.getId().toString());

@@ -31,6 +31,11 @@ public class FileSystemDeleteParam {
         this.forceDelete = forceDelete;
     }
 
+    public FileSystemDeleteParam(boolean forceDelete, String deleteType) {
+        this.deleteType = deleteType;
+        this.forceDelete = forceDelete;
+    }
+
     @XmlElement(name = "forceDelete")
     public boolean getForceDelete() {
         return forceDelete;

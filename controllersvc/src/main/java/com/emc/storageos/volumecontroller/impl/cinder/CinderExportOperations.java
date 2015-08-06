@@ -8,6 +8,7 @@ package com.emc.storageos.volumecontroller.impl.cinder;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -373,7 +374,6 @@ public class CinderExportOperations implements ExportMaskOperations {
 
         for (Volume volume : volumes) {
         	
-        	boolean isVplexVolume = isVplex(volume);
             // cinder generated volume ID
             String volumeId = volume.getNativeId();
             int targetLunId = -1;
@@ -400,28 +400,28 @@ public class CinderExportOperations implements ExportMaskOperations {
                         volumeId, null, fcInitiatorsWwpns, fcInitiatorsWwnns, host);
                 log.info("Got response : {}", attachResponse.connection_info.toString());
                 targetLunId = attachResponse.connection_info.data.target_lun;
-
-                if(!isVplexVolume)
+                
+                Map<String, List<String>> initTargetMap = attachResponse.connection_info.data.initiator_target_map;
+                if(null!=initTargetMap && !initTargetMap.isEmpty())
                 {
                 	volumeToInitiatorTargetMap.put(volume,
-                			                       attachResponse.connection_info.data.initiator_target_map);
-                }
+			                   attachResponse.connection_info.data.initiator_target_map);
+                }        	
+                
                 
             }
 
             volumeToTargetLunMap.put(volume.getId(), Integer.valueOf(targetLunId));
             
-            if(!isVplexVolume)
-            {
-            	//After the successful export, create or modify the storage ports
-                CinderStoragePortOperations storagePortOperationsInstance = CinderStoragePortOperations.getInstance(storage, dbClient);
-                storagePortOperationsInstance.invoke(attachResponse);
-            }
+            //After the successful export, create or modify the storage ports
+            CinderStoragePortOperations storagePortOperationsInstance = CinderStoragePortOperations.getInstance(storage, dbClient);
+            storagePortOperationsInstance.invoke(attachResponse);
+            
             
         }
         
         //Add ITLs to volume objects
-        createITLMappingInVolume(volumeToTargetLunMap, exportMask);
+        storeITLMappingInVolume(volumeToTargetLunMap, exportMask);
         
     }
 
@@ -481,20 +481,10 @@ public class CinderExportOperations implements ExportMaskOperations {
                                 volumeId, volume.getId(), fcInitiatorsWwpns));
                 cinderApi.detachVolume(volumeId, null, fcInitiatorsWwpns, fcInitiatorsWwnns, host);
             }
+            
+            //If ITLs are added, remove them
+            removeITLsFromVolume(volume);
         }
-    }
-    
-    /***
-     * Check if the request is for vplex.
-     * @param volume
-     * @return
-     */
-    private boolean isVplex(Volume volume)
-    {
-    	boolean isVplex = false;
-    	VirtualPool vpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-    	isVplex = VirtualPool.vPoolSpecifiesHighAvailability(vpool);
-    	return isVplex;
     }
 
     private void splitInitiatorsByProtocol(List<Initiator> initiatorList,
@@ -853,7 +843,7 @@ public class CinderExportOperations implements ExportMaskOperations {
      * @param exportMask - exportMask in which the volume is to be added
      * @param targetLunId - integer value of host LUN id on which volume is accessible.
      */
-    private void createITLMappingInVolume(Map<URI, Integer> volumeToTargetLunMap, ExportMask exportMask)
+    private void storeITLMappingInVolume(Map<URI, Integer> volumeToTargetLunMap, ExportMask exportMask)
     {
     	log.debug("START - createITLMappingInVolume");
     	for (URI volumeURI : volumeToTargetLunMap.keySet())
@@ -905,6 +895,27 @@ public class CinderExportOperations implements ExportMaskOperations {
     	
     	log.debug("END - createITLMappingInVolume");
             
+    }
+    
+    
+    /**
+     * Remove the list of ITLs from the volume extensions
+     * @param volume
+     * @return
+     */
+    private void removeITLsFromVolume(Volume volume)
+    {    	
+    	StringMap extensions = volume.getExtensions();   
+    	Set<Map.Entry<String, String>> mapEntries = extensions.entrySet();
+    	for(Iterator<Map.Entry<String, String>> it = mapEntries.iterator(); it.hasNext(); )
+    	{
+    	      Map.Entry<String, String> entry = it.next();
+    	      if(entry.getKey().startsWith(CinderConstants.PREFIX_ITL))
+    	      {
+    	        it.remove();
+    	      }
+    	 }
+    	
     }
     	
     	

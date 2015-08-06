@@ -10,6 +10,7 @@ import com.emc.storageos.cinder.api.CinderApi;
 import com.emc.storageos.cinder.api.CinderApiFactory;
 import com.emc.storageos.cinder.errorhandling.CinderException;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -42,6 +43,7 @@ import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -814,6 +816,16 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber) {
         return true;
+    }
+    
+    public void doWaitForSynchronized(Class<? extends BlockObject> clazz,
+            StorageSystem storageObj, URI target, TaskCompleter completer) 
+    {
+        //Do nothing - cinder API does not have API to synchronize copies
+    	//This has to do nothing for VPLEX+Cinder case to pass for the 
+    	//volume clone.
+    	log.info("Nothing to do here.  Cinder does not require a wait for synchronization");
+        completer.ready(dbClient);
     }
 
 }

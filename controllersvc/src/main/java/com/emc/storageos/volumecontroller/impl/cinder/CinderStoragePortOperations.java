@@ -118,8 +118,12 @@ public class CinderStoragePortOperations
                 if (CinderConstants.ATTACH_RESPONSE_FC_TYPE.equalsIgnoreCase(protocolType))
                 {
                     initiatorTargetMap = attachResponse.connection_info.data.initiator_target_map;
-                    logger.debug("FC Initiator and Target mappings : {} ", initiatorTargetMap.toString());
-                    performFCOperation(initiatorTargetMap);
+                    if(null!=initiatorTargetMap && !initiatorTargetMap.isEmpty())
+                    {
+                    	logger.debug("FC Initiator and Target mappings : {} ", initiatorTargetMap.toString());
+                        performFCOperation(initiatorTargetMap);
+                    }
+                    
                 }
 
                 String iqn = null;
@@ -140,10 +144,13 @@ public class CinderStoragePortOperations
                 {
                     StoragePortAssociationHelper.updatePortAssociations(newStoragePortsList, dbClient);
                 }
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
-                logger.error("There is an error while creating/modifying ports after export/attach, Reason:" + e.getMessage(), e);
-            } finally
+                logger.error("There is an error while creating/modifying ports after export/attach,"+
+                             " Reason:" + e.getMessage(), e);
+            }
+            finally
             {
                 // clear modified and new ports list
                 modifiedStoragePortsList.clear();

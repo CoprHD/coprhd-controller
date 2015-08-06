@@ -178,6 +178,7 @@ public abstract class CommandHandler {
         private static final String LIST_ACTIVE = "-activeonly";
         private static final String LIST_LIMIT = "-limit";
         private static final String REGEX_NUMBERS = "\\d+";
+        private static final String MODIFICATION_TIME = "-mf";
 
         public ListHandler(String[] args, DBClient _client) {
             if (args[1].equalsIgnoreCase(TYPE_EVENTS) ||
@@ -290,6 +291,9 @@ public abstract class CommandHandler {
             for (int i = 1; i < args.length - 1; i++) {
                 if (args[i].equalsIgnoreCase(LIST_ACTIVE)) {
                     _client.setActiveOnly(true);
+                }
+                if (args[i].equalsIgnoreCase(MODIFICATION_TIME)) {
+                	_client.setShowModificationTime(true);
                 }
                 if (args[i].equalsIgnoreCase(LIST_LIMIT)) {
                     _client.setTurnOnLimit(true);

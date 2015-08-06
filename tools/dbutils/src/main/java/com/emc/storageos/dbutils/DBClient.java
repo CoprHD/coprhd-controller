@@ -89,6 +89,7 @@ public class DBClient {
     private EncryptionProviderImpl geoEncryptionProvider;
     private EncryptionProviderImpl encryptionProvider;
     private boolean skipMigrationCheck = false;
+    private boolean showModificationTime = false;
 
     public DBClient(boolean skipMigrationCheck) {
         this.skipMigrationCheck = skipMigrationCheck;
@@ -167,6 +168,9 @@ public class DBClient {
             bInfo = Introspector.getBeanInfo(clazz);
             while (objects.hasNext()) {
                 T object = (T) objects.next();
+                if (this.showModificationTime) {
+                    Map<String, Long> fieldModificationTimeMap = _dbClient.getFieldModificationTimestampMap(TypeMap.getDoType(clazz), object.getId());                	
+                }
                 printBeanProperties(bInfo.getPropertyDescriptors(), object);
                 countLimit++;
                 countAll++;
@@ -313,6 +317,7 @@ public class DBClient {
     @SuppressWarnings("unchecked")
     public void listRecords(String cfName) throws Exception {
         final Class clazz = _cfMap.get(cfName); // fill in type from cfName
+        final DataObjectType doType = TypeMap.getDoType(clazz);
         if (clazz == null) {
             System.err.println("Unknown Column Family: " + cfName);
             return;
@@ -628,6 +633,10 @@ public class DBClient {
     public void setActiveOnly(boolean activeOnly) {
         this.activeOnly = activeOnly;
     }
+
+	public void setShowModificationTime(boolean showModificationTime) {
+		this.showModificationTime = showModificationTime;
+	}
 
     /**
      * Read the schema record from db and dump it into a specified file

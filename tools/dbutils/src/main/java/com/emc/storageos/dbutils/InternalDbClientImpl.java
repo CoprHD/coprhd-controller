@@ -295,4 +295,22 @@ public class InternalDbClientImpl extends InternalDbClient {
     private void logAndPrintToScreen(String msg) {
         logAndPrintToScreen(msg, false);
     }
+    
+    public Map<String, Long> getFieldModificationTimestampMap(DataObjectType type, URI id) {
+    	Map<String, Long> fieldTimestampMap = new HashMap<String, Long>();
+    	ColumnFamily<String, CompositeColumnName> cf = type.getCF();
+    	Keyspace ks = this.getKeyspace(type.getDataObjectClass());
+    	List<URI> ids = new ArrayList<URI>();
+    	ids.add(id);
+    	Rows<String, CompositeColumnName> rows = this.queryRowsWithAllColumns(ks, ids, cf);
+    	if(rows.isEmpty()){
+    		log.warn("can't find modification timestamp for {}", id);
+    		return fieldTimestampMap;
+    	}
+    	for (Column<CompositeColumnName> column : rows.iterator().next().getColumns()) {
+    		fieldTimestampMap.put(column.getName().getOne(), Long.valueOf(column.getTimestamp()));
+    	}
+    	
+    	return fieldTimestampMap;
+    }
 }

@@ -405,4 +405,23 @@ public class HDSSnapshotOperations implements SnapshotOperations {
         throw new DeviceControllerException("UnSupported Operation");
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void createSnapshotSession(StorageSystem system, URI snapSessionURI, Boolean createInactive, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, Boolean createInactive,
+            TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
 }

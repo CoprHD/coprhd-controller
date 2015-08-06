@@ -27,11 +27,11 @@ import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeLunGroupSnap;
 import com.emc.storageos.vnxe.models.VNXeLunSnap;
+import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeBlockCreateCGSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeBlockDeleteSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeBlockRestoreSnapshotJob;
@@ -310,4 +310,22 @@ public class VNXeSnapshotOperation extends VNXeOperations implements SnapshotOpe
         return groupName;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void createSnapshotSession(StorageSystem system, URI snapSessionURI, Boolean createInactive, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, Boolean createInactive,
+            TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

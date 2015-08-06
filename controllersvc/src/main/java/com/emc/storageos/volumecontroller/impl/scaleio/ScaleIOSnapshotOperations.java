@@ -4,6 +4,16 @@
  */
 package com.emc.storageos.volumecontroller.impl.scaleio;
 
+import java.net.URI;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -12,19 +22,21 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.scaleio.api.*;
+import com.emc.storageos.scaleio.api.ScaleIOCLI;
+import com.emc.storageos.scaleio.api.ScaleIOQueryAllCommand;
+import com.emc.storageos.scaleio.api.ScaleIOQueryAllResult;
+import com.emc.storageos.scaleio.api.ScaleIOQueryAllVolumesResult;
+import com.emc.storageos.scaleio.api.ScaleIORemoveConsistencyGroupSnapshotsResult;
+import com.emc.storageos.scaleio.api.ScaleIORemoveVolumeResult;
+import com.emc.storageos.scaleio.api.ScaleIOSnapshotMultiVolumeResult;
+import com.emc.storageos.scaleio.api.ScaleIOSnapshotVolumeResult;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.*;
 
 public class ScaleIOSnapshotOperations implements SnapshotOperations {
 
@@ -256,5 +268,24 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
     private String getScaleIOCustomerId(ScaleIOCLI scaleIOCLI) {
         ScaleIOQueryAllResult scaleIOQueryAllResult = scaleIOCLI.queryAll();
         return scaleIOQueryAllResult.getProperty(ScaleIOQueryAllCommand.SCALEIO_CUSTOMER_ID);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void createSnapshotSession(StorageSystem system, URI snapSessionURI, Boolean createInactive, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, Boolean createInactive,
+            TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

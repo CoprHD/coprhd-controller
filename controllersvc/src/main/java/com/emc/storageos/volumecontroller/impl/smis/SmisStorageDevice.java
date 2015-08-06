@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -2088,30 +2089,47 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs,
             Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
-        /*
-         * try {
-         * List<BlockSnapshot> snapshots = _dbClient
-         * .queryObject(BlockSnapshot.class, snapshotList);
-         * if (inReplicationGroup(snapshots)) {
-         * _snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive,
-         * taskCompleter);
-         * } else {
-         * URI snapshot = snapshots.get(0).getId();
-         * _snapshotOperations.createSingleVolumeSnapshot(storage, snapshot, createInactive,
-         * taskCompleter);
-         * }
-         * } catch (DatabaseException e) {
-         * String message = String.format(
-         * "IO exception when trying to create snapshot(s) on array %s",
-         * storage.getSerialNumber());
-         * _log.error(message, e);
-         * ServiceError error = DeviceControllerErrors.smis.methodFailed("doCreateSnapshot",
-         * e.getMessage());
-         * taskCompleter.error(_dbClient, error);
-         * }
-         */
+        try {
+            List<BlockSnapshotSession> snapSessions = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURIs);
+            if (doGroupSnapshotSessionCreation(snapSessions)) {
+                _snapshotOperations.createGroupSnapshotSession(system, snapSessionURIs, createInactive, taskCompleter);
+            } else {
+                URI snapSessionURI = snapSessionURIs.get(0);
+                _snapshotOperations.createSnapshotSession(system, snapSessionURI, createInactive, taskCompleter);
+            }
+        } catch (Exception e) {
+            _log.error(String.format("Exception trying to create snapshot session(s) on array %s", system.getSerialNumber()), e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doCreateSnapshotSession", e.getMessage());
+            taskCompleter.error(_dbClient, error);
+        }
+    }
+
+    /**
+     * Determines whether we do group snapshot session creation on the array.
+     * 
+     * @param snapSessions The session(s) to be created.
+     * 
+     * @return true to do group creation, false otherwise.
+     */
+    private boolean doGroupSnapshotSessionCreation(List<BlockSnapshotSession> snapSessions) {
+        boolean doGroupCreation = false;
+        if (snapSessions.size() > 1) {
+            doGroupCreation = true;
+        } else {
+            BlockSnapshotSession snapSession = snapSessions.get(0);
+            URI sourceObjURI = snapSession.getParent().getURI();
+            BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceObjURI);
+            URI cgURI = sourceObj.getConsistencyGroup();
+            if (!NullColumnValueGetter.isNullURI(cgURI)) {
+                doGroupCreation = true;
+            }
+        }
+        return doGroupCreation;
     }
 }

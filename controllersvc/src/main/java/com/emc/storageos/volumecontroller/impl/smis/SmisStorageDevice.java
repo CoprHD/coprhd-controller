@@ -955,6 +955,29 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             taskCompleter.error(_dbClient, error);
         }
     }
+    
+    @Override
+    public void doResyncSnapshot(final StorageSystem storage, final URI volume,
+            final URI snapshot, final TaskCompleter taskCompleter) throws DeviceControllerException {
+        try {
+            List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class,
+                    Arrays.asList(snapshot));
+            if (inReplicationGroup(snapshots)) {
+                _snapshotOperations.resyncGroupSnapshots(storage, volume, snapshot, taskCompleter);
+            } else {
+                _snapshotOperations.resyncSingleVolumeSnapshot(storage, volume, snapshot,
+                        taskCompleter);
+            }
+        } catch (DatabaseException e) {
+            String message = String.format(
+                    "IO exception when trying to restore snapshot(s) on array %s",
+                    storage.getSerialNumber());
+            _log.error(message, e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doRestoreFromSnapshot",
+                    e.getMessage());
+            taskCompleter.error(_dbClient, error);
+        }
+    }
 
     /**
      * This interface will return a mapping of the port name to the URI of the ExportMask in which

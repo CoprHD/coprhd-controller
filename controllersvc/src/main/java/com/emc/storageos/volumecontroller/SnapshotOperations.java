@@ -168,4 +168,34 @@ public interface SnapshotOperations {
      */
     public void terminateAnyRestoreSessions(StorageSystem storage, BlockObject from, URI volume,
             TaskCompleter taskCompleter) throws Exception;
+    
+    /**
+     * Implementation for a single volume snapshot resynchronization. 
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param volume [required] - Volume URI for the volume to be resynchronized from
+     * @param snapshot [required] - BlockSnapshot URI representing the previously created
+     *            snap for the volume
+     * @param taskCompleter - TaskCompleter object used for the updating operation status.
+     * @throws DeviceControllerException
+     */
+    void resyncSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
+
+    /**
+     * Implementation should resynchronize the set of snapshots that were taken for a set of
+     * volumes in a consistency group. That is, at some time there was a consistency
+     * group of volumes created and snapshot was taken of these; these snapshots would
+     * belong to a "snap-set". This operation will resynchronize  the snap-set from the volumes
+     * in the consistency group. Any snapshot from the snap-set can be provided to resync the whole snap-set.
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param volume [required] -  URI of the snapshot's parent volume
+     * @param snapshot [required] - BlockSnapshot URI representing the previously created
+     *            snap for the volume
+     * @param taskCompleter - TaskCompleter object used for the updating operation status.
+     * @throws DeviceControllerException
+     */
+    void resyncGroupSnapshots(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
 }

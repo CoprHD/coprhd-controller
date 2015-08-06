@@ -60,6 +60,7 @@ public enum ResourceOperationTypeEnum {
     ASSIGN_VOLUME_TAG("ASSIGN VOLUME TAG", "tag a volume"),
     DELETE_VOLUME_SNAPSHOT("DELETE VOLUME SNAPSHOT", "delete volume snapshot"),
     RESTORE_VOLUME_SNAPSHOT("RESTORE VOLUME SNAPSHOT", "restore volume snapshot"),
+    RESYNCHRONIZE_VOLUME_SNAPSHOT("RESYNCHRONIZE VOLUME SNAPSHOT", "resynchronize volume snapshot"),
     ACTIVATE_VOLUME_SNAPSHOT("ACTIVATE VOLUME SNAPSHOT", "activate volume snapshot"),
     DEACTIVATE_VOLUME_SNAPSHOT("DEACTIVATE VOLUME SNAPSHOT", "deactivate volume snapshot"),
     ASSIGN_VOLUME_SNAPSHOT_TAG("TAG VOLUME SNAPSHOT", "tag a volume snapshot"),

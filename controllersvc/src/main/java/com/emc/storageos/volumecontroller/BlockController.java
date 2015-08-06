@@ -156,6 +156,18 @@ public interface BlockController extends BlockStorageManagementController {
             throws InternalException;
 
     /**
+     * Resync a given snapshot from its parent volume.
+     * 
+     * @param storage URI of storage controller.
+     * @param volume URI of snapshot's parent volume.
+     * @param snapshot URI of snapshot used for resynchronization.
+     * @param opId Operation ID
+     * @throws InternalException When an exception occurs during snapshot resynchronization
+     */
+    public void resyncSnapshot(URI storage, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
+            throws InternalException;
+    
+    /**
      * Resynchronize clone from its source volume
      * 
      * @param storage

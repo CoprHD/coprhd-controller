@@ -223,5 +223,13 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
         // Default: no implementation because not every array needs to support this
         // functionality
     }
+    @Override
+    public void resyncSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter){
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 
+    @Override
+    public void resyncGroupSnapshots(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

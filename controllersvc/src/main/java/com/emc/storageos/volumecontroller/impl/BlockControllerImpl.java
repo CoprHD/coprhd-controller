@@ -198,6 +198,12 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
             throws InternalException {
         blockRMI("restoreVolume", storage, pool, volume, snapshot, updateOpStatus, opId);
     }
+    
+    @Override
+    public void resyncSnapshot(URI storage, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
+            throws InternalException {
+        blockRMI("resyncSnapshot", storage, volume, snapshot, updateOpStatus, opId);
+    }
 
     @Override
     public void resyncFullCopy(URI storage, List<URI> clone, Boolean updateOpStatus, String opId)

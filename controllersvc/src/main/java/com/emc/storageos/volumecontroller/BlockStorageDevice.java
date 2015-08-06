@@ -332,6 +332,17 @@ public interface BlockStorageDevice {
             TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
+     * Resynchronize snapsht
+     * @param storage Storage system the snapshot created on
+     * @param volume The URI of the snapshot's parent volume
+     * @param snapshot The URI of the snapshot to be resynchronized
+     * @param taskCompleter The task completer
+     * @throws DeviceControllerException
+     */
+    public void doResyncSnapshot(StorageSystem storage, URI volume, URI snapshot,
+            TaskCompleter taskCompleter) throws DeviceControllerException;
+    
+    /**
      * Create a mirror for a volume
      * 
      * @param storage

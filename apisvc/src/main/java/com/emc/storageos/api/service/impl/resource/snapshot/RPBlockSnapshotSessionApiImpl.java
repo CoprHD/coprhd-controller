@@ -5,7 +5,7 @@
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import java.net.URI;
-import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -79,11 +79,24 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected List<URI> prepareSnapshotsForSession(int newTargetCount, BlockObject sourceObj, String sessionLabel,
             String sessionInstanceLabel) {
-        List<URI> snapshotURIs = new ArrayList<URI>();
-        for (int i = 1; i <= newTargetCount; i++) {
+        // Important: that the only difference between these snapshots and snapshots created with the
+        // create snapshot APIs is that the parent and project NamedURIs for the snapshot use the
+        // snapshot label rather than the source label. This is an inconsistency between non-RP snaps
+        // and other snaps and should probably be fixed.
+        List<URI> snapshotURIs = super.prepareSnapshotsForSession(newTargetCount, sourceObj, sessionLabel, sessionInstanceLabel);
+        Iterator<BlockSnapshot> snapshotsIter = _dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotURIs, true);
+        while (snapshotsIter.hasNext()) {
+            BlockSnapshot snapshot = snapshotsIter.next();
+            // This is a native snapshot so do not set the consistency group, otherwise
+            // the SMIS code/array will get confused trying to look for a consistency
+            // group that only exists in RecoverPoint.
+            snapshot.setConsistencyGroup(null);
         }
 
         return snapshotURIs;

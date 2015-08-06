@@ -328,7 +328,11 @@ public class VolumeIngestionUtil {
         for (String targetId : targets) {
             List<URI> targetUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(targetId));
             if (null != targetUris && !targetUris.isEmpty()) {
-                targetUriList.add((BlockObject) dbClient.queryObject(targetUris.get(0)));
+                BlockObject bo = (BlockObject) dbClient.queryObject(targetUris.get(0));
+                _logger.info("clone block object is: " + bo);
+                if (null != bo) {
+                    targetUriList.add(bo);
+                }
             } else {
                 _logger.info("Clone not ingested yet {}. Checking in the created object map", targetId);
                 // check in the created object map
@@ -347,7 +351,11 @@ public class VolumeIngestionUtil {
         for (String targetId : targets) {
             List<URI> targetUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getMirrorByNativeGuid(targetId));
             if (null != targetUris && !targetUris.isEmpty()) {
-                targetUriList.add((BlockObject) dbClient.queryObject(targetUris.get(0)));
+                BlockObject bo = (BlockObject) dbClient.queryObject(targetUris.get(0));
+                _logger.info("mirror block object is: " + bo);
+                if (null != bo) {
+                    targetUriList.add(bo);
+                }
             } else {
                 _logger.info("Mirror not ingested yet {}", targetId);
                 // check in the created object map
@@ -362,15 +370,12 @@ public class VolumeIngestionUtil {
     }
 
     public static List<BlockObject> getSnapObjects(StringSet targets, Map<String, BlockObject> createdObjectMap, DbClient dbClient) {
-        _logger.info("getSnapObjects targets: " + targets);
         List<BlockObject> targetUriList = new ArrayList<BlockObject>();
         for (String targetId : targets) {
-            _logger.info("getSnapObjects target id: " + targetId);
             List<URI> targetUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getBlockSnapshotsByNativeGuid(targetId));
-            _logger.info("targetUris is: " + targetUris);
             if (null != targetUris && !targetUris.isEmpty()) {
                 BlockObject bo = (BlockObject) dbClient.queryObject(targetUris.get(0));
-                _logger.info("block object is: " + bo);
+                _logger.info("snapshot block object is: " + bo);
                 if (null != bo) {
                     targetUriList.add(bo);
                 }

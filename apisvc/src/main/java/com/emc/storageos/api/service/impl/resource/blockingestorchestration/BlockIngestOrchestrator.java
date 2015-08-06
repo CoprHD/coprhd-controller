@@ -965,7 +965,7 @@ public abstract class BlockIngestOrchestrator {
         
         if (null != foundIngestedReplicas && !foundIngestedReplicas.isEmpty()) {
             for (BlockObject blockObj : foundIngestedReplicas) {
-_logger.error("blockObj: " + blockObj);
+                _logger.error("blockObj: " + blockObj);
                 foundIngestedReplicaNativeGuids.add(blockObj.getNativeGuid());
             }
         }

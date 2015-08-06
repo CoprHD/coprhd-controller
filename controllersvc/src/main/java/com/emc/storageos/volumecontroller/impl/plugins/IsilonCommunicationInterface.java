@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -693,11 +694,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         String fsPathName = fs.getPath();
                         // get all shares for given file system path
                         HashSet<String> tempHashSet = new HashSet<String>();
-                        for (String entry : allSMBShares.keySet()) {
-
-                            if (entry.startsWith(fsPathName)) {
-                                _log.info("filesystem path : {} and share path: {}", fs.getPath(), entry);
-                                tempHashSet.addAll(allSMBShares.get(entry));
+                        for (Entry<String, HashSet<String>> entry : allSMBShares.entrySet()) {
+                            if (entry.getKey().startsWith(fsPathName)) {
+                                _log.info("filesystem path : {} and share path: {}", fs.getPath(), entry.getKey());
+                                tempHashSet.addAll(entry.getValue());
                                 noOfShares += 1;
                             }
                         }

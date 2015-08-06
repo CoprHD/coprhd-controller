@@ -1206,27 +1206,27 @@ public class NetAppClusterModeCommIntf extends
 
                 for (String key : unMangedSMBFileShareMapSet.keySet()) {
                     unManagedSMBFileShareHashSet = unMangedSMBFileShareMapSet.get(key);
-                    String filesystem = key;
-                    String nativeId = filesystem;
+                    String fileSystem = key;
+                    String nativeId = fileSystem;
 
-                    //get a filesystem name from the path
-                    int index = filesystem.indexOf('/', 1);
+                    //get a fileSystem name from the path
+                    int index = fileSystem.indexOf('/', 1);
                     if( -1 !=  index){
-                        filesystem = filesystem.substring(0, index);
-                        _logger.info("Unmanaged FileSystem Name {}", filesystem);
+                        fileSystem = fileSystem.substring(0, index);
+                        _logger.info("Unmanaged FileSystem Name {}", fileSystem);
                     }
 
                     String fsUnManagedFsNativeGuid = NativeGUIDGenerator
                             .generateNativeGuidForPreExistingFileSystem(
                                     storageSystem.getSystemType(), storageSystem
-                                            .getSerialNumber().toUpperCase(), filesystem);
+                                            .getSerialNumber().toUpperCase(), fileSystem);
 
                     UnManagedFileSystem unManagedFs = checkUnManagedFileSystemExistsInDB(fsUnManagedFsNativeGuid);
                     boolean fsAlreadyExists = unManagedFs == null ? false : true;
 
                     if (fsAlreadyExists) {
-                        _logger.debug("retrieve info for file system: " + filesystem);
-                        String svm = getOwningSVM(filesystem, fileSystemInfo);
+                        _logger.debug("retrieve info for file system: " + fileSystem);
+                        String svm = getOwningSVM(fileSystem, fileSystemInfo);
                         String addr = getSVMAddress(svm, svms);
 
                         UnManagedSMBShareMap tempUnManagedSMBShareMap = new UnManagedSMBShareMap();
@@ -1292,7 +1292,7 @@ public class NetAppClusterModeCommIntf extends
                     } else {
                         _logger.info("FileSystem " + unManagedFs
                                 + "is not present in ViPR DB. Hence ignoring "
-                                + filesystem + " share");
+                                + fileSystem + " share");
                     }
                 }
             }

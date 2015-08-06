@@ -26,7 +26,7 @@ public class LogMessage {
 
     // nodeName and service are not set in the parser, and nodeName doesn't need to be
     // serialized in LogNetworkWriter.
-    private byte[] nodeName;// node id
+    private byte[] nodeName;// node name
 
     // the following fields need to be serialized in LogNetworkWriter
     private byte[] service;

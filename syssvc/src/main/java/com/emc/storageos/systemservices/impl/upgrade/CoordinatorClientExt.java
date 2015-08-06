@@ -78,8 +78,8 @@ public class CoordinatorClientExt {
     private InterProcessLock _newVersionLock = null;
     // Node name used for external display/query purpose.
     // EX: vipr1, vipr2, dataservice-10_247_100_15
-    private String _myNodeName = null;
-    private String _myCustomName = null;
+    private String _myNodeId= null;
+    private String _myNodeName= null;
     // Service id is for internal use to talk to coordinator.
     // EX: syssvc-1, syssvc-2, syssvc-10_247_100_15
     private String mySvcId = null;
@@ -100,8 +100,8 @@ public class CoordinatorClientExt {
 
     public void setService(ServiceImpl service) {
         _svc = service;
-        _myNodeName = _svc.getNodeName();
-        _myCustomName = _svc.getNodeCustomName();
+        _myNodeId= _svc.getNodeId();
+        _myNodeName= _svc.getNodeName();
         mySvcId = _svc.getId();
     }
 
@@ -536,15 +536,14 @@ public class CoordinatorClientExt {
 
     /**
      * Get node endpoint from node name
-     * 
-     * @param nodeName
+     * @param nodeId
      * @return
      */
-    public URI getNodeEndpoint(String nodeName) {
+    public URI getNodeEndpoint(String nodeId) {
         try {
             List<Service> svcs = _coordinator.locateAllServices(_svc.getName(), _svc.getVersion(), (String) null, null);
             for (Service svc : svcs) {
-                if (svc.getNodeName().equals(nodeName)) {
+                if (svc.getNodeId().equals(nodeId)) {
                     return svc.getEndpoint();
                 }
             }
@@ -892,24 +891,24 @@ public class CoordinatorClientExt {
 
     /**
      * The utility method to find the corresponding nodeIds for the provided
-     * custom names. When each node starts, the system management service on each
+     * node names. When each node starts, the system management service on each
      * node, registers themselves with the coordninator. This method iterates
      * over that registration namespace to find the nodes in the cluster
      *
      * @return NodeHandle for mathing node in the cluster
      */
-    public List<String> getMatchingNodeIds(List<String> customNames) {
+    public List<String> getMatchingNodeIds(List<String> nodeNames) {
         List<String> nodeIds = new ArrayList<String>();
         try {
             List<Service> svcs = getAllServices();
             for (Service svc : svcs) {
-                if (customNames.contains(svc.getNodeCustomName())){
-                    final String nodeId =svc.getNodeName();
+                if (nodeNames.contains(svc.getNodeName())){
+                    final String nodeId =svc.getNodeId();
                     nodeIds.add(nodeId);
                 }
             }
         } catch (Exception e) {
-            _log.error("getMatchingNodeIds(): Failed to get all nodeIds for nodeNames {}: {}",customNames, e);
+            _log.error("getMatchingNodeIds(): Failed to get all nodeIds for nodeNames {}: {}",nodeNames, e);
         }
         _log.info("getMatchingNodeIds(): Node Ids: {}", Strings.repr(nodeIds));
         return nodeIds;
@@ -917,28 +916,28 @@ public class CoordinatorClientExt {
 
     /**
      * The utility method to find the corresponding nodeId for the provided
-     * custom name. When each node starts, the system management service on each
+     * node name. When each node starts, the system management service on each
      * node, registers themselves with the coordninator. This method iterates
      * over that registration namespace to find the node in the cluster
      *
      * @return NodeHandle for mathing node in the cluster
      */
-    public String getMatchingNodeId(String customName) {
+    public String getMatchingNodeId(String nodeName) {
         String nodeId = null;
         try {
             List<Service> svcs = getAllServices();
             for (Service svc : svcs) {
-                if (customName.equals(svc.getNodeCustomName())){
-                    nodeId =svc.getNodeName();
+                if (nodeName.equals(svc.getNodeName())){
+                    nodeId =svc.getNodeId();
                     break;
                 }
             }
         } catch (Exception e) {
-            _log.error("getMatchingNodeId(): Failed to get all nodes while searching for {}: {}",customName, e);
+            _log.error("getMatchingNodeId(): Failed to get all nodes while searching for {}: {}",nodeName, e);
         }
 
         if (nodeId==null) {
-            _log.error("getMatchingNodeId(): Failed to get nodeId for nodeName {}",customName);
+            _log.error("getMatchingNodeId(): Failed to get nodeId for nodeName {}",nodeName);
         } else {
             _log.info("getMatchingNodeId(): Node Id: {}", nodeId);
         }
@@ -948,30 +947,30 @@ public class CoordinatorClientExt {
 
     /**
      * The utility method to find the corresponding nodeId for the provided
-     * custom name. When each node starts, the system management service on each
+     * node name. When each node starts, the system management service on each
      * node, registers themselves with the coordninator. This method iterates
      * over that registration namespace to find the node in the cluster
      *
      * @return NodeHandle for mathing node in the cluster
      */
-    public String getMatchingNodeCustomName(String nodeId) {
+    public String getMatchingNodeName(String nodeId) {
         String nodeName = null;
         try {
             List<Service> svcs = getAllServices();
             for (Service svc : svcs) {
-                if (nodeId.equals(svc.getNodeName())){
-                    nodeName=svc.getNodeCustomName();
+                if (nodeId.equals(svc.getNodeId())){
+                    nodeName=svc.getNodeName();
                     break;
                 }
             }
         } catch (Exception e) {
-            _log.error("getMatchingNodeCustomName(): Failed to get all nodes while searching for {}: {}",nodeId, e);
+            _log.error("getMatchingNodeName(): Failed to get all nodes while searching for {}: {}",nodeId, e);
         }
 
         if (nodeId==null) {
-            _log.error("getMatchingNodeCustomName(): Failed to get Node Custom Name for Node Id {}",nodeId);
+            _log.error("getMatchingNodeName(): Failed to get Node Name for Node Id {}",nodeId);
         } else {
-            _log.info("getMatchingNodeCustomName(): Node Custom Name: {}", nodeName);
+            _log.info("getMatchingNodeName(): Node Name: {}", nodeName);
         }
 
         return nodeName;
@@ -1021,15 +1020,15 @@ public class CoordinatorClientExt {
     /**
      * Get id for "this" node
      */
-    public String getMyNodeName() {
-        return _myNodeName;
+    public String getMyNodeId() {
+        return _myNodeId;
     }
 
     /**
      * Get name for "this" node
      */
-    public String getMyCustomName() {
-        return _myCustomName;
+    public String getMyNodeName() {
+        return _myNodeName;
     }
 
     /**

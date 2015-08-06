@@ -40,7 +40,7 @@ public class CoordinatorClientInetAddressMap {
 
     // This is the node name where the coordinator client is running
     // Coordinator client has reference to this map
-    private String nodeName;
+    private String nodeId;
 
     /**
      * This holds the ipv4 and ipv6 addresses of this node. Connectable version is chosen while
@@ -85,8 +85,8 @@ public class CoordinatorClientInetAddressMap {
      * 
      * @return
      */
-    public String getNodeName() {
-        return nodeName;
+    public String getNodeId() {
+        return nodeId;
     }
 
     /**
@@ -95,9 +95,9 @@ public class CoordinatorClientInetAddressMap {
      * @param node
      *            the name to be set to
      */
-    public void setNodeName(String node) {
+    public void setNodeId(String node) {
         _logger.debug("Setting local node name: " + node);
-        this.nodeName = node;
+        this.nodeId= node;
     }
 
     public DualInetAddress getDualInetAddress() {
@@ -204,7 +204,7 @@ public class CoordinatorClientInetAddressMap {
         DualInetAddress client = getDualInetAddress();
         _logger.debug("local address: " + client);
         DualInetAddress address = null;
-        if (nodeId.compareToIgnoreCase(getNodeName()) == 0) {
+        if (nodeId.compareToIgnoreCase(getNodeId()) == 0) {
             address = getDualInetAddress();
         } else {
             address = getControllerNodeIPLookupMap().get(nodeId);
@@ -239,7 +239,7 @@ public class CoordinatorClientInetAddressMap {
      * @return true if controller node map has it
      */
     public boolean isControllerNode() {
-        return (controllerNodeIPLookupMap.get(getNodeName()) != null);
+        return (controllerNodeIPLookupMap.get(getNodeId()) != null);
     }
 
     /**

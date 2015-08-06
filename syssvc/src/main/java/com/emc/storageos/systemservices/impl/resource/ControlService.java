@@ -193,7 +193,7 @@ public class ControlService {
         }
 
         List<String> controlNodeServiceNames = ServicesMetadata.getControlNodeServiceNames();
-        if (_coordinator.getMyNodeName().equals(nodeId)) {
+        if(_coordinator.getMyNodeId().equals(nodeId)){
             if (!controlNodeServiceNames.contains(name)) {
                 throw APIException.badRequests.parameterIsNotOneOfAllowedValues("service name", controlNodeServiceNames.toString());
             }
@@ -245,7 +245,7 @@ public class ControlService {
             try {
                 LocalRepository.getInstance().restart(name);
             } catch (LocalRepositoryException e) {
-                throw APIException.internalServerErrors.serviceRestartError(name, _coordinator.getMyNodeName());
+                throw APIException.internalServerErrors.serviceRestartError(name, _coordinator.getMyNodeId());
             }
             return Response.ok().build();
         }
@@ -277,7 +277,7 @@ public class ControlService {
         }
 
         _log.info("Reboot node: "+nodeId);
-        if(_coordinator.getMyNodeName().equals(nodeId)){
+        if(_coordinator.getMyNodeId().equals(nodeId)){
             auditControl(OperationTypeEnum.REBOOT_NODE, AuditLogManager.AUDITLOG_SUCCESS,
                     null, nodeId);
             return rebootNode();

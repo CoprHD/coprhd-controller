@@ -256,14 +256,12 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         return ScheduledBackupTag.toZipFileName(tag, nodeNames.size(), backupNodeCount);
     }
 
-    public List<String> getDescParams(final String tag) {
-        final String nodeName = this.serviceinfo.getNodeName();
-        return new ArrayList<String>() {
-            {
-                add(tag);
-                add(nodeName);
-            }
-        };
+    public List<String> getDescParams(final String tag){
+        final String nodeId = this.serviceinfo.getNodeId();
+        return new ArrayList<String>(){{
+        	add(tag);
+        	add(nodeId);
+        }};
     }
 
     /**

@@ -12,8 +12,8 @@
     <bean id="serviceinfo" class="com.emc.storageos.coordinator.common.impl.ServiceImpl">
         <property name="name" value="${syssvc.name}"/>
         <property name="id" value="syssvc-${node_suffix}"/>
-        <property name="nodeName" value="${node_id}" />
-        <property name="nodeCustomName" value="${node_name}" />
+        <property name="nodeId" value="${node_id}" />
+        <property name="nodeName" value="${node_name}" />
         <property name="endpoint" value="http://${node_id}:9998/"/>
         <property name="version" value="${syssvc.version}"/>
     </bean>

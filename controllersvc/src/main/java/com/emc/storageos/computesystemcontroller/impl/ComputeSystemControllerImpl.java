@@ -836,6 +836,22 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             throws ControllerException {
         TaskCompleter completer = null;
         try {
+
+            Iterator<URI> it = deletedHosts.iterator();
+            while (it.hasNext()) {
+                URI deletedHost = it.next();
+                Host host = _dbClient.queryObject(Host.class, deletedHost);
+                if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
+                    Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
+                    if (cluster.getAutoUnexportEnabled() != null && !cluster.getAutoUnexportEnabled()) {
+                        _log.info(String.format("Unable to delete host %s. Belongs to cluster %s which has auto unexport disabled.",
+                                host.getId(),
+                                cluster.getId()));
+                        it.remove();
+                    }
+                }
+            }
+
             completer = new ProcessHostChangesCompleter(changes, deletedHosts, deletedClusters, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, HOST_CHANGES_WF_NAME, true, taskId);
             String waitFor = null;

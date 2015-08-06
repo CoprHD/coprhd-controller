@@ -110,7 +110,6 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
             _dbClient.removeObject(tenant);
         }
         _authManager.init();
-        _invalidLoginManager.setCleanupThreadInitialDelay(1);
         _invalidLoginManager.setCoordinator(_coordinator);
         _invalidLoginManager.init();
 

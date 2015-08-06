@@ -394,7 +394,7 @@ public interface BlockController extends BlockStorageManagementController {
 
     /**
      * 
-     * @param storage
+     * @param systemURI
      * @param snapSessionURIs
      * @param sessionSnapshotURIMap
      * @param copyMode
@@ -402,7 +402,7 @@ public interface BlockController extends BlockStorageManagementController {
      * @param opId
      * @throws InternalException
      */
-    public void createSnapshotSession(URI storage, List<URI> snapSessionURIs, Map<URI, List<URI>> sessionSnapshotURIMap, String copyMode,
+    public void createSnapshotSession(URI systemURI, List<URI> snapSessionURIs, Map<URI, List<URI>> sessionSnapshotURIMap, String copyMode,
             Boolean createInactive, String opId)
             throws InternalException;
 }

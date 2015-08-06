@@ -29,7 +29,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
  * 
  */
 @SuppressWarnings("serial")
-public class BlockSnapshotSessionCreateCompleter extends TaskLockingCompleter {
+public class BlockSnapshotSessionCreateWorkflowCompleter extends TaskLockingCompleter {
 
     // Message constants.
     public static final String SNAPSHOT_SESSION_CREATE_SUCCESS_MSG = "Block Snapshot Session %s created for source %s";
@@ -39,7 +39,7 @@ public class BlockSnapshotSessionCreateCompleter extends TaskLockingCompleter {
     private final Map<URI, List<URI>> _sessionSnapshotMap;
 
     // A logger.
-    private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionCreateCompleter.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionCreateWorkflowCompleter.class);
 
     /**
      * Constructor
@@ -48,7 +48,7 @@ public class BlockSnapshotSessionCreateCompleter extends TaskLockingCompleter {
      * @param sessionSnapshotsMap A map of the BlockSnapshot instances linked to the session for the request.
      * @param taskId The unique task identifier.
      */
-    public BlockSnapshotSessionCreateCompleter(List<URI> snapSessionURIs, Map<URI, List<URI>> sessionSnapshotsMap, String taskId) {
+    public BlockSnapshotSessionCreateWorkflowCompleter(List<URI> snapSessionURIs, Map<URI, List<URI>> sessionSnapshotsMap, String taskId) {
         super(BlockSnapshotSession.class, snapSessionURIs, taskId);
         _sessionSnapshotMap = sessionSnapshotsMap;
     }

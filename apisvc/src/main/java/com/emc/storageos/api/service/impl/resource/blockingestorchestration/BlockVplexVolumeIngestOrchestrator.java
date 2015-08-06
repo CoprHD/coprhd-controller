@@ -152,16 +152,16 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         processedUnManagedVolumeMap, vplexCreatedObjectMap,
                         ingestedObjects);
                 
-                for (Entry e : vplexUpdatedObjectMap.entrySet()) {
-                    _logger.info("updated object map: " + e.getKey() + " : " + e.getValue());
+                for (BlockObject o : ingestedObjects) {
+                    _logger.info("ingested object: " + o.getNativeGuid());
                 }
                 
                 for (BlockObject o : vplexCreatedObjectMap.values()) {
                     _logger.info("vplex created object map: " + o.getNativeGuid());
                 }
                 
-                for (BlockObject o : ingestedObjects) {
-                    _logger.info("ingested object: " + o.getNativeGuid());
+                for (Entry e : vplexUpdatedObjectMap.entrySet()) {
+                    _logger.info("updated object map: " + e.getKey() + " : " + e.getValue());
                 }
                 
                 for (UnManagedVolume umv : processedUnManagedVolumeMap.values()) {
@@ -173,6 +173,11 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 }
                 
                 _dbClient.createObject(ingestedObjects);
+                _dbClient.createObject(vplexCreatedObjectMap.values());
+                for (List<DataObject> dos : vplexUpdatedObjectMap.values()) {
+                    _logger.info("persisting " + dos);
+                    _dbClient.persistObject(dos);
+                }
                 _dbClient.persistObject(processedUnManagedVolumeMap.values());
             }
         } catch (Exception ex) {

@@ -43,7 +43,7 @@ public class RestoreManager {
     private RestoreHandler dbRestoreHandler;
     private RestoreHandler zkRestoreHandler;
     private RestoreHandler geoDbRestoreHandler;
-    private String nodeName;
+    private String nodeId;
     private int nodeCount = 0;
     private String ipAddress4;
     private String ipAddress6;
@@ -66,8 +66,8 @@ public class RestoreManager {
         this.geoDbRestoreHandler = geoDbRestoreHandler;
     }
 
-    public void setNodeName(String nodeName) {
-        this.nodeName = nodeName;
+    public void setNodeId(String nodeId) {
+        this.nodeId = nodeId;
     }
 
     public void setNodeCount(int nodeCount) {
@@ -179,7 +179,7 @@ public class RestoreManager {
         for (File backupFile : backupFiles){
             String backupFileName = backupFile.getName();
             log.debug("Checking backup file: {}", backupFileName);
-            if (!backupFileName.contains(nodeName)
+            if (!backupFileName.contains(nodeId)
                     && !backupFileName.contains(BackupType.zk.name()))
                 continue;
             if (backupFileName.contains(BackupConstants.BACKUP_NAME_DELIMITER +

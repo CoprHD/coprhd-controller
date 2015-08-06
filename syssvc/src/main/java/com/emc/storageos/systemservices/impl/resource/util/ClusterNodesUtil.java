@@ -57,18 +57,18 @@ public class ClusterNodesUtil {
     /**
      * Gets a reference to the node connection info for the nodes requested.
      *
-     * @param nodeNames List of node names whose information is returned
+     * @param nodeIds List of node names whose information is returned
      * @return A list containing the connection info for all nodes in the Bourne
      *         cluster.
      * @throws IllegalStateException When an exception occurs trying to get the
      *                               cluster nodes.
      */
-    public static List<NodeInfo> getClusterNodeInfo(List<String> nodeNames) {
+    public static List<NodeInfo> getClusterNodeInfo(List<String> nodeIds) {
         List<NodeInfo> nodeInfoList = new ArrayList<NodeInfo>();
         List<String> validNodeIds = new ArrayList<String>();
         try {
-            if( nodeNames != null && !nodeNames.isEmpty() ){
-                _log.info("Getting cluster node info for ids: {}", nodeNames);
+            if( nodeIds != null && !nodeIds.isEmpty() ){
+                _log.info("Getting cluster node info for ids: {}", nodeIds);
             }
             else{
                 _log.info("Getting cluster node info for all nodes");
@@ -80,18 +80,18 @@ public class ClusterNodesUtil {
             List<Service> svcList = _coordinator.locateAllServices(_service.getName()
                     , _service.getVersion(), null, null);
             for (Service svc : svcList) {
-                _log.debug("Got service with node id " + svc.getNodeName());
+                _log.debug("Got service with node id " + svc.getNodeId());
                 // if there are node ids requested
-                if (nodeNames != null && !nodeNames.isEmpty() &&
-                        !nodeNames.contains(svc.getNodeName())) {
+                if (nodeIds != null && !nodeIds.isEmpty() &&
+                        !nodeIds.contains(svc.getNodeId())) {
                     continue;
                 }
                 // The service identifier specifies the connection information
                 // for the node on which the service executes.
                 URI nodeEndPoint = svc.getEndpoint(null);
                 if (nodeEndPoint != null) {
-                    nodeInfoList.add(new NodeInfo(svc.getNodeName(),svc.getNodeCustomName(), nodeEndPoint));
-                    validNodeIds.add(svc.getNodeName());
+                    nodeInfoList.add(new NodeInfo(svc.getNodeId(),svc.getNodeName(), nodeEndPoint));
+                    validNodeIds.add(svc.getNodeId());
                 }
             }
             _log.debug("Valid node ids: {}", validNodeIds);
@@ -100,10 +100,10 @@ public class ClusterNodesUtil {
         }
 
         //validate if all requested node ids information is retrieved
-        if(nodeNames != null && !nodeNames.isEmpty() &&
-                !validNodeIds.containsAll(nodeNames)){
-            nodeNames.removeAll(validNodeIds);
-            throw APIException.badRequests.parameterIsNotValid("node id(s): "+nodeNames);
+        if(nodeIds != null && !nodeIds.isEmpty() &&
+                !validNodeIds.containsAll(nodeIds)){
+            nodeIds.removeAll(validNodeIds);
+            throw APIException.badRequests.parameterIsNotValid("node id(s): "+nodeIds);
         }
         return nodeInfoList;
     }

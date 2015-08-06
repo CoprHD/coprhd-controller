@@ -104,19 +104,19 @@ public class DbRepairRunnable implements Runnable {
         return state != null ? state : new DbRepairJobState();
     }
 
-    public static String getSelfLockNodeName(InterProcessLock lock) throws Exception {
+    public static String getSelfLockNodeId(InterProcessLock lock) throws Exception {
         if (lock instanceof InterProcessMutex) {
             Collection<String> nodes = ((InterProcessMutex)lock).getParticipantNodes();
             if (nodes == null || nodes.isEmpty()) {
                 return null;
             }
 
-            String nodeName = nodes.iterator().next();
-            int lastSlash = nodeName.lastIndexOf('/');
+            String nodeId = nodes.iterator().next();
+            int lastSlash = nodeId.lastIndexOf('/');
             if (lastSlash != -1) {
-                nodeName = nodeName.substring(lastSlash + 1);
+                nodeId = nodeId.substring(lastSlash + 1);
             }
-            return nodeName;
+            return nodeId;
         }
 
         return null;
@@ -135,7 +135,7 @@ public class DbRepairRunnable implements Runnable {
         StartStatus status = getRepairStatus(getClusterStateDigest(), this.maxRetryTimes, this.crossVdc);
         if (status == StartStatus.STARTED) {
             log.info("Starting repair with state: {}", this.state.toString());
-            String workerId = getSelfLockNodeName(lock);
+            String workerId = getSelfLockNodeId(lock);
             if (workerId != null) {
                 this.state.setCurrentWorker(workerId);
             }

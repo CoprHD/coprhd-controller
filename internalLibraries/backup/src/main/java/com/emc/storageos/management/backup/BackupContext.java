@@ -26,7 +26,7 @@ import com.google.common.base.Preconditions;
 public class BackupContext {
     private static final Logger log = LoggerFactory.getLogger(BackupContext.class);
     private File backupDir;
-    private String nodeName;
+    private String nodeId;
     private List<String> vdcList;
     
     /**
@@ -58,17 +58,17 @@ public class BackupContext {
 
     /**
      * Sets name of current node
-     * @param nodeNameParam
+     * @param nodeId
      *          The name of node
      */
-    public void setNodeName(String nodeName) {
-        Preconditions.checkArgument(nodeName != null && !nodeName.trim().isEmpty(),
+    public void setNodeId(String nodeId) {
+        Preconditions.checkArgument(nodeId != null && !nodeId.trim().isEmpty(),
                 "ViPR node name is invalid");
-        this.nodeName = nodeName;
+        this.nodeId = nodeId;
     }
     
-    public String getNodeName() {
-    	return this.nodeName;
+    public String getNodeId() {
+    	return this.nodeId;
     }
 
     public void setVdcList(List<String> vdcList) {

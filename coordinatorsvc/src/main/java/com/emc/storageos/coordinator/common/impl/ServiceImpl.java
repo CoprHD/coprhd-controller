@@ -24,9 +24,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 
@@ -43,8 +40,8 @@ public class ServiceImpl implements Service {
     private static final String ID_KEY = "_id";
     // Node name used for external display/query purpose.
     // EX: vipr1, vipr2, dataservice-10_247_100_15
-    private static final String NODE_NAME_KEY = "_nodeName";
-    private static final String NODE_CUSTOM_NAME_KEY = "_nodeCustomName";
+    private static final String NODE_ID_KEY= "_nodeId";
+    private static final String NODE_NAME_KEY= "_nodeName";
     private static final String ENDPOINT_KEY = "_endpoint";
 
     private Properties _map = new Properties();
@@ -88,21 +85,21 @@ public class ServiceImpl implements Service {
     }
 
     @Override
+    public String getNodeId() {
+        return (String) _map.get(NODE_ID_KEY);
+    }
+
+    public void setNodeId(String nodeId) {
+        _map.put(NODE_ID_KEY, nodeId);
+    }
+
+    @Override
     public String getNodeName() {
         return (String) _map.get(NODE_NAME_KEY);
     }
 
-    public void setNodeName(String nodeId) {
-        _map.put(NODE_NAME_KEY, nodeId);
-    }
-
-    @Override
-    public String getNodeCustomName() {
-        return (String) _map.get(NODE_CUSTOM_NAME_KEY);
-    }
-
-    public void setNodeCustomName(String customNodeName) {
-        _map.put(NODE_CUSTOM_NAME_KEY, customNodeName);
+    public void setNodeName(String nodeName) {
+        _map.put(NODE_NAME_KEY, nodeName);
     }
 
     @Override
@@ -217,7 +214,7 @@ public class ServiceImpl implements Service {
         if (!getId().equals(service.getId())) {
             return false;
         }
-        if (!getNodeName().equals(service.getNodeName())) {
+        if (!getNodeId().equals(service.getNodeId())) {
             return false;
         }
         if (!getEndpoint().equals(service.getEndpoint())) {
@@ -233,7 +230,7 @@ public class ServiceImpl implements Service {
         hash = hash * PRIME + ((getName() == null) ? 0 : getName().hashCode());
         hash = hash * PRIME + ((getVersion() == null) ? 0 : getVersion().hashCode());
         hash = hash * PRIME + ((getId() == null) ? 0 : getId().hashCode());
-        hash = hash * PRIME + ((getNodeName() == null) ? 0 : getNodeName().hashCode());
+        hash = hash * PRIME + ((getNodeId() == null) ? 0 : getNodeId().hashCode());
         hash = hash * PRIME + ((getEndpoint() == null) ? 0 : getEndpoint().hashCode());
         return hash;
     }

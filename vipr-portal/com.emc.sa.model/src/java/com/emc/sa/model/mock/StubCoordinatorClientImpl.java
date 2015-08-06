@@ -62,7 +62,7 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
      */
     public static CoordinatorClientInetAddressMap createLocalAddressLookupMap() {
         CoordinatorClientInetAddressMap addressMap = new CoordinatorClientInetAddressMap();
-        addressMap.setNodeName("localhost");
+        addressMap.setNodeId("localhost");
         try {
             addressMap.setDualInetAddress(DualInetAddress.fromAddress("127.0.0.1"));
         }
@@ -71,7 +71,7 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
         }
 
         Map<String, DualInetAddress> ips = new HashMap<>();
-        ips.put(addressMap.getNodeName(), addressMap.getDualInetAddress());
+        ips.put(addressMap.getNodeId(), addressMap.getDualInetAddress());
         addressMap.setControllerNodeIPLookupMap(ips);
         return addressMap;
     }

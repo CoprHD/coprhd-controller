@@ -98,7 +98,7 @@ public class DbBackupHandler extends BackupHandler {
             backupType = BackupType.geodbmultivdc;
         String fullBackupTag = backupTag + BackupConstants.BACKUP_NAME_DELIMITER +
                                backupType.name() + BackupConstants.BACKUP_NAME_DELIMITER +
-                               backupContext.getNodeName();
+                               backupContext.getNodeId();
         checkBackupFileExist(backupTag, fullBackupTag);
         try {
             StorageService.instance.takeSnapshot(fullBackupTag, viprKeyspace);

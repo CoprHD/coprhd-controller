@@ -28,7 +28,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.RSAPrivateCrtKey;
 import java.util.*;
 
 import com.emc.storageos.security.ApplicationContextUtil;
@@ -136,7 +135,7 @@ public class KeyCertificatePairGeneratorTest {
         coordinatorClient.setZkConnection(connection);
 
         CoordinatorClientInetAddressMap map = new CoordinatorClientInetAddressMap();
-        map.setNodeName("standalone");
+        map.setNodeId("standalone");
         DualInetAddress localAddress = DualInetAddress.fromAddresses("127.0.0.1", "::1");
         map.setDualInetAddress(localAddress);
         Map<String, DualInetAddress> controllerNodeIPLookupMap =

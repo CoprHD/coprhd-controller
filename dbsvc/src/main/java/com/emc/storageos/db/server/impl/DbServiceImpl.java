@@ -250,7 +250,7 @@ public class DbServiceImpl implements DbService {
             ConfigurationImpl cfg = new ConfigurationImpl();
             cfg.setId(_serviceInfo.getId());
             cfg.setKind(configKind);
-            cfg.setConfig(DbConfigConstants.NODE_ID, _coordinator.getInetAddessLookupMap().getNodeName());
+            cfg.setConfig(DbConfigConstants.NODE_ID, _coordinator.getInetAddessLookupMap().getNodeId());
             cfg.setConfig(DbConfigConstants.AUTOBOOT, Boolean.TRUE.toString());
 
             // Adding "num_tokens" and "num_token_ver" for new deployment, which directly reflects the configuration in yaml, so
@@ -276,7 +276,7 @@ public class DbServiceImpl implements DbService {
             config = cfg;
         } else if (config.getConfig(DbConfigConstants.DB_IP) != null) {
             config.removeConfig(DbConfigConstants.DB_IP);
-            config.setConfig(DbConfigConstants.NODE_ID, _coordinator.getInetAddessLookupMap().getNodeName());
+            config.setConfig(DbConfigConstants.NODE_ID, _coordinator.getInetAddessLookupMap().getNodeId());
             _coordinator.persistServiceConfiguration(config);
         }
         return config;

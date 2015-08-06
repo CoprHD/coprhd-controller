@@ -5,17 +5,13 @@
 package com.emc.storageos.db;
 
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
-import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
-import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.VdcUtil;
-import com.emc.storageos.db.server.upgrade.DbStepSkipUpgradeTestBase;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -41,7 +37,7 @@ public class TestDBClientUtils {
         addresses.put("localhost", dualInetAddress);
 
         CoordinatorClientInetAddressMap map = new CoordinatorClientInetAddressMap();
-        map.setNodeName("standalone");
+        map.setNodeId("standalone");
         map.setDualInetAddress(dualInetAddress);
         map.setControllerNodeIPLookupMap(addresses);
 

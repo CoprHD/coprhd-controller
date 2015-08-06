@@ -103,7 +103,7 @@ public class ZkSimulator {
 
         client.setZkConnection(conn);
         CoordinatorClientInetAddressMap inetAddressMap = new CoordinatorClientInetAddressMap();
-        inetAddressMap.setNodeName("standalone");
+        inetAddressMap.setNodeId("standalone");
         inetAddressMap.setDualInetAddress(DualInetAddress.fromAddress("127.0.0.1"));
         inetAddressMap.setCoordinatorClient(client);
         inetAddressMap.setControllerNodeIPLookupMap(new HashMap<String, DualInetAddress>());

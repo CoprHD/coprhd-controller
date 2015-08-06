@@ -30,7 +30,6 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.management.backup.BackupConstants;
@@ -268,10 +267,10 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     }
 
     public List<String> getDescParams(final String tag){
-        final String nodeName = this.serviceinfo.getNodeName();
+        final String nodeId = this.serviceinfo.getNodeId();
         return new ArrayList<String>(){{
         	add(tag);
-        	add(nodeName);
+        	add(nodeId);
         }};
     }
     

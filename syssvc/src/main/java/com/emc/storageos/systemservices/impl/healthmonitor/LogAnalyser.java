@@ -146,7 +146,7 @@ public class LogAnalyser {
             startTime = endTime.minusMinutes(15);
         }
 
-        String nodeId = service.getNodeName();
+        String nodeId = service.getNodeId();
         List<String> nodeIds = new ArrayList<String>();
         nodeIds.add(nodeId);
         LogRequest logReqInfo = new LogRequest.Builder().nodeIds(nodeIds).baseNames(

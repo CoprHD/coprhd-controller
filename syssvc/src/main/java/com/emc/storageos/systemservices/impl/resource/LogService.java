@@ -46,8 +46,6 @@ import com.emc.storageos.systemservices.impl.logsvc.LogRequestParam;
 import com.emc.storageos.systemservices.impl.resource.util.ClusterNodesUtil;
 import com.emc.storageos.systemservices.impl.resource.util.NodeInfo;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.common.Service;
 import com.emc.vipr.model.sys.logging.LogLevelRequest;
 import com.emc.vipr.model.sys.logging.LogLevels;
 import com.emc.vipr.model.sys.logging.LogRequest;
@@ -538,7 +536,7 @@ public class LogService extends BaseLogSvcResource {
                 if (isGetReq) {
                     level = LoggingOps.getLevel(logName);
                     _log.debug("log level of service {} is {}", logName, level);
-                    String nodeName = _coordinatorClientExt.getMatchingNodeCustomName(nodeId);
+                    String nodeName = _coordinatorClientExt.getMatchingNodeName(nodeId);
                     logLevels.getLogLevels().add(new LogLevels.LogLevel(nodeId, nodeName, logName,
                             level));
                 } else {

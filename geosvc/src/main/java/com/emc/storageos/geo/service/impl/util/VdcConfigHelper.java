@@ -252,13 +252,13 @@ public class VdcConfigHelper {
                         ((CoordinatorClientImpl)coordinator).getSysSvcName(),
                         ((CoordinatorClientImpl)coordinator).getSysSvcVersion(), null, null)) {
                     try {
-                        log.info("waking up node: {}", syssvc.getNodeName());
+                        log.info("waking up node: {}", syssvc.getNodeId());
                         SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(
                                 syssvc.getEndpoint());
                         sysClient.setCoordinatorClient(coordinator);
                         sysClient.post(SysClientFactory.URI_WAKEUP_PROPERTY_MANAGER, null, null);
                     } catch(Exception e) {
-                        log.error("Error waking up node: {} Cause:", syssvc.getNodeName(), e);
+                        log.error("Error waking up node: {} Cause:", syssvc.getNodeId(), e);
                     }
                 }
             }

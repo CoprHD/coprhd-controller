@@ -93,9 +93,9 @@ public class HealthMonitorService extends BaseLogSvcResource {
     @Produces({MediaType.APPLICATION_JSON})
     public NodeStats getNodeStats(RequestParams requestParams) {
         _log.info("Retrieving node stats");
+        String nodeId = _coordinatorClientExt.getMyNodeId();
         String nodeName = _coordinatorClientExt.getMyNodeName();
-        String nodeCustomName = _coordinatorClientExt.getMyCustomName();
-        return getNodeStats(nodeName, nodeCustomName, getNodeIP(nodeName),
+        return getNodeStats(nodeId, nodeName, getNodeIP(nodeId),
                 requestParams.getInterval(),
                 ServicesMetadata.getRoleServiceNames(_coordinatorClientExt.getNodeRoles()));
     }
@@ -110,8 +110,8 @@ public class HealthMonitorService extends BaseLogSvcResource {
     @Produces({MediaType.APPLICATION_JSON})
     public NodeHardwareInfoRestRep getNodeHardwareInfo() {
         _log.info("Retrieving node hardware info");
-        String nodeName = _coordinatorClientExt.getMyNodeName();
-        return getNodeHardWareInfo(nodeName);
+        String nodeId = _coordinatorClientExt.getMyNodeId();
+        return getNodeHardWareInfo(nodeId);
     }
 
     /**
@@ -178,9 +178,9 @@ public class HealthMonitorService extends BaseLogSvcResource {
     @Produces({MediaType.APPLICATION_JSON})
     public NodeHealth getNodeHealth() {
         _log.info("Retrieving node health");
-        String nodeId = _coordinatorClientExt.getMyNodeName();
-        String nodeName = _coordinatorClientExt.getMyCustomName();
-        return getNodeHealth(nodeId,nodeName, getNodeIP(nodeName),
+        String nodeId = _coordinatorClientExt.getMyNodeId();
+        String nodeName = _coordinatorClientExt.getMyNodeName();
+        return getNodeHealth(nodeId,nodeName, getNodeIP(nodeId),
                 ServicesMetadata.getRoleServiceNames(_coordinatorClientExt.getNodeRoles()));
     }
 
@@ -230,7 +230,7 @@ public class HealthMonitorService extends BaseLogSvcResource {
                         Action.GET, null, NodeHealth.class, null);
         nodehealthList.addAll(nodesData.values());
         
-        String thisNodeId = _coordinatorClientExt.getMyNodeName();
+        String thisNodeId = _coordinatorClientExt.getMyNodeId();
         if (thisNodeId.equals("standalone")) {
             return healthRestRep;
         }
@@ -323,10 +323,10 @@ public class HealthMonitorService extends BaseLogSvcResource {
     @Path("/internal/node-diagnostics")
     @Produces({MediaType.APPLICATION_JSON})
     public NodeDiagnostics getNodeDiagnostics(DiagRequestParams requestParams) {
+        String nodeId = _coordinatorClientExt.getMyNodeId();
         String nodeName = _coordinatorClientExt.getMyNodeName();
-        String nodeCustomName = _coordinatorClientExt.getMyCustomName();
-        _log.info("Retrieving node diagnostics for node: {}", nodeName);
-        return new NodeDiagnostics(nodeName, nodeCustomName, getNodeIP(nodeName),
+        _log.info("Retrieving node diagnostics for node: {}", nodeId);
+        return new NodeDiagnostics(nodeId, nodeName, getNodeIP(nodeId),
                 DiagnosticsExec.getDiagToolResults(requestParams.isVerbose()
                         ? DiagConstants.VERBOSE : ""));
     }
@@ -369,11 +369,11 @@ public class HealthMonitorService extends BaseLogSvcResource {
     /**
      * Returns IP address of the node
      *
-     * @param nodeName node name
+     * @param nodeId node name
      * @return IP address
      */
-    private String getNodeIP(String nodeName) {
-        URI endpoint = _coordinatorClientExt.getNodeEndpoint(nodeName);
+    private String getNodeIP(String nodeId) {
+        URI endpoint = _coordinatorClientExt.getNodeEndpoint(nodeId);
         return endpoint != null ? endpoint.getHost() : null;
     }
 
@@ -429,17 +429,17 @@ public class HealthMonitorService extends BaseLogSvcResource {
     /**
      * Get node hard ware info
      *
-     * @param nodeName
+     * @param nodeId
      * @return
      */
-    private NodeHardwareInfoRestRep getNodeHardWareInfo(String nodeName) {
+    private NodeHardwareInfoRestRep getNodeHardWareInfo(String nodeId) {
         try {
             Map<NodeHardwareInfoType, Float> hardwareInfos = new HashMap<NodeHardwareInfoType, Float>();
             hardwareInfos.put(NodeHardwareInfoType.CPUCOUNT, (float)ProcStats.getCPUCount());
             hardwareInfos.put(NodeHardwareInfoType.CPUFREQ, ProcStats.getCPUFrequence());
             hardwareInfos.put(NodeHardwareInfoType.MEMORY, (float)ProcStats.getMemoryStats().getMemTotal());
             hardwareInfos.put(NodeHardwareInfoType.DISK, (float)getNodeDiskAmount());
-            return new NodeHardwareInfoRestRep(nodeName, getNodeIP(nodeName), hardwareInfos);
+            return new NodeHardwareInfoRestRep(nodeId, getNodeIP(nodeId), hardwareInfos);
         } catch (Exception e) {
             _log.error("Internal error occurred while getting node hardware info. {}", e);
             _log.debug(ExceptionUtils.getStackTrace(e));

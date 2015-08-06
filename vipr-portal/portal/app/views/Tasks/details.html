@@ -197,7 +197,9 @@ function renderMessage(o, val) {
 }
 
 function renderDetails(data) {
-  var details = "<dl class='dl-horizontal'><dt>&{'system.logs.node'}</dt><dd>" + data.node + "</dd>";
+  var details = "<dl class='dl-horizontal'><dt>&{'system.logs.nodeId'}</dt><dd>" + data.node_id + "</dd>";
+
+  details += "<dt>&{'system.logs.nodeName'}</dt><dd>" + data.node_name + "</dd>";
   
   if (data["thread"]) {
 	details += "<dt>&{'system.logs.thread'}</dt><dd>" + data.thread + "</dd>";

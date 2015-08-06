@@ -26,18 +26,19 @@ public class HealthMonitorServiceTest extends HealthMonitorService {
     };
 
     private static final String NODE_ID = "syssvc-node1";
+    private static final String NODE_NAME = "testName";
     private static final String NODE_IP = "standalone";
 
     @Test
     public void testNodeStats() {
-        NodeStats nodeStats = getNodeStats(NODE_ID, NODE_IP, 0,
+        NodeStats nodeStats = getNodeStats(NODE_ID, NODE_NAME, NODE_IP, 0,
                 AVAILABLE_SERVICES);
         verifyNodeStats(nodeStats);
     }
 
     @Test
     public void testNodeStatsWithInterval() {
-        NodeStats nodeStats = getNodeStats(NODE_ID, NODE_IP, 10,
+        NodeStats nodeStats = getNodeStats(NODE_ID, NODE_NAME, NODE_IP, 10,
                 AVAILABLE_SERVICES);
         verifyNodeStats(nodeStats);
     }
@@ -64,6 +65,7 @@ public class HealthMonitorServiceTest extends HealthMonitorService {
 
         // Node stats
         Assert.assertEquals(NODE_ID, nodeStats.getNodeId());
+        Assert.assertEquals(NODE_NAME, nodeStats.getNodeName());
         Assert.assertEquals(NODE_IP, nodeStats.getIp());
         Assert.assertNotNull(nodeStats.getMemoryStats());
         Assert.assertNotNull(nodeStats.getMemoryStats().getMemFree());
@@ -93,7 +95,7 @@ public class HealthMonitorServiceTest extends HealthMonitorService {
 
     @Test
     public void testNodeStatsWithNoAvailableServices() {
-        NodeStats nodeStats = getNodeStats(NODE_ID, NODE_IP, 0,
+        NodeStats nodeStats = getNodeStats(NODE_ID, NODE_NAME, NODE_IP, 0,
                 null);
         Assert.assertTrue(nodeStats.getDiskStatsList() != null && !nodeStats
                 .getDiskStatsList().isEmpty());
@@ -108,6 +110,7 @@ public class HealthMonitorServiceTest extends HealthMonitorService {
 
         // Node stats
         Assert.assertEquals(NODE_ID, nodeStats.getNodeId());
+        Assert.assertEquals(NODE_NAME, nodeStats.getNodeName());
         Assert.assertEquals(NODE_IP, nodeStats.getIp());
         Assert.assertNotNull(nodeStats.getMemoryStats().getMemFree());
 

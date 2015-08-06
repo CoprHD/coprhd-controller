@@ -12,6 +12,7 @@ public class NodesDataTable extends DataTable {
 
     public NodesDataTable() {
         addColumn("name").setRenderFunction("renderLink");
+        addColumn("id");
         addColumn("ip");
         addColumn("status").setRenderFunction("render.status");
         addColumn("type");

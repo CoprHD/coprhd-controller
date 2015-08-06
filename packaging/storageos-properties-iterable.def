@@ -3,7 +3,7 @@
         key : "node_${iter}_name",
         label : "Node ${iter} Name",
         description : "Name of ViPR node ${iter}.",
-        type : "string",
+        type : "strictHostName",
         maxLen : 253,
         userConfigurable : true,
         userMutable : true,

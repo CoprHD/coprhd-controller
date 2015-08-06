@@ -804,7 +804,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     
     $scope.nodeIdOptions = [{id:'', name:translate('system.logs.allnodes')}];
     angular.forEach($scope.controlNodes, function(value) {
-        this.push({id:value.nodeId, name:value.nodeName});
+        this.push({id:value.nodeId, name:value.nodeName + " (" + value.nodeId + ")"});
     }, $scope.nodeIdOptions);
     
     $scope.serviceOptions = [];

@@ -19,6 +19,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -91,16 +92,16 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
     }
 
     @Override
-    public SysSvcTask sendInternalAlert(String source, int eventId, List<String> nodeIds, List<String> logNames,
+    public SysSvcTask sendInternalAlert(String source, int eventId, List<String> nodeIds, List<String> nodeNames, List<String> logNames,
                                         int severity, String start, String end, String msgRegex, int maxCount,
                                         EventParameters eventParameters) throws Exception {
         _log.info("Sending internal alert for id: {} and source: {}", eventId, source);
-        return sendAlert(source, eventId, nodeIds, logNames, severity, start, end
+        return sendAlert(source, eventId, nodeIds, nodeNames, logNames, severity, start, end
                 , msgRegex, maxCount, true, 1, eventParameters);
     }
 
     @Override
-    public SysSvcTask sendAlert(String source, int eventId, List<String> nodeIds, List<String> logNames, int severity,
+    public SysSvcTask sendAlert(String source, int eventId, List<String> nodeIds, List<String> nodeNames, List<String> logNames, int severity,
                                 String start, String end, String msgRegex, int maxCount, boolean forceAttachLogs,
                                 int force, EventParameters eventParameters) throws Exception {
         if (LogService.runningRequests.get() >= LogService.MAX_THREAD_COUNT) {
@@ -154,7 +155,7 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
         // invoke get-logs api for the dry run
         List<String> logNamesToUse = getLogNamesFromAlias(logNames);        
         try {            
-            logService.getLogs(nodeIds, logNamesToUse, severity, start, 
+            logService.getLogs(nodeIds, nodeNames, logNamesToUse, severity, start, 
                     end, msgRegex, maxCount, true);
         } catch (Exception e) {
             _log.error("Failed to dry run get-logs, exception: {}", e);

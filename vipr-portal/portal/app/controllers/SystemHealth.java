@@ -246,6 +246,7 @@ public class SystemHealth extends Controller {
             angularRenderArgs().put("nodeIp", nodeStats.getIp());
             renderArgs.put("healthDetails", healthDetails(nodeStats, nodeHealth));
             angularRenderArgs().put("nodeId", nodeId);
+            angularRenderArgs().put("nodeName", nodeHealth.getNodeName());
             render(nodeId);
         }
         else {

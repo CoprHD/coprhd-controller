@@ -108,6 +108,7 @@ public class InternalAlertsClient {
     public void sendInternalAlert(String src,
                                   int eventId,
                                   List<String> nodeIds,
+                                  List<String> nodeNames,
                                   List<String> logNames,
                                   int severity,
                                   Date start,
@@ -121,6 +122,12 @@ public class InternalAlertsClient {
         if (nodeIds != null) {
             for (String nodeId : nodeIds) {
                 b.queryParam(LogRequestParam.NODE_ID, nodeId);
+            }
+        }
+
+        if (nodeNames != null) {
+            for (String nodeName : nodeNames) {
+                b.queryParam(LogRequestParam.NODE_NAME, nodeName);
             }
         }
 

@@ -53,6 +53,8 @@ public interface CallHomeService {
                                         @QueryParam("event_id") int eventId,
                                         @QueryParam(LogRequestParam.NODE_ID) List<String>
                                                 nodeIds,
+                                        @QueryParam(LogRequestParam.NODE_NAME) List<String> 
+                                                nodeNames,
                                         @QueryParam(LogRequestParam.LOG_NAME)
                                         List<String> logNames,
                                         @DefaultValue(LogSeverity.DEFAULT_VALUE_AS_STR)
@@ -78,6 +80,8 @@ public interface CallHomeService {
      *                 Default: 999
      * @param nodeIds  The ids of the nodes for which log data is collected.
      *                 Allowed values: standalone,syssvc-node1,syssvc-node2 etc
+     * @param nodeNames    The names of the nodes for which log data is collected.
+     *                     Allowed values: Current values of node_x_name properties
      * @param logNames The names of the log files to process.
      * @param severity The minimum severity level for a logged message.
      *                 Allowed values:0-9. Default value: 7
@@ -118,6 +122,7 @@ public interface CallHomeService {
             @DefaultValue(CallHomeConstants.SYMPTOM_CODE_REQUEST_LOGS)
             @QueryParam("event_id") int eventId,
             @QueryParam(LogRequestParam.NODE_ID) List<String> nodeIds,
+            @QueryParam(LogRequestParam.NODE_NAME) List<String> nodeNames,
             @QueryParam(LogRequestParam.LOG_NAME) List<String> logNames,
             @DefaultValue(LogSeverity.DEFAULT_VALUE_AS_STR)
             @QueryParam(LogRequestParam.SEVERITY) int severity,

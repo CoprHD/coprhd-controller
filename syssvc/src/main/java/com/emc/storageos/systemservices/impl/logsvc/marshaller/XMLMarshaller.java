@@ -43,11 +43,11 @@ public class XMLMarshaller extends Marshaller{
         outputStream.write(LogUtil.escapeXml(logMessage.getFileName()));
         outputStream.write("</class>\n\t<line>".getBytes());
         outputStream.write(LogUtil.escapeXml(logMessage.getLineNumber()));
-        outputStream.write("</line>\n\t<nodeId>".getBytes());
+        outputStream.write("</line>\n\t<node_id>".getBytes());
         outputStream.write(LogUtil.escapeXml(logMessage.getNodeId()));
-        outputStream.write("</line>\n\t<nodeName>".getBytes());
+        outputStream.write("</node_id>\n\t<node_name>".getBytes());
         outputStream.write(LogUtil.escapeXml(logMessage.getNodeName()));
-        outputStream.write("</node>\n\t<message>".getBytes());
+        outputStream.write("</node_name>\n\t<message>".getBytes());
         outputStream.write(LogUtil.escapeXml(logMessage.getLogContent()));
         outputStream.write("</message>\n\t<severity>".getBytes());
         outputStream.write(LogUtil.escapeXml(logMessage.getLevel()));

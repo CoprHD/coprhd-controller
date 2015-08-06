@@ -227,6 +227,8 @@ public class PropertiesConfigurationValidator {
             return validatePercent(propertyValue);
         } else if (metaData.getType().equalsIgnoreCase(HOSTNAME)) {
             return validateHostName(propertyValue);
+        } else if (metaData.getType().equalsIgnoreCase(STRICTHOSTNAME)) {
+            return validateStrictHostName(propertyValue);
         } else if (metaData.getType().equalsIgnoreCase(IPLIST)) {
             return validateIpList(propertyValue);
         } else if (metaData.getType().equalsIgnoreCase(ENCRYPTEDSTRING)) {
@@ -572,6 +574,44 @@ public class PropertiesConfigurationValidator {
         return true;
     }
 
+    /**
+     * Validate Strict Hostname
+     *
+     * @param hostName
+     * @return
+     */
+    public static boolean validateStrictHostName(String hostName) {
+
+        // nothing in hostname, return false.
+        if (hostName == null || hostName.isEmpty()) {
+            return false;
+        }
+
+        // if length is greater than 255, return false.
+        if (hostName.length() > 253) {
+            return false;
+        }
+
+        String[] hostLabels = hostName.split("\\.");
+        if (hostLabels.length == 0 || hostLabels.length > 4) {
+            return false;
+        }
+        Pattern labelPattern = Pattern.compile(VALID_HOST_NAME_LABEL_PATTERN);
+        Matcher matcher = null;
+        for (String label : hostLabels) {
+            // check for length. must be between 1 to 63 chars.
+            if (label.length() == 0 || label.length() > 63) {
+                return false;
+            }
+
+            // check for pattern. a-z0-9-
+            matcher = labelPattern.matcher(label);
+            if (!matcher.matches()) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /**
      * Return the map of the properties metadata.

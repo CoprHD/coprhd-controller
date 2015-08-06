@@ -10,7 +10,7 @@
 	<bean id="node_${iter}_name" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Node ${iter} Name" />
 		<property name="description" value="Name of ViPR node ${iter}." />
-		<property name="type" value="string" />
+		<property name="type" value="strictHostName" />
 		<property name="maxLen" value="253" />
 		<property name="tag" value="Custom Node Names" />
 		<property name="userMutable" value="true" />

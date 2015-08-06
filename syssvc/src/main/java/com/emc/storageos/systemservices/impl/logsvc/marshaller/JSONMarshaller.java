@@ -37,8 +37,8 @@ public class JSONMarshaller extends Marshaller {
     private static final byte[] CLASS = "class".getBytes();
     private static final byte[] LINE = "line".getBytes();
     private static final byte[] MESSAGE = "message".getBytes();
-    private static final byte[] NODE_ID = "nodeId".getBytes();
-    private static final byte[] NODE_NAME = "nodeName".getBytes();
+    private static final byte[] NODE_ID = "node_id".getBytes();
+    private static final byte[] NODE_NAME = "node_name".getBytes();
     private static final byte[] SERVICE = "service".getBytes();
     private static final byte[] SEVERITY = "severity".getBytes();
     private static final byte[] THREAD = "thread".getBytes();

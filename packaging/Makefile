@@ -589,6 +589,18 @@ $(OVFBUILD_NATIVE_IMG):
 	$(ATECHO) native
 	$(ATSIGN)$(SUDO) ./mkiso.sh $(@) $(OVFBUILD_ROOTIMG_FILE) $(TEEOUT) $(@D)/mkiso.log
 
+# Docker image that has the rpm installed
+#
+.PHONY: docker
+
+docker: Dockerfile $(RPMBUILD_RPM_FILE)
+ifeq ($(BUILD_TYPE),emc)
+	$(ATECHO) cannot generate docker image in emc mode, specify BUILD_TYPE=oss instead
+else
+	$(ATSIGN)$(CP) Dockerfile $(RPMBUILD_RPMS_DIR)/$(RPMBUILD_RPM_ARCH)
+	$(ATSIGN)docker build -t coprhd-devkit $(RPMBUILD_RPMS_DIR)/$(RPMBUILD_RPM_ARCH)
+	$(ATSIGN)$(RM) -f $(RPMBUILD_RPMS_DIR)/$(RPMBUILD_RPM_ARCH)/Dockerfile
+endif
 
 # Stream-optimized bootfs VMDK
 #

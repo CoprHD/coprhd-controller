@@ -1266,8 +1266,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     public void resynchronizeSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapshot.getStorageController());
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-        controller.resynchronizeVolume(storageSystem.getId(), parentVolume.getPool(),
-                parentVolume.getId(), snapshot.getId(), Boolean.TRUE, taskId);
+        controller.resyncSnapshot(storageSystem.getId(), parentVolume.getId(), snapshot.getId(), Boolean.TRUE, taskId);
     }
 
     /**

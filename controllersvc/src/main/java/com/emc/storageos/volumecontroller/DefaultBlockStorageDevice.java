@@ -565,4 +565,12 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     public void refreshStorageSystem(URI systemURI) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+    
+    @Override
+    public void doResyncSnapshot(StorageSystem storage, URI volume,
+            URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
 }

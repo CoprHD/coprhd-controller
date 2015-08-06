@@ -275,20 +275,21 @@ public class VNXeSnapshotOperation extends VNXeOperations implements SnapshotOpe
     @Override
     public void copySnapshotToTarget(StorageSystem storage, URI snapshot,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-
+        throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     @Override
     public void copyGroupSnapshotsToTarget(StorageSystem storage,
             List<URI> snapshotList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.operationNotSupported();
 
     }
 
     @Override
     public void terminateAnyRestoreSessions(StorageSystem storage, BlockObject from, URI volume,
             TaskCompleter taskCompleter) throws Exception {
-        throw new UnsupportedOperationException("Not supported");
+        throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     public String getConsistencyGroupName(BlockObject bo) {
@@ -308,6 +309,20 @@ public class VNXeSnapshotOperation extends VNXeOperations implements SnapshotOpe
         }
 
         return groupName;
+    }
+
+    @Override
+    public void resyncSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+        
+    }
+
+    @Override
+    public void resyncGroupSnapshots(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+        
     }
 
 }

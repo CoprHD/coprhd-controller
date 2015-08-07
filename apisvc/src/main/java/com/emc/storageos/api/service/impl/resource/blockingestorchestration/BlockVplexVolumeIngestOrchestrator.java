@@ -108,18 +108,11 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
             throw IngestionException.exceptions.varrayIsInvalidForVplexVolume(virtualArray.getLabel(), unManagedVolume.getLabel());
         }
-        
-        
-        
-        //
-        //  THIS IS ALL COBBLED TOGETHER A PROOF OF CONCEPT SO FAR ONLY
-        //
-        
-        
-        
-        Map<String, UnManagedVolume> processedUnManagedVolumeMap = new HashMap<String, UnManagedVolume>();
-        Map<String, BlockObject> vplexCreatedObjectMap = new HashMap<String, BlockObject>();
-        Map<String, List<DataObject>> vplexUpdatedObjectMap = new HashMap<String, List<DataObject>>();
+
+        // we create a subset of all these collections that are just for the current vplex virtual volume being ingested
+        Map<String, UnManagedVolume> vplexBackendProcessedUnManagedVolumeMap = new HashMap<String, UnManagedVolume>();
+        Map<String, BlockObject> vplexBackendCreatedObjectMap = new HashMap<String, BlockObject>();
+        Map<String, List<DataObject>> vplexBackendUpdatedObjectMap = new HashMap<String, List<DataObject>>();
         
         try {
             List<URI> associatedVolumeUris = getAssociatedVolumes(unManagedVolume);
@@ -141,30 +134,30 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 ingestBackendVolumes(systemCache, poolCache, vPool,
                         virtualArray, vplexProject, tenant,
                         unManagedVolumesToBeDeleted, taskStatusMap,
-                        allVolumes, processedUnManagedVolumeMap,
-                        vplexCreatedObjectMap, vplexUpdatedObjectMap);
+                        allVolumes, vplexBackendProcessedUnManagedVolumeMap,
+                        vplexBackendCreatedObjectMap, vplexBackendUpdatedObjectMap);
 
                 List<BlockObject> ingestedObjects = new ArrayList<BlockObject>();
 
                 ingestBackendExportMasks(system, vPool, virtualArray, vplexProject,
-                        tenant, unManagedVolumesToBeDeleted, vplexUpdatedObjectMap,
+                        tenant, unManagedVolumesToBeDeleted, vplexBackendUpdatedObjectMap,
                         taskStatusMap, associatedVolumes,
-                        processedUnManagedVolumeMap, vplexCreatedObjectMap,
+                        vplexBackendProcessedUnManagedVolumeMap, vplexBackendCreatedObjectMap,
                         ingestedObjects);
                 
                 for (BlockObject o : ingestedObjects) {
                     _logger.info("ingested object: " + o.getNativeGuid());
                 }
                 
-                for (BlockObject o : vplexCreatedObjectMap.values()) {
+                for (BlockObject o : vplexBackendCreatedObjectMap.values()) {
                     _logger.info("vplex created object map: " + o.getNativeGuid());
                 }
                 
-                for (Entry e : vplexUpdatedObjectMap.entrySet()) {
+                for (Entry e : vplexBackendUpdatedObjectMap.entrySet()) {
                     _logger.info("updated object map: " + e.getKey() + " : " + e.getValue());
                 }
                 
-                for (UnManagedVolume umv : processedUnManagedVolumeMap.values()) {
+                for (UnManagedVolume umv : vplexBackendProcessedUnManagedVolumeMap.values()) {
                     _logger.info("processed unmanaged volume: " + umv.getNativeGuid());
                 }
                 
@@ -173,12 +166,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 }
                 
                 _dbClient.createObject(ingestedObjects);
-                _dbClient.createObject(vplexCreatedObjectMap.values());
-                for (List<DataObject> dos : vplexUpdatedObjectMap.values()) {
+                _dbClient.createObject(vplexBackendCreatedObjectMap.values());
+                for (List<DataObject> dos : vplexBackendUpdatedObjectMap.values()) {
                     _logger.info("persisting " + dos);
                     _dbClient.persistObject(dos);
                 }
-                _dbClient.persistObject(processedUnManagedVolumeMap.values());
+                _dbClient.persistObject(vplexBackendProcessedUnManagedVolumeMap.values());
             }
         } catch (Exception ex) {
             
@@ -192,7 +185,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz, taskStatusMap);
         
         if (null != virtualVolume && virtualVolume instanceof Volume) {
-            Collection<BlockObject> associatedVols = vplexCreatedObjectMap.values();
+            Collection<BlockObject> associatedVols = vplexBackendCreatedObjectMap.values();
             StringSet vols = new StringSet();
             for (BlockObject vol : associatedVols) {
                 vols.add(vol.getId().toString());

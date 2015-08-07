@@ -168,6 +168,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 RecoverPointScheduler.getProtectionVirtualArraysForVirtualPool(project, newVpool, _dbClient, _permissionsHelper),
                 cosChangeParam);
     }
+    
+    private List<Recommendation> getRecommendationsAddJournalCapacityRequest(Project project, VolumeCreate param) {        
+
+        return null;
+    }
+    
 
     /**
      * Prepare Recommended Volumes for Protected scenarios only.
@@ -2214,5 +2220,104 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         else {
             _log.info(String.format("No need to update capacity for volume [%s].", volume.getLabel()));
         }
+    }
+    
+    public TaskList addJournalCapacity(VolumeCreate param, Project project, VirtualArray varray,
+            VirtualPool vpool, BlockConsistencyGroup consistencyGroup, VirtualPoolCapabilityValuesWrapper capabilities, String task) {
+        // Prepare the Bourne Volumes to be created and associated
+        // with the actual storage system volumes created. Also create
+        // a BlockTaskList containing the list of task resources to be
+        // returned for the purpose of monitoring the volume creation
+        // operation for each volume to be created.
+        String volumeLabel = param.getName();
+        TaskList taskList = new TaskList();
+        Iterator<Recommendation> recommendationsIter;        
+
+        // Store capabilities of the CG, so they make it down to the controller
+        if (vpool.getRpCopyMode() != null) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_COPY_MODE, vpool.getRpCopyMode());
+        }
+        if (vpool.getRpRpoType() != null &&
+                NullColumnValueGetter.isNotNullValue(vpool.getRpRpoType())) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_RPO_TYPE, vpool.getRpRpoType());
+        }
+        if (vpool.checkRpRpoValueSet()) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_RPO_VALUE, vpool.getRpRpoValue());
+        }
+
+        List<Recommendation> recommendations = getBlockScheduler().getRecommendationsForJournalResources(varray, project, vpool, consistencyGroup, capabilities);
+        
+        // prepare the volumes
+        List<URI> volumeURIs = prepareRecommendedVolumes(param, task, taskList, project,
+                varray, vpool, capabilities.getResourceCount(), recommendations,
+                consistencyGroup, volumeLabel);
+
+        // Execute the volume creations requests for each recommendation.
+        recommendationsIter = recommendations.iterator();
+        while (recommendationsIter.hasNext()) {
+            Recommendation recommendation = recommendationsIter.next();
+            try {
+                List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptors((RPProtectionRecommendation) recommendation, volumeURIs,
+                        capabilities);
+                BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
+                        BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+
+                // Check to see if this is a regular volume create or change virtual pool(add RP protection)
+                URI changeVirtualPoolVolumeURI = VolumeDescriptor.getVirtualPoolChangeVolume(volumeDescriptors);
+                boolean isChangeVpool = (changeVirtualPoolVolumeURI != null);
+
+                // TODO might be able to use param.getSize() instead of the below code to find requestedVolumeCapactity
+                Long requestedVolumeCapactity = 0L;
+                for (URI volumeURI : volumeURIs) {
+                    Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+                    if (Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
+                        requestedVolumeCapactity = volume.getCapacity();
+                        break;
+                    }
+                }
+
+                computeProtectionCapacity(volumeURIs, requestedVolumeCapactity, false, isChangeVpool, null);
+
+                if (isChangeVpool) {
+                    _log.info("Add Recoverpoint Protection to existing volume");
+                    controller.changeVirtualPool(volumeDescriptors, task);
+                }
+                else {
+                    _log.info("Create RP volumes");
+                    controller.createVolumes(volumeDescriptors, task);
+                }
+
+            } catch (InternalException e) {
+                if (_log.isErrorEnabled()) {
+                    _log.error("Controller error", e);
+                }
+
+                if (volumeURIs != null) {
+                    for (URI volumeURI : volumeURIs) {
+                        Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+                        if (volume != null) {
+                            Operation op = new Operation();
+                            op.setResourceType(ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+                            _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, op);
+                            _dbClient.error(Volume.class, volume.getId(), task, e);
+                            if (volume.getPersonality() != null
+                                    && volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+                                taskList.getTaskList().add(toTask(volume, task, op));
+                            }
+                        }
+                    }
+                    throw e;
+                }
+
+                // If there was a controller error creating the volumes,
+                // throw an internal server error and include the task
+                // information in the response body, which will inform
+                // the user what succeeded and what failed.
+                throw new WebApplicationException(Response
+                        .status(Response.Status.INTERNAL_SERVER_ERROR).entity(taskList).build());
+            }
+        }
+
+        return taskList;
     }
 }

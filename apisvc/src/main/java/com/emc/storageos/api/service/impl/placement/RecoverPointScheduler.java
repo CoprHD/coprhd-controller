@@ -190,6 +190,70 @@ public class RecoverPointScheduler implements Scheduler {
         return recommendations;
     }
 
+    public List<Recommendation> getRecommendationsForJournalResources(VirtualArray journalVarray,
+            Project project, VirtualPool journalVpool, BlockConsistencyGroup consistencyGroup,
+            VirtualPoolCapabilityValuesWrapper capabilities) {
+
+        _log.debug("Schedule storage for {} journal resource(s) of size {}.", capabilities.getResourceCount(), capabilities.getSize());        
+        
+        List<StoragePool> unsortedSourceJournalStoragePools = _blockScheduler.getMatchingPools(journalVarray, journalVpool, capabilities);        
+        if (unsortedSourceJournalStoragePools == null || unsortedSourceJournalStoragePools.isEmpty()) {
+            _log.error("No matching storage pools found for the journal varray: {0}. There are no storage pools that " +
+                    "match the passed vpool parameters and protocols and/or there are no pools that have enough capacity to " +
+                    "hold at least one resource of the requested size.", journalVarray.getLabel());
+            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(journalVpool.getId(), journalVarray.getId());
+        }
+        
+        Map<Long, List<URI>> sourceJournalSortedPoolsMap = null;
+        sourceJournalSortedPoolsMap = getSizeOrderedPoolsMap(unsortedSourceJournalStoragePools);
+
+        StringBuffer journalPlacementLog = new StringBuffer();      
+        journalPlacementLog.append(String.format("Journal varray : [%s--%s], Journal vpool [%s--%s]", journalVarray.getLabel(),
+                journalVarray.getId(), journalVpool.getLabel(), journalVpool.getId()));
+        journalPlacementLog.append("Dumping journal storage pools:");
+
+        for (Long journalSize : sourceJournalSortedPoolsMap.keySet()) {
+            journalPlacementLog.append(String.format("Size: %s - pools [%s]", journalSize,
+                    Joiner.on("-").join(sourceJournalSortedPoolsMap.get(journalSize))));
+        }
+
+        _log.info(journalPlacementLog.toString());
+        
+        ProtectionSystem  protectionSystem = getCgProtectionSystem(consistencyGroup.getId());
+        if (protectionSystem != null) {
+            _log.info(
+                    "Narrowing down placement to use protection system {}, which is currently used by RecoverPoint consistency group {}.",
+                    protectionSystem.getLabel(), consistencyGroup);
+        }
+        
+        List<String> associatedStorageSystems = new ArrayList<String>();
+        String internalSiteNameandAssocStorageSystem = getCgSourceInternalSiteNameAndAssociatedStorageSystem(consistencyGroup.getId(), 
+        		Volume.PersonalityTypes.METADATA);                              
+        if (internalSiteNameandAssocStorageSystem != null) {
+            _log.info(
+                    "Narrowing down placement to use source internal site {}, which is currently used by RecoverPoint consistency group {}.",
+                    internalSiteNameandAssocStorageSystem, consistencyGroup);
+            associatedStorageSystems.add(internalSiteNameandAssocStorageSystem);
+        } else {
+            // TODO: Throw Exception we should already have an rpsite from earlier requests
+        }
+        
+        String sourceInternalSiteName = ProtectionSystem.getAssociatedStorageSystemSiteName(internalSiteNameandAssocStorageSystem);
+        Map<Long, List<URI>> rpSiteVisibleJournalPools = filterJournalPoolsByRPSiteConnectivity(sourceJournalSortedPoolsMap,
+        		protectionSystem.getId(), sourceInternalSiteName, journalVarray, journalVpool);
+        if (null == rpSiteVisibleJournalPools) {
+            _log.info(String
+                    .format("RP Journal Placement: Disqualified RP site [%s] because its initiators are not in a network configured for use by the virtual array [%s]",
+                    		sourceInternalSiteName, journalVarray.getLabel()));
+            // TODO:  Throw Exception we should be able to use this rpsite because other volumes in CG already are
+            return null;
+        }
+        
+       
+
+        return null;
+    }
+    
     /**
      * Determine if the storage pools require VPLEX in order to provide protection
      * if they do and HA is not enabled on the vpool, remove it from consideration
@@ -316,6 +380,18 @@ public class RecoverPointScheduler implements Scheduler {
         return true;
     }
 
+    protected List<Recommendation> buildJournalRecommendations(
+            VirtualPoolCapabilityValuesWrapper capabilities, Project project, VirtualPool vpool, VirtualArray protectionVarray) {        
+
+        List<Recommendation> recommendations = new ArrayList<Recommendation>();       
+
+        RPProtectionRecommendation recommendation = new RPProtectionRecommendation();     
+
+        recommendations.add(recommendation);
+
+        return recommendations;
+    }
+    
     protected List<Recommendation> buildCgRecommendations(
             VirtualPoolCapabilityValuesWrapper capabilities, VirtualPool vpool, List<VirtualArray> protectionVarrays,
             Volume vpoolChangeVolume) {
@@ -1341,7 +1417,7 @@ public class RecoverPointScheduler implements Scheduler {
 
                     List<String> associatedStorageSystems = new ArrayList<String>();
                     String internalSiteNameandAssocStorageSystem = getCgSourceInternalSiteNameAndAssociatedStorageSystem(capabilities
-                            .getBlockConsistencyGroup());
+                            .getBlockConsistencyGroup(), Volume.PersonalityTypes.SOURCE);
 
                     // If we have existing source volumes in the RP consistency group, we want to use the same
                     // source internal site.
@@ -1489,12 +1565,12 @@ public class RecoverPointScheduler implements Scheduler {
      * @param blockConsistencyGroupUri
      * @return
      */
-    private String getCgSourceInternalSiteNameAndAssociatedStorageSystem(URI blockConsistencyGroupUri) {
+    private String getCgSourceInternalSiteNameAndAssociatedStorageSystem(URI blockConsistencyGroupUri, Volume.PersonalityTypes type) {
         String associatedStorageSystem = null;
-        List<Volume> cgSourceVolumes = _rpHelper.getCgVolumes(blockConsistencyGroupUri, Volume.PersonalityTypes.SOURCE.toString());
+        List<Volume> cgVolumes = _rpHelper.getCgVolumes(blockConsistencyGroupUri, type.toString());
 
-        if (!cgSourceVolumes.isEmpty()) {
-            Volume cgVol = cgSourceVolumes.get(0);
+        if (!cgVolumes.isEmpty()) {
+            Volume cgVol = cgVolumes.get(0);
             String sourceInternalSiteName = cgVol.getInternalSiteName();
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, cgVol.getStorageController());
 
@@ -3040,4 +3116,5 @@ public class RecoverPointScheduler implements Scheduler {
 
         return StringUtils.join(temp, ", ");
     }
+      
 }

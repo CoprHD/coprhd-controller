@@ -16,19 +16,26 @@ import java.util.Date;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class InvalidLogins implements Serializable {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = 1L;
     
     private Long _lastAccessTime; // last time the login from this IP was not successful in minutes
     private Long _errorLoginAttempts;  // Number of login attemps from this IP
     private String _clientIP;
-    
+
+
+    public InvalidLogins() {
+        // emtpy constructor
+    }
+
     /**
+     * InvalidLogins constructor
+     *
+     * @param clientIP
      * @param lastAccessTime the current time when this record is created
      * @param loginattempts the initial value for the login attempts
      */
+
+
     public InvalidLogins(String clientIP, long lastAccessTime, long loginattempts) {
         _clientIP = clientIP;
         _lastAccessTime = lastAccessTime;

@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
  */
 final public class ServerProbe {
     private static final Logger log = LoggerFactory.getLogger(ServerProbe.class);
-    private static ServerProbe instance = null;
+    private static volatile ServerProbe instance = null;
     // meet mini req for memory, cpu and at least one disk meet size mini req
     private boolean meetMinimumRequirement = true;
     private boolean allHasViPRPartition = false;
@@ -62,7 +62,11 @@ final public class ServerProbe {
     }
 
     public String[] getNetworkInterfaces() {
-        return networkInterfaces;
+    	String[] result = null;
+    	if(networkInterfaces != null){
+    		result = networkInterfaces.clone();
+    	} 
+    	return result;
     }
 
     public Map<String, String> getDiskCapacity() {

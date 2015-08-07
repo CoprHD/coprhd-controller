@@ -19,7 +19,7 @@ public class ProjectBulkRep extends BulkRestRep {
      * List of projects
      * 
      * @valid none
-     * @return
+     * @return List of projects
      */
     @XmlElement(name = "project")
     public List<ProjectRestRep> getProjects() {

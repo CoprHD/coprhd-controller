@@ -57,7 +57,7 @@ public class MethodProcessor {
             addDeprecated(method, apiMethodDesc);
 
             return apiMethodDesc;
-        } catch (Throwable e) {
+        } catch (Exception e) {
             throw new RuntimeException("Error processing " + apiService.getFqJavaClassName() + "::" + method.name(), e);
         }
     }
@@ -111,7 +111,6 @@ public class MethodProcessor {
             int briefEnd = brief.indexOf("\n");
             apiMethod.brief = Utils.upperCaseFirstChar(brief.substring(0, briefEnd));
             apiMethod.description = brief.substring(briefEnd + 1);
-            DocReporter.printWarning("Fixing @brief comment in " + apiMethod.getQualifiedName() + " " + apiMethod.brief);
         }
 
         // Use brief as the comment if we have nothing else

@@ -210,7 +210,7 @@ public class NetworkService extends TaggedResource {
      * a manually entered endpoint is subsequently discovered by a a Network System, it becomes managed as if it were discovered originally,
      * and then may no longer be deleted.
      * <p>
-     * This API is maintained for backward compatibility. Use {@link #updateNetwork(URI, NetworkUpdate)} instead.
+     * This API is maintained for backward compatibility. Since the method is deprecated use /vdc/networks/{id} instead.
      * 
      * @see #updateNetwork(URI, NetworkUpdate)
      * @param id the URN of a ViPR Network

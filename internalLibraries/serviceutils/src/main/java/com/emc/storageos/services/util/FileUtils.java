@@ -60,7 +60,7 @@ public class FileUtils {
             fop.flush();
             fop.close();
         } catch (IOException e) {
-            e.printStackTrace();
+        	log.error(e.getMessage(), e);
         }
     }
 

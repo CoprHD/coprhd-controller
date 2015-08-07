@@ -51,6 +51,7 @@ public class PlatformService {
             // Add the shutdown hook
             Runtime.getRuntime().addShutdownHook(shutdownHook);
         } catch (IllegalArgumentException e) {
+            log.error(e.getMessage(), e);
         }
 
         return framework.getApplicationContext();

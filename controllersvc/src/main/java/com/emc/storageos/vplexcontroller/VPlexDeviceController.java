@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -102,6 +103,8 @@ import com.emc.storageos.volumecontroller.impl.block.ExportWorkflowUtils;
 import com.emc.storageos.volumecontroller.impl.block.MaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportCreateCompleter;
@@ -111,8 +114,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRem
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveVolumeCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeDetachCloneCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
@@ -128,6 +129,7 @@ import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
+import com.emc.storageos.vplex.api.VPlexClusterInfo;
 import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexDistributedDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexInitiatorInfo.Initiator_Type;
@@ -265,6 +267,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     // Miscellaneous Constants
     private static final String HYPHEN_OPERATOR = "-";
 
+    // migration speed to transfer size map
+    private static final Map<String, String> mgirationSpeedToTransferSizeMap;
+    static {
+        mgirationSpeedToTransferSizeMap = new HashMap<String, String>();
+        mgirationSpeedToTransferSizeMap.put("Lowest", "128KB");
+        mgirationSpeedToTransferSizeMap.put("Low", "2MB");
+        mgirationSpeedToTransferSizeMap.put("Medium", "8MB");
+        mgirationSpeedToTransferSizeMap.put("High", "16MB");
+        mgirationSpeedToTransferSizeMap.put("Highest", "32MB");
+    }
     // Volume restore step data keys
     private static final String REATTACH_MIRROR = "reattachMirror";
     private static final String ADD_BACK_TO_CG = "addToCG";
@@ -661,8 +673,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Map<URI, StorageSystem> storageMap = new HashMap<URI, StorageSystem>();
             // Make a map of Virtual Volumes to Storage Volumes.
             Map<Volume, List<Volume>> volumeMap = new HashMap<Volume, List<Volume>>();
+            // Make a string buffer for volume labels
+            StringBuffer volumeLabels = new StringBuffer();
+            // List of storage system Guids
+            List<String> storageSystemGuids = new ArrayList<String>();
+
             for (URI vplexVolumeURI : vplexVolumeURIs) {
                 Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
+                volumeLabels.append(vplexVolume.getLabel()).append(" ");
                 volumeMap.put(vplexVolume, new ArrayList<Volume>());
                 // Find the underlying Storage Volumes
                 for (String associatedVolume : vplexVolume.getAssociatedVolumes()) {
@@ -671,14 +689,27 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     if (storageMap.containsKey(storageSystemId) == false) {
                         StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageSystemId);
                         storageMap.put(storageSystemId, storage);
+                        if (!storageSystemGuids.contains(storage.getNativeGuid())) {
+                            storageSystemGuids.add(storage.getNativeGuid());
+                        }
                     }
                     volumeMap.get(vplexVolume).add(storageVolume);
                 }
             }
+            _log.info(String.format("Request to create: %s virtual volume(s) %s", volumeMap.size(), volumeLabels));
+            long startTime = System.currentTimeMillis();
+            // Make a call to re-discover storage system for storageSystemGuids
+            client.rediscoverStorageSystems(storageSystemGuids);
+
+            // Make a call to get cluster info
+            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfo(false);
 
             // Now make a call to the VPlexAPIClient.createVirtualVolume for each vplex volume.
             StringBuilder buf = new StringBuilder();
             buf.append("Vplex: " + vplexURI + " created virtual volume(s): ");
+
+            List<VPlexVirtualVolumeInfo> virtualVolumeInfos = new ArrayList<VPlexVirtualVolumeInfo>();
+            Map<String, Volume> vplexVolumeNameMap = new HashMap<String, Volume>();
             for (Volume vplexVolume : volumeMap.keySet()) {
                 URI vplexVolumeId = vplexVolume.getId();
                 _log.info(String.format("Creating virtual volume: %s (%s)", vplexVolume.getLabel(), vplexVolumeId));
@@ -707,28 +738,47 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Make the call to create a virtual volume. It is distributed if there are two (or more?)
                 // physical volumes.
                 boolean isDistributed = (vinfos.size() >= 2);
-                VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed, true, false, clusterId);
+                VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed, false, false, clusterId, clusterInfoList);
+
                 if (vvInfo == null) {
                     VPlexApiException ex = VPlexApiException.exceptions.cantFindRequestedVolume(vplexVolume.getLabel());
                     throw ex;
                 }
-                buf.append(vvInfo.getName() + " ");
-                _log.info(String.format("Created virtual volume: %s path: %s", vvInfo.getName(), vvInfo.getPath()));
-                vplexVolume.setNativeId(vvInfo.getPath());
-                vplexVolume.setDeviceLabel(vvInfo.getName());
-                // CTRL-2534: allocatedCapacity should equal provisionedCapacity on VPLEX volumes
-                vplexVolume.setAllocatedCapacity(vvInfo.getCapacityBytes());
-                vplexVolume.setProvisionedCapacity(vvInfo.getCapacityBytes());
-                _dbClient.persistObject(vplexVolume);
 
-                // Record VPLEX volume created event.
-                createdVplexVolumeURIs.add(vplexVolumeId);
-                recordBourneVolumeEvent(vplexVolumeId,
-                        OperationTypeEnum.CREATE_BLOCK_VOLUME.getEvType(true),
-                        Operation.Status.ready,
-                        OperationTypeEnum.CREATE_BLOCK_VOLUME.getDescription());
+                vplexVolumeNameMap.put(vvInfo.getName(), vplexVolume);
+                virtualVolumeInfos.add(vvInfo);
             }
 
+            Map<String, VPlexVirtualVolumeInfo> foundVirtualVolumes = client.findVirtualVolumes(clusterInfoList, virtualVolumeInfos);
+
+            if (!foundVirtualVolumes.isEmpty()) {
+                for (Entry<String, Volume> entry : vplexVolumeNameMap.entrySet()) {
+                    Volume vplexVolume = entry.getValue();
+                    VPlexVirtualVolumeInfo vvInfo = foundVirtualVolumes.get(entry.getKey());
+                    buf.append(vvInfo.getName() + " ");
+                    _log.info(String.format("Created virtual volume: %s path: %s", vvInfo.getName(), vvInfo.getPath()));
+                    vplexVolume.setNativeId(vvInfo.getPath());
+                    vplexVolume.setDeviceLabel(vvInfo.getName());
+                    // CTRL-2534: allocatedCapacity should equal provisionedCapacity on VPLEX volumes
+                    vplexVolume.setAllocatedCapacity(vvInfo.getCapacityBytes());
+                    vplexVolume.setProvisionedCapacity(vvInfo.getCapacityBytes());
+                    _dbClient.persistObject(vplexVolume);
+
+                    // Record VPLEX volume created event.
+                    createdVplexVolumeURIs.add(vplexVolume.getId());
+                    recordBourneVolumeEvent(vplexVolume.getId(),
+                            OperationTypeEnum.CREATE_BLOCK_VOLUME.getEvType(true),
+                            Operation.Status.ready,
+                            OperationTypeEnum.CREATE_BLOCK_VOLUME.getDescription());
+                }
+            }
+            if (foundVirtualVolumes.size() != vplexVolumeNameMap.size()) {
+                VPlexApiException ex = VPlexApiException.exceptions.cantFindAllRequestedVolume();
+                throw ex;
+            }
+            long elapsed = System.currentTimeMillis() - startTime;
+            _log.info(String.format("TIMER: %s virtual volume(s) %s create took %f seconds", volumeMap.size(), volumeLabels.toString(),
+                    (double) elapsed / (double) 1000));
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
             _log.error("Exception creating Vplex Virtual Volume: " + vae.getMessage(), vae);
@@ -4807,6 +4857,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexSystem, _dbClient);
             _log.info("Got VPlex API client for VPlex {}", vplexURI);
 
+            // Get the configured migration speed
+            String speed = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.MIGRATION_SPEED,
+                    vplexSystem.getSystemType(), null);
+            _log.info("Migration speed is {}", speed);
+            String transferSize = mgirationSpeedToTransferSizeMap.get(speed);
             // Make a call to the VPlex API client to migrate the virtual
             // volume. Note that we need to do a remote migration when a
             // local virtual volume is being migrated to the other VPlex
@@ -4819,7 +4874,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Boolean useDeviceMigration = migration.getSource() == null;
             List<VPlexMigrationInfo> migrationInfoList = client.migrateVirtualVolume(
                     migrationName, virtualVolumeName, Arrays.asList(nativeVolumeInfo),
-                    isRemoteMigration, useDeviceMigration, true, true);
+                    isRemoteMigration, useDeviceMigration, true, true, transferSize);
             _log.info("Started VPlex migration");
 
             // We store step data indicating that the migration was successfully
@@ -5488,8 +5543,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         existingVolume.getWWN().toUpperCase().replaceAll(":", ""),
                         existingVolume.getNativeId(), existingVolume.getThinlyProvisioned().booleanValue());
                 vinfos.add(vinfo);
-
-                virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null);
+                virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null, null);
                 if (virtvinfo == null) {
                     String opName = ResourceOperationTypeEnum.CREATE_VVOLUME_FROM_IMPORT.getName();
                     ServiceError serviceError = VPlexApiException.errors.createVirtualVolumeFromImportStepFailed(opName);

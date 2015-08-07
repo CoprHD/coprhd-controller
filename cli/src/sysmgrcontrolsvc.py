@@ -138,10 +138,8 @@ class Backup(object):
         o = common.json_decode(s)
         if (not o):
             return []
-        if ('backupsets_info' in o
-            and o['backupsets_info'] is not None
-            and 'backupset' in o['backupsets_info']):
-            result = o['backupsets_info']['backupset']
+        if ('backupsets_info' in o):
+            result = o['backupsets_info']
             if(result is None):
                 return []
             elif isinstance(result, list):

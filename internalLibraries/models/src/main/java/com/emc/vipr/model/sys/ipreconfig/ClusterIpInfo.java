@@ -68,6 +68,19 @@ public class ClusterIpInfo implements Serializable {
         }
         return (ClusterIpInfo) obj;
     }
+    /* (non-Javadoc)
+   	 * @see java.lang.Object#hashCode()
+   	 */
+    @Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result
+				+ ((ipv4_setting == null) ? 0 : ipv4_setting.hashCode());
+		result = prime * result
+				+ ((ipv6_setting == null) ? 0 : ipv6_setting.hashCode());
+		return result;
+	}
 
     @Override
     public boolean equals(Object obj) {
@@ -88,7 +101,8 @@ public class ClusterIpInfo implements Serializable {
         return true;
     }
 
-    @Override
+
+	@Override
     public String toString() {
         StringBuffer propStrBuf = new StringBuffer();
         propStrBuf.append(ipv4_setting.toString());

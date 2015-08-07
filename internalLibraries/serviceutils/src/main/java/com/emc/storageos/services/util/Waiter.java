@@ -10,6 +10,9 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * A reference class for implementing sleep/wakeup semantics based on Java condition variables.
  * Currently it's being used by Upgrade/Property/SecretsManager of syssvc but may as well be used elsewhere.
@@ -20,6 +23,7 @@ public class Waiter {
     private long t = -1;
     private Lock lock = new ReentrantLock();
     Condition wakeup = lock.newCondition();
+    private static final Logger logger = LoggerFactory.getLogger(Waiter.class);
 
     /**
      * Sleep for a specific amount of time, or until the wakeup method is called, whichever comes first
@@ -45,6 +49,7 @@ public class Waiter {
             // reset t since it may have been set to 0 while sleeping
             t = System.currentTimeMillis();
         } catch (InterruptedException e) {
+        	logger.error(e.getMessage(),e);
         } finally {
             lock.unlock();
         }

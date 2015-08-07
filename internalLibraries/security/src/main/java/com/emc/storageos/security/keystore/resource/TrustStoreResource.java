@@ -130,7 +130,7 @@ public class TrustStoreResource {
 
         KeyStore keystore = getKeyStore();
 
-        List<String> failedToParse = new ArrayList<String>();
+        List<String> invalidCerts = new ArrayList<String>();
         List<String> removeAliasDoesNotExist = new ArrayList<String>();
         List<String> added = new ArrayList<String>();
         List<String> removed = new ArrayList<String>();
@@ -151,21 +151,24 @@ public class TrustStoreResource {
                             if (x509cert.getNotAfter().before(now)) {
                                 log.warn("The following certificate has expired, but will still be added to the truststore: "
                                         + x509cert.toString());
+                                invalidCerts.add(certString);
                             } else if (now.before(x509cert.getNotBefore())) {
                                 log.warn("The following certificate is not yet valid, but will still be added to the truststore: "
                                         + x509cert.toString());
+                                invalidCerts.add(certString);
+                            } else { // good one
+                                keystore.setCertificateEntry(alias, cert);
+                                added.add(certString);
                             }
-                            keystore.setCertificateEntry(alias, cert);
-                            added.add(certString);
                         }
                     } else {
-                        failedToParse.add(certString);
+                        invalidCerts.add(certString);
                     }
                 } catch (KeyStoreException e) {
                     throw new IllegalStateException("keystore is not initialized", e);
                 } catch (CertificateException e) {
                     log.debug(e.getMessage(), e);
-                    failedToParse.add(certString);
+                    invalidCerts.add(certString);
                 }
             }
         }
@@ -182,12 +185,12 @@ public class TrustStoreResource {
                         keystore.deleteEntry(DigestUtils.sha512Hex(cert.getEncoded()));
                         removed.add(certString);
                     } else {
-                        failedToParse.add(certString);
+                        invalidCerts.add(certString);
                     }
                 } catch (CertificateException e) {
                     log.warn("the following certificate could not be deleted: "
                             + certString, e);
-                    failedToParse.add(certString);
+                    invalidCerts.add(certString);
                 } catch (KeyStoreException e) {
                     log.warn("the following certificate could not be deleted: "
                             + certString, e);
@@ -207,14 +210,14 @@ public class TrustStoreResource {
         recordTrustChangeIfAny(added, removed);
 
         // if something failed
-        if (!CollectionUtils.isEmpty(failedToParse)
+        if (!CollectionUtils.isEmpty(invalidCerts)
                 || !CollectionUtils.isEmpty(removeAliasDoesNotExist)) {
             // if we had a partial success
             if (!CollectionUtils.isEmpty(added) || !CollectionUtils.isEmpty(removed)) {
                 auditTruststorePatialSuccess(
                         OperationTypeEnum.UPDATE_TRUSTED_CERTIFICATES_PARTIAL, added, removed);
             }
-            throw APIException.badRequests.truststoreUpdatePartialSuccess(failedToParse,
+            throw APIException.badRequests.truststoreUpdatePartialSuccess(invalidCerts,
                     removeAliasDoesNotExist);
         } else if (!CollectionUtils.isEmpty(added) || !CollectionUtils.isEmpty(removed)) {
             // this is a complete success and some operations actually happened

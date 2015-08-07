@@ -236,7 +236,7 @@ public class FileSystems extends ResourceController {
     }
 
     @FlashException(referrer = { "fileSystem" })
-    public static void deleteFileSystem(String fileSystemId) {
+    public static void deleteFileSystem(String fileSystemId, String deleteType) {
         if (StringUtils.isNotBlank(fileSystemId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
 

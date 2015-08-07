@@ -2929,7 +2929,11 @@ resources.filesystem.exportRules=Export Rules
 resources.filesystem.shares=Shares
 resources.filesystem.snapshots=Snapshots
 resources.filesystem.deleteLink=Delete File System
+resources.filesystem.deleteLink.FULL=Full
+resources.filesystem.deleteLink.VIPR_ONLY=Inventory Only
 resources.filesystem.deleteConfirm=Are you sure you want to delete this file system?
+resources.filesystem.deleteConfirm.FULL=Are you sure you want to delete this file system fully?
+resources.filesystem.deleteConfirm.VIPR_ONLY=Are you sure you want to delete this file system from the inventory?
 resources.filesystem.quotaDirectory=Quota Directory
 
 resources.filesystem.export.mountpoint=Mount Point

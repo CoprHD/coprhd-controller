@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.computesystemcontroller.impl.adapter;
@@ -18,7 +18,6 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
-import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Cluster;
@@ -59,12 +58,12 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
     protected boolean isDiscoverable(Host host) {
         return host.getDiscoverable() == null || host.getDiscoverable();
     }
-    
+
     protected void discoverHost(Host host, HostStateChange changes) {
         setNativeGuid(host);
 
-    	List<IpInterface> oldIpInterfaces = new ArrayList<IpInterface>();
-    	Iterables.addAll(oldIpInterfaces, getIpInterfaces(host));
+        List<IpInterface> oldIpInterfaces = new ArrayList<IpInterface>();
+        Iterables.addAll(oldIpInterfaces, getIpInterfaces(host));
         discoverIpInterfaces(host, oldIpInterfaces);
         removeDiscoveredInterfaces(oldIpInterfaces);
 
@@ -76,7 +75,8 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
             clearScaleIOInitiators(oldInitiators);
         }
 
-        Collection<URI> oldInitiatorIds = Lists.newArrayList(Collections2.transform(oldInitiators, CommonTransformerFunctions.fctnDataObjectToID()));
+        Collection<URI> oldInitiatorIds = Lists.newArrayList(Collections2.transform(oldInitiators,
+                CommonTransformerFunctions.fctnDataObjectToID()));
         changes.setOldInitiators(oldInitiatorIds);
     }
 
@@ -86,9 +86,9 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
      * this method are assumed to not exist on the host any longer and will be deleted.
      * 
      * @param host
-     *        the host.
+     *            the host.
      * @param oldIpInterfaces
-     *        the old IP interfaces for the host, any remaining after this method will be deleted.
+     *            the old IP interfaces for the host, any remaining after this method will be deleted.
      */
     protected abstract void discoverIpInterfaces(Host host, List<IpInterface> oldIpInterfaces);
 
@@ -98,16 +98,16 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
      * method are assumed to not exist on the host any longer and will be deleted.
      * 
      * @param host
-     *        the host.
+     *            the host.
      * @param oldInitiators
-     *        the old initiators for the host, any remaining after this method will be deleted.
+     *            the old initiators for the host, any remaining after this method will be deleted.
      * @param changes
-     *        the state of changes for the host during discovery
+     *            the state of changes for the host during discovery
      */
     protected abstract void discoverInitiators(Host host, List<Initiator> oldInitiators, HostStateChange changes);
 
     protected Iterable<IpInterface> getIpInterfaces(Host host) {
-    	return getModelClient().ipInterfaces().findByHost(host.getId(), true);        
+        return getModelClient().ipInterfaces().findByHost(host.getId(), true);
     }
 
     /**
@@ -115,9 +115,9 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
      * returning.
      * 
      * @param ipInterfaces
-     *        the IP interfaces.
+     *            the IP interfaces.
      * @param ip
-     *        the name of the interface.
+     *            the name of the interface.
      * @return the IP interface.
      */
     protected IpInterface getOrCreateIpInterface(List<IpInterface> ipInterfaces, String ip) {
@@ -125,17 +125,16 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
     }
 
     protected Iterable<Initiator> getInitiators(Host host) {
-    	return getModelClient().initiators().findByHost(host.getId(), true);        
+        return getModelClient().initiators().findByHost(host.getId(), true);
     }
-
 
     /**
      * Sets the host/cluster values for the initiator.
      * 
      * @param initiator
-     *        the initiator.
+     *            the initiator.
      * @param host
-     *        the host.
+     *            the host.
      */
     protected void setInitiator(Initiator initiator, Host host) {
         initiator.setHost(host.getId());
@@ -148,7 +147,7 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
      * Gets the cluster for the given host.
      * 
      * @param host
-     *        the host
+     *            the host
      * @return the cluster.
      */
     protected Cluster getCluster(Host host) {
@@ -164,11 +163,11 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
      * Finds cluster by IP addresses in the given tenant.
      * 
      * @param tenantId
-     *        the tenant ID.
+     *            the tenant ID.
      * @param hostType
-     *        the host type.
+     *            the host type.
      * @param clusterIpAddresses
-     *        the IP addresses in the cluster.
+     *            the IP addresses in the cluster.
      * @return the ID of the cluster.
      */
     protected URI findClusterByAddresses(URI tenantId, Host.HostType hostType, List<String> clusterIpAddresses) {
@@ -187,8 +186,8 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
                 if (clusterIpAddresses.contains(hostAddress.getHostAddress())) {
                     return host.getCluster();
                 }
-            }
-            catch (UnknownHostException ignore) {
+            } catch (UnknownHostException ignore) {
+                getLog().error(ignore.getMessage(), ignore);
             }
 
             // Check the ip interfaces for the host
@@ -205,9 +204,9 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
      * Finds a cluster by name in the given tenant.
      * 
      * @param tenantId
-     *        the tenant ID.
+     *            the tenant ID.
      * @param clusterName
-     *        the name of the cluster.
+     *            the name of the cluster.
      * @return the ID of the cluster.
      */
     protected URI findClusterByName(URI tenantId, String clusterName) {
@@ -233,9 +232,9 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
 
     protected void checkDuplicateHost(Host host, String nativeGuid) {
         if (nativeGuid != null && !nativeGuid.isEmpty()) {
-            for(Host existingHost : modelClient.hosts().findByNativeGuid(nativeGuid, true)) {
+            for (Host existingHost : modelClient.hosts().findByNativeGuid(nativeGuid, true)) {
                 if (!existingHost.getId().equals(host.getId())) {
-                    ComputeSystemControllerException ex = 
+                    ComputeSystemControllerException ex =
                             ComputeSystemControllerException.exceptions.duplicateSystem("Host", existingHost.getLabel());
                     DiscoveryStatusUtils.markAsFailed(modelClient, host, ex.getMessage(), ex);
                     throw ex;
@@ -243,10 +242,10 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
             }
         }
     }
-    
+
     /**
      * This method clears/removes ScaleIO initiators
-     *
+     * 
      * @param initiators
      *            list of initiators
      */

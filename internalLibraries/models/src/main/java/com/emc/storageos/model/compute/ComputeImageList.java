@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.compute;
@@ -14,11 +14,12 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 
 @XmlRootElement(name = "compute_images")
 public class ComputeImageList {
-	
+
     private List<NamedRelatedResourceRep> computeImages;
 
-    public ComputeImageList() {}
-    
+    public ComputeImageList() {
+    }
+
     public ComputeImageList(List<NamedRelatedResourceRep> computeImages) {
         this.computeImages = computeImages;
     }
@@ -27,7 +28,7 @@ public class ComputeImageList {
      * List of storage system URLs with name
      * 
      * @valid none
-     */ 
+     */
     @XmlElement(name = "compute_image")
     public List<NamedRelatedResourceRep> getComputeImages() {
         if (computeImages == null) {

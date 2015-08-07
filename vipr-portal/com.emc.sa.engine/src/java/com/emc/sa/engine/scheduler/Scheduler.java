@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.engine.scheduler;
@@ -44,8 +44,7 @@ public class Scheduler implements Runnable {
         startProcessor();
         try {
             pollActiveWindows();
-        }
-        finally {
+        } finally {
             stopProcessor();
         }
     }
@@ -62,8 +61,7 @@ public class Scheduler implements Runnable {
             t.interrupt();
             try {
                 t.join();
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 LOG.info("Interrupted while waiting for completion", e);
                 Thread.currentThread().interrupt();
             }
@@ -101,8 +99,7 @@ public class Scheduler implements Runnable {
             if (!pool.awaitTermination(1, TimeUnit.MINUTES)) {
                 LOG.warn("Failed to gracefully shutdown");
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             LOG.info("Interrupted while waiting for stop", e);
             Thread.currentThread().interrupt();
         }
@@ -123,8 +120,7 @@ public class Scheduler implements Runnable {
                     Thread.sleep(sleepTime);
                 }
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             LOG.info("Interrupted waiting for an execution window");
             Thread.currentThread().interrupt();
         }
@@ -144,13 +140,11 @@ public class Scheduler implements Runnable {
                     Order order = dataManager.lockNextScheduledOrder();
                     try {
                         processOrder(order);
-                    }
-                    finally {
+                    } finally {
                         dataManager.unlockOrder(order);
                     }
                 }
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 LOG.info("Interruped waiting for an order");
                 Thread.currentThread().interrupt();
             }
@@ -165,8 +159,7 @@ public class Scheduler implements Runnable {
                     return;
                 }
                 dispatcher.processOrder(order);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 LOG.error("Unexpected exception processing order: " + order.getId(), e);
             }
         }

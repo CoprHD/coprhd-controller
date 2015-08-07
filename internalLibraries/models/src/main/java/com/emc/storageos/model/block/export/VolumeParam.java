@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block.export;
@@ -20,15 +20,16 @@ public class VolumeParam {
 
     public VolumeParam() {
     }
-    
+
     public VolumeParam(URI id) {
         this.id = id;
     }
 
     /**
      * URI of volume or volume snapshot to be added to the block export.
-     * This volume or snapshot must belong to the same virtual array as 
+     * This volume or snapshot must belong to the same virtual array as
      * the block export.
+     * 
      * @valid example: URI of the volume or snapshot to be added to the block export.
      */
     @XmlElement(required = true)
@@ -43,8 +44,9 @@ public class VolumeParam {
     /**
      * Logical Unit Number for this volume or snapshot as seen by the initiators.
      * This is an optional parameter. If not supplied, LUN number is auto-assigned.
-     * Set this only if the volume is to be visible to all initiators in a cluster 
+     * Set this only if the volume is to be visible to all initiators in a cluster
      * with the same LUN number.
+     * 
      * @valid none
      */
     @XmlElement(required = false)

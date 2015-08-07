@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.impl.jersey;
@@ -29,8 +29,7 @@ public class RetryFilter extends ClientFilter {
             try {
                 ClientResponse response = getNext().handle(clientRequest);
                 return response;
-            }
-            catch (ServiceErrorException e) {
+            } catch (ServiceErrorException e) {
                 if (!e.isRetryable()) {
                     throw e;
                 }
@@ -39,8 +38,7 @@ public class RetryFilter extends ClientFilter {
             log.info("Request failed {}, retrying (count: {})", clientRequest.getURI().toString(), retryCount);
             try {
                 Thread.sleep(retryInterval);
-            }
-            catch (InterruptedException exception) {
+            } catch (InterruptedException exception) {
                 // Ignore this
             }
         }

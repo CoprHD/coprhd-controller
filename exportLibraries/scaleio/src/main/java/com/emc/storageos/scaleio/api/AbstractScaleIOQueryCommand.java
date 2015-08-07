@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.scaleio.api;
@@ -29,10 +19,10 @@ import java.util.regex.Pattern;
  * Abstract class implements processing of the CLI command output.
  * Classes that derive from this should at least implement getOutputPatternSpecification()
  * and processMatch(). These functions will be used in the output processing.
- *
+ * 
  * The expectation is that the overridden routines will be written so
  * that the type T result object can be filled in.
- *
+ * 
  * @param <T>
  */
 abstract public class AbstractScaleIOQueryCommand<T> extends ScaleIOResultsCommand<T> {
@@ -56,7 +46,7 @@ abstract public class AbstractScaleIOQueryCommand<T> extends ScaleIOResultsComma
         if (log.isDebugEnabled()) {
             String command = sanitizeCommand(getCommand());
             String args = Joiner.on(',').join(getArguments());
-            log.debug(String.format("Command: %s Args: %s\nResult: %s", command, args, output));
+            log.debug(String.format("Command: %s Args: %s%nResult: %s", command, args, output));
         }
 
         for (String line : Splitter.on(CharMatcher.anyOf("\n\r")).split(output)) {
@@ -66,7 +56,7 @@ abstract public class AbstractScaleIOQueryCommand<T> extends ScaleIOResultsComma
             processLineAgainstSpec(line);
         }
         long total = System.currentTimeMillis() - start;
-        log.info(String.format("Total time taken %f seconds for %s\n", (double) total / (double) 1000,
+        log.info(String.format("Total time taken %f seconds for %s%n", (double) total / (double) 1000,
                 this.getClass().getSimpleName()));
     }
 

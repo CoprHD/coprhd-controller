@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.aix;
@@ -12,8 +12,8 @@ import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 
 public final class AixUtils {
-    
-    public static MountPoint getMountPoint(URI hostId, Map<String, MountPoint> results,  BlockObjectRestRep volume) {
+
+    public static MountPoint getMountPoint(URI hostId, Map<String, MountPoint> results, BlockObjectRestRep volume) {
         String volumeMountPoint = KnownMachineTags.getBlockVolumeMountPoint(hostId, volume);
         if (results.containsKey(volumeMountPoint)) {
             return results.get(volumeMountPoint);

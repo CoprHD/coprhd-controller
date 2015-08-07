@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.auth;
@@ -15,7 +15,8 @@ import javax.xml.bind.annotation.XmlElement;
 public abstract class AuthnProviderBaseParam {
 
     /**
-     * The kind of provider.  Active Directory(ad) or generic LDAPv3 (ldap)
+     * The kind of provider. Active Directory(ad) or generic LDAPv3 (ldap)
+     * 
      * @valid ad
      * @valid ldap
      */
@@ -23,13 +24,15 @@ public abstract class AuthnProviderBaseParam {
 
     /**
      * Name of the provider
-     * @valid any string.  
+     * 
+     * @valid any string.
      * @valid provider names must be unique within a virtual data center
      */
     private String label;
 
     /**
      * Description of the provider
+     * 
      * @valid any string
      */
     private String description;
@@ -39,10 +42,11 @@ public abstract class AuthnProviderBaseParam {
      * During provider creation or update, if disable is set to false,
      * a basic connectivity test will be performed against the LDAP/AD server.
      * If the disable parameter is set to true, no validation will be done and
-     * the provider will be added/updated as long as the parameters are 
-     * syntactically correct.  
+     * the provider will be added/updated as long as the parameters are
+     * syntactically correct.
      * During the operation of the system, a disabled provider will exist but
      * not be considered when authenticating principals.
+     * 
      * @valid true to disable
      * @valid false to enable
      */
@@ -50,6 +54,7 @@ public abstract class AuthnProviderBaseParam {
 
     /**
      * Distinguished Name for the bind user.
+     * 
      * @valid Example: CN=Administrator,CN=Users,DC=domain,DC=com
      * @valid Example: domain\Administrator
      */
@@ -57,43 +62,49 @@ public abstract class AuthnProviderBaseParam {
 
     /**
      * Password for the manager DN "bind" user.
+     * 
      * @valid none
      */
     private String managerPassword;
 
     /**
      * Search base from which the LDAP search will start when authenticating
-     * users.  See also: search_scope
+     * users. See also: search_scope
+     * 
      * @valid Example: CN=Users,DC=domain,DC=com
      */
     private String searchBase;
 
     /**
      * Key value pair representing the search filter criteria.
+     * 
      * @valid %u or %U needs to be present on the right side of the equal sign (Example: filterKey=%u).
-     * @valid %u stands for the whole username string as typed in by the user.  
+     * @valid %u stands for the whole username string as typed in by the user.
      * @valid %U stands for the username portion only of the string containing the domain
-     * @valid Example: in user@company.com, %U is user.  %u is user@company.com
+     * @valid Example: in user@company.com, %U is user. %u is user@company.com
      */
     private String searchFilter;
 
     /**
      * In conjunction with the search_base, the search_scope indicates how many
-     * levels below the base the search can continue.  
+     * levels below the base the search can continue.
+     * 
      * @valid ONELEVEL = The search will start at the search_base location and continue up to one level deep
      * @valid SUBTREE = The search will start at the search_base location and continue through the entire tree
      */
     private String searchScope;
 
     /**
-     * Attribute for group search.  This is the attribute name that will be used to represent group membership.
+     * Attribute for group search. This is the attribute name that will be used to represent group membership.
      * Once set during creation of the provider, the value for this parameter cannot be changed.
+     * 
      * @valid Example: "CN"
      */
     private String groupAttribute;
 
     /**
      * Maximum number of results that the LDAP server will return on a single page.
+     * 
      * @valid If provided, the value must be greater than 0
      * @valid The value cannot be higher than the max page size configured on the LDAP server.
      */
@@ -101,12 +112,14 @@ public abstract class AuthnProviderBaseParam {
 
     /**
      * Whether or not to validate certificates when ldaps is used.
+     * 
      * @valid true
      * @valid false
      */
     private Boolean validateCertificates;
-    
-	public AuthnProviderBaseParam() {}
+
+    public AuthnProviderBaseParam() {
+    }
 
     public AuthnProviderBaseParam(String mode, String label,
             String description, Boolean disable, String serverCert,
@@ -205,7 +218,7 @@ public abstract class AuthnProviderBaseParam {
         this.searchFilter = searchFilter;
     }
 
-    @XmlElement (name = "search_scope", defaultValue = "ONELEVEL")
+    @XmlElement(name = "search_scope", defaultValue = "ONELEVEL")
     @JsonProperty("search_scope")
     public String getSearchScope() {
         return searchScope;
@@ -234,7 +247,7 @@ public abstract class AuthnProviderBaseParam {
     public void setMaxPageSize(Integer maxPageSize) {
         this.maxPageSize = maxPageSize;
     }
-    
+
     @Deprecated
     @XmlElement(name = "validate_certificates", required = false, defaultValue = "false")
     @JsonProperty("validate_certificates")

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.impl;
@@ -25,13 +15,13 @@ import com.emc.storageos.db.client.model.StringSet;
 
 /**
  * @author cgarber
- *
+ * 
  */
 public class LazyLoadedList<E extends DataObject> extends LazyLoadedCollection<E> implements List<E> {
-        
+
     /**
      * @param name
-     * @param mappedBy 
+     * @param mappedBy
      * @param id
      * @param lazyLoader2
      */
@@ -40,7 +30,9 @@ public class LazyLoadedList<E extends DataObject> extends LazyLoadedCollection<E
         list = new ArrayList<E>();
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.db.client.constraint.LazyLoadedCollection#getNewCollection()
      */
     @Override
@@ -48,15 +40,19 @@ public class LazyLoadedList<E extends DataObject> extends LazyLoadedCollection<E
         return new ArrayList<E>();
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.db.client.constraint.LazyLoadedCollection#getCollection()
      */
     @Override
     protected List<E> getCollection() {
-         return (List<E>) super.getCollection();
+        return (List<E>) super.getCollection();
     }
-    
-    /* (non-Javadoc)
+
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.List#addAll(int, java.util.Collection)
      */
     @Override
@@ -64,7 +60,9 @@ public class LazyLoadedList<E extends DataObject> extends LazyLoadedCollection<E
         return getCollection().addAll(index, c);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.List#get(int)
      */
     @Override
@@ -72,7 +70,9 @@ public class LazyLoadedList<E extends DataObject> extends LazyLoadedCollection<E
         return getCollection().get(index);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.List#set(int, java.lang.Object)
      */
     @Override
@@ -80,7 +80,9 @@ public class LazyLoadedList<E extends DataObject> extends LazyLoadedCollection<E
         return getCollection().set(index, element);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.List#add(int, java.lang.Object)
      */
     @Override
@@ -88,7 +90,9 @@ public class LazyLoadedList<E extends DataObject> extends LazyLoadedCollection<E
         getCollection().add(element);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.List#remove(int)
      */
     @Override
@@ -96,7 +100,9 @@ public class LazyLoadedList<E extends DataObject> extends LazyLoadedCollection<E
         return getCollection().remove(index);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.List#indexOf(java.lang.Object)
      */
     @Override
@@ -104,7 +110,9 @@ public class LazyLoadedList<E extends DataObject> extends LazyLoadedCollection<E
         return getCollection().indexOf(o);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.List#lastIndexOf(java.lang.Object)
      */
     @Override
@@ -112,7 +120,9 @@ public class LazyLoadedList<E extends DataObject> extends LazyLoadedCollection<E
         return getCollection().lastIndexOf(o);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.List#listIterator()
      */
     @Override
@@ -120,7 +130,9 @@ public class LazyLoadedList<E extends DataObject> extends LazyLoadedCollection<E
         return getCollection().listIterator();
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.List#listIterator(int)
      */
     @Override
@@ -128,13 +140,14 @@ public class LazyLoadedList<E extends DataObject> extends LazyLoadedCollection<E
         return getCollection().listIterator(index);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.List#subList(int, int)
      */
     @Override
     public List<E> subList(int fromIndex, int toIndex) {
         return getCollection().subList(fromIndex, toIndex);
     }
-
 
 }

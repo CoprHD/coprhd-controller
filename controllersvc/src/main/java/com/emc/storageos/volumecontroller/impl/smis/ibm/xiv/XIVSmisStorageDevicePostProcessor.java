@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.ibm.xiv;
 
@@ -218,11 +208,11 @@ public class XIVSmisStorageDevicePostProcessor {
                             storagePool.getSubscribedCapacity()));
 
             _dbClient.persistObject(storagePool);
-        } catch (Throwable th) {
+        } catch (Exception ex) {
             _log.error(
                     String.format(
                             "Failed to update capacity of storage pool after volume provisioning operation. Storage pool %s .",
-                            storagePool.getNativeId()), th);
+                            storagePool.getNativeId()), ex);
         }
     }
 
@@ -387,7 +377,7 @@ public class XIVSmisStorageDevicePostProcessor {
                 _dbClient.persistObject(volume);
                 logMsgBuilder
                         .append(String
-                                .format("\n   Capacity: %s, Provisioned capacity: %s, Allocated Capacity: %s",
+                                .format("%n   Capacity: %s, Provisioned capacity: %s, Allocated Capacity: %s",
                                         volume.getCapacity(),
                                         volume.getProvisionedCapacity(),
                                         volume.getAllocatedCapacity()));
@@ -465,7 +455,7 @@ public class XIVSmisStorageDevicePostProcessor {
 
         return volumesToSave;
     }
-    
+
     @SuppressWarnings("rawtypes")
     public void processSnapshotCreation(StorageSystem storageSystem,
             URI snapshotURI, boolean wantSyncActive, CIMArgument[] outArgs,
@@ -613,9 +603,10 @@ public class XIVSmisStorageDevicePostProcessor {
 
             // Iterate through the snapshot elements and try to match them up
             // with the appropriate BlockSnapshot
-            
+
             // Note, NULL_IBM_CIM_OBJECT_PATH is used here. The snapshot group object will be looked up by snapshot group name
-            List<CIMObjectPath> objectPaths = _helper.getSGMembers(storageSystem, SmisConstants.NULL_IBM_CIM_OBJECT_PATH, snapshotGroupName, snapshotURIs.size());
+            List<CIMObjectPath> objectPaths = _helper.getSGMembers(storageSystem, SmisConstants.NULL_IBM_CIM_OBJECT_PATH,
+                    snapshotGroupName, snapshotURIs.size());
             List<BlockSnapshot> objectsToSave = new ArrayList<BlockSnapshot>(
                     snapshotURIs.size());
             Calendar now = Calendar.getInstance();
@@ -673,7 +664,7 @@ public class XIVSmisStorageDevicePostProcessor {
                 }
             }
 
-            if (objectsToSave.size() > 0) {
+            if (!objectsToSave.isEmpty()) {
                 _dbClient.persistObject(objectsToSave);
                 taskCompleter.ready(_dbClient);
             } else {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.smis.srdf;
@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.cim.CIMObjectPath;
-import javax.wbem.WBEMException;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -74,6 +73,10 @@ public class SRDFOperationContext {
     public void perform() throws Exception {
         // Find the provider to make SMI-S calls to.
         StorageSystem provider = providerFinder.find();
+        if (provider == null) {
+            log.error("Both source and target providers are not reachable");
+            throw new IllegalStateException("Both source and target providers are not reachable");
+        }
 
         // Collect object paths for a GroupSync or one or more StorageSyncs.
         Collection<CIMObjectPath> objectPaths = collector.collect(provider, target);

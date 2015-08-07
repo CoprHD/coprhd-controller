@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block;
@@ -16,10 +16,11 @@ public class VolumeBulkRep extends BulkRestRep {
 
     /**
      * List of volume objects specifying its characteristics
-     * such as allocated capacity, provisioned capacity, disk 
+     * such as allocated capacity, provisioned capacity, disk
      * technology, and whether or not the volume is thinly provisioned.
+     * 
      * @valid none
-     */ 
+     */
     @XmlElement(name = "volume")
     public List<VolumeRestRep> getVolumes() {
         if (volumes == null) {

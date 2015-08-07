@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.impl;
 
@@ -31,7 +21,7 @@ public abstract class AbstractDiscoveredSystemController {
     private static final Logger _log = LoggerFactory.getLogger(AbstractDiscoveredSystemController.class);
 
     protected void queueTask(DbClient dbClient, Class<? extends DiscoveredSystemObject> systemClazz,
-                             Dispatcher dispatcher, String methodName, Object... args)
+            Dispatcher dispatcher, String methodName, Object... args)
     {
         final URI systemURI = (URI) args[0];
         _log.info("System {} received RMI request {}.", systemURI, methodName);
@@ -44,10 +34,9 @@ public abstract class AbstractDiscoveredSystemController {
             dispatcher.queue(device.getId(), device.getSystemType(), controller, methodName, args);
         } catch (RetryableDatabaseException e) {
             if (e.getServiceCode() == ServiceCode.DBSVC_CONNECTION_ERROR) {
-                // netflix curator ConnectionException is not serializable 
+                // netflix curator ConnectionException is not serializable
                 // and thus should not be sent back to rmi client.
-                _log.error("Failed to queue task due to dbsvc disconnected. Error: {}", e.getMessage());
-                e.printStackTrace();
+                _log.error("Failed to queue task due to dbsvc disconnected. Error: ", e);
                 throw DatabaseException.retryables.connectionFailed();
             }
             throw e;
@@ -56,4 +45,3 @@ public abstract class AbstractDiscoveredSystemController {
 
     protected abstract Controller lookupDeviceController(DiscoveredSystemObject device);
 }
-

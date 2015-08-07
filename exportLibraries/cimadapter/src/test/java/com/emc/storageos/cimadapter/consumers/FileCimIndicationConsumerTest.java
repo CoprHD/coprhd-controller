@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.cimadapter.consumers;
 
@@ -23,6 +13,8 @@ import java.util.Hashtable;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * JUnit test class for {@link FileCimIndicationConsumer}.
@@ -33,6 +25,7 @@ public class FileCimIndicationConsumerTest {
     private static final String TEST_KEY2 = "key2";
     private static final String TEST_VALUE1 = "value1";
     private static final String TEST_VALUE2 = "value2";
+    private static final Logger s_logger = LoggerFactory.getLogger(FileCimIndicationConsumerTest.class);
     
     /**
      * Make sure indication file doesn't exist.
@@ -62,7 +55,7 @@ public class FileCimIndicationConsumerTest {
      * Tests the consumeIndication method when the passed indication is null.
      */
     @Test
-    public void testConsumeIndication_Null() {
+    public void testConsumeIndicationNull() {
         FileCimIndicationConsumer consumer = new FileCimIndicationConsumer();
         consumer.consumeIndication(null);
 
@@ -79,7 +72,7 @@ public class FileCimIndicationConsumerTest {
      * Hashtable<String, String>.
      */
     @Test
-    public void testConsumeIndication_NotHashtable() {
+    public void testConsumeIndicationNotHashtable() {
         FileCimIndicationConsumer consumer = new FileCimIndicationConsumer();
         consumer.consumeIndication(new ArrayList<String>());
 
@@ -138,6 +131,7 @@ public class FileCimIndicationConsumerTest {
             try {
                 bufferedFileReader.close();
             } catch (Exception e) {
+            	s_logger.error(e.getMessage(),e);
             }
         }
 

@@ -1,23 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.isilon.restapi;
 
 import com.google.gson.Gson;
-import org.codehaus.jettison.json.JSONObject;
-import org.codehaus.jettison.json.JSONString;
-
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import java.util.Map;
@@ -25,6 +12,13 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Class for Isilon event type.
+ */
+
+@SuppressWarnings({ "squid:S1206" })
+/*
+ * Following Jiras raised for tracking, as fix just before release not feasible.
+ * Jira COP-32 -Change static Isilon in future, can't change now
+ * Jira COP-33 - Change the code for Inappropriate Collection call
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 public class IsilonEvent {
@@ -58,7 +52,7 @@ public class IsilonEvent {
     protected String update_count;
     protected String value;
 
-    //protected Specifiers specifiers;
+    // protected Specifiers specifiers;
     protected Map<String, Object> specifiers;  // get it as a Map
 
     public String toString() {
@@ -72,11 +66,12 @@ public class IsilonEvent {
         str.append(", severity: " + severity);
         str.append(", message: " + message);
         str.append(")");
-        return str.toString();  
+        return str.toString();
     }
 
     /**
      * Return JSON String representation of the object
+     * 
      * @return
      */
     public String toJSONString() {
@@ -85,6 +80,7 @@ public class IsilonEvent {
 
     /**
      * Get last modified timestamp on this event
+     * 
      * @return
      */
     public long getLatestTime() {
@@ -93,7 +89,8 @@ public class IsilonEvent {
     }
 
     /**
-     * Get last modified timestamp  in milli seconds on this event
+     * Get last modified timestamp in milli seconds on this event
+     * 
      * @return
      */
     public long getLatestTimeMilliSeconds() {
@@ -104,6 +101,7 @@ public class IsilonEvent {
 
     /**
      * Get event id - identifies the type
+     * 
      * @return
      */
     public String getEventId() {
@@ -112,6 +110,7 @@ public class IsilonEvent {
 
     /**
      * Get event instance id
+     * 
      * @return
      */
     public String getInstanceId() {
@@ -120,6 +119,7 @@ public class IsilonEvent {
 
     /**
      * Message from the event
+     * 
      * @return
      */
     public String getMessage() {
@@ -135,6 +135,7 @@ public class IsilonEvent {
 
     /**
      * Get severity
+     * 
      * @return
      */
     public String getSeverity() {
@@ -143,10 +144,11 @@ public class IsilonEvent {
 
     /**
      * Get specifier info from event as json string
+     * 
      * @return
      */
     public String getSpecifiers() {
-        //return new Gson().toJson(specifiers, Specifiers.class).toString();
+        // return new Gson().toJson(specifiers, Specifiers.class).toString();
         return specifiers.toString();
     }
 
@@ -155,7 +157,7 @@ public class IsilonEvent {
         if (o == null || !(o instanceof IsilonEvent)) {
             return false;
         }
-        IsilonEvent event = (IsilonEvent)o;
+        IsilonEvent event = (IsilonEvent) o;
         if (this.getInstanceId().equals(event.getInstanceId())) {
             return true;
         } else {
@@ -164,4 +166,3 @@ public class IsilonEvent {
     }
 
 }
-

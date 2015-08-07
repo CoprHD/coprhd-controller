@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.hds.prov.job;
@@ -18,8 +8,6 @@ package com.emc.storageos.volumecontroller.impl.hds.prov.job;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,12 +26,11 @@ public class HDSExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
     private Collection<URI> _volumes;
 
     public HDSExportMaskRemoveVolumeCompleter(URI egUri, URI emUri, Collection<URI> volumes,
-                                           String task) {
+            String task) {
         super(ExportGroup.class, egUri, emUri, task);
         _volumes = new ArrayList<URI>();
         _volumes.addAll(volumes);
     }
-
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {

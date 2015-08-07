@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.tenant;
@@ -21,7 +21,7 @@ public class UserMappingForm {
     public String groups = "";
 
     public void validate() {
-       //getAttributeValues();
+        // getAttributeValues();
     }
 
     public UserMappingParam createUserMappingParam() {
@@ -38,7 +38,7 @@ public class UserMappingForm {
         List<UserMappingAttributeParam> attributeParams = Lists.newArrayList();
         if (!attributes.isEmpty()) {
             for (AttributeMapping mapping : attributes) {
-                if (mapping != null)  {
+                if (mapping != null) {
                     attributeParams.add(mapping.createAttributeParam());
                 }
             }
@@ -76,7 +76,6 @@ public class UserMappingForm {
         return userMappingForms;
     }
 
-
     public static List<UserMappingParam> getAddedMappings(List<UserMappingParam> existingUserMappings, List<UserMappingForm> mappingForms) {
         List<UserMappingParam> added = Lists.newArrayList();
         for (UserMappingForm userMappingForm : mappingForms) {
@@ -97,7 +96,8 @@ public class UserMappingForm {
         return added;
     }
 
-    public static List<UserMappingParam> getRemovedMappings(List<UserMappingParam> existingUserMappings, List<UserMappingForm> mappingForms) {
+    public static List<UserMappingParam>
+            getRemovedMappings(List<UserMappingParam> existingUserMappings, List<UserMappingForm> mappingForms) {
         List<UserMappingParam> removed = Lists.newArrayList();
         for (UserMappingParam existingMapping : existingUserMappings) {
             if (existingMapping != null) {
@@ -123,7 +123,12 @@ public class UserMappingForm {
             return true;
         }
 
-        if (!left.getDomain().equals(right.getDomain())) {
+        if (left == null || right == null) {
+            return false;
+        }
+
+        if (!left.getDomain().equals(right.getDomain())) { // NOSONAR (Suppressing null pointer dereference of left. When left is null,
+                                                           // previous if handles it.
             return false;
         }
 
@@ -142,7 +147,7 @@ public class UserMappingForm {
             for (UserMappingAttributeParam rightAttribute : right.getAttributes()) {
                 if (leftAttribute.getKey().equals(rightAttribute.getKey())) {
                     if (!CollectionUtils.isEqualCollection(leftAttribute.getValues(), rightAttribute.getValues())) {
-                         return false;
+                        return false;
                     }
 
                     found = true;

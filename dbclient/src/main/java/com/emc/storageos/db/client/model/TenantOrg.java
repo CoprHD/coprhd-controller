@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
@@ -20,7 +10,6 @@ import java.util.Set;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DbKeyspace.Keyspaces;
-import org.apache.http.client.utils.URIUtils;
 
 /**
  * Tenant org (configuration) data object
@@ -41,8 +30,8 @@ public class TenantOrg extends DataObject {
     private StringSetMap _userMappings;
     private StringSetMap _roleAssignments;
 
-    //current Quota for the tenant in GB
-    private Long  _quotaGB;
+    // current Quota for the tenant in GB
+    private Long _quotaGB;
 
     private Boolean _quotaEnabled;
 
@@ -73,30 +62,31 @@ public class TenantOrg extends DataObject {
         _description = description;
         setChanged("description");
     }
+
     @Name("userMappings")
     @PermissionsIndex("PermissionsIndex")
     public StringSetMap getUserMappings() {
         return _userMappings;
     }
-    
+
     public void setUserMappings(StringSetMap userMappings) {
         _userMappings = userMappings;
         setChanged("userMappings");
     }
-    
+
     public void addUserMapping(String domain, String userMapping) {
-        if( null == _userMappings ) {
+        if (null == _userMappings) {
             _userMappings = new StringSetMap();
         }
-        _userMappings.put(domain,  userMapping);
+        _userMappings.put(domain, userMapping);
     }
-    
+
     public void removeUserMapping(String domain, String userMapping) {
-        if( null != _userMappings ) {
+        if (null != _userMappings) {
             _userMappings.remove(domain, userMapping);
         }
     }
-    
+
     @PermissionsIndex("PermissionsIndex")
     @Name("role-assignment")
     public StringSetMap getRoleAssignments() {
@@ -111,7 +101,7 @@ public class TenantOrg extends DataObject {
     }
 
     @Name("quota")
-    public Long getQuota(){
+    public Long getQuota() {
         return (_quotaGB == null) ? 0L : _quotaGB;
     }
 
@@ -121,11 +111,11 @@ public class TenantOrg extends DataObject {
     }
 
     @Name("quotaEnabled")
-    public Boolean  getQuotaEnabled(){
+    public Boolean getQuotaEnabled() {
         return (_quotaEnabled == null) ? false : _quotaEnabled;
     }
 
-    public void  setQuotaEnabled(Boolean enable){
+    public void setQuotaEnabled(Boolean enable) {
         _quotaEnabled = enable;
         setChanged("quotaEnabled");
     }

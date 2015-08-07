@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.smis;
@@ -147,20 +147,20 @@ public abstract class AbstractCIMObjectPathFactory implements CIMObjectPathFacto
 
     /**
      * This method extracts the group name from the group path.
-     *
+     * 
      * @param storageDevice The reference to storage device
      * @param groupPath storage group path
      * @return the group name
      */
-    public String getMaskingGroupName(StorageSystem storageDevice, CIMObjectPath groupPath){
-        String groupName = null ;
+    public String getMaskingGroupName(StorageSystem storageDevice, CIMObjectPath groupPath) {
+        String groupName = null;
 
         CIMProperty<?>[] keys = groupPath.getKeys();
-        for(CIMProperty key :  keys){
-            if(key.getName().equals(CP_INSTANCE_ID)){
+        for (CIMProperty key : keys) {
+            if (key.getName().equals(CP_INSTANCE_ID)) {
                 String groupNameProperty = key.getValue().toString();
                 int lastDelimIndex = 0;
-                if(storageDevice.getUsingSmis80()){
+                if (storageDevice.getUsingSmis80()) {
                     lastDelimIndex = groupNameProperty.lastIndexOf(Constants.SMIS80_DELIMITER);
                     // For V3 provider example:
                     // if groupNameProperty = SYMMETRIX-+-000196700567-+-stdummyhost3_567_SG_BRONZE_DSS_SRP_1
@@ -185,7 +185,7 @@ public abstract class AbstractCIMObjectPathFactory implements CIMObjectPathFacto
     /**
      * Get an Iterator for all CIM_StorageSynchronized instances referenced by the given
      * BlockObject.
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object representing array
      * @param subject
@@ -207,7 +207,7 @@ public abstract class AbstractCIMObjectPathFactory implements CIMObjectPathFacto
 
     /**
      * Return a single CIM_StorageSynchronized instance referenced by the given BlockObject.
-     *
+     * 
      * @deprecated In cases where there may be more than one CIM_StorageSynchronized instance, we
      *             should favor using #getSyncObjects instead and inspect each instances'
      *             [System|Synced] Element property to ensure that we're operating on the correct
@@ -247,14 +247,15 @@ public abstract class AbstractCIMObjectPathFactory implements CIMObjectPathFacto
 
     // TODO: check if this method is used at all if not delete it
     public String getProcessorName(StorageSystem system, String processorName) {
-        return SmisUtils.translate(system, prefixWithSystemName(system.getSerialNumber()).concat("+FA-").concat(processorName.replaceAll(":", "+")));
+        return SmisUtils.translate(system,
+                prefixWithSystemName(system.getSerialNumber()).concat("+FA-").concat(processorName.replaceAll(":", "+")));
     }
 
     /**
      * Creates a CIMInstance object with properties that will be used for calling the modifyInstance
      * CIM operation. We want to set a parameter for the enabling the creating of VDEVs when this
      * setting is applied to a CreateOrModifyElement call.
-     *
+     * 
      * @param setting
      *            [required] - CIMObjectPath referencing the StorageSetting
      * @return CIMInstance - newly created CIMInstance object with properties
@@ -267,8 +268,8 @@ public abstract class AbstractCIMObjectPathFactory implements CIMObjectPathFacto
     }
 
     public abstract CIMObjectPath getBlockObjectPath(StorageSystem storage, StorageSystem storage1,
-                                                        BlockObject subject);
+            BlockObject subject);
 
     public abstract CIMObjectPath getMaskingGroupPath(StorageSystem storage, String storageGroupName,
-                                                         MASKING_GROUP_TYPE se_deviceMaskingGroup) throws Exception;
+            MASKING_GROUP_TYPE se_deviceMaskingGroup) throws Exception;
 }

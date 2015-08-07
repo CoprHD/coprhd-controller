@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models;
@@ -41,28 +41,29 @@ public class StorageSystemTypes {
     public static final String[] NON_SMIS_TYPES = { ISILON, VNX_FILE, NETAPP, XTREMIO, VNXe, NETAPPC };
 
     public static final StringOption[] OPTIONS = {
-        option(ISILON),
-        option(VNX_FILE),
-        option(NETAPP),
-        option(XTREMIO),
-        option(VNXe),
-        option(NETAPPC),
-        new StringOption(VMAX, getDisplayValue(STORAGE_PROVIDER_VMAX)),
-        new StringOption(VPLEX, getDisplayValue(STORAGE_PROVIDER_VPLEX)),
-        new StringOption(HITACHI, getDisplayValue(STORAGE_PROVIDER_HITACHI)),
-        new StringOption(OPENSTACK, getDisplayValue(STORAGE_PROVIDER_OPENSTACK)),
-        new StringOption(SCALEIO, getDisplayValue(STORAGE_PROVIDER_SCALEIO)),
-        new StringOption(DATA_DOMAIN, getDisplayValue(STORAGE_PROVIDER_DATA_DOMAIN)),
-        new StringOption(IBMXIV, getDisplayValue(STORAGE_PROVIDER_IBMXIV))
+            option(ISILON),
+            option(VNX_FILE),
+            option(NETAPP),
+            option(XTREMIO),
+            option(VNXe),
+            option(NETAPPC),
+            new StringOption(VMAX, getDisplayValue(STORAGE_PROVIDER_VMAX)),
+            new StringOption(VPLEX, getDisplayValue(STORAGE_PROVIDER_VPLEX)),
+            new StringOption(HITACHI, getDisplayValue(STORAGE_PROVIDER_HITACHI)),
+            new StringOption(OPENSTACK, getDisplayValue(STORAGE_PROVIDER_OPENSTACK)),
+            new StringOption(SCALEIO, getDisplayValue(STORAGE_PROVIDER_SCALEIO)),
+            new StringOption(DATA_DOMAIN, getDisplayValue(STORAGE_PROVIDER_DATA_DOMAIN)),
+            new StringOption(IBMXIV, getDisplayValue(STORAGE_PROVIDER_IBMXIV))
     };
 
     public static final StringOption[] SMIS_OPTIONS = StringOption.options(STORAGE_PROVIDER_TYPES, OPTION_PREFIX);
     public static final StringOption[] NON_SMIS_OPTIONS = StringOption.options(NON_SMIS_TYPES, OPTION_PREFIX);
-    public static final StringOption[] SSL_DEFAULT_OPTIONS = StringOption.options(new String[]{VNX_BLOCK, VMAX, VPLEX, VNX_FILE, VNXe, IBMXIV}, OPTION_PREFIX);
-    public static final StringOption[] NON_SSL_OPTIONS = StringOption.options(new String[]{SCALEIO, XTREMIO});
-    public static final StringOption[] MDM_DEFAULT_OPTIONS = StringOption.options(new String[]{SCALEIO});
-    public static final StringOption[] ELEMENT_MANAGER_OPTIONS= StringOption.options(new String[]{SCALEIO});
-    
+    public static final StringOption[] SSL_DEFAULT_OPTIONS = StringOption.options(new String[] { VNX_BLOCK, VMAX, VPLEX, VNX_FILE, VNXe,
+            IBMXIV }, OPTION_PREFIX);
+    public static final StringOption[] NON_SSL_OPTIONS = StringOption.options(new String[] { SCALEIO, XTREMIO });
+    public static final StringOption[] MDM_DEFAULT_OPTIONS = StringOption.options(new String[] { SCALEIO });
+    public static final StringOption[] ELEMENT_MANAGER_OPTIONS = StringOption.options(new String[] { SCALEIO });
+
     public static boolean isNone(String type) {
         return NONE.equals(type);
     }
@@ -85,7 +86,7 @@ public class StorageSystemTypes {
 
     public static boolean isNetapp(String type) {
         return NETAPP.equals(type);
-    } 
+    }
 
     public static boolean isNetappc(String type) {
         return NETAPPC.equals(type);
@@ -102,7 +103,7 @@ public class StorageSystemTypes {
     public static boolean isXtremIO(String type) {
         return XTREMIO.equals(type);
     }
-    
+
     public static boolean isVNXe(String type) {
         return VNXe.equals(type);
     }

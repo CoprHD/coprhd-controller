@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.dbcli.adapter;
 
@@ -26,17 +16,17 @@ import com.emc.storageos.db.client.model.Operation;
 
 @XmlRootElement
 public class OpStatusMapAdapter extends
-           XmlAdapter<OpStatusMapAdapter.AdaptedMap, OpStatusMap> {
+        XmlAdapter<OpStatusMapAdapter.AdaptedMap, OpStatusMap> {
 
     public static class AdaptedMap {
         public List<Entry> entry = new ArrayList<Entry>();
     }
-    
+
     public static class Entry {
         public String key;
         public Operation value;
     }
-    
+
     @Override
     public OpStatusMap unmarshal(AdaptedMap adaptedMap)
             throws Exception {
@@ -46,7 +36,7 @@ public class OpStatusMapAdapter extends
         }
         return map;
     }
-    
+
     @Override
     public AdaptedMap marshal(OpStatusMap map) throws Exception {
         AdaptedMap adaptedMap = new AdaptedMap();

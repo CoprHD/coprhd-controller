@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.utils.attrmatchers;
@@ -26,18 +26,19 @@ import com.google.common.base.Joiner;
 
 public class DriveTypeMatcher extends ConditionalAttributeMatcher {
     private static final Logger _logger = LoggerFactory
-    .getLogger(DriveTypeMatcher.class);
+            .getLogger(DriveTypeMatcher.class);
+
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
-        //same code is being used for 2 different code paths, placement & cos matchers, and both behaviors are different.
+        // same code is being used for 2 different code paths, placement & cos matchers, and both behaviors are different.
         // hence this flag is used
         if (isAutoTieringPolicyOn(attributeMap) && !attributeMap.containsKey(AttributeMatcher.PLACEMENT_MATCHERS)) {
             _logger.info("Skipping DriveType matcher, as VMAX FAST Policy is chosen");
             return false;
         }
-        
-        return (null != attributeMap && 
-                attributeMap.containsKey(Attributes.drive_type.toString()) 
+
+        return (null != attributeMap &&
+                attributeMap.containsKey(Attributes.drive_type.toString())
                 && !SupportedDriveTypes.NONE.toString().equals(attributeMap.get(Attributes.drive_type.toString()).toString()));
     }
 
@@ -49,8 +50,9 @@ public class DriveTypeMatcher extends ConditionalAttributeMatcher {
         _logger.info("Drive Type Matcher Started : {}, {}", desiredInitialDriveType,
                 Joiner.on("\t").join(getNativeGuidFromPools(allPools)));
         for (StoragePool pool : allPools) {
-            if (null == pool || null == pool.getSupportedDriveTypes())
+            if (null == pool || null == pool.getSupportedDriveTypes()) {
                 continue;
+            }
             StorageSystem system = _objectCache.getDbClient().queryObject(StorageSystem.class, pool.getStorageDevice());
             // If pool belongs to a HDS system and contains External storage, then add the pools to matched list.
             if (Type.isHDSStorageSystem(StorageSystem.Type.valueOf(system.getSystemType()))) {
@@ -69,16 +71,16 @@ public class DriveTypeMatcher extends ConditionalAttributeMatcher {
                 Joiner.on("\t").join(getNativeGuidFromPools(filteredPools)));
         return filteredPools;
     }
-    
+
     @Override
     public Map<String, Set<String>> getAvailableAttribute(List<StoragePool> neighborhoodPools,
-                                        URI vArrayId) {
+            URI vArrayId) {
         try {
             Map<String, Set<String>> availableAttrMap = new HashMap<String, Set<String>>(1);
             Set<String> availableAttrValues = new HashSet<String>();
             for (StoragePool pool : neighborhoodPools) {
-                StringSet driveTypes = pool.getSupportedDriveTypes(); 
-                if(null != driveTypes && !driveTypes.isEmpty()) {
+                StringSet driveTypes = pool.getSupportedDriveTypes();
+                if (null != driveTypes && !driveTypes.isEmpty()) {
                     availableAttrValues.addAll(driveTypes);
                 }
             }

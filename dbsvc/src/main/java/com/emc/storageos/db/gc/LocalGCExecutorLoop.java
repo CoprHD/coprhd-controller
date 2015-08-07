@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.gc;
 
@@ -36,19 +26,20 @@ class LocalGCExecutorLoop extends GarbageCollectionExecutorLoop {
     }
 
     /**
-     *
+     * 
      * @param clazz the GC will run on
      * @param <T>
      * @return true if we can run GC on this class
      **/
     @Override
     protected <T extends DataObject> boolean canRunGCOnClass(Class<T> clazz) {
-        //local GC on run on local DB
+        // local GC on run on local DB
         return KeyspaceUtil.isLocal(clazz);
     }
 
     /**
      * Generate GC task for class
+     * 
      * @param clazz the GC will run on
      * @return a GC task
      **/

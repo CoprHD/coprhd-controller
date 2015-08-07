@@ -1,0 +1,181 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import time
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# storageprovider cli functions
+#----------------------------------------------------------------------
+
+def storageprovider_create(args):
+    bourne.connect(args.ip)
+    s = bourne.storageprovider_create(args.label, args.ipaddress, args.port, args.username, args.password, args.usessl, args.interface, args.secondary_username, args.secondary_password, args.element_manager_url, args.sio_cli)
+    if (s['state'] == 'ready'):
+        print 'StorageProvider created with id ' + s['resource']['id']
+    else:
+        print 'StorageProvider create failed.'
+
+def storageprovider_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.storageprovider_query(args.label)
+    res = bourne.storageprovider_delete(uri)
+    print res
+
+def storageprovider_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.storageprovider_query(args.label)
+    storageprovider = bourne.storageprovider_show(uri)
+    bourne.pretty_print_json(storageprovider)
+
+def storageprovider_query(args):
+    bourne.connect(args.ip)
+    uri = bourne.storageprovider_query(args.label)
+    print uri
+
+def storageprovider_list(args):
+    bourne.connect(args.ip)
+    providers = bourne.storageprovider_list()
+    storagep_display_hdr()
+    for provider in providers['storage_provider']:
+        storageprovider = bourne.storageprovider_show(provider['id'])
+        storagep_display(storageprovider)
+
+#
+# display storage provider in list form
+#
+storagep_display_fmt = '{0:16s} {1:16s} {2:10s} {3:8s} {4:s}'
+
+def storagep_display_hdr():
+    print storagep_display_fmt.format('name', 'ip', 'port', 'status', 'reg mode', 'id')
+
+def storagep_display(storagep):
+    print storagep_display_fmt.format(storagep['name'], storagep['ip_address'], str(storagep['port_number']), storagep['connection_status'], ' ', storagep['id'])
+
+def storageprovider_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.storageprovider_query(args.name)
+    print 'Tagging storageprovider ', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+def storageprovider_search(args):
+    bourne.connect(args.ip)
+    if (args.scope != None):
+        # query tenant id from tenant name
+        args.scope = bourne.tenant_query(args.scope)
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching storageprovider with ' + args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# storageprovider <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne Storage provider cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | query | list)')
+parser.add_argument('--ip', metavar = 'ipaddr',	help = 'IP address of Bourne', default=bourne_ip)
+
+# storage provider create label
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('label',				 help = 'Label for the Storage provider')
+create.add_argument('ipaddress',			 help = 'IP Address')
+create.add_argument('port',					 help = 'Port')
+create.add_argument('username',			     help = 'Username')
+create.add_argument('password',				 help = 'Password')
+create.add_argument('interface',			 help = 'Interface(API)')
+create.add_argument('--usessl',              help = 'UseSSL true or false')
+create.add_argument('--sio_cli',             help = 'Specify a custom way to invoke the SIO CLI')
+create.add_argument('--element_manager_url', help = 'Specify an element manager URL')
+create.add_argument('--secondary_username',  help = 'Specify a secondary username to be used')
+create.add_argument('--secondary_password',  help = 'Specify a secondary password to be used')
+
+# storage provider delete name
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('label', help = 'storage provider name');
+
+# storage provider show label
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('label', help = 'storage provider name');
+
+# storage provider query name
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('label', help = 'storage provider name')
+
+# storage provider list 
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# tag 
+resource_type="storage_provider"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching', default=None)
+search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag')
+search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "create"):
+        args = create.parse_args()
+        storageprovider_create(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        storageprovider_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        storageprovider_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        storageprovider_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        storageprovider_list(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        storageprovider_tag(args)
+    elif(cmd == "search"):
+        args = search.parse_args()
+        storageprovider_search(args)
+    else:
+        parser.print_help()
+except:
+    raise
+
+

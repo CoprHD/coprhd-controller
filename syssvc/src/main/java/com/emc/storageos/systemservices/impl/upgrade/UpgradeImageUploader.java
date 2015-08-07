@@ -1,24 +1,12 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.systemservices.impl.upgrade;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 
 import java.io.*;
 import java.text.MessageFormat;
@@ -30,7 +18,9 @@ public class UpgradeImageUploader {
     private static UpgradeImageUploader _instance = null;
     private static UpgradeManager _upgradeManager = null;
     private String _version;
-    private UpgradeImageUploader() {}
+
+    private UpgradeImageUploader() {
+    }
 
     public static UpgradeImageUploader getInstance(UpgradeManager manager) {
         synchronized (UpgradeImageUploader.class) {
@@ -123,23 +113,26 @@ public class UpgradeImageUploader {
         }
     }
 
-
     private static File getTmpFile(File file) {
         return new File(file + ".uploading");
     }
 
     private static void tryClose(final InputStream in) {
         try {
-            if (in != null) in.close();
-        } catch(Exception e) {
+            if (in != null) {
+                in.close();
+            }
+        } catch (Exception e) {
             ;
         }
     }
 
     private static void tryClose(final OutputStream out) {
         try {
-            if (out != null) out.close();
-        } catch(Exception e) {
+            if (out != null) {
+                out.close();
+            }
+        } catch (Exception e) {
             ;
         }
     }

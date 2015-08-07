@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.systemservices.impl.util;
@@ -83,8 +73,8 @@ public abstract class AbstractManager implements Runnable {
     abstract protected URI getWakeUpUrl();
 
     public void wakeupOtherNodes() {
-        final List<String> svcIds  = coordinator.getAllNodes();
-        final String       mySvcId = coordinator.getMySvcId();
+        final List<String> svcIds = coordinator.getAllNodes();
+        final String mySvcId = coordinator.getMySvcId();
 
         for (String svcId : svcIds) {
             if (!svcId.equals(mySvcId)) {
@@ -118,6 +108,7 @@ public abstract class AbstractManager implements Runnable {
     /**
      * Check if node_count/2 + 1 dbsvc instances are active on other nodes in the cluster
      * so that if the current node is powered off, a quorum will still be maintained.
+     * 
      * @return true if a quorum can be maintained, false otherwise
      */
     protected boolean isQuorumMaintained() {
@@ -136,14 +127,15 @@ public abstract class AbstractManager implements Runnable {
         String mySvcId = coordinator.getMySvcId();
         String localDbSvcId = "db" + mySvcId.substring(mySvcId.lastIndexOf("-"));
         for (Service activeDbsvc : allActiveDbsvcs) {
-            if (! localDbSvcId.equals(activeDbsvc.getId())) // exclude the local dbsvc instance
+            if (!localDbSvcId.equals(activeDbsvc.getId())) {
                 otherActiveDbsvcIds.add(activeDbsvc.getId());
+            }
         }
         log.info("List of active dbsvc instances on other nodes: {}, expect {} instances to maintain quorum",
                 otherActiveDbsvcIds, quorumNodeCnt);
 
         boolean isMaintained = otherActiveDbsvcIds.size() >= quorumNodeCnt;
-        if (! isMaintained) {
+        if (!isMaintained) {
             log.info("quorum would lost if reboot the current node. Retrying...");
         }
         return isMaintained;
@@ -152,6 +144,7 @@ public abstract class AbstractManager implements Runnable {
     /**
      * Check if all dbsvc instances are active in the cluster
      * currently it's only being used before adjusting db token number but it might as well be used elsewhere.
+     * 
      * @return true if all dbsvc are active, false otherwise
      */
     protected boolean areAllDbsvcActive() {
@@ -167,7 +160,7 @@ public abstract class AbstractManager implements Runnable {
                 activeDbsvcIds, nodeCount);
 
         boolean allActive = activeDbsvcs.size() == nodeCount;
-        if (! allActive) {
+        if (!allActive) {
             log.info("not all dbsvc instances are active. Retrying...");
         }
         return allActive;
@@ -187,20 +180,21 @@ public abstract class AbstractManager implements Runnable {
     }
 
     protected void longSleep() {
-        if(shortSleep)
+        if (shortSleep) {
             retrySleep();
-        else
+        } else {
             sleep(loopInterval);
+        }
     }
 
     protected void sleep(final long ms) {
         waiter.sleep(ms);
     }
-        
+
     public void wakeup() {
         waiter.wakeup();
     }
-                     
+
     public void stop() {
         doRun = false;
     }

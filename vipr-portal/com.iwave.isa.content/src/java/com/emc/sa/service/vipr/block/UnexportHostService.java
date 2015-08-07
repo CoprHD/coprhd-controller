@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block;
@@ -33,7 +33,6 @@ public class UnexportHostService extends ViPRService {
     protected Host host;
     protected List<? extends BlockObjectRestRep> volumes;
     protected List<ExportGroupRestRep> exports;
-
 
     @Override
     public void precheck() {
@@ -70,14 +69,14 @@ public class UnexportHostService extends ViPRService {
                 }
             }
 
-            if (exportedVolumeIds.size() > 0) {
+            if (!exportedVolumeIds.isEmpty()) {
                 logInfo("unexport.host.service.volume.remove", exportedVolumeIds.size(), exportName);
                 BlockStorageUtils.removeBlockResourcesFromExport(exportedVolumeIds, exportId);
             }
             else {
                 logDebug("unexport.host.service.volume.skip", exportName);
             }
-            
+
             String hostOrClusterId = BlockStorageUtils.getHostOrClusterId(hostId);
             if (hostOrClusterId != null) {
                 ExecutionUtils.addAffectedResource(hostOrClusterId.toString());

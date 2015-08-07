@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -60,8 +60,7 @@ public class VirtualPoolUtils {
     public static BlockVirtualPoolRestRep getBlockVirtualPool(URI id) {
         try {
             return getViprClient().blockVpools().get(id);
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
@@ -76,8 +75,7 @@ public class VirtualPoolUtils {
     public static FileVirtualPoolRestRep getFileVirtualPool(URI id) {
         try {
             return getViprClient().fileVpools().get(id);
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
@@ -141,8 +139,7 @@ public class VirtualPoolUtils {
             if (virtualPool != null) {
                 return virtualPool;
             }
-        }
-        catch (ServiceErrorException e) {
+        } catch (ServiceErrorException e) {
             if (e.getServiceError().getCode() != 1008) {
                 throw e;
             }
@@ -255,12 +252,12 @@ public class VirtualPoolUtils {
     private static VirtualPoolPoolUpdateParam createPoolAssignments(Collection<String> addPools,
             Collection<String> removePools) {
         StoragePoolAssignmentChanges changes = new StoragePoolAssignmentChanges();
-        if (addPools != null && addPools.size() > 0) {
+        if (addPools != null && !addPools.isEmpty()) {
             StoragePoolAssignments add = new StoragePoolAssignments();
             add.getStoragePools().addAll(addPools);
             changes.setAdd(add);
         }
-        if (removePools != null && removePools.size() > 0) {
+        if (removePools != null && !removePools.isEmpty()) {
             StoragePoolAssignments remove = new StoragePoolAssignments();
             remove.getStoragePools().addAll(removePools);
             changes.setRemove(remove);

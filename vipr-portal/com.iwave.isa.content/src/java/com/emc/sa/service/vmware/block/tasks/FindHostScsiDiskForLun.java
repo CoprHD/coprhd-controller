@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vmware.block.tasks;
@@ -118,8 +118,7 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
     private void pause(long delay) {
         try {
             Thread.sleep(delay);
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             warn(e);
             Thread.currentThread().interrupt();
         }
@@ -142,8 +141,7 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
                 return ExecutionUtils.getMessage("FindHostScsiDiskForLun.unknownState");
             }
             return StringUtils.join(state, ", ");
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             return ExecutionUtils.getMessage("FindHostScsiDiskForLun.unknownState");
         }
     }

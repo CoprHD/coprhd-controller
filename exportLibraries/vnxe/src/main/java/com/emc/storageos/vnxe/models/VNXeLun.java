@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.vnxe.models;
@@ -19,8 +9,8 @@ import java.util.List;
 
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
-@JsonIgnoreProperties(ignoreUnknown=true)
-public class VNXeLun extends VNXeBase{
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class VNXeLun extends VNXeBase {
     private Integer lunNumber;
     private List<Integer> operationalStatus;
     private Health health;
@@ -53,7 +43,7 @@ public class VNXeLun extends VNXeBase{
     private Long snapsSizeAllocated;
     private List<BlockHostAccess> hostAccess;
     private Integer snapCount;
-    
+
     public Integer getLunNumber() {
         return lunNumber;
     }
@@ -315,14 +305,14 @@ public class VNXeLun extends VNXeBase{
         AUTOTIER,
         HIGHEST,
         LOWEST,
-        NO_DATA_MOVEMENT; 
+        NO_DATA_MOVEMENT;
     }
-    
+
     public static enum LUNTypeEnum {
         GenericStorage(1),
         Standalone(2),
         VmWareISCSI(3);
-        
+
         private int value;
 
         private LUNTypeEnum(int value) {

@@ -1,14 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2013-2014 EMC Corporation All Rights Reserved
- * 
- * This software contains the intellectual property of EMC Corporation or is licensed to
- * EMC Corporation from third parties. Use of this software and the intellectual property
- * contained therein is expressly limited to the terms and conditions of the License
- * Agreement under which it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.keystore;
 
@@ -58,18 +50,21 @@ public interface DistributedKeyStore {
 
     /**
      * get all root certificates who are from well known CA preinstalled with ViPR from keystore
+     * 
      * @return the map of ca certificates
      */
     public Map<String, TrustedCertificateEntry> getCACertificates();
 
     /**
      * set all root certificates to key store.
+     * 
      * @param trustedCerts
      */
     public void setCACertificates(Map<String, TrustedCertificateEntry> trustedCerts);
 
     /**
      * remove a CA certificate
+     * 
      * @param alias
      */
     public void removeCACertificate(String alias);

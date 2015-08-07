@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.scaleio.api;
@@ -23,7 +13,7 @@ public class ScaleIOUnMapVolumeToSDCCommand extends AbstractScaleIOQueryCommand<
 
     private static final String UNMAPPED_SUCCESSFULLY = "UnmappedSuccessfully";
     // Successfully un-mapped volume with ID e9e5163500000000 from SDC with ID 5509377100000000.
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern("Successfully un-mapped volume with ID \\w+ from SDC with ID \\w+\\.", UNMAPPED_SUCCESSFULLY)
     };
 
@@ -44,7 +34,7 @@ public class ScaleIOUnMapVolumeToSDCCommand extends AbstractScaleIOQueryCommand<
 
     @Override
     ParsePattern[] getOutputPatternSpecification() {
-        return PARSING_CONFIG;
+        return PARSING_CONFIG.clone(); // No need to check not null condition here
     }
 
     @Override

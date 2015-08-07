@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.resource.util;
 
@@ -35,7 +25,7 @@ public class NodeInfo {
 
     /**
      * Constructor.
-     *
+     * 
      * @param nodeId The id of the node.
      * @throws Exception If the passed connection info is not valid.
      */
@@ -50,7 +40,7 @@ public class NodeInfo {
 
     /**
      * Getter for the cluster node id.
-     *
+     * 
      * @return The cluster node id.
      */
     public String getId() {
@@ -59,7 +49,7 @@ public class NodeInfo {
 
     /**
      * Getter for the cluster node IP address.
-     *
+     * 
      * @return The cluster node IP address.
      */
     public String getIpAddress() {
@@ -68,7 +58,7 @@ public class NodeInfo {
 
     /**
      * Getter for the cluster node port.
-     *
+     * 
      * @return The cluster node port.
      */
     public int getPort() {

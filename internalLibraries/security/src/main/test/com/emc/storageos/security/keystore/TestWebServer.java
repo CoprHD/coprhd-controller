@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.keystore;
 
@@ -27,6 +17,7 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.services.util.EnvConfig;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.session.AbstractSessionManager;
 import org.eclipse.jetty.server.ssl.SslSelectChannelConnector;
@@ -45,13 +36,14 @@ public class TestWebServer {
     private SslSelectChannelConnector _securedConnector = null;
     public static final int _securePort = 9930;
     public final KeyCertificateEntry _keyAndCert;
-    public static final String _keystorePassword = "changeit";
+    public static final String _keystorePassword = EnvConfig.get("sanity", "keystore.password"); // NOSONAR
+                                                                                                 // ("Suppressing: removing this hard-coded password since it's just the name of attribute")
     private Server _server;
     private final Application _app = new TestApplication();
     private final String[] _ciphers = { "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
             "TLS_DHE_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_128_CBC_SHA",
             "TLS_DHE_DSS_WITH_AES_256_CBC_SHA", "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
-    "TLS_RSA_WITH_AES_256_CBC_SHA" };
+            "TLS_RSA_WITH_AES_256_CBC_SHA" };
 
     public TestWebServer(KeyCertificateEntry entry) {
         _keyAndCert = entry;
@@ -110,8 +102,7 @@ public class TestWebServer {
         _server.setHandler(rootHandler);
 
         ((AbstractSessionManager) rootHandler.getSessionHandler().getSessionManager())
-        .setUsingCookies(false);
-
+                .setUsingCookies(false);
 
         // Add the REST resources
         if (_app != null) {
@@ -133,7 +124,6 @@ public class TestWebServer {
     public synchronized void stop() throws Exception {
         _server.stop();
     }
-
 
     public class TestApplication extends Application {
         private final Set<Object> _resource;

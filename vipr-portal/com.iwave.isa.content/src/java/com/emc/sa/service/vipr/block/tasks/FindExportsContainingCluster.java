@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block.tasks;
@@ -20,7 +20,7 @@ public class FindExportsContainingCluster extends ViPRExecutionTask<List<ExportG
     }
 
     public FindExportsContainingCluster(URI cluster, URI project, URI varrayId) {
-        this.cluster =  cluster;
+        this.cluster = cluster;
         this.project = project;
         this.varray = varrayId;
         provideDetailArgs(cluster, project, varrayId);

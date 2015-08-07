@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.project;
@@ -15,16 +15,18 @@ import java.util.List;
 public class ProjectList {
     private List<NamedRelatedResourceRep> projects;
 
-    public ProjectList() {}
-    
+    public ProjectList() {
+    }
+
     public ProjectList(List<NamedRelatedResourceRep> projects) {
         this.projects = projects;
     }
 
     /**
      * List of projects
+     * 
      * @valid none
-     * @return
+     * @return List of projects
      */
     @XmlElement(name = "project")
     public List<NamedRelatedResourceRep> getProjects() {

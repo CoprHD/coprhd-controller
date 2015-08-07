@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package jobs.vipr;
@@ -14,7 +14,7 @@ import com.emc.vipr.client.ViPRCoreClient;
  * Base class for asynchronous VIPR calls.
  * 
  * @param <T>
- *        the result type of the call.
+ *            the result type of the call.
  */
 public abstract class ViPRCall<T> implements Callable<T> {
     protected final ViPRCoreClient client;
@@ -23,7 +23,7 @@ public abstract class ViPRCall<T> implements Callable<T> {
      * Creates the call with the provided ViPR client.
      * 
      * @param client
-     *        the ViPR client.
+     *            the ViPR client.
      */
     public ViPRCall(ViPRCoreClient client) {
         if (client == null) {

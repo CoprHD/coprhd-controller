@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -16,66 +16,66 @@ import com.emc.storageos.model.search.Tags;
 
 @XmlRootElement
 public class OrderInfo extends ModelInfo {
-    
+
     /**
      * Number of this order
      */
     private String orderNumber;
-    
+
     /**
      * User who submitted this order
      */
-    private String submittedBy;     
-    
+    private String submittedBy;
+
     /**
      * Service that this order will execute
      */
-    private Reference service;             
-    
+    private Reference service;
+
     /**
      * Execution window to run this order in
      */
-    private String executionWindow;         
-    
+    private String executionWindow;
+
     /**
      * Summary for this order
      */
-    private String summary;  
-    
+    private String summary;
+
     /**
      * System generated message relating to this order
      */
-    private String message;                    
-    
+    private String message;
+
     /**
      * Date the order was placed
      */
-    private Date createdDate;   
-    
+    private Date createdDate;
+
     /**
      * Date the order completed
      */
     private Date dateCompleted;
-    
+
     /**
      * Order Status. One of: PENDING, EXECUTING, PARTIAL_SUCCESS, SUCCESS, ERROR, SCHEDULED, CANCELLED, APPROVAL, APPROVED, REJECTED
      */
-    private String status;                     
-    
+    private String status;
+
     /**
      * Reference to the execution information
      */
-    private Reference execution;                
-    
+    private Reference execution;
+
     /**
      * Parameters to an order
      */
-    private List<Parameter> parameters;         
-    
+    private List<Parameter> parameters;
+
     /**
      * Tags on the order object
      */
-    private Tags tags;                          
+    private Tags tags;
 
     public String getOrderNumber() {
         return orderNumber;
@@ -173,7 +173,7 @@ public class OrderInfo extends ModelInfo {
     public void setTags(Tags tags) {
         this.tags = tags;
     }
-    
+
     public Tags getTags() {
         return this.tags;
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.network;
@@ -13,17 +13,18 @@ import javax.xml.bind.annotation.XmlRootElement;
 /**
  * This is a list of the SAN zones returned from the NetworkSystem.
  */
-@XmlRootElement(name="san_zones")
+@XmlRootElement(name = "san_zones")
 public class SanZonesRestRep {
     private List<SanZoneRestRep> zones;
 
     /**
      * A list of San Zones. Each zone has a name and a list of zone members.
+     * 
      * @valid none
      */
-    @XmlElement(name="san_zone")
+    @XmlElement(name = "san_zone")
     public List<SanZoneRestRep> getZones() {
-        if (zones==null) {
+        if (zones == null) {
             zones = new ArrayList<SanZoneRestRep>();
         }
         return zones;
@@ -32,5 +33,5 @@ public class SanZonesRestRep {
     public void setZones(List<SanZoneRestRep> zones) {
         this.zones = zones;
     }
-    
+
 }

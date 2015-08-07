@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.healthmonitor;
 
@@ -30,8 +20,8 @@ public class FileReadUtilTest {
     private static final String TEST_EMPTY_FILE_PATH = TEST_FILE_DIR + "testempty.log";
     private static final String FILE_DATA = "Sample data in file";
     private static final String FILE_DATA1 = "Another line in the file";
-    private static File _testFile = null;
-    private static File _testEmptyFile = null;
+    private static volatile File _testFile = null;
+    private static volatile File _testEmptyFile = null;
 
     @BeforeClass
     public static void createTestFile() {
@@ -78,6 +68,7 @@ public class FileReadUtilTest {
             FileReadUtil.readLines(INVALID_FILE_PATH);
             Assert.fail();
         } catch (Exception e) {
+            Assert.assertTrue(true);
         }
     }
 
@@ -87,6 +78,7 @@ public class FileReadUtilTest {
             FileReadUtil.readLines(TEST_EMPTY_FILE_PATH);
             Assert.fail();
         } catch (Exception e) {
+            Assert.assertTrue(true);
         }
     }
 
@@ -107,6 +99,7 @@ public class FileReadUtilTest {
             FileReadUtil.readFirstLine(TEST_EMPTY_FILE_PATH);
             Assert.fail();
         } catch (Exception e) {
+            Assert.assertTrue(true);
         }
     }
 

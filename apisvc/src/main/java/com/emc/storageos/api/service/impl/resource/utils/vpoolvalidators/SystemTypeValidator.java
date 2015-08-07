@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators;
 
@@ -24,14 +14,14 @@ import com.emc.storageos.model.vpool.VirtualPoolUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
-public class SystemTypeValidator extends VirtualPoolValidator<VirtualPoolCommonParam,VirtualPoolUpdateParam> {
-   
+public class SystemTypeValidator extends VirtualPoolValidator<VirtualPoolCommonParam, VirtualPoolUpdateParam> {
 
     private boolean compareSystemTypes(
             StringSet systemTypes, StringSet availableSystemTypes) {
         for (String systemType : systemTypes) {
-            if (!availableSystemTypes.contains(systemType))
+            if (!availableSystemTypes.contains(systemType)) {
                 return false;
+            }
         }
         return true;
     }
@@ -44,30 +34,31 @@ public class SystemTypeValidator extends VirtualPoolValidator<VirtualPoolCommonP
     @Override
     protected void validateVirtualPoolUpdateAttributeValue(
             VirtualPool vPool, VirtualPoolUpdateParam updateParam, DbClient dbClient) {
-        if (null == SystemType.lookup(updateParam.getSystemType())){
-        	throw APIException.badRequests.requiredParameterMissingOrEmpty("System Type");
-        }	
-        
+        if (null == SystemType.lookup(updateParam.getSystemType())) {
+            throw APIException.badRequests.requiredParameterMissingOrEmpty("System Type");
+        }
+
         if (null != vPool.getAutoTierPolicyName()
                 && !NONE.equalsIgnoreCase(vPool.getAutoTierPolicyName())) {
             if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(updateParam.getSystemType())
                     && !VirtualPool.SystemType.vnxblock.toString().equalsIgnoreCase(
-                            updateParam.getSystemType()) 
-                    && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(updateParam.getSystemType())){
+                            updateParam.getSystemType())
+                    && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(updateParam.getSystemType())) {
                 throw APIException.badRequests.invalidParameterSystemTypeforAutoTiering();
             }
         }
-        
+
         if (isRaidLevelAvailable(vPool)) {
             if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(updateParam.getSystemType())
                     && !VirtualPool.SystemType.vnxblock.toString().equalsIgnoreCase(
-                            updateParam.getSystemType()) 
+                            updateParam.getSystemType())
                     && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(
-                            updateParam.getSystemType()))
+                            updateParam.getSystemType())) {
                 throw APIException.badRequests.virtualPoolSupportsVmaxVnxblockWithRaid();
+            }
         }
     }
-    
+
     private boolean isRaidLevelAvailable(VirtualPool virtualPool) {
         boolean status = false;
         if (virtualPool != null && virtualPool.getArrayInfo() != null) {
@@ -78,7 +69,6 @@ public class SystemTypeValidator extends VirtualPoolValidator<VirtualPoolCommonP
         }
         return status;
     }
-    
 
     @Override
     protected boolean isUpdateAttributeOn(VirtualPoolUpdateParam updateParam) {
@@ -87,15 +77,17 @@ public class SystemTypeValidator extends VirtualPoolValidator<VirtualPoolCommonP
 
     @Override
     protected void validateVirtualPoolCreateAttributeValue(VirtualPoolCommonParam createParam, DbClient dbClient) {
-        if (null == SystemType.lookup(createParam.getSystemType()))
-        	throw APIException.badRequests.requiredParameterMissingOrEmpty("System Type");
+        if (null == SystemType.lookup(createParam.getSystemType())) {
+            throw APIException.badRequests.requiredParameterMissingOrEmpty("System Type");
+        }
     }
 
     @Override
     protected boolean isCreateAttributeOn(VirtualPoolCommonParam createParam) {
         if (null != createParam.getSystemType()
-                && !createParam.getSystemType().equalsIgnoreCase(NONE))
+                && !createParam.getSystemType().equalsIgnoreCase(NONE)) {
             return true;
+        }
         return false;
     }
 }

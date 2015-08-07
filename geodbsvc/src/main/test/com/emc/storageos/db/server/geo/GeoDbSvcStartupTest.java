@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.server.geo;
@@ -52,9 +42,9 @@ import com.emc.storageos.db.common.DbConfigConstants;
  * Unit test for geodbsvc startup flow.
  */
 public class GeoDbSvcStartupTest {
-    
+
     private static String GEODBSVC_CONFIG = "geodbtestgeoalone-conf.xml";
-    
+
     private static final Logger log = LoggerFactory
             .getLogger(DbClientGeoTest.class);
     private static String HOST = "127.0.0.1"; // host name defined in
@@ -63,9 +53,9 @@ public class GeoDbSvcStartupTest {
     private static int RPC_PORT = 9260; // Thrift rpc port defined in
                                         // geodbtest-conf.yaml
 
-    static DbSvcRunner runner;
-    
-    static DbClientImpl dbClient;
+    static volatile DbSvcRunner runner;
+
+    static volatile DbClientImpl dbClient;
 
     @BeforeClass
     public static void setup() throws Exception {
@@ -137,7 +127,7 @@ public class GeoDbSvcStartupTest {
             transport.close();
         }
     }
-    
+
     @Test
     public void testRootTenantExists() throws Exception {
         URIQueryResultList tenants = new URIQueryResultList();
@@ -145,20 +135,22 @@ public class GeoDbSvcStartupTest {
         int retryCount = 0;
         do {
             getDbClient().queryByConstraint(
-                ContainmentConstraint.Factory.getTenantOrgSubTenantConstraint(URI.create(TenantOrg.NO_PARENT)),
-                tenants);
+                    ContainmentConstraint.Factory.getTenantOrgSubTenantConstraint(URI.create(TenantOrg.NO_PARENT)),
+                    tenants);
             isRootTenantExists = tenants.iterator().hasNext();
             if (!isRootTenantExists) {
                 try {
                     Thread.sleep(2000);
-                } catch (InterruptedException ex) {}
+                } catch (InterruptedException ex) {
+                    // Ignore this exception
+                }
 
             }
         } while (!isRootTenantExists && retryCount < 30);
 
         Assert.assertTrue(isRootTenantExists);
     }
-    
+
     protected static DbClient getDbClient() throws URISyntaxException, IOException {
         if (dbClient == null) {
             dbClient = new DbClientImpl();

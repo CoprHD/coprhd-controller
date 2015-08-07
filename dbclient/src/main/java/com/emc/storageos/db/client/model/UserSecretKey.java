@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
@@ -30,7 +20,7 @@ public class UserSecretKey extends DataObject {
     private String _secondKey;
     private String _secondKeyTime;
     private Long _secondKeyExpiryTime;
-    private URI    _tenant;
+    private URI _tenant;
     private String _namespace;
 
     // Since _dbClient does not guarantee support for null values in the String,
@@ -55,7 +45,7 @@ public class UserSecretKey extends DataObject {
     }
 
     @Name("firstKeyTime")
-     public String getFirstKeyTime() {
+    public String getFirstKeyTime() {
         return _firstKeyTime;
     }
 
@@ -145,5 +135,5 @@ public class UserSecretKey extends DataObject {
         sb.append(_secondKeyTime);
         return sb.toString();
     }
- 
+
 }

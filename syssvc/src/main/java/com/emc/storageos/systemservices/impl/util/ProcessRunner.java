@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.util;
 
@@ -58,9 +48,10 @@ public class ProcessRunner implements AutoCloseable {
 
     /**
      * Create an instance of ProcessRunner.
+     * 
      * @param proc the process started.
      * @param hasInput Whether you have anything to feed into STDIN of the child process.
-     *                 If you pass true, it's your responsibility to call .getStdIn().close()
+     *            If you pass true, it's your responsibility to call .getStdIn().close()
      * @throws IOException
      */
     public ProcessRunner(Process proc, boolean hasInput) throws IOException {
@@ -88,9 +79,10 @@ public class ProcessRunner implements AutoCloseable {
     /**
      * Capture all outputs from given stream into given StringBuilder.
      * This method itself is not thread-safe.
+     * 
      * @param input The input stream
      * @param capture A String builder to contain all text outputs from given stream.
-     *                If null is passed, a new StringBuilder will be created and returned.
+     *            If null is passed, a new StringBuilder will be created and returned.
      * @return The StringBuilder passed to capture, or new StringBuilder if capture is null.
      */
     public void captureAllTextInBackground(final InputStream input, final StringBuilder capture) {
@@ -105,7 +97,7 @@ public class ProcessRunner implements AutoCloseable {
                     capture.append("\n");
 
                     StringWriter sw = new StringWriter();
-                    e.printStackTrace(new PrintWriter(sw));
+                    e.printStackTrace(new PrintWriter(sw)); // NOSONAR ("squid:S1148 Suppressing sonar violation of no printStackTrace")
                     capture.append(sw.toString());
                 }
             }
@@ -121,7 +113,7 @@ public class ProcessRunner implements AutoCloseable {
     }
 
     public Iterable<String> enumLines(final InputStream stream) {
-        return new Iterable<String>(){
+        return new Iterable<String>() {
             @Override
             public Iterator<String> iterator() {
                 return new LineIterator(stream);
@@ -180,7 +172,7 @@ public class ProcessRunner implements AutoCloseable {
 
     /**
      * Close the runner and free up resources (background threads and streams).
-     *
+     * 
      */
     @Override
     public void close() {
@@ -221,6 +213,7 @@ public class ProcessRunner implements AutoCloseable {
      * all data to STDOUT or consumed all input from STDIN.
      * If you have passed true to constructor's hasInput parameter, be sure to call .getStdIn().close(), or
      * this method usually won't return as child process is waiting for more input.
+     * 
      * @return The exit code of the child process.
      * @throws IOException
      * @throws InterruptedException

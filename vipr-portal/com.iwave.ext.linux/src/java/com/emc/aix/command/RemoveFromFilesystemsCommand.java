@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.aix.command;
@@ -18,7 +18,7 @@ public class RemoveFromFilesystemsCommand extends AixCommand {
     }
 
     public void setMountPoint(String mp) {
-    	String mountPoint = mp;
+        String mountPoint = mp;
         // escape special characters
         mountPoint = mountPoint.replaceAll("([^\\w])", "\\\\$1");
         setVariableValue(MOUNT_POINT, mountPoint);

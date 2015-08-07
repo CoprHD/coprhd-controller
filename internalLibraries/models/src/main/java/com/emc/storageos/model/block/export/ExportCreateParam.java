@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block.export;
@@ -35,8 +35,9 @@ public class ExportCreateParam {
     private List<URI> hosts;
     private List<URI> clusters;
 
-    public ExportCreateParam() {}
-    
+    public ExportCreateParam() {
+    }
+
     public ExportCreateParam(URI project, URI varray, String name, String type,
             List<VolumeParam> volumes, List<URI> initiators, List<URI> hosts,
             List<URI> clusters) {
@@ -89,7 +90,7 @@ public class ExportCreateParam {
      * List of initiators to which the shared storage is made 
      * visible.
      * @valid none
-     */ 
+     */
     @XmlElement(name = "initiator")
     public List<URI> getInitiators() {
         if (initiators == null) {
@@ -117,7 +118,8 @@ public class ExportCreateParam {
 
     /**
      * The ViPR project to which this export will belong.
-     * @valid example: a valid URI of a ViPR project  
+     * 
+     * @valid example: a valid URI of a ViPR project
      */
     @XmlElement(required = true)
     public URI getProject() {
@@ -129,11 +131,12 @@ public class ExportCreateParam {
     }
 
     /**
-     * The type of export group which, in turn, shall dictate 
+     * The type of export group which, in turn, shall dictate
      * how masking views or storage groups will be created.
+     * 
      * @valid none
      */
-//  @EnumType(ExportGroupType.class)
+    // @EnumType(ExportGroupType.class)
     @XmlElement(required = true)
     public String getType() {
         return type;
@@ -145,6 +148,7 @@ public class ExportCreateParam {
 
     /**
      * The virtual array where this export is to be created.
+     * 
      * @valid example: a valid URI of a varray
      */
     @XmlElement(name = "varray", required = true)

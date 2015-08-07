@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.monitoring.cim.indicationProcessor;
@@ -10,7 +10,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CIMEventProcessor extends BaseProcessor{
+public class CIMEventProcessor extends BaseProcessor {
 
     /**
      * Logger to log the debug statements

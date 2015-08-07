@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.compute.tasks;
@@ -19,7 +19,7 @@ public class CreateCluster extends ViPRExecutionTask<ClusterRestRep> {
 
     @Override
     public ClusterRestRep executeTask() throws Exception {
-    	ClusterCreateParam clusterCreateParam = new ClusterCreateParam(clusterName);
-    	return getClient().clusters().create(getOrderTenant(), clusterCreateParam);
+        ClusterCreateParam clusterCreateParam = new ClusterCreateParam(clusterName);
+        return getClient().clusters().create(getOrderTenant(), clusterCreateParam);
     }
 }

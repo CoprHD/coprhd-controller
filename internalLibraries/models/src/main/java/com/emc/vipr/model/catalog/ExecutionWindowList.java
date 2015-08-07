@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -14,17 +14,19 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 
 @XmlRootElement(name = "execution_windows")
 public class ExecutionWindowList {
-    
+
     private List<NamedRelatedResourceRep> executionWindows;
-    
-    public ExecutionWindowList() {}
-    
+
+    public ExecutionWindowList() {
+    }
+
     public ExecutionWindowList(List<NamedRelatedResourceRep> executionWindows) {
         this.executionWindows = executionWindows;
     }
 
     /**
      * List of execution windows
+     * 
      * @valid none
      */
     @XmlElement(name = "execution_windows")
@@ -37,5 +39,5 @@ public class ExecutionWindowList {
 
     public void setExecutionWindows(List<NamedRelatedResourceRep> executionWindows) {
         this.executionWindows = executionWindows;
-    }    
+    }
 }

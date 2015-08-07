@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
@@ -58,46 +48,46 @@ public class VolumeVpoolAutoTieringPolicyChangeTaskCompleter extends
     protected void complete(DbClient dbClient, Operation.Status status,
             ServiceCoded serviceCoded) {
         switch (status) {
-        case error:
-            _log.error(
-                    "An error occurred during virtual pool change "
-                            + "- restore the old auto tiering policy to the volume(s): {}",
-                            serviceCoded.getMessage());
-            for (URI id : getIds()) {
-                Volume volume = dbClient.queryObject(Volume.class, id);
-                _log.info("rolling back auto tiering policy on volume {}({})",
-                        id, volume.getLabel());
-                URI policyURI = oldVolToPolicyMap.get(id);
-                if (policyURI == null) {
-                    policyURI = NullColumnValueGetter.getNullURI();
-                }
-                volume.setAutoTieringPolicyUri(policyURI);
-                _log.info("set volume's auto tiering policy back to {}",
-                        policyURI);
-                dbClient.persistObject(volume);
-            }
-            break;
-        case ready:
-            // The new auto tiering policy has already been stored in the volume
-            // in BlockDeviceExportController.
-
-            //record event.
-            OperationTypeEnum opType = OperationTypeEnum.CHANGE_VOLUME_AUTO_TIERING_POLICY;
-            try {
-                boolean opStatus = (Operation.Status.ready == status)? true: false;
-                String evType = opType.getEvType(opStatus);
-                String evDesc = opType.getDescription();
+            case error:
+                _log.error(
+                        "An error occurred during virtual pool change "
+                                + "- restore the old auto tiering policy to the volume(s): {}",
+                        serviceCoded.getMessage());
                 for (URI id : getIds()) {
-                    recordBourneVolumeEvent(dbClient, id, evType, status, evDesc);
+                    Volume volume = dbClient.queryObject(Volume.class, id);
+                    _log.info("rolling back auto tiering policy on volume {}({})",
+                            id, volume.getLabel());
+                    URI policyURI = oldVolToPolicyMap.get(id);
+                    if (policyURI == null) {
+                        policyURI = NullColumnValueGetter.getNullURI();
+                    }
+                    volume.setAutoTieringPolicyUri(policyURI);
+                    _log.info("set volume's auto tiering policy back to {}",
+                            policyURI);
+                    dbClient.persistObject(volume);
                 }
-            } catch (Exception ex) {
-                _logger.error(
-                        "Failed to record block volume operation {}, err: {}",
-                        opType.toString(), ex);
-            }
-            break;
-        default:
-            break;
+                break;
+            case ready:
+                // The new auto tiering policy has already been stored in the volume
+                // in BlockDeviceExportController.
+
+                // record event.
+                OperationTypeEnum opType = OperationTypeEnum.CHANGE_VOLUME_AUTO_TIERING_POLICY;
+                try {
+                    boolean opStatus = (Operation.Status.ready == status) ? true : false;
+                    String evType = opType.getEvType(opStatus);
+                    String evDesc = opType.getDescription();
+                    for (URI id : getIds()) {
+                        recordBourneVolumeEvent(dbClient, id, evType, status, evDesc);
+                    }
+                } catch (Exception ex) {
+                    _logger.error(
+                            "Failed to record block volume operation {}, err: {}",
+                            opType.toString(), ex);
+                }
+                break;
+            default:
+                break;
         }
         super.complete(dbClient, status, serviceCoded);
     }

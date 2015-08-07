@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.util;
@@ -10,7 +10,6 @@ import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.server.impl.DbServiceImpl;
 import com.emc.storageos.db.server.impl.SchemaUtil;
 import com.google.common.collect.Lists;
-import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.text.StrSubstitutor;
 import org.apache.log4j.Logger;
@@ -24,7 +23,7 @@ import java.util.List;
 
 /**
  * Starts up the ViPR DBSVC for testing
- *
+ * 
  * @author dmaddison
  */
 public class TestDbService {

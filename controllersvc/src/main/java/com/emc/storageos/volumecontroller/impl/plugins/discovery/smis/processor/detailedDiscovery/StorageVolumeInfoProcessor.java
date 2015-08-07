@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery;
 
@@ -67,35 +57,35 @@ import com.google.common.collect.Sets.SetView;
  * 
  */
 public class StorageVolumeInfoProcessor extends StorageProcessor {
-    private Logger              _logger                              = LoggerFactory
-                                                                             .getLogger(StorageVolumeInfoProcessor.class);
-    private List<Object>        _args;
-    private DbClient            _dbClient;
-    private static final String SVUSAGE                              = "SVUsage";
-    private static final String USAGE                                = "Usage";
-    private static final String TWELVE                               = "12";
-    private static final String TWO                                  = "2";
-    private static final String NINE                                 = "9";
-    private static final String SEVEN                                = "7";
-    private static final String ELEVEN                               = "11";
-    private static final String TRUE                                 = "true";
-    private static final String FALSE                                = "false";
-    private static final String UNMANAGED_VOLUME                     = "UnManagedVolume";
-    private static final String UNMANAGED_EXPORT_MASK                = "UnManagedExportMask";
-    private static final String SVELEMENT_NAME                       = "SVElementName";
-    private static final String NAME                                 = "Name";
-    private static final String THINLY_PROVISIONED                   = "ThinlyProvisioned";
-    private AccessProfile       _profile;
+    private Logger _logger = LoggerFactory
+            .getLogger(StorageVolumeInfoProcessor.class);
+    private List<Object> _args;
+    private DbClient _dbClient;
+    private static final String SVUSAGE = "SVUsage";
+    private static final String USAGE = "Usage";
+    private static final String TWELVE = "12";
+    private static final String TWO = "2";
+    private static final String NINE = "9";
+    private static final String SEVEN = "7";
+    private static final String ELEVEN = "11";
+    private static final String TRUE = "true";
+    private static final String FALSE = "false";
+    private static final String UNMANAGED_VOLUME = "UnManagedVolume";
+    private static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
+    private static final String SVELEMENT_NAME = "SVElementName";
+    private static final String NAME = "Name";
+    private static final String THINLY_PROVISIONED = "ThinlyProvisioned";
+    private AccessProfile _profile;
 
-    private PartitionManager    _partitionManager;
+    private PartitionManager _partitionManager;
 
-    List<UnManagedVolume>       _unManagedVolumesInsert              = null;
-    List<UnManagedVolume>       _unManagedVolumesUpdate              = null;
-    List<UnManagedExportMask>   _unManagedExportMasksUpdate          = null;
-    List<CIMObjectPath>         _metaVolumeViewPaths                 = null;
-    List<CIMObjectPath>         _metaVolumePaths                     = null;
-    private Map<String, String> _volumeToSpaceConsumedMap            = null;
-    Set<URI>                    unManagedVolumesReturnedFromProvider = new HashSet<URI>();
+    List<UnManagedVolume> _unManagedVolumesInsert = null;
+    List<UnManagedVolume> _unManagedVolumesUpdate = null;
+    List<UnManagedExportMask> _unManagedExportMasksUpdate = null;
+    List<CIMObjectPath> _metaVolumeViewPaths = null;
+    List<CIMObjectPath> _metaVolumePaths = null;
+    private Map<String, String> _volumeToSpaceConsumedMap = null;
+    Set<URI> unManagedVolumesReturnedFromProvider = new HashSet<URI>();
 
     public void setPartitionManager(PartitionManager partitionManager) {
         _partitionManager = partitionManager;
@@ -119,7 +109,8 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             Map<String, RemoteMirrorObject> volumeToRAGroupMap = (Map<String, RemoteMirrorObject>) keyMap
                     .get(Constants.UN_VOLUME_RAGROUP_MAP);
             @SuppressWarnings("unchecked")
-            Map<String, LocalReplicaObject> volumeToLocalReplicaMap = (Map<String, LocalReplicaObject>) keyMap.get(Constants.UN_VOLUME_LOCAL_REPLICA_MAP);
+            Map<String, LocalReplicaObject> volumeToLocalReplicaMap = (Map<String, LocalReplicaObject>) keyMap
+                    .get(Constants.UN_VOLUME_LOCAL_REPLICA_MAP);
             @SuppressWarnings("unchecked")
             Map<String, Set<String>> vmax2ThinPoolToBoundVolumesMap = (Map<String, Set<String>>) keyMap
                     .get(Constants.VMAX2_THIN_POOL_TO_BOUND_VOLUMES);
@@ -173,17 +164,17 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 processVolumes(volumeInstanceChunks.getResponses(), keyMap, operation, pool, system, exportedVolumes,
                         existingVolumesInCG, volumeToRAGroupMap, volumeToLocalReplicaMap, poolSupportedSLONames, boundVolumes);
             }
-            if (null != _unManagedVolumesUpdate && _unManagedVolumesUpdate.size() > 0) {
+            if (null != _unManagedVolumesUpdate && !_unManagedVolumesUpdate.isEmpty()) {
                 _partitionManager.updateInBatches(_unManagedVolumesUpdate, getPartitionSize(keyMap),
                         _dbClient, UNMANAGED_VOLUME);
             }
 
-            if (null != _unManagedVolumesInsert && _unManagedVolumesInsert.size() > 0) {
+            if (null != _unManagedVolumesInsert && !_unManagedVolumesInsert.isEmpty()) {
                 _partitionManager.insertInBatches(_unManagedVolumesInsert, getPartitionSize(keyMap),
                         _dbClient, UNMANAGED_VOLUME);
             }
 
-            if (null != _unManagedExportMasksUpdate && _unManagedExportMasksUpdate.size() > 0) {
+            if (null != _unManagedExportMasksUpdate && !_unManagedExportMasksUpdate.isEmpty()) {
                 _partitionManager.updateInBatches(_unManagedExportMasksUpdate, getPartitionSize(keyMap),
                         _dbClient, UNMANAGED_EXPORT_MASK);
             }
@@ -202,6 +193,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 try {
                     client.closeEnumeration(storagePoolPath, volumeInstanceChunks.getContext());
                 } catch (Exception e) {
+                    _logger.warn("Exception occurred while closing enumeration", e);
                 }
             }
 
@@ -216,13 +208,13 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * @param keyMap
      * @param operation
      * @param pool
-     * @param system 
+     * @param system
      * @param exportedVolumes
      * @param volumesAndReplicas
      * @param existingVolumesInCG
      * @param volumeToRAGroupMap
      * @param poolSupportedSLONames
-     * @param boundVolumes 
+     * @param boundVolumes
      */
     private void processVolumes(Iterator<CIMInstance> it, Map<String, Object> keyMap, Operation operation,
             StoragePool pool, StorageSystem system, Map<String, VolHostIOObject> exportedVolumes,
@@ -251,16 +243,16 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                     if (system.getUsingSmis80()) {
                         deviceId = volumeViewInstance.getObjectPath().getKey(DEVICE_ID).getValue().toString();
                     } else {
-                        deviceId = volumeViewInstance.getObjectPath().getKey(SVDEVICEID).getValue().toString();                        
+                        deviceId = volumeViewInstance.getObjectPath().getKey(SVDEVICEID).getValue().toString();
                     }
                     if (!boundVolumes.contains(deviceId)) {
                         _logger.info("Skipping volume, as this Volume {} is not bound to this Thin Storage Pool {}",
-                                volumeNativeGuid ,pool.getLabel());
+                                volumeNativeGuid, pool.getLabel());
                         continue;
                     }
                 }
 
-                addPath(keyMap, operation.get_result(), volumeViewInstance.getObjectPath());
+                addPath(keyMap, operation.getResult(), volumeViewInstance.getObjectPath());
                 String unManagedVolumeNativeGuid = getUnManagedVolumeNativeGuid(
                         volumeViewInstance.getObjectPath(), keyMap);
 
@@ -302,13 +294,13 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                                 _logger.info("   UnManagedExportMask has this initiator unknown to ViPR: {}",
                                         path);
                             }
-                            
+
                             // check if this volume is in a vplex backend mask
                             // and mark it as such if it is
                             Object o = keyMap.get(Constants.UNMANAGED_VPLEX_BACKEND_MASKS_SET);
                             if (o != null) {
                                 Set<String> unmanagedVplexBackendMasks = (Set<String>) o;
-                                if (unmanagedVplexBackendMasks.size() > 0) {
+                                if (!unmanagedVplexBackendMasks.isEmpty()) {
                                     if (unmanagedVplexBackendMasks.contains(uem.getId().toString())) {
                                         _logger.info("unmanaged volume {} is a vplex backend volume", unManagedVolume.getLabel());
                                         unManagedVolume.putVolumeCharacterstics(
@@ -370,7 +362,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
         }
 
         // Add meta volumes to the keyMap
-        try {            
+        try {
             if (metaVolumes != null && !metaVolumes.isEmpty()) {
                 _metaVolumePaths.addAll(metaVolumes);
                 _logger.info("Added {} meta volumes.", metaVolumes.size());
@@ -391,13 +383,13 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * path. Can be used as an alternative to smi-s call to get storage volume
      * path for volume view, in case there is feasible performance penalty for
      * using smi-s call for each meta volume view.
-     *
+     * 
      * Example: from: //10.247.99.71/root/emc:Symm_VolumeView.SPInstanceID=
      * "SYMMETRIX+000195701573+C+0005",SVCreationClassName="Symm_StorageVolume",
      * SVDeviceID
      * ="004A5",SVSystemCreationClassName="Symm_StorageSystem",SVSystemName
      * ="SYMMETRIX+000195701573"; };
-     *
+     * 
      * to: //10.247.99.71/root/emc:Symm_StorageVolume.CreationClassName=
      * "Symm_StorageVolume"
      * ,DeviceID="004A5",SystemCreationClassName="Symm_StorageSystem",
@@ -460,7 +452,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 unManagedVolumesReturnedFromProvider);
 
         _logger.info("Diff :" + Joiner.on("\t").join(onlyAvailableinDB));
-        if (onlyAvailableinDB.size() > 0) {
+        if (!onlyAvailableinDB.isEmpty()) {
             List<UnManagedVolume> unManagedVolumeTobeDeleted = new ArrayList<UnManagedVolume>();
             Iterator<UnManagedVolume> unManagedVolumes = _dbClient.queryIterativeObjects(
                     UnManagedVolume.class, new ArrayList<URI>(onlyAvailableinDB));
@@ -477,7 +469,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 volume.setInactive(true);
                 unManagedVolumeTobeDeleted.add(volume);
             }
-            if (unManagedVolumeTobeDeleted.size() > 0) {
+            if (!unManagedVolumeTobeDeleted.isEmpty()) {
                 _partitionManager.updateAndReIndexInBatches(unManagedVolumeTobeDeleted, 1000, _dbClient,
                         "UnManagedVolume");
             }
@@ -615,7 +607,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                             .replace(iopsVal);
                 }
             }
-            
+
             // Set SLOName only for VMAX3 exported volumes
             if (system.checkIfVmax3()) {
                 // If there are no slonames defined for a pool or no slo
@@ -664,7 +656,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 isIngestable = isVolumeIngestable(volumeInstance, isBound, USAGE);
                 isThinlyProvisioned = getCIMPropertyValue(volumeInstance, THINLY_PROVISIONED);
                 isMetaVolume = getCIMPropertyValue(volumeInstance, SupportedVolumeCharacterstics.IS_METAVOLUME.getAlterCharacterstic());
-                allocCapacity = getAllocatedCapacity(volumeInstance, _volumeToSpaceConsumedMap, system.checkIfVmax3());                
+                allocCapacity = getAllocatedCapacity(volumeInstance, _volumeToSpaceConsumedMap, system.checkIfVmax3());
             } else {
                 unManagedVolume.setLabel(getCIMPropertyValue(volumeInstance, SVELEMENT_NAME));
                 isBound = getCIMPropertyValue(volumeInstance,
@@ -689,7 +681,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             }
             if (null != isThinlyProvisioned) {
                 unManagedVolumeCharacteristics.put(
-                        SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString(), 
+                        SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString(),
                         isThinlyProvisioned);
             }
 
@@ -720,7 +712,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                                 rmObj.getTargetVolumenativeGuids());
                     } else {
                         if (null == rmObj.getTargetVolumenativeGuids()
-                                || rmObj.getTargetVolumenativeGuids().size() == 0) {
+                                || rmObj.getTargetVolumenativeGuids().isEmpty()) {
                             unManagedVolumeInformation.get(
                                     SupportedVolumeInformation.REMOTE_MIRRORS.toString()).clear();
                         } else {
@@ -797,7 +789,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 }
 
                 if (lrObj.hasReplica()) {
-                    //set the HAS_REPLICAS property
+                    // set the HAS_REPLICAS property
                     unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.HAS_REPLICAS.name(),
                             TRUE);
                 }
@@ -926,7 +918,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         .toString())) {
 
                     _logger.debug("Matched Pools :" + Joiner.on("\t").join(matchedVPools));
-                    if (null != matchedVPools && matchedVPools.size() == 0) {
+                    if (null != matchedVPools && matchedVPools.isEmpty()) {
                         // replace with empty string set doesn't work, hence
                         // added explicit code to remove all
                         unManagedVolumeInformation.get(
@@ -971,10 +963,10 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 _unManagedVolumesUpdate.add(unManagedVolume);
             }
 
-        } catch(Exception e) {
-                _logger.error("Exception: ", e);
-            }
-            return unManagedVolume;
+        } catch (Exception e) {
+            _logger.error("Exception: ", e);
+        }
+        return unManagedVolume;
     }
 
     /**
@@ -1038,8 +1030,9 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         || USAGE_LOCAL_REPLICA_TARGET.equalsIgnoreCase(usage)
                         || USAGE_DELTA_REPLICA_TARGET.equalsIgnoreCase(usage)
                         || USGAE_LOCAL_REPLICA_SOURCE.equalsIgnoreCase(usage)
-                        || USAGE_LOCAL_REPLICA_SOURCE_OR_TARGET.equalsIgnoreCase(usage)))
+                        || USAGE_LOCAL_REPLICA_SOURCE_OR_TARGET.equalsIgnoreCase(usage))) {
             return true;
+        }
         return false;
     }
 
@@ -1048,4 +1041,3 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
         _args = inputArgs;
     }
 }
-

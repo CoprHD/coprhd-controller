@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.scaleio;
@@ -50,7 +40,6 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -63,7 +52,6 @@ import com.emc.storageos.volumecontroller.CloneOperations;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
-import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CleanupMetaVolumeMembersCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeExpandCompleter;
@@ -79,7 +67,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     private static final String VOLUME_NOT_FOUND = "Volume not found";
     private static final String ALREADY_MAPPED_TO = "already mapped to";
 
-    private static ScaleIOStorageDevice instance;
+    private static volatile ScaleIOStorageDevice instance;
 
     private DbClient dbClient;
     private ScaleIOCLIFactory scaleIOCLIFactory;
@@ -115,7 +103,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
 
     /**
      * Refresh connection status for all ScaleIO providers.
-     *
+     * 
      * @return A list of providers whose connections were successful.
      */
     public List<URI> refreshConnectionStatusForAllSIOProviders() {
@@ -189,8 +177,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doCreateVolumes(StorageSystem storage, StoragePool storagePool, String opId,
-                                List<Volume> volumes, VirtualPoolCapabilityValuesWrapper capabilities,
-                                TaskCompleter taskCompleter) throws DeviceControllerException {
+            List<Volume> volumes, VirtualPoolCapabilityValuesWrapper capabilities,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             ScaleIOCLI scaleIOCLI = scaleIOCLIFactory.using(dbClient).getCLI(storage);
             String errorMessage = null;
@@ -209,7 +197,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             for (; index <= count; index++) {
                 Volume volume = volumes.get(index - 1);
                 ScaleIOAddVolumeResult result =
-                        scaleIOCLI.addVolume(protectionDomainName, storagePoolName, volume.getLabel(), volumeSize.toString(), thinlyProvisioned);
+                        scaleIOCLI.addVolume(protectionDomainName, storagePoolName, volume.getLabel(), volumeSize.toString(),
+                                thinlyProvisioned);
                 if (result.isSuccess()) {
                     ScaleIOCLIHelper.updateVolumeWithAddVolumeInfo(dbClient, volume, systemId, volumeSize, result);
                     poolsToUpdate.add(volume.getPool());
@@ -257,21 +246,23 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doCreateMetaVolume(StorageSystem storage, StoragePool storagePool, Volume volume, VirtualPoolCapabilityValuesWrapper capabilities, MetaVolumeRecommendation recommendation, VolumeCreateCompleter completer) throws DeviceControllerException {
+    public void doCreateMetaVolume(StorageSystem storage, StoragePool storagePool, Volume volume,
+            VirtualPoolCapabilityValuesWrapper capabilities, MetaVolumeRecommendation recommendation, VolumeCreateCompleter completer)
+            throws DeviceControllerException {
         completeTaskAsUnsupported(completer);
     }
 
     @Override
     public void doCreateMetaVolumes(StorageSystem storage, StoragePool storagePool, List<Volume> volumes,
-                                    VirtualPoolCapabilityValuesWrapper capabilities, MetaVolumeRecommendation recommendation,
-                                    TaskCompleter completer) throws DeviceControllerException
+            VirtualPoolCapabilityValuesWrapper capabilities, MetaVolumeRecommendation recommendation,
+            TaskCompleter completer) throws DeviceControllerException
     {
         completeTaskAsUnsupported(completer);
     }
 
-
     @Override
-    public void doExpandVolume(StorageSystem storage, StoragePool pool, Volume volume, Long size, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doExpandVolume(StorageSystem storage, StoragePool pool, Volume volume, Long size, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         Long volumeSize = size / ScaleIOCLIHelper.BYTES_IN_GB;
         ScaleIOCLI scaleIOCLI = scaleIOCLIFactory.using(dbClient).getCLI(storage);
         ScaleIOModifyVolumeCapacityResult result = scaleIOCLI.modifyVolumeCapacity(volume.getNativeId(), volumeSize.toString());
@@ -294,13 +285,14 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doExpandAsMetaVolume(StorageSystem storageSystem, StoragePool storagePool, Volume volume, long size,
-                                     MetaVolumeRecommendation recommendation,
-                                     VolumeExpandCompleter volumeCompleter) throws DeviceControllerException {
+            MetaVolumeRecommendation recommendation,
+            VolumeExpandCompleter volumeCompleter) throws DeviceControllerException {
         completeTaskAsUnsupported(volumeCompleter);
     }
 
     @Override
-    public void doDeleteVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes, TaskCompleter completer) throws DeviceControllerException {
+    public void doDeleteVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes, TaskCompleter completer)
+            throws DeviceControllerException {
         ScaleIOCLI scaleIOCLI = scaleIOCLIFactory.using(dbClient).getCLI(storageSystem);
         boolean anyFailures = false;
         String failedVolumeName = null;
@@ -337,13 +329,15 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doExportGroupCreate(StorageSystem storage, ExportMask exportMask, Map<URI, Integer> volumeMap, List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doExportGroupCreate(StorageSystem storage, ExportMask exportMask, Map<URI, Integer> volumeMap, List<Initiator> initiators,
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
         filterInitiators(initiators);
         mapVolumes(storage, volumeMap, initiators, taskCompleter);
     }
 
     @Override
-    public void doExportGroupDelete(StorageSystem storage, ExportMask exportMask, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doExportGroupDelete(StorageSystem storage, ExportMask exportMask, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
         Set<Initiator> initiators =
                 ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
@@ -352,7 +346,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doExportAddVolume(StorageSystem storage, ExportMask exportMask, URI volume, Integer lun, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doExportAddVolume(StorageSystem storage, ExportMask exportMask, URI volume, Integer lun, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         Map<URI, Integer> volumes = new HashMap<>();
         volumes.put(volume, lun);
         Set<Initiator> initiators =
@@ -362,7 +357,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doExportAddVolumes(StorageSystem storage, ExportMask exportMask, Map<URI, Integer> volumes, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doExportAddVolumes(StorageSystem storage, ExportMask exportMask, Map<URI, Integer> volumes, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         Set<Initiator> initiators =
                 ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
         filterInitiators(initiators);
@@ -370,7 +366,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doExportRemoveVolume(StorageSystem storage, ExportMask exportMask, URI volume, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doExportRemoveVolume(StorageSystem storage, ExportMask exportMask, URI volume, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         Set<Initiator> initiators =
                 ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
         filterInitiators(initiators);
@@ -378,7 +375,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doExportRemoveVolumes(StorageSystem storage, ExportMask exportMask, List<URI> volumes, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doExportRemoveVolumes(StorageSystem storage, ExportMask exportMask, List<URI> volumes, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         Set<Initiator> initiators =
                 ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
         filterInitiators(initiators);
@@ -386,32 +384,36 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doExportAddInitiator(StorageSystem storage, ExportMask exportMask, Initiator initiator, List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doExportAddInitiator(StorageSystem storage, ExportMask exportMask, Initiator initiator, List<URI> targets,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         Map<URI, Integer> volumes = createVolumeMapForExportMask(exportMask);
         mapVolumes(storage, volumes, asList(initiator), taskCompleter);
     }
 
     @Override
-    public void doExportAddInitiators(StorageSystem storage, ExportMask exportMask, List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doExportAddInitiators(StorageSystem storage, ExportMask exportMask, List<Initiator> initiators, List<URI> targets,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         Map<URI, Integer> volumes = createVolumeMapForExportMask(exportMask);
         mapVolumes(storage, volumes, initiators, taskCompleter);
     }
 
     @Override
-    public void doExportRemoveInitiator(StorageSystem storage, ExportMask exportMask, Initiator initiator, List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doExportRemoveInitiator(StorageSystem storage, ExportMask exportMask, Initiator initiator, List<URI> targets,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
         unmapVolumes(storage, volumeURIs, asList(initiator), taskCompleter);
     }
 
     @Override
-    public void doExportRemoveInitiators(StorageSystem storage, ExportMask exportMask, List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doExportRemoveInitiators(StorageSystem storage, ExportMask exportMask, List<Initiator> initiators, List<URI> targets,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
         unmapVolumes(storage, volumeURIs, initiators, taskCompleter);
     }
 
     @Override
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList, Boolean createInactive,
-                                 TaskCompleter taskCompleter) throws DeviceControllerException {
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, snapshotList);
             if (inReplicationGroup(dbClient, snapshots)) {
@@ -432,7 +434,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doActivateSnapshot(StorageSystem storage, List<URI> snapshotList, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doActivateSnapshot(StorageSystem storage, List<URI> snapshotList, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         completeTaskAsUnsupported(taskCompleter);
     }
 
@@ -461,17 +464,20 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         completeTaskAsUnsupported(taskCompleter);
     }
 
     @Override
-    public void doCreateMirror(StorageSystem storage, URI mirror, Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doCreateMirror(StorageSystem storage, URI mirror, Boolean createInactive, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         completeTaskAsUnsupported(taskCompleter);
     }
 
     @Override
-    public void doFractureMirror(StorageSystem storage, URI mirror, Boolean sync, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doFractureMirror(StorageSystem storage, URI mirror, Boolean sync, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         completeTaskAsUnsupported(taskCompleter);
     }
 
@@ -481,7 +487,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doResumeNativeContinuousCopy(StorageSystem storage, URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doResumeNativeContinuousCopy(StorageSystem storage, URI mirror, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         completeTaskAsUnsupported(taskCompleter);
     }
 
@@ -492,7 +499,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doCreateClone(StorageSystem storageSystem, URI sourceVolume, URI cloneVolume, Boolean createInactive,
-                              TaskCompleter taskCompleter) {
+            TaskCompleter taskCompleter) {
         cloneOperations.createSingleClone(storageSystem, sourceVolume, cloneVolume, createInactive, taskCompleter);
     }
 
@@ -514,10 +521,11 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup, Boolean markInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup, Boolean markInactive, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         log.info("Going to delete BlockConsistency Group {}", consistencyGroup);
         BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
-        if (cg != null ) {
+        if (cg != null) {
             dbClient.markForDeletion(cg);
         }
         taskCompleter.ready(dbClient);
@@ -544,7 +552,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doCopySnapshotsToTarget(StorageSystem storage, List<URI> snapshotList, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doCopySnapshotsToTarget(StorageSystem storage, List<URI> snapshotList, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         completeTaskAsUnsupported(taskCompleter);
     }
 
@@ -564,7 +573,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doCleanupMetaMembers(StorageSystem storageSystem, Volume volume, CleanupMetaVolumeMembersCompleter cleanupCompleter) throws DeviceControllerException {
+    public void doCleanupMetaMembers(StorageSystem storageSystem, Volume volume, CleanupMetaVolumeMembersCompleter cleanupCompleter)
+            throws DeviceControllerException {
     }
 
     @Override
@@ -579,19 +589,21 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doWaitForGroupSynchronized(StorageSystem storageObj, List<URI> target, TaskCompleter completer) 
+    public void doWaitForGroupSynchronized(StorageSystem storageObj, List<URI> target, TaskCompleter completer)
     {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 
     }
-    
+
     @Override
-    public void doAddToConsistencyGroup(StorageSystem storage, URI consistencyGroupId, List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doAddToConsistencyGroup(StorageSystem storage, URI consistencyGroupId, List<URI> blockObjects, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         completeTaskAsUnsupported(taskCompleter);
     }
 
     @Override
-    public void doRemoveFromConsistencyGroup(StorageSystem storage, URI consistencyGroupId, List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doRemoveFromConsistencyGroup(StorageSystem storage, URI consistencyGroupId, List<URI> blockObjects,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         completeTaskAsUnsupported(taskCompleter);
     }
 
@@ -602,7 +614,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
 
     /**
      * Method calls the completer with error message indicating that the caller's method is unsupported
-     *
+     * 
      * @param completer [in] - TaskCompleter
      */
     private void completeTaskAsUnsupported(TaskCompleter completer) {
@@ -615,14 +627,14 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Given a mapping of volumes and initiators, make the ScaleIO API calls to map the volume
      * to the specified ScaleIO initiators
-     *
-     * @param storage    [in] - StorageSystem object (ScaleIO array abstraction)
-     * @param volumeMap  [in] - Volume URI to Integer LUN map
+     * 
+     * @param storage [in] - StorageSystem object (ScaleIO array abstraction)
+     * @param volumeMap [in] - Volume URI to Integer LUN map
      * @param initiators [in] - Collection of Initiator objects
-     * @param completer  [in] - TaskCompleter
+     * @param completer [in] - TaskCompleter
      */
     private void mapVolumes(StorageSystem storage, Map<URI, Integer> volumeMap, Collection<Initiator> initiators,
-                            TaskCompleter completer) {
+            TaskCompleter completer) {
         ScaleIOCLI scaleIOCLI = scaleIOCLIFactory.using(dbClient).getCLI(storage);
         for (Map.Entry<URI, Integer> volMapEntry : volumeMap.entrySet()) {
             BlockObject blockObject = BlockObject.fetch(dbClient, volMapEntry.getKey());
@@ -678,14 +690,14 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Given a mapping of volumes and initiators, make the ScaleIO API calls to un-map the volume
      * to the specified ScaleIO initiators
-     *
-     * @param storage    [in] - StorageSystem object (ScaleIO array abstraction)
+     * 
+     * @param storage [in] - StorageSystem object (ScaleIO array abstraction)
      * @param volumeURIs [in] - Collection of Volume URIs
      * @param initiators [in] - Collection of Initiator objects
-     * @param completer  [in] - TaskCompleter
+     * @param completer [in] - TaskCompleter
      */
     private void unmapVolumes(StorageSystem storage, Collection<URI> volumeURIs, Collection<Initiator> initiators,
-                              TaskCompleter completer) {
+            TaskCompleter completer) {
         ScaleIOCLI scaleIOCLI = scaleIOCLIFactory.using(dbClient).getCLI(storage);
         for (URI volumeURI : volumeURIs) {
             BlockObject blockObject = BlockObject.fetch(dbClient, volumeURI);
@@ -747,7 +759,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Given a collection of Initiators, go through and filter out any initiators
      * that are not ScaleIO or IP types. The passed in Collection will be modified.
-     *
+     * 
      * @param initiators [in/out] - Collection of Initiator objects
      */
     private void filterInitiators(Collection<Initiator> initiators) {
@@ -764,7 +776,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Using the ExportMask object, create a volume URI to HLU map. For ScaleIO,
      * there isn't any HLU required
-     *
+     * 
      * @param exportMask [in] - ExportMask object
      * @return Volume URI to HLU integer value (allows ExportGroup.LUN_UNASSIGNED)
      */
@@ -794,27 +806,27 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
         ScaleIOQueryAllResult scaleIOQueryAllResult = scaleIOCLI.queryAll();
         return scaleIOQueryAllResult.getProperty(ScaleIOQueryAllCommand.SCALEIO_CUSTOMER_ID);
     }
-    
+
     @Override
-    public void doFractureClone(StorageSystem storageDevice, URI source,URI clone,
+    public void doFractureClone(StorageSystem storageDevice, URI source, URI clone,
             TaskCompleter completer) {
         completeTaskAsUnsupported(completer);
     }
-    
+
     @Override
     public void doRestoreFromClone(StorageSystem storage, URI cloneVolume,
             TaskCompleter taskCompleter) {
         completeTaskAsUnsupported(taskCompleter);
     }
-    
+
     @Override
     public void doResyncClone(StorageSystem storage, URI cloneVolume,
             TaskCompleter taskCompleter) {
         completeTaskAsUnsupported(taskCompleter);
     }
-    
+
     @Override
-    public void doCreateGroupClone(StorageSystem storageDevice, List<URI> clones, 
+    public void doCreateGroupClone(StorageSystem storageDevice, List<URI> clones,
             Boolean createInactive, TaskCompleter completer) {
         completeTaskAsUnsupported(completer);
     }
@@ -823,27 +835,27 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     public void doDetachGroupClone(StorageSystem storage, List<URI> cloneVolume,
             TaskCompleter taskCompleter) {
         completeTaskAsUnsupported(taskCompleter);
-        
+
     }
 
     @Override
     public void doRestoreFromGroupClone(StorageSystem storageSystem, List<URI> cloneVolume,
-                                        TaskCompleter taskCompleter) {
+            TaskCompleter taskCompleter) {
         completeTaskAsUnsupported(taskCompleter);
-        
+
     }
 
     @Override
     public void doActivateGroupFullCopy(StorageSystem storageSystem,
             List<URI> fullCopy, TaskCompleter completer) {
         completeTaskAsUnsupported(completer);
-        
+
     }
 
     @Override
     public void doResyncGroupClone(StorageSystem storageDevice,
             List<URI> clone, TaskCompleter completer) throws Exception {
         completeTaskAsUnsupported(completer);
-        
+
     }
 }

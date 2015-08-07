@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.compute;
@@ -24,6 +24,7 @@ public class ComputeSystemBulkRep extends BulkRestRep {
 
     /**
      * List of compute system objects that exist in ViPR.
+     * 
      * @valid none
      */
     @XmlElement(name = "compute_system")

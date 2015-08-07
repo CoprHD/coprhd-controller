@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.customconfigcontroller;
@@ -39,17 +29,17 @@ public class CustomNameResolver extends CustomConfigResolver {
     private static final String START_DELIMITER = "{";
     private static final String END_DELIMITER = "}";
     private static final String METHOD_NAMES = "%METHODS%";
-    // Regex to find the first open parenthesis that is not proceeded by one of the method names 
+    // Regex to find the first open parenthesis that is not proceeded by one of the method names
     // The code will loop to find the inner-most expression, the regex only needs to find the first
     private String NESTED_EXPRESSION_START = "(?<!" + METHOD_NAMES
             + ")+\\((.*?)$";
-    // Regex to find all chained methods that apply to an expression 
+    // Regex to find all chained methods that apply to an expression
     private static final String METHODS_EXPRESSION = "(\\.(" + METHOD_NAMES + ")\\([^\\)]*\\))+";
-    
-    // Regex to find . not proceeded by a \ i.e. not escaped 
+
+    // Regex to find . not proceeded by a \ i.e. not escaped
     public static final String DOT_EXPRESSION = "(?<!" + Pattern.quote("\\") + ")" + Pattern.quote(".");
-    
-    // The maximum number of time the name resolution code is allowed to loop trying 
+
+    // The maximum number of time the name resolution code is allowed to loop trying
     // to resolve an expression. This is a protection measure against infinite loops.
     // If we loop more than MAX_LOOP, the expression is most probably not resolvable
     public static final int MAX_LOOP = 100;
@@ -158,8 +148,7 @@ public class CustomNameResolver extends CustomConfigResolver {
      * @param stringObj
      *            the string to be transformed
      * @param methodName
-     *            the name of the method which has to be one of the methods in
-     *            {@link #getStringManipulationMethods()}
+     *            the name of the method which has to be one of the methods in {@link #getStringManipulationMethods()}
      * @param methodArgs
      *            the method arguments
      * @return
@@ -208,10 +197,10 @@ public class CustomNameResolver extends CustomConfigResolver {
                     && tokenizer.hasMoreTokens()) {
                 // this is a datasource property which should be computed
                 String expression = tokenizer.nextToken();
-                
+
                 // Split the expression based on dot
                 String[] expressionTokens = expression.split(DOT_EXPRESSION);
-                
+
                 // first token is the field
                 String datasourceField = expressionTokens[0];
                 // check if it is a legal datasource property name
@@ -278,18 +267,18 @@ public class CustomNameResolver extends CustomConfigResolver {
             // if the system type scope is not available, check for host type scope.
             // host type scope is only available for Hitachi Host Mode Option
             if (systemType == null) {
-    			systemType = scope.get(CustomConfigConstants.HOST_TYPE_SCOPE);
-    		}
+                systemType = scope.get(CustomConfigConstants.HOST_TYPE_SCOPE);
+            }
         }
 
-        // Look for expressions enclosed in parenthesis, the expression 
+        // Look for expressions enclosed in parenthesis, the expression
         // does not include any methods for example if the expression is
         // ({cluster_name.FIRST(8)}_{host_name.LAST(12)}).TOLOWER(), this
         // function finds {cluster_name.FIRST(8)}_{host_name.LAST(12)}
         String subExp = getMostNestedExpression(value);
         String methodsRegex = getRegexWithMethodNames(METHODS_EXPRESSION);
         int loopCounter = 0;
-        while (subExp != null && loopCounter < MAX_LOOP ) {
+        while (subExp != null && loopCounter < MAX_LOOP) {
             loopCounter++;
             String fullExpression = value;
             // get the sub-expression between parenthesis e.g.
@@ -308,10 +297,10 @@ public class CustomNameResolver extends CustomConfigResolver {
                 // and extract the methods from the full expression
                 // m.group(2) should return .TOLOWER()
                 String[] tokens = m.group(2).split(DOT_EXPRESSION);
-                
+
                 int size = tokens.length;
                 if (size > 1) {
-                    // has the string methods add the first member as empty string, 
+                    // has the string methods add the first member as empty string,
                     // since it is not used later.
                     methods.add(" ");
                     for (int i = 1; i < size; i++) {
@@ -385,23 +374,22 @@ public class CustomNameResolver extends CustomConfigResolver {
         }
         return null;
     }
-    
-    
+
     private int getClosingParenthesisIndex(String fullExpression) {
-        int c=0;
-        for (int i=0; i< fullExpression.length(); i++) {
+        int c = 0;
+        for (int i = 0; i < fullExpression.length(); i++) {
             if (fullExpression.charAt(i) == '(') {
                 c++;
             } else if (fullExpression.charAt(i) == ')') {
                 c--;
-            } 
+            }
             if (c < 0) {
                 return i;
             }
         }
         return -1;
     }
-    
+
     /**
      * Takes Resolved an expression in the form
      * Brcd_{host_name.FIRST(8)}_{hba_port_wwn
@@ -426,7 +414,7 @@ public class CustomNameResolver extends CustomConfigResolver {
             if (token.equals(START_DELIMITER) && tokenizer.hasMoreTokens()) {
                 // this is a datasource property which should be computed
                 String propertyValue = getDataSourceValue(
-                        tokenizer.nextToken().replaceAll("\\s+", ""), dataSource, 
+                        tokenizer.nextToken().replaceAll("\\s+", ""), dataSource,
                         constraint, systemType);
                 if (constraint != null) {
                     propertyValue = constraint.applyConstraint(propertyValue,

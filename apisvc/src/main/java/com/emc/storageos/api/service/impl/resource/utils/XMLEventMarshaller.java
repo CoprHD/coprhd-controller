@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.resource.utils;
@@ -30,12 +20,12 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.model.Event;
 
 /**
- *  An XML event marshaler based on JAXB API
+ * An XML event marshaler based on JAXB API
  */
 public class XMLEventMarshaller implements EventMarshaller {
 
     final private Logger _logger = LoggerFactory.getLogger(XMLEventMarshaller.class);
-    
+
     final static private Logger _staticLogger = LoggerFactory.getLogger(XMLEventMarshaller.class);
 
     private static JAXBContext _context = null;
@@ -45,8 +35,8 @@ public class XMLEventMarshaller implements EventMarshaller {
         } catch (JAXBException e) {
             _staticLogger.error("XML Marshaller Creation Error", e);
         }
-      }
-    
+    }
+
     private final ThreadLocal<Marshaller> marshallers = new ThreadLocal<Marshaller>() {
 
         protected Marshaller initialValue() {
@@ -68,7 +58,7 @@ public class XMLEventMarshaller implements EventMarshaller {
 
     @Override
     public void header(Writer writer) throws MarshallingExcetion {
-        BufferedWriter ow = ((BufferedWriter)writer);
+        BufferedWriter ow = ((BufferedWriter) writer);
         try {
             ow.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
             writer.write("<events>");
@@ -79,7 +69,7 @@ public class XMLEventMarshaller implements EventMarshaller {
 
     @Override
     public void marshal(Event event, Writer writer) throws MarshallingExcetion {
-        BufferedWriter ow = ((BufferedWriter)writer);
+        BufferedWriter ow = ((BufferedWriter) writer);
         try {
             if (event == null) {
                 _logger.warn("null event dropped");
@@ -95,15 +85,15 @@ public class XMLEventMarshaller implements EventMarshaller {
                 }
             }
         } catch (JAXBException e) {
-            throw new MarshallingExcetion("XML Marshalling Error"+event.getEventId(), e);
+            throw new MarshallingExcetion("XML Marshalling Error" + event.getEventId(), e);
         } catch (IOException e) {
-            throw new MarshallingExcetion("XML Streaming Error"+event.getEventId(), e);
+            throw new MarshallingExcetion("XML Streaming Error" + event.getEventId(), e);
         }
     }
 
     @Override
     public void tailer(Writer writer) throws MarshallingExcetion {
-        BufferedWriter ow = ((BufferedWriter)writer);
+        BufferedWriter ow = ((BufferedWriter) writer);
         try {
             ow.write("</events>");
         } catch (IOException e) {

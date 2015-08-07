@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.workflow;
@@ -13,8 +13,9 @@ import java.util.List;
 public class WorkflowList {
     private List<WorkflowRestRep> workflows;
 
-    public WorkflowList() {}
-    
+    public WorkflowList() {
+    }
+
     public WorkflowList(List<WorkflowRestRep> workflows) {
         this.workflows = workflows;
     }

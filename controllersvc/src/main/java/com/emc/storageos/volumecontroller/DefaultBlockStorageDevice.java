@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller;
@@ -230,7 +230,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
     }
-    
+
     @Override
     public void doRestoreFromClone(StorageSystem storage, URI cloneVolume,
             TaskCompleter taskCompleter) {
@@ -367,24 +367,24 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
     }
-    
-	@Override
-	public void doCreateMetaVolumes(StorageSystem storage,
-			StoragePool storagePool, List<Volume> volumes,
-			VirtualPoolCapabilityValuesWrapper capabilities,
-			MetaVolumeRecommendation recommendation, TaskCompleter completer)
-			throws DeviceControllerException {
-		throw DeviceControllerException.exceptions
-				.blockDeviceOperationNotSupported();
-	}
 
-	@Override
-	public void updatePolicyAndLimits(StorageSystem storage,
-			ExportMask exportMask, List<URI> volumeURIs, VirtualPool newVpool,
-			boolean rollback, TaskCompleter taskCompleter) throws Exception {
-		throw DeviceControllerException.exceptions
-				.blockDeviceOperationNotSupported();
-	}
+    @Override
+    public void doCreateMetaVolumes(StorageSystem storage,
+            StoragePool storagePool, List<Volume> volumes,
+            VirtualPoolCapabilityValuesWrapper capabilities,
+            MetaVolumeRecommendation recommendation, TaskCompleter completer)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void updatePolicyAndLimits(StorageSystem storage,
+            ExportMask exportMask, List<URI> volumeURIs, VirtualPool newVpool,
+            boolean rollback, TaskCompleter taskCompleter) throws Exception {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
 
     @Override
     public ExportMaskPolicy getExportMaskPolicy(StorageSystem storage, ExportMask mask) {
@@ -392,37 +392,37 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
-	public void doModifyVolumes(StorageSystem storage, StoragePool storagePool,
-			String opId, List<Volume> volumes, TaskCompleter taskCompleter)
-			throws DeviceControllerException {
-		throw DeviceControllerException.exceptions
-		.blockDeviceOperationNotSupported();
-	}
-
-	@Override
-	public void doTerminateAnyRestoreSessions(StorageSystem storageDevice,
-			URI source, BlockObject snapshot, TaskCompleter completer)
-			throws Exception {
-		throw DeviceControllerException.exceptions
-		.blockDeviceOperationNotSupported();
-	}
+    public void doModifyVolumes(StorageSystem storage, StoragePool storagePool,
+            String opId, List<Volume> volumes, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
 
     @Override
-    public void doFractureClone(StorageSystem storageDevice, URI source,URI clone,
+    public void doTerminateAnyRestoreSessions(StorageSystem storageDevice,
+            URI source, BlockObject snapshot, TaskCompleter completer)
+            throws Exception {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doFractureClone(StorageSystem storageDevice, URI source, URI clone,
             TaskCompleter completer) {
         throw DeviceControllerException.exceptions
-            .blockDeviceOperationNotSupported();
+                .blockDeviceOperationNotSupported();
     }
-    
+
     @Override
     public void doResyncClone(StorageSystem storageDevice, URI clone,
             TaskCompleter completer) {
         throw DeviceControllerException.exceptions
-            .blockDeviceOperationNotSupported();
+                .blockDeviceOperationNotSupported();
     }
-    
+
     @Override
-    public void doCreateGroupClone(StorageSystem storageDevice, List<URI> clones, 
+    public void doCreateGroupClone(StorageSystem storageDevice, List<URI> clones,
             Boolean createInactive, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
@@ -431,40 +431,40 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     public void doDetachGroupClone(StorageSystem storage, List<URI> cloneVolume,
             TaskCompleter taskCompleter) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
 
     @Override
     public void doRestoreFromGroupClone(StorageSystem storageSystem,
             List<URI> cloneVolume, TaskCompleter taskCompleter) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
 
     @Override
     public void doActivateGroupFullCopy(StorageSystem storageSystem,
             List<URI> fullCopy, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
 
     @Override
     public void doResyncGroupClone(StorageSystem storageDevice, List<URI> clone,
             TaskCompleter completer) throws Exception {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
-    
+
     @Override
     public void doFractureGroupClone(StorageSystem storageDevice,
             List<URI> clone, TaskCompleter completer) throws Exception {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
 
     @Override
     public void doAddVolumePairsToCg(StorageSystem system, List<URI> sources, URI remoteDirectorGroup,
-                                     TaskCompleter completer) {
+            TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
@@ -484,8 +484,8 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
-	public void doRollbackLinks(StorageSystem system, List<URI> sources,
-			List<URI> targets, boolean isGroupRollback, TaskCompleter completer) {
+    public void doRollbackLinks(StorageSystem system, List<URI> sources,
+            List<URI> targets, boolean isGroupRollback, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
@@ -521,7 +521,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
 
     @Override
     public void doRemoveVolumePair(StorageSystem system, URI source, URI target, boolean rollback,
-                                   TaskCompleter completer) {
+            TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
@@ -537,7 +537,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
 
     @Override
     public void doCreateCgPairs(StorageSystem system, List<URI> sources, List<URI> targets,
-                                SRDFMirrorCreateCompleter completer) {
+            SRDFMirrorCreateCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
@@ -558,6 +558,11 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
 
     @Override
     public void doUpdateSourceAndTargetPairings(List<URI> sourceURIs, List<URI> targetURIs) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void refreshStorageSystem(URI systemURI) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

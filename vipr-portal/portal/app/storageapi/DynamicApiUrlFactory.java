@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package storageapi;
@@ -13,10 +13,10 @@ import java.util.Random;
 
 /**
  * Picks one of the registered SASVC endpoints at random
- *
+ * 
  * @author dmaddison
  */
-public class DynamicApiUrlFactory implements ApiUrlFactory{
+public class DynamicApiUrlFactory implements ApiUrlFactory {
     private static final Logger LOG = Logger.getLogger(DynamicApiUrlFactory.class);
     private CoordinatorClient coordinator;
     private Random random = new Random();
@@ -34,7 +34,7 @@ public class DynamicApiUrlFactory implements ApiUrlFactory{
 
         int endpointToUse = random.nextInt(services.size());
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Returning "+SA_SVC_NAME+" Endpoint "+ services.get(endpointToUse).getEndpoint().toString());
+            LOG.debug("Returning " + SA_SVC_NAME + " Endpoint " + services.get(endpointToUse).getEndpoint().toString());
         }
 
         return services.get(endpointToUse).getEndpoint().toString();
@@ -46,13 +46,12 @@ public class DynamicApiUrlFactory implements ApiUrlFactory{
             List<Service> services = coordinator.locateAllServices(SA_SVC_NAME, SA_SVC_VERSION, null, null);
 
             if (services.isEmpty()) {
-                throw new RuntimeException("No endpoint found for "+SA_SVC_NAME, null);
+                throw new RuntimeException("No endpoint found for " + SA_SVC_NAME, null);
             }
 
             return services;
-        }
-        catch(Exception e) {
-            throw new RuntimeException("Error whilst fetch "+SA_SVC_NAME+" information",e);
+        } catch (Exception e) {
+            throw new RuntimeException("Error whilst fetch " + SA_SVC_NAME + " information", e);
         }
     }
 }

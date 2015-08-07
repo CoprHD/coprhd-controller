@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -46,23 +46,23 @@ public class UnManagedExportMasks extends AbstractCoreBulkResources<UnManagedExp
      * Gets the list of unmanaged export-masks for the given host by ID.
      * <p>
      * API Call: <tt>GET /compute/hosts/{hostId}/unmanaged-export-masks</tt>
-     *
+     * 
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @return the list of unmanaged export-masks references.
      */
     public List<RelatedResourceRep> listByHost(URI hostId) {
         UnManagedExportMaskList response = client.get(UnManagedExportMaskList.class,
-            PathConstants.UNMANAGED_EXPORTS_BY_HOST_URL, hostId);
+                PathConstants.UNMANAGED_EXPORTS_BY_HOST_URL, hostId);
         return ResourceUtils.defaultList(response.getUnManagedExportMasks());
     }
 
     /**
      * Gets the list of unmanaged export-masks for the given host by ID. This is a convenience method for:
      * <tt>getByRefs(listByHost(hostId))</tt>
-     *
+     * 
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @return the list of unmanaged export-masks.
      */
     public List<UnManagedExportMaskRestRep> getByHost(URI hostId) {
@@ -72,11 +72,11 @@ public class UnManagedExportMasks extends AbstractCoreBulkResources<UnManagedExp
     /**
      * Gets the list of unmanaged export-masks for the given host by ID. This is a convenience method for:
      * <tt>getByRefs(listByHost(hostId), filter)</tt>
-     *
+     * 
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of unmanaged export-masks.
      */
     public List<UnManagedExportMaskRestRep> getByHost(URI hostId, ResourceFilter<UnManagedExportMaskRestRep> filter) {
@@ -88,23 +88,23 @@ public class UnManagedExportMasks extends AbstractCoreBulkResources<UnManagedExp
      * Gets the list of unmanaged export-masks for the given cluster by ID.
      * <p>
      * API Call: <tt>GET /compute/clusters/{clusterId}/unmanaged-export-masks</tt>
-     *
+     * 
      * @param clusterId
-     *        the ID of the cluster.
+     *            the ID of the cluster.
      * @return the list of unmanaged export-masks references.
      */
     public List<RelatedResourceRep> listByCluster(URI clusterId) {
         UnManagedExportMaskList response = client.get(UnManagedExportMaskList.class,
-            PathConstants.UNMANAGED_EXPORTS_BY_CLUSTER_URL, clusterId);
+                PathConstants.UNMANAGED_EXPORTS_BY_CLUSTER_URL, clusterId);
         return ResourceUtils.defaultList(response.getUnManagedExportMasks());
     }
 
     /**
      * Gets the list of unmanaged export-masks for the given cluster by ID. This is a convenience method for:
      * <tt>getByRefs(listByCluster(clusterId))</tt>
-     *
+     * 
      * @param clusterId
-     *        the ID of the cluster.
+     *            the ID of the cluster.
      * @return the list of unmanaged export-masks.
      */
     public List<UnManagedExportMaskRestRep> getByCluster(URI clusterId) {
@@ -114,11 +114,11 @@ public class UnManagedExportMasks extends AbstractCoreBulkResources<UnManagedExp
     /**
      * Gets the list of unmanaged export-masks for the given cluster by ID. This is a convenience method for:
      * <tt>getByRefs(listByCluster(hostId), filter)</tt>
-     *
+     * 
      * @param clusterId
-     *        the ID of the cluster.
+     *            the ID of the cluster.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of unmanaged export-masks.
      */
     public List<UnManagedExportMaskRestRep> getByCluster(URI clusterId, ResourceFilter<UnManagedExportMaskRestRep> filter) {

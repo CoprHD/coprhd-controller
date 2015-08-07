@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -23,4 +23,3 @@ public class AuditLogDataTable extends DataTable {
         this.setServerSide(true);
     }
 }
-

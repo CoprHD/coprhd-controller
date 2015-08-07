@@ -1,13 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.plugins.metering.isilon;
 
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
-
-
 
 /**
  * Class for Isilon discovery and metering exceptions
@@ -25,12 +23,12 @@ public class IsilonCollectionException extends BaseCollectionException {
     }
 
     @Deprecated
-    public  IsilonCollectionException(Throwable e) {
+    public IsilonCollectionException(Throwable e) {
         super(e);
     }
 
     @Deprecated
-    public  IsilonCollectionException(String message) {
+    public IsilonCollectionException(String message) {
         super(message);
     }
 }

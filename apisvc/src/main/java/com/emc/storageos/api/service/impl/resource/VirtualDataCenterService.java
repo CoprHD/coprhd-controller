@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -42,7 +32,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.security.helpers.SecurityService;
 import com.emc.storageos.security.helpers.SecurityUtil;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.ArrayUtils;
@@ -101,14 +90,13 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.model.keystore.CertificateChain;
 import com.emc.vipr.model.keystore.KeyAndCertificateChain;
 import com.emc.vipr.model.keystore.RotateKeyAndCertParam;
-import org.springframework.util.CollectionUtils;
 
 /**
  * Resource for VirtualDataCenter manipulation
  */
 @Path("/vdc")
 @DefaultPermissions(read_roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-write_roles = { Role.SECURITY_ADMIN })
+        write_roles = { Role.SECURITY_ADMIN })
 public class VirtualDataCenterService extends TaskResourceService {
 
     @Autowired
@@ -123,7 +111,6 @@ public class VirtualDataCenterService extends TaskResourceService {
     public void setLocalUsers(Map<String, StorageOSUser> localUsers) {
         _localUsers = localUsers;
     }
-
 
     private static final String EVENT_SERVICE_TYPE = "vdc";
     private static final String ROOT = "root";
@@ -217,13 +204,13 @@ public class VirtualDataCenterService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(param.getCertificateChain(), "certificate_chain");
         verifyVdcCert(param.getCertificateChain(), param.getApiEndpoint(), true);
 
-        //TODO: We need a way to reject this if another "add" is already
-        //in progress so that we only have one new VDC being synced at a time
+        // TODO: We need a way to reject this if another "add" is already
+        // in progress so that we only have one new VDC being synced at a time
 
         VirtualDataCenter localVDC = VdcUtil.getLocalVdc();
         Properties vdcInfo = prepareVdcOpParam(localVDC.getId(), param);
         auditOp(OperationTypeEnum.ADD_VDC, true, null, param.getApiEndpoint(), param.getApiEndpoint());
-        return enqueueJob(localVDC, JobType.VDC_CONNECT_JOB, Arrays.asList(new Object[]{vdcInfo}));
+        return enqueueJob(localVDC, JobType.VDC_CONNECT_JOB, Arrays.asList(new Object[] { vdcInfo }));
     }
 
     @GET
@@ -283,7 +270,8 @@ public class VirtualDataCenterService extends TaskResourceService {
 
         VirtualDataCenter vdc = queryResource(id);
 
-        /* If vdc is in failed state:
+        /*
+         * If vdc is in failed state:
          * CONNECT_FAILED
          * REMOVE_FAILED
          * 
@@ -291,9 +279,9 @@ public class VirtualDataCenterService extends TaskResourceService {
          */
         // CTRL-3883 update should fail if previous op failed
         ConnectionStatus status = vdc.getConnectionStatus();
-        _log.info("Updating VDC {}, connection status {}",vdc.getShortId(), status );
-        if(status.equals(VirtualDataCenter.ConnectionStatus.CONNECT_FAILED)  ||
-                status.equals(VirtualDataCenter.ConnectionStatus.REMOVE_FAILED)  ) {
+        _log.info("Updating VDC {}, connection status {}", vdc.getShortId(), status);
+        if (status.equals(VirtualDataCenter.ConnectionStatus.CONNECT_FAILED) ||
+                status.equals(VirtualDataCenter.ConnectionStatus.REMOVE_FAILED)) {
             _log.error("Cannot update VDC {} if it's in a failed state. Mannual VDC recovery required", vdc.getShortId());
             throw APIException.methodNotAllowed.notSupported();
         }
@@ -306,7 +294,7 @@ public class VirtualDataCenterService extends TaskResourceService {
             certchain = (Certificate[]) list.get(2);
         }
         params.add(modifyVirtualDataCenterInfo(VdcUtil.getLocalVdc(), vdc, param, certchain));
-        if( list != null ) {
+        if (list != null) {
             params.addAll(list);
         }
         auditOp(OperationTypeEnum.UPDATE_VDC, true, null, id.toString());
@@ -330,20 +318,19 @@ public class VirtualDataCenterService extends TaskResourceService {
             _log.error("Cannot delete {}. Mannual VDC recovery required", vdc.getShortId());
             throw APIException.methodNotAllowed.notSupported();
         }
-        //TODO Need to check that VDC to be removed is not "local VDC".
+        // TODO Need to check that VDC to be removed is not "local VDC".
         // We can not remove local VDC.
 
-        //TODO: Are there more pre-checks we want to do synchronously?
+        // TODO: Are there more pre-checks we want to do synchronously?
 
         auditOp(OperationTypeEnum.REMOVE_VDC, true, null, vdc.getLabel(), vdc.getApiEndpoint());
         return enqueueJob(vdc, JobType.VDC_REMOVE_JOB);
     }
 
-
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/disconnect")
-    @CheckPermission(roles = {Role.SECURITY_ADMIN}, block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN }, block_proxies = true)
     public TaskResourceRep disconnectVirtualDataCenter(@PathParam("id") URI id) {
         blockRoot();
         ArgValidator.checkFieldUriType(id, VirtualDataCenter.class, "id");
@@ -352,7 +339,7 @@ public class VirtualDataCenterService extends TaskResourceService {
             throw APIException.badRequests.cantChangeConnectionStatusOfLocalVDC();
         }
 
-        //TODO: Are there more pre-checks we want to do synchronously?
+        // TODO: Are there more pre-checks we want to do synchronously?
 
         auditOp(OperationTypeEnum.DISCONNECT_VDC, true, null, id.toString());
 
@@ -372,7 +359,7 @@ public class VirtualDataCenterService extends TaskResourceService {
             throw APIException.badRequests.cantChangeConnectionStatusOfLocalVDC();
         }
 
-        //TODO: Are there more pre-checks we want to do synchronously?
+        // TODO: Are there more pre-checks we want to do synchronously?
 
         auditOp(OperationTypeEnum.RECONNECT_VDC, true, null, id.toString());
 
@@ -381,7 +368,7 @@ public class VirtualDataCenterService extends TaskResourceService {
 
     /**
      * Get vdc role assignments
-     *
+     * 
      * @return Role assignment details
      * @brief List vdc role assignments
      */
@@ -395,9 +382,9 @@ public class VirtualDataCenterService extends TaskResourceService {
     }
 
     /**
-     * Retrieves the vdc's secret key.  If it doesn't exist,
+     * Retrieves the vdc's secret key. If it doesn't exist,
      * it gets generated
-     *
+     * 
      * @return VDC secret key
      * @brief Retrieves the vdc's secret key
      */
@@ -412,10 +399,9 @@ public class VirtualDataCenterService extends TaskResourceService {
         return resp;
     }
 
-
     /**
      * Add or remove individual role assignments. Request body must include at least one add or remove operation.
-     *
+     * 
      * @param changes Role assignment changes
      * @return No data returned in response body
      * @brief Add or remove role assignments
@@ -444,7 +430,7 @@ public class VirtualDataCenterService extends TaskResourceService {
 
     /**
      * restrict SecurityAdmin from dropping his own SECURITY_ADMIN role.
-     *
+     * 
      * @param vdc vdc to be persisted with the new role change
      */
     private void validateVdcRoleAssignmentChange(VirtualDataCenter vdc) {
@@ -473,16 +459,16 @@ public class VirtualDataCenterService extends TaskResourceService {
     /**
      * prepare the vdc to fulfill the requirement of being able to add other vdc in this one.
      * tasks are:
-     *     1. remove root's roles from all tenants
-     *     2. remove root's ownership from all projects
-     *
+     * 1. remove root's roles from all tenants
+     * 2. remove root's ownership from all projects
+     * 
      * @return http response
      * @brief prepare vdc by removing root's tenant roles and project ownerships
      */
     @Path("/prepare-vdc")
     @POST
-    @CheckPermission(roles = {Role.SECURITY_ADMIN}, block_proxies = true)
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN }, block_proxies = true)
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response prepareLocalVdc() {
         // remove root's role from all tenants
         try {
@@ -494,10 +480,9 @@ public class VirtualDataCenterService extends TaskResourceService {
         return Response.ok().build();
     }
 
-
     /**
      * Get the certificate chain being used by ViPR
-     *
+     * 
      * @brief Get the certificate chain being used by ViPR
      * @prereq none
      */
@@ -524,7 +509,7 @@ public class VirtualDataCenterService extends TaskResourceService {
 
     /**
      * Rotate the VIPR key and certificate chain.
-     *
+     * 
      * @param rotateKeyAndCertParam
      * @return the new certificate chain being used by ViPR
      * @brief Rotate the VIPR key and certificate chain to a new system self-signed or a specified input.
@@ -629,7 +614,6 @@ public class VirtualDataCenterService extends TaskResourceService {
                 throw SecurityException.fatals.failedToUpdateKeyCertificateEntry(e);
             }
 
-
             if (!certificateVersionHelper.updateCertificateVersion()) {
                 _log.error("failed to update version for new key and certificate chain.");
                 throw SecurityException.fatals.failedToUpdateKeyCertificateEntry();
@@ -650,59 +634,60 @@ public class VirtualDataCenterService extends TaskResourceService {
     /***
      * Checks if the all the VDCs in the federation are in the
      * same expected version or not.
-     *
+     * 
      * @usage \vdc\admin\check-compatibility?expect_verion=2.3
      * @param expectVersion
      * @return true if all the VDCs in the federation are in
-     * the expect_version otherwise false.
+     *         the expect_version otherwise false.
      */
     @GET
     @Path("check-compatibility")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public Response checkGeoVersionCompatibility(@QueryParam("expect_version") String expectVersion){
-    	if(!isValidateVersion(expectVersion)){
-    		_log.warn("invalid Geo version {} : only support major and minor ", expectVersion);
-    		throw APIException.badRequests.invalidParameter("invalid Geo version {} : only support major and minor ", expectVersion);
-    	}
-    	
-    	Boolean versionSupported = this._dbClient.checkGeoCompatible(expectVersion);
-    	return Response.ok(versionSupported.toString(), MediaType.APPLICATION_OCTET_STREAM).build();
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public Response checkGeoVersionCompatibility(@QueryParam("expect_version") String expectVersion) {
+        if (!isValidateVersion(expectVersion)) {
+            _log.warn("invalid Geo version {} : only support major and minor ", expectVersion);
+            throw APIException.badRequests.invalidParameter("invalid Geo version {} : only support major and minor ", expectVersion);
+        }
+
+        Boolean versionSupported = this._dbClient.checkGeoCompatible(expectVersion);
+        return Response.ok(versionSupported.toString(), MediaType.APPLICATION_OCTET_STREAM).build();
     }
 
     /**
      * Check if the setup is geo-distributed multi-VDC
+     * 
      * @usage \vdc\admin\check-geo-distributed
      * @return true if the setup is geo-distributed VDC
      */
     @GET
     @Path("check-geo-distributed")
     public Response checkGeoSetup() {
-        Boolean isGeo= false;
+        Boolean isGeo = false;
         List<URI> ids = _dbClient.queryByType(VirtualDataCenter.class, true);
         Iterator<VirtualDataCenter> iter = _dbClient.queryIterativeObjects(VirtualDataCenter.class, ids);
         while (iter.hasNext()) {
-             VirtualDataCenter vdc = iter.next();
-             if (!vdc.getLocal()) {
-                 if ((vdc.getConnectionStatus() == VirtualDataCenter.ConnectionStatus.ISOLATED)
-                         || vdc.getRepStatus() == VirtualDataCenter.GeoReplicationStatus.REP_NONE) {
-                     continue;
-                 }
-                 isGeo = true;
-             }
+            VirtualDataCenter vdc = iter.next();
+            if (!vdc.getLocal()) {
+                if ((vdc.getConnectionStatus() == VirtualDataCenter.ConnectionStatus.ISOLATED)
+                        || vdc.getRepStatus() == VirtualDataCenter.GeoReplicationStatus.REP_NONE) {
+                    continue;
+                }
+                isGeo = true;
+            }
         }
         return Response.ok(isGeo.toString(), MediaType.APPLICATION_OCTET_STREAM).build();
     }
 
     private static boolean isValidateVersion(String expectVersion) {
-        if(StringUtils.isBlank(expectVersion)){
+        if (StringUtils.isBlank(expectVersion)) {
             return false;
         }
-    	if(expectVersion.split(VERSION_PART_SEPERATOR).length != 2){
-    		return false;
-    	}
-    	
-    	return true;
-	}
+        if (expectVersion.split(VERSION_PART_SEPERATOR).length != 2) {
+            return false;
+        }
+
+        return true;
+    }
 
     private Properties prepareVdcOpParam(URI localVdcId,
             VirtualDataCenterAddParam param) throws DatabaseException {
@@ -712,27 +697,27 @@ public class VirtualDataCenterService extends TaskResourceService {
         taskProperties.setProperty(GeoServiceJob.VDC_NAME, param.getName());
         taskProperties.setProperty(GeoServiceJob.VDC_API_ENDPOINT, param.getApiEndpoint());
         taskProperties.setProperty(GeoServiceJob.VDC_SECRETE_KEY, param.getSecretKey());
-        String description =  param.getDescription();
-        if( description != null ) {
+        String description = param.getDescription();
+        if (description != null) {
             taskProperties.setProperty(GeoServiceJob.VDC_DESCRIPTION, param.getDescription());
         }
         String geoCommandEndpoint = param.getGeoCommandEndpoint();
-        if( geoCommandEndpoint != null ) {
+        if (geoCommandEndpoint != null) {
             taskProperties.setProperty(GeoServiceJob.VDC_GEOCOMMAND_ENDPOINT, param.getGeoCommandEndpoint());
         }
         String geoDataEndpoint = param.getGeoDataEndpoint();
-        if( geoDataEndpoint != null ) {
+        if (geoDataEndpoint != null) {
             taskProperties.setProperty(GeoServiceJob.VDC_GEODATA_ENDPOINT, param.getGeoDataEndpoint());
         }
         taskProperties.setProperty(GeoServiceJob.VDC_CERTIFICATE_CHAIN, param.getCertificateChain());
         String vdcShortId = _geoHelper.createMonoVdcId();
-        taskProperties.setProperty(GeoServiceJob.VDC_SHORT_ID,vdcShortId);
+        taskProperties.setProperty(GeoServiceJob.VDC_SHORT_ID, vdcShortId);
         taskProperties.setProperty(GeoServiceJob.OPERATED_VDC_ID, URIUtil.createVirtualDataCenterId(vdcShortId).toString());
 
         return taskProperties;
     }
 
-    private Properties modifyVirtualDataCenterInfo (VirtualDataCenter localVdc, VirtualDataCenter vdc,
+    private Properties modifyVirtualDataCenterInfo(VirtualDataCenter localVdc, VirtualDataCenter vdc,
             VirtualDataCenterModifyParam param, Certificate[] certchain) throws DatabaseException {
 
         Properties taskProperties = new Properties();
@@ -740,27 +725,28 @@ public class VirtualDataCenterService extends TaskResourceService {
         taskProperties.setProperty(GeoServiceJob.OPERATED_VDC_ID, vdc.getId().toString());
 
         if (StringUtils.isNotEmpty(param.getName())) {
-            taskProperties.setProperty(GeoServiceJob.VDC_NAME,param.getName());
+            taskProperties.setProperty(GeoServiceJob.VDC_NAME, param.getName());
 
-        /* TODO: it is part of change vip flow
-        if (StringUtils.isNotEmpty(param.getApiEndpoint()))
-            taskProperties.setProperty(GeoServiceJob.VDC_API_ENDPOINT,param.getApiEndpoint);
-            vdc.setLabel(param.getApiEndpoint());
+            /*
+             * TODO: it is part of change vip flow
+             * if (StringUtils.isNotEmpty(param.getApiEndpoint()))
+             * taskProperties.setProperty(GeoServiceJob.VDC_API_ENDPOINT,param.getApiEndpoint);
+             * vdc.setLabel(param.getApiEndpoint());
              */
 
-        /* TODO: wait for security to support key rotation
-        if (StringUtils.isNotEmpty(param.getSecretKey()))
-            taskProperties.setProperty(GeoServiceJob.VDC_SECRETE_KEY,param.getSecretKey());
+            /*
+             * TODO: wait for security to support key rotation
+             * if (StringUtils.isNotEmpty(param.getSecretKey()))
+             * taskProperties.setProperty(GeoServiceJob.VDC_SECRETE_KEY,param.getSecretKey());
              */
         }
 
-
         if (StringUtils.isNotEmpty(param.getDescription())) {
-            taskProperties.setProperty(GeoServiceJob.VDC_DESCRIPTION,param.getDescription());
+            taskProperties.setProperty(GeoServiceJob.VDC_DESCRIPTION, param.getDescription());
         }
 
         if (StringUtils.isNotEmpty(param.getGeoCommandEndpoint())) {
-            taskProperties.setProperty(GeoServiceJob.VDC_GEOCOMMAND_ENDPOINT,param.getGeoCommandEndpoint());
+            taskProperties.setProperty(GeoServiceJob.VDC_GEOCOMMAND_ENDPOINT, param.getGeoCommandEndpoint());
         }
 
         if (StringUtils.isNotEmpty(param.getGeoDataEndpoint())) {
@@ -770,7 +756,7 @@ public class VirtualDataCenterService extends TaskResourceService {
         if (certchain != null) {
             try {
                 String certChain = KeyCertificatePairGenerator.getCertificateChainAsString(certchain);
-                taskProperties.setProperty(GeoServiceJob.VDC_CERTIFICATE_CHAIN,certChain);
+                taskProperties.setProperty(GeoServiceJob.VDC_CERTIFICATE_CHAIN, certChain);
             } catch (CertificateEncodingException e) {
                 throw APIException.badRequests.failedToLoadKeyFromString(e);
             }
@@ -781,8 +767,8 @@ public class VirtualDataCenterService extends TaskResourceService {
 
     /**
      * Add a job to the async queue and return a rest representation for the task
-     *
-     * @param vdc     the vdc to operate on
+     * 
+     * @param vdc the vdc to operate on
      * @param jobType the operation to perform
      * @return the task representation
      */
@@ -958,7 +944,7 @@ public class VirtualDataCenterService extends TaskResourceService {
 
     /**
      * check if given endpoint is valid by comparing ips in endpoint against subject names in certificate
-     *
+     * 
      * @param x509Certificate
      * @param endpoint
      */
@@ -989,7 +975,7 @@ public class VirtualDataCenterService extends TaskResourceService {
                 List extensionEntry = (List) itAltNames.next();
                 Integer nameType = (Integer) extensionEntry.get(0);
                 if (nameType == SUBALTNAME_DNSNAME || nameType == SUBALTNAME_IPADDRESS) {
-                    String name = (String)extensionEntry.get(1);
+                    String name = (String) extensionEntry.get(1);
                     try {
                         for (InetAddress addr : InetAddress.getAllByName(name)) {
                             subjectIpsInCert.add(addr.getHostAddress());
@@ -1001,9 +987,8 @@ public class VirtualDataCenterService extends TaskResourceService {
             }
         }
 
-
         // check at least one IP in both subjectIpsInCert and ipsOfEndpoint
-        if (ipsOfEndpoint.size() == 0 || subjectIpsInCert.size() == 0) {
+        if (ipsOfEndpoint.isEmpty() || subjectIpsInCert.isEmpty()) {
             throw APIException.badRequests.apiEndpointNotMatchCertificate(endpoint);
         }
 

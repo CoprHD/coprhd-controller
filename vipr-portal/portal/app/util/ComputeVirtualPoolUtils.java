@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -32,7 +32,7 @@ public class ComputeVirtualPoolUtils {
     public static boolean canUpdateACLs() {
         return Security.hasAnyRole(Security.SECURITY_ADMIN, Security.SYSTEM_ADMIN, Security.RESTRICTED_SYSTEM_ADMIN);
     }
-	
+
     public static CachedResources<ComputeVirtualPoolRestRep> createBlockCache() {
         return new CachedResources<ComputeVirtualPoolRestRep>(getViprClient().computeVpools());
     }
@@ -44,19 +44,18 @@ public class ComputeVirtualPoolUtils {
     public static ComputeVirtualPoolRestRep getComputeVirtualPool(URI id) {
         try {
             return getViprClient().computeVpools().get(id);
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
             throw e;
         }
     }
-    
+
     public static List<ComputeVirtualPoolRestRep> getComputeVirtualPools() {
         return getViprClient().computeVpools().getAll();
     }
-    
+
     public static List<ComputeVirtualPoolRestRep> getComputeVirtualPools(ResourceFilter<ComputeVirtualPoolRestRep> filter) {
         return getViprClient().computeVpools().getAll(filter);
     }
@@ -79,7 +78,7 @@ public class ComputeVirtualPoolUtils {
 
     public static List<ComputeElementRestRep> listMatchingComputeElements(ComputeVirtualPoolCreateParam virtualPool) {
         return getViprClient().computeVpools().listMatchingComputeElements(virtualPool);
-    }    
+    }
 
     public static List<ACLEntry> getComputeACLs(String id) {
         return getViprClient().computeVpools().getACLs(uri(id));
@@ -89,19 +88,20 @@ public class ComputeVirtualPoolUtils {
         return getViprClient().computeVpools().updateACLs(uri(id), changes);
     }
 
-    public static ComputeVirtualPoolRestRep updateAssignedComputeElements(String id, Collection<String> addElements, Collection<String> removeElements) {
+    public static ComputeVirtualPoolRestRep updateAssignedComputeElements(String id, Collection<String> addElements,
+            Collection<String> removeElements) {
         return getViprClient().computeVpools().assignComputeElements(uri(id), createElementAssignments(addElements, removeElements));
     }
 
     private static ComputeVirtualPoolElementUpdateParam createElementAssignments(Collection<String> addElements,
             Collection<String> removeElements) {
         ComputeVirtualPoolAssignmentChanges changes = new ComputeVirtualPoolAssignmentChanges();
-        if (addElements != null && addElements.size() > 0) {
+        if (addElements != null && !addElements.isEmpty()) {
             ComputeVirtualPoolAssignments add = new ComputeVirtualPoolAssignments();
             add.getComputeElements().addAll(addElements);
             changes.setAdd(add);
         }
-        if (removeElements != null && removeElements.size() > 0) {
+        if (removeElements != null && !removeElements.isEmpty()) {
             ComputeVirtualPoolAssignments remove = new ComputeVirtualPoolAssignments();
             remove.getComputeElements().addAll(removeElements);
             changes.setRemove(remove);
@@ -111,6 +111,6 @@ public class ComputeVirtualPoolUtils {
 
     public static ComputeElementListRestRep getAssignedComputeElements(String id) {
         return getViprClient().computeVpools().getMatchedComputeElements(uri(id));
-    }    
-    
+    }
+
 }

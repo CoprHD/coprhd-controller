@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.server.upgrade.impl.callback;
 
@@ -35,25 +25,26 @@ import com.emc.storageos.db.client.upgrade.callbacks.VplexVolumeFullCopyMigratio
 import com.emc.storageos.db.server.DbsvcTestBase;
 import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
 
-public class VplexVolumeFullCopyMigrationTest extends DbSimpleMigrationTestBase{
+public class VplexVolumeFullCopyMigrationTest extends DbSimpleMigrationTestBase {
 
     private static final Logger s_logger = LoggerFactory.getLogger(VplexVolumeFullCopyMigrationTest.class);
 
     private static final String VPLEX_VOLUME_LABEL = "VPlexVolume";
     private static final String VPLEX_FULL_COPY_VOLUME_LABEL = "VPlexVolumeFullCopy";
-    
+
     private URI _srcVplexVolumeURI;
     private URI _vplexVolumeFullCopyURI;
 
     @BeforeClass
     public static void setup() throws IOException {
-        
+
         customMigrationCallbacks.put("1.1", new ArrayList<BaseCustomMigrationCallback>() {
             private static final long serialVersionUID = 1L;
-        {
-            // Add your implementation of migration callback below.
-            add(new VplexVolumeFullCopyMigration());
-        }});
+            {
+                // Add your implementation of migration callback below.
+                add(new VplexVolumeFullCopyMigration());
+            }
+        });
 
         DbsvcTestBase.setup();
     }
@@ -71,21 +62,21 @@ public class VplexVolumeFullCopyMigrationTest extends DbSimpleMigrationTestBase{
     @Override
     protected void prepareData() throws Exception {
         s_logger.info("Preparing data for VPLEX volume full copy migration test.");
-        
+
         // Create the virtual array for the source side.
         VirtualArray srcVarray = new VirtualArray();
         URI srcVarrayURI = URIUtil.createId(VirtualArray.class);
         srcVarray.setId(srcVarrayURI);
         _dbClient.createObject(srcVarray);
         s_logger.info("Created source side virtual array.");
-        
+
         // Create the virtual array for the HA side.
         VirtualArray haVarray = new VirtualArray();
         URI haVarrayURI = URIUtil.createId(VirtualArray.class);
         haVarray.setId(haVarrayURI);
         _dbClient.createObject(haVarray);
         s_logger.info("Created HA side virtual array.");
-        
+
         // Create a backend volume in the source varray.
         Volume srcBackendVolume = new Volume();
         URI srcBackendVolumeURI = URIUtil.createId(Volume.class);
@@ -98,12 +89,12 @@ public class VplexVolumeFullCopyMigrationTest extends DbSimpleMigrationTestBase{
         Volume haBackendVolume = new Volume();
         URI haBackendVolumeURI = URIUtil.createId(Volume.class);
         haBackendVolume.setId(haBackendVolumeURI);
-        haBackendVolume.setVirtualArray(haVarrayURI);        
-        _dbClient.createObject(haBackendVolume);     
+        haBackendVolume.setVirtualArray(haVarrayURI);
+        _dbClient.createObject(haBackendVolume);
         s_logger.info("Created HA backend volume for source VPLEX volume.");
-        
-        // Create the VPLEX volume in the source varray using the 
-        // source and HA backend volumes. This volume will be the 
+
+        // Create the VPLEX volume in the source varray using the
+        // source and HA backend volumes. This volume will be the
         // source of a VPLEX full copy volume.
         Volume srcVplexVolume = new Volume();
         _srcVplexVolumeURI = URIUtil.createId(Volume.class);
@@ -132,7 +123,7 @@ public class VplexVolumeFullCopyMigrationTest extends DbSimpleMigrationTestBase{
         haBackendVolumeForCopy.setVirtualArray(haVarrayURI);
         _dbClient.createObject(haBackendVolumeForCopy);
         s_logger.info("Created HA backend volume for full copy VPLEX volume.");
-        
+
         // Create another VPLEX volume in the source varray.
         // This volume will be the VPLEX full copy volume.
         Volume vplexVolumeFullCopy = new Volume();
@@ -158,7 +149,7 @@ public class VplexVolumeFullCopyMigrationTest extends DbSimpleMigrationTestBase{
         _dbClient.persistObject(srcBackendVolumeForCopy);
         s_logger.info("Establish full copy relationships betwen the backend source volumes.");
     }
-    
+
     @Override
     protected void verifyResults() throws Exception {
         s_logger.info("Verifying results for VPLEX volume full copy migration test.");
@@ -177,5 +168,5 @@ public class VplexVolumeFullCopyMigrationTest extends DbSimpleMigrationTestBase{
                 Assert.assertEquals("VPLEX copy has incorrect source", copySourceURI, _srcVplexVolumeURI);
             }
         }
-    }    
+    }
 }

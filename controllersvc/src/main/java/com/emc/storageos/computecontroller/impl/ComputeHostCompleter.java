@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.computecontroller.impl;
@@ -43,54 +43,54 @@ public class ComputeHostCompleter extends TaskCompleter {
         auditMgr.setDbClient(dbClient);
 
         switch (status) {
-        case ready:
-            if (host != null) {
-                if (ce != null) {
-                    host.setUuid(ce.getUuid());
-                }
-                host.setProvisioningStatus(ProvisioningJobStatus.COMPLETE.toString());
-                dbClient.persistObject(host);
+            case ready:
+                if (host != null) {
+                    if (ce != null) {
+                        host.setUuid(ce.getUuid());
+                    }
+                    host.setProvisioningStatus(ProvisioningJobStatus.COMPLETE.toString());
+                    dbClient.persistObject(host);
 
-                dbClient.ready(Host.class, getId(), getOpId());
+                    dbClient.ready(Host.class, getId(), getOpId());
 
-                if (ce != null) {
-                    auditMgr.recordAuditLog(null, null, serviceType, opType, System.currentTimeMillis(),
-                            AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END, host.getId().toString(),
-                            ce.getAvailable(), ce.getUuid(), ce.getDn());
+                    if (ce != null) {
+                        auditMgr.recordAuditLog(null, null, serviceType, opType, System.currentTimeMillis(),
+                                AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END, host.getId().toString(),
+                                ce.getAvailable(), ce.getUuid(), ce.getDn());
+                    }
+                    else {
+                        auditMgr.recordAuditLog(null, null, serviceType, opType, System.currentTimeMillis(),
+                                AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END, host.getId().toString());
+                    }
                 }
-                else {
-                    auditMgr.recordAuditLog(null, null, serviceType, opType, System.currentTimeMillis(),
-                            AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END, host.getId().toString());
-                }
-            }
-            break;
-        case error:
-            if (host != null) {
-                host.setProvisioningStatus(ProvisioningJobStatus.ERROR.toString());
-                dbClient.persistObject(host);
-                dbClient.error(Host.class, getId(), getOpId(), coded);
+                break;
+            case error:
+                if (host != null) {
+                    host.setProvisioningStatus(ProvisioningJobStatus.ERROR.toString());
+                    dbClient.persistObject(host);
+                    dbClient.error(Host.class, getId(), getOpId(), coded);
 
-                /**
-                 * Looks like the provisioning of the Host was unsuccessful...
-                 * Set the ComputeElement to available (assuming that the
-                 * rollback method executed properly)
-                 */
-                if (ce != null) {
-                    ce.setAvailable(true);
-                    dbClient.persistObject(ce);
-                    auditMgr.recordAuditLog(null, null, serviceType, opType, System.currentTimeMillis(),
-                            AuditLogManager.AUDITLOG_FAILURE, AuditLogManager.AUDITOP_END, host.getId().toString(),
-                            ce.getAvailable(), ce.getUuid(), ce.getDn());
+                    /**
+                     * Looks like the provisioning of the Host was unsuccessful...
+                     * Set the ComputeElement to available (assuming that the
+                     * rollback method executed properly)
+                     */
+                    if (ce != null) {
+                        ce.setAvailable(true);
+                        dbClient.persistObject(ce);
+                        auditMgr.recordAuditLog(null, null, serviceType, opType, System.currentTimeMillis(),
+                                AuditLogManager.AUDITLOG_FAILURE, AuditLogManager.AUDITOP_END, host.getId().toString(),
+                                ce.getAvailable(), ce.getUuid(), ce.getDn());
+                    }
+                    else {
+                        auditMgr.recordAuditLog(null, null, serviceType, opType, System.currentTimeMillis(),
+                                AuditLogManager.AUDITLOG_FAILURE, AuditLogManager.AUDITOP_END, host.getId().toString());
+                    }
                 }
-                else {
-                    auditMgr.recordAuditLog(null, null, serviceType, opType, System.currentTimeMillis(),
-                            AuditLogManager.AUDITLOG_FAILURE, AuditLogManager.AUDITOP_END, host.getId().toString());
-                }
-            }
-            break;
-        default:
-            throw new DeviceControllerException(new IllegalStateException(
-                    "Terminal state processing called, when operation was in fact not in a terminal state!"));
+                break;
+            default:
+                throw new DeviceControllerException(new IllegalStateException(
+                        "Terminal state processing called, when operation was in fact not in a terminal state!"));
         }
     }
 }

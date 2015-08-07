@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.vnxe.requests;
@@ -26,10 +16,10 @@ import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.models.VNXeFileSystem;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 
-public class FileSystemListRequest extends KHRequests<VNXeFileSystem>{
-	private static final Logger _logger = LoggerFactory.getLogger(FileSystemListRequest.class);
+public class FileSystemListRequest extends KHRequests<VNXeFileSystem> {
+    private static final Logger _logger = LoggerFactory.getLogger(FileSystemListRequest.class);
     private static final String URL = "/api/types/filesystem/instances";
-    
+
     public FileSystemListRequest(KHClient client) {
         super(client);
         _url = URL;
@@ -37,52 +27,55 @@ public class FileSystemListRequest extends KHRequests<VNXeFileSystem>{
 
     /**
      * Get all file systems in the array
+     * 
      * @return List of VNXeFileSystem
      */
-    public List<VNXeFileSystem> get(){
-    	_queryParams = null;
+    public List<VNXeFileSystem> get() {
+        _queryParams = null;
         return getDataForObjects(VNXeFileSystem.class);
 
     }
-    
+
     /**
      * Get file system using its storageResourceId
+     * 
      * @param storageResourceId
      * @return
      */
     public VNXeFileSystem getByStorageResource(String storageResourceId) {
-    	MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-    	queryParams.add(VNXeConstants.FILTER, VNXeConstants.STORAGE_RESOURCE_FILTER+storageResourceId);
-    	setQueryParameters(queryParams);
-    	VNXeFileSystem result = null;
-    	List<VNXeFileSystem> fsList = getDataForObjects(VNXeFileSystem.class);
-    	//it should just return 1
-    	if (fsList!= null && fsList.size()>0) {
-    		result =fsList.get(0);
-    	} else {
-    		_logger.info("No file system found using the storage resource id: " +storageResourceId);
-    	}
-    	return result;
+        MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
+        queryParams.add(VNXeConstants.FILTER, VNXeConstants.STORAGE_RESOURCE_FILTER + storageResourceId);
+        setQueryParameters(queryParams);
+        VNXeFileSystem result = null;
+        List<VNXeFileSystem> fsList = getDataForObjects(VNXeFileSystem.class);
+        // it should just return 1
+        if (fsList != null && !fsList.isEmpty()) {
+            result = fsList.get(0);
+        } else {
+            _logger.info("No file system found using the storage resource id: " + storageResourceId);
+        }
+        return result;
     }
-    
+
     /**
      * Get file system using its name
+     * 
      * @param fsName fileSystem name
      * @return VNXeFileSystem
      */
     public VNXeFileSystem getByFSName(String fsName) {
-    	MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-    	queryParams.add(VNXeConstants.FILTER,VNXeConstants.NAME_FILTER+fsName);
-    	setQueryParameters(queryParams);
-    	VNXeFileSystem result = null;
-    	List<VNXeFileSystem> fsList = getDataForObjects(VNXeFileSystem.class);
-    	//it should just return 1
-    	if (fsList!= null && fsList.size()>0) {
-    		result =fsList.get(0);
-    	} else {
-    		_logger.info("No file system found using the name: " +fsName);
-    	}
-    	return result;
+        MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
+        queryParams.add(VNXeConstants.FILTER, VNXeConstants.NAME_FILTER + fsName);
+        setQueryParameters(queryParams);
+        VNXeFileSystem result = null;
+        List<VNXeFileSystem> fsList = getDataForObjects(VNXeFileSystem.class);
+        // it should just return 1
+        if (fsList != null && !fsList.isEmpty()) {
+            result = fsList.get(0);
+        } else {
+            _logger.info("No file system found using the name: " + fsName);
+        }
+        return result;
     }
 
 }

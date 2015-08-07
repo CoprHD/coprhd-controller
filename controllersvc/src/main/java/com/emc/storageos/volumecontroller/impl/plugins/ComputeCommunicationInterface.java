@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.plugins;
@@ -16,8 +16,8 @@ public class ComputeCommunicationInterface extends ExtendedCommunicationInterfac
 
     ComputeDeviceController deviceController;
 
-    public void setDeviceController(ComputeDeviceController controller){
-    	deviceController = controller;
+    public void setDeviceController(ComputeDeviceController controller) {
+        deviceController = controller;
     }
 
     private static final Logger _log = LoggerFactory
@@ -35,15 +35,15 @@ public class ComputeCommunicationInterface extends ExtendedCommunicationInterfac
         // do nothing
     }
 
-	@Override
-	public void discover(AccessProfile accessProfile) throws BaseCollectionException {
-		try {
-			_log.info("Access Profile Details :" + accessProfile.toString());
+    @Override
+    public void discover(AccessProfile accessProfile) throws BaseCollectionException {
+        try {
+            _log.info("Access Profile Details :" + accessProfile.toString());
 
-			deviceController.discoverComputeSystem(accessProfile.getSystemId());
+            deviceController.discoverComputeSystem(accessProfile.getSystemId());
 
-		} catch (Exception e) {
-			throw ComputeSystemControllerException.exceptions.discoverFailed("", e);
-		}
-	}
+        } catch (Exception e) {
+            throw ComputeSystemControllerException.exceptions.discoverFailed("", e);
+        }
+    }
 }

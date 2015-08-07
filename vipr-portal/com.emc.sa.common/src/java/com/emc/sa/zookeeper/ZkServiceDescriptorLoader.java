@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.zookeeper;
@@ -37,8 +37,7 @@ public class ZkServiceDescriptorLoader {
             List<ServiceDefinition> services = ServiceDefinitionLoader.load(cl);
             zkDescriptors.addServices(services);
             LOG.info("Loaded " + services.size() + " services");
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Unable to load services", e);
         }
     }

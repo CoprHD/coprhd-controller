@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) 2013. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
@@ -42,10 +32,9 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-
 /**
  * Job for volumeExpand operation.
- *
+ * 
  */
 public class SmisVolumeExpandJob extends SmisJob {
     private static final Logger _log = LoggerFactory.getLogger(SmisVolumeExpandJob.class);
@@ -80,7 +69,7 @@ public class SmisVolumeExpandJob extends SmisJob {
             CIMConnectionFactory cimConnectionFactory = jobContext.getCimConnectionFactory();
             WBEMClient client = getWBEMClient(dbClient, cimConnectionFactory);
 
-            // If terminal state update storage pool capacity and remove reservation for  volume capacity
+            // If terminal state update storage pool capacity and remove reservation for volume capacity
             // from pool's reserved capacity map.
             if (jobStatus == JobStatus.SUCCESS || jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 SmisUtils.updateStoragePoolCapacity(dbClient, client, _storagePoolURI);
@@ -95,7 +84,7 @@ public class SmisVolumeExpandJob extends SmisJob {
 
             String opId = getTaskCompleter().getOpId();
             StringBuilder logMsgBuilder =
-                                new StringBuilder(String.format("Updating status of job %s to %s, task: %s", this.getJobName(), jobStatus.name(), opId));
+                    new StringBuilder(String.format("Updating status of job %s to %s, task: %s", this.getJobName(), jobStatus.name(), opId));
 
             if (jobStatus == JobStatus.SUCCESS) {
                 VolumeExpandCompleter taskCompleter = (VolumeExpandCompleter) getTaskCompleter();
@@ -135,30 +124,33 @@ public class SmisVolumeExpandJob extends SmisJob {
                         }
                     }
                 }
-                logMsgBuilder.append(String.format("\n   Capacity: %s, Provisioned capacity: %s, Allocated Capacity: %s", volume.getCapacity(), volume.getProvisionedCapacity(),
+                logMsgBuilder.append(String.format("%n   Capacity: %s, Provisioned capacity: %s, Allocated Capacity: %s",
+                        volume.getCapacity(), volume.getProvisionedCapacity(),
                         volume.getAllocatedCapacity()));
                 if (volume.getIsComposite()) {
-                    logMsgBuilder.append(String.format("\n   Is Meta: %s, Total meta member capacity: %s, Meta member count %s, Meta member size: %s",
-                            volume.getIsComposite(), volume.getTotalMetaMemberCapacity(), volume.getMetaMemberCount(), volume.getMetaMemberSize()));
+                    logMsgBuilder.append(String.format(
+                            "%n   Is Meta: %s, Total meta member capacity: %s, Meta member count %s, Meta member size: %s",
+                            volume.getIsComposite(), volume.getTotalMetaMemberCapacity(), volume.getMetaMemberCount(),
+                            volume.getMetaMemberSize()));
                 }
 
                 _log.info(logMsgBuilder.toString());
 
-                // Reset list  of meta member volumes in the volume
+                // Reset list of meta member volumes in the volume
                 if (volume.getMetaVolumeMembers() != null) {
                     volume.getMetaVolumeMembers().clear();
                 }
-                
+
                 StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-                //set the RP tag on the volume if the volume is RP protected
+                // set the RP tag on the volume if the volume is RP protected
                 if (volume.checkForRp() && storageSystem.getSystemType() != null
-        		        && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())) {
-                	 SmisCommandHelper helper = jobContext.getSmisCommandHelper();
-                	 List<CIMObjectPath> volumePathList = new ArrayList<CIMObjectPath>();
-             		 volumePathList.add(helper.getVolumeMember(storageSystem, volume));
-        		     helper.setRecoverPointTag(storageSystem,volumePathList, true);
-        		}
-                
+                        && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())) {
+                    SmisCommandHelper helper = jobContext.getSmisCommandHelper();
+                    List<CIMObjectPath> volumePathList = new ArrayList<CIMObjectPath>();
+                    volumePathList.add(helper.getVolumeMember(storageSystem, volume));
+                    helper.setRecoverPointTag(storageSystem, volumePathList, true);
+                }
+
                 dbClient.persistObject(volume);
                 // Reset list of meta members native ids in WF data (when meta is created meta members are removed from array)
                 WorkflowService.getInstance().storeStepData(opId, new ArrayList<String>());

@@ -7,12 +7,11 @@ addProjects(
         "coordinatorsvc",
         "controllersvc",
         "syssvc",
-        "installer",
         "exportLibraries/cimadapter",
         "exportLibraries/discoveryplugins",
         "exportLibraries/vnx",
         "exportLibraries/netapp",
-	    "exportLibraries/netappc",
+        "exportLibraries/netappc",
         "exportLibraries/recoverpoint",
         "exportLibraries/isilon",
         "exportLibraries/datadomain",
@@ -34,12 +33,10 @@ addProjects(
         "internalLibraries/models",
         "internalLibraries/backup",
         "tools/dbutils",
-        "tools/simulators",
         "tools/zkutils",
         "tools/dbcli",
         "tools/geniso",
         "tools/ipreconfig",
-        "vasa",
         "vipr-portal/vipr-client",
         "vipr-portal/com.iwave.ext.linux",
         "vipr-portal/com.iwave.ext.windows",
@@ -56,14 +53,15 @@ addProjects(
         "vipr-portal/sanity",
         "tools/apidiff",
         "tools/apidocs",
-        "installer",
         "runtime"
 )
 
 
 if (ext.has('buildType') && ext.get('buildType') == "emc") {
     addProjects("vipr-portal/com.iwave.ext.netapp",
-                "vipr-portal/com.iwave.ext.netappc"
+                "vipr-portal/com.iwave.ext.netappc",
+                "vasa",
+                "installer"
     )
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.model.suite;
@@ -22,7 +22,7 @@ import com.emc.storageos.db.client.URIUtil;
 public class ApprovalRequestTest extends BaseModelTest<ApprovalRequest> {
 
     private static final Logger _logger = Logger.getLogger(ApprovalRequestTest.class);
-    
+
     public ApprovalRequestTest() {
         super(ApprovalRequest.class);
     }
@@ -41,10 +41,10 @@ public class ApprovalRequestTest extends BaseModelTest<ApprovalRequest> {
         URI orderId = URIUtil.createId(Order.class);
         model.setOrderId(orderId);
         model.setTenant(DEFAULT_TENANT);
-        
+
         save(model);
         model = findById(model.getId());
-        
+
         Assert.assertNotNull(model);
         Assert.assertEquals("foo", model.getLabel());
         Assert.assertEquals(ApprovalStatus.APPROVED.name(), model.getApprovalStatus());
@@ -53,33 +53,33 @@ public class ApprovalRequestTest extends BaseModelTest<ApprovalRequest> {
         Assert.assertEquals("my message", model.getMessage());
         Assert.assertEquals(orderId, model.getOrderId());
         Assert.assertEquals(DEFAULT_TENANT, model.getTenant());
-        
+
     }
-    
-    @Test 
-    public void testMultiTenant() throws Exception  {
+
+    @Test
+    public void testMultiTenant() throws Exception {
         _logger.info("Starting multi tenant ApprovalRequest test");
 
-        ModelClient modelClient = getModelClient();        
-        
+        ModelClient modelClient = getModelClient();
+
         ApprovalRequest ar1 = create("t1", "foo1", ApprovalStatus.PENDING);
         modelClient.save(ar1);
-        
+
         ApprovalRequest ar2 = create("t1", "bar2", ApprovalStatus.REJECTED);
-        modelClient.save(ar2);        
+        modelClient.save(ar2);
 
         ApprovalRequest ar3 = create("t2", "foo3", ApprovalStatus.REJECTED);
-        modelClient.save(ar3);          
-        
+        modelClient.save(ar3);
+
         ApprovalRequest ar4 = create("t2", "bar4", ApprovalStatus.REJECTED);
-        modelClient.save(ar4);                
+        modelClient.save(ar4);
 
         ApprovalRequest ar5 = create("t2", "foo5", ApprovalStatus.APPROVED);
-        modelClient.save(ar5);                        
-        
+        modelClient.save(ar5);
+
         ApprovalRequest ar6 = create("t3", "bar6", ApprovalStatus.PENDING);
-        modelClient.save(ar6);                        
-        
+        modelClient.save(ar6);
+
         List<ApprovalRequest> approvalRequests = modelClient.approvalRequests().findAll("t1");
         Assert.assertNotNull(approvalRequests);
         Assert.assertEquals(2, approvalRequests.size());
@@ -87,77 +87,77 @@ public class ApprovalRequestTest extends BaseModelTest<ApprovalRequest> {
         approvalRequests = modelClient.approvalRequests().findAll("t2");
         Assert.assertNotNull(approvalRequests);
         Assert.assertEquals(3, approvalRequests.size());
-        
+
         approvalRequests = modelClient.approvalRequests().findAll("t3");
         Assert.assertNotNull(approvalRequests);
         Assert.assertEquals(1, approvalRequests.size());
-        
+
         approvalRequests = modelClient.approvalRequests().findByLabel("t1", "foo");
         Assert.assertNotNull(approvalRequests);
         Assert.assertEquals(1, approvalRequests.size());
-        
+
         approvalRequests = modelClient.approvalRequests().findByLabel("t1", "ba");
         Assert.assertNotNull(approvalRequests);
         Assert.assertEquals(1, approvalRequests.size());
-        
+
         approvalRequests = modelClient.approvalRequests().findByLabel("t1", "ab");
         Assert.assertNotNull(approvalRequests);
         Assert.assertEquals(0, approvalRequests.size());
-        
+
         approvalRequests = modelClient.approvalRequests().findByLabel("t2", "ba");
         Assert.assertNotNull(approvalRequests);
         Assert.assertEquals(1, approvalRequests.size());
-        
+
         approvalRequests = modelClient.approvalRequests().findByLabel("t2", "fo");
         Assert.assertNotNull(approvalRequests);
         Assert.assertEquals(2, approvalRequests.size());
-        
+
         approvalRequests = modelClient.approvalRequests().findByLabel("t3", "ba");
         Assert.assertNotNull(approvalRequests);
         Assert.assertEquals(1, approvalRequests.size());
-        
+
         approvalRequests = modelClient.approvalRequests().findByLabel("t3", "foo");
         Assert.assertNotNull(approvalRequests);
-        Assert.assertEquals(0, approvalRequests.size());     
+        Assert.assertEquals(0, approvalRequests.size());
 
         approvalRequests = modelClient.approvalRequests().findByApprovalStatus("t1", ApprovalStatus.PENDING);
         Assert.assertNotNull(approvalRequests);
         Assert.assertEquals(1, approvalRequests.size());
-        
+
         approvalRequests = modelClient.approvalRequests().findByApprovalStatus("t1", ApprovalStatus.APPROVED);
         Assert.assertNotNull(approvalRequests);
-        Assert.assertEquals(0, approvalRequests.size());     
-        
+        Assert.assertEquals(0, approvalRequests.size());
+
         approvalRequests = modelClient.approvalRequests().findByApprovalStatus("t1", ApprovalStatus.REJECTED);
         Assert.assertNotNull(approvalRequests);
-        Assert.assertEquals(1, approvalRequests.size());     
-        
+        Assert.assertEquals(1, approvalRequests.size());
+
         approvalRequests = modelClient.approvalRequests().findByApprovalStatus("t2", ApprovalStatus.PENDING);
         Assert.assertNotNull(approvalRequests);
         Assert.assertEquals(0, approvalRequests.size());
-        
+
         approvalRequests = modelClient.approvalRequests().findByApprovalStatus("t2", ApprovalStatus.APPROVED);
         Assert.assertNotNull(approvalRequests);
-        Assert.assertEquals(1, approvalRequests.size());     
-        
+        Assert.assertEquals(1, approvalRequests.size());
+
         approvalRequests = modelClient.approvalRequests().findByApprovalStatus("t2", ApprovalStatus.REJECTED);
         Assert.assertNotNull(approvalRequests);
-        Assert.assertEquals(2, approvalRequests.size());        
-        
+        Assert.assertEquals(2, approvalRequests.size());
+
         approvalRequests = modelClient.approvalRequests().findByApprovalStatus("t3", ApprovalStatus.PENDING);
         Assert.assertNotNull(approvalRequests);
         Assert.assertEquals(1, approvalRequests.size());
-        
+
         approvalRequests = modelClient.approvalRequests().findByApprovalStatus("t3", ApprovalStatus.APPROVED);
         Assert.assertNotNull(approvalRequests);
-        Assert.assertEquals(0, approvalRequests.size());     
-        
+        Assert.assertEquals(0, approvalRequests.size());
+
         approvalRequests = modelClient.approvalRequests().findByApprovalStatus("t3", ApprovalStatus.REJECTED);
         Assert.assertNotNull(approvalRequests);
-        Assert.assertEquals(0, approvalRequests.size());            
-        
+        Assert.assertEquals(0, approvalRequests.size());
+
     }
-    
+
     private static ApprovalRequest create(String tenant, String label, ApprovalStatus status) {
         ApprovalRequest model = new ApprovalRequest();
         model.setLabel(label);
@@ -171,5 +171,5 @@ public class ApprovalRequestTest extends BaseModelTest<ApprovalRequest> {
         model.setTenant(tenant);
         return model;
     }
-    
+
 }

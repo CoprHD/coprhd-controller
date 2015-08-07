@@ -1,17 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2014 EMC Corporation
- *
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.upgrade.callbacks;
@@ -93,7 +82,7 @@ public class ScaleIOPoolAndStorageSystemMigration extends BaseCustomMigrationCal
 
     /**
      * Examine SIO_STORAGE_SYSTEM and return a mapping of StoragePool URI to StoragePool objects
-     *
+     * 
      * @return Map or StoragePool URI to StoragePool Object
      */
     Map<URI, StoragePool> getSIOStoragePools() {
@@ -113,10 +102,10 @@ public class ScaleIOPoolAndStorageSystemMigration extends BaseCustomMigrationCal
 
     /**
      * Query StoragePools associated to the StorageSystem
-     *
+     * 
      * @param storageSystem [in] - StorageSystem object
      * @return List of StoragePools associated with the StorageSystem
-     *
+     * 
      */
     private List<StoragePool> getStoragePoolsForStorageSystem(StorageSystem storageSystem) {
         URIQueryResultList storagePoolURIs = new URIQueryResultList();
@@ -137,11 +126,11 @@ public class ScaleIOPoolAndStorageSystemMigration extends BaseCustomMigrationCal
 
     /**
      * Check if there are any ScaleIO StorageSystems in the DB.
-     *
+     * 
      * @return true IFF there are 1 or more StorageSystems with systemType = scaleio. The SIO_STORAGE_SYSTEMS
-     * map will be populate with a mapping of the SIO StorageSystem URIs to StorageSystem object. Note, that
-     * the StorageSystems will have limited properties based on the query to populate them.
-     *
+     *         map will be populate with a mapping of the SIO StorageSystem URIs to StorageSystem object. Note, that
+     *         the StorageSystems will have limited properties based on the query to populate them.
+     * 
      */
     private boolean haveAnySIOStorageSystems() {
         List<URI> allStorageSystems = dbClient.queryByType(StorageSystem.class, true);

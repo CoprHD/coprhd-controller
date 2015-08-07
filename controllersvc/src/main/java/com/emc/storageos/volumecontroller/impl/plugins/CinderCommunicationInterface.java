@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins;
 
@@ -69,13 +59,13 @@ import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 
-class Section{
+class Section {
     int index;
     String title;
     String volume_driver;
     String volume_backend_name;
-    
-    Section(){
+
+    Section() {
         this.title = "";
         this.volume_driver = "";
         this.volume_backend_name = "";
@@ -88,7 +78,7 @@ class Section{
  * It also does the discovery of pools (but not ports and adapters).
  * 
  */
-public class CinderCommunicationInterface extends ExtendedCommunicationInterfaceImpl 
+public class CinderCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 {
     /**
      * Logger instance to log messages.
@@ -102,8 +92,8 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
 
     private CinderApiFactory _cinderApiFactory;
     private CinderEndPointInfo endPointInfo = null;
-    
-    public void setCinderApiFactory (CinderApiFactory cinderApiFactory) 
+
+    public void setCinderApiFactory(CinderApiFactory cinderApiFactory)
     {
         _cinderApiFactory = cinderApiFactory;
     }
@@ -111,7 +101,7 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile)
             throws BaseCollectionException {
-    	//Do Nothing - It will be implemented later
+        // Do Nothing - It will be implemented later
         _logger.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         _logger.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
     }
@@ -122,7 +112,7 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
     @Override
     public void scan(AccessProfile accessProfile) throws BaseCollectionException {
         _logger.info("Scanning started for provider: {}", accessProfile.getSystemId());
-        StorageProvider storageProvider =_dbClient.queryObject(StorageProvider.class, accessProfile.getSystemId());
+        StorageProvider storageProvider = _dbClient.queryObject(StorageProvider.class, accessProfile.getSystemId());
         String username = storageProvider.getUserName();
         String password = storageProvider.getPassword();
         String hostName = storageProvider.getIPAddress();
@@ -135,12 +125,12 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
         updateKeyInProvider(providerKeys, CinderConstants.KEY_CINDER_HOST_NAME, hostName);
         Integer portNumber = storageProvider.getPortNumber();
         ArrayList<Section> sections = new ArrayList<Section>();
-        String volume_driver = "";          
+        String volume_driver = "";
         String auth_strategy = "unknown";
-        
+
         ChannelSftp sftp = null;
         Session session = null;
-        
+
         try
         {
             JSch jsch = new JSch();
@@ -164,94 +154,93 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
                 int next_section_index = 0;
                 String section_title = "";
                 Boolean auth_section = false;
-                while (!sftp.isEOF()) 
+                while (!sftp.isEOF())
                 {
-                	String line = b.readLine();
-                        if (line == null) {
-                            _logger.debug("End of buffer -- break");
-                            break;
-                        }
-                        if (isComment(line)) {  //skip comments
-                            continue;
-                        }
-                        if (isSection(line)){  // start new section
-                            section_title = line.substring(line.indexOf('[')+1, line.indexOf(']'));
-                            Section section = new Section();
-                            section.index = next_section_index;
-                            section.title = section_title;
-                            sections.add(section);
-                            next_section_index++;
-                            _logger.debug("Section {}: Title: {}", section.index, section.title);
-                            auth_section = section_title.startsWith(auth_strategy);
-                            continue;
-                        }
-                        if (!line.contains("=")){   // not a value-parameter pair
-                            continue;
-                        }
-                        // Now process each line
-                        String[] splits = line.split("=");
-                        if (splits.length == 2){
-                            String parameter = splits[0].trim();
-                            String value = splits[1].trim();
-                            if (auth_section){
-                                if (parameter.equalsIgnoreCase("admin_user")){
-                                    updateKeyInProvider(providerKeys,
-                                            CinderConstants.KEY_CINDER_REST_USER, value);
-                                    _logger.debug("REST user name = {}", value);
-                                }
-                                else if (parameter.equalsIgnoreCase("admin_password")){
-                                    updateKeyInProvider(providerKeys,
-                                            CinderConstants.KEY_CINDER_REST_PASSWORD, value);
-                                    _logger.debug("REST password = {}", value);
-                                }
-                                else if (parameter.equalsIgnoreCase("admin_tenant_name")){
-                                    updateKeyInProvider(providerKeys,
-                                            CinderConstants.KEY_CINDER_TENANT_NAME, value);
-                                    _logger.debug("Tenant name = {}", value);
-                                }
-                                else if (parameter.equalsIgnoreCase("auth_uri")){
-                                    updateKeyInProvider(providerKeys,
-                                            CinderConstants.KEY_CINDER_REST_URI_BASE, value);
-                                    _logger.info("REST uri = {}", value);
-                                }
+                    String line = b.readLine();
+                    if (line == null) {
+                        _logger.debug("End of buffer -- break");
+                        break;
+                    }
+                    if (isComment(line)) {  // skip comments
+                        continue;
+                    }
+                    if (isSection(line)) {  // start new section
+                        section_title = line.substring(line.indexOf('[') + 1, line.indexOf(']'));
+                        Section section = new Section();
+                        section.index = next_section_index;
+                        section.title = section_title;
+                        sections.add(section);
+                        next_section_index++;
+                        _logger.debug("Section {}: Title: {}", section.index, section.title);
+                        auth_section = section_title.startsWith(auth_strategy);
+                        continue;
+                    }
+                    if (!line.contains("=")) {   // not a value-parameter pair
+                        continue;
+                    }
+                    // Now process each line
+                    String[] splits = line.split("=");
+                    if (splits.length == 2) {
+                        String parameter = splits[0].trim();
+                        String value = splits[1].trim();
+                        if (auth_section) {
+                            if (parameter.equalsIgnoreCase("admin_user")) {
+                                updateKeyInProvider(providerKeys,
+                                        CinderConstants.KEY_CINDER_REST_USER, value);
+                                _logger.debug("REST user name = {}", value);
                             }
-                            else{
-                                // this is a storage section
-                                _logger.debug("Storage section: parameter = {},  value = {}", parameter, value);
-                                if (parameter.equalsIgnoreCase("auth_strategy")){
-                                    auth_strategy = value.trim();
-                                    _logger.info("Auth strategy = {}", auth_strategy);
-                                }
-                                else if (parameter.equalsIgnoreCase("volume_driver")){
-                                    volume_driver = value.trim();
-                                    sections.get(next_section_index - 1).volume_driver = volume_driver;
-                                    _logger.debug("Volume driver = {}", volume_driver);
-                                }
-                                else if (parameter.equalsIgnoreCase("volume_backend_name")){
-                                    String volume_backend_name = value.trim();
-                                    _logger.debug("Volume backend_name = {}", volume_backend_name);
-                                    sections.get(next_section_index - 1).volume_backend_name = volume_backend_name;
-                                }
+                            else if (parameter.equalsIgnoreCase("admin_password")) {
+                                updateKeyInProvider(providerKeys,
+                                        CinderConstants.KEY_CINDER_REST_PASS_WORD, value);
+                                _logger.debug("REST password = {}", value);
                             }
-                        } /* if splits.length */
-                        
+                            else if (parameter.equalsIgnoreCase("admin_tenant_name")) {
+                                updateKeyInProvider(providerKeys,
+                                        CinderConstants.KEY_CINDER_TENANT_NAME, value);
+                                _logger.debug("Tenant name = {}", value);
+                            }
+                            else if (parameter.equalsIgnoreCase("auth_uri")) {
+                                updateKeyInProvider(providerKeys,
+                                        CinderConstants.KEY_CINDER_REST_URI_BASE, value);
+                                _logger.info("REST uri = {}", value);
+                            }
+                        }
+                        else {
+                            // this is a storage section
+                            _logger.debug("Storage section: parameter = {},  value = {}", parameter, value);
+                            if (parameter.equalsIgnoreCase("auth_strategy")) {
+                                auth_strategy = value.trim();
+                                _logger.info("Auth strategy = {}", auth_strategy);
+                            }
+                            else if (parameter.equalsIgnoreCase("volume_driver")) {
+                                volume_driver = value.trim();
+                                sections.get(next_section_index - 1).volume_driver = volume_driver;
+                                _logger.debug("Volume driver = {}", volume_driver);
+                            }
+                            else if (parameter.equalsIgnoreCase("volume_backend_name")) {
+                                String volume_backend_name = value.trim();
+                                _logger.debug("Volume backend_name = {}", volume_backend_name);
+                                sections.get(next_section_index - 1).volume_backend_name = volume_backend_name;
+                            }
+                        }
+                    } /* if splits.length */
+
                 } /* while not EOF */
-                
+
                 b.close();
             } /* if sftp is connected */
             storageProvider.setConnectionStatus(ConnectionStatus.CONNECTED.name());
         } /* try */
         catch (Exception e) {
-            //exceptionOccured = true;
+            // exceptionOccured = true;
             storageProvider.setConnectionStatus(ConnectionStatus.NOTCONNECTED.name());
             _logger.error("Exception occurred while scanning provider {}",
                     accessProfile.getSystemId(), e);
-        } 
-        finally
+        } finally
         {
             fillStorageSystemCache(accessProfile, sections);
             if (storageProvider.getKeys() == null)
-            {  /* first time scan */
+            { /* first time scan */
                 storageProvider.setKeys(providerKeys);
             }
             _dbClient.persistObject(storageProvider);
@@ -269,25 +258,26 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
         Map<String, StorageSystemViewObject> storageSystemsCache = accessProfile.getCache();
 
         // Analyze each section, and update the cache if a new backend is found
-        for (Section section: sections){
-            if (section.volume_driver.isEmpty())   // not a storage section
+        for (Section section : sections) {
+            if (section.volume_driver.isEmpty()) {
                 continue;
+            }
             String systemType = StorageSystem.Type.openstack.name();
             String model = "";
             String driverName = section.volume_driver;
             String label = section.volume_backend_name;
-            if (label.isEmpty()){   // use section title instead
+            if (label.isEmpty()) {   // use section title instead
                 label = section.title;
             }
             // If it is the default section and label doesn't have Default tag, then add Default tag in label
-            if (section.title.equalsIgnoreCase(CinderConstants.DEFAULT) && 
-            		!label.toUpperCase().contains(CinderConstants.DEFAULT)) {
-            	label = String.format("%s_%s", CinderConstants.DEFAULT, label);
+            if (section.title.equalsIgnoreCase(CinderConstants.DEFAULT) &&
+                    !label.toUpperCase().contains(CinderConstants.DEFAULT)) {
+                label = String.format("%s_%s", CinderConstants.DEFAULT, label);
             }
-            String vendor = "";    
+            String vendor = "";
 
             String[] driver_splits = section.volume_driver.split("\\.");
-            if (driver_splits.length > 3){
+            if (driver_splits.length > 3) {
                 vendor = driver_splits[3];
                 if (driver_splits.length > 4) {
                     model = driver_splits[4];
@@ -317,9 +307,9 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
             systemVO.setDeviceType(systemType);
             systemVO.addprovider(accessProfile.getSystemId()
                     .toString());
-            systemVO.setProperty(StorageSystemViewObject.MODEL,model);
+            systemVO.setProperty(StorageSystemViewObject.MODEL, model);
             systemVO.setProperty(StorageSystemViewObject.SERIAL_NUMBER, serialNumber);
-            systemVO.setProperty(StorageSystemViewObject.STORAGE_NAME,nativeGuid);
+            systemVO.setProperty(StorageSystemViewObject.STORAGE_NAME, nativeGuid);
 
             storageSystemsCache.put(nativeGuid, systemVO);
         }
@@ -329,7 +319,7 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
 
     /**
      * Generate serial number which will be of 11 digits.
-     *
+     * 
      * @param string (label + Driver name + Provider IP address/FQDN)
      * @return serial number
      */
@@ -339,12 +329,12 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
         /**
          * The String which we generate is of 11 digits.
          * The first digit is either 0 or 1. Remaining 10 digits are generated from hashCode()
-         *      - add 0 at the beginning when value is +ve
-         *      - add 1 at the beginning when value is -ve 
-         *          (to differentiate it from value which would obtain in +ve case)
+         * - add 0 at the beginning when value is +ve
+         * - add 1 at the beginning when value is -ve
+         * (to differentiate it from value which would obtain in +ve case)
          */
-        if (value < 0) { 
-            /** when the generated number is negative, it is an overflown value of int max size(2147483647) */ 
+        if (value < 0) {
+            /** when the generated number is negative, it is an overflown value of int max size(2147483647) */
             value = -value;
             serialNumber = String.format("%010d", value);
             serialNumber = "1" + serialNumber;
@@ -366,17 +356,17 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
             discoverUnManagedVolumes(accessProfile);
         } else {
             _logger.info("Discovery started for system {}", accessProfile.getSystemId());
-            
+
             List<StoragePool> newPools = new ArrayList<StoragePool>();
             List<StoragePool> updatePools = new ArrayList<StoragePool>();
             List<StoragePool> allPools = new ArrayList<StoragePool>();
-            
+
             String token = "";
             StorageSystem system = null;
             StorageProvider provider = null;
-            
+
             String detailedStatusMessage = "Unknown Status";
-            try 
+            try
             {
                 String hostName = null;
                 String restuserName = null;
@@ -385,112 +375,112 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
                 String tenantName = null;
                 String oldToken = null;
                 String tenantId = null;
-                  
-                system = _dbClient.queryObject(StorageSystem.class,  accessProfile.getSystemId());
+
+                system = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
                 system.setReachableStatus(true);
-                
+
                 // first add storage ports if necessary
                 addPorts(system);
-                
+
                 // now do the pool discovery
                 URI providerUri = system.getActiveProviderURI();
                 provider = _dbClient.queryObject(StorageProvider.class, providerUri);
-                if(null != provider.getKeys())
+                if (null != provider.getKeys())
                 {
                     StringMap providerKeys = provider.getKeys();
                     oldToken = providerKeys.get(CinderConstants.KEY_CINDER_REST_TOKEN);
                     hostName = providerKeys.get(CinderConstants.KEY_CINDER_HOST_NAME);
                     restuserName = providerKeys.get(CinderConstants.KEY_CINDER_REST_USER);
-                    restPassword = providerKeys.get(CinderConstants.KEY_CINDER_REST_PASSWORD);
+                    restPassword = providerKeys.get(CinderConstants.KEY_CINDER_REST_PASS_WORD);
                     restBaseUri = providerKeys.get(CinderConstants.KEY_CINDER_REST_URI_BASE);
                     tenantName = providerKeys.get(CinderConstants.KEY_CINDER_TENANT_NAME);
                     tenantId = providerKeys.get(CinderConstants.KEY_CINDER_TENANT_ID);
                 }
-                
-                if(null == endPointInfo)
+
+                if (null == endPointInfo)
                 {
                     endPointInfo = new CinderEndPointInfo(hostName, restuserName, restPassword, tenantName);
-                    if(restBaseUri.startsWith(CinderConstants.HTTP_URL)) 
+                    if (restBaseUri.startsWith(CinderConstants.HTTP_URL))
                     {
                         endPointInfo.setCinderBaseUriHttp(restBaseUri);
                     }
-                    else 
+                    else
                     {
                         endPointInfo.setCinderBaseUriHttps(restBaseUri);
                     }
-                    
-                    //Always set the token and tenant id, when new instance is created
+
+                    // Always set the token and tenant id, when new instance is created
                     endPointInfo.setCinderToken(oldToken);
                     endPointInfo.setCinderTenantId(tenantId);
-                }          
-                
+                }
+
                 CinderApi api = _cinderApiFactory.getApi(providerUri, endPointInfo);
                 _logger.debug("discover : Got the cinder api factory for provider with id: {}", providerUri);
-                
-                //check if the cinder is authenticated and if the token is valid
-                if(null == oldToken || (isTokenExpired(oldToken)))
+
+                // check if the cinder is authenticated and if the token is valid
+                if (null == oldToken || (isTokenExpired(oldToken)))
                 {
-                    //This means, authentication is required, go and fetch the token
+                    // This means, authentication is required, go and fetch the token
                     token = api.getAuthToken(restBaseUri + "/tokens");
-                    
-                    if(null != token)
+
+                    if (null != token)
                     {
-                         _logger.debug("Got new token : {}", token);
-                        //update the token in the provider
+                        _logger.debug("Got new token : {}", token);
+                        // update the token in the provider
                         provider.addKey(CinderConstants.KEY_CINDER_REST_TOKEN, token);
                         provider.addKey(CinderConstants.KEY_CINDER_TENANT_ID, endPointInfo.getCinderTenantId());
                     }
-                    
+
                 }
                 else
                 {
-                    token = oldToken; 
-                     _logger.debug("Using the old token : {}", token);
+                    token = oldToken;
+                    _logger.debug("Using the old token : {}", token);
                 }
-                
+
                 if (token.length() > 1)
-                {                
+                {
                     // Now get the number of volume types
                     VolumeTypes types = api.getVolumeTypes();
-                    if (types != null) 
+                    if (types != null)
                     {
                         _logger.info("Got {} Volume Type(s)", types.volume_types.length);
                         boolean isDefaultStoragePoolCreated = false;
-                        for (int i=0; i<types.volume_types.length; i++)
+                        for (int i = 0; i < types.volume_types.length; i++)
                         {
                             boolean isNew = false;
                             String poolName = types.volume_types[i].name;
                             String nativeGuid = types.volume_types[i].id;
                             _logger.info("Storage Pool name = {}, id = {}", poolName, nativeGuid);
                             // Now find association with storage system
-                            Map<String,String> extra_specs = types.volume_types[i].extra_specs;
+                            Map<String, String> extra_specs = types.volume_types[i].extra_specs;
                             String system_title = extra_specs.get(VOLUME_BACKEND_NAME);
                             boolean isThickPool = Boolean
                                     .parseBoolean(extra_specs.get(VIPR_THICK_POOL));
-                            
+
                             // If no volume backend name, use default
                             if (system_title == null)
                             {
                                 system_title = CinderConstants.DEFAULT;
                             }
-                            
+
                             if (system.getNativeGuid().toUpperCase().contains(system_title.toUpperCase()))
                             {
-                            	// Check if volume type belongs to the default storage system
-                            	if (system.getNativeGuid().toUpperCase().startsWith(CinderConstants.DEFAULT)) {
-                            		isDefaultStoragePoolCreated = true;
-                            	}
+                                // Check if volume type belongs to the default storage system
+                                if (system.getNativeGuid().toUpperCase().startsWith(CinderConstants.DEFAULT)) {
+                                    isDefaultStoragePoolCreated = true;
+                                }
                                 // do the association
                                 _logger.info("Found association between system {} and pool {}", system_title, poolName);
                                 StoragePool pool = checkPoolExistsInDB(nativeGuid);
-                                
+
                                 if (null == pool)
                                 {
                                     isNew = true;
                                     pool = createPoolforStorageSystem(system, nativeGuid, poolName, isThickPool);
                                     newPools.add(pool);
                                 }
-                                
+
                                 pool.setPoolName(poolName);
                                 pool.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
                                 pool.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
@@ -504,56 +494,55 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
                                 _logger.info("Pool {} doesn't belong to storage system {}", poolName, system.getLabel());
                             }
                         } /* for */
-                        
-                        // If it is a default storage system and volume type is not created in cinder, 
+
+                        // If it is a default storage system and volume type is not created in cinder,
                         // create default storage pool for storage system
-                        if (system.getNativeGuid().toUpperCase().startsWith(CinderConstants.DEFAULT) 
-                        		&& !isDefaultStoragePoolCreated) {
-                        	_logger.debug("Creating defual pool for default storage system");
+                        if (system.getNativeGuid().toUpperCase().startsWith(CinderConstants.DEFAULT)
+                                && !isDefaultStoragePoolCreated) {
+                            _logger.debug("Creating defual pool for default storage system");
                             String nativeGuid = "DefaultPool";
-                        	StoragePool pool = checkPoolExistsInDB(nativeGuid);
-                        	String poolName = "DefaultPool";
-                        	if (null != pool) {
-                        		updatePools.add(pool);
-                        	} else {
-                        		pool = createPoolforStorageSystem(system, nativeGuid, poolName, false);
-                        		newPools.add(pool);
-                        	}
-                        	pool.setPoolName(poolName);
+                            StoragePool pool = checkPoolExistsInDB(nativeGuid);
+                            String poolName = "DefaultPool";
+                            if (null != pool) {
+                                updatePools.add(pool);
+                            } else {
+                                pool = createPoolforStorageSystem(system, nativeGuid, poolName, false);
+                                newPools.add(pool);
+                            }
+                            pool.setPoolName(poolName);
                             pool.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
                             pool.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                         }
-                        
-                        StoragePoolAssociationHelper.setStoragePoolVarrays(system.getId(),newPools, _dbClient);
+
+                        StoragePoolAssociationHelper.setStoragePoolVarrays(system.getId(), newPools, _dbClient);
                         allPools.addAll(newPools);
                         allPools.addAll(updatePools);
                         ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVpool(allPools,
                                 _dbClient, _coordinator, accessProfile.getSystemId());
-                        _logger.info("New pools size: {}",newPools.size());
-                        _logger.info("updatePools size: {}",updatePools.size());
+                        _logger.info("New pools size: {}", newPools.size());
+                        _logger.info("updatePools size: {}", updatePools.size());
                         DiscoveryUtils.checkStoragePoolsNotVisible(allPools, _dbClient, system.getId());
                         _dbClient.createObject(newPools);
                         _dbClient.persistObject(updatePools);
-                        
+
                         // discovery succeeds
-                        detailedStatusMessage = String.format("Discovery completed successfully for OpenStack: %s", 
+                        detailedStatusMessage = String.format("Discovery completed successfully for OpenStack: %s",
                                 accessProfile.getSystemId());
                     } /* if types */
-                    else 
+                    else
                     {
                         _logger.error("Error in getting volume types from cinder");
                     }
                 } /* if token length */
-                else 
+                else
                 {
                     _logger.error("Error in getting token from keystone");
                 }
-                
-            } 
-            catch (Exception e) 
+
+            } catch (Exception e)
             {
 
-                if (null != system) 
+                if (null != system)
                 {
                     cleanupDiscovery(system);
                 }
@@ -561,43 +550,40 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
                         "Discovery failed for Storage System: %s because %s",
                         system.toString(), e.getLocalizedMessage());
                 _logger.error(detailedStatusMessage, e);
-                
+
                 throw new CinderColletionException(false,
                         ServiceCode.DISCOVERY_ERROR,
                         null, detailedStatusMessage, null, null);
-            
-                
-            }
-            finally
+
+            } finally
             {
-                try 
+                try
                 {
-                    if (system != null) 
+                    if (system != null)
                     {
                         system.setLastDiscoveryStatusMessage(detailedStatusMessage);
                         _dbClient.persistObject(system);
                     }
-                    
-                    //persist the provider
-                    if(null!=provider)
+
+                    // persist the provider
+                    if (null != provider)
                     {
                         _dbClient.persistObject(provider);
                     }
-                } 
-                catch (DatabaseException e) 
+                } catch (DatabaseException e)
                 {
                     _logger.error(
                             "Failed to persist cinder storage system to Database, Reason: {}",
                             e.getMessage(), e);
-                } 
+                }
             }
             _logger.info("Discovery Ended for system {}", accessProfile.getSystemId());
         }
     }
-    
+
     private StoragePool createPoolforStorageSystem(StorageSystem system,
-    		String nativeGuid, String poolName, boolean isThickPool) {
-    	_logger.debug("Creating storage pool {} for storage system {}", poolName, system);
+            String nativeGuid, String poolName, boolean isThickPool) {
+        _logger.debug("Creating storage pool {} for storage system {}", poolName, system);
         StoragePool pool = new StoragePool();
         pool.setNativeGuid(nativeGuid);
         pool.setStorageDevice(system.getId());
@@ -610,20 +596,22 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
                 .toString());
         StringSet protocols = new StringSet();
         String sys_nativeGuid = system.getNativeGuid().toLowerCase();
-        if (sys_nativeGuid.contains("iscsi"))  // name contains iscsi
+        if (sys_nativeGuid.contains("iscsi")) {
             protocols.add("iSCSI");
-        if (sys_nativeGuid.contains("fc"))  // name contains fc
+        }
+        if (sys_nativeGuid.contains("fc")) {
             protocols.add("FC");
+        }
         pool.setProtocols(protocols);
 
         if (isThickPool) {
             pool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THICK_ONLY
                     .toString());
-            pool.setMaximumThickVolumeSize((long)(1024*1024*1024));  // 1TB
+            pool.setMaximumThickVolumeSize((long) (1024 * 1024 * 1024));  // 1TB
         } else {
             pool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THIN_ONLY
                     .toString());
-            pool.setMaximumThinVolumeSize((long)(1024*1024*1024));  // 1TB
+            pool.setMaximumThinVolumeSize((long) (1024 * 1024 * 1024));  // 1TB
         }
         // UNSYNC_ASSOC -> snapshot, UNSYNC_UNASSOC -> clone
         StringSet copyTypes = new StringSet();
@@ -631,22 +619,24 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
         copyTypes.add(StoragePool.CopyTypes.UNSYNC_UNASSOC.name());
         pool.setSupportedCopyTypes(copyTypes);
         pool.setThinVolumePreAllocationSupported(Boolean.FALSE);
-        //TODO workaround to display the display name based on the pool name
+        // TODO workaround to display the display name based on the pool name
         pool.setLabel(poolName);
-        
-        /*TODO: Keeping the total capacity as 1TB as there is no API/CLI
-        to know the volume type's capacity from cinder. These values
-        should be updated for actual capacity if in future cinder comes up
-        a way to know these values.
-        
-        Further these values will be adjusted as volume/snapshot gets created/deleted*/
-        
-        pool.setFreeCapacity((1024L*1024L*1024L)); // 1TB
-        pool.setTotalCapacity((1024L*1024L*1024L));  // 1TB
-        
+
+        /*
+         * TODO: Keeping the total capacity as 1TB as there is no API/CLI
+         * to know the volume type's capacity from cinder. These values
+         * should be updated for actual capacity if in future cinder comes up
+         * a way to know these values.
+         * 
+         * Further these values will be adjusted as volume/snapshot gets created/deleted
+         */
+
+        pool.setFreeCapacity((1024L * 1024L * 1024L)); // 1TB
+        pool.setTotalCapacity((1024L * 1024L * 1024L));  // 1TB
+
         return pool;
     }
-    
+
     private void discoverUnManagedVolumes(AccessProfile accessProfile) {
         // Do Nothing - It will be implemented later
         _logger.info("UnManaged volume discovery is not supported. Storage System: {}",
@@ -661,13 +651,13 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
      * @param oldToken
      * @return true or false
      */
-    private boolean isTokenExpired(String oldToken) 
+    private boolean isTokenExpired(String oldToken)
     {
-    	//TODO : Add the implementation to check the token expiry
-		return true;
-	}
+        // TODO : Add the implementation to check the token expiry
+        return true;
+    }
 
-	/**
+    /**
      * This method adds storage ports to the system if not done already
      * 
      * @throws IOException
@@ -675,46 +665,47 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
     private void addPorts(StorageSystem system) throws IOException
     {
         StorageProtocol.Transport supportedProtocol = getProtocol(system);
-        
-        _logger.info("Checking if system {} needs a new storage port", system.getLabel());
-        if (supportedProtocol == null)   // nothing to do
-            return;
 
-        _logger.info("System {} supports protocol {}", 
-            system.getLabel(), supportedProtocol.name().toString());
+        _logger.info("Checking if system {} needs a new storage port", system.getLabel());
+        if (supportedProtocol == null) {
+            return;
+        }
+
+        _logger.info("System {} supports protocol {}",
+                system.getLabel(), supportedProtocol.name().toString());
         boolean isPresent = false;
         List<StoragePort> allPorts = new ArrayList<StoragePort>();
         URIQueryResultList storagePortURIs = new URIQueryResultList();
         URI sysid = system.getId();
         _dbClient.queryByConstraint(
-            ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(sysid),
-            storagePortURIs);
+                ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(sysid),
+                storagePortURIs);
         Iterator<URI> storagePortsIter = storagePortURIs.iterator();
-        while (storagePortsIter.hasNext()) 
+        while (storagePortsIter.hasNext())
         {
             URI storagePortURI = storagePortsIter.next();
             StoragePort storagePort = _dbClient.queryObject(StoragePort.class,
-                storagePortURI);
+                    storagePortURI);
             if (storagePort != null && !storagePort.getInactive() &&
-                   (storagePort.getTransportType().equalsIgnoreCase(
-                        supportedProtocol.name().toString()))) 
+                    (storagePort.getTransportType().equalsIgnoreCase(
+                            supportedProtocol.name().toString())))
             {
-                    _logger.info("System {} already has port for protocol {}", 
+                _logger.info("System {} already has port for protocol {}",
                         system.getLabel(), supportedProtocol.name().toString());
-                    isPresent = true;
-                    if (storagePort.getPortNetworkId() == null)
-                    {
-                        // update it -- this needs to change
-                        storagePort.setPortNetworkId(storagePort.getNativeGuid());
-                        _dbClient.persistObject(storagePort);
-                    }
-                    allPorts.add(storagePort);
+                isPresent = true;
+                if (storagePort.getPortNetworkId() == null)
+                {
+                    // update it -- this needs to change
+                    storagePort.setPortNetworkId(storagePort.getNativeGuid());
+                    _dbClient.persistObject(storagePort);
+                }
+                allPorts.add(storagePort);
             }
         } // while
         if (!isPresent)
         {
-        	StorageHADomain adapter = CinderUtils.getStorageAdapter(system, _dbClient);
-            
+            StorageHADomain adapter = CinderUtils.getStorageAdapter(system, _dbClient);
+
             // Now we need to add the port to the system
             _logger.info("Adding new storage port of type {} to storage system {}",
                     supportedProtocol.name().toString(), system.getLabel());
@@ -724,7 +715,7 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
             // port name is "DEFAULT" since we don't know how to name it
             String portName = CinderConstants.DEFAULT;
             String nativeGuid = NativeGUIDGenerator.generateNativeGuid(system,
-                        portName, NativeGUIDGenerator.PORT);
+                    portName, NativeGUIDGenerator.PORT);
             port.setNativeGuid(nativeGuid);
             port.setPortNetworkId(nativeGuid);
 
@@ -753,24 +744,24 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
      * Note: this method may be prone to error
      * But we don't have any other reliable API from OpenStack for this
      */
-    private StorageProtocol.Transport getProtocol(StorageSystem system) 
+    private StorageProtocol.Transport getProtocol(StorageSystem system)
     {
         String nativeGuid = system.getNativeGuid().toLowerCase();
         if (nativeGuid.contains("iscsi")) // name contains iscsi
-        {        	
-        	return StorageProtocol.Transport.IP;
+        {
+            return StorageProtocol.Transport.IP;
         }
-            
+
         if (nativeGuid.contains("fc")) // name contains FC
-        {        	
-        	return StorageProtocol.Transport.FC;
+        {
+            return StorageProtocol.Transport.FC;
         }
-            
+
         if (nativeGuid.contains("nfs"))    // probably a file type -- do not use this
         {
-        	return null;
+            return null;
         }
-            
+
         return StorageProtocol.Transport.IP;   // default assume iscsi
     }
 
@@ -781,20 +772,18 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
      * @param system
      *            the system that failed discovery.
      */
-    private void cleanupDiscovery(StorageSystem system) 
+    private void cleanupDiscovery(StorageSystem system)
     {
-        try 
+        try
         {
             system.setReachableStatus(false);
             _dbClient.persistObject(system);
-        } 
-        catch (DatabaseException e) 
+        } catch (DatabaseException e)
         {
             _logger.error("discoverStorage failed. Failed to update discovery status to ERROR.", e);
         }
 
     }
-
 
     /**
      * Check if Pool exists in DB.
@@ -805,28 +794,28 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
      * @return
      * @throws IOException
      */
-    protected StoragePool checkPoolExistsInDB(String nativeGuid) throws IOException 
+    protected StoragePool checkPoolExistsInDB(String nativeGuid) throws IOException
     {
         StoragePool pool = null;
         URIQueryResultList queryResult = new URIQueryResultList();
         // use NativeGuid to lookup Pools in DB
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getStoragePoolByNativeGuidConstraint(nativeGuid), queryResult);
-        while (queryResult.iterator().hasNext()) 
+        while (queryResult.iterator().hasNext())
         {
             URI poolURI = queryResult.iterator().next();
-            if (null != poolURI) 
+            if (null != poolURI)
             {
                 StoragePool poolInDB = _dbClient.queryObject(StoragePool.class, poolURI);
                 if (!poolInDB.getInactive()) {
                     pool = poolInDB;
                     break;
-                } 
+                }
             }
         }
         return pool;
     }
-    
+
     private boolean isComment(String line)
     {
         return (line.trim().startsWith("#"));

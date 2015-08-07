@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -8,13 +8,16 @@ import java.net.URI;
 
 /**
  * A common class for resources the belong to a tenant organization
+ * 
  * @author elalih
- *
+ * 
  */
 public abstract class AbstractComputeSystem extends DiscoveredSystemObject implements TenantResource {
     private URI _tenant;
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.db.client.model.TenantResource#getTenant()
      */
     @Override
@@ -24,7 +27,9 @@ public abstract class AbstractComputeSystem extends DiscoveredSystemObject imple
         return _tenant;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.db.client.model.TenantResource#setTenant(java.net.URI)
      */
     @Override
@@ -33,19 +38,22 @@ public abstract class AbstractComputeSystem extends DiscoveredSystemObject imple
         setChanged("tenant");
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.db.client.model.TenantResource#auditParameters()
      */
     @Override
     public abstract Object[] auditParameters();
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.db.client.model.TenantResource#getDataObject()
      */
     @Override
     public DataObject findDataObject() {
         return (DataObject) this;
     }
-    
-    
+
 }

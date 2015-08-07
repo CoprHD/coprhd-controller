@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.catalog.search;
@@ -25,26 +25,26 @@ public class OrderSearchBuilder extends SearchBuilder<OrderRestRep> {
 
     public SearchBuilder<OrderRestRep> byStatus(String status) {
         return byStatus(status, null);
-    }    
-    
+    }
+
     public SearchBuilder<OrderRestRep> byStatus(String status, URI tenantId) {
-        Map<String, Object> parameters = new HashMap<String,Object>();
+        Map<String, Object> parameters = new HashMap<String, Object>();
         if (tenantId != null) {
             parameters.put(TENANT_ID_PARAM, tenantId);
         }
         parameters.put(ORDER_STATUS_PARAM, status);
         return byAll(parameters);
     }
-    
+
     public SearchBuilder<OrderRestRep> byTimeRange(String start, String end) {
         return byTimeRange(start, end, null);
     }
-    
+
     public SearchBuilder<OrderRestRep> byTimeRange(String start, String end, URI tenantId) {
         Map<String, Object> parameters = new HashMap<String, Object>();
         if (tenantId != null) {
             parameters.put(TENANT_ID_PARAM, tenantId);
-        }        
+        }
         if (start != null) {
             parameters.put(START_TIME_PARAM, start);
         }
@@ -52,6 +52,6 @@ public class OrderSearchBuilder extends SearchBuilder<OrderRestRep> {
             parameters.put(END_TIME_PARAM, end);
         }
         return byAll(parameters);
-    }        
-    
+    }
+
 }

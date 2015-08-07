@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block;
@@ -17,8 +17,9 @@ public class VolumeFullCopyCreateParam {
     private Integer count;
     private Boolean createInactive;
 
-    public VolumeFullCopyCreateParam() {}
-            
+    public VolumeFullCopyCreateParam() {
+    }
+
     public VolumeFullCopyCreateParam(String type, String name, Integer count,
             Boolean createInactive) {
         this.type = type;
@@ -28,8 +29,9 @@ public class VolumeFullCopyCreateParam {
     }
 
     /**
-     * Type of copy requested.  Currently
-     * only a full-copy is supported. 
+     * Type of copy requested. Currently
+     * only a full-copy is supported.
+     * 
      * @valid full_copy
      */
     @XmlElement(required = false)
@@ -42,7 +44,8 @@ public class VolumeFullCopyCreateParam {
     }
 
     /**
-     * Name of the copy. 
+     * Name of the copy.
+     * 
      * @valid none
      */
     @XmlElement(required = true)
@@ -55,7 +58,8 @@ public class VolumeFullCopyCreateParam {
     }
 
     /**
-     * Number of copies requested. 
+     * Number of copies requested.
+     * 
      * @valid none
      */
     @XmlElement(required = false)
@@ -72,7 +76,7 @@ public class VolumeFullCopyCreateParam {
      * the full copy, but not activate the synchronization between source
      * and target volumes. The activation would have to be done using the
      * block volume activate operation.
-     *
+     * 
      * The default value for the parameter is false. That is, the operation
      * will create and activate the synchronization for the full copy.
      * 
@@ -87,5 +91,5 @@ public class VolumeFullCopyCreateParam {
     public void setCreateInactive(Boolean createInactive) {
         this.createInactive = createInactive;
     }
-    
+
 }

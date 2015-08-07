@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.systemservices.impl.eventhandler.connectemc;
@@ -63,8 +53,8 @@ public class CallHomeEventManager {
 
         String lastHeartbeatDate = licenseInfo.getLastHeartbeatEventDate();
         if (lastHeartbeatDate == null ||
-            lastHeartbeatDate.isEmpty() ||
-            lastHeartbeatDate.equals(CallHomeConstants.VALUE_NOT_SET)) {
+                lastHeartbeatDate.isEmpty() ||
+                lastHeartbeatDate.equals(CallHomeConstants.VALUE_NOT_SET)) {
             _log.info("There is no previous heartbeat event sent.");
             return true;
         }
@@ -78,7 +68,7 @@ public class CallHomeEventManager {
         Date today = Calendar.getInstance().getTime();
         int days = Days.daysBetween(new DateTime(zkDate), new DateTime(today)).getDays();
         if (days > (CallHomeConstants.HEARTBEART_EVENT_THRESHOLD - 1)) {
-            _log.info("It's been {} days since last heartbeat event was sent. Sending another one now. ",days);
+            _log.info("It's been {} days since last heartbeat event was sent. Sending another one now. ", days);
             return true;
         }
         _log.info("Heartbeat event was sent {} days back. Will send another one in {} days.",
@@ -101,13 +91,13 @@ public class CallHomeEventManager {
 
         String registrationDate = licenseInfo.getLastRegistrationEventDate();
         if (registrationDate == null ||
-            registrationDate.isEmpty() ||
-            registrationDate.equals(CallHomeConstants.VALUE_NOT_SET)) {
+                registrationDate.isEmpty() ||
+                registrationDate.equals(CallHomeConstants.VALUE_NOT_SET)) {
             _log.info("There is no previous registration event sent.");
             return true;
         }
         _log.info("Previous registration event was sent on: {}", registrationDate);
-        
+
         // compare today's date to the date stored in the coordinator service.
         // If it's >= than
         // the HEARTBEART_EVENT_THRESHOLD, return true.
@@ -116,7 +106,7 @@ public class CallHomeEventManager {
         Date today = Calendar.getInstance().getTime();
         int days = Days.daysBetween(new DateTime(zkDate), new DateTime(today)).getDays();
         if (days > (CallHomeConstants.REGISTRATION_EVENT_THRESHOLD - 1)) {
-            _log.info("It's been {} days since last registration event was sent. Sending another one now. ",days);
+            _log.info("It's been {} days since last registration event was sent. Sending another one now. ", days);
             return true;
         }
         _log.info("Registration event was sent {} days back. Will send another one in {} days.",
@@ -147,7 +137,7 @@ public class CallHomeEventManager {
         }
         _log.info("Previous capacity-exceeded event was sent on: {}",
                 lastCapacityExceedDate);
-        
+
         // compare today's date to the date stored in zookeeper. If it's >= than
         // the LICENSE_EXPIRATION_EVENT_THRESHOLD, return true.
         SimpleDateFormat storedDate = new SimpleDateFormat(SERIALIZE_DATE_FORMAT);
@@ -155,7 +145,7 @@ public class CallHomeEventManager {
         Date today = Calendar.getInstance().getTime();
         int days = Days.daysBetween(new DateTime(zkDate), new DateTime(today)).getDays();
         if (days > (CallHomeConstants.CAPACITY_EXCEEDED_EVENT_THRESHOLD - 1)) {
-            _log.info("It's been {} days since last capacity-exceeded event was sent. Sending another one now. ",days);
+            _log.info("It's been {} days since last capacity-exceeded event was sent. Sending another one now. ", days);
             return true;
         }
         _log.info("Capacity-exceeded event was sent {} days back. Will send another one in {} days.",
@@ -170,8 +160,7 @@ public class CallHomeEventManager {
         try {
             validateSendEvent();
             return true;
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             return false;
         }
     }
@@ -204,10 +193,10 @@ public class CallHomeEventManager {
      * exception.
      */
     public void validateSendEvent() {
-        if(!coordinatorClientExt.isControlNode()) {
+        if (!coordinatorClientExt.isControlNode()) {
             throw APIException.badRequests.eventsNotAllowedOnNonControlNode();
         }
-        if(!isConnectEMCConfigured()) {
+        if (!isConnectEMCConfigured()) {
             throw APIException.badRequests.connectEMCNotConfigured();
         }
     }
@@ -227,8 +216,8 @@ public class CallHomeEventManager {
 
         String lastExpirationDate = licenseInfo.getLastLicenseExpirationDateEventDate();
         if (lastExpirationDate == null ||
-            lastExpirationDate.isEmpty() ||
-            lastExpirationDate.equals(CallHomeConstants.VALUE_NOT_SET)) {
+                lastExpirationDate.isEmpty() ||
+                lastExpirationDate.equals(CallHomeConstants.VALUE_NOT_SET)) {
             _log.info("There is no previous license-expiration event sent.");
             return true;
         }
@@ -242,7 +231,7 @@ public class CallHomeEventManager {
         Date today = Calendar.getInstance().getTime();
         int days = Days.daysBetween(new DateTime(zkDate), new DateTime(today)).getDays();
         if (days > (CallHomeConstants.LICENSE_EXPIRATION_EVENT_THRESHOLD - 1)) {
-            _log.info("It's been {} days since last license-expiration event was sent. Sending another one now. ",days);
+            _log.info("It's been {} days since last license-expiration event was sent. Sending another one now. ", days);
             return true;
         }
         _log.info("License-expired event was sent {} days back. Will send another one in {} days.",

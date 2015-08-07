@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.aix.command;
@@ -13,13 +13,13 @@ public class PowerPathInquiry extends AixResultsCommand<List<PowerPathDevice>> {
 
     public PowerPathInquiry() {
         setCommand("inq");
-        
+
         // add the display of the wwns
         addArgument("-wwn");
-        
+
         // only display powerpath pseudo devices
         addArgument("-f_powerpath");
-        
+
         // do not display the 'progress' dots
         addArgument("-no_dots");
     }

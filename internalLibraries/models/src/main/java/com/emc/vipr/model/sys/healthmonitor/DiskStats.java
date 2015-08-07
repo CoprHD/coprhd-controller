@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.vipr.model.sys.healthmonitor;
 
@@ -60,7 +50,7 @@ public class DiskStats {
     private long writeTicks;
     // number of ms spent doing I/Os
     private long numberOfIOInMs;
-    
+
     // Default constructor for JAXB
     public DiskStats() {
         this.diskId = HealthMonitorConstants.UNKNOWN;
@@ -68,8 +58,8 @@ public class DiskStats {
 
     // These values are calculated based on the values read from /proc/diskstats
     public DiskStats(String diskId, double readPerSec, double sectorsReadPerSec,
-                     double writePerSec, double sectorsWritePerSec, double avgWait,
-                     double avgSvcTime, double utilPerc) {
+            double writePerSec, double sectorsWritePerSec, double avgWait,
+            double avgSvcTime, double utilPerc) {
         this.diskId = diskId;
         this.readPerSec = readPerSec;
         this.sectorsReadPerSec = sectorsReadPerSec;
@@ -82,8 +72,8 @@ public class DiskStats {
 
     // These values are directly read from /proc/diskstats
     public DiskStats(String diskId, long numberOfReads, long sectorsRead,
-                     long readTicks, long numberOfWrites, long sectorsWrite,
-                     long writeTicks, long numberOfIOInMs) {
+            long readTicks, long numberOfWrites, long sectorsWrite,
+            long writeTicks, long numberOfIOInMs) {
         this.diskId = diskId;
         this.numberOfReads = numberOfReads;
         this.sectorsRead = sectorsRead;

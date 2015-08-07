@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.difftests;
@@ -24,12 +24,12 @@ public class EncunciationReaderTests {
             System.out.println(service.getFqJavaClassName());
 
             for (ApiMethod method : service.methods) {
-                System.out.println("== "+method.httpMethod+" "+method.path);
+                System.out.println("== " + method.httpMethod + " " + method.path);
                 if (method.input != null) {
-                    System.out.println("==---  IN : "+method.input.name);
+                    System.out.println("==---  IN : " + method.input.name);
                 }
                 if (method.output != null) {
-                    System.out.println("==---  OUT : "+method.output.name);
+                    System.out.println("==---  OUT : " + method.output.name);
                 }
 
             }

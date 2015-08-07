@@ -1,25 +1,13 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
-
 import com.emc.storageos.db.client.model.NoInactiveIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
@@ -27,15 +15,12 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
-
 import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.impl.*;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.exceptions.DatabaseException;
-
 
 /**
- *  Constrained query to get list of decommissioned object URIs of a given type
+ * Constrained query to get list of decommissioned object URIs of a given type
  */
 public class DecommissionedConstraintImpl extends ConstraintImpl implements DecommissionedConstraint {
     private static final Logger log = LoggerFactory.getLogger(DecommissionedConstraintImpl.class);
@@ -80,8 +65,10 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
     }
 
     private void throwIfNoInactiveIndex(ColumnField field) {
-        if (field.getName().equals(DataObject.INACTIVE_FIELD_NAME) && field.getDataObjectType().getAnnotation(NoInactiveIndex.class) != null) {
-            throw new IllegalArgumentException(String.format("Class %s is marked with @NoInactiveIndex", field.getDataObjectType().getName()));
+        if (field.getName().equals(DataObject.INACTIVE_FIELD_NAME)
+                && field.getDataObjectType().getAnnotation(NoInactiveIndex.class) != null) {
+            throw new IllegalArgumentException(String.format("Class %s is marked with @NoInactiveIndex", field.getDataObjectType()
+                    .getName()));
         }
     }
 
@@ -92,15 +79,17 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
 
     @Override
     protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
-        if (_value != null)
-            queryOnePageWithoutAutoPaginate(genQuery(),Boolean.toString( _value), result);
-        else
+        if (_value != null) {
+            queryOnePageWithoutAutoPaginate(genQuery(), Boolean.toString(_value), result);
+        }
+        else {
             queryOnePageWithAutoPaginate(genQuery(), result);
+        }
     }
 
     @Override
     protected <T> void queryWithAutoPaginate(RowQuery<String, IndexColumnName> query, final QueryResult<T> result,
-                                             final ConstraintImpl constraint) {
+            final ConstraintImpl constraint) {
         query.autoPaginate(true);
         FilteredQueryHitIterator<T> it;
         if (_timeToStartFrom > 0) {
@@ -153,7 +142,7 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
     protected RowQuery<String, IndexColumnName> genQuery() {
         RowQuery<String, IndexColumnName> query;
         if (_value == null) {
-            query =  _keyspace.prepareQuery(_cf).getKey(_rowKey)
+            query = _keyspace.prepareQuery(_cf).getKey(_rowKey)
                     .withColumnRange(new RangeBuilder().setLimit(pageCount).build());
         } else {
             query = _keyspace.prepareQuery(_cf).getKey(_rowKey)
@@ -170,5 +159,5 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
     @Override
     public Class<? extends DataObject> getDataObjectType() {
         return _entryType;
-}
+    }
 }

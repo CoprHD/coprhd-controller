@@ -1,8 +1,10 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.windows.winrm.winrs;
+
+import java.util.Arrays;
 
 import org.w3c.dom.Element;
 
@@ -25,7 +27,11 @@ public class SubmitCommandOperation extends WinRMInvokeOperation<String> {
         super(target, WinRSConstants.WINRS_CMD_URI, WinRSConstants.WINRS_COMMAND_URI);
         setSelector(WinRSConstants.SHELL_ID, shellId);
         this.command = command;
-        this.arguments = arguments;
+        if (arguments == null) {
+            this.arguments = new String[0];
+        } else {
+            this.arguments = Arrays.copyOf(arguments, arguments.length);
+        }
         setOption("WINRS_CONSOLE_MODE_STDIN", "TRUE");
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.smis;
@@ -69,7 +69,8 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
     }
 
     @Override
-    public CIMObjectPath getStorageSynchronized(StorageSystem sourceSystem, BlockObject source, StorageSystem targetSystem, BlockObject target) {
+    public CIMObjectPath getStorageSynchronized(StorageSystem sourceSystem, BlockObject source, StorageSystem targetSystem,
+            BlockObject target) {
         return null;
     }
 
@@ -123,7 +124,7 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
             return null;
         }
         return paths[0];
-            
+
     }
 
     @Override
@@ -157,7 +158,7 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
     @Override
     public CIMObjectPath getReplicationServiceCapabilitiesPath(StorageSystem storageDevice) {
         String wql = format("SELECT * FROM %s WHERE InstanceID  = '%s'",
-        		prefixWithParamName(REPLICATION_SERVICE_CAPABILTIES), getSystemName(storageDevice));
+                prefixWithParamName(REPLICATION_SERVICE_CAPABILTIES), getSystemName(storageDevice));
         CIMObjectPath queryClass = getQueryClass(REPLICATION_SERVICE_CAPABILTIES);
 
         CIMObjectPath[] paths = execQuery(storageDevice, queryClass, wql);
@@ -199,29 +200,29 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
 
     @Override
     public CIMObjectPath[] getVolumePaths(StorageSystem storageDevice, String[] volumeNames) throws Exception {
-    	ArrayList<CIMObjectPath> theElementsList = new ArrayList<CIMObjectPath>();
-    	
-    	for (String volumeName : volumeNames) {
-    		String wql = format("SELECT Name FROM %s WHERE SystemName = '%s' AND DeviceID = '%s'",
-    				prefixWithParamName(STORAGE_VOLUME), getSystemName(storageDevice), volumeName);
-    		CIMObjectPath queryClass = getQueryClass(STORAGE_VOLUME);
+        ArrayList<CIMObjectPath> theElementsList = new ArrayList<CIMObjectPath>();
 
-    		CIMObjectPath[] volumePath = execQuery(storageDevice, queryClass, wql);
+        for (String volumeName : volumeNames) {
+            String wql = format("SELECT Name FROM %s WHERE SystemName = '%s' AND DeviceID = '%s'",
+                    prefixWithParamName(STORAGE_VOLUME), getSystemName(storageDevice), volumeName);
+            CIMObjectPath queryClass = getQueryClass(STORAGE_VOLUME);
 
-    		if (volumePath.length != 1) {
-    			return null;
-    		}
-    		theElementsList.add(volumePath[0]);
-    	}
-    	
-    	CIMObjectPath[] volArray = {};
-    	volArray = theElementsList.toArray(volArray);
-    	return volArray;
+            CIMObjectPath[] volumePath = execQuery(storageDevice, queryClass, wql);
+
+            if (volumePath.length != 1) {
+                return null;
+            }
+            theElementsList.add(volumePath[0]);
+        }
+
+        CIMObjectPath[] volArray = {};
+        volArray = theElementsList.toArray(volArray);
+        return volArray;
     }
 
     @Override
     public CIMObjectPath[] getTargetPortPaths(StorageSystem storageDevice, List<URI> targetURIList) throws Exception {
-        //Query factory already gets the values from provider, no need to implement.
+        // Query factory already gets the values from provider, no need to implement.
         return null;
     }
 
@@ -229,22 +230,21 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
     public CIMObjectPath[] getInitiatorPaths(StorageSystem storageDevice, String[] initiatorNames) throws Exception {
         List<CIMObjectPath> cimPathList = new ArrayList<CIMObjectPath>();
         for (String iniName : initiatorNames) {
-            //TODO 
-        String wql = format("SELECT * FROM %s WHERE InstanceID like '%s'",
-                CP_SE_STORAGE_HARDWARE_ID, iniName);
-        CIMObjectPath queryClass = getQueryClass(CP_SE_STORAGE_HARDWARE_ID);
+            // TODO
+            String wql = format("SELECT * FROM %s WHERE InstanceID like '%s'",
+                    CP_SE_STORAGE_HARDWARE_ID, iniName);
+            CIMObjectPath queryClass = getQueryClass(CP_SE_STORAGE_HARDWARE_ID);
 
-        CIMObjectPath[] paths = execQuery(storageDevice, queryClass, wql);
+            CIMObjectPath[] paths = execQuery(storageDevice, queryClass, wql);
 
-        if (paths.length == 0) {
-           continue;
-        }
-        cimPathList.add(paths[0]);
+            if (paths.length == 0) {
+                continue;
+            }
+            cimPathList.add(paths[0]);
         }
         CIMObjectPath[] paths = {};
         return cimPathList.toArray(paths);
-        
-       
+
     }
 
     @Override
@@ -281,9 +281,10 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
     }
 
     @Override
-    public CIMObjectPath getMaskingGroupPath(StorageSystem storage, String storageGroupName, MASKING_GROUP_TYPE se_deviceMaskingGroup) throws Exception {
-    	String wql = format("SELECT * FROM %s WHERE ElementName LIKE '%s'",
-        		prefixWithParamName(se_deviceMaskingGroup.toString()), getSystemName(storage));
+    public CIMObjectPath getMaskingGroupPath(StorageSystem storage, String storageGroupName, MASKING_GROUP_TYPE se_deviceMaskingGroup)
+            throws Exception {
+        String wql = format("SELECT * FROM %s WHERE ElementName LIKE '%s'",
+                prefixWithParamName(se_deviceMaskingGroup.toString()), getSystemName(storage));
         CIMObjectPath queryClass = getQueryClass(se_deviceMaskingGroup.toString());
 
         CIMObjectPath[] paths = execQuery(storage, queryClass, wql);
@@ -297,7 +298,7 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
     @Override
     public CIMObjectPath getBlockObjectPath(StorageSystem storage, BlockObject blockObject) {
         String[] properties = new String[] {
-          CP_CREATION_CLASS_NAME, CP_DEVICE_ID, CP_SYSTEM_CREATION_CLASS_NAME, CP_SYSTEM_NAME
+                CP_CREATION_CLASS_NAME, CP_DEVICE_ID, CP_SYSTEM_CREATION_CLASS_NAME, CP_SYSTEM_NAME
         };
         String wql = format("SELECT %s FROM %s WHERE %s = '%s' AND %s = '%s'",
                 Joiner.on(',').join(properties),
@@ -318,21 +319,21 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
 
     @Override
     public CIMObjectPath getVolumePath(StorageSystem storage, String nativeId) {
-		String wql = format("SELECT Name FROM %s WHERE SystemName = '%s' AND DeviceID = '%s'",
-				prefixWithParamName(STORAGE_VOLUME), getSystemName(storage), nativeId);
-		CIMObjectPath queryClass = getQueryClass(STORAGE_VOLUME);
+        String wql = format("SELECT Name FROM %s WHERE SystemName = '%s' AND DeviceID = '%s'",
+                prefixWithParamName(STORAGE_VOLUME), getSystemName(storage), nativeId);
+        CIMObjectPath queryClass = getQueryClass(STORAGE_VOLUME);
 
-		CIMObjectPath[] volumePath = execQuery(storage, queryClass, wql);
+        CIMObjectPath[] volumePath = execQuery(storage, queryClass, wql);
 
-		if (volumePath.length == 0) {
-			return null;
-		}
-		return volumePath[0];
+        if (volumePath.length == 0) {
+            return null;
+        }
+        return volumePath[0];
     }
 
     @Override
     public CIMObjectPath getReplicationGroupPath(StorageSystem storage, String groupName) {
-       return getReplicationGroupPath(storage, storage.getSerialNumber(), groupName);
+        return getReplicationGroupPath(storage, storage.getSerialNumber(), groupName);
     }
 
     @Override
@@ -344,39 +345,39 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
         CIMObjectPath[] paths = execQuery(activeProviderStorageProxy, queryClass, wql);
 
         if (paths.length == 0) {
-           return null;
+            return null;
         }
-       return paths[0];
+        return paths[0];
     }
 
     @Override
     public CIMObjectPath getReplicationGroupObjectPath(StorageSystem storage, String instanceId) {
-        //-+1 format is not available for rep groups in 8.0.3
+        // -+1 format is not available for rep groups in 8.0.3
         return cimAdapter.getReplicationGroupPath(storage, instanceId);
     }
 
     @Override
     public CIMObjectPath getSyncAspectPath(StorageSystem storage, String aspectInstanceId) {
-         String syncAspectPathStr = storage.checkIfVmax3() ? SYMM_SYNCHRONIZATION_ASPECT_FOR_SOURCE : CLAR_SYNCHRONIZATION_ASPECT_FOR_SOURCE;
-         String wql1 = format("SELECT * FROM %s WHERE InstanceID like '%s' AND InstanceID like '%s'",
-                 syncAspectPathStr, aspectInstanceId, storage.getSerialNumber());
-         //TODO instanceID is stored in DB, so ideally this should work for V3
-         //REVIST : This class is not found for V2.
-         CIMObjectPath queryClass = getQueryClass(syncAspectPathStr);
+        String syncAspectPathStr = storage.checkIfVmax3() ? SYMM_SYNCHRONIZATION_ASPECT_FOR_SOURCE : CLAR_SYNCHRONIZATION_ASPECT_FOR_SOURCE;
+        String wql1 = format("SELECT * FROM %s WHERE InstanceID like '%s' AND InstanceID like '%s'",
+                syncAspectPathStr, aspectInstanceId, storage.getSerialNumber());
+        // TODO instanceID is stored in DB, so ideally this should work for V3
+        // REVIST : This class is not found for V2.
+        CIMObjectPath queryClass = getQueryClass(syncAspectPathStr);
 
-         CIMObjectPath[] paths = execQuery(storage, queryClass, wql1);
+        CIMObjectPath[] paths = execQuery(storage, queryClass, wql1);
 
-         if (paths.length == 0) {
-             return null;
-         }
-         return paths[0];
+        if (paths.length == 0) {
+            return null;
+        }
+        return paths[0];
     }
 
     @Override
     public CIMObjectPath getStoragePoolPath(StorageSystem storage, StoragePool storagePool) {
-    	String wql = format("SELECT * FROM %s WHERE InstanceID like '%s' AND InstanceID like '%s'",
+        String wql = format("SELECT * FROM %s WHERE InstanceID like '%s' AND InstanceID like '%s'",
                 storagePool.getPoolClassName(), storagePool.getPoolName(), storage.getSerialNumber());
-    	CIMObjectPath queryClass = getQueryClass(storagePool.getPoolClassName());
+        CIMObjectPath queryClass = getQueryClass(storagePool.getPoolClassName());
 
         CIMObjectPath[] paths = execQuery(storage, queryClass, wql);
 
@@ -388,17 +389,16 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
 
     @Override
     public CIMObjectPath getPoolSettingPath(StorageSystem storage, String poolSettingID) {
-         String wql = format("SELECT * FROM %s WHERE InstanceID like '%s' AND InstanceID like '%s'",
+        String wql = format("SELECT * FROM %s WHERE InstanceID like '%s' AND InstanceID like '%s'",
                 CLAR_STORAGE_POOL_SETTING, poolSettingID, storage.getSerialNumber());
 
-         CIMObjectPath queryClass = getQueryClass(CLAR_STORAGE_POOL_SETTING);
+        CIMObjectPath queryClass = getQueryClass(CLAR_STORAGE_POOL_SETTING);
 
-         CIMObjectPath[] paths = execQuery(storage, queryClass, wql);
-         if (paths.length == 0) {
-             return null;
-         }
-         return paths[0];
-
+        CIMObjectPath[] paths = execQuery(storage, queryClass, wql);
+        if (paths.length == 0) {
+            return null;
+        }
+        return paths[0];
 
     }
 
@@ -414,16 +414,16 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
 
     @Override
     public CIMObjectPath getSyncAspectForSourceGroupPath(StorageSystem storage, String aspectInstanceId) {
-         String wql = format("SELECT * FROM %s WHERE InstanceID like '%s' AND InstanceID like '%s'",
-                 CLAR_SYNCHRONIZATION_ASPECT_FOR_SOURCE_GROUP, aspectInstanceId, storage.getSerialNumber());
+        String wql = format("SELECT * FROM %s WHERE InstanceID like '%s' AND InstanceID like '%s'",
+                CLAR_SYNCHRONIZATION_ASPECT_FOR_SOURCE_GROUP, aspectInstanceId, storage.getSerialNumber());
 
-          CIMObjectPath queryClass = getQueryClass(CLAR_SYNCHRONIZATION_ASPECT_FOR_SOURCE_GROUP);
+        CIMObjectPath queryClass = getQueryClass(CLAR_SYNCHRONIZATION_ASPECT_FOR_SOURCE_GROUP);
 
-          CIMObjectPath[] paths = execQuery(storage, queryClass, wql);
-          if (paths.length == 0) {
-              return null;
-          }
-          return paths[0];
+        CIMObjectPath[] paths = execQuery(storage, queryClass, wql);
+        if (paths.length == 0) {
+            return null;
+        }
+        return paths[0];
     }
 
     @Override
@@ -492,13 +492,13 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
 
     @Override
     public CIMObjectPath getRemoteReplicationCollection(StorageSystem system, RemoteDirectorGroup group) {
-        //TODO SRDF chek with Selva, whether he has done any changes.
+        // TODO SRDF chek with Selva, whether he has done any changes.
         return null;
     }
 
     @Override
     public CIMObjectPath getReplicationSettingObjectPathFromDefault(CIMInstance settingInstance) {
-        //NO change needed only for V3.
+        // NO change needed only for V3.
         return null;
     }
 

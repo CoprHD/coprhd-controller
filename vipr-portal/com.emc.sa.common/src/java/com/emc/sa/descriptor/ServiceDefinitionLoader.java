@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.descriptor;
@@ -38,8 +38,7 @@ public class ServiceDefinitionLoader {
                 else {
                     LOG.warn("Error reading service definition " + resource.getDescription());
                 }
-            }
-            catch (IOException | RuntimeException e) {
+            } catch (IOException | RuntimeException e) {
                 LOG.error("Error reading service definition: " + resource.getDescription(), e);
             }
         }

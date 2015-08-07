@@ -23,7 +23,7 @@ public class InvalidLoginsList {
 
 
     @XmlElement(name = "max_login_attempts")
-    public int getMaxLoginAttemps() {
+    public int getMaxLoginAttempts() {
         return  maxLoginAttempts;
     }
     public void setMaxLoginAttempts(int maxLoginAttempts) {

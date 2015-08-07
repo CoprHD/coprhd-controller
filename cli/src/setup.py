@@ -14,6 +14,7 @@ distutils.core.setup(
         'Topic :: Software Development',
     ],
     data_files=[('', ['authentication.py',
+                      'blockip.py',
                       'viprcli.py',
                       'common.py',
                       'virtualpool.py',

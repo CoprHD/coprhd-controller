@@ -143,7 +143,7 @@ public class Config {
 	 * <p>
 	 * API Call: DELETE /config/block-ips/{ip}
 	 *
-	 * @param ip the ip to be deleted from block-ip list, '*' for all ips.
+	 * @param ip the ip to be deleted from block-ip list.
 	 */
 	public void deleteBlockIP(String ip) {
 		client.delete(String.class, CONFIG_DELETE_BLOCK_IP, ip);

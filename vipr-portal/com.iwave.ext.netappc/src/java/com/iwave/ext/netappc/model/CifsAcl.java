@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.netappc.model;
@@ -10,10 +10,10 @@ public class CifsAcl implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private CifsAccess access;
-    
+
     private String shareName;
     private String userName;
-    
+
     /** if not null, indicates that ACL is for Unix group */
     private String groupName;
 
@@ -48,7 +48,7 @@ public class CifsAcl implements Serializable {
     public void setGroupName(String groupName) {
         this.groupName = groupName;
     }
-    
+
     @Override
     public String toString() {
         StringBuilder buf = new StringBuilder("CifsAcl(");

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.vnxe.requests;
@@ -26,49 +16,53 @@ import com.emc.storageos.vnxe.models.VNXeCifsShare;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 
-public class CifsShareRequests extends KHRequests<VNXeCifsShare>{
-    
+public class CifsShareRequests extends KHRequests<VNXeCifsShare> {
+
     private static final String URL = "/api/types/cifsShare/instances";
     private static final String URL_SHARE = "/api/instances/cifsShare/";
+
     public CifsShareRequests(KHClient client) {
         super(client);
         _url = URL;
     }
 
-
     /**
      * Get all cifsShares in the array
+     * 
      * @return
      */
-    public List<VNXeCifsShare> get(){
+    public List<VNXeCifsShare> get() {
         _queryParams = null;
         return getDataForObjects(VNXeCifsShare.class);
 
     }
-    
+
     /**
      * Get cifs share per its name.
-     * @param  shareName cifsShare name
+     * 
+     * @param shareName cifsShare name
      * @return list of cifsShare
      */
-    public List<VNXeCifsShare>getCifsShareByName(String shareName) {
+    public List<VNXeCifsShare> getCifsShareByName(String shareName) {
         MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-        queryParams.add(VNXeConstants.FILTER, VNXeConstants.NAME_FILTER+shareName);
+        queryParams.add(VNXeConstants.FILTER, VNXeConstants.NAME_FILTER + shareName);
         setQueryParameters(queryParams);
         return getDataForObjects(VNXeCifsShare.class);
     }
-    
+
     /**
      * Create CIFS share for snapshot
+     * 
      * @param createParam
      * @return
      */
     public VNXeCommandJob createShareForSnapshot(CifsShareCreateForSnapParam createParam) {
         return postRequestAsync(createParam);
     }
-    
+
     /**
      * Delete CIFS share
+     * 
      * @param shareId cifsShare id
      * @return VNXeCommandJob
      */
@@ -80,9 +74,10 @@ public class CifsShareRequests extends KHRequests<VNXeCifsShare>{
             throw VNXeException.exceptions.vnxeCommandFailed("The shareId is not found: " + shareId);
         }
     }
-    
+
     /**
      * Get the specific CIFS share
+     * 
      * @param shareId
      * @return
      */
@@ -91,5 +86,3 @@ public class CifsShareRequests extends KHRequests<VNXeCifsShare>{
         return getDataForOneObject(VNXeCifsShare.class);
     }
 }
-    
-

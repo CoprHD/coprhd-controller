@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor;
@@ -10,32 +10,35 @@ public enum MetricsKeys {
     /** The double value that is the port metric. 0-100% */
     portMetric,
     /** The double percent busy average for the current sample period. */
-    avgPercentBusy, 
+    avgPercentBusy,
     /** The double percent busy ema which decays over many sample periods. */
     emaPercentBusy,
     /** The idleTicksValue at the previous sample. */
-    idleTicksValue, 
+    idleTicksValue,
     /** The cumulativeTicksValue at the previous sample. */
-    cumTicksValue, 
+    cumTicksValue,
     /** The kbytesTransferred value at the previous sample. */
     kbytesValue,
     /** The IOPs value at the previous sample. */
-    iopsValue, 
+    iopsValue,
     /** The integer initiator count using a port. */
     initiatorCount,
     /** The integer volume count using a port. */
     volumeCount,
     /** The time recorded on the array for the previous sample. */
-    lastSampleTime, 
+    lastSampleTime,
     /** The ViPR time the current average started. */
-    avgStartTime, 
+    avgStartTime,
     /** The number of samples in the current sample period average. */
     avgCount,
     /** The computed average port bandwidth percent usage at an instance of time. Double, percent. */
-    avgPortPercentBusy,    
+    avgPortPercentBusy,
     /** The computed average port cpu percent usage at an instance of time. Double, percent. */
     avgCpuPercentBusy,
-    /** boolean to indicate one of port metric: volume count, initiator count, avgCpuPercentBusy, or avgPortPercentBusy exceeded ceiling value **/
+    /**
+     * boolean to indicate one of port metric: volume count, initiator count, avgCpuPercentBusy, or avgPortPercentBusy exceeded ceiling
+     * value
+     **/
     allocationDisqualified,
     /** Unmanaged volume count (computed from UnManagedExportMasks). */
     unmanagedVolumeCount,
@@ -43,7 +46,7 @@ public enum MetricsKeys {
     unmanagedInitiatorCount,
     /** The ViPR time this port/cpu was last processed. */
     lastProcessingTime;
-    
+
     static public Long getLong(MetricsKeys key, StringMap map) {
         Long value = 0L;
         if (map.containsKey(key.name()) && !map.get(key.name()).equals("")) {
@@ -51,11 +54,11 @@ public enum MetricsKeys {
         }
         return value;
     }
-    
+
     static void putLong(MetricsKeys key, Long value, StringMap map) {
         map.put(key.name(), value.toString());
     }
-    
+
     static public Integer getInteger(MetricsKeys key, StringMap map) {
         Integer value = 0;
         if (map.containsKey(key.name()) && !map.get(key.name()).equals("")) {
@@ -63,11 +66,11 @@ public enum MetricsKeys {
         }
         return value;
     }
-    
+
     static void putInteger(MetricsKeys key, Integer value, StringMap map) {
         map.put(key.name(), value.toString());
     }
-    
+
     static public Double getDouble(MetricsKeys key, StringMap map) {
         Double value = 0.0;
         if (map.containsKey(key.name()) && !map.get(key.name()).equals("")) {
@@ -75,6 +78,7 @@ public enum MetricsKeys {
         }
         return value;
     }
+
     static public Double getDoubleOrNull(MetricsKeys key, StringMap map) {
         Double value = null;
         if (map.containsKey(key.name()) && !map.get(key.name()).equals("")) {
@@ -82,11 +86,11 @@ public enum MetricsKeys {
         }
         return value;
     }
+
     static public void putDouble(MetricsKeys key, Double value, StringMap map) {
         map.put(key.name(), value.toString());
     }
-    
-    
+
     static public Boolean getBoolean(MetricsKeys key, StringMap map) {
         Boolean value = false;
         if (map.containsKey(key.name()) && !map.get(key.name()).equals("")) {
@@ -94,7 +98,7 @@ public enum MetricsKeys {
         }
         return value;
     }
-    
+
     static public void putBoolean(MetricsKeys key, Boolean value, StringMap map) {
         map.put(key.name(), value.toString());
     }

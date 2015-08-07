@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client;
@@ -20,12 +20,13 @@ import com.emc.vipr.client.catalog.ServiceDescriptors;
 import com.emc.vipr.client.catalog.UserPreferences;
 import com.emc.vipr.client.catalog.search.CatalogSearchBuilder;
 import com.emc.vipr.client.impl.RestClient;
+
 /**
  * New fully feature catalog api client.
  * 
  */
 public class ViPRCatalogClient2 {
-    
+
     protected RestClient client;
 
     public ViPRCatalogClient2(String host) {
@@ -40,7 +41,7 @@ public class ViPRCatalogClient2 {
      * Sets the authentication token to be used for this client.
      * 
      * @param authToken
-     *        The authentication token to set.
+     *            The authentication token to set.
      */
     public void setAuthToken(String authToken) {
         client.setAuthToken(authToken);
@@ -50,7 +51,7 @@ public class ViPRCatalogClient2 {
      * Sets the proxy token to be used for this client.
      * 
      * @param proxyToken
-     *        The authentication token to set.
+     *            The authentication token to set.
      */
     public void setProxyToken(String proxyToken) {
         client.setProxyToken(proxyToken);
@@ -65,9 +66,9 @@ public class ViPRCatalogClient2 {
      * 
      * @see AuthClient#login(String, String)
      * @param username
-     *        The username.
+     *            The username.
      * @param password
-     *        The password.
+     *            The password.
      * @return The updated client.
      */
     public ViPRCatalogClient2 withLogin(String username, String password) {
@@ -80,7 +81,7 @@ public class ViPRCatalogClient2 {
      * 
      * @see #setAuthToken(String)
      * @param token
-     *        The authentication token to set.
+     *            The authentication token to set.
      * @return The updated client.
      */
     public ViPRCatalogClient2 withAuthToken(String token) {
@@ -93,14 +94,14 @@ public class ViPRCatalogClient2 {
      * 
      * @see #setProxyToken(String)
      * @param token
-     *        The proxy token to set.
+     *            The proxy token to set.
      * @return The updated client.
      */
     public ViPRCatalogClient2 withProxyToken(String token) {
         setProxyToken(token);
         return this;
     }
-    
+
     public TenantResponse getUserTenant() {
         TenantResponse tenant = client.get(TenantResponse.class, "/tenant");
         return tenant;
@@ -112,40 +113,40 @@ public class ViPRCatalogClient2 {
 
     public UserInfo getUserInfo() {
         return client.get(UserInfo.class, "/user/whoami");
-    }    
+    }
 
     public Orders2 orders() {
         return new Orders2(this, client);
     }
-    
+
     public CatalogCategories categories() {
         return new CatalogCategories(this, client);
     }
-    
+
     public CatalogServices services() {
         return new CatalogServices(this, client);
     }
-    
+
     public Approvals2 approvals() {
         return new Approvals2(this, client);
     }
-    
+
     public ExecutionWindows2 executionWindows() {
         return new ExecutionWindows2(this, client);
     }
-    
+
     public AssetOptions assetOptions() {
         return new AssetOptions(this, client);
     }
-    
+
     public ServiceDescriptors serviceDescriptors() {
         return new ServiceDescriptors(this, client);
     }
-    
+
     public CatalogImages images() {
         return new CatalogImages(this, client);
     }
-    
+
     public CatalogPreferences catalogPreferences() {
         return new CatalogPreferences(this, client);
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.virtualpool;
@@ -98,7 +98,7 @@ public abstract class VirtualPoolCommonForm<T extends VirtualPoolCommonRestRep> 
      * matching pools.
      * 
      * @param builder
-     *        the virtual pool builder.
+     *            the virtual pool builder.
      */
     protected void applyCommon(VirtualPoolBuilder builder) {
         builder.setName(name);
@@ -114,7 +114,7 @@ public abstract class VirtualPoolCommonForm<T extends VirtualPoolCommonRestRep> 
      * Applies the common fields on a virtual pool update builder.
      * 
      * @param builder
-     *        the virtual pool builder.
+     *            the virtual pool builder.
      */
     protected void applyCommon(VirtualPoolUpdateBuilder builder) {
         builder.setName(name);
@@ -134,7 +134,7 @@ public abstract class VirtualPoolCommonForm<T extends VirtualPoolCommonRestRep> 
      * Loads the common fields from a virtual pool.
      * 
      * @param virtualPool
-     *        the virtual pool.
+     *            the virtual pool.
      */
     protected void loadCommon(VirtualPoolCommonRestRep virtualPool) {
         id = ResourceUtils.stringId(virtualPool);
@@ -155,7 +155,7 @@ public abstract class VirtualPoolCommonForm<T extends VirtualPoolCommonRestRep> 
      * Loads the quota information from the provide QuotaResources (either the block or file virtual pool resources).
      * 
      * @param resources
-     *        the resources from which to load the quota.
+     *            the resources from which to load the quota.
      */
     protected void loadQuota(QuotaResources resources) {
         URI virtualPoolId = ResourceUtils.uri(id);
@@ -172,7 +172,7 @@ public abstract class VirtualPoolCommonForm<T extends VirtualPoolCommonRestRep> 
      * Saves the quota value using the provided QuotaResources (either the block or file virtual pool resources).
      * 
      * @param resources
-     *        the resources on which to save the quota.
+     *            the resources on which to save the quota.
      */
     protected void saveQuota(QuotaResources resources) {
         URI virtualPoolId = ResourceUtils.uri(id);
@@ -186,7 +186,7 @@ public abstract class VirtualPoolCommonForm<T extends VirtualPoolCommonRestRep> 
      * Loads the tenant ACL information from the provided ACLResources.
      * 
      * @param resources
-     *        the resources from which to load the ACLs.
+     *            the resources from which to load the ACLs.
      */
     protected void loadTenantACLs(ACLResources resources) {
         tenants = Lists.newArrayList();
@@ -200,14 +200,14 @@ public abstract class VirtualPoolCommonForm<T extends VirtualPoolCommonRestRep> 
             }
         }
 
-        enableTenants = tenants.size() > 0;
+        enableTenants = !tenants.isEmpty();
     }
 
     /**
      * Saves the tenant ACL information using the provided ACLResources.
      * 
      * @param resources
-     *        the resources on which to save the tenant ACLs.
+     *            the resources on which to save the tenant ACLs.
      */
     protected void saveTenantACLs(ACLResources resources) {
         // Only allow a user than can read all tenants and update ACLs do this
@@ -229,7 +229,7 @@ public abstract class VirtualPoolCommonForm<T extends VirtualPoolCommonRestRep> 
      * Saves the storage pools associated with the given pool.
      * 
      * @param pool
-     *        the virtual pool.
+     *            the virtual pool.
      */
     protected T saveStoragePools(T pool) {
         Set<String> oldValues = Sets.newHashSet(ResourceUtils.stringRefIds(pool.getAssignedStoragePools()));
@@ -253,9 +253,9 @@ public abstract class VirtualPoolCommonForm<T extends VirtualPoolCommonRestRep> 
      * Updates the storage pools assigned to this virtual pool.
      * 
      * @param add
-     *        the pools to add.
+     *            the pools to add.
      * @param remove
-     *        the pools to remove.
+     *            the pools to remove.
      * @return the updated virtual pool.
      */
     protected abstract T updateStoragePools(Set<String> add, Set<String> remove);

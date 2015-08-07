@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.discoveryplugins.smis;
@@ -148,8 +148,7 @@ public class CommunicationInterfaceTest {
             _executor.execute((Namespace) _nsList.getNsList().get("metering"));
            
         } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        	_logger.error(e.getMessage(), e);
         } finally {
             _wbemClient.close();
         }

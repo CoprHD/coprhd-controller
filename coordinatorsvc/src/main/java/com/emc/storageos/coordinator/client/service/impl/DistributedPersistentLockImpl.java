@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.coordinator.client.service.impl;
@@ -33,22 +23,22 @@ import org.apache.curator.utils.ZKPaths;
 
 /**
  * ZK backed distributed persistent lock implementation.
- *
+ * 
  * - It survives client reboots.
  * - It has to be explicitly released.
  * - It is not re-entrant ... use getLockOwner(), to determine current owner.
- *
+ * 
  * Implementation details: A persistent lock comprises a root (parent) ZNode and a child ZNode.
- *
- *  - RootZNode is created with the requested persistent lock name.
- *      => Since the node has a fixed name, only one thread wins the acquireLock race, others get NodeExistsException.
- *      => This node alone does not suffice to handle releaseLock races.
- *  - ChildZNode is created with a randomUUID and is used to store owner information.
- *      => Created as a child of RootZNode
- *      => A randomUUID is used to be able to provide a given ZNode unique identification, which enables
- *         better handling of releaseLock races.
- *      => Owner information is used to verify ownership during releaseLock operations.
- *  - Attempt is made to make AcquireLock and ReleaseLock atomic.
+ * 
+ * - RootZNode is created with the requested persistent lock name.
+ * => Since the node has a fixed name, only one thread wins the acquireLock race, others get NodeExistsException.
+ * => This node alone does not suffice to handle releaseLock races.
+ * - ChildZNode is created with a randomUUID and is used to store owner information.
+ * => Created as a child of RootZNode
+ * => A randomUUID is used to be able to provide a given ZNode unique identification, which enables
+ * better handling of releaseLock races.
+ * => Owner information is used to verify ownership during releaseLock operations.
+ * - Attempt is made to make AcquireLock and ReleaseLock atomic.
  */
 public class DistributedPersistentLockImpl implements DistributedPersistentLock {
     private static final Logger _log = LoggerFactory.getLogger(DistributedPersistentLockImpl.class);
@@ -58,7 +48,7 @@ public class DistributedPersistentLockImpl implements DistributedPersistentLock 
 
     /**
      * Constructor
-     *
+     * 
      * @param conn ZK connection
      * @param path ZK path under which persistent locks are created
      * @param name Name of the persistent lock
@@ -83,7 +73,7 @@ public class DistributedPersistentLockImpl implements DistributedPersistentLock 
     public boolean acquireLock(final String clientName) throws Exception {
         boolean bLockAcquired;
         _log.debug("acquireLock(): Client: {} wants to acquire lock: {}", clientName, _persistentLockName);
-        if(clientName == null) {
+        if (clientName == null) {
             throw CoordinatorException.fatals.clientNameCannotBeNull();
         }
         _log.debug("acquireLock(): Creating ZNodes...");
@@ -96,7 +86,7 @@ public class DistributedPersistentLockImpl implements DistributedPersistentLock 
     public boolean releaseLock(final String clientName) throws Exception {
         boolean bLockReleased;
         _log.debug("releaseLock(): Client: {} wants to releaseLock lock: {}", clientName, _persistentLockName);
-        if(clientName == null) {
+        if (clientName == null) {
             throw CoordinatorException.fatals.clientNameCannotBeNull();
         }
         _log.debug("releaseLock(): Deleting ZNodes...");
@@ -125,7 +115,7 @@ public class DistributedPersistentLockImpl implements DistributedPersistentLock 
 
     /**
      * Creates the ZNodes
-     *
+     * 
      * @param clientName
      * @return true, if success; false otherwise
      */
@@ -140,9 +130,9 @@ public class DistributedPersistentLockImpl implements DistributedPersistentLock 
                     .create().withMode(CreateMode.PERSISTENT).forPath(lockPath, clientNameInBytes).and()
                     .commit();
             bZNodesCreated = true;
-        } catch(KeeperException.NodeExistsException nee) {
+        } catch (KeeperException.NodeExistsException nee) {
             _log.debug("createZNodes(): For lock: {}, ZNodes already exist", _persistentLockName, nee);
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.debug("createZNodes(): Problem while creating ZNodes: {}", _persistentLockName, e);
         }
         _log.debug("createZNodes(): Result: {}", bZNodesCreated);
@@ -151,7 +141,7 @@ public class DistributedPersistentLockImpl implements DistributedPersistentLock 
 
     /**
      * Deletes the ZNodes
-     *
+     * 
      * @param clientName
      * @return true, if success; false otherwise
      */
@@ -165,7 +155,7 @@ public class DistributedPersistentLockImpl implements DistributedPersistentLock 
             String lockPath = ZKPaths.makePath(lockRootPath, versionId);
             byte[] currOwnerNameInBytes = _zkClient.getData().forPath(lockPath);
             String currOwnerName = new String(currOwnerNameInBytes, Charset.forName("UTF-8"));
-            if(currOwnerName.equals(clientName)) {
+            if (currOwnerName.equals(clientName)) {
                 _log.debug("deleteZNodes(): For lock: {}, Verified owner. Deleting ZNodes", _persistentLockName);
                 _zkClient.inTransaction().delete().forPath(lockPath).and()
                         .delete().forPath(lockRootPath).and().commit();
@@ -174,10 +164,10 @@ public class DistributedPersistentLockImpl implements DistributedPersistentLock 
                 _log.debug("deleteZNodes(): For lock: {}, Cannot delete ZNodes ... Invalid owner.",
                         _persistentLockName);
             }
-        } catch(KeeperException.NoNodeException nne) {
+        } catch (KeeperException.NoNodeException nne) {
             _log.debug("deleteZNodes(): For lock: {}, ZNodes not found.", _persistentLockName);
             bZNodesDeleted = true;
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.debug("deleteZNodes(): For lock: {}, Problem while deleting ZNodes", _persistentLockName);
         }
         _log.debug("deleteZNodes(): Result: {}", bZNodesDeleted);

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.vnxe.requests;
@@ -27,17 +17,18 @@ import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.emc.storageos.vnxe.models.VNXeFileSystem;
 import com.emc.storageos.vnxe.models.VNXeLun;
 
-public class DeleteStorageResourceRequest extends KHRequests<StorageResource>{
-	private static final Logger _logger = LoggerFactory.getLogger(FileSystemActionRequest.class);
-	private static final String URL = "/api/instances/storageResource/";
+public class DeleteStorageResourceRequest extends KHRequests<StorageResource> {
+    private static final Logger _logger = LoggerFactory.getLogger(FileSystemActionRequest.class);
+    private static final String URL = "/api/instances/storageResource/";
 
     public DeleteStorageResourceRequest(KHClient client) {
         super(client);
         _url = URL;
-    }  
-    
+    }
+
     /**
      * Delete file system in async mode
+     * 
      * @param fileSystemId
      * @param isForceSnapDeletion
      * @return
@@ -53,12 +44,13 @@ public class DeleteStorageResourceRequest extends KHRequests<StorageResource>{
             throw VNXeException.exceptions.vnxeCommandFailed(error);
         }
         return deleteResourceAsync(resourceId, isForceSnapDeletion);
-        
+
     }
-    
+
     /**
      * Delete the file system in sync mode
-     * @param fileSystemId 
+     * 
+     * @param fileSystemId
      * @param isForceSnapDeletion
      * @return VNXeCommandResult
      * @throws VNXeException
@@ -71,11 +63,12 @@ public class DeleteStorageResourceRequest extends KHRequests<StorageResource>{
             _logger.error(error);
             throw VNXeException.exceptions.vnxeCommandFailed(error);
         }
-        return  deleteResourceSync(resourceId, isForceSnapDeletion);
+        return deleteResourceSync(resourceId, isForceSnapDeletion);
     }
-    
+
     /**
      * Get storageResource Id using filesystem Id
+     * 
      * @param fsId fileSystem Id
      * @return storageResource Id
      */
@@ -89,22 +82,23 @@ public class DeleteStorageResourceRequest extends KHRequests<StorageResource>{
         }
         return result;
     }
-    
+
     public VNXeCommandResult deleteLunSync(String id, boolean isForceSnapDeletion) throws VNXeException {
-    	 _logger.info("deleting lun : {}", id);
+        _logger.info("deleting lun : {}", id);
         BlockLunRequests req = new BlockLunRequests(_client);
         VNXeLun lun = req.getLun(id);
         if (lun == null) {
-            String error = "Could not find lun: " +id;
+            String error = "Could not find lun: " + id;
             _logger.error(error);
             throw VNXeException.exceptions.vnxeCommandFailed(error);
-            }
+        }
         return deleteResourceSync(id, isForceSnapDeletion);
 
     }
-    
+
     /**
      * Delete lun in async mode
+     * 
      * @param lunId
      * @param isForceSnapDeletion
      * @return
@@ -115,44 +109,43 @@ public class DeleteStorageResourceRequest extends KHRequests<StorageResource>{
         BlockLunRequests req = new BlockLunRequests(_client);
         VNXeLun lun = req.getLun(lunId);
         if (lun == null) {
-            String error = "Could not find lun: " +lunId;
+            String error = "Could not find lun: " + lunId;
             _logger.error(error);
             throw VNXeException.exceptions.vnxeCommandFailed(error);
         }
-        
+
         return deleteResourceAsync(lunId, isForceSnapDeletion);
-       
 
     }
-    
+
     /**
      * Delete lun group
+     * 
      * @param groupId
      * @param isForceSnapDeletion
      * @return
      * @throws VNXeException
      */
-    public VNXeCommandResult deleteLunGroup(String groupId, boolean isForceSnapDeletion) 
-            throws VNXeException{
+    public VNXeCommandResult deleteLunGroup(String groupId, boolean isForceSnapDeletion)
+            throws VNXeException {
         StorageResourceRequest req = new StorageResourceRequest(_client);
         StorageResource group = req.get(groupId);
         if (group == null) {
-            String error = "Could not find lun group: " +groupId;
+            String error = "Could not find lun group: " + groupId;
             _logger.error(error);
             throw VNXeException.exceptions.vnxeCommandFailed(error);
         }
-        
+
         return deleteResourceSync(groupId, isForceSnapDeletion);
     }
-    
-    
+
     private VNXeCommandJob deleteResourceAsync(String resourceId, boolean isForceSnapDeletion) {
         _url = URL + resourceId;
         DeleteStorageResourceParam parm = new DeleteStorageResourceParam();
         parm.setForceSnapDeletion(isForceSnapDeletion);
         return deleteRequestAsync(parm);
     }
-    
+
     private VNXeCommandResult deleteResourceSync(String resourceId, boolean isForceSnapDeletion) {
         _url = URL + resourceId;
         DeleteStorageResourceParam parm = new DeleteStorageResourceParam();

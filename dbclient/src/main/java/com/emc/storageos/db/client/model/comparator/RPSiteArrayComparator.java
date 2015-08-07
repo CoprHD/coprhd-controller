@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model.comparator;
@@ -21,14 +11,11 @@ import java.util.Comparator;
 import com.emc.storageos.db.client.model.RPSiteArray;
 
 /**
- * Comparator class for mainly used for determining equality between
- * <code>RPSiteArray</code> objects.  The URI will be used for
- * equality comparison.  
+ * Comparator class for mainly used for determining equality between <code>RPSiteArray</code> objects. The URI will be used for
+ * equality comparison.
  * <p>
- * Please note that this class is being constructed and used 
- * because the impact of overriding .hashCode and .equals in
- * <code>RPSiteArray</code> and <code>DataObject</code> was not
- * clearly understood.
+ * Please note that this class is being constructed and used because the impact of overriding .hashCode and .equals in
+ * <code>RPSiteArray</code> and <code>DataObject</code> was not clearly understood.
  */
 public class RPSiteArrayComparator implements Comparator<RPSiteArray> {
 

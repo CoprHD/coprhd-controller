@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.plugins.metering.vnxfile;
 
@@ -33,52 +23,54 @@ import com.emc.storageos.plugins.common.domainmodel.Argument;
 
 /**
  * This class is implemented to create the VNXFile input request xml
- *
+ * 
  */
 public class VNXFileArgsCreator extends ArgsCreator {
-	private static final Logger _logger = LoggerFactory
-			.getLogger(VNXFileArgsCreator.class);
+    private static final Logger _logger = LoggerFactory
+            .getLogger(VNXFileArgsCreator.class);
 
-	// Auto extension high water mark
+    // Auto extension high water mark
     private static final int EXT_HW_MARK = 90;
-    
+
     // Minimum VNX File file system array size in MB
     private static final Long MIN_FILESYSTEM_SIZE = 2L;
 
-	private VNXFileInputRequestBuilder _vnxFileInputRequestBuilder = null;
+    private VNXFileInputRequestBuilder _vnxFileInputRequestBuilder = null;
 
-	public VNXFileArgsCreator(Util util) {
-		super(util);
-	}
+    public VNXFileArgsCreator(Util util) {
+        super(util);
+    }
 
-	public void setVnxFileRequest(VNXFileInputRequestBuilder vnxFileInputRequestBuilder) {
-		_vnxFileInputRequestBuilder = vnxFileInputRequestBuilder;
-	}
-	/**
-	 * create a FileSystemUsage XML request and returns a stream after marshalling.
-	 * @param argument
-	 * @param keyMap
-	 * @param index
-	 * @return
-	 * @throws VNXFilePluginException
-	 */
-	public InputStream fetchFileSystemUsageStats(final Argument argument,
-			final Map<String, Object> keyMap, int index)
-			throws VNXFilePluginException {
-		_logger.info("Creating filesystem usage query");
-		InputStream iStream = null;
-		try {
-			QueryStats queryStats = new QueryStats();
-			FileSystemUsageSet fsUsageSet = new FileSystemUsageSet();
-			queryStats.setFileSystemUsage(fsUsageSet);
-			iStream = _vnxFileInputRequestBuilder.getSingleQueryStatsPacket(queryStats);
-		} catch (JAXBException jaxbException) {
-			throw new VNXFilePluginException(
-					"Exception occurred while generating input xml for fileSystem usage info",
-					jaxbException.getCause());
-		}
-		return iStream;
-	}
+    public void setVnxFileRequest(VNXFileInputRequestBuilder vnxFileInputRequestBuilder) {
+        _vnxFileInputRequestBuilder = vnxFileInputRequestBuilder;
+    }
+
+    /**
+     * create a FileSystemUsage XML request and returns a stream after marshalling.
+     * 
+     * @param argument
+     * @param keyMap
+     * @param index
+     * @return
+     * @throws VNXFilePluginException
+     */
+    public InputStream fetchFileSystemUsageStats(final Argument argument,
+            final Map<String, Object> keyMap, int index)
+            throws VNXFilePluginException {
+        _logger.info("Creating filesystem usage query");
+        InputStream iStream = null;
+        try {
+            QueryStats queryStats = new QueryStats();
+            FileSystemUsageSet fsUsageSet = new FileSystemUsageSet();
+            queryStats.setFileSystemUsage(fsUsageSet);
+            iStream = _vnxFileInputRequestBuilder.getSingleQueryStatsPacket(queryStats);
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for fileSystem usage info",
+                    jaxbException.getCause());
+        }
+        return iStream;
+    }
 
     /**
      * Create VNX Information input request xml and return its stream after
@@ -90,24 +82,25 @@ public class VNXFileArgsCreator extends ArgsCreator {
      * @return
      * @throws VNXFilePluginException
      */
-	public InputStream fetchCelerraSystemInfo(final Argument argument,
-			final Map<String, Object> keyMap, int index)
-			throws VNXFilePluginException {
-		_logger.info("Creating celerra system query");
-		InputStream iStream = null;
-		try {
-			Query query = new Query();
-			CelerraSystemQueryParams celerraParams = new CelerraSystemQueryParams();
-			query.getQueryRequestChoice().add(celerraParams);
-			iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(celerraParams,false);
-		} catch (JAXBException jaxbException) {
-			throw new VNXFilePluginException(
-					"Exception occurred while generating input xml for celerra system info",
-					jaxbException.getCause());
-		}
-		return iStream;
-		
-	}
+    public InputStream fetchCelerraSystemInfo(final Argument argument,
+            final Map<String, Object> keyMap, int index)
+            throws VNXFilePluginException {
+        _logger.info("Creating celerra system query");
+        InputStream iStream = null;
+        try {
+            Query query = new Query();
+            CelerraSystemQueryParams celerraParams = new CelerraSystemQueryParams();
+            query.getQueryRequestChoice().add(celerraParams);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(celerraParams, false);
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for celerra system info",
+                    jaxbException.getCause());
+        }
+        return iStream;
+
+    }
+
     /**
      * Create VNX Information input request xml and return its stream after
      * marshalling.
@@ -127,16 +120,16 @@ public class VNXFileArgsCreator extends ArgsCreator {
             Query query = new Query();
             StoragePoolQueryParams spParams = new StoragePoolQueryParams();
             query.getQueryRequestChoice().add(spParams);
-            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(spParams,false);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(spParams, false);
         } catch (JAXBException jaxbException) {
             throw new VNXFilePluginException(
                     "Exception occurred while generating input xml for celerra system info",
                     jaxbException.getCause());
         }
         return iStream;
-        
+
     }
-	
+
     /**
      * Create VNX Information input request xml and return its stream after
      * marshalling.
@@ -159,16 +152,16 @@ public class VNXFileArgsCreator extends ArgsCreator {
             selection.setMovers(true);
             dataMovers.setAspectSelection(selection);
             query.getQueryRequestChoice().add(dataMovers);
-            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(dataMovers,false);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(dataMovers, false);
         } catch (JAXBException jaxbException) {
             throw new VNXFilePluginException(
                     "Exception occurred while generating input xml for celerra port group info",
                     jaxbException.getCause());
         }
         return iStream;
-        
+
     }
-    
+
     /**
      * Create VNX Information input request xml and return its stream after
      * marshalling.
@@ -190,7 +183,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
             com.emc.nas.vnxfile.xmlapi.MoverQueryParams.AspectSelection selection = new com.emc.nas.vnxfile.xmlapi.MoverQueryParams.AspectSelection();
             selection.setMoverInterfaces(true);
             dataMovers.setAspectSelection(selection);
-            
+
             query.getQueryRequestChoice().add(dataMovers);
             iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(dataMovers, false);
         } catch (JAXBException jaxbException) {
@@ -199,66 +192,70 @@ public class VNXFileArgsCreator extends ArgsCreator {
                     jaxbException.getCause());
         }
         return iStream;
-        
+
     }
-    
-	/**
-	 * create checkpoint information query and returns its stream after marshalling.
-	 * @param argument
-	 * @param keyMap
-	 * @param index
-	 * @return
-	 * @throws VNXFilePluginException
-	 */
-	public InputStream fetchCheckpointInfo(final Argument argument,
-			final Map<String, Object> keyMap, int index)
-			throws VNXFilePluginException {
-		_logger.info("Creating checkpoint info query");
-		InputStream iStream = null;
-		try {
-			Query query = new Query();
-			CheckpointQueryParams ckptParams = new CheckpointQueryParams();
-			query.getQueryRequestChoice().add(ckptParams);
-			iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(ckptParams, false);
-		} catch (JAXBException jaxbException) {
-			throw new VNXFilePluginException(
-					"Exception occurred while generating input xml for celerra system info",
-					jaxbException.getCause());
-		}
-		return iStream;
-		
-	}
-	/**
-	 * Create Filesystem information input XML request and returns stream after marshalling.
-	 * @param argument
-	 * @param keyMap
-	 * @param index
-	 * @return
-	 * @throws VNXFilePluginException
-	 */
-	public InputStream fetchFileSystemInfo(final Argument argument,
-			final Map<String, Object> keyMap, int index)
-			throws VNXFilePluginException {
-		_logger.info("Creating filesystem info query");
-		InputStream iStream = null;
-		try {
-			Query query = new Query();
-			FileSystemQueryParams fsQueryParam = new FileSystemQueryParams();
-			AspectSelection selection = new AspectSelection();
-			selection.setFileSystems(true);
-			fsQueryParam.setAspectSelection(selection);
-			query.getQueryRequestChoice().add(fsQueryParam);
-			iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(fsQueryParam,false);
-		} catch (JAXBException jaxbException) {
-			throw new VNXFilePluginException(
-					"Exception occurred while generating input xml for fileSystem info",
-					jaxbException.getCause());
-		}
-		return iStream;
-	}
+
+    /**
+     * create checkpoint information query and returns its stream after marshalling.
+     * 
+     * @param argument
+     * @param keyMap
+     * @param index
+     * @return
+     * @throws VNXFilePluginException
+     */
+    public InputStream fetchCheckpointInfo(final Argument argument,
+            final Map<String, Object> keyMap, int index)
+            throws VNXFilePluginException {
+        _logger.info("Creating checkpoint info query");
+        InputStream iStream = null;
+        try {
+            Query query = new Query();
+            CheckpointQueryParams ckptParams = new CheckpointQueryParams();
+            query.getQueryRequestChoice().add(ckptParams);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(ckptParams, false);
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for celerra system info",
+                    jaxbException.getCause());
+        }
+        return iStream;
+
+    }
+
+    /**
+     * Create Filesystem information input XML request and returns stream after marshalling.
+     * 
+     * @param argument
+     * @param keyMap
+     * @param index
+     * @return
+     * @throws VNXFilePluginException
+     */
+    public InputStream fetchFileSystemInfo(final Argument argument,
+            final Map<String, Object> keyMap, int index)
+            throws VNXFilePluginException {
+        _logger.info("Creating filesystem info query");
+        InputStream iStream = null;
+        try {
+            Query query = new Query();
+            FileSystemQueryParams fsQueryParam = new FileSystemQueryParams();
+            AspectSelection selection = new AspectSelection();
+            selection.setFileSystems(true);
+            fsQueryParam.setAspectSelection(selection);
+            query.getQueryRequestChoice().add(fsQueryParam);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(fsQueryParam, false);
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for fileSystem info",
+                    jaxbException.getCause());
+        }
+        return iStream;
+    }
 
     /**
      * Create Filesystem information and FileSystem capcacity input XML request and returns stream after marshalling.
+     * 
      * @param argument
      * @param keyMap
      * @param index
@@ -266,7 +263,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
      * @throws VNXFilePluginException
      */
     public InputStream fetchFileSystemInfoWithSize(final Argument argument,
-                                           final Map<String, Object> keyMap, int index)
+            final Map<String, Object> keyMap, int index)
             throws VNXFilePluginException {
         _logger.info("Creating filesystem info query");
         InputStream iStream = null;
@@ -286,9 +283,10 @@ public class VNXFileArgsCreator extends ArgsCreator {
         }
         return iStream;
     }
-    
+
     /**
      * Create Filesystem information and FileSystem capcacity input XML request and returns stream after marshalling.
+     * 
      * @param argument
      * @param keyMap
      * @param index
@@ -296,7 +294,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
      * @throws VNXFilePluginException
      */
     public InputStream fetchSelectedFileSystemInfo(final Argument argument,
-                                           final Map<String, Object> keyMap, int index)
+            final Map<String, Object> keyMap, int index)
             throws VNXFilePluginException {
         _logger.info("Creating filesystem info query");
         InputStream iStream = null;
@@ -319,9 +317,10 @@ public class VNXFileArgsCreator extends ArgsCreator {
         }
         return iStream;
     }
-    
+
     /**
      * Creates File Export input XML request and returns stream after marshalling.
+     * 
      * @param argument
      * @param keyMap
      * @param index
@@ -329,15 +328,15 @@ public class VNXFileArgsCreator extends ArgsCreator {
      * @throws VNXFilePluginException
      */
     public InputStream fetchFileExportInfo(final Argument argument,
-                                           final Map<String, Object> keyMap, int index)
+            final Map<String, Object> keyMap, int index)
             throws VNXFilePluginException {
         _logger.info("Creating File Export info query.");
         InputStream iStream = null;
         try {
             Query query = new Query();
-            NfsExportQueryParams nfsExportQueryParam = new NfsExportQueryParams();   
+            NfsExportQueryParams nfsExportQueryParam = new NfsExportQueryParams();
             query.getQueryRequestChoice().add(nfsExportQueryParam);
-            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(nfsExportQueryParam,false);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(nfsExportQueryParam, false);
         } catch (JAXBException jaxbException) {
             throw new VNXFilePluginException(
                     "Exception occurred while generating input xml for file export info",
@@ -348,16 +347,17 @@ public class VNXFileArgsCreator extends ArgsCreator {
 
     /**
      * Create CIFS Config XML request and return stream after marhalling.
+     * 
      * @param argument
      * @param keyMap
-     * @param  index
+     * @param index
      * @throws com.emc.storageos.plugins.metering.vnxfile.VNXFilePluginException
-     *
+     * 
      */
     public InputStream fetchCifsServerParams(final Argument argument,
-                                           final Map<String, Object> keyMap,
-                                           int index)
-                                           throws VNXFilePluginException {
+            final Map<String, Object> keyMap,
+            int index)
+            throws VNXFilePluginException {
         _logger.info("Creating CIFS Server Params Query");
         InputStream iStream = null;
 
@@ -369,10 +369,10 @@ public class VNXFileArgsCreator extends ArgsCreator {
 
             MoverOrVdmRef mover = new MoverOrVdmRef();
             Boolean moverIsVdm = new Boolean(false);
-            if(moverId != null) {
+            if (moverId != null) {
                 mover.setMover(moverId);
-                if(isVDM != null) {
-                    if(isVDM.equalsIgnoreCase("true")) {
+                if (isVDM != null) {
+                    if (isVDM.equalsIgnoreCase("true")) {
                         moverIsVdm = new Boolean(true);
                     }
                 }
@@ -392,21 +392,22 @@ public class VNXFileArgsCreator extends ArgsCreator {
         return iStream;
     }
 
-	/**
-	 * Create volume stats XML request query and returns a stream after marshalling.
-	 * @param argument
-	 * @param keyMap
-	 * @param index
-	 * @return
-	 * @throws VNXFilePluginException
-	 */
-	@SuppressWarnings("unchecked")
-	public InputStream fetchVolumeStats(final Argument argument,
-			final Map<String, Object> keyMap, int index)
-			throws VNXFilePluginException {
-		_logger.info("Creating volume stats query");
-		InputStream iStream = null;
-		List<QueryStats> statList = new ArrayList<QueryStats>();
+    /**
+     * Create volume stats XML request query and returns a stream after marshalling.
+     * 
+     * @param argument
+     * @param keyMap
+     * @param index
+     * @return
+     * @throws VNXFilePluginException
+     */
+    @SuppressWarnings("unchecked")
+    public InputStream fetchVolumeStats(final Argument argument,
+            final Map<String, Object> keyMap, int index)
+            throws VNXFilePluginException {
+        _logger.info("Creating volume stats query");
+        InputStream iStream = null;
+        List<QueryStats> statList = new ArrayList<QueryStats>();
         try {
             Set<String> movers = (Set<String>) keyMap.get(VNXFileConstants.MOVERLIST);
             if (null != movers && !movers.isEmpty()) {
@@ -423,16 +424,16 @@ public class VNXFileArgsCreator extends ArgsCreator {
                 _logger.error("No movers found to construct volumeStats query.");
             }
         } catch (JAXBException jaxbException) {
-			throw new VNXFilePluginException(
-					"Exception occurred while fetching fileSystem info",
-					jaxbException.getCause());
-		}
-		return iStream;
-	}
+            throw new VNXFilePluginException(
+                    "Exception occurred while fetching fileSystem info",
+                    jaxbException.getCause());
+        }
+        return iStream;
+    }
 
-    public InputStream fetchDataMoverInfo( final Argument argument,
-                                           final Map<String, Object> keyMap,
-                                           int   index ) throws VNXFilePluginException {
+    public InputStream fetchDataMoverInfo(final Argument argument,
+            final Map<String, Object> keyMap,
+            int index) throws VNXFilePluginException {
         _logger.info("Creating data mover info query");
         InputStream iStream = null;
         try {
@@ -442,7 +443,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
             selection.setMovers(true);
             moverQuery.setAspectSelection(selection);
             query.getQueryRequestChoice().add(moverQuery);
-            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(moverQuery,false);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(moverQuery, false);
         } catch (JAXBException jaxbException) {
             throw new VNXFilePluginException(
                     "Exception occurred while generating input xml for datamover info",
@@ -451,10 +452,9 @@ public class VNXFileArgsCreator extends ArgsCreator {
         return iStream;
     }
 
-
-    public InputStream fetchVdmInfo( final Argument argument,
-                                           final Map<String, Object> keyMap,
-                                           int   index ) throws VNXFilePluginException {
+    public InputStream fetchVdmInfo(final Argument argument,
+            final Map<String, Object> keyMap,
+            int index) throws VNXFilePluginException {
         _logger.info("Creating VDM info query");
         InputStream iStream = null;
         try {
@@ -469,9 +469,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
         }
         return iStream;
     }
-    
 
-    
     /**
      * Performs a query for the user accounts on the specified data mover.
      * 
@@ -481,9 +479,9 @@ public class VNXFileArgsCreator extends ArgsCreator {
      * @return iStream
      * @throws VNXFilePluginException
      */
-    public InputStream fetchUserAccounts ( final Argument argument,
-                                            final Map<String, Object> keyMap,
-                                            int   index ) throws VNXFilePluginException {
+    public InputStream fetchUserAccounts(final Argument argument,
+            final Map<String, Object> keyMap,
+            int index) throws VNXFilePluginException {
         _logger.info("Creating User Accounts Query");
         InputStream iStream = null;
         try {
@@ -499,89 +497,88 @@ public class VNXFileArgsCreator extends ArgsCreator {
                     "Exception occurred while generating input xml for user account info",
                     jaxbException.getCause());
         }
-        
+
         return iStream;
     }
 
     /**
-	 * Create Quota Tree information input XML request and returns stream after marshalling.
-	 * @param argument
-	 * @param keyMap
-	 * @param index
-	 * @return
-	 * @throws VNXFilePluginException
-	 */
+     * Create Quota Tree information input XML request and returns stream after marshalling.
+     * 
+     * @param argument
+     * @param keyMap
+     * @param index
+     * @return
+     * @throws VNXFilePluginException
+     */
     public InputStream fetchQuotaDirInfo(final Argument argument,
-    		final Map<String, Object> keyMap, int index)
-    				throws VNXFilePluginException {
-    	_logger.info("Creating quota tree info query");
-    	InputStream iStream = null;
-    	try {
-    		Query query = new Query();
+            final Map<String, Object> keyMap, int index)
+            throws VNXFilePluginException {
+        _logger.info("Creating quota tree info query");
+        InputStream iStream = null;
+        try {
+            Query query = new Query();
 
-    		// Verify that the prior command quota create/update executed properly.
-    		verifyPreviousResults(keyMap);
+            // Verify that the prior command quota create/update executed properly.
+            verifyPreviousResults(keyMap);
 
-    		TreeQuotaQueryParams queryParam = new TreeQuotaQueryParams();
-    		TreeQuotaQueryParams.AspectSelection selection = new TreeQuotaQueryParams.AspectSelection();
-    		selection.setTreeQuotas(true);
-    		queryParam.setAspectSelection(selection);
-    		
-    		// Set the parent file system.
-    		String fsId = (String)keyMap.get(VNXFileConstants.FILESYSTEM_ID);
-    		if(!isInValid(fsId)){
-    			queryParam.setFileSystem(fsId);
-    		}
-    		
-    		query.getQueryRequestChoice().add(queryParam);
-    		iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(queryParam,false);
-    	} catch (JAXBException jaxbException) {
-    		throw new VNXFilePluginException(
-    				"Exception occurred while generating input xml for fileSystem info",
-    				jaxbException.getCause());
-    	}
-    	return iStream;
+            TreeQuotaQueryParams queryParam = new TreeQuotaQueryParams();
+            TreeQuotaQueryParams.AspectSelection selection = new TreeQuotaQueryParams.AspectSelection();
+            selection.setTreeQuotas(true);
+            queryParam.setAspectSelection(selection);
+
+            // Set the parent file system.
+            String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
+            if (!isInValid(fsId)) {
+                queryParam.setFileSystem(fsId);
+            }
+
+            query.getQueryRequestChoice().add(queryParam);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(queryParam, false);
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for fileSystem info",
+                    jaxbException.getCause());
+        }
+        return iStream;
     }
 
-
-	
     public InputStream createFileSystem(final Argument argument,
-                                        final Map<String, Object> keyMap,
-                                        int index) throws VNXFilePluginException {
+            final Map<String, Object> keyMap,
+            int index) throws VNXFilePluginException {
         _logger.info("Creating a new VNX File file system");
 
         InputStream iStream = null;
         try {
-            
+
             // Verify that the prior command executed properly.
             verifyPreviousResults(keyMap);
-            
+
             Task task = new Task();
             NewFileSystem newFs = new NewFileSystem();
 
-            String fsName      = (String)keyMap.get(VNXFileConstants.FILESYSTEM_NAME);
-            String poolName    = (String)keyMap.get(VNXFileConstants.POOL_NAME);
-            Long   fsSize      = (Long)keyMap.get(VNXFileConstants.FS_INIT_SIZE);
-            Set<String> movers = (Set<String>)keyMap.get(VNXFileConstants.MOVERLIST);
-            Boolean   virtualProvisioning      = (Boolean)keyMap.get(VNXFileConstants.FILESYSTEM_VIRTUAL_PROVISIONING);
-            
-            if (isInValid(fsName) || isInValid(poolName) || null == fsSize || null == movers || (movers.size() == 0)) {
-                throw new VNXFilePluginException("Prior command did not execute successfully", 
+            String fsName = (String) keyMap.get(VNXFileConstants.FILESYSTEM_NAME);
+            String poolName = (String) keyMap.get(VNXFileConstants.POOL_NAME);
+            Long fsSize = (Long) keyMap.get(VNXFileConstants.FS_INIT_SIZE);
+            Set<String> movers = (Set<String>) keyMap.get(VNXFileConstants.MOVERLIST);
+            Boolean virtualProvisioning = (Boolean) keyMap.get(VNXFileConstants.FILESYSTEM_VIRTUAL_PROVISIONING);
+
+            if (isInValid(fsName) || isInValid(poolName) || null == fsSize || null == movers || (movers.isEmpty())) {
+                throw new VNXFilePluginException("Prior command did not execute successfully",
                         VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
             }
 
             String dataMover = null;
-            if(movers.size() > 0){
+            if (!movers.isEmpty()) {
                 Iterator<String> iter = movers.iterator();
-                dataMover = (String)iter.next();
+                dataMover = (String) iter.next();
             }
 
             _logger.debug("new file system name: {}", fsName);
             _logger.debug("using virtual prov: {}", virtualProvisioning);
-            newFs.setName( fsName );
+            newFs.setName(fsName);
 
             StoragePool pool = new StoragePool();
-            pool.setPool( poolName );
+            pool.setPool(poolName);
             pool.setVirtualProvisioning(virtualProvisioning);
 
             if (virtualProvisioning) {
@@ -590,19 +587,19 @@ public class VNXFileArgsCreator extends ArgsCreator {
                 autoExt.setHighWaterMark(EXT_HW_MARK);
 
                 pool.setEnableAutoExt(autoExt);
-                pool.setSize( MIN_FILESYSTEM_SIZE );
+                pool.setSize(MIN_FILESYSTEM_SIZE);
             } else {
-                pool.setSize( fsSize );                
+                pool.setSize(fsSize);
             }
 
-            newFs.setStoragePool( pool );
-            newFs.setType( FileSystemType.UXFS );
+            newFs.setStoragePool(pool);
+            newFs.setType(FileSystemType.UXFS);
 
             MoverRef mvRef = new MoverRef();
-            mvRef.setMover( dataMover );
-            newFs.setMover( mvRef );
+            mvRef.setMover(dataMover);
+            newFs.setMover(mvRef);
 
-            task.setNewFileSystem( newFs );
+            task.setNewFileSystem(newFs);
             iStream = _vnxFileInputRequestBuilder.getTaskParamPacket(task, true);
         } catch (JAXBException jaxbException) {
             throw new VNXFilePluginException(
@@ -612,10 +609,10 @@ public class VNXFileArgsCreator extends ArgsCreator {
 
         return iStream;
     }
-    
-    public InputStream createSnapshot( final Argument argument,
-                                       final Map<String, Object> keyMap,
-                                       int index )throws VNXFilePluginException {
+
+    public InputStream createSnapshot(final Argument argument,
+            final Map<String, Object> keyMap,
+            int index) throws VNXFilePluginException {
         _logger.info("ArgsCreator: Create VNX Snapshot");
 
         InputStream iStream = null;
@@ -626,19 +623,19 @@ public class VNXFileArgsCreator extends ArgsCreator {
             Task task = new Task();
             NewCheckpoint snap = new NewCheckpoint();
 
-            String fsId = (String)keyMap.get(VNXFileConstants.FILESYSTEM_ID);
-            String name = (String)keyMap.get(VNXFileConstants.SNAPSHOT_NAME);
+            String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
+            String name = (String) keyMap.get(VNXFileConstants.SNAPSHOT_NAME);
             _logger.debug("snapshot for file system id: {}", fsId);
 
             if (isInValid(fsId) || isInValid(name)) {
-                throw new VNXFilePluginException("Prior command did not execute successfully", 
+                throw new VNXFilePluginException("Prior command did not execute successfully",
                         VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
             }
 
-            snap.setCheckpointOf( fsId );
-            snap.setName( name );
-            task.setNewCheckpoint( snap );
-            iStream = _vnxFileInputRequestBuilder.getTaskParamPacket( task );
+            snap.setCheckpointOf(fsId);
+            snap.setName(name);
+            task.setNewCheckpoint(snap);
+            iStream = _vnxFileInputRequestBuilder.getTaskParamPacket(task);
         } catch (JAXBException jaxbException) {
             throw new VNXFilePluginException(
                     "Exception occurred while generating input xml for delete file system",
@@ -648,188 +645,183 @@ public class VNXFileArgsCreator extends ArgsCreator {
         return iStream;
     }
 
-    public InputStream createQuotaDirectory( final Argument argument,
-    		final Map<String, Object> keyMap,
-    		int index )throws VNXFilePluginException {
-    	_logger.info("ArgsCreator: Create VNX QuotaDirectory....");
+    public InputStream createQuotaDirectory(final Argument argument,
+            final Map<String, Object> keyMap,
+            int index) throws VNXFilePluginException {
+        _logger.info("ArgsCreator: Create VNX QuotaDirectory....");
 
-    	InputStream iStream = null;
-    	try {
+        InputStream iStream = null;
+        try {
 
-    		// Verify that the prior command executed properly.
-    		verifyPreviousResults(keyMap);
+            // Verify that the prior command executed properly.
+            verifyPreviousResults(keyMap);
 
-    		Task task = new Task();
-    		NewTree quotaTree = new NewTree();
-    		QuotaLimits quota = new QuotaLimits();
+            Task task = new Task();
+            NewTree quotaTree = new NewTree();
+            QuotaLimits quota = new QuotaLimits();
 
-    		String fsId = (String)keyMap.get(VNXFileConstants.FILESYSTEM_ID);
-    		String name = (String)keyMap.get(VNXFileConstants.QUOTA_DIR_NAME);
-    		Long hardQuota = (Long)keyMap.get(VNXFileConstants.HARD_QUOTA);
-    		Long softQuota = (Long)keyMap.get(VNXFileConstants.SOFT_QUOTA);
-    		String fsName = (String)keyMap.get(VNXFileConstants.FILESYSTEM_NAME);
-    		_logger.info("Quota directory for file system id: {}", fsId);
+            String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
+            String name = (String) keyMap.get(VNXFileConstants.QUOTA_DIR_NAME);
+            Long hardQuota = (Long) keyMap.get(VNXFileConstants.HARD_QUOTA);
+            Long softQuota = (Long) keyMap.get(VNXFileConstants.SOFT_QUOTA);
+            _logger.info("Quota directory for file system id: {}", fsId);
 
-    		if (isInValid(fsId) || isInValid(name)) {
-    			throw new VNXFilePluginException("Prior command did not execute successfully", 
-    					VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
-    		}
-    		
-    		// Set the Quota limits
-    		if(hardQuota != null){
-    			quota.setSpaceHardLimit(hardQuota.intValue());
-    			// If we do not specify soft-limit, even hard limit values shows unlimited size.
-    			// so, setting the soft-limit same as hard-limit.
-    			quota.setSpaceSoftLimit(hardQuota.intValue());
-    		}
-    			
-    		if(softQuota != null){  
-    			quota.setSpaceSoftLimit(softQuota.intValue());
-    		}
-    		
-    		_logger.info("fsId {}, name {}", fsId, name);			
-    		quotaTree.setFileSystem(fsId);
-    		final String quotaDirPath = "/"+ name;
-    		quotaTree.setPath(quotaDirPath); 
-    		quotaTree.setLimits(quota);
-    		task.setNewTree(quotaTree);
-    		iStream = _vnxFileInputRequestBuilder.getTaskParamPacket( task );
-    	} catch (JAXBException jaxbException) {
-    		throw new VNXFilePluginException(
-    				"Exception occurred while generating input xml for create qTree",
-    				jaxbException.getCause());
-    	}
+            if (isInValid(fsId) || isInValid(name)) {
+                throw new VNXFilePluginException("Prior command did not execute successfully",
+                        VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
+            }
 
-    	return iStream;
+            // Set the Quota limits
+            if (hardQuota != null) {
+                quota.setSpaceHardLimit(hardQuota.intValue());
+                // If we do not specify soft-limit, even hard limit values shows unlimited size.
+                // so, setting the soft-limit same as hard-limit.
+                quota.setSpaceSoftLimit(hardQuota.intValue());
+            }
+
+            if (softQuota != null) {
+                quota.setSpaceSoftLimit(softQuota.intValue());
+            }
+
+            _logger.info("fsId {}, name {}", fsId, name);
+            quotaTree.setFileSystem(fsId);
+            final String quotaDirPath = "/" + name;
+            quotaTree.setPath(quotaDirPath);
+            quotaTree.setLimits(quota);
+            task.setNewTree(quotaTree);
+            iStream = _vnxFileInputRequestBuilder.getTaskParamPacket(task);
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for create qTree",
+                    jaxbException.getCause());
+        }
+
+        return iStream;
     }
-    
-    
-    public InputStream deleteQuotaDirectory( final Argument argument,
-    		final Map<String, Object> keyMap,
-    		int index )throws VNXFilePluginException {
-    	_logger.info("ArgsCreator: Delete VNX QuotaDirectory...");
 
-    	InputStream iStream = null;
-    	try {
+    public InputStream deleteQuotaDirectory(final Argument argument,
+            final Map<String, Object> keyMap,
+            int index) throws VNXFilePluginException {
+        _logger.info("ArgsCreator: Delete VNX QuotaDirectory...");
 
-    		// Verify that the prior command executed properly.
-    		verifyPreviousResults(keyMap);
+        InputStream iStream = null;
+        try {
 
-    		Task task = new Task();
-    		DeleteTree quotaTree = new DeleteTree();
+            // Verify that the prior command executed properly.
+            verifyPreviousResults(keyMap);
 
-    		String fsId = (String)keyMap.get(VNXFileConstants.FILESYSTEM_ID);
-    		String name = (String)keyMap.get(VNXFileConstants.QUOTA_DIR_NAME);
-    		String fsPath = (String)keyMap.get(VNXFileConstants.MOUNT_PATH);
-    		_logger.info("QuotaDirectory delation for file system id: {}", fsId);
+            Task task = new Task();
+            DeleteTree quotaTree = new DeleteTree();
 
-    		if (isInValid(fsId) || isInValid(name)) {
-    			throw new VNXFilePluginException("Prior command did not execute successfully", 
-    					VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
-    		}
+            String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
+            String name = (String) keyMap.get(VNXFileConstants.QUOTA_DIR_NAME);
+            _logger.info("QuotaDirectory delation for file system id: {}", fsId);
 
-    		_logger.info("fsId {}, name {}", fsId, name);
-    		quotaTree.setFileSystem(fsId);
-    		quotaTree.setPath("/"+ name);
-    		quotaTree.setTaskDescription("Deleting the quota directory.");
-    		task.setDeleteTree(quotaTree);
-    		iStream = _vnxFileInputRequestBuilder.getTaskParamPacket( task );
-    	} catch (JAXBException jaxbException) {
-    		throw new VNXFilePluginException(
-    				"Exception occurred while generating input xml for delete quota tree",
-    				jaxbException.getCause());
-    	}
+            if (isInValid(fsId) || isInValid(name)) {
+                throw new VNXFilePluginException("Prior command did not execute successfully",
+                        VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
+            }
 
-    	return iStream;
+            _logger.info("fsId {}, name {}", fsId, name);
+            quotaTree.setFileSystem(fsId);
+            quotaTree.setPath("/" + name);
+            quotaTree.setTaskDescription("Deleting the quota directory.");
+            task.setDeleteTree(quotaTree);
+            iStream = _vnxFileInputRequestBuilder.getTaskParamPacket(task);
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for delete quota tree",
+                    jaxbException.getCause());
+        }
+
+        return iStream;
     }
-    
-    public InputStream modifyQuotaDirectory( final Argument argument,
-    		final Map<String, Object> keyMap,
-    		int index )throws VNXFilePluginException {
-    	_logger.info("ArgsCreator: Modify VNX QuotaDirectory...");
 
-    	InputStream iStream = null;
-    	try {
+    public InputStream modifyQuotaDirectory(final Argument argument,
+            final Map<String, Object> keyMap,
+            int index) throws VNXFilePluginException {
+        _logger.info("ArgsCreator: Modify VNX QuotaDirectory...");
 
+        InputStream iStream = null;
+        try {
 
-    		// Verify that the prior command executed properly.
-    		verifyPreviousResults(keyMap);
+            // Verify that the prior command executed properly.
+            verifyPreviousResults(keyMap);
 
-    		Task task = new Task();
-    		ModifyTreeQuota quotaTree = new ModifyTreeQuota();
-    		QuotaLimits quota = new QuotaLimits();
+            Task task = new Task();
+            ModifyTreeQuota quotaTree = new ModifyTreeQuota();
+            QuotaLimits quota = new QuotaLimits();
 
-    		String fsId = (String)keyMap.get(VNXFileConstants.FILESYSTEM_ID);
-    		String name = (String)keyMap.get(VNXFileConstants.QUOTA_DIR_NAME);
-    		Long hardQuota = (Long)keyMap.get(VNXFileConstants.HARD_QUOTA);
-    		Long softQuota = (Long)keyMap.get(VNXFileConstants.SOFT_QUOTA);
-    		String fsQuotaPath = (String)keyMap.get(VNXFileConstants.QUOTA_DIR_PATH);
+            String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
+            String name = (String) keyMap.get(VNXFileConstants.QUOTA_DIR_NAME);
+            Long hardQuota = (Long) keyMap.get(VNXFileConstants.HARD_QUOTA);
+            Long softQuota = (Long) keyMap.get(VNXFileConstants.SOFT_QUOTA);
+            String fsQuotaPath = (String) keyMap.get(VNXFileConstants.QUOTA_DIR_PATH);
 
-    		_logger.info("QuotaDirectory for file system id: {}", fsId);
-    		_logger.info("Space Quotas: {} {}", hardQuota,softQuota);
+            _logger.info("QuotaDirectory for file system id: {}", fsId);
+            _logger.info("Space Quotas: {} {}", hardQuota, softQuota);
 
-    		if (isInValid(fsId) || isInValid(name)) {
-    			throw new VNXFilePluginException("Prior command did not execute successfully", 
-    					VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
-    		}
+            if (isInValid(fsId) || isInValid(name)) {
+                throw new VNXFilePluginException("Prior command did not execute successfully",
+                        VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
+            }
 
-    		// Set the Quota limits
-    		if(hardQuota != null){
-    			quota.setSpaceHardLimit(hardQuota.intValue());
-    			// If we do not specify soft-limit, even hard limit values shows unlimited size.
-    			// so, setting the soft-limit same as hard-limit.
-    			quota.setSpaceSoftLimit(hardQuota.intValue());
-    		}
-    			
-    		if(softQuota != null){  
-    			quota.setSpaceSoftLimit(softQuota.intValue());
-    		}
-    		
+            // Set the Quota limits
+            if (hardQuota != null) {
+                quota.setSpaceHardLimit(hardQuota.intValue());
+                // If we do not specify soft-limit, even hard limit values shows unlimited size.
+                // so, setting the soft-limit same as hard-limit.
+                quota.setSpaceSoftLimit(hardQuota.intValue());
+            }
 
-    		_logger.info("fsId {}, name {}", fsId, name);
-    		quotaTree.setFileSystem(fsId);
-    		if(fsQuotaPath == null || fsQuotaPath.isEmpty()){
-    			fsQuotaPath = "/"+name;
-    		}
-    		quotaTree.setPath(fsQuotaPath); 
-    		quotaTree.setLimits(quota);
-    		task.setModifyTreeQuota(quotaTree);
-    		iStream = _vnxFileInputRequestBuilder.getTaskParamPacket( task );
-    	} catch (JAXBException jaxbException) {
-    		throw new VNXFilePluginException(
-    				"Exception occurred while generating input xml for modify qTree",
-    				jaxbException.getCause());
-    	}
+            if (softQuota != null) {
+                quota.setSpaceSoftLimit(softQuota.intValue());
+            }
 
-    	return iStream;
+            _logger.info("fsId {}, name {}", fsId, name);
+            quotaTree.setFileSystem(fsId);
+            if (fsQuotaPath == null || fsQuotaPath.isEmpty()) {
+                fsQuotaPath = "/" + name;
+            }
+            quotaTree.setPath(fsQuotaPath);
+            quotaTree.setLimits(quota);
+            task.setModifyTreeQuota(quotaTree);
+            iStream = _vnxFileInputRequestBuilder.getTaskParamPacket(task);
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for modify qTree",
+                    jaxbException.getCause());
+        }
+
+        return iStream;
     }
-    
+
     public InputStream doUnexport(final Argument argument,
             final Map<String, Object> keyMap, int index)
             throws VNXFilePluginException {
-        
+
         _logger.info("ArgsCreator: VNX Un-Export");
 
         InputStream iStream = null;
         try {
             Task task = new Task();
             DeleteNfsExport delFSExport = new DeleteNfsExport();
-            String dataMoverId = String.valueOf(keyMap.get(VNXFileConstants.MOVER_ID)); // -- 
-            String path = (String)keyMap.get(VNXFileConstants.MOUNT_PATH);  // --
+            String dataMoverId = String.valueOf(keyMap.get(VNXFileConstants.MOVER_ID)); // --
+            String path = (String) keyMap.get(VNXFileConstants.MOUNT_PATH);  // --
 
             if (isInValid(dataMoverId) || isInValid(path)) {
-                throw new VNXFilePluginException("Prior command did not execute successfully", 
+                throw new VNXFilePluginException("Prior command did not execute successfully",
                         VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
             }
 
             _logger.debug("Deleting export file system mover id: {}, path {}", dataMoverId, path);
-            
+
             delFSExport.setMover(dataMoverId);
             delFSExport.setPath(path);
-            
+
             task.setDeleteNfsExport(delFSExport);
-            iStream = _vnxFileInputRequestBuilder.getTaskParamPacket( task );
-            
+            iStream = _vnxFileInputRequestBuilder.getTaskParamPacket(task);
+
         } catch (JAXBException jaxbException) {
             throw new VNXFilePluginException(
                     "Exception occurred while fetching fileSystem info",
@@ -837,11 +829,11 @@ public class VNXFileArgsCreator extends ArgsCreator {
         }
 
         return iStream;
-    }   
-    
-    public InputStream deleteFileSystem( final Argument argument,
-                                         final Map<String, Object> keyMap,
-                                         int index )throws VNXFilePluginException {
+    }
+
+    public InputStream deleteFileSystem(final Argument argument,
+            final Map<String, Object> keyMap,
+            int index) throws VNXFilePluginException {
         _logger.info("ArgsCreator: Deleting VNX File System {}", keyMap.get(VNXFileConstants.FILESYSTEM_ID));
 
         InputStream iStream = null;
@@ -849,18 +841,18 @@ public class VNXFileArgsCreator extends ArgsCreator {
             Task task = new Task();
             DeleteFileSystem delFS = new DeleteFileSystem();
 
-            String fsId = (String)keyMap.get(VNXFileConstants.FILESYSTEM_ID);
+            String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
 
             if (isInValid(fsId)) {
-                throw new VNXFilePluginException("Prior command did not execute successfully", 
+                throw new VNXFilePluginException("Prior command did not execute successfully",
                         VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
             }
 
             _logger.info("deleting file system id: {}", fsId);
-            delFS.setFileSystem( fsId );
-            task.setDeleteFileSystem( delFS );
+            delFS.setFileSystem(fsId);
+            task.setDeleteFileSystem(delFS);
 
-            iStream = _vnxFileInputRequestBuilder.getTaskParamPacket( task );
+            iStream = _vnxFileInputRequestBuilder.getTaskParamPacket(task);
         } catch (JAXBException jaxbException) {
             throw new VNXFilePluginException(
                     "Exception occurred while generating input xml for delete file system",
@@ -882,12 +874,12 @@ public class VNXFileArgsCreator extends ArgsCreator {
             String snapId = (String) keyMap.get(VNXFileConstants.SNAPSHOT_ID);
 
             if (isInValid(snapId)) {
-                throw new VNXFilePluginException("Prior command did not execute successfully", 
+                throw new VNXFilePluginException("Prior command did not execute successfully",
                         VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
             }
 
             _logger.debug("deleting Snapshot id: {}", snapId);
-            delSnap.setCheckpoint(snapId);            
+            delSnap.setCheckpoint(snapId);
             task.setDeleteCheckpoint(delSnap);
 
             iStream = _vnxFileInputRequestBuilder.getTaskParamPacket(task);
@@ -899,74 +891,73 @@ public class VNXFileArgsCreator extends ArgsCreator {
 
         return iStream;
     }
-    
+
     public InputStream doExpand(final Argument argument,
             final Map<String, Object> keyMap, int index)
             throws VNXFilePluginException {
-        
+
         _logger.info("ArgsCreator: VNX File Expand");
-        
+
         InputStream iStream = null;
         try {
             // Verify that the prior command executed properly.
             verifyPreviousResults(keyMap);
-            
+
             Task task = new Task();
-            ExtendFileSystem extendFS  = new ExtendFileSystem();
-            
-            FileSystem fsSystem = (FileSystem)keyMap.get(VNXFileConstants.FILESYSTEM);
-            String fsName = (String)keyMap.get(VNXFileConstants.FILESYSTEM_NAME);
-            String fsId = (String)keyMap.get(VNXFileConstants.FILESYSTEM_ID);
+            ExtendFileSystem extendFS = new ExtendFileSystem();
+
+            FileSystem fsSystem = (FileSystem) keyMap.get(VNXFileConstants.FILESYSTEM);
+            String fsName = (String) keyMap.get(VNXFileConstants.FILESYSTEM_NAME);
+            String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
             Long fsSize = (Long) keyMap.get(VNXFileConstants.FILESYSTEM_SIZE);
             Long fsAllocatedSize = (Long) keyMap.get(VNXFileConstants.ORIGINAL_FS_SIZE);
             Boolean isVirtualProvisioning = (Boolean) keyMap.get(VNXFileConstants.FILESYSTEM_VIRTUAL_PROVISIONING);
-            
-            Long fsThinPerAllocSize = (Long) keyMap.get(VNXFileConstants.THIN_FS_ALLOC_SIZE);
-            
 
-            if (null == fsSystem || isInValid(fsName) || isInValid(fsId) || null == fsSize || null == fsAllocatedSize ) {
-                throw new VNXFilePluginException("Prior command did not execute successfully", 
+            Long fsThinPerAllocSize = (Long) keyMap.get(VNXFileConstants.THIN_FS_ALLOC_SIZE);
+
+            if (null == fsSystem || isInValid(fsName) || isInValid(fsId) || null == fsSize || null == fsAllocatedSize) {
+                throw new VNXFilePluginException("Prior command did not execute successfully",
                         VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
             }
 
             Long fsExpandSize = fsSize - fsAllocatedSize;
-            if(fsExpandSize < 0){
-            	fsExpandSize = fsSize;
+            if (fsExpandSize < 0) {
+                fsExpandSize = fsSize;
             }
             // How much more I should allocate for you?
-            if(isVirtualProvisioning){
-            	fsExpandSize = fsThinPerAllocSize;
-            	if(fsAllocatedSize < fsThinPerAllocSize){
-            		fsExpandSize = fsThinPerAllocSize - fsAllocatedSize;
-            	}
-            	
+            if (isVirtualProvisioning) {
+                fsExpandSize = fsThinPerAllocSize;
+                if (fsAllocatedSize < fsThinPerAllocSize) {
+                    fsExpandSize = fsThinPerAllocSize - fsAllocatedSize;
+                }
+
             }
-            
+
             _logger.info("Expanding File system size : {}, thin {}", fsExpandSize, isVirtualProvisioning);
-            
+
             String pool = fsSystem.getStoragePools().get(0);
             String storage = fsSystem.getStorages().get(0);
-            
+
             if (isInValid(pool) || isInValid(storage)) {
-                throw new VNXFilePluginException("Prior command did not execute successfully", 
+                throw new VNXFilePluginException("Prior command did not execute successfully",
                         VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
             }
-            
+
             ExtendFileSystem.StoragePool sp = new ExtendFileSystem.StoragePool();
             sp.setPool(pool);
-            if(fsExpandSize > 0){
-            	sp.setSize(fsExpandSize);
+            if (fsExpandSize > 0) {
+                sp.setSize(fsExpandSize);
             }
             sp.setStorage(storage);
             _logger.info("Expanding File system using StoragePool : {}, storage {}", pool, storage);
             _logger.info("Expanding File system size : {}, name {}", fsExpandSize, fsName);
-            
+
             extendFS.setFileSystem(fsSystem.getFileSystem());
             extendFS.setStoragePool(sp);
-            
+
             task.setExtendFileSystem(extendFS);
-            iStream = _vnxFileInputRequestBuilder.getTaskParamPacket( task );
-            
+            iStream = _vnxFileInputRequestBuilder.getTaskParamPacket(task);
+
         } catch (JAXBException jaxbException) {
             throw new VNXFilePluginException(
                     "Exception occurred while fetching fileSystem info",
@@ -974,8 +965,8 @@ public class VNXFileArgsCreator extends ArgsCreator {
         }
 
         return iStream;
-    }   
-    
+    }
+
     public InputStream doModifyFS(final Argument argument, final Map<String, Object> keyMap, int index)
             throws VNXFilePluginException {
 
@@ -1020,35 +1011,35 @@ public class VNXFileArgsCreator extends ArgsCreator {
         }
 
         return iStream;
-    } 
-    
+    }
+
     public InputStream doSnapshotRestore(final Argument argument,
             final Map<String, Object> keyMap, int index)
             throws VNXFilePluginException {
-        
+
         _logger.info("ArgsCreator: VNX Snapshot Restore");
-        
+
         InputStream iStream = null;
         try {
             Task task = new Task();
             RestoreCheckpoint snapRestore = new RestoreCheckpoint();
-            
-            String snapId = (String)keyMap.get(VNXFileConstants.SNAPSHOT_ID);
-            String snapName = (String)keyMap.get(VNXFileConstants.SNAPSHOT_NAME);
-            String fsName = (String)keyMap.get(VNXFileConstants.FILESYSTEM_NAME);
+
+            String snapId = (String) keyMap.get(VNXFileConstants.SNAPSHOT_ID);
+            String snapName = (String) keyMap.get(VNXFileConstants.SNAPSHOT_NAME);
+            String fsName = (String) keyMap.get(VNXFileConstants.FILESYSTEM_NAME);
 
             if (isInValid(fsName) || isInValid(snapName) || isInValid(snapId)) {
-                throw new VNXFilePluginException("Prior command did not execute successfully", 
+                throw new VNXFilePluginException("Prior command did not execute successfully",
                         VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
             }
 
             _logger.info("Snapshot id  to restore : {}", snapId);
             _logger.info("Snapshot Name : {}, FileSystem name : {}", snapName, fsName);
             snapRestore.setCheckpoint(snapId);
-            
+
             task.setRestoreCheckpoint(snapRestore);
-            iStream = _vnxFileInputRequestBuilder.getTaskParamPacket( task );
-            
+            iStream = _vnxFileInputRequestBuilder.getTaskParamPacket(task);
+
         } catch (JAXBException jaxbException) {
             throw new VNXFilePluginException(
                     "Exception occurred while fetching fileSystem info",
@@ -1056,9 +1047,9 @@ public class VNXFileArgsCreator extends ArgsCreator {
         }
 
         return iStream;
-    }   
-    
-    public InputStream mountFileSystem( final Argument argument, final Map<String, Object> keyMap, int index)
+    }
+
+    public InputStream mountFileSystem(final Argument argument, final Map<String, Object> keyMap, int index)
             throws VNXFilePluginException {
         _logger.info("Mounting VNX File System");
 
@@ -1070,19 +1061,20 @@ public class VNXFileArgsCreator extends ArgsCreator {
             String path = (String) keyMap.get(VNXFileConstants.MOUNT_PATH);
             String id = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
             String isVirtual = (String) keyMap.get(VNXFileConstants.ISVDM);
-            Set<String> moverIds = (Set<String>)keyMap.get(VNXFileConstants.MOVERLIST);
+            Set<String> moverIds = (Set<String>) keyMap.get(VNXFileConstants.MOVERLIST);
 
-            if (isInValid(path) || isInValid(id) || null == moverIds || (moverIds.size() == 0)) {
-                throw new VNXFilePluginException("Prior command did not execute successfully", 
+            if (isInValid(path) || isInValid(id) || null == moverIds || (moverIds.isEmpty())) {
+                throw new VNXFilePluginException("Prior command did not execute successfully",
                         VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
             }
 
-            if(moverIds.isEmpty())
+            if (moverIds.isEmpty()) {
                 throw new VNXFilePluginException(
                         "No movers found to mount", new Exception());
-            
+            }
+
             String movers[] = moverIds.toArray(new String[0]);
-            
+
             _logger.info("Mount file system id: {} and isVirtual {}", id, isVirtual);
             _logger.info("Mount file system path: {}, Mover: {} ", path, movers[0]);
 
@@ -1090,14 +1082,13 @@ public class VNXFileArgsCreator extends ArgsCreator {
             MoverOrVdmRef mov = new MoverOrVdmRef();
             mov.setMover(movers[0]);
             mov.setMoverIdIsVdm(moverType);
-            
-            
+
             NfsOptions nfs = new NfsOptions();
             nfs.setPrefetch(false);
             nfs.setRo(false);
             nfs.setUncached(true);
             nfs.setVirusScan(false);
-            
+
             CifsOptions cif = new CifsOptions();
             cif.setAccessPolicy(AccessPolicy.NATIVE);
             cif.setCifsSyncwrite(true);
@@ -1107,13 +1098,13 @@ public class VNXFileArgsCreator extends ArgsCreator {
             cif.setOplock(true);
             cif.setTriggerLevel(128);
             cif.setNotifyOnWrite(true);
-            
+
             mount.setMoverOrVdm(mov);
             mount.setPath(path);
             mount.setFileSystem(id);
             mount.setNfsOptions(nfs);
             mount.setCifsOptions(cif);
-            
+
             task.setNewMount(mount);
             iStream = _vnxFileInputRequestBuilder.getTaskParamPacket(task);
         } catch (JAXBException jaxbException) {
@@ -1124,39 +1115,38 @@ public class VNXFileArgsCreator extends ArgsCreator {
 
         return iStream;
     }
-   
-    public InputStream unmountFileSystem( final Argument argument,
-                                          final Map<String, Object> keyMap,
-                                          int index ) throws VNXFilePluginException {
+
+    public InputStream unmountFileSystem(final Argument argument,
+            final Map<String, Object> keyMap,
+            int index) throws VNXFilePluginException {
         _logger.info("Unmounting VNX File System");
 
         InputStream iStream = null;
         try {
             // Verify that the prior command executed properly.
             verifyPreviousResults(keyMap);
-            
+
             Task task = new Task();
             DeleteMount delMount = new DeleteMount();
 
-            String path  = (String)keyMap.get(VNXFileConstants.MOUNT_PATH);
-            String mover = (String)keyMap.get(VNXFileConstants.MOVER_ID);
+            String path = (String) keyMap.get(VNXFileConstants.MOUNT_PATH);
+            String mover = (String) keyMap.get(VNXFileConstants.MOVER_ID);
             String isVirtual = (String) keyMap.get(VNXFileConstants.ISVDM);
             Boolean moverType = new Boolean(isVirtual);
 
             if (isInValid(path) || isInValid(mover)) {
-                throw new VNXFilePluginException("Prior command did not execute successfully", 
+                throw new VNXFilePluginException("Prior command did not execute successfully",
                         VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
             }
 
             _logger.debug("unmount file system name: {}, Mover: {} ", path, mover);
 
-            delMount.setPath( path );
-            delMount.setMover( mover );
+            delMount.setPath(path);
+            delMount.setMover(mover);
             delMount.setMoverIdIsVdm(moverType);
 
-
-            task.setDeleteMount( delMount );
-            iStream = _vnxFileInputRequestBuilder.getTaskParamPacket( task );
+            task.setDeleteMount(delMount);
+            iStream = _vnxFileInputRequestBuilder.getTaskParamPacket(task);
         } catch (JAXBException jaxbException) {
             throw new VNXFilePluginException(
                     "Exception occurred while generating input xml for unmount file system",
@@ -1164,33 +1154,33 @@ public class VNXFileArgsCreator extends ArgsCreator {
         }
 
         return iStream;
-    }    
+    }
 
-       
     /**
      * Create CIFS Config XML request and return stream after marhalling.
+     * 
      * @param argument
      * @param keyMap
-     * @param  index
+     * @param index
      * @throws com.emc.storageos.plugins.metering.vnxfile.VNXFilePluginException
-     *
+     * 
      */
     public InputStream fetchCifsServerInfo(final Argument argument,
-                                             final Map<String, Object> keyMap,
-                                             //final Boolean moverOrVdm,
-                                             int index)
+            final Map<String, Object> keyMap,
+            // final Boolean moverOrVdm,
+            int index)
             throws VNXFilePluginException {
         _logger.info("Creating CIFS Server info Query");
         InputStream iStream = null;
 
         try {
             _logger.info("Creating CIFS Server info Query for Mover {} {} isVDM? {}",
-                    (String)keyMap.get(VNXFileConstants.MOVER_ID) + ":" +
-                    (String)keyMap.get(VNXFileConstants.DATAMOVER_NAME),
+                    (String) keyMap.get(VNXFileConstants.MOVER_ID) + ":" +
+                            (String) keyMap.get(VNXFileConstants.DATAMOVER_NAME),
                     keyMap.get(VNXFileConstants.ISVDM));
             MoverOrVdmRef mover = new MoverOrVdmRef();
             mover.setMover((String) keyMap.get(VNXFileConstants.MOVER_ID));
-            mover.setMoverIdIsVdm(Boolean.valueOf((String)keyMap.get(VNXFileConstants.ISVDM)));
+            mover.setMoverIdIsVdm(Boolean.valueOf((String) keyMap.get(VNXFileConstants.ISVDM)));
 
             CifsServerQueryParams cifsQuery = new CifsServerQueryParams();
             cifsQuery.setMoverOrVdm(mover);
@@ -1207,13 +1197,12 @@ public class VNXFileArgsCreator extends ArgsCreator {
         return iStream;
     }
 
-
     private void verifyPreviousResults(Map<String, Object> keyMap) throws VNXFilePluginException {
         String result = (String) keyMap.get(VNXFileConstants.CMD_RESULT);
         if (null == result || !result.equals(VNXFileConstants.CMD_SUCCESS)) {
             StringBuilder errorMessage = new StringBuilder("Prior command did not execute successfully -- ");
             errorMessage.append((String) keyMap.get(VNXFileConstants.FAULT_MSG));
-            throw new VNXFilePluginException(errorMessage.toString(), 
+            throw new VNXFilePluginException(errorMessage.toString(),
                     VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
         }
     }
@@ -1224,35 +1213,35 @@ public class VNXFileArgsCreator extends ArgsCreator {
         }
         return false;
     }
-	/*
-	 * 
-	 * 
-	 * public final InputStream getVolumeStatsQuery( final Argument arg, final
-	 * Map<String, Object> keyMap, int index) { try { Marshaller marshaller =
-	 * getMarshaller(RequestPacket.class); RequestPacket packet = new
-	 * RequestPacket(); List<Integer> movers = (List<Integer>)
-	 * keyMap.get(VNXFileConstants.MOVERLIST); for (Integer moverID : movers) {
-	 * Request request = new Request(); QueryStats queryStats = new
-	 * QueryStats(); VolumeStatsSetQueryParams params = new
-	 * VolumeStatsSetQueryParams(); params.setStatsSet(VolumeStatsSetType.ALL);
-	 * params.setMover(moverID.toString()); request.setQueryStats(queryStats);
-	 * request.getQueryStats().setVolumeStats(params);
-	 * packet.getRequestOrRequestEx().add(request); } marshaller.marshal(packet,
-	 * System.out); } catch (JAXBException e) { e.printStackTrace(); } return
-	 * null; }
-	 * 
-	 * public static void main(String arg[]) { VNXFileArgsCreator creator = new
-	 * VNXFileArgsCreator(); Map<String, Object> keyMap = new HashMap<String,
-	 * Object>(); List<Integer> movers = new ArrayList<Integer>();
-	 * movers.add(new Integer(1)); movers.add(new Integer(2));
-	 * keyMap.put(VNXFileConstants.MOVERS, movers);
-	 * creator.getVolumeStatsQuery(null, keyMap, 0); }
-	 * 
-	 * private Marshaller getMarshaller(Class className) throws JAXBException {
-	 * JAXBContext context = JAXBContext.newInstance(className); Marshaller
-	 * jaxbMarshaller = context.createMarshaller(); // output pretty printed
-	 * jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-	 * return jaxbMarshaller; }
-	 */
+    /*
+     * 
+     * 
+     * public final InputStream getVolumeStatsQuery( final Argument arg, final
+     * Map<String, Object> keyMap, int index) { try { Marshaller marshaller =
+     * getMarshaller(RequestPacket.class); RequestPacket packet = new
+     * RequestPacket(); List<Integer> movers = (List<Integer>)
+     * keyMap.get(VNXFileConstants.MOVERLIST); for (Integer moverID : movers) {
+     * Request request = new Request(); QueryStats queryStats = new
+     * QueryStats(); VolumeStatsSetQueryParams params = new
+     * VolumeStatsSetQueryParams(); params.setStatsSet(VolumeStatsSetType.ALL);
+     * params.setMover(moverID.toString()); request.setQueryStats(queryStats);
+     * request.getQueryStats().setVolumeStats(params);
+     * packet.getRequestOrRequestEx().add(request); } marshaller.marshal(packet,
+     * System.out); } catch (JAXBException e) { e.printStackTrace(); } return
+     * null; }
+     * 
+     * public static void main(String arg[]) { VNXFileArgsCreator creator = new
+     * VNXFileArgsCreator(); Map<String, Object> keyMap = new HashMap<String,
+     * Object>(); List<Integer> movers = new ArrayList<Integer>();
+     * movers.add(new Integer(1)); movers.add(new Integer(2));
+     * keyMap.put(VNXFileConstants.MOVERS, movers);
+     * creator.getVolumeStatsQuery(null, keyMap, 0); }
+     * 
+     * private Marshaller getMarshaller(Class className) throws JAXBException {
+     * JAXBContext context = JAXBContext.newInstance(className); Marshaller
+     * jaxbMarshaller = context.createMarshaller(); // output pretty printed
+     * jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+     * return jaxbMarshaller; }
+     */
 
 }

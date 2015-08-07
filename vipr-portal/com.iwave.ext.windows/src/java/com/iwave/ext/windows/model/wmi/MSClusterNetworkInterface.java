@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.windows.model.wmi;
@@ -41,7 +41,7 @@ public class MSClusterNetworkInterface {
     public void setName(String name) {
         this.name = name;
     }
-    
+
     public String toString() {
         return String.format("MSClusterNetworkInterface node: %s, ipAddress: %s, network: %s, name: %s", node,
                 ipaddress, network, name);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.windows.tasks;
@@ -51,7 +51,7 @@ public class FindDisksForVolumes extends WindowsExecutionTask<Map<BlockObjectRes
         for (DiskDrive disk : disks) {
             String wwid = getTargetSystem().getWwid(disk);
             logDebug("find.disks.volumes.wwid", wwid, disk.getDeviceId());
-            for (BlockObjectRestRep volume: volumes) {
+            for (BlockObjectRestRep volume : volumes) {
                 if (VolumeWWNUtils.wwnMatches(wwid, volume)) {
                     logInfo("find.disks.volumes.wwid", wwid, disk.getSerialNumber());
                     results.put(volume, disk);

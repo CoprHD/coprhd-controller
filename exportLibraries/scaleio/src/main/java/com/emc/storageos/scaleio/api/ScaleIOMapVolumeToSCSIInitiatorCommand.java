@@ -1,17 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2014 EMC Corporation
- *
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.scaleio.api;
@@ -24,7 +13,7 @@ public class ScaleIOMapVolumeToSCSIInitiatorCommand extends AbstractScaleIOQuery
 
     private static final String MAPPED_SUCCESSFULLY = "MappedSuccessfully";
     // Successfully mapped volume with ID e9e51f8300000003 to SCSI Initiator with ID 19be524400000000 with LUN number 1
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern("Successfully mapped volume with ID \\w+ to SCSI Initiator with IQN .*", MAPPED_SUCCESSFULLY)
     };
 
@@ -41,7 +30,7 @@ public class ScaleIOMapVolumeToSCSIInitiatorCommand extends AbstractScaleIOQuery
 
     @Override
     ParsePattern[] getOutputPatternSpecification() {
-        return PARSING_CONFIG;
+        return PARSING_CONFIG.clone(); // No need to check not null condition here
     }
 
     @Override

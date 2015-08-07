@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.fast.vnx;
 
@@ -20,7 +10,6 @@ import java.util.Map;
 import javax.cim.CIMObjectPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.Processor;
@@ -31,12 +20,12 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
  * For each discovered VNX policy, run associatorNames to get the list of
  * Volumes, as volumes are associated directly with Policies.
  * VNXPolicy-->Volumes-->Pool
- * Add the Volumes to volumeList, which will be used later to get Pools.  
+ * Add the Volumes to volumeList, which will be used later to get Pools.
  * 
  */
 public class VNXPolicyToVolumeProcessor extends Processor {
     private Logger _logger = LoggerFactory.getLogger(VNXPolicyToVolumeProcessor.class);
-    
+
     private List<Object> _args;
 
     @Override

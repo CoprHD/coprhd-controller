@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.model.smis;
@@ -22,7 +12,6 @@ import com.emc.storageos.model.RelatedResourceRep;
 
 import java.util.ArrayList;
 import java.util.List;
-
 
 @XmlRootElement(name = "smis_provider")
 @XmlAccessorType(XmlAccessType.PROPERTY)
@@ -45,10 +34,12 @@ public class SMISProviderRestRep extends DataObjectRestRep {
     private String compatibilityStatus;
     private String registrationStatus;
 
-    public SMISProviderRestRep() {}
-    
-    /** 
+    public SMISProviderRestRep() {
+    }
+
+    /**
      * Status of the connection.
+     * 
      * @valid CONNECTED
      * @valid NOTCONNECTED
      */
@@ -61,8 +52,9 @@ public class SMISProviderRestRep extends DataObjectRestRep {
         this.connectionStatus = connectionStatus;
     }
 
-    /** 
+    /**
      * Information relevant to the SMIS provider software.
+     * 
      * @valid none
      */
     @XmlElement(name = "description")
@@ -76,6 +68,7 @@ public class SMISProviderRestRep extends DataObjectRestRep {
 
     /**
      * SMIS provider's IP address.
+     * 
      * @valid none
      */
     @XmlElement(name = "ip_address")
@@ -89,6 +82,7 @@ public class SMISProviderRestRep extends DataObjectRestRep {
 
     /**
      * Name of the manufacturer.
+     * 
      * @valid none
      */
     @XmlElement(name = "manufacturer")
@@ -103,6 +97,7 @@ public class SMISProviderRestRep extends DataObjectRestRep {
     /**
      * The port number used to connect with the SMIS
      * provider, typically 5988 or 5989.
+     * 
      * @valid none
      */
     @XmlElement(name = "port_number")
@@ -117,6 +112,7 @@ public class SMISProviderRestRep extends DataObjectRestRep {
     /**
      * A combination of the provider's IP address and the port
      * number, used as an ID.
+     * 
      * @valid none
      */
     @XmlElement(name = "provider_id")
@@ -146,8 +142,9 @@ public class SMISProviderRestRep extends DataObjectRestRep {
         this.storageSystems = storageSystems;
     }
 
-    /** 
+    /**
      * Login credential at the provider.
+     * 
      * @valid none
      */
     @XmlElement(name = "user_name")
@@ -161,6 +158,7 @@ public class SMISProviderRestRep extends DataObjectRestRep {
 
     /**
      * Whether or not secure SSL connection is used.
+     * 
      * @valid true
      * @valid false
      */
@@ -173,8 +171,9 @@ public class SMISProviderRestRep extends DataObjectRestRep {
         this.useSSL = useSSL;
     }
 
-    /** 
+    /**
      * SMIS provider software revision number.
+     * 
      * @valid none
      */
     @XmlElement(name = "version_string")
@@ -188,9 +187,10 @@ public class SMISProviderRestRep extends DataObjectRestRep {
 
     /**
      * Status of the provider scan job.
+     * 
      * @valid CREATED
      * @valid IN_PROGRESS
-     * @valid COMPLETE 
+     * @valid COMPLETE
      * @valid ERROR
      */
     @XmlElement(name = "job_scan_status")
@@ -202,8 +202,9 @@ public class SMISProviderRestRep extends DataObjectRestRep {
         this.scanStatus = scanStatus;
     }
 
-    /** 
+    /**
      * Status message from the last scan.
+     * 
      * @valid none
      */
     @XmlElement(name = "last_scan_status_message")
@@ -217,6 +218,7 @@ public class SMISProviderRestRep extends DataObjectRestRep {
 
     /**
      * Time the last scan occurred.
+     * 
      * @valid none
      */
     @XmlElement(name = "last_scan_time")
@@ -230,6 +232,7 @@ public class SMISProviderRestRep extends DataObjectRestRep {
 
     /**
      * Time for which the next scan job is scheduled.
+     * 
      * @valid none
      */
     @XmlElement(name = "next_scan_time")
@@ -241,10 +244,9 @@ public class SMISProviderRestRep extends DataObjectRestRep {
         this.nextScanTime = nextScanTime;
     }
 
-
     /**
      * The latest timestamp when the system run scanning successfully
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "success_scan_time")
@@ -256,9 +258,9 @@ public class SMISProviderRestRep extends DataObjectRestRep {
         this.successScanTime = successScanTime;
     }
 
-
     /**
      * Registration status of the provider
+     * 
      * @valid REGISTERED
      * @valid UNREGISTERED
      */
@@ -271,9 +273,10 @@ public class SMISProviderRestRep extends DataObjectRestRep {
         this.registrationStatus = registrationStatus;
     }
 
-    /** 
+    /**
      * Whether or not the provider software is compatible with
      * ViPR.
+     * 
      * @valid COMPATIBLE
      * @valid INCOMPATIBLE
      * @valid UNKNOWN

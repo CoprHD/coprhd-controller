@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.resources;
@@ -55,7 +55,7 @@ import controllers.util.FlashException;
 
 @With(Common.class)
 public class BlockVolumes extends ResourceController {
-	
+
     public static final String COPY_NATIVE = "native";
     public static final String COPY_RP = "rp";
     public static final String COPY_SRDF = "srdf";
@@ -95,8 +95,7 @@ public class BlockVolumes extends ResourceController {
             } else {
                 try {
                     volume = client.blockVolumes().get(uri(volumeId));
-                }
-                catch (ViPRHttpException e) {
+                } catch (ViPRHttpException e) {
                     if (e.getHttpCode() == 404) {
                         flash.error(MessagesUtils.get(UNKNOWN, volumeId));
                         volumes(null);
@@ -110,7 +109,8 @@ public class BlockVolumes extends ResourceController {
             notFound(Messages.get("resources.volume.notfound"));
         }
 
-        if (volume.getVirtualArray() != null) {
+        if (volume.getVirtualArray() != null) { // NOSONAR
+                                                // ("Suppressing Sonar violation of Possible null pointer dereference of volume. When volume is null, the previous if condition handles with throw")
             renderArgs.put("virtualArray", VirtualArrayUtils.getVirtualArrayRef(volume.getVirtualArray()));
         }
         if (volume.getVirtualPool() != null) {
@@ -123,6 +123,10 @@ public class BlockVolumes extends ResourceController {
         if (volume.getStorageController() != null) {
             renderArgs.put("storageSystem", StorageSystemUtils.getStorageSystemRef(volume.getStorageController()));
         }
+        if (volume.getAccessState() == null || volume.getAccessState().isEmpty()) {
+            renderArgs.put("isAccessStateEmpty", "true");
+        }
+       
 
         Tasks<VolumeRestRep> tasksResponse = client.blockVolumes().getTasks(volume.getId());
         List<Task<VolumeRestRep>> tasks = tasksResponse.getTasks();
@@ -159,7 +163,7 @@ public class BlockVolumes extends ResourceController {
                 }
             }
         }
-        
+
         // Remove 'internal' marked export groups, we don't want to show these in the exports list
         Set<URI> internalExportGroups = Sets.newHashSet();
         for (ExportGroupRestRep exportGroup : exportGroups.values()) {
@@ -171,7 +175,7 @@ public class BlockVolumes extends ResourceController {
         exportGroups.keySet().removeAll(internalExportGroups);
         // Remove initiators from interal export groups
         exportGroupItlMap.keySet().removeAll(internalExportGroups);
-        
+
         render(itls, exportGroups, exportGroupItlMap);
     }
 
@@ -220,18 +224,18 @@ public class BlockVolumes extends ResourceController {
         delete(uris(ids), type);
     }
 
-    @FlashException(referrer={"volume"})
+    @FlashException(referrer = { "volume" })
     public static void deleteVolume(String volumeId, VolumeDeleteTypeEnum type) {
         if (StringUtils.isNotBlank(volumeId)) {
-    		ViPRCoreClient client = BourneUtil.getViprClient();
+            ViPRCoreClient client = BourneUtil.getViprClient();
 
-    		Task<VolumeRestRep> task = client.blockVolumes().deactivate(uri(volumeId), type);
-    		flash.put("info", MessagesUtils.get("resources.volume.deactivate"));
+            Task<VolumeRestRep> task = client.blockVolumes().deactivate(uri(volumeId), type);
+            flash.put("info", MessagesUtils.get("resources.volume.deactivate"));
         }
         volume(volumeId, null);
     }
 
-    @FlashException(referrer={"volume"})
+    @FlashException(referrer = { "volume" })
     public static void pauseContinuousCopy(String volumeId, String continuousCopyId) {
         if (StringUtils.isNotBlank(volumeId) && StringUtils.isNotBlank(continuousCopyId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
@@ -242,7 +246,7 @@ public class BlockVolumes extends ResourceController {
         volume(volumeId, null);
     }
 
-    @FlashException(referrer={"volume"})
+    @FlashException(referrer = { "volume" })
     public static void resumeContinuousCopy(String volumeId, String continuousCopyId) {
         if (StringUtils.isNotBlank(volumeId) && StringUtils.isNotBlank(continuousCopyId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
@@ -253,7 +257,7 @@ public class BlockVolumes extends ResourceController {
         volume(volumeId, null);
     }
 
-    @FlashException(referrer={"volume"})
+    @FlashException(referrer = { "volume" })
     public static void stopContinuousCopy(String volumeId, String continuousCopyId) {
         if (StringUtils.isNotBlank(volumeId) && StringUtils.isNotBlank(continuousCopyId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
@@ -265,7 +269,7 @@ public class BlockVolumes extends ResourceController {
         volume(volumeId, null);
     }
 
-    @FlashException(referrer={"volume"})
+    @FlashException(referrer = { "volume" })
     public static void deleteContinuousCopy(String volumeId, String continuousCopyId) {
         if (StringUtils.isNotBlank(volumeId) && StringUtils.isNotBlank(continuousCopyId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
@@ -305,7 +309,7 @@ public class BlockVolumes extends ResourceController {
     private static boolean isContinuousCopyId(String id) {
         return isBlockContinuousCopyId(id) || isVplexContinuousCopyId(id);
     }
-    
+
     @Util
     private static boolean isVplexContinuousCopyId(String id) {
         return ResourceType.isType(VPLEX_CONTINUOUS_COPY, id);
@@ -314,6 +318,6 @@ public class BlockVolumes extends ResourceController {
     @Util
     private static boolean isBlockContinuousCopyId(String id) {
         return ResourceType.isType(BLOCK_CONTINUOUS_COPY, id);
-    }    
+    }
 
 }

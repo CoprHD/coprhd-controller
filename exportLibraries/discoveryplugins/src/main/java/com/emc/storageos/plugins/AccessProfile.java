@@ -1,22 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.plugins;
 
 import java.net.URI;
 import java.util.Map;
-
 
 /**
  * AccessProfiles are designed per protocol basis.i.e. we have an AccessProfile
@@ -123,12 +112,12 @@ public class AccessProfile {
      * Last sample collected timestamp from the array
      */
     private long _lastSampleTime;
-    
+
     /**
      * Current timestamp for data collection
      */
     private long _currentSampleTime;
-    
+
     private URI _providerAccessInfo;
     /**
      * Holds the instance of CIMConnectionFactory.
@@ -138,17 +127,17 @@ public class AccessProfile {
      * AutoRegister Devices or Components
      */
     private String _registerType;
-    
+
     private Map<String, StorageSystemViewObject> _cache;
 
-    private Map<String,String> _props;
+    private Map<String, String> _props;
 
     private Object _eventManager;
 
     /**
      * Constructor
      */
-    public AccessProfile(){
+    public AccessProfile() {
     }
 
     /**
@@ -178,7 +167,7 @@ public class AccessProfile {
      */
     public String getProtocol() {
         if (_protocol == null) {
-            if( _sslEnable == null) {
+            if (_sslEnable == null) {
                 return _protocol = "http";
             }
             else if (_sslEnable.equalsIgnoreCase("true")) {
@@ -315,7 +304,7 @@ public class AccessProfile {
         profile.append(" Protocol : ");
         profile.append(getProtocol());
         String port = getProviderPort();
-        if( port != null ) {
+        if (port != null) {
             profile.append(" ProviderPort : ");
             profile.append(getProviderPort());
         }
@@ -411,9 +400,10 @@ public class AccessProfile {
     public void setLastSampleTime(long time) {
         _lastSampleTime = time;
     }
-    
-    /** 
+
+    /**
      * Get current timestamp for data collection
+     * 
      * @return
      */
     public long getCurrentSampleTime() {
@@ -442,19 +432,19 @@ public class AccessProfile {
         this._systemId = _systemId;
     }
 
-    public Class getSystemClass(){
+    public Class getSystemClass() {
         return _recordClazz;
     }
 
-    public void setSystemClazz(Class clazz){
+    public void setSystemClazz(Class clazz) {
         _recordClazz = clazz;
     }
 
-    public void set_providerAccessInfo(URI _providerAccessInfo) {
+    public void setProviderAccessInfo(URI _providerAccessInfo) {
         this._providerAccessInfo = _providerAccessInfo;
     }
 
-    public URI get_providerAccessInfo() {
+    public URI getProviderAccessInfo() {
         return _providerAccessInfo;
     }
 
@@ -467,14 +457,14 @@ public class AccessProfile {
 
     /**
      * set the Controller CIMConnectionFactory.
-     *
+     * 
      * @param cimConnectionFactory
      *            the cimConnectionFactory to set
      */
 
     /**
      * set the Controller RecordableEventManager.
-     *
+     * 
      * @param eventManager
      *            the RecordableEventManager to set
      */
@@ -508,14 +498,13 @@ public class AccessProfile {
     public Map<String, StorageSystemViewObject> getCache() {
         return _cache;
     }
-    
+
     public void setProps(Map<String, String> _configInfo) {
         _props = _configInfo;
     }
 
-    public Map<String,String> getProps() {
+    public Map<String, String> getProps() {
         return _props;
     }
-
 
 }

@@ -1,15 +1,13 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.apidocs;
 
-import org.apache.commons.compress.compressors.FileNameUtil;
-
 import java.io.File;
 
 /**
- * WARNING, This is a static class rather than pass it around all over.  It MUST be initialised first thing.
+ * WARNING, This is a static class rather than pass it around all over. It MUST be initialised first thing.
  */
 public class KnownPaths {
     private static String HTML_DIR = "apidocs";
@@ -23,27 +21,27 @@ public class KnownPaths {
     }
 
     public static File getTemplateFile(String filename) {
-        return new File(contentDir+"templates/"+filename);
+        return new File(contentDir + "templates/" + filename);
     }
 
     public static File getTemplatePartFile(String filename) {
-        return new File(contentDir+"templates/parts/"+filename);
+        return new File(contentDir + "templates/parts/" + filename);
     }
 
     public static File getHtmlOutputFile(String filename) {
-        return new File(outputDir+"/"+HTML_DIR+"/"+filename);
+        return new File(outputDir + "/" + HTML_DIR + "/" + filename);
     }
 
     public static File getOutputFile(String filename) {
-        return new File(outputDir+filename);
+        return new File(outputDir + filename);
     }
 
     public static File getExampleFile(String filename) {
-        return new File(contentDir + "examples/"+filename);
+        return new File(contentDir + "examples/" + filename);
     }
 
     public static File getReferenceFile(String filename) {
-        return new File(contentDir + "reference/"+filename);
+        return new File(contentDir + "reference/" + filename);
     }
 
     public static File getApiDiffFile(String filename) {
@@ -55,10 +53,10 @@ public class KnownPaths {
     }
 
     public static File getHTMLDir() {
-        return new File(outputDir +"/"+HTML_DIR);
+        return new File(outputDir + "/" + HTML_DIR);
     }
 
     public static File getMetaDataFile(String name) {
-        return new File(contentDir + "apiMetaData/"+name);
+        return new File(contentDir + "apiMetaData/" + name);
     }
 }

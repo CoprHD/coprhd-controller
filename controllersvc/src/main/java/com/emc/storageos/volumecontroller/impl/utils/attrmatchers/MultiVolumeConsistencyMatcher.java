@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) 2013. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.utils.attrmatchers;
 
@@ -18,7 +8,6 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
-import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 
@@ -46,13 +35,13 @@ public class MultiVolumeConsistencyMatcher extends AttributeMatcher {
      * Check whether the given StoragePool supports ConsistencyGroups
      */
     @Override
-    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap){
+    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
         final List<StoragePool> matchedPools = new ArrayList<StoragePool>();
         final Iterator<StoragePool> poolIterator = pools.iterator();
         Map<URI, StorageSystem> storageSystems = getStorageSystems(pools);
         _logger.info("Pools Matching MultiVolumeConsisistency attribute Started:{}",
                 Joiner.on("\t").join(getNativeGuidFromPools(pools)));
-        while( poolIterator.hasNext() ) {
+        while (poolIterator.hasNext()) {
             final StoragePool pool = poolIterator.next();
             final StorageSystem system = storageSystems.get(pool.getStorageDevice());
 
@@ -66,14 +55,14 @@ public class MultiVolumeConsistencyMatcher extends AttributeMatcher {
         }
         _logger.info("Pool Matching MultiVolumeConsistency Matcher Ended:{}",
                 Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
-        
-		return matchedPools;
+
+        return matchedPools;
     }
 
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
-    	final Boolean multiVolumeConsistency = (Boolean) attributeMap.get(Attributes.multi_volume_consistency.name());
-		return (null != attributeMap && multiVolumeConsistency != null && multiVolumeConsistency);
+        final Boolean multiVolumeConsistency = (Boolean) attributeMap.get(Attributes.multi_volume_consistency.name());
+        return (null != attributeMap && multiVolumeConsistency != null && multiVolumeConsistency);
     }
 
     private Map<URI, StorageSystem> getStorageSystems(List<StoragePool> pools) {
@@ -99,10 +88,10 @@ public class MultiVolumeConsistencyMatcher extends AttributeMatcher {
     }
 
     private boolean checkStorageSystemType(StorageSystem system) {
-        if (StorageSystem.Type.scaleio.name().equalsIgnoreCase(system.getSystemType()) 
-        		|| StorageSystem.Type.xtremio.name().equalsIgnoreCase(system.getSystemType())
-        		|| StorageSystem.Type.hds.name().equalsIgnoreCase(system.getSystemType())) {
-        	return true;
+        if (StorageSystem.Type.scaleio.name().equalsIgnoreCase(system.getSystemType())
+                || StorageSystem.Type.xtremio.name().equalsIgnoreCase(system.getSystemType())
+                || StorageSystem.Type.hds.name().equalsIgnoreCase(system.getSystemType())) {
+            return true;
         }
         return false;
     }

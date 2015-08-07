@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.vpool;
@@ -7,7 +7,6 @@ package com.emc.storageos.model.vpool;
 import org.codehaus.jackson.annotate.JsonProperty;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
-import java.util.HashSet;
 import java.util.Set;
 
 import com.emc.storageos.model.valid.Length;
@@ -25,8 +24,9 @@ public class VirtualPoolCommonParam {
     private String provisionType;
     private String systemType;
     private Boolean longTermRetention;
-    
-    public VirtualPoolCommonParam() {}
+
+    public VirtualPoolCommonParam() {
+    }
 
     /**
      * The name for the virtual pool.
@@ -87,9 +87,9 @@ public class VirtualPoolCommonParam {
     @JsonProperty("varrays")
     public Set<String> getVarrays() {
         // TODO: empty collection workaround
-//        if (varrays == null) {
-//            varrays = new HashSet<String>();
-//        }
+        // if (varrays == null) {
+        // varrays = new HashSet<String>();
+        // }
         return varrays;
     }
 
@@ -98,7 +98,7 @@ public class VirtualPoolCommonParam {
     }
 
     /**
-     * Determines if matched or valid assigned pools are returned from 
+     * Determines if matched or valid assigned pools are returned from
      * command to retrieve the list of storage pools.
      * 
      * @valid true
@@ -115,7 +115,7 @@ public class VirtualPoolCommonParam {
 
     /**
      * The provisioning type for the virtual pool.
-     *
+     * 
      * @valid NONE
      * @valid Thin
      * @valid Thick
@@ -131,14 +131,14 @@ public class VirtualPoolCommonParam {
 
     /**
      * The supported system type for the virtual pool.
-     *
+     * 
      * @valid NONE
      * @valid vnxblock (Block)
-     * @valid vmax     (Block)
+     * @valid vmax (Block)
      * @valid openstack (Block)
-     * @valid vnxfile  (File)
-     * @valid isilon   (File)
-     * @valid netapp   (File)
+     * @valid vnxfile (File)
+     * @valid isilon (File)
+     * @valid netapp (File)
      */
     @XmlElement(name = "system_type")
     public String getSystemType() {
@@ -150,12 +150,12 @@ public class VirtualPoolCommonParam {
     }
 
     @XmlElement(name = "long_term_retention")
-	public Boolean getLongTermRetention() {
-		return longTermRetention;
-	}
+    public Boolean getLongTermRetention() {
+        return longTermRetention;
+    }
 
-	public void setLongTermRetention(Boolean longTermRetention) {
-		this.longTermRetention = longTermRetention;
-	}
-    
+    public void setLongTermRetention(Boolean longTermRetention) {
+        this.longTermRetention = longTermRetention;
+    }
+
 }

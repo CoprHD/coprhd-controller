@@ -1,22 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
  */
-/**
- * Copyright (c) 2014 EMC Corporation All Rights Reserved This software contains the
- * intellectual property of EMC Corporation or is licensed to EMC Corporation from third parties.
- * Use of this software and the intellectual property contained therein is expressly limited to the
- * terms and conditions of the License Agreement under which it is provided by or on behalf of EMC.
- */
 package com.emc.storageos.db.client.model;
-
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
-
-import javax.xml.bind.annotation.XmlTransient;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
 
 import com.emc.storageos.db.client.model.DbKeyspace.Keyspaces;
 
@@ -41,21 +27,22 @@ public class GlobalLock {
             name = s;
         }
 
-        public boolean equalsName(String otherName){
-            return (otherName == null)? false:name.equals(otherName);
+        public boolean equalsName(String otherName) {
+            return (otherName == null) ? false : name.equals(otherName);
         }
 
-        public String toString(){
+        public String toString() {
             return name;
         }
     }
 
     // CF Key
     private String _name;
+
     public String getName() {
         return _name;
     }
-    
+
     public void setName(String name) {
         _name = name;
     }
@@ -68,7 +55,7 @@ public class GlobalLock {
     public String getOwner() {
         return _owner;
     }
-    
+
     public void setOwner(String owner) {
         _owner = owner;
     }
@@ -76,7 +63,7 @@ public class GlobalLock {
     public String getMode() {
         return _mode;
     }
-    
+
     public void setMode(String mode) {
         _mode = mode;
     }
@@ -89,4 +76,3 @@ public class GlobalLock {
         _expirationTime = expirationTime;
     }
 }
-

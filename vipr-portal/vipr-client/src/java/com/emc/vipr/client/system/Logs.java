@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.system;
@@ -52,8 +52,7 @@ public class Logs {
     }
 
     /**
-     * Gets the log levels for all nodes and all logs. This is a convenience method for
-     * <tt>getLogLevels(null, null)</tt>.
+     * Gets the log levels for all nodes and all logs. This is a convenience method for <tt>getLogLevels(null, null)</tt>.
      * 
      * @return the list of log levels.
      * 
@@ -67,17 +66,17 @@ public class Logs {
      * Gets the log levels for the given nodes and logs.
      * 
      * @param nodeIds
-     *        the IDs of the nodes. If null or empty, all node log levels are retrieved
+     *            the IDs of the nodes. If null or empty, all node log levels are retrieved
      * @param logNames
-     *        the name of the logs. If null or empty, all logs' levels are returned.
+     *            the name of the logs. If null or empty, all logs' levels are returned.
      * @return the list of log levels.
      */
     public List<LogLevel> getLogLevels(Collection<String> nodeIds, Collection<String> logNames) {
         UriBuilder builder = client.uriBuilder(PathConstants.LOG_LEVELS_URL);
-        if ((nodeIds != null) && (nodeIds.size() > 0)) {
+        if ((nodeIds != null) && (!nodeIds.isEmpty())) {
             builder.queryParam(NODE_ID, nodeIds.toArray());
         }
-        if ((logNames != null) && (logNames.size() > 0)) {
+        if ((logNames != null) && (!logNames.isEmpty())) {
             builder.queryParam(LOG_NAME, logNames.toArray());
         }
         LogLevels response = client.getURI(LogLevels.class, builder.build());
@@ -85,11 +84,10 @@ public class Logs {
     }
 
     /**
-     * Sets the log level for all nodes and logs. This is a convenience method for
-     * <tt>setLogLevels(severity, null, null)</tt>
+     * Sets the log level for all nodes and logs. This is a convenience method for <tt>setLogLevels(severity, null, null)</tt>
      * 
      * @param severity
-     *        the log severity.
+     *            the log severity.
      * 
      * @see #setLogLevels(int, Collection, Collection)
      */
@@ -104,19 +102,19 @@ public class Logs {
      * API Call: <tt>POST /logs/log-levels</tt>
      * 
      * @param severity
-     *        the log severity.
+     *            the log severity.
      * @param nodeIds
-     *        the IDs of the nodes. If null all nodes are changed.
+     *            the IDs of the nodes. If null all nodes are changed.
      * @param logNames
-     *        the names of the logs. If null all logs are changed.
+     *            the names of the logs. If null all logs are changed.
      */
     public void setLogLevels(int severity, Collection<String> nodeIds, Collection<String> logNames) {
         SetLogLevelParam param = new SetLogLevelParam();
         param.setSeverity(severity);
-        if ((nodeIds != null) && (nodeIds.size() > 0)) {
+        if ((nodeIds != null) && (!nodeIds.isEmpty())) {
             param.setNodeIds(new ArrayList<String>(nodeIds));
         }
-        if ((logNames != null) && (logNames.size() > 0)) {
+        if ((logNames != null) && (!logNames.isEmpty())) {
             param.setLogNames(new ArrayList<String>(logNames));
         }
         setLogLevels(param);
@@ -128,7 +126,7 @@ public class Logs {
      * API Call: <tt>POST /logs/log-levels</tt>
      * 
      * @param param
-     *        the log level configuration.
+     *            the log level configuration.
      */
     public void setLogLevels(SetLogLevelParam param) {
         client.post(String.class, param, PathConstants.LOG_LEVELS_URL);
@@ -163,15 +161,12 @@ public class Logs {
         InputStream in = getAsStream(nodeIds, logNames, severity, start, end, regex, maxCount);
         try {
             listProcessor.process(in);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new ViPRException(e);
-        }
-        finally {
+        } finally {
             try {
                 in.close();
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 // Silently ignore
             }
         }
@@ -183,22 +178,20 @@ public class Logs {
      * API Call: <tt>GET /logs</tt>
      * 
      * @param nodeIds
-     *        the IDs of the nodes on which logs are retrieved, if null or empty logs are retrieved on all nodes.
+     *            the IDs of the nodes on which logs are retrieved, if null or empty logs are retrieved on all nodes.
      * @param logNames
-     *        the names of the logs to retrieve, if null or empty all logs are retrieved.
+     *            the names of the logs to retrieve, if null or empty all logs are retrieved.
      * @param severity
-     *        the severity level, may be null
+     *            the severity level, may be null
      * @param start
-     *        the start time, may be null. If specified, this will be formatted in the UTC timezone as
-     *        <tt>yyyy-MM-dd_HH:mm:ss</tt>.
+     *            the start time, may be null. If specified, this will be formatted in the UTC timezone as <tt>yyyy-MM-dd_HH:mm:ss</tt>.
      * @param end
-     *        the end time, may be null. If specified, this will be formatted in the UTC timezone as
-     *        <tt>yyyy-MM-dd_HH:mm:ss</tt>
+     *            the end time, may be null. If specified, this will be formatted in the UTC timezone as <tt>yyyy-MM-dd_HH:mm:ss</tt>
      * @param regex
-     *        the regular expression that logs must match, may be null or empty.
+     *            the regular expression that logs must match, may be null or empty.
      * @param maxCount
-     *        the maximum number of log messages to return, may be null. More may be returned if there are multiple logs
-     *        at the same instant when max count is reached.
+     *            the maximum number of log messages to return, may be null. More may be returned if there are multiple logs
+     *            at the same instant when max count is reached.
      * @return a stream containing the logs as XML.
      */
     public InputStream getAsStream(Collection<String> nodeIds, Collection<String> logNames, Integer severity,
@@ -212,20 +205,20 @@ public class Logs {
      * API Call: <tt>GET /logs</tt>
      * 
      * @param nodeIds
-     *        the IDs of the nodes on which logs are retrieved, if null or empty logs are retrieved on all nodes.
+     *            the IDs of the nodes on which logs are retrieved, if null or empty logs are retrieved on all nodes.
      * @param logNames
-     *        the names of the logs to retrieve, if null or empty all logs are retrieved.
+     *            the names of the logs to retrieve, if null or empty all logs are retrieved.
      * @param severity
-     *        the severity level, may be null
+     *            the severity level, may be null
      * @param start
-     *        the start time (<tt>yyyy-MM-dd_HH:mm:ss</tt>), may be null.
+     *            the start time (<tt>yyyy-MM-dd_HH:mm:ss</tt>), may be null.
      * @param end
-     *        the end time (<tt>yyyy-MM-dd_HH:mm:ss</tt>), may be null.
+     *            the end time (<tt>yyyy-MM-dd_HH:mm:ss</tt>), may be null.
      * @param regex
-     *        the regular expression that logs must match, may be null or empty.
+     *            the regular expression that logs must match, may be null or empty.
      * @param maxCount
-     *        the maximum number of log messages to return, may be null. More may be returned if there are multiple logs
-     *        at the same instant when max count is reached.
+     *            the maximum number of log messages to return, may be null. More may be returned if there are multiple logs
+     *            at the same instant when max count is reached.
      * @return a stream containing the logs as XML.
      */
     public InputStream getAsStream(Collection<String> nodeIds, Collection<String> logNames, Integer severity,
@@ -241,20 +234,20 @@ public class Logs {
      * API Call: <tt>GET /logs</tt>
      * 
      * @param nodeIds
-     *        the IDs of the nodes on which logs are retrieved, if null or empty logs are retrieved on all nodes.
+     *            the IDs of the nodes on which logs are retrieved, if null or empty logs are retrieved on all nodes.
      * @param logNames
-     *        the names of the logs to retrieve, if null or empty all logs are retrieved.
+     *            the names of the logs to retrieve, if null or empty all logs are retrieved.
      * @param severity
-     *        the severity level, may be null
+     *            the severity level, may be null
      * @param start
-     *        the start time (<tt>yyyy-MM-dd_HH:mm:ss</tt>), may be null.
+     *            the start time (<tt>yyyy-MM-dd_HH:mm:ss</tt>), may be null.
      * @param end
-     *        the end time (<tt>yyyy-MM-dd_HH:mm:ss</tt>), may be null.
+     *            the end time (<tt>yyyy-MM-dd_HH:mm:ss</tt>), may be null.
      * @param regex
-     *        the regular expression that logs must match, may be null or empty.
+     *            the regular expression that logs must match, may be null or empty.
      * @param maxCount
-     *        the maximum number of log messages to return, may be null. More may be returned if there are multiple logs
-     *        at the same instant when max count is reached.
+     *            the maximum number of log messages to return, may be null. More may be returned if there are multiple logs
+     *            at the same instant when max count is reached.
      * @return a stream containing the logs as text.
      */
     public InputStream getAsText(Collection<String> nodeIds, Collection<String> logNames, Integer severity, Date start,
@@ -268,20 +261,20 @@ public class Logs {
      * API Call: <tt>GET /logs</tt>
      * 
      * @param nodeIds
-     *        the IDs of the nodes on which logs are retrieved, if null or empty logs are retrieved on all nodes.
+     *            the IDs of the nodes on which logs are retrieved, if null or empty logs are retrieved on all nodes.
      * @param logNames
-     *        the names of the logs to retrieve, if null or empty all logs are retrieved.
+     *            the names of the logs to retrieve, if null or empty all logs are retrieved.
      * @param severity
-     *        the severity level, may be null
+     *            the severity level, may be null
      * @param start
-     *        the start time (<tt>yyyy-MM-dd_HH:mm:ss</tt>), may be null.
+     *            the start time (<tt>yyyy-MM-dd_HH:mm:ss</tt>), may be null.
      * @param end
-     *        the end time (<tt>yyyy-MM-dd_HH:mm:ss</tt>), may be null.
+     *            the end time (<tt>yyyy-MM-dd_HH:mm:ss</tt>), may be null.
      * @param regex
-     *        the regular expression that logs must match, may be null or empty.
+     *            the regular expression that logs must match, may be null or empty.
      * @param maxCount
-     *        the maximum number of log messages to return, may be null. More may be returned if there are multiple logs
-     *        at the same instant when max count is reached.
+     *            the maximum number of log messages to return, may be null. More may be returned if there are multiple logs
+     *            at the same instant when max count is reached.
      * @return a stream containing the logs as text.
      */
     public InputStream getAsText(Collection<String> nodeIds, Collection<String> logNames, Integer severity,
@@ -294,10 +287,10 @@ public class Logs {
     private URI getURI(Collection<String> nodeIds, Collection<String> logNames, Integer severity, String startTime,
             String endTime, String regex, Integer maxCount) {
         UriBuilder builder = client.uriBuilder(PathConstants.LOGS_URL);
-        if ((nodeIds != null) && (nodeIds.size() > 0)) {
+        if ((nodeIds != null) && (!nodeIds.isEmpty())) {
             builder.queryParam(NODE_ID, nodeIds.toArray());
         }
-        if ((logNames != null) && (logNames.size() > 0)) {
+        if ((logNames != null) && (!logNames.isEmpty())) {
             builder.queryParam(LOG_NAME, logNames.toArray());
         }
         if (severity != null) {

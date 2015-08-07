@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client;
@@ -101,8 +101,7 @@ public class ViPRClientApp {
             application.createBlockVolumeForHost();
 
             application.changeKeyAndCert();
-        }
-        finally {
+        } finally {
             client.auth().logout();
         }
     }
@@ -121,7 +120,7 @@ public class ViPRClientApp {
         List<TrustedCertificate> certs = client.truststore().getTrustedCertificates();
         TrustedCertificateChanges certsChanges = new TrustedCertificateChanges();
         List<String> changes = new ArrayList<String>();
-        if (certs.size() == 0 || checkForCert(certs)) {
+        if (certs.isEmpty() || checkForCert(certs)) {
             changes.add(TRUSTED_CERTIFICATE);
             certsChanges.setAdd(changes);
             List<TrustedCertificate> newCerts =
@@ -155,10 +154,9 @@ public class ViPRClientApp {
         if (chain.getChain().equals(newChain.getChain())) {
             throw new IllegalStateException("Certificate hasn't changed");
         }
-       System.out.println("key and certificate updated. New Certificate:"
+        System.out.println("key and certificate updated. New Certificate:"
                 + newChain.getChain());
     }
-
 
     private String removeNewLines(String withNewLines) {
         return withNewLines.replaceAll("\n", "").replaceAll("\r", "");

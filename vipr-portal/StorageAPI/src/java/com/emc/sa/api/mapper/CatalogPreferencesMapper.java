@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.api.mapper;
@@ -19,12 +19,12 @@ public class CatalogPreferencesMapper {
         CatalogPreferencesRestRep to = new CatalogPreferencesRestRep();
 
         mapDataObjectFields(from, to);
-        
+
         to.setApprovalUrl(from.getApprovalUrl());
         to.setApproverEmail(from.getApproverEmail());
-        
+
         return to;
-    }    
+    }
 
     public static void updateObject(TenantPreferences object, CatalogPreferencesUpdateParam param) {
         if (param.getApprovalUrl() != null) {
@@ -33,6 +33,6 @@ public class CatalogPreferencesMapper {
         if (param.getApproverEmail() != null) {
             object.setApproverEmail(param.getApproverEmail());
         }
-    }           
-    
+    }
+
 }

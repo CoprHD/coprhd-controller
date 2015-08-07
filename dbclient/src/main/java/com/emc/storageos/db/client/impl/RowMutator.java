@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.impl;
@@ -61,7 +51,7 @@ public class RowMutator {
 
     /**
      * Get record row for given CF
-     *
+     * 
      * @param cf
      * @param key
      * @return
@@ -83,7 +73,7 @@ public class RowMutator {
 
     /***
      * Get index row for given CF
-     *
+     * 
      * @param cf
      * @param key
      * @return
@@ -104,7 +94,7 @@ public class RowMutator {
     }
 
     /**
-     * Updates record first and index second.  This is used for insertion
+     * Updates record first and index second. This is used for insertion
      */
     public void executeRecordFirst() {
         try {
@@ -115,12 +105,12 @@ public class RowMutator {
                 _indexMutator.execute();
             }
         } catch (ConnectionException e) {
-        	throw DatabaseException.retryables.connectionFailed(e);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
     }
 
     /**
-     * Updates index first and record second.  This is used for deletion.
+     * Updates index first and record second. This is used for deletion.
      */
     public void executeIndexFirst() {
         try {
@@ -131,7 +121,7 @@ public class RowMutator {
                 _recordMutator.execute();
             }
         } catch (ConnectionException e) {
-        	throw DatabaseException.retryables.connectionFailed(e);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
     }
 }

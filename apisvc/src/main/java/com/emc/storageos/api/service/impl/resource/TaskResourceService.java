@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.resource;
@@ -44,50 +34,50 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.security.authorization.InheritCheckPermission;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
-
 /**
  * Base class for all resources with
- *  1. support for /<base path>/{id}/...
- *  2. support for tagging
+ * 1. support for /<base path>/{id}/...
+ * 2. support for tagging
  */
 public abstract class TaskResourceService extends TaggedResource {
     private static Logger _log = LoggerFactory.getLogger(TaggedResource.class);
 
-    /**     
-     * Get all recent tasks for a specific resource 
+    /**
+     * Get all recent tasks for a specific resource
+     * 
      * @prereq none
      * @param id the URN of a ViPR object to query
-     * @brief List tasks for resource 
+     * @brief List tasks for resource
      * @return All tasks for the object
      */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/tasks")
     @InheritCheckPermission
-    public TaskList getTasks(@PathParam("id")URI id) {
+    public TaskList getTasks(@PathParam("id") URI id) {
         List<Task> tasks = TaskUtils.findResourceTasks(_dbClient, id);
 
         return toTaskList(tasks);
     }
 
-    /**     
+    /**
      * Get a specific task for a specific object
-     *
+     * 
      * This method is deprecated, use /vdc/tasks/{id} instead
-     *
+     * 
      * @prereq none
      * @param id the URN of a ViPR object to query
      * @param requestId Identifier for the task operation of the object
      * @brief Show task
-     * @return  task representation
+     * @return task representation
      */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/tasks/{op_id}/")
     @InheritCheckPermission
     @Deprecated
-    public TaskResourceRep getTask(@PathParam("id")URI id,
-                                   @PathParam("op_id")URI requestId) {
+    public TaskResourceRep getTask(@PathParam("id") URI id,
+            @PathParam("op_id") URI requestId) {
 
         Task task = null;
         if (URIUtil.isValid(requestId)) {
@@ -106,7 +96,7 @@ public abstract class TaskResourceService extends TaggedResource {
 
     /**
      * Return a set of URIs referencing DataObject associated to the list of Tenants that have pending Tasks.
-     *
+     * 
      * @param tenants - [in] List or Tenant URIs
      * @return Set or URIs referencing DataObjects that have pending Tasks against them
      */
@@ -117,7 +107,9 @@ public abstract class TaskResourceService extends TaggedResource {
             TaskUtils.ObjectQueryResult<Task> queryResult = TaskUtils.findTenantTasks(_dbClient, tenant);
             while (queryResult.hasNext()) {
                 Task task = queryResult.next();
-                if (task == null || task.getCompletedFlag() || task.getInactive()) continue;
+                if (task == null || task.getCompletedFlag() || task.getInactive()) {
+                    continue;
+                }
                 if (task.isPending()) {
                     urisHavingPendingTasks.add(task.getResource().getURI());
                 }
@@ -130,7 +122,7 @@ public abstract class TaskResourceService extends TaggedResource {
     /**
      * Given a list of Tenants and DataObject references, check if any of the DataObjects have pending
      * Tasks against them. If so, generate an error that this cannot be deleted.
-     *
+     * 
      * @param tenants - in] List or Tenant URIs
      * @param dataObjects - [in] List of DataObjects to check
      */
@@ -140,7 +132,9 @@ public abstract class TaskResourceService extends TaggedResource {
         // Search through the list of Volumes to see if any are in the pending list
         List<String> pendingObjectLabels = new ArrayList<>();
         for (DataObject dataObject : dataObjects) {
-            if (dataObject.getInactive()) continue;
+            if (dataObject.getInactive()) {
+                continue;
+            }
             String label = dataObject.getLabel();
             if (label == null) {
                 label = dataObject.getId().toString();
@@ -156,7 +150,8 @@ public abstract class TaskResourceService extends TaggedResource {
         // a pending task against them. Need to signal an error
         if (!pendingObjectLabels.isEmpty()) {
             String pendingListStr = Joiner.on(',').join(pendingObjectLabels);
-            _log.warn(String.format("Attempted to execute operation against these DataObjects while there are tasks pending against them: %s", pendingListStr));
+            _log.warn(String.format("Attempted to execute operation against these DataObjects while there are tasks pending against them: %s", 
+                    pendingListStr));
             throw APIException.badRequests.
                     cannotExecuteOperationWhilePendingTask(pendingListStr);
         }

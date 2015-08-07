@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl;
@@ -23,7 +13,6 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.SumPrimitiveFieldAggregator;
 import com.emc.storageos.model.vpool.ManagedResourcesCapacity;
 import com.emc.storageos.model.vpool.ManagedResourcesCapacity.ManagedResourceCapacity;
 import static com.emc.storageos.db.client.model.mapper.PropertyListDataObjectMapper.map;
@@ -35,7 +24,6 @@ import java.net.URI;
 import java.util.Calendar;
 import java.util.List;
 
-
 public class ManagedCapacityImpl implements Runnable {
 
     private static final Logger log = LoggerFactory.getLogger(ManagedCapacityImpl.class);
@@ -46,27 +34,27 @@ public class ManagedCapacityImpl implements Runnable {
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
+
     public DbClient getDbClient() {
         return this.dbClient;
     }
 
-
-    public void  run() {
-        if( Thread.currentThread().isInterrupted()){
+    public void run() {
+        if (Thread.currentThread().isInterrupted()) {
             return;
         }
         else {
             try {
-                List<ManagedResourceCapacity> capList  = getManagedCapacity().getResourceCapacityList();
-                for(ManagedResourceCapacity cap : capList) {
+                List<ManagedResourceCapacity> capList = getManagedCapacity().getResourceCapacityList();
+                for (ManagedResourceCapacity cap : capList) {
                     CapacityPropertyListTypes type = mapCapacityType(cap.getType());
                     PropertyListDataObject resource = map(cap, type.toString());
 
                     List<URI> dataResourcesURI = dbClient.queryByConstraint(
-                        AlternateIdConstraint.Factory.getConstraint(PropertyListDataObject.class,
-                                "resourceType",
-                                type.toString()));
-                    if (dataResourcesURI.size() > 0) {
+                            AlternateIdConstraint.Factory.getConstraint(PropertyListDataObject.class,
+                                    "resourceType",
+                                    type.toString()));
+                    if (!dataResourcesURI.isEmpty()) {
                         resource.setId(dataResourcesURI.get(0));
                         resource.setCreationTime(Calendar.getInstance());
                         dbClient.updateAndReindexObject(resource);
@@ -76,13 +64,11 @@ public class ManagedCapacityImpl implements Runnable {
                         dbClient.createObject(resource);
                     }
                 }
-            }
-            catch( InterruptedException ie) {
+            } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
             }
         }
     }
-
 
     public ManagedResourcesCapacity getManagedCapacity() throws InterruptedException {
 
@@ -97,21 +83,21 @@ public class ManagedCapacityImpl implements Runnable {
         logMessage.append("------------------------------------------------------------------------\n");
         ManagedResourcesCapacity resources = getManagedCapacity(dbClient);
         List<ManagedResourceCapacity> capacities = resources.getResourceCapacityList();
-        for( ManagedResourcesCapacity.ManagedResourceCapacity cap :  capacities ){
+        for (ManagedResourcesCapacity.ManagedResourceCapacity cap : capacities) {
             total += cap.getResourceCapacity();
 
             logMessage.append("|                 |                |                                   |\n");
             logMessage.append(
-                    String.format("|  %13s  |   %10d   |  %30s   |\n", cap.getType(),
+                    String.format("|  %13s  |   %10d   |  %30s   |%n", cap.getType(),
                             cap.getNumResources(), Double.toString(cap.getResourceCapacity())
-                    ));
+                            ));
             logMessage.append("|                 |                |                                   |\n");
         }
         logMessage.append("|                 |                |                                   |\n");
         logMessage.append("------------------------------------------------------------------------\n");
         logMessage.append("|                 |                |                                   |\n");
         logMessage.append(
-                String.format("|   TOTAL         |                |  %30s   |\n",Double.toString(total)));
+                String.format("|   TOTAL         |                |  %30s   |%n", Double.toString(total)));
         logMessage.append("|                 |                |                                   |\n");
         logMessage.append("------------------------------------------------------------------------\n");
         logMessage.append('\n');
@@ -120,49 +106,48 @@ public class ManagedCapacityImpl implements Runnable {
         return resources;
     }
 
-    static public ManagedResourcesCapacity getManagedCapacity(DbClient dbClient)  throws InterruptedException {
+    static public ManagedResourcesCapacity getManagedCapacity(DbClient dbClient) throws InterruptedException {
         ManagedResourcesCapacity resourcesCapacity = new ManagedResourcesCapacity();
 
         ManagedResourcesCapacity.ManagedResourceCapacity manCap;
 
         CustomQueryUtility.AggregatedValue aggr = null;
 
-        if( Thread.currentThread().interrupted() ) {
+        if (Thread.currentThread().interrupted()) {
             throw new InterruptedException();
         }
         manCap = new ManagedResourcesCapacity.ManagedResourceCapacity();
         manCap.setType(ManagedResourcesCapacity.CapacityResourceType.VOLUME);
-        aggr = CustomQueryUtility.aggregatedPrimitiveField(dbClient,Volume.class,"allocatedCapacity");
+        aggr = CustomQueryUtility.aggregatedPrimitiveField(dbClient, Volume.class, "allocatedCapacity");
         manCap.setNumResources(aggr.getCount());
         manCap.setResourceCapacity(aggr.getValue());
         resourcesCapacity.getResourceCapacityList().add(manCap);
 
-        if( Thread.currentThread().interrupted() ) {
+        if (Thread.currentThread().interrupted()) {
             throw new InterruptedException();
         }
         manCap = new ManagedResourcesCapacity.ManagedResourceCapacity();
         manCap.setType(ManagedResourcesCapacity.CapacityResourceType.FILESHARE);
-        aggr = CustomQueryUtility.aggregatedPrimitiveField(dbClient,FileShare.class,"usedCapacity");
+        aggr = CustomQueryUtility.aggregatedPrimitiveField(dbClient, FileShare.class, "usedCapacity");
         manCap.setNumResources(aggr.getCount());
         manCap.setResourceCapacity(aggr.getValue());
         resourcesCapacity.getResourceCapacityList().add(manCap);
-        if( Thread.currentThread().interrupted() ) {
+        if (Thread.currentThread().interrupted()) {
             throw new InterruptedException();
         }
 
         manCap = new ManagedResourcesCapacity.ManagedResourceCapacity();
         manCap.setType(ManagedResourcesCapacity.CapacityResourceType.POOL);
-        aggr = CustomQueryUtility.aggregatedPrimitiveField(dbClient,StoragePool.class,"freeCapacity");
+        aggr = CustomQueryUtility.aggregatedPrimitiveField(dbClient, StoragePool.class, "freeCapacity");
         manCap.setNumResources(aggr.getCount());
-        manCap.setResourceCapacity(aggr.getValue()*KB);
+        manCap.setResourceCapacity(aggr.getValue() * KB);
         resourcesCapacity.getResourceCapacityList().add(manCap);
-        if( Thread.currentThread().interrupted() ) {
+        if (Thread.currentThread().interrupted()) {
             throw new InterruptedException();
         }
 
         return resourcesCapacity;
     }
-
 
     public static enum CapacityPropertyListTypes {
         POOL_MANAGED_CAPACITY,
@@ -170,17 +155,16 @@ public class ManagedCapacityImpl implements Runnable {
         FILE_MANAGED_CAPACITY,
     }
 
-
     public static ManagedResourcesCapacity.CapacityResourceType mapCapacityType(CapacityPropertyListTypes resourceType) {
         ManagedResourcesCapacity.CapacityResourceType type = ManagedResourcesCapacity.CapacityResourceType.POOL;
-        switch(resourceType ) {
-            case POOL_MANAGED_CAPACITY :
+        switch (resourceType) {
+            case POOL_MANAGED_CAPACITY:
                 type = ManagedResourcesCapacity.CapacityResourceType.POOL;
                 break;
-            case VOLUME_MANAGED_CAPACITY :
+            case VOLUME_MANAGED_CAPACITY:
                 type = ManagedResourcesCapacity.CapacityResourceType.VOLUME;
                 break;
-            case FILE_MANAGED_CAPACITY :
+            case FILE_MANAGED_CAPACITY:
                 type = ManagedResourcesCapacity.CapacityResourceType.FILESHARE;
                 break;
         }
@@ -189,14 +173,14 @@ public class ManagedCapacityImpl implements Runnable {
 
     public static CapacityPropertyListTypes mapCapacityType(ManagedResourcesCapacity.CapacityResourceType resourceType) {
         CapacityPropertyListTypes type = CapacityPropertyListTypes.POOL_MANAGED_CAPACITY;
-        switch(resourceType ) {
-            case POOL :
+        switch (resourceType) {
+            case POOL:
                 type = CapacityPropertyListTypes.POOL_MANAGED_CAPACITY;
                 break;
-            case VOLUME :
+            case VOLUME:
                 type = CapacityPropertyListTypes.VOLUME_MANAGED_CAPACITY;
                 break;
-            case FILESHARE :
+            case FILESHARE:
                 type = CapacityPropertyListTypes.FILE_MANAGED_CAPACITY;
                 break;
         }

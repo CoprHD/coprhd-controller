@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.datadomain.restapi.model;
@@ -10,9 +10,9 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.Gson;
 
-@JsonRootName(value="stats_infos")
+@JsonRootName(value = "stats_infos")
 public class DDStatsInfos {
-	
+
     private List<DDStatsInfo> stats;
 
     public List<DDStatsInfo> getStats() {
@@ -28,4 +28,3 @@ public class DDStatsInfos {
     }
 
 }
-

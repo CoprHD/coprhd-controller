@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.host;
@@ -51,11 +51,12 @@ public class HostCreateParam extends HostParam {
     public String getHostName() {
         return super.getHostName();
     }
-    
-    /** 
+
+    /**
      * The user label for this host.
+     * 
      * @valid example: host1
-     */    
+     */
     @XmlElement(required = true)
     public String getName() {
         return super.getName();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -22,7 +22,7 @@ public class BlockConsistencyGroupDataTable extends DataTable {
         public String name;
 
         public BlockConsistencyGroup() {
-            //NA
+            // NA
         }
 
         public BlockConsistencyGroup(BlockConsistencyGroupRestRep blockConsistencyGroup) {

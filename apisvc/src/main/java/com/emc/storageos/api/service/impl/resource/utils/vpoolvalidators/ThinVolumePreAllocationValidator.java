@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators;
 
@@ -23,7 +13,7 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public class ThinVolumePreAllocationValidator extends VirtualPoolValidator<BlockVirtualPoolParam, BlockVirtualPoolUpdateParam> {
-   
+
     @Override
     public void setNextValidator(VirtualPoolValidator validator) {
         _nextValidator = validator;
@@ -49,17 +39,17 @@ public class ThinVolumePreAllocationValidator extends VirtualPoolValidator<Block
         validateVMaxThinVolumePreAllocateParam(createParam.getProvisionType(), createParam.getSystemType(),
                 createParam.getThinVolumePreAllocationPercentage());
     }
-    
+
     /**
      * Validates VMAX Thin volume preallocate param.
      */
     private void validateVMaxThinVolumePreAllocateParam(String provisionType, String systemType, Integer thinVolumePreAllocationPercentage) {
         if (!VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(provisionType) &&
-        		thinVolumePreAllocationPercentage > 0) {
+                thinVolumePreAllocationPercentage > 0) {
             throw APIException.badRequests.thinVolumePreallocationPercentageOnlyApplicableToThin();
         }
         if (VirtualPool.SystemType.vnxblock.toString().equalsIgnoreCase(systemType) &&
-        		thinVolumePreAllocationPercentage > 0) {
+                thinVolumePreAllocationPercentage > 0) {
             throw APIException.badRequests.thinVolumePreallocationPercentageOnlyApplicableToVMAX();
         }
         if (null != thinVolumePreAllocationPercentage && thinVolumePreAllocationPercentage < 0 || thinVolumePreAllocationPercentage > 100) {
@@ -70,8 +60,9 @@ public class ThinVolumePreAllocationValidator extends VirtualPoolValidator<Block
 
     @Override
     protected boolean isCreateAttributeOn(BlockVirtualPoolParam createParam) {
-        if (null != createParam.getThinVolumePreAllocationPercentage())
+        if (null != createParam.getThinVolumePreAllocationPercentage()) {
             return true;
+        }
         return false;
     }
 }

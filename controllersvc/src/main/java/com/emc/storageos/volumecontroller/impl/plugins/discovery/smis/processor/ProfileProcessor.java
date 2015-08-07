@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor;
 
@@ -41,6 +31,7 @@ public class ProfileProcessor extends Processor {
     String highestVersion = "";
     private static final Pattern VERSION_PATTERN = Pattern
             .compile("^(?:(\\d+))?(?:\\.(\\d+))?(?:\\.(\\d+))?$");// "([0-9]+)\\.([0-9]+)\\.([0-9]+)");
+
     /**
      * {@inheritDoc}
      */
@@ -53,7 +44,7 @@ public class ProfileProcessor extends Processor {
         CIMInstance profileInstance = isRegisteredProfileValid(it);
         if (null != profileInstance) {
             _logger.info("RegisteredProfile : {}", profileInstance.getObjectPath());
-            addPath(keyMap, operation.get_result(), profileInstance.getObjectPath());
+            addPath(keyMap, operation.getResult(), profileInstance.getObjectPath());
         } else {
             throw new SMIPluginException(
                     "Provider Version not supported,hence skipping scanning",

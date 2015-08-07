@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.compute;
@@ -16,67 +16,68 @@ import com.emc.storageos.model.DataObjectRestRep;
 @XmlRootElement(name = "compute_image")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class ComputeImageRestRep extends DataObjectRestRep {
-	
-	private String imageName;
-	private String imageUrl;
-	private String imageType;
-	private String computeImageStatus;
-	private String lastImportStatusMessage;
-	
-	public ComputeImageRestRep() {}
 
-	//TODO remove 2 methods
-	@XmlElement(name = "image_id")
-	public URI getImageId() {
-		return null;
-	}
+    private String imageName;
+    private String imageUrl;
+    private String imageType;
+    private String computeImageStatus;
+    private String lastImportStatusMessage;
 
-	public void setImageId(URI imageId) {
-	}
+    public ComputeImageRestRep() {
+    }
 
-	@XmlElement(name = "image_name")
-	public String getImageName() {
-		return imageName;
-	}
+    // TODO remove 2 methods
+    @XmlElement(name = "image_id")
+    public URI getImageId() {
+        return null;
+    }
 
-	public void setImageName(String imageName) {
-		this.imageName = imageName;
-	}
+    public void setImageId(URI imageId) {
+    }
 
-	@XmlElement(name = "image_url")
-	public String getImageUrl() {
-		return imageUrl;
-	}
+    @XmlElement(name = "image_name")
+    public String getImageName() {
+        return imageName;
+    }
 
-	public void setImageUrl(String imageUrl) {
-		this.imageUrl = imageUrl;
-	}	
-	
-	@XmlElement(name = "image_type")
+    public void setImageName(String imageName) {
+        this.imageName = imageName;
+    }
+
+    @XmlElement(name = "image_url")
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    @XmlElement(name = "image_type")
     public String getImageType() {
-		return imageType;
-	}
+        return imageType;
+    }
 
-	public void setImageType(String imageType) {
-		this.imageType = imageType;
-	}
+    public void setImageType(String imageType) {
+        this.imageType = imageType;
+    }
 
-	@XmlElement(name = "compute_image_status")
-	public String getComputeImageStatus() {
-		return computeImageStatus;
-	}
+    @XmlElement(name = "compute_image_status")
+    public String getComputeImageStatus() {
+        return computeImageStatus;
+    }
 
-	public void setComputeImageStatus(String computeImageStatus) {
-		this.computeImageStatus = computeImageStatus;
-	}
+    public void setComputeImageStatus(String computeImageStatus) {
+        this.computeImageStatus = computeImageStatus;
+    }
 
-	@XmlElement(name = "last_import_status_message")
-	public String getLastImportStatusMessage() {
-		return lastImportStatusMessage;
-	}
+    @XmlElement(name = "last_import_status_message")
+    public String getLastImportStatusMessage() {
+        return lastImportStatusMessage;
+    }
 
-	public void setLastImportStatusMessage(String lastImportStatusMessage) {
-		this.lastImportStatusMessage = lastImportStatusMessage;
-	}
+    public void setLastImportStatusMessage(String lastImportStatusMessage) {
+        this.lastImportStatusMessage = lastImportStatusMessage;
+    }
 
 }

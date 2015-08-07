@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl;
 
@@ -27,16 +17,16 @@ import org.springframework.beans.factory.annotation.Autowired;
  * Provisioning service default implementation
  */
 public class ProvisioningServiceImpl extends AbstractSecuredWebServer implements ProvisioningService {
-    
+
     @Autowired
     private CoordinatorClient _coordinator;
-    
+
     @Autowired
-    private AuthSvcEndPointLocator _authSvcEndPointLocator; 
-  
+    private AuthSvcEndPointLocator _authSvcEndPointLocator;
+
     @Autowired
     StorageOSUserRepository _repository;
-    
+
     @Autowired
     ServiceBeacon _svcBeacon;
 

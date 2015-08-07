@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -53,7 +53,7 @@ public class NetworkEndpointDataTable extends DataTable {
         public String host;
         public boolean discovered;
         public String portGroup;
-        
+
         public EndpointInfo(StoragePortRestRep storagePort, CachedResources<StorageSystemRestRep> storageSystems) {
             this.id = stringId(storagePort);
             this.name = storagePort.getPortName();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.monitoring;
@@ -40,12 +40,12 @@ public class StorageDeviceInfo {
     public void addSerialNumber(String snKey, String sn) {
         _snMap.put(snKey, sn);
     }
-    
+
     /**
      * Removes the entry for the storage device serial number.
      * 
      * @param snKey The key used to access the serial number.
-      */
+     */
     public void removeSerialNumber(String snKey) {
         _snMap.remove(snKey);
     }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) $today_year. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
@@ -30,10 +20,10 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public class CloneTaskCompleter extends VolumeTaskCompleter {
-    
-	private static final long serialVersionUID = -5808737150117378443L;
-	private static final Logger log = LoggerFactory.getLogger(CloneTaskCompleter.class);
-	
+
+    private static final long serialVersionUID = -5808737150117378443L;
+    private static final Logger log = LoggerFactory.getLogger(CloneTaskCompleter.class);
+
     public CloneTaskCompleter(List<URI> fullCopyVolumeURIs, String task) {
         super(Volume.class, fullCopyVolumeURIs, task);
         setNotifyWorkflow(true);
@@ -43,7 +33,7 @@ public class CloneTaskCompleter extends VolumeTaskCompleter {
         super(Volume.class, fullCopyVolumeURI, task);
         setNotifyWorkflow(true);
     }
-    
+
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
             throws DeviceControllerException {
@@ -60,13 +50,13 @@ public class CloneTaskCompleter extends VolumeTaskCompleter {
                 if (URIUtil.isType(fullCopyVolume.getAssociatedSourceVolume(), BlockSnapshot.class)) {
                     sourceClass = BlockSnapshot.class;
                 }
-                
+
                 switch (status) {
                     case error:
                         dbClient.error(sourceClass, fullCopyVolume.getId(), getOpId(), coded);
                         break;
                     default:
-                        dbClient.ready(sourceClass, fullCopyVolume.getId(),	getOpId());
+                        dbClient.ready(sourceClass, fullCopyVolume.getId(), getOpId());
                 }
             }
         } catch (Exception e) {

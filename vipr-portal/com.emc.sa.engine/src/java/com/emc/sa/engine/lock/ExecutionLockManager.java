@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.engine.lock;
@@ -35,7 +35,7 @@ public class ExecutionLockManager {
      * Acquires a named lock.
      * 
      * @param name
-     *        the name of the lock.
+     *            the name of the lock.
      * @return true if the lock was acquired.
      */
     public boolean acquireLock(String name) {
@@ -47,7 +47,7 @@ public class ExecutionLockManager {
      * Releases the named lock.
      * 
      * @param name
-     *        the name of the lock.
+     *            the name of the lock.
      */
     public void releaseLock(String name) {
         LockState state = getLock(name);
@@ -86,8 +86,7 @@ public class ExecutionLockManager {
             state.count++;
             LOG.debug("Acquired lock '" + name + "'");
             return true;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             LOG.error("Error acquiring lock '" + name + "'", e);
             return false;
         }
@@ -105,8 +104,7 @@ public class ExecutionLockManager {
                     LOG.warn("Release called on lock '" + name + "' which does not appear to have been acquired");
                 }
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             LOG.error("Error releasing lock '" + name + "'", e);
         }
     }

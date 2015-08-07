@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.network;
@@ -13,20 +13,22 @@ import java.util.List;
  * Contains a list of the endpoints discovered by the NetworkSystem. An endpoint
  * represents either a connected host port or storage port. Some ISL link ports may
  * also be included by the NetworkSystem.
- *
+ * 
  */
-@XmlRootElement(name="fc_endpoints")
+@XmlRootElement(name = "fc_endpoints")
 public class FCEndpoints {
     private List<FCEndpointRestRep> connections;
 
-    public FCEndpoints() {}
-    
+    public FCEndpoints() {
+    }
+
     public FCEndpoints(List<FCEndpointRestRep> connections) {
         this.connections = connections;
     }
 
     /**
      * List of FC (Fibre Channel) endpoints discovered by a network system.
+     * 
      * @valid none
      */
     @XmlElement(name = "fc_endpoint")

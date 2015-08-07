@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core.filters;
@@ -17,7 +17,7 @@ public class VirtualPoolProtocolFilter<T extends VirtualPoolCommonRestRep> exten
 
     public VirtualPoolProtocolFilter(String... protocols) {
         this.protocols = new HashSet<String>();
-        for (String protocol: protocols) {
+        for (String protocol : protocols) {
             this.protocols.add(protocol);
         }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.windows.tasks;
@@ -16,7 +16,7 @@ public class VerifyFailoverClusterInstalled extends WindowsExecutionTask<Void> {
         String url = getTargetSystem().getTarget().getUrl().toExternalForm();
         provideDetailArgs(url);
 
-        List<Win32Service> services =getTargetSystem().listServices();
+        List<Win32Service> services = getTargetSystem().listServices();
 
         Win32Service clusterService = WindowsClusterUtils.findClusterService(services);
         if (clusterService != null && !clusterService.isStarted()) {

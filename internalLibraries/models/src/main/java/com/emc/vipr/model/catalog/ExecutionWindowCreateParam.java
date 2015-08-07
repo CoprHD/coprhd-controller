@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -22,5 +22,5 @@ public class ExecutionWindowCreateParam extends ExecutionWindowCommonParam {
     public void setTenant(URI tenant) {
         this.tenant = tenant;
     }
-    
+
 }

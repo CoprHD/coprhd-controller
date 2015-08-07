@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.catalog;
@@ -37,27 +37,27 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
 
     @Autowired
     private ModelClient client;
-    
+
     @Autowired
-    private CatalogServiceManager catalogServiceManager;    
-    
+    private CatalogServiceManager catalogServiceManager;
+
     @Autowired
     private ServiceDescriptors serviceDescriptors;
-    
+
     private Messages MESSAGES = new Messages(CatalogBuilder.class, "default-catalog");
-    
+
     public void upgradeCatalog(URI tenantId) throws IOException {
         CatalogCategory rootCategory = getOrCreateRootCategory(tenantId);
-        
+
         com.emc.sa.catalog.CategoryDef newCatalog = CatalogBuilder.readCatalogDef(getDefaultCatalog());
 
         log.info(String.format("Updating Service catalog for tenant %s", tenantId));
         upgradeCategory(rootCategory, newCatalog);
 
         rootCategory.setVersion(newCatalog.version);
-        client.save(rootCategory);        
+        client.save(rootCategory);
     }
-    
+
     public CatalogCategory getOrCreateRootCategory(URI tenantId) {
         CatalogCategory root = null;
         root = client.catalogCategories().getRootCategory(tenantId.toString());
@@ -65,34 +65,32 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
             root = createDefaultCatalog(tenantId);
         }
         return root;
-    }   
-    
+    }
+
     public void restoreDefaultCatalog(URI tenant) throws IOException {
         // Delete old catalog
         CatalogCategory catalog = getOrCreateRootCategory(tenant);
         deleteCatalogCategory(catalog);
-        
+
         // Rebuild catalog
         catalog = getOrCreateRootCategory(tenant);
         CatalogBuilder builder = new CatalogBuilder(client, serviceDescriptors);
         builder.clearCategory(catalog);
         builder.buildCatalog(tenant.toString(), getDefaultCatalog());
-    }    
-    
+    }
+
     private CatalogCategory createDefaultCatalog(URI tenant) {
         loadCatalog(tenant);
         return client.catalogCategories().getRootCategory(tenant.toString());
-    }    
-    
+    }
+
     private void loadCatalog(URI tenant) {
         try {
             log.info("Loading default catalog");
             new CatalogBuilder(client, serviceDescriptors).buildCatalog(tenant.toString(), getDefaultCatalog());
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             log.error("Failed to populate default catalog", e);
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             log.error("Failed to populate default catalog", e);
         }
     }
@@ -104,28 +102,26 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
             if (rootCategory.getVersion() == null) {
                 return true;
             }
-            else  {
+            else {
                 String catalogHash = CatalogBuilder.getCatalogHash(getDefaultCatalog());
                 return !rootCategory.getVersion().equals(catalogHash);
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             log.error("Reading default catalog file", e);
             return false;
         }
-    }      
-    
-    
+    }
+
     private boolean isServiceUsedForOrders(String tenantId, CatalogService service) {
         String serviceId = service.getId().toString();
         List<Order> orders = client.orders().findAll(tenantId);
         return CollectionUtils.exists(orders, new ServiceIdPredicate(serviceId));
-    }    
-    
+    }
+
     private InputStream getDefaultCatalog() {
         return getClass().getResourceAsStream("default-catalog.json");
-    }       
-    
+    }
+
     /**
      * Updates the category, adding and removing out off date sub categories and services
      * (Warning: This is recursive)
@@ -154,18 +150,19 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
     private void upgradeServices(CatalogCategory currentCategory, com.emc.sa.catalog.CategoryDef newCategory) {
         List<CatalogService> services = client.catalogServices().findByCatalogCategory(currentCategory.getId());
 
-        // Add  or Update Missing Services
+        // Add or Update Missing Services
         if (newCategory.services != null) {
             for (com.emc.sa.catalog.ServiceDef newService : newCategory.services) {
                 List<CatalogService> matchingServices = findServices(services, newService.baseService);
-                if (matchingServices != null && matchingServices.size() > 0) {
+                if (matchingServices != null && !matchingServices.isEmpty()) {
                     updateMatchingServices(currentCategory, matchingServices, newService);
                 }
                 else {
                     ServiceDescriptor descriptor = serviceDescriptors.getDescriptor(Locale.getDefault(), newService.baseService);
                     String label = "";
                     if (descriptor != null) {
-                        label = StringUtils.deleteWhitespace(StringUtils.defaultString(getMessage(getLabel(newService)), descriptor.getTitle()));
+                        label = StringUtils.deleteWhitespace(StringUtils.defaultString(getMessage(getLabel(newService)),
+                                descriptor.getTitle()));
                     }
                     log.info(String.format("CREATING Missing Service %s: for tenant: %s", label, currentCategory.getTenant()));
                     catalogServiceManager.createCatalogService(newService, currentCategory);
@@ -178,17 +175,18 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
             ServiceDescriptor serviceDescriptor = null;
             try {
                 serviceDescriptor = serviceDescriptors.getDescriptor(Locale.getDefault(), service.getBaseService());
-            } catch(IllegalStateException ese) {
-              //getDescriptor throws exception when no descriptor found
+            } catch (IllegalStateException ese) {
+                // getDescriptor throws exception when no descriptor found
             }
             if (serviceDescriptor == null) {
-                log.info(String.format("REMOVING Service '%s' as base service '%s' no longer exists for tenant:%s", service.getTitle(), service.getBaseService(), currentCategory.getTenant()));
+                log.info(String.format("REMOVING Service '%s' as base service '%s' no longer exists for tenant:%s", service.getTitle(),
+                        service.getBaseService(), currentCategory.getTenant()));
                 catalogServiceManager.deleteCatalogService(service);
             }
         }
-        
+
     }
-        
+
     private <K, V> boolean mapEquals(Map<K, V> m1, Map<K, V> m2) {
         if ((m1 == null || m1.isEmpty()) && (m2 == null || m2.isEmpty())) {
             return true;
@@ -200,13 +198,15 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
 
     private void updateMatchingServices(CatalogCategory currentCategory, List<CatalogService> services, ServiceDef newService) {
         int pristineService = 0;
-        for(CatalogService service: services) {
+        for (CatalogService service : services) {
             if (isMatch(service, newService)) {
                 if (pristineService == 0) {
-                    log.info(String.format("Updating Existing Matching Service %s: for tenant: %s", service.getLabel(), currentCategory.getTenant()));
+                    log.info(String.format("Updating Existing Matching Service %s: for tenant: %s", service.getLabel(),
+                            currentCategory.getTenant()));
                     ServiceDescriptor descriptor = serviceDescriptors.getDescriptor(Locale.getDefault(), newService.baseService);
                     if (descriptor != null) {
-                        service.setLabel(StringUtils.deleteWhitespace(StringUtils.defaultString(getMessage(getLabel(newService)), descriptor.getTitle())));
+                        service.setLabel(StringUtils.deleteWhitespace(StringUtils.defaultString(getMessage(getLabel(newService)),
+                                descriptor.getTitle())));
                         service.setTitle(StringUtils.defaultString(getMessage(newService.title), descriptor.getTitle()));
                         service.setDescription(StringUtils.defaultString(getMessage(newService.description), descriptor.getDescription()));
                     }
@@ -218,7 +218,7 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
                     log.info(String.format("Removing Duplicate Service %s: for tenant: %s", service.getLabel(), currentCategory.getTenant()));
                     catalogServiceManager.deleteCatalogService(service);
                 }
-           }
+            }
         }
     }
 
@@ -245,7 +245,7 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
         }
         return matchingServices;
     }
-    
+
     private CatalogCategory findSubCategory(List<CatalogCategory> categories, String label) {
         for (CatalogCategory subCategory : categories) {
             if (subCategory.getLabel().equals(label)) {
@@ -254,8 +254,8 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
         }
 
         return null;
-    }    
-    
+    }
+
     private CatalogCategory createCategory(String tenant, CategoryDef def, CatalogCategory parentCategory) {
         CatalogBuilder builder = new CatalogBuilder(client, serviceDescriptors);
         NamedURI namedUri = new NamedURI(parentCategory.getId(), parentCategory.getLabel());
@@ -267,9 +267,9 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
         return newCategory;
     }
 
-  
     /**
      * Get catalog category object from id
+     * 
      * @param id the URN of a catalog category
      * @return
      */
@@ -280,33 +280,32 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
 
         CatalogCategory catalogCategory = client.catalogCategories().findById(id);
 
-        
         return catalogCategory;
-    }        
-    
+    }
+
     public void createCatalogCategory(CatalogCategory catalogCategory) {
-        
+
         if (catalogCategory.getSortedIndex() == null) {
             catalogCategory.setSortedIndex(SortedIndexUtils.getNextSortedIndex(catalogCategory, client));
-        }        
-        
+        }
+
         client.save(catalogCategory);
     }
-    
+
     public void updateCatalogCategory(CatalogCategory catalogCategory) {
-        
+
         if (catalogCategory.getSortedIndex() == null) {
             catalogCategory.setSortedIndex(SortedIndexUtils.getNextSortedIndex(catalogCategory, client));
-        }        
-        
+        }
+
         client.save(catalogCategory);
     }
-    
+
     public void deleteCatalogCategory(CatalogCategory catalogCategory) {
         deleteCategoryContents(catalogCategory);
         client.delete(catalogCategory);
     }
-    
+
     private void deleteCategoryContents(CatalogCategory catalogCategory) {
         List<CatalogCategory> categories = getSubCategories(catalogCategory.getId());
         for (CatalogCategory subCategory : categories) {
@@ -316,14 +315,14 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
         for (CatalogService service : services) {
             catalogServiceManager.deleteCatalogService(service);
         }
-    }    
-    
+    }
+
     public List<CatalogCategory> getSubCategories(URI parentCatalogCategoryId) {
         List<CatalogCategory> categories = client.catalogCategories().findSubCatalogCategories(parentCatalogCategoryId);
         SortedIndexUtils.sort(categories);
         return categories;
     }
-    
+
     public void moveUpCatalogCategory(URI catalogCategoryId) {
         CatalogCategory catalogCategory = getCatalogCategoryById(catalogCategoryId);
         if (catalogCategory != null) {
@@ -336,8 +335,8 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
         if (catalogCategory != null) {
             SortedIndexUtils.moveDown(catalogCategory, client);
         }
-    } 
-    
+    }
+
     protected String getLabel(CategoryDef def) {
         return StringUtils.defaultString(def.label, def.title);
     }
@@ -349,10 +348,9 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
     protected String getMessage(String key) {
         try {
             return (key != null) ? MESSAGES.get(key) : null;
-        }
-        catch (MissingResourceException e) {
+        } catch (MissingResourceException e) {
             return key;
         }
     }
-    
+
 }

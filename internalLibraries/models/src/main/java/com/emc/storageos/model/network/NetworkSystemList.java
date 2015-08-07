@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.network;
@@ -11,19 +11,21 @@ import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 
-@XmlRootElement(name ="network_systems")
+@XmlRootElement(name = "network_systems")
 public class NetworkSystemList {
     private List<NamedRelatedResourceRep> systems;
 
-    public NetworkSystemList() {}
-    
+    public NetworkSystemList() {
+    }
+
     public NetworkSystemList(List<NamedRelatedResourceRep> systems) {
         this.systems = systems;
     }
 
     /**
-     * List of network system objects that exist in ViPR. Each 
+     * List of network system objects that exist in ViPR. Each
      * network system contains an id, name, and link.
+     * 
      * @valid none
      */
     @XmlElement(name = "network_system")

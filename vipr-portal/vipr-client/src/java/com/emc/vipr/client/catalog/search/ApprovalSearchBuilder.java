@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.catalog.search;
@@ -24,28 +24,28 @@ public class ApprovalSearchBuilder extends SearchBuilder<ApprovalRestRep> {
 
     public SearchBuilder<ApprovalRestRep> byStatus(String status) {
         return byStatus(status, null);
-    }    
-    
+    }
+
     public SearchBuilder<ApprovalRestRep> byStatus(String status, URI tenantId) {
-        Map<String, Object> parameters = new HashMap<String,Object>();
+        Map<String, Object> parameters = new HashMap<String, Object>();
         if (tenantId != null) {
             parameters.put(TENANT_ID_PARAM, tenantId);
         }
         parameters.put(APPROVAL_STATUS_PARAM, status);
-        return byAll(parameters);        
+        return byAll(parameters);
     }
 
     public SearchBuilder<ApprovalRestRep> byOrderId(URI orderId) {
         return byOrderId(orderId, null);
-    }            
-    
+    }
+
     public SearchBuilder<ApprovalRestRep> byOrderId(URI orderId, URI tenantId) {
-        Map<String, Object> parameters = new HashMap<String,Object>();
+        Map<String, Object> parameters = new HashMap<String, Object>();
         if (tenantId != null) {
             parameters.put(TENANT_ID_PARAM, tenantId);
         }
         parameters.put(ORDER_ID_PARAM, orderId);
-        return byAll(parameters);                
-    }        
+        return byAll(parameters);
+    }
 
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
@@ -32,51 +22,51 @@ import java.util.List;
  */
 public abstract class ExportMaskInitiatorCompleter extends ExportTaskCompleter {
 
-	private List<URI> _userAddedInitiatorURIs;
+    private List<URI> _userAddedInitiatorURIs;
 
-	public ExportMaskInitiatorCompleter(Class clazz, URI id, String opId) {
-		super(clazz, id, opId);
-	}
+    public ExportMaskInitiatorCompleter(Class clazz, URI id, String opId) {
+        super(clazz, id, opId);
+    }
 
-	public ExportMaskInitiatorCompleter(Class clazz, URI id, URI emURI,
-			String opId) {
-		super(clazz, id, emURI, opId);
-	}
+    public ExportMaskInitiatorCompleter(Class clazz, URI id, URI emURI,
+            String opId) {
+        super(clazz, id, emURI, opId);
+    }
 
-	public List<URI> getUserAddedInitiatorURIs() {
-		if (_userAddedInitiatorURIs == null) {
-			_userAddedInitiatorURIs = new ArrayList<>();
-		}
-		return _userAddedInitiatorURIs;
-	}
+    public List<URI> getUserAddedInitiatorURIs() {
+        if (_userAddedInitiatorURIs == null) {
+            _userAddedInitiatorURIs = new ArrayList<>();
+        }
+        return _userAddedInitiatorURIs;
+    }
 
-   public void addInitiator(URI initiator) {
-       if (_userAddedInitiatorURIs == null) {
-           _userAddedInitiatorURIs = new ArrayList<>();
-       }
-       _userAddedInitiatorURIs.add(initiator);
-   }
+    public void addInitiator(URI initiator) {
+        if (_userAddedInitiatorURIs == null) {
+            _userAddedInitiatorURIs = new ArrayList<>();
+        }
+        _userAddedInitiatorURIs.add(initiator);
+    }
 
-   public void addInitiators(Collection<URI> initiators) {
-       if (_userAddedInitiatorURIs == null) {
-           _userAddedInitiatorURIs = new ArrayList<>();
-       }
-       for (URI initiator : initiators) {
-           _userAddedInitiatorURIs.add(initiator);
-       }
-   }
+    public void addInitiators(Collection<URI> initiators) {
+        if (_userAddedInitiatorURIs == null) {
+            _userAddedInitiatorURIs = new ArrayList<>();
+        }
+        for (URI initiator : initiators) {
+            _userAddedInitiatorURIs.add(initiator);
+        }
+    }
 
-   public void removeInitiator(URI initiator) {
-       if (_userAddedInitiatorURIs != null) {
-           _userAddedInitiatorURIs.remove(initiator);
-       }
-   }
+    public void removeInitiator(URI initiator) {
+        if (_userAddedInitiatorURIs != null) {
+            _userAddedInitiatorURIs.remove(initiator);
+        }
+    }
 
-   public void removeInitiators(Collection<URI> initiators) {
-       if (_userAddedInitiatorURIs != null) {
-           for (URI initiator : initiators) {
-               _userAddedInitiatorURIs.remove(initiator);
-           }
-       }
-   }
+    public void removeInitiators(Collection<URI> initiators) {
+        if (_userAddedInitiatorURIs != null) {
+            for (URI initiator : initiators) {
+                _userAddedInitiatorURIs.remove(initiator);
+            }
+        }
+    }
 }

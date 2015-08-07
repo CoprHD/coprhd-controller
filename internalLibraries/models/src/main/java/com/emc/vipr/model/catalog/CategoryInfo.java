@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -14,36 +14,36 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Deprecated
 @XmlRootElement
 public class CategoryInfo extends ModelInfo {
-    
+
     /**
      * Name of this category
      */
     private String name;
-    
+
     /**
      * Title of this category. Used as the title in the UI
      */
-    private String title;                           
-    
+    private String title;
+
     /**
      * Description of this category. Used as the description in the UI
      */
-    private String description;                     
-    
+    private String description;
+
     /**
      * Icon to show for this category.
      */
-    private String image;             
-    
+    private String image;
+
     /**
      * Child categories that this category contains
      */
-    private List<NamedReference> subCategories;    
-    
+    private List<NamedReference> subCategories;
+
     /**
      * Child services that this category contains
      */
-    private List<ServiceInfo> services;             
+    private List<ServiceInfo> services;
 
     @XmlElementWrapper(name = "sub_categories")
     @XmlElement(name = "category")
@@ -99,15 +99,15 @@ public class CategoryInfo extends ModelInfo {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("Category %s (%s), '%s' '%s'", name, id, title, description));
-        if (services.size() > 0) {
+        if (!services.isEmpty()) {
             sb.append("\nServices:");
-            for (ServiceInfo service: services) {
+            for (ServiceInfo service : services) {
                 sb.append("\n- ").append(service.toString());
             }
         }
-        if (subCategories.size() > 0) {
+        if (!subCategories.isEmpty()) {
             sb.append("\nSub-categories:");
-            for (NamedReference child: subCategories) {
+            for (NamedReference child : subCategories) {
                 sb.append("\n- ").append(String.format("category %s (%s)", child.getName(), child.getId()));
             }
         }

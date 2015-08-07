@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.vnx.xmlapi;
@@ -41,17 +31,17 @@ public class VNXBaseClass {
     public static final String AUTO_EXTEND_ENABLED_DEF = "false";
     public static final String THIN_PROVISIONED_DEF = "false";
     public static final String AUTO_EXTEND_HWM_DEF = "90";
-    
+
     protected static final int timeout = 3000;
 
     protected static final String requestHeader = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
             "<RequestPacket xmlns=\"http://www.emc.com/schemas/celerra/xml_api\" >\n" +
             "<Request>\n";
 
-    public static final String requestFooter =  "</Request>\n" +
+    public static final String requestFooter = "</Request>\n" +
             "</RequestPacket>";
 
-    public VNXBaseClass(){
+    public VNXBaseClass() {
 
     }
 

@@ -1,23 +1,12 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.server.impl;
 
 import java.io.BufferedReader;
 import java.io.StringReader;
 import java.lang.annotation.Annotation;
-import java.net.URI;
 import java.util.*;
 
 import com.emc.storageos.db.common.*;
@@ -37,7 +26,6 @@ import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientContext;
-import com.emc.storageos.db.client.model.DbKeyspace;
 import com.emc.storageos.db.client.model.SchemaRecord;
 import com.emc.storageos.db.client.model.UpgradeAllowed;
 import com.emc.storageos.db.common.diff.DbSchemasDiff;
@@ -54,7 +42,7 @@ import com.emc.storageos.db.client.upgrade.callbacks.GeoDbMigrationCallback;
 import com.netflix.astyanax.Keyspace;
 
 /**
- *  Default implementation of migration handler
+ * Default implementation of migration handler
  */
 public class MigrationHandlerImpl implements MigrationHandler {
     private static final Logger log = LoggerFactory.getLogger(MigrationHandler.class);
@@ -74,13 +62,13 @@ public class MigrationHandlerImpl implements MigrationHandler {
     private Map<String, List<BaseCustomMigrationCallback>> customMigrationCallbacks;
     private DbServiceStatusChecker statusChecker;
     private SchemaUtil schemaUtil;
-    
+
     String targetVersion;
     String failedCallbackName;
 
     /**
      * Package where model classes are defined
-     *
+     * 
      * @param packages
      */
     public void setPackages(String... packages) {
@@ -94,8 +82,8 @@ public class MigrationHandlerImpl implements MigrationHandler {
     }
 
     /**
-     * The packages to be ignored in the comparing 
-     *
+     * The packages to be ignored in the comparing
+     * 
      * @param pkgs
      */
     public void setIgnoredPackages(String... pkgs) {
@@ -104,7 +92,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
     /**
      * Set coordinator client
-     *
+     * 
      * @param coordinator
      */
     public void setCoordinator(CoordinatorClient coordinator) {
@@ -113,13 +101,13 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
     /**
      * Set db client
-     *
+     * 
      * @param dbClient
      */
     public void setDbClient(DbClient dbClient) {
-        if (dbClient instanceof InternalDbClient)
-            this.dbClient = (InternalDbClient)dbClient;
-        else {
+        if (dbClient instanceof InternalDbClient) {
+            this.dbClient = (InternalDbClient) dbClient;
+        } else {
             String errorMsg = "MigrationHandler only accept InternalDbClient instances";
             log.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
@@ -128,7 +116,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
     /**
      * Set service info
-     *
+     * 
      * @param service
      */
     public void setService(Service service) {
@@ -137,6 +125,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
     /**
      * set versioned custom migration callbacks
+     * 
      * @param customMigrationCallbacks
      */
     public void setCustomMigrationCallbacks(Map<String, List<BaseCustomMigrationCallback>>
@@ -166,8 +155,6 @@ public class MigrationHandlerImpl implements MigrationHandler {
         statusChecker.setServiceName(service.getName());
         // dbsvc will wait for all dbsvc, and geodbsvc waits for all geodbsvc.
         statusChecker.waitForAllNodesMigrationInit();
-
-
 
         if (schemaUtil.isGeoDbsvc()) {
             // no migration procedure for geosvc, just wait till migration is done on one of the
@@ -218,13 +205,13 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 }
                 // figure out our source and target versions
                 DbSchemas persistedSchema = getPersistedSchema(currentSchemaVersion);
-                
-                if(isSchemaMissed(persistedSchema, currentSchemaVersion, targetVersion)){
+
+                if (isSchemaMissed(persistedSchema, currentSchemaVersion, targetVersion)) {
                     throw new IllegalStateException("Schema definition not found for version "
-                            + currentSchemaVersion);                    
+                            + currentSchemaVersion);
                 }
-                
-                if(isFreshInstall(persistedSchema, currentSchemaVersion, targetVersion)){
+
+                if (isFreshInstall(persistedSchema, currentSchemaVersion, targetVersion)) {
                     log.info("saving schema of version {} to db", currentSchemaVersion);
                     persistedSchema = currentSchema;
                     persistSchema(currentSchemaVersion, DbSchemaChecker.marshalSchemas(
@@ -276,7 +263,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 if (isUnRetryableException(e)) {
                     markMigrationFail(currentSchemaVersion, e);
                     return false;
-                }  else {
+                } else {
                     log.warn("Retryable exception during migration ", e);
                     retryCount++;
                 }
@@ -293,19 +280,19 @@ public class MigrationHandlerImpl implements MigrationHandler {
         }  // while -- not done
         return false;
     }
-    
+
     private void markMigrationFail(String currentSchemaVersion, Exception e) {
         schemaUtil.setMigrationStatus(MigrationStatus.FAILED);
 
         String errMsg =
-           String.format("The DB migration fails from %s to %s due to some unexpected error.",
-                         currentSchemaVersion, targetVersion);
+                String.format("The DB migration fails from %s to %s due to some unexpected error.",
+                        currentSchemaVersion, targetVersion);
 
         if (failedCallbackName != null) {
             errMsg += "(The failed DB migration callback is " + failedCallbackName + ").";
         }
 
-        errMsg +=" Please contract the EMC support team.";
+        errMsg += " Please contract the EMC support team.";
 
         alertLog.error(errMsg);
         log.error(e.getMessage(), e);
@@ -313,27 +300,29 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
     private boolean isUnRetryableException(Exception e) {
         return e instanceof FatalDatabaseException ||
-            e instanceof FatalCoordinatorException ||
-            e instanceof IllegalArgumentException ||
-            e instanceof IllegalStateException;
+                e instanceof FatalCoordinatorException ||
+                e instanceof IllegalArgumentException ||
+                e instanceof IllegalStateException;
     }
 
-    public void sleepBeforeRetry(){
+    public void sleepBeforeRetry() {
         try {
             log.info("Waiting for {} sec before retrying ...", WAIT_TIME_BEFORE_RETRY_MSEC / 1000);
             Thread.sleep(WAIT_TIME_BEFORE_RETRY_MSEC);
-        } catch (InterruptedException ex) { }
-    	
+        } catch (InterruptedException ex) {
+            log.warn("Thread is interrupted during wait for retry", ex);
+        }
+
     }
 
     private boolean isSchemaMissed(DbSchemas persistedSchema,
             String currentSchemaVersion, String targetVersion2) {
-        return persistedSchema==null && !currentSchemaVersion.equals(targetVersion);
+        return persistedSchema == null && !currentSchemaVersion.equals(targetVersion);
     }
 
     private boolean isFreshInstall(DbSchemas persistedSchema,
             String currentSchemaVersion, String targetVersion) {
-        return persistedSchema==null && currentSchemaVersion.equals(targetVersion);
+        return persistedSchema == null && currentSchemaVersion.equals(targetVersion);
     }
 
     /**
@@ -359,9 +348,10 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 lock = coordinator.getLock(name);
                 lock.acquire();
                 break; // got lock
-            }catch (Exception e) {
-                if (coordinator.isConnected())
+            } catch (Exception e) {
+                if (coordinator.isConnected()) {
                     throw e;
+                }
             }
         }
         return lock;
@@ -381,6 +371,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 try {
                     reader.close();
                 } catch (Exception e) {
+                    log.error("Fail to close buffer reader", e);
                 }
             }
         }
@@ -397,7 +388,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
      * Figure out all migration callbacks and run from given checkpoint
      * 
      * @param diff
-     * @param checkpoint 
+     * @param checkpoint
      */
     private void runMigrationCallbacks(DbSchemasDiff diff, String checkpoint) {
         List<MigrationCallback> callbacks = new ArrayList<>();
@@ -407,68 +398,69 @@ public class MigrationHandlerImpl implements MigrationHandler {
         callbacks.addAll(generateDefaultMigrationCallbacks(diff.getNewClassAnnotations()));
         callbacks.addAll(generateDefaultMigrationCallbacks(diff.getNewFieldAnnotations()));
 
-        // now, see if there is any extra ones we need to run from the specified source 
+        // now, see if there is any extra ones we need to run from the specified source
         // version
         callbacks.addAll(generateCustomMigrationCallbacks());
-        
+
         log.info("Total {} migration callbacks ", callbacks.size());
         DbClientContext geoContext = disableGeoAccess();
         boolean startProcessing = false;
         try {
-			for (MigrationCallback callback : callbacks) {
-			    // ignore the callback if it is before given checkpoint 
-			    if (!startProcessing && checkpoint != null) {
-			        if (!callback.getName().equals(checkpoint)) {
-			            log.info("Ignore migration callback: " + callback.getName());
-			            continue;
-			        } else {
-			            // Start from next callback 
-			            startProcessing = true; 
-			            continue;
-			        }
-			    }
-			    
-			    log.info("Invoking migration callback: " + callback.getName());
-			    try {
-			    	callback.process();
-			    }catch (Exception e) {
-			        failedCallbackName = callback.getName();
-			        throw e;
-			    }
-			    // Update checkpoint
-			    schemaUtil.setMigrationCheckpoint(callback.getName());
-			}
-		} finally{
-	        enableGeoAccess(geoContext);
-		}
+            for (MigrationCallback callback : callbacks) {
+                // ignore the callback if it is before given checkpoint
+                if (!startProcessing && checkpoint != null) {
+                    if (!callback.getName().equals(checkpoint)) {
+                        log.info("Ignore migration callback: " + callback.getName());
+                        continue;
+                    } else {
+                        // Start from next callback
+                        startProcessing = true;
+                        continue;
+                    }
+                }
+
+                log.info("Invoking migration callback: " + callback.getName());
+                try {
+                    callback.process();
+                } catch (Exception e) {
+                    failedCallbackName = callback.getName();
+                    throw e;
+                }
+                // Update checkpoint
+                schemaUtil.setMigrationCheckpoint(callback.getName());
+            }
+        } finally {
+            enableGeoAccess(geoContext);
+        }
     }
 
     private void enableGeoAccess(DbClientContext geoContext) {
-    	log.info("enable geo access since migration callback done");
-    	this.dbClient.setGeoContext(geoContext);
-	}
+        log.info("enable geo access since migration callback done");
+        this.dbClient.setGeoContext(geoContext);
+    }
 
     /*
      * don't allow geo db migration callback.
-     * */
-	private DbClientContext disableGeoAccess() {
-		log.info("disable geo access temporary since we don't support geo db migration callback now");
-    	DbClientContext geoContext = this.dbClient.getGeoContext();
-    	this.dbClient.setGeoContext(new DbClientContext(){
-    		@Override
-    		public Keyspace getKeyspace() {
-    			log.error("doesn't support migration callback for Geo");
-    			for(StackTraceElement st : Thread.currentThread().getStackTrace()){
-    				log.error(st.getClassName() + ":" + st.getMethodName() + ", (" + st.getLineNumber() + ") \n");
-    			}
-    			throw new IllegalArgumentException("doesn't support migration callback for Geo");
-    		}
-    	});
-    	return geoContext;
-	}
+     */
+    private DbClientContext disableGeoAccess() {
+        log.info("disable geo access temporary since we don't support geo db migration callback now");
+        DbClientContext geoContext = this.dbClient.getGeoContext();
+        this.dbClient.setGeoContext(new DbClientContext() {
+            @Override
+            public Keyspace getKeyspace() {
+                log.error("doesn't support migration callback for Geo");
+                for (StackTraceElement st : Thread.currentThread().getStackTrace()) {
+                    log.error(st.getClassName() + ":" + st.getMethodName() + ", (" + st.getLineNumber() + ") \n");
+                }
+                throw new IllegalArgumentException("doesn't support migration callback for Geo");
+            }
+        });
+        return geoContext;
+    }
 
-	/**
+    /**
      * Determines the default migration callbacks for a class and field and returns a list of handlers
+     * 
      * @param annotationTypes
      * @return
      */
@@ -479,10 +471,10 @@ public class MigrationHandlerImpl implements MigrationHandler {
             if (annoClass.isAnnotationPresent(UpgradeAllowed.class)) {
                 UpgradeAllowed upgrAnno = annoClass.getAnnotation(UpgradeAllowed.class);
                 Class<? extends BaseDefaultMigrationCallback> callback = upgrAnno.migrationCallback();
-                //skip geo migration callback
-                if(callback == GeoDbMigrationCallback.class){
+                // skip geo migration callback
+                if (callback == GeoDbMigrationCallback.class) {
                     log.info("skip geo db migration callback:{} since we don't support it now", callback.getCanonicalName());
-                	continue;
+                    continue;
                 }
                 String className = annoType.getCfClass().getCanonicalName();
                 String fieldName = annoType.getFieldName();
@@ -497,11 +489,13 @@ public class MigrationHandlerImpl implements MigrationHandler {
                     callbackInst.setInternalDbClient(dbClient);
                     callbacks.add(callbackInst);
                 } catch (InstantiationException e) {
-                        log.error("Failed to generate default migration callback ", e); 
-                    throw DatabaseException.fatals.failedDuringUpgrade("Failed for new index " + annotationType + " on " + className + "." + fieldName, e);
+                    log.error("Failed to generate default migration callback ", e);
+                    throw DatabaseException.fatals.failedDuringUpgrade("Failed for new index " + annotationType + " on " + className + "."
+                            + fieldName, e);
                 } catch (IllegalAccessException e) {
-                        log.error("Failed to generate default migration callback ", e); 
-                    throw DatabaseException.fatals.failedDuringUpgrade("Failed for new index " + annotationType + " on " + className + "." + fieldName, e);
+                    log.error("Failed to generate default migration callback ", e);
+                    throw DatabaseException.fatals.failedDuringUpgrade("Failed for new index " + annotationType + " on " + className + "."
+                            + fieldName, e);
                 }
             }
         }
@@ -513,38 +507,42 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 return obj1.getName().compareTo(obj2.getName());
             }
         });
-        
+
         log.info("Get default migration callbacks in the following order {}", getCallbackNames(callbacks).toString());
         return callbacks;
     }
-    
+
     private static class VersionComparitor implements Comparator<String> {
 
-        /* (non-Javadoc)
+        /*
+         * (non-Javadoc)
+         * 
          * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
          */
         @Override
         public int compare(String o1, String o2) {
-            if (o1.equals(o2)) return o1.compareTo(o2);
-            
+            if (o1.equals(o2)) {
+                return o1.compareTo(o2);
+            }
+
             String[] o1Parts = StringUtils.split(o1, ".");
             String[] o2Parts = StringUtils.split(o2, ".");
-            
+
             if (o1Parts.length >= o2Parts.length) {
                 return compareParts(Arrays.asList(o1Parts), Arrays.asList(o2Parts));
             } else {
                 return -1 * compareParts(Arrays.asList(o2Parts), Arrays.asList(o1Parts));
             }
-            
+
         }
-        
+
         private int compareParts(Collection<String> list1, Collection<String> list2) {
             Iterator<String> list2Itr = list2.iterator();
             for (String part1 : list1) {
                 String part2 = list2Itr.hasNext() ? list2Itr.next() : "0";
                 int compare = 0;
                 if (StringUtils.isNumeric(part1) && StringUtils.isNumeric(part2)) {
-                    compare = (new Integer(part1)).compareTo(new Integer(part2));
+                    compare = (Integer.valueOf(part1)).compareTo(Integer.valueOf(part2));
                 } else {
                     compare = part1.compareToIgnoreCase(part2);
                 }
@@ -554,11 +552,12 @@ public class MigrationHandlerImpl implements MigrationHandler {
             }
             return 0;
         }
-        
+
     }
 
     /**
      * Determines the custom migration callbacks for the current version and returns a list of handlers
+     * 
      * @return
      */
     private List<BaseCustomMigrationCallback> generateCustomMigrationCallbacks() {
@@ -567,13 +566,12 @@ public class MigrationHandlerImpl implements MigrationHandler {
             List<String> versions = new ArrayList<String>(customMigrationCallbacks.keySet());
             VersionComparitor versionComparitor = new VersionComparitor();
             Collections.sort(versions, versionComparitor);
-            
+
             String currentSchemaVersion = coordinator.getCurrentDbSchemaVersion();
-            
+
             for (String version : versions) {
                 if (versionComparitor.compare(version, currentSchemaVersion) >= 0) {
-                    for (BaseCustomMigrationCallback customMigrationCallback :
-                        customMigrationCallbacks.get(version)) {
+                    for (BaseCustomMigrationCallback customMigrationCallback : customMigrationCallbacks.get(version)) {
                         customMigrationCallback.setName(customMigrationCallback.getClass().getName());
                         customMigrationCallback.setDbClient(dbClient);
                         customMigrationCallback.setCoordinatorClient(coordinator);
@@ -586,6 +584,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
         log.info("Get custom migration callbacks in the following order {}", getCallbackNames(callbacks).toString());
         return callbacks;
     }
+
     /**
      * Get a list of callback names
      * 
@@ -594,13 +593,15 @@ public class MigrationHandlerImpl implements MigrationHandler {
      */
     private <T extends MigrationCallback> List<String> getCallbackNames(List<T> callbacks) {
         List<String> callbackNames = new ArrayList<String>();
-        for (T callback : callbacks)
+        for (T callback : callbacks) {
             callbackNames.add(callback.getName());
+        }
         return callbackNames;
     }
 
     /**
      * Dump schema changes we are processing to the log
+     * 
      * @param diff
      */
     public void dumpChanges(DbSchemasDiff diff) {
@@ -610,27 +611,27 @@ public class MigrationHandlerImpl implements MigrationHandler {
             log.info("new annotation value for class {}, field {}," +
                     " annotation type {}: {}={}", new Object[] {
                     newValue.getCfClass().getSimpleName(),
-                    newValue.getFieldName(), 
-                    newValue.getAnnoClass().getSimpleName(), 
-                    newValue.getName(), 
-                    newValue.getValue()});
+                    newValue.getFieldName(),
+                    newValue.getAnnoClass().getSimpleName(),
+                    newValue.getName(),
+                    newValue.getValue() });
         }
 
         for (FieldInfo newField : diff.getNewFields()) {
-            log.info("new field for class {}: {}", 
+            log.info("new field for class {}: {}",
                     newField.getCfClass().getSimpleName(),
                     newField.getName());
         }
 
         for (AnnotationType newAnno : diff.getNewClassAnnotations()) {
-            log.info("new class annotation for class {}: {}", 
+            log.info("new class annotation for class {}: {}",
                     newAnno.getCfClass().getSimpleName(), newAnno.getType());
         }
 
         for (AnnotationType newAnno : diff.getNewFieldAnnotations()) {
             log.info("new field annotation for class {}, field {}: {}",
-                    new Object[] {newAnno.getCfClass().getSimpleName(), 
-                    newAnno.getFieldName(), newAnno.getType()});
+                    new Object[] { newAnno.getCfClass().getSimpleName(),
+                            newAnno.getFieldName(), newAnno.getType() });
         }
 
         for (DbSchema schema : diff.getNewClasses()) {

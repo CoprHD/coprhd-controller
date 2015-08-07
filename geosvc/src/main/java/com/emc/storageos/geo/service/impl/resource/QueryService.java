@@ -1,18 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
- *
  * Copyright (c) 2011-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
- *
  */
 
 package com.emc.storageos.geo.service.impl.resource;
@@ -31,7 +19,6 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.constraint.ConstraintDescriptor;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.common.DependencyChecker;
-import com.emc.storageos.geo.service.GeoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +54,7 @@ public class QueryService {
     }
 
     public void setDependencyChecker(DependencyChecker dependencyChecker) {
-        this.dependencyChecker =dependencyChecker;
+        this.dependencyChecker = dependencyChecker;
     }
 
     private StreamingOutput getStreamingOutput(final Object obj) {
@@ -83,8 +70,9 @@ public class QueryService {
                     log.error("Failed to write ResourceIDsResponse", e);
                 } finally {
                     try {
-                        if (out != null)
+                        if (out != null) {
                             out.close();
+                        }
                     } catch (IOException e) {
                         log.error("stream close error", e);
                     }
@@ -94,31 +82,32 @@ public class QueryService {
     }
 
     @GET
-    @Path(GeoServiceClient.GEO_VISIBLE+"{name}")
-    @Produces({MediaType.APPLICATION_OCTET_STREAM})
+    @Path(GeoServiceClient.GEO_VISIBLE + "{name}")
+    @Produces({ MediaType.APPLICATION_OCTET_STREAM })
     public Response queryByType(@PathParam("name") String className, @QueryParam("active_only") boolean activeOnly,
-                                @QueryParam("start_id") URI startId, @QueryParam("max_count") Integer maxCount) throws DatabaseException {
+            @QueryParam("start_id") URI startId, @QueryParam("max_count") Integer maxCount) throws DatabaseException {
 
         ArgValidator.checkFieldNotNull(className, "name");
 
         try {
             Class clazz = Class.forName(className);
             List<URI> ids;
-            if (maxCount == null)
+            if (maxCount == null) {
                 ids = dbClient.queryByType(clazz, activeOnly);
-            else
+            } else {
                 ids = dbClient.queryByType(clazz, activeOnly, startId, maxCount);
+            }
 
             return genResourcesResponse(ids.iterator());
-        }catch (ClassNotFoundException e) {
+        } catch (ClassNotFoundException e) {
             log.error("e=", e);
             throw APIException.badRequests.invalidParameter("name", className);
         }
     }
 
     @GET
-    @Path(GeoServiceClient.GEO_VISIBLE+"{name}/object/{id}")
-    @Produces({MediaType.APPLICATION_OCTET_STREAM})
+    @Path(GeoServiceClient.GEO_VISIBLE + "{name}/object/{id}")
+    @Produces({ MediaType.APPLICATION_OCTET_STREAM })
     public Response queryObject(@PathParam("name") String className, @PathParam("id") URI id) throws DatabaseException {
         ArgValidator.checkFieldNotNull(className, "name");
         ArgValidator.checkUri(id);
@@ -127,17 +116,17 @@ public class QueryService {
             Class clazz = Class.forName(className);
             DataObject obj = dbClient.queryObject(clazz, id);
             return Response.ok(getStreamingOutput(obj), MediaType.APPLICATION_OCTET_STREAM).build();
-        }catch (ClassNotFoundException e) {
+        } catch (ClassNotFoundException e) {
             log.error("e=", e);
             throw APIException.badRequests.invalidParameter("name", className);
         }
     }
 
     @GET
-    @Path(GeoServiceClient.DEPENDENCIES+"{name}/{id}/")
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Path(GeoServiceClient.DEPENDENCIES + "{name}/{id}/")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public String checkDependencies(@PathParam("name") String className, @PathParam("id") URI id,
-                                      @QueryParam("active_only") boolean activeOnly) throws DatabaseException {
+            @QueryParam("active_only") boolean activeOnly) throws DatabaseException {
         ArgValidator.checkFieldNotNull(className, "name");
         ArgValidator.checkUri(id);
 
@@ -145,18 +134,19 @@ public class QueryService {
             Class clazz = Class.forName(className);
 
             if (!KeyspaceUtil.isGlobal(clazz)) {
-                Throwable cause = new Throwable(className+" is not in geodb");
+                Throwable cause = new Throwable(className + " is not in geodb");
                 throw APIException.badRequests.invalidParameter("name", className, cause);
             }
 
             String dependency = dependencyChecker.checkDependencies(id, clazz, activeOnly);
 
-            if (dependency != null)
+            if (dependency != null) {
                 return dependency;
+            }
 
             return "";
 
-        }catch (ClassNotFoundException e) {
+        } catch (ClassNotFoundException e) {
             log.error("e=", e);
             throw APIException.badRequests.invalidParameter("name", className);
         }
@@ -164,8 +154,8 @@ public class QueryService {
 
     @POST
     @Path("geo-visible/{name}/objects")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_OCTET_STREAM})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_OCTET_STREAM })
     public Response queryObjects(@PathParam("name") String className, BulkIdParam ids) throws DatabaseException {
         ArgValidator.checkFieldNotNull(className, "name");
 
@@ -174,7 +164,7 @@ public class QueryService {
             Iterator<DataObject> it = dbClient.queryIterativeObjects(clazz, ids.getIds());
 
             return genResourcesResponse(it);
-        }catch (ClassNotFoundException e) {
+        } catch (ClassNotFoundException e) {
             log.error("e=", e);
             throw APIException.badRequests.invalidParameter("name", className);
         }
@@ -182,10 +172,10 @@ public class QueryService {
 
     @POST
     @Path("geo-visible/{name}/field/{fieldName}")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_OCTET_STREAM})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_OCTET_STREAM })
     public Response queryObjectsField(@PathParam("name") String className, @PathParam("fieldName") String fieldName,
-                                BulkIdParam ids) throws DatabaseException {
+            BulkIdParam ids) throws DatabaseException {
         List<URI> resourceIds = ids.getIds();
 
         try {
@@ -193,7 +183,7 @@ public class QueryService {
             Iterator<DataObject> it = dbClient.queryIterativeObjectField(clazz, fieldName, resourceIds);
 
             return genResourcesResponse(it);
-        }catch (ClassNotFoundException e) {
+        } catch (ClassNotFoundException e) {
             log.error("e=", e);
             throw APIException.badRequests.invalidParameter("name", className);
         }
@@ -201,31 +191,32 @@ public class QueryService {
 
     @POST
     @Path("geo-visible/constraint/{className}")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_OCTET_STREAM})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_OCTET_STREAM })
     public Response queryByConstraint(@PathParam("className") String className, ConstraintDescriptor constraintDescriptor,
-                                      @QueryParam("start_id") URI startId, @QueryParam("max_count") Integer maxCount) throws DatabaseException {
+            @QueryParam("start_id") URI startId, @QueryParam("max_count") Integer maxCount) throws DatabaseException {
         Constraint condition;
 
         try {
             condition = constraintDescriptor.toConstraint();
-        }catch(ClassNotFoundException | IllegalAccessException
-               | InvocationTargetException | NoSuchMethodException | InstantiationException e) {
+        } catch (ClassNotFoundException | IllegalAccessException
+                | InvocationTargetException | NoSuchMethodException | InstantiationException e) {
             throw APIException.badRequests.invalidParameter(constraintDescriptor.getClass().getName(), constraintDescriptor.toString(), e);
         }
 
         try {
-            Class clazz =Class.forName(className);
+            Class clazz = Class.forName(className);
 
-            QueryResultList<?>  resultList = (QueryResultList<?>)clazz.newInstance();
+            QueryResultList<?> resultList = (QueryResultList<?>) clazz.newInstance();
 
-            if (maxCount == null)
+            if (maxCount == null) {
                 dbClient.queryByConstraint(condition, resultList);
-            else
+            } else {
                 dbClient.queryByConstraint(condition, resultList, startId, maxCount);
+            }
 
             return genResourcesResponse(resultList);
-        }catch(ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
             log.error("Can't find the class e=", e);
             throw APIException.badRequests.invalidParameter("className", className);
         }
@@ -259,4 +250,3 @@ public class QueryService {
         return Response.ok(getStreamingOutput(resp), MediaType.APPLICATION_OCTET_STREAM).build();
     }
 }
-

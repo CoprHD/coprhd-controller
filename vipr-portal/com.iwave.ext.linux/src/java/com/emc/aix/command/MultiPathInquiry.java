@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.aix.command;
@@ -13,10 +13,10 @@ public class MultiPathInquiry extends AixResultsCommand<List<MultiPathDevice>> {
 
     public MultiPathInquiry() {
         setCommand("inq");
-        
+
         // add the display of the wwns
         addArgument("-wwn");
-        
+
         // do not display the 'progress' dots
         addArgument("-no_dots");
     }

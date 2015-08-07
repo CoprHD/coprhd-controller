@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/* 
-Copyright (c) 2012 EMC Corporation
-All Rights Reserved
-
-This software contains the intellectual property of EMC Corporation
-or is licensed to EMC Corporation from third parties.  Use of this
-software and the intellectual property contained therein is expressly
-imited to the terms and conditions of the License Agreement under which
-it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vasa.data.internal;
 
@@ -21,191 +11,189 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "storage_port")
 public class StoragePort {
-	
-	public StoragePort(){
-		
-	}
-	
-	public StoragePort(String id) {
-		this.id = id;
-	}
-	
-	@XmlElement
-	private String id;
 
-	@XmlElement
-	private boolean inactive;
-	
-	@XmlElement(name="native_guid")
-	private String nativeGuiId;
+    public StoragePort() {
 
-	@XmlElement(name = "name")
-	private String label;
+    }
 
-	@XmlElement(name = "port_name")
-	private String portName;
+    public StoragePort(String id) {
+        this.id = id;
+    }
 
-	@XmlElement(name = "port_group")
-	private String portGroup;
+    @XmlElement
+    private String id;
 
-	@XmlElement(name = "port_network_id")
-	private String portNetworkId;
+    @XmlElement
+    private boolean inactive;
 
-	@XmlElement
-	private Long portSpeed;
+    @XmlElement(name = "native_guid")
+    private String nativeGuiId;
 
-	@XmlElement(name = "storage_device")
-	private Long storageSystem;
+    @XmlElement(name = "name")
+    private String label;
 
-	@XmlElement(name = "transport_type")
-	private String transportType;
+    @XmlElement(name = "port_name")
+    private String portName;
 
-	@XmlElement(name = "transport_zone")
-	private String transportZone;
+    @XmlElement(name = "port_group")
+    private String portGroup;
 
-	public String getLabel() {
-		return label;
-	}
+    @XmlElement(name = "port_network_id")
+    private String portNetworkId;
 
-	public String getPortName() {
-		return portName;
-	}
+    @XmlElement
+    private Long portSpeed;
 
-	public String getPortNetworkId() {
-		return portNetworkId;
-	}
+    @XmlElement(name = "storage_device")
+    private Long storageSystem;
 
-	public String getTransportType() {
-		return transportType;
-	}
+    @XmlElement(name = "transport_type")
+    private String transportType;
 
-	public String getId() {
-		return id;
-	}
+    @XmlElement(name = "transport_zone")
+    private String transportZone;
 
-	/**
-	 * @return the inactive
-	 */
-	public boolean isInactive() {
-		return inactive;
-	}
+    public String getLabel() {
+        return label;
+    }
 
-	/**
-	 * @return the portGroup
-	 */
-	public String getPortGroup() {
-		return portGroup;
-	}
+    public String getPortName() {
+        return portName;
+    }
 
-	/**
-	 * @return the portSpeed
-	 */
-	public Long getPortSpeed() {
-		return portSpeed;
-	}
+    public String getPortNetworkId() {
+        return portNetworkId;
+    }
 
-	/**
-	 * @return the storageSystem
-	 */
-	public Long getStorageSystem() {
-		return storageSystem;
-	}
+    public String getTransportType() {
+        return transportType;
+    }
 
-	/**
-	 * @return the transportZone
-	 */
-	public String getTransportZone() {
-		return transportZone;
-	}
-	
-	public String getNativeGuiId() {
-		return nativeGuiId;
-	}
-	
-	
-	@Override
-	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("StoragePort [id=");
-		builder.append(id);
-		builder.append(", inactive=");
-		builder.append(inactive);
-		builder.append(", nativeGuiId=");
-		builder.append(nativeGuiId);
-		builder.append(", label=");
-		builder.append(label);
-		builder.append(", portName=");
-		builder.append(portName);
-		builder.append(", portGroup=");
-		builder.append(portGroup);
-		builder.append(", portNetworkId=");
-		builder.append(portNetworkId);
-		builder.append(", portSpeed=");
-		builder.append(portSpeed);
-		builder.append(", storageSystem=");
-		builder.append(storageSystem);
-		builder.append(", transportType=");
-		builder.append(transportType);
-		builder.append(", transportZone=");
-		builder.append(transportZone);
-		builder.append("]");
-		return builder.toString();
-	}
+    public String getId() {
+        return id;
+    }
 
+    /**
+     * @return the inactive
+     */
+    public boolean isInactive() {
+        return inactive;
+    }
 
-	@XmlRootElement(name = "storage_port")
-	public static class StoragePortInfo {
-		
-		@XmlElement(name="id")
-		private String id;
-		
-		@XmlElement(name="name")
-		private String name;
-		
-		public String getId() {
-			return id;
-		}
-		
-		public String getName() {
-			return name;
-		}
+    /**
+     * @return the portGroup
+     */
+    public String getPortGroup() {
+        return portGroup;
+    }
 
-		@Override
-		public String toString() {
-			StringBuilder builder = new StringBuilder();
-			builder.append("StoragePortInfo [id=");
-			builder.append(id);
-			builder.append(", name=");
-			builder.append(name);
-			builder.append("]");
-			return builder.toString();
-		}
+    /**
+     * @return the portSpeed
+     */
+    public Long getPortSpeed() {
+        return portSpeed;
+    }
 
-	}
-	
-	@XmlRootElement(name = "storage_ports")
-	public static class StoragePortList {
-		
-		@XmlElement(name = "storage_port")
-		private List<StoragePortInfo> portIds;
+    /**
+     * @return the storageSystem
+     */
+    public Long getStorageSystem() {
+        return storageSystem;
+    }
 
-		public List<StoragePortInfo> getPortIds() {
-			return portIds;
-		}
+    /**
+     * @return the transportZone
+     */
+    public String getTransportZone() {
+        return transportZone;
+    }
 
-		/* (non-Javadoc)
-		 * @see java.lang.Object#toString()
-		 */
-		@Override
-		public String toString() {
-			StringBuilder builder = new StringBuilder();
-			builder.append("StoragePortList [ids=");
-			builder.append(portIds);
-			builder.append("]");
-			return builder.toString();
-		}
-	}
+    public String getNativeGuiId() {
+        return nativeGuiId;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("StoragePort [id=");
+        builder.append(id);
+        builder.append(", inactive=");
+        builder.append(inactive);
+        builder.append(", nativeGuiId=");
+        builder.append(nativeGuiId);
+        builder.append(", label=");
+        builder.append(label);
+        builder.append(", portName=");
+        builder.append(portName);
+        builder.append(", portGroup=");
+        builder.append(portGroup);
+        builder.append(", portNetworkId=");
+        builder.append(portNetworkId);
+        builder.append(", portSpeed=");
+        builder.append(portSpeed);
+        builder.append(", storageSystem=");
+        builder.append(storageSystem);
+        builder.append(", transportType=");
+        builder.append(transportType);
+        builder.append(", transportZone=");
+        builder.append(transportZone);
+        builder.append("]");
+        return builder.toString();
+    }
+
+    @XmlRootElement(name = "storage_port")
+    public static class StoragePortInfo {
+
+        @XmlElement(name = "id")
+        private String id;
+
+        @XmlElement(name = "name")
+        private String name;
+
+        public String getId() {
+            return id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            builder.append("StoragePortInfo [id=");
+            builder.append(id);
+            builder.append(", name=");
+            builder.append(name);
+            builder.append("]");
+            return builder.toString();
+        }
+
+    }
+
+    @XmlRootElement(name = "storage_ports")
+    public static class StoragePortList {
+
+        @XmlElement(name = "storage_port")
+        private List<StoragePortInfo> portIds;
+
+        public List<StoragePortInfo> getPortIds() {
+            return portIds;
+        }
+
+        /*
+         * (non-Javadoc)
+         * 
+         * @see java.lang.Object#toString()
+         */
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            builder.append("StoragePortList [ids=");
+            builder.append(portIds);
+            builder.append("]");
+            return builder.toString();
+        }
+    }
 
 }
-
-

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.windows;
@@ -36,31 +36,31 @@ import com.iwave.ext.windows.model.Volume;
 import com.iwave.ext.windows.model.wmi.DiskDrive;
 
 public class MountBlockVolumeHelper {
-	
-	private static final short MAX_FAT32_LABEL_LENGTH = 11;
-    
+
+    private static final short MAX_FAT32_LABEL_LENGTH = 11;
+
     private static final short MAX_NTFS_LABEL_LENGTH = 32;
-    
+
     private final WindowsSupport windows;
-    
+
     private final String hostname;
 
     @Param(MOUNT_POINT)
     protected String mountPoint;
 
-    @Param(value=FILE_SYSTEM_TYPE, required=false)
+    @Param(value = FILE_SYSTEM_TYPE, required = false)
     protected String fileSystemType;
-    
-    @Param(value=BLOCK_SIZE, required=false)
+
+    @Param(value = BLOCK_SIZE, required = false)
     protected String blockSize;
 
-    @Param(value=DO_FORMAT, required=false)
+    @Param(value = DO_FORMAT, required = false)
     protected boolean doFormat = true;
-    
-    @Param(value=PARTITION_TYPE, required=false)
+
+    @Param(value = PARTITION_TYPE, required = false)
     protected String partitionType;
 
-    @Param(value=LABEL, required=false)
+    @Param(value = LABEL, required = false)
     protected String label;
 
     /** The amount of time to wait between attempts to refresh the storage. */
@@ -68,7 +68,7 @@ public class MountBlockVolumeHelper {
 
     /** The number of attempts to try refreshing the storage waiting for a disk to appear. */
     private int refreshAttempts = 60;
-    
+
     private long volumeCapacityInBytes = 0;
 
     private Set<String> assignedMountpoints;
@@ -110,7 +110,7 @@ public class MountBlockVolumeHelper {
     public void precheck() {
         verifyCapacity();
         verifyDriveLabel();
-        
+
         windows.verifyWinRM();
         windows.rescanDisks();
 
@@ -130,22 +130,22 @@ public class MountBlockVolumeHelper {
             windows.verifyMountPointIsNotShared(mountPoint);
         }
     }
-    
-    public void verifyDriveLabel(){
-    	if(isFat32(fileSystemType) && label.length() > MAX_FAT32_LABEL_LENGTH){
-    		ExecutionUtils.fail("failTask.MountBlockVolumeHelper.fat32.driveLabelTooLarge", label);
-    	}else if ( label.length() > MAX_NTFS_LABEL_LENGTH ){
-    		ExecutionUtils.fail("failTask.MountBlockVolumeHelper.ntfs.driveLabelTooLarge", label);
-    	}
+
+    public void verifyDriveLabel() {
+        if (isFat32(fileSystemType) && label.length() > MAX_FAT32_LABEL_LENGTH) {
+            ExecutionUtils.fail("failTask.MountBlockVolumeHelper.fat32.driveLabelTooLarge", label);
+        } else if (label.length() > MAX_NTFS_LABEL_LENGTH) {
+            ExecutionUtils.fail("failTask.MountBlockVolumeHelper.ntfs.driveLabelTooLarge", label);
+        }
     }
-    
+
     public void verifyCapacity() {
         if (this.doFormat && isFat32(fileSystemType)) {
             if (isFat32CapacityInBytesTooLarge(volumeCapacityInBytes)) {
                 ExecutionUtils.fail("failTask.MountBlockVolumeHelper.fat32.tooLarge", fileSystemType);
-            }        
+            }
         }
-        
+
         if (this.doFormat && isMBR(this.partitionType)) {
             if (isMBRCapacityInBytesTooLarge(volumeCapacityInBytes)) {
                 ExecutionUtils.fail("failTask.MountBlockVolumeHelper.MBR.tooLarge", partitionType);
@@ -163,11 +163,11 @@ public class MountBlockVolumeHelper {
      * Mounts the given volumes. If {@link #doFormat} is true, the volume is formatted first.
      * 
      * @param volume
-     *        the volumes to mount.
+     *            the volumes to mount.
      */
     public DiskDrive mountVolume(BlockObjectRestRep volume) {
         windows.rescanDisks();
-        Map<? extends BlockObjectRestRep, DiskDrive> volume2disk = 
+        Map<? extends BlockObjectRestRep, DiskDrive> volume2disk =
                 windows.discoverDisks(Collections.singleton(volume), refreshAttempts, refreshDelay);
         DiskDrive disk = volume2disk.get(volume);
         mount(volume, disk, getMountPoint());
@@ -176,23 +176,23 @@ public class MountBlockVolumeHelper {
 
     private String getMountPoint() {
         String mountpoint = WindowsUtils.normalizeMountPath(mountPoint);
-        
+
         if (!WindowsUtils.isMountPointDriveLetterOnly(mountpoint)) {
             logInfo("win.mount.block.volume.mkdir.mount", mountpoint);
-            windows.makeDirectory(mountpoint);    
+            windows.makeDirectory(mountpoint);
         }
 
         return mountpoint;
     }
-    
+
     /**
      * Mounts the volume. If {@link #doFormat} is true, the volume is formatted first.
      * 
      * @param volume
-     *        the volume to mount.
+     *            the volume to mount.
      * @param mountPoint
-     *        the mount point to assign the volume. An empty mount point will cause the system to auto-assign a
-     *        drive letter.
+     *            the mount point to assign the volume. An empty mount point will cause the system to auto-assign a
+     *            drive letter.
      */
     public void mount(BlockObjectRestRep volume, DiskDrive disk, String mountPoint) {
         Disk diskDetail = detailDisk(disk);
@@ -214,19 +214,21 @@ public class MountBlockVolumeHelper {
             }
 
             if (diskDetail.getVolumes() == null || diskDetail.getVolumes().isEmpty()) {
-                ExecutionUtils.fail("failTask.MountBlockVolumeHelper.noVolumes", disk.getName(), hostname, disk.getName(), disk.getNumber());
+                ExecutionUtils
+                        .fail("failTask.MountBlockVolumeHelper.noVolumes", disk.getName(), hostname, disk.getName(), disk.getNumber());
             }
-            
+
             // Mount the first volume only
             Volume diskVolume = diskDetail.getVolumes().get(0);
             int volumeNumber = diskVolume.getNumber();
-            String label = StringUtils.defaultIfBlank(diskVolume.getLabel(), ExecutionUtils.getMessage("MountBlockVolumeHelper.label.none"));
+            String label = StringUtils
+                    .defaultIfBlank(diskVolume.getLabel(), ExecutionUtils.getMessage("MountBlockVolumeHelper.label.none"));
             String fs = diskVolume.getFileSystem();
 
             logInfo("win.mount.block.volume.mount", hostname, volumeNumber, label, fs, volume.getWwn());
             windows.mountVolume(volumeNumber, mountPoint);
         }
-        
+
         // Refresh the disk details
         diskDetail = detailDisk(disk);
         String assignedMountpoint = windows.getAssignedMountPoint(disk, diskDetail);
@@ -278,15 +280,15 @@ public class MountBlockVolumeHelper {
             addDiskToCluster(diskDrive);
         }
     }
-    
+
     public void addDiskToCluster(DiskDrive diskDrive) {
         Disk diskDetail = windows.getDiskDetail(diskDrive);
         String signature = "";
-        
+
         if (windows.isGuid(diskDetail.getDiskId())) {
             signature = diskDetail.getDiskId();
         } else {
-            signature = ""+Long.decode("0x"+diskDetail.getDiskId());
+            signature = "" + Long.decode("0x" + diskDetail.getDiskId());
         }
 
         String resourceName = windows.addDiskToCluster(signature);

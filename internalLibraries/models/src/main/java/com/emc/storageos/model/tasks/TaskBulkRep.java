@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.tasks;
@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @XmlRootElement(name = "bulk_tasks")
-public class TaskBulkRep extends BulkRestRep{
+public class TaskBulkRep extends BulkRestRep {
 
     private List<TaskResourceRep> tasks;
 

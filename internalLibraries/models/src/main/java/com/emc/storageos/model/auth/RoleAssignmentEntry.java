@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.auth;
 
@@ -23,6 +13,7 @@ public class RoleAssignmentEntry {
 
     /**
      * Roles to that are part of this assignment.
+     * 
      * @valid SYSTEM_ADMIN (virtual data center role)
      * @valid SECURITY_ADMIN (virtual data center role)
      * @valid SYSTEM_MONITOR (virtual data center role)
@@ -35,6 +26,7 @@ public class RoleAssignmentEntry {
 
     /**
      * Subject to whom the role is assigned or being assigned/revoked.
+     * 
      * @valid Only one of subject_id or group can be supplied.
      * @valid user@company.com
      */
@@ -42,12 +34,14 @@ public class RoleAssignmentEntry {
 
     /**
      * Group to whom the role is assigned or being assigned/revoked
+     * 
      * @valid Only one of subject_id or group can be supplied.
      * @valid group@company.com
      */
     private String group;
 
-    public RoleAssignmentEntry() {}
+    public RoleAssignmentEntry() {
+    }
 
     public RoleAssignmentEntry(List<String> roles, String subjectId, String group) {
         this.roles = roles;

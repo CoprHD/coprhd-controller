@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.coordinator.client.service;
@@ -35,7 +25,7 @@ public interface DistributedSemaphore {
 
     /**
      * P operation of the semaphore. Blocks if no permit is available.
-     *
+     * 
      * @return Lease
      */
     public Lease acquireLease() throws Exception;
@@ -43,10 +33,10 @@ public interface DistributedSemaphore {
     /**
      * P operation of the semaphore. Blocks if no permit is available until specified time limit is exceeded.
      * If the specified time limit is exceeded, returns null.
-     *
+     * 
      * @param waitTime The amount of time to wait
      * @param waitTimeUnit The unit of waitTime
-     *
+     * 
      * @return Lease:
      *         valid, if the semaphore is acquired within the specified time limit
      *         null, otherwise.
@@ -58,7 +48,7 @@ public interface DistributedSemaphore {
      * This method <b>must</b> be called by clients who called acquireLease methods to release
      * the lease, preferably in a finally block.
      * Leases are freed by the ZK server, in the event of ZK client session drops.
-     *
+     * 
      * @param lease
      */
     public void returnLease(Lease lease) throws Exception;

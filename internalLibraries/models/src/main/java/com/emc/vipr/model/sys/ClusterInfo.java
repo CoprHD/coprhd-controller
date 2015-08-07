@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.vipr.model.sys;
 
@@ -20,27 +10,26 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.RestLinkRep;
 
-import org.codehaus.jackson.annotate.JsonProperty;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-@XmlRootElement (name = "cluster_info")
+@XmlRootElement(name = "cluster_info")
 public class ClusterInfo {
 
-    public final static String CLUSTER_URI = "/upgrade/cluster-state" ;
+    public final static String CLUSTER_URI = "/upgrade/cluster-state";
 
     private String currentState;
-    private Map<String, NodeState> controlNodes;  
-    private Map<String, NodeState> extraNodes;  
+    private Map<String, NodeState> controlNodes;
+    private Map<String, NodeState> extraNodes;
     private NodeState targetState;
     private List<String> newVersions;
     private List<String> removableVersions;
     private RestLinkRep selfLink;
-    
-    public ClusterInfo() {}
-    
+
+    public ClusterInfo() {
+    }
+
     public ClusterInfo(String currentState,
             Map<String, NodeState> controlNodes,
             Map<String, NodeState> extraNodes, NodeState targetState,
@@ -54,8 +43,8 @@ public class ClusterInfo {
         this.removableVersions = removableVersions;
         this.selfLink = selfLink;
     }
-    
-    @XmlElement (name = "cluster_state")
+
+    @XmlElement(name = "cluster_state")
     public String getCurrentState() {
         return currentState;
     }
@@ -63,7 +52,7 @@ public class ClusterInfo {
     public void setCurrentState(String state) {
         this.currentState = state;
     }
-    
+
     @XmlElementWrapper(name = "control_nodes")
     public Map<String, NodeState> getControlNodes() {
         return controlNodes;
@@ -140,8 +129,9 @@ public class ClusterInfo {
         private String current;
         private String configVersion;
 
-        public NodeState() {}
-        
+        public NodeState() {
+        }
+
         public NodeState(ArrayList<String> available, String current,
                 String configVersion) {
             super();
@@ -163,7 +153,7 @@ public class ClusterInfo {
             this.available = available;
         }
 
-        @XmlElement (name = "current_version")
+        @XmlElement(name = "current_version")
         public String getCurrent() {
             return current;
         }
@@ -172,7 +162,7 @@ public class ClusterInfo {
             this.current = current;
         }
 
-        @XmlElement (name = "config_version")
+        @XmlElement(name = "config_version")
         public String getConfigVersion() {
             return configVersion;
         }
@@ -180,6 +170,6 @@ public class ClusterInfo {
         public void setConfigVersion(String configVersion) {
             this.configVersion = configVersion;
         }
-        
+
     }
 }

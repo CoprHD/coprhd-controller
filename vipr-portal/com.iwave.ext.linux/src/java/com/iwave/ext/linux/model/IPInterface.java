@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.linux.model;
@@ -11,51 +11,63 @@ public class IPInterface implements Serializable {
 
     private String interfaceName;
     private String ipAddress;
-    private String MACAddress;
+    private String macAddress;
     private String netMask;
     private String ip6Address;
     private String broadcastAddress;
-    
+
     public String getIpAddress() {
         return ipAddress;
     }
+
     public String getBroadcastAddress() {
         return broadcastAddress;
     }
+
     public void setBroadcastAddress(String broadcastAddress) {
         this.broadcastAddress = broadcastAddress;
     }
+
     public void setIpAddress(String ipAddress) {
         this.ipAddress = ipAddress;
     }
-    public String getMACAddress() {
-        return MACAddress;
+
+    public String getMacAddress() {
+        return macAddress;
     }
-    public void setMACAddress(String mACAddress) {
-        MACAddress = mACAddress;
+
+    public void setMacAddress(String macAddress) {
+        this.macAddress = macAddress;
     }
+
     public String getNetMask() {
         return netMask;
     }
+
     public void setNetMask(String netMask) {
         this.netMask = netMask;
     }
+
     public String getInterfaceName() {
         return interfaceName;
     }
+
     public void setInterfaceName(String interfaceName) {
         this.interfaceName = interfaceName;
     }
+
     public String getIP6Address() {
         return ip6Address;
     }
+
     public void setIP6Address(String ip6Address) {
         this.ip6Address = ip6Address;
     }
+
     @Override
     public String toString() {
         return "IPInfo [interfaceName=" + interfaceName + ", ipAddress="
-                + ipAddress + ", MACAddress=" + MACAddress + ", netMask="
+                + ipAddress + ", MACAddress=" + macAddress + ", netMask="
                 + netMask + ", ip6Address=" + ip6Address
                 + ", broadcastAddress=" + broadcastAddress + "]";
     }

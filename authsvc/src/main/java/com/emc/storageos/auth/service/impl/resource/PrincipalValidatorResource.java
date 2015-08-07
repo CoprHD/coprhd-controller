@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.auth.service.impl.resource;
 
@@ -33,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *  internal resource to validate group and subject principals
+ * internal resource to validate group and subject principals
  */
 @Path("/internal")
 public class PrincipalValidatorResource {
@@ -53,12 +43,12 @@ public class PrincipalValidatorResource {
             @QueryParam("group") String groupId) {
         String principal = null;
         ValidationFailureReason[] reason = { ValidationFailureReason.USER_OR_GROUP_NOT_FOUND_FOR_TENANT };
-        if( null != subjectId && null != tenantId ) {
+        if (null != subjectId && null != tenantId) {
             _authManager.validateUser(subjectId, tenantId, altTenantId);
             return Response.ok().build();
-        } else if( null != groupId ) {
+        } else if (null != groupId) {
             principal = groupId;
-            if( _authManager.isGroupValid(groupId, reason)) {
+            if (_authManager.isGroupValid(groupId, reason)) {
                 return Response.ok().build();
             }
         }
@@ -69,7 +59,7 @@ public class PrincipalValidatorResource {
             case LDAP_CONNECTION_FAILED:
                 throw SecurityException.fatals.communicationToLDAPResourceFailed();
             case LDAP_CANNOT_SEARCH_GROUP_IN_LDAP_MODE:
-            	throw APIException.badRequests.
+                throw APIException.badRequests.
                         authnProviderGroupObjectClassesAndMemberAttributesIsEmpty(groupId);
             default:
             case USER_OR_GROUP_NOT_FOUND_FOR_TENANT:

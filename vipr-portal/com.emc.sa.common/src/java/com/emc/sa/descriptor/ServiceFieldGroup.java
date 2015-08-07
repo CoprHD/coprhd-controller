@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.descriptor;
@@ -81,7 +81,7 @@ public class ServiceFieldGroup extends ServiceItem implements ServiceItemContain
     public List<ServiceField> getFieldList() {
         return ServiceField.getFieldList(this);
     }
-    
+
     @Override
     public String toString() {
         ToStringBuilder builder = new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE);

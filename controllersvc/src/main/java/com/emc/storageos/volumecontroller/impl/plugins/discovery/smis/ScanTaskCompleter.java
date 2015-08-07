@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
@@ -31,33 +31,31 @@ public class ScanTaskCompleter extends DataCollectionTaskCompleter {
         super(clazz, id, opId);
     }
 
-    public ScanTaskCompleter(AsyncTask task)  {
+    public ScanTaskCompleter(AsyncTask task) {
         super(task);
     }
 
-    public String getJobType(){
+    public String getJobType() {
         return ControllerServiceImpl.SCANNER;
     }
 
-    protected void setLastTime(StorageProvider dbObject){
+    protected void setLastTime(StorageProvider dbObject) {
         dbObject.setLastScanTime(System.currentTimeMillis());
     }
 
     @Override
-    protected void  updateObjectState(DbClient dbClient,
-                                      DataCollectionJobStatus jobStatus) {
+    protected void updateObjectState(DbClient dbClient,
+            DataCollectionJobStatus jobStatus) {
         Class type = getType();
-        if ( StorageProvider.class.isAssignableFrom(type)) {
+        if (StorageProvider.class.isAssignableFrom(type)) {
             try {
-            	StorageProvider dbObject = (StorageProvider) DataObject.createInstance(type,getId());
+                StorageProvider dbObject = (StorageProvider) DataObject.createInstance(type, getId());
                 dbObject.trackChanges();
                 dbObject.setScanStatus(jobStatus.toString());
                 dbClient.persistObject(dbObject);
-            }
-            catch (InstantiationException ex) {
+            } catch (InstantiationException ex) {
                 DatabaseException.fatals.queryFailed(ex);
-            }
-            catch(IllegalAccessException ex)       {
+            } catch (IllegalAccessException ex) {
                 DatabaseException.fatals.queryFailed(ex);
             }
         }
@@ -69,17 +67,15 @@ public class ScanTaskCompleter extends DataCollectionTaskCompleter {
     @Override
     final public void setNextRunTime(DbClient dbClient, long time) {
         Class type = getType();
-        if ( StorageProvider.class.isAssignableFrom(type)) {
+        if (StorageProvider.class.isAssignableFrom(type)) {
             try {
-            	StorageProvider dbObject = (StorageProvider) DataObject.createInstance(type,getId());
+                StorageProvider dbObject = (StorageProvider) DataObject.createInstance(type, getId());
                 dbObject.trackChanges();
                 dbObject.setNextScanTime(time);
                 dbClient.persistObject(dbObject);
-            }
-            catch (InstantiationException ex) {
+            } catch (InstantiationException ex) {
                 DatabaseException.fatals.queryFailed(ex);
-            }
-            catch(IllegalAccessException ex)       {
+            } catch (IllegalAccessException ex) {
                 DatabaseException.fatals.queryFailed(ex);
             }
         }
@@ -89,19 +85,17 @@ public class ScanTaskCompleter extends DataCollectionTaskCompleter {
     }
 
     @Override
-    final public void setLastTime(DbClient dbClient, long time){
+    final public void setLastTime(DbClient dbClient, long time) {
         Class type = getType();
-        if ( StorageProvider.class.isAssignableFrom(type)) {
+        if (StorageProvider.class.isAssignableFrom(type)) {
             try {
-            	StorageProvider dbObject = (StorageProvider) DataObject.createInstance(type,getId());
+                StorageProvider dbObject = (StorageProvider) DataObject.createInstance(type, getId());
                 dbObject.trackChanges();
                 dbObject.setLastScanTime(time);
                 dbClient.persistObject(dbObject);
-            }
-            catch (InstantiationException ex) {
+            } catch (InstantiationException ex) {
                 DatabaseException.fatals.queryFailed(ex);
-            }
-            catch(IllegalAccessException ex)       {
+            } catch (IllegalAccessException ex) {
                 DatabaseException.fatals.queryFailed(ex);
             }
         }
@@ -111,19 +105,17 @@ public class ScanTaskCompleter extends DataCollectionTaskCompleter {
     }
 
     @Override
-    final public void setSuccessTime(DbClient dbClient, long time){
+    final public void setSuccessTime(DbClient dbClient, long time) {
         Class type = getType();
-        if ( StorageProvider.class.isAssignableFrom(type)) {
+        if (StorageProvider.class.isAssignableFrom(type)) {
             try {
-            	StorageProvider dbObject = (StorageProvider) DataObject.createInstance(type,getId());
+                StorageProvider dbObject = (StorageProvider) DataObject.createInstance(type, getId());
                 dbObject.trackChanges();
                 dbObject.setSuccessScanTime(time);
                 dbClient.persistObject(dbObject);
-            }
-            catch (InstantiationException ex) {
+            } catch (InstantiationException ex) {
                 DatabaseException.fatals.queryFailed(ex);
-            }
-            catch(IllegalAccessException ex)       {
+            } catch (IllegalAccessException ex) {
                 DatabaseException.fatals.queryFailed(ex);
             }
         }
@@ -133,8 +125,8 @@ public class ScanTaskCompleter extends DataCollectionTaskCompleter {
     }
 
     @Override
-    final protected void createDefaultOperation(DbClient dbClient){
-        dbClient.createTaskOpStatus(getType(),getId(),getOpId(),
-                                    ResourceOperationTypeEnum.SCAN_STORAGEPROVIDER);
+    final protected void createDefaultOperation(DbClient dbClient) {
+        dbClient.createTaskOpStatus(getType(), getId(), getOpId(),
+                ResourceOperationTypeEnum.SCAN_STORAGEPROVIDER);
     }
 }

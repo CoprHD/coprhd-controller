@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.api.mapper;
@@ -37,17 +37,17 @@ public class ServiceDescriptorMapper {
         to.getItems().addAll(map(from.getItems().values()));
 
         return to;
-    }    
-    
+    }
+
     public static ServiceFieldRestRep map(ServiceField from) {
         if (from == null) {
             return null;
         }
-        
+
         ServiceFieldRestRep to = new ServiceFieldRestRep();
-        
+
         mapServiceItemCommon(to, from);
-        
+
         to.setFailureMessage(from.getValidation().getError());
         to.setInitialValue(from.getInitialValue());
         to.setLockable(from.isLockable());
@@ -56,44 +56,44 @@ public class ServiceDescriptorMapper {
         to.setRegEx(from.getValidation().getRegEx());
         to.setRequired(from.isRequired());
         to.setSelect(from.getSelect());
-        
+
         for (String key : from.getOptions().keySet()) {
             to.getOptions().add(new Option(key, from.getOptions().get(key)));
         }
-        
+
         return to;
     }
-    
+
     public static ServiceFieldGroupRestRep map(ServiceFieldGroup from) {
         if (from == null) {
             return null;
         }
-        
+
         ServiceFieldGroupRestRep to = new ServiceFieldGroupRestRep();
-        
+
         mapServiceItemCommon(to, from);
-        
+
         to.setCollapsed(from.isCollapsed());
         to.setCollapsible(from.isCollapsible());
         to.getItems().addAll(map(from.getItems().values()));
 
         return to;
     }
-    
+
     public static ServiceFieldTableRestRep map(ServiceFieldTable from) {
         if (from == null) {
             return null;
         }
-        
+
         ServiceFieldTableRestRep to = new ServiceFieldTableRestRep();
-        
+
         mapServiceItemCommon(to, from);
-        
-        to.getItems().addAll((List<ServiceFieldRestRep>)map(from.getItems().values()));    
-        
+
+        to.getItems().addAll((List<ServiceFieldRestRep>) map(from.getItems().values()));
+
         return to;
-    }    
-    
+    }
+
     public static List<? extends ServiceItemRestRep> map(Collection<? extends ServiceItem> items) {
         List<ServiceItemRestRep> itemRestReps = Lists.newArrayList();
         for (ServiceItem item : items) {
@@ -105,11 +105,11 @@ public class ServiceDescriptorMapper {
             }
             else if (item instanceof ServiceFieldTable) {
                 itemRestReps.add(map((ServiceFieldTable) item));
-            }     
+            }
         }
         return itemRestReps;
     }
-    
+
     private static <T extends ServiceItemRestRep> T mapServiceItemCommon(T restRep, ServiceItem serviceItem) {
         restRep.setDescription(serviceItem.getDescription());
         restRep.setLabel(serviceItem.getLabel());
@@ -117,5 +117,5 @@ public class ServiceDescriptorMapper {
         restRep.setType(serviceItem.getType());
         return restRep;
     }
-    
+
 }

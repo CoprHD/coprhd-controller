@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplexcontroller.completers;
 
@@ -28,7 +18,6 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
-
 
 public class MigrationWorkflowCompleter extends TaskCompleter {
 
@@ -53,22 +42,22 @@ public class MigrationWorkflowCompleter extends TaskCompleter {
         updateMigrationStatus(dbClient, status, coded);
         updateWorkflowStatus(status, coded);
     }
-    
+
     @Override
     protected void updateWorkflowStatus(Status status, ServiceCoded coded) throws WorkflowException {
         String id = (_wfStepId != null ? _wfStepId : getOpId());
         switch (status) {
-        case error:
-            WorkflowStepCompleter.stepFailed(id, coded);
-            break;
-        case pending:
-            WorkflowStepCompleter.stepExecuting(id);
-            break;
-        default:
-            WorkflowStepCompleter.stepSucceded(id);
+            case error:
+                WorkflowStepCompleter.stepFailed(id, coded);
+                break;
+            case pending:
+                WorkflowStepCompleter.stepExecuting(id);
+                break;
+            default:
+                WorkflowStepCompleter.stepSucceded(id);
         }
     }
-    
+
     @Override
     protected void updateWorkflowState(Workflow.StepState state, ServiceCoded coded) throws WorkflowException {
         String id = (_wfStepId != null ? _wfStepId : getOpId());
@@ -84,7 +73,7 @@ public class MigrationWorkflowCompleter extends TaskCompleter {
                 WorkflowStepCompleter.stepSucceded(id);
         }
     }
-    
+
     /**
      * Update the status of the migration tasks.
      * 
@@ -105,6 +94,6 @@ public class MigrationWorkflowCompleter extends TaskCompleter {
                 }
                 break;
             default:
-        } 
+        }
     }
 }

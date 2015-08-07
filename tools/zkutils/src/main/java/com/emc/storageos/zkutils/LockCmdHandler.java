@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.zkutils;
@@ -32,15 +22,17 @@ public class LockCmdHandler {
     private static final Logger log = LoggerFactory.getLogger(LockCmdHandler.class);
     private static final String ZKUTI_CONF = "/zkutils-conf.xml";
     private static final String COORDINATOR_BEAN = "coordinatorclientext";
-    
+
     private static ApplicationContext ctx;
     private CoordinatorClientExt coordinatorClientExt;
     // syssvc id, like syssvc-1, syssvc-2
     private String mysvcId;
     private String upgradeLockId;
-    
+
     public LockCmdHandler() {
-        ctx = new ClassPathXmlApplicationContext(ZKUTI_CONF);
+        // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+        // This constructor used in Main, and only called in main thread, so it's safe to initialize ctx here
+        ctx = new ClassPathXmlApplicationContext(ZKUTI_CONF); // NOSONAR("squid:S2444")
         coordinatorClientExt = (CoordinatorClientExt) ctx.getBean(COORDINATOR_BEAN);
         mysvcId = coordinatorClientExt.getMySvcId();
         upgradeLockId = Constants.DISTRIBUTED_UPGRADE_LOCK;
@@ -61,9 +53,10 @@ public class LockCmdHandler {
         log.info("Get upgrade lock for {}, {}", leader, flag);
         if (flag) {
             // get target lock
-            if (getTargetInfoLock())
+            if (getTargetInfoLock()) {
                 System.out.println("Succeed! Upgrade is Locking!");
-        } 
+            }
+        }
         else {
             log.error("Fail to get upgrade lock!");
             throw new RuntimeException("Some node grabbed the lock already, "
@@ -98,10 +91,11 @@ public class LockCmdHandler {
      */
     public void releaseAllLocks() {
         releaseTargetInfoLock();
-        if (releaseUpgradeLock())
+        if (releaseUpgradeLock()) {
             System.out.println("Release all lock succeed!");
-        else
+        } else {
             System.out.println("Relase Fail, Please see the log.");
+        }
     }
 
     /**
@@ -113,8 +107,9 @@ public class LockCmdHandler {
         log.info("Strat releasing upgrade Lock ...");
         boolean flag = false;
         String leader = coordinatorClientExt.getUpgradeLockOwner(upgradeLockId);
-        if (leader != null)
+        if (leader != null) {
             log.info("Now upgrade lock belongs to: {}", leader);
+        }
         try {
             flag = coordinatorClientExt.releasePersistentLock(upgradeLockId);
         } catch (Exception e) {
@@ -175,5 +170,5 @@ public class LockCmdHandler {
         log.info("No other node, return self");
         return mysvcId;
     }
-    
+
 }

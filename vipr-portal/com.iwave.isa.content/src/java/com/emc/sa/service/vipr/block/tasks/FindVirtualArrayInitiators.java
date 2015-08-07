@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block.tasks;
@@ -40,7 +40,7 @@ public class FindVirtualArrayInitiators extends ViPRExecutionTask<Set<Initiator>
             List<VirtualArrayRestRep> virtualArrays = getClient().varrays().findByInitiatorPort(initiatorPort, filter);
 
             // Filter will only return the virtual array we are searching for
-            if (virtualArrays.size() > 0) {
+            if (!virtualArrays.isEmpty()) {
                 results.add(initiator);
             }
         }

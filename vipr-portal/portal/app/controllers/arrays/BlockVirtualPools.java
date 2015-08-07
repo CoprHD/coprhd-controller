@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.arrays;
@@ -77,7 +77,7 @@ import controllers.deadbolt.Restrictions;
 import controllers.util.ViprResourceController;
 
 @With(Common.class)
-@Restrictions({@Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN")})
+@Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
 public class BlockVirtualPools extends ViprResourceController {
     protected static final String SAVED_SUCCESS = "VirtualPools.save.success";
     protected static final String SAVED_ERROR = "VirtualPools.save.error";
@@ -96,7 +96,7 @@ public class BlockVirtualPools extends ViprResourceController {
         dataTable.alterColumn("provisioningType").setVisible(true);
         return dataTable;
     }
-    
+
     public static void listJson() {
         List<VirtualPoolInfo> items = Lists.newArrayList();
         for (BlockVirtualPoolRestRep virtualPool : VirtualPoolUtils.getBlockVirtualPools()) {
@@ -104,7 +104,7 @@ public class BlockVirtualPools extends ViprResourceController {
         }
         renderJSON(DataTablesSupport.createJSON(items, params));
     }
-    
+
     public static void duplicate(String ids) {
         BlockVirtualPoolRestRep targetVPool = VirtualPoolUtils.getBlockVirtualPool(ids);
         if (targetVPool == null) {
@@ -115,7 +115,7 @@ public class BlockVirtualPools extends ViprResourceController {
         copy.load(targetVPool);
         copy.id = null;
         copy.name = Messages.get("virtualPools.duplicate.name", copy.name);
-        //Target VPool could have resources, set resources to 0 on the new Copy VPool so user can modify form
+        // Target VPool could have resources, set resources to 0 on the new Copy VPool so user can modify form
         copy.numResources = 0;
         edit(copy);
     }
@@ -130,11 +130,11 @@ public class BlockVirtualPools extends ViprResourceController {
         vpool.expandable = true;
         vpool.rpJournalSizeUnit = SizeUnit.x;
         vpool.rpJournalSize = RPCopyForm.JOURNAL_DEFAULT_MULTIPLIER;
-        vpool.rpRpoValue = new Long(25);
+        vpool.rpRpoValue = Long.valueOf(25);
         vpool.rpRpoType = RpoType.SECONDS;
         vpool.protectSourceSite = true;
         vpool.enableAutoCrossConnExport = true;
-        
+
         edit(vpool);
     }
 
@@ -151,12 +151,13 @@ public class BlockVirtualPools extends ViprResourceController {
     }
 
     private static void edit(BlockVirtualPoolForm vpool) {
-        applyFlashParam(vpool, "vpool", "autoTierPolicy", "systemType", "provisioningType", "haVirtualArray", "haVirtualPool", "highAvailability", "remoteProtection");
+        applyFlashParam(vpool, "vpool", "autoTierPolicy", "systemType", "provisioningType", "haVirtualArray", "haVirtualPool",
+                "highAvailability", "remoteProtection");
         List<String> varrays = getFlashList("vpool", "virtualArrays");
         if (varrays != null) {
             vpool.virtualArrays = varrays;
         }
-        Boolean uniqueNamesBool = getFlashBoolean("vpool", "uniqueAutoTierPolicyNames" );
+        Boolean uniqueNamesBool = getFlashBoolean("vpool", "uniqueAutoTierPolicyNames");
         if (uniqueNamesBool != null) {
             vpool.uniqueAutoTierPolicyNames = uniqueNamesBool;
         }
@@ -175,7 +176,7 @@ public class BlockVirtualPools extends ViprResourceController {
         dataTable.alterColumn("registrationStatus").hidden();
         return dataTable;
     }
-    
+
     private static Boolean getFlashBoolean(String beanName, String name) {
         String bool = flash.get(beanName + "." + name);
         if (bool != null) {
@@ -185,7 +186,7 @@ public class BlockVirtualPools extends ViprResourceController {
             return null;
         }
     }
-    
+
     private static List<String> getFlashList(String beanName, String name) {
         String value = flash.get(beanName + "." + name);
         if (value != null) {
@@ -193,17 +194,17 @@ public class BlockVirtualPools extends ViprResourceController {
         }
         return null;
     }
-    
-    private static void applyFlashParam(BlockVirtualPoolForm bean, String beanName, String... names ) {
+
+    private static void applyFlashParam(BlockVirtualPoolForm bean, String beanName, String... names) {
         for (String name : names) {
             String value = flash.get(beanName + "." + name);
             if (value != null) {
                 try {
                     BeanUtils.setProperty(bean, name, value);
                 } catch (IllegalAccessException e) {
-                    Logger.warn(e,"Could not set property %s from flash", name);
+                    Logger.warn(e, "Could not set property %s from flash", name);
                 } catch (InvocationTargetException e) {
-                    Logger.warn(e,"Could not set property %s from flash", name);
+                    Logger.warn(e, "Could not set property %s from flash", name);
                 }
             }
         }
@@ -254,7 +255,7 @@ public class BlockVirtualPools extends ViprResourceController {
         List<BlockVirtualPoolRestRep> pools = await(rpCopy.recoverPointVirtualPools().asPromise());
         renderJSON(dataObjectOptions(pools));
     }
-    
+
     public static void listRecoverPointJournalVPoolsJson(RPCopyForm rpCopy) {
         if (rpCopy == null) {
             renderJSON(Collections.emptyList());
@@ -262,7 +263,7 @@ public class BlockVirtualPools extends ViprResourceController {
         List<BlockVirtualPoolRestRep> pools = await(rpCopy.recoverPointJournalVirtualPools().asPromise());
         renderJSON(dataObjectOptions(pools));
     }
-    
+
     public static void listSourceRpJournalVPoolsJson(BlockVirtualPoolForm vpool) {
         if (vpool == null) {
             renderJSON(Collections.emptyList());
@@ -270,7 +271,7 @@ public class BlockVirtualPools extends ViprResourceController {
         List<BlockVirtualPoolRestRep> pools = await(vpool.sourceRpJournalVirtualPools().asPromise());
         renderJSON(dataObjectOptions(pools));
     }
-    
+
     public static void listHaRpJournalVPoolsJson(BlockVirtualPoolForm vpool) {
         if (vpool == null) {
             renderJSON(Collections.emptyList());
@@ -328,7 +329,7 @@ public class BlockVirtualPools extends ViprResourceController {
 
     public static void listStoragePoolsJson(BlockVirtualPoolForm vpool) {
         List<StoragePoolInfo> items = Lists.newArrayList();
-        if (vpool != null && vpool.protocols != null && vpool.protocols.size() > 0) {
+        if (vpool != null && vpool.protocols != null && !vpool.protocols.isEmpty()) {
             vpool.deserialize();
             Map<URI, String> storageSystemNames = StorageSystemUtils.getStorageSystemNames();
             List<StoragePoolRestRep> pools = getMatchingStoragePools(vpool);
@@ -339,12 +340,11 @@ public class BlockVirtualPools extends ViprResourceController {
         }
         renderJSON(DataTablesSupport.createJSON(items, params));
     }
-    
+
     private static List<StoragePoolRestRep> getMatchingStoragePools(BlockVirtualPoolForm vpool) {
         try {
             return await(vpool.matchingStoragePools().asPromise());
-        }
-        catch (UnexpectedException e) {
+        } catch (UnexpectedException e) {
             Throwable cause = Common.unwrap(e);
             if (cause instanceof ViPRHttpException) {
                 int httpCode = ((ViPRHttpException) cause).getHttpCode();
@@ -398,8 +398,7 @@ public class BlockVirtualPools extends ViprResourceController {
             BlockVirtualPoolRestRep virtualPool = vpool.save();
             flash.success(MessagesUtils.get(SAVED_SUCCESS, virtualPool.getName()));
             backToReferrer();
-        }
-        catch (ViPRException e) {
+        } catch (ViPRException e) {
             exception(vpool, e);
         }
     }
@@ -458,12 +457,12 @@ public class BlockVirtualPools extends ViprResourceController {
         renderArgs.put("provisioningTypeOptions", ProvisioningTypes.options(
                 ProvisioningTypes.THICK,
                 ProvisioningTypes.THIN
-        ));
+                ));
         renderArgs.put("protocolsOptions", BlockProtocols.options(
                 BlockProtocols.FC,
                 BlockProtocols.iSCSI,
                 BlockProtocols.ScaleIO
-        ));
+                ));
         renderArgs.put("systemTypeOptions", StorageSystemTypes.options(
                 StorageSystemTypes.NONE,
                 StorageSystemTypes.VMAX,
@@ -474,7 +473,7 @@ public class BlockVirtualPools extends ViprResourceController {
                 StorageSystemTypes.SCALEIO,
                 StorageSystemTypes.XTREMIO,
                 StorageSystemTypes.IBMXIV
-        ));
+                ));
         renderArgs.put("driveTypeOptions", DriveTypes.options(
                 DriveTypes.NONE,
                 DriveTypes.FC,
@@ -482,7 +481,7 @@ public class BlockVirtualPools extends ViprResourceController {
                 DriveTypes.NL_SAS,
                 DriveTypes.SATA,
                 DriveTypes.SSD
-        ));
+                ));
         renderArgs.put("raidLevelsOptions", RaidLevel.options(
                 RaidLevel.RAID0,
                 RaidLevel.RAID1,
@@ -492,27 +491,30 @@ public class BlockVirtualPools extends ViprResourceController {
                 RaidLevel.RAID5,
                 RaidLevel.RAID6,
                 RaidLevel.RAID10
-        ));
+                ));
         renderArgs.put("poolAssignmentOptions", PoolAssignmentTypes.options(
                 PoolAssignmentTypes.AUTOMATIC,
                 PoolAssignmentTypes.MANUAL
-        ));
+                ));
         renderArgs.put("highAvailabilityOptions", Lists.newArrayList(
                 HighAvailability.option(HighAvailability.VPLEX_LOCAL),
                 HighAvailability.option(HighAvailability.VPLEX_DISTRIBUTED)
-        ));
+                ));
         renderArgs.put("vplexActiveSiteOptions", Lists.newArrayList(
                 HighAvailability.option(HighAvailability.VPLEX_SOURCE),
                 HighAvailability.option(HighAvailability.VPLEX_HA)
-        ));
+                ));
         renderArgs.put("remoteProtectionOptions", Lists.newArrayList(
                 ProtectionSystemTypes.option(ProtectionSystemTypes.RECOVERPOINT),
                 ProtectionSystemTypes.option(ProtectionSystemTypes.SRDF)
-        ));
+                ));
         renderArgs.put("rpRemoteCopyModeOptions", RemoteCopyMode.OPTIONS);
         renderArgs.put("rpRpoTypeOptions", RpoType.OPTIONS);
         renderArgs.put("srdfCopyModeOptions", RemoteCopyMode.OPTIONS);
-        renderArgs.put("numPathsOptions", StringOption.options(new String[] { "1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32"}, false));
+        renderArgs.put(
+                "numPathsOptions",
+                StringOption.options(new String[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16",
+                        "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32" }, false));
         renderArgs.put("rpJournalSizeUnitOptions", EnumOption.options(SizeUnit.values(), false));
         renderArgs.put("varrayAttributeNames", VirtualArrayUtils.ATTRIBUTES);
     }

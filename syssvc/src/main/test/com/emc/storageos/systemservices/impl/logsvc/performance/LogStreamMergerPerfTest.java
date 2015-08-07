@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc.performance;
 
@@ -31,7 +21,7 @@ import com.emc.vipr.model.sys.logging.LogRequest;
 
 public class LogStreamMergerPerfTest {
 
-    private static LogSvcPropertiesLoader propertiesLoader;
+    private static volatile LogSvcPropertiesLoader propertiesLoader;
 
     @BeforeClass
     public static void setup() {
@@ -45,19 +35,21 @@ public class LogStreamMergerPerfTest {
             }
         };
     }
-    
+
     @Test
     @Ignore
-    public void testMergePerformance_TimeRangeFilter() throws Exception{
-        List<String> svcs = new ArrayList<String>() {{
-            add("controllersvc");
-            add("coordinatorsvc");
-            add("apisvc");
-        }};
+    public void testMergePerformanceTimeRangeFilter() throws Exception {
+        List<String> svcs = new ArrayList<String>() {
+            {
+                add("controllersvc");
+                add("coordinatorsvc");
+                add("apisvc");
+            }
+        };
         Calendar calendar = Calendar.getInstance();
-        calendar.set(2013, 10, 20, 16, 38,16);
+        calendar.set(2013, 10, 20, 16, 38, 16);
         Date startTimeFilter = calendar.getTime();
-        calendar.set(2014, 0, 16, 16, 38,0);
+        calendar.set(2014, 0, 16, 16, 38, 0);
         Date endTimeFilter = calendar.getTime();
         LogRequest req = new LogRequest.Builder().startTime(startTimeFilter).endTime(endTimeFilter)
                 .baseNames(svcs).build();
@@ -84,17 +76,19 @@ public class LogStreamMergerPerfTest {
 
     @Test
     @Ignore
-    public void testMergePerformance_MultipleFilters() throws Exception{
-    	 List<String> svcs = new ArrayList<String>() {{
-             add("controllersvc");
-             add("coordinatorsvc");
-             add("apisvc");
-         }};
+    public void testMergePerformanceMultipleFilters() throws Exception {
+        List<String> svcs = new ArrayList<String>() {
+            {
+                add("controllersvc");
+                add("coordinatorsvc");
+                add("apisvc");
+            }
+        };
         String pattern = "Memory";
         Calendar calendar = Calendar.getInstance();
-        calendar.set(2013, 10, 20, 16, 38,16);
+        calendar.set(2013, 10, 20, 16, 38, 16);
         Date startTimeFilter = calendar.getTime();
-        calendar.set(2014, 0, 16, 16, 38,0);
+        calendar.set(2014, 0, 16, 16, 38, 0);
         Date endTimeFilter = calendar.getTime();
         LogRequest req = new LogRequest.Builder().startTime(startTimeFilter).endTime(endTimeFilter)
                 .logLevel(7).regex(pattern).baseNames(svcs).build();
@@ -118,14 +112,16 @@ public class LogStreamMergerPerfTest {
         System.out.println("Total read " + totalSize + " MB;" + " Average "
                 + (totalSize / elapsedTime) + " MB/sec.");
     }
-    
+
     @Test
-    public void testMergePerformance() throws Exception{
-        List<String> svcs = new ArrayList<String>() {{
-            add("controllersvc");
-            add("coordinatorsvc");
-            add("apisvc");
-        }};
+    public void testMergePerformance() throws Exception {
+        List<String> svcs = new ArrayList<String>() {
+            {
+                add("controllersvc");
+                add("coordinatorsvc");
+                add("apisvc");
+            }
+        };
         LogRequest req = new LogRequest.Builder().baseNames(svcs).build();
         LogStreamMerger merger = new LogStreamMerger(req, propertiesLoader);
         long startTime = System.nanoTime();
@@ -145,5 +141,5 @@ public class LogStreamMergerPerfTest {
         double elapsedTime = (double) (endTime - startTime) / 1000000000.0;
         System.out.println("Total read " + totalSize + " MB;" + " Used " + elapsedTime +
                 " sec; Average " + (totalSize / elapsedTime) + " MB/sec.");
-    } 
+    }
 }

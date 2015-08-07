@@ -54,8 +54,7 @@ def eachExternalProject(Closure closure) {
     subprojects.each {project ->
         // Configure target after evaluate, so subproject configurations are created, including internal flag
         project.afterEvaluate {
-            def skipForOss = buildType == "oss" && ( project.name == "vasa" || project.name == "installer" )
-            if ( !skipForOss && (!project.ext.has('internalLibrary') || !project.internalLibrary)) {
+            if (!project.ext.has('internalLibrary') || !project.internalLibrary) {
                 closure(project)
             }
         }

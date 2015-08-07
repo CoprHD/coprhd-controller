@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.ports;
@@ -16,8 +16,9 @@ public class StoragePortBulkRep extends BulkRestRep {
     private List<StoragePortRestRep> storagePorts;
 
     /**
-     * List of Storage ports.  A Storage port represents a 
+     * List of Storage ports. A Storage port represents a
      * port of a storage device.
+     * 
      * @valid none
      */
     @XmlElement(name = "storage_port")

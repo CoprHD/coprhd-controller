@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.impl;
@@ -30,21 +20,21 @@ import java.net.URI;
 import java.util.*;
 
 /**
- * Plugs into astyanax connection pool for host discovery.  It's implemented using
+ * Plugs into astyanax connection pool for host discovery. It's implemented using
  * coordinator db service information
  */
 public class HostSupplierImpl implements Supplier<List<Host>> {
     private static final Logger _log = LoggerFactory.getLogger(HostSupplierImpl.class);
-    private static final int SLEEP_BETWEEN_RETRY = 10000; //10 sec
+    private static final int SLEEP_BETWEEN_RETRY = 10000; // 10 sec
     private static final int NUM_RETRY_COUNT = 60; // total wait time 10 minutes
- 
+
     private CoordinatorClient _coordinator;
     private String _version;
     private String dbSvcName;
-    
+
     /**
      * Coordinator dependency
-     *
+     * 
      * @param coordinator
      */
     public void setCoordinatorClient(CoordinatorClient coordinator) {
@@ -53,7 +43,7 @@ public class HostSupplierImpl implements Supplier<List<Host>> {
 
     /**
      * DB client version in use
-     *
+     * 
      * @param version
      */
     public void setDbClientVersion(String version) {
@@ -64,12 +54,14 @@ public class HostSupplierImpl implements Supplier<List<Host>> {
     public List<Host> get() {
         int sleepDuration = SLEEP_BETWEEN_RETRY;
         List<Host> hosts = null;
-        for(int i = 1; i<= NUM_RETRY_COUNT; i++) {
+        for (int i = 1; i <= NUM_RETRY_COUNT; i++) {
             try {
                 hosts = internalGet();
-            }catch(RuntimeException ignore){}
+            } catch (RuntimeException ignore) {
+                _log.warn("ignore get host fail:{}", ignore.getMessage());
+            }
 
-            if((hosts == null) || (hosts.size() == 0)) {
+            if ((hosts == null) || (hosts.isEmpty())) {
                 _log.warn("hostsupplier is empty. May be dbsvc hasn't started yet. waiting for " + sleepDuration + " msec");
                 try {
                     Thread.sleep(sleepDuration);
@@ -87,13 +79,13 @@ public class HostSupplierImpl implements Supplier<List<Host>> {
         try {
             _log.debug("getting hosts for " + dbSvcName + "; version = " + _version);
             boolean isGeodb = Constants.GEODBSVC_NAME.equals(dbSvcName);
-            List<Service> service = _coordinator.locateAllServices(dbSvcName, _version, (String)null, null);
+            List<Service> service = _coordinator.locateAllServices(dbSvcName, _version, (String) null, null);
             List<Host> hostList = new ArrayList<Host>(service.size());
             for (int i = 0; i < service.size(); i++) {
-                Service svc =  service.get(i);
+                Service svc = service.get(i);
                 if (isGeodb && isDbReinitializing(svc)) {
-                	_log.debug("Ignore host {} because its geodb is reinitialzing", svc.getId());
-                	continue;
+                    _log.debug("Ignore host {} because its geodb is reinitialzing", svc.getId());
+                    continue;
                 }
                 URI hostUri = svc.getEndpoint();
                 _log.debug("Found " + svc.getName() + "; host = " + hostUri.getHost() + "; port = " + hostUri.getPort());
@@ -111,12 +103,12 @@ public class HostSupplierImpl implements Supplier<List<Host>> {
     }
 
     private boolean isDbReinitializing(Service serviceInfo) {
-    	String configKind = _coordinator.getDbConfigPath(serviceInfo.getName());
-    	Configuration config = _coordinator.queryConfiguration(configKind, serviceInfo.getId());
-    	String value = config.getConfig(Constants.REINIT_DB);
+        String configKind = _coordinator.getDbConfigPath(serviceInfo.getName());
+        Configuration config = _coordinator.queryConfiguration(configKind, serviceInfo.getId());
+        String value = config.getConfig(Constants.REINIT_DB);
         return (value != null && Boolean.parseBoolean(value));
     }
-    
+
     public String getDbSvcName() {
         return dbSvcName;
     }

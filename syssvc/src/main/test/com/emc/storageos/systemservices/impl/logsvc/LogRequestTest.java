@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc;
 
@@ -33,13 +23,13 @@ public class LogRequestTest {
     @Before
     public void before() {
         File path = new File(PATH);
-        if(!path.exists()){
+        if (!path.exists()) {
             path.mkdirs();
         }
     }
 
     @Test
-    public void testMarshal()  throws Exception {
+    public void testMarshal() throws Exception {
         System.out.println("Entering testMatshal()");
         LogRequest req = new LogRequest();
         List<String> baseNames = new ArrayList<String>();
@@ -57,10 +47,9 @@ public class LogRequestTest {
         marshaller.marshal(req, System.out);
         System.out.println("Done testMastshal()");
     }
-    
 
     @Test
-    public void testUnMarshal()  throws Exception {
+    public void testUnMarshal() throws Exception {
         System.out.println("Entering testUnMarshal()");
         File file = new File(PATH + File.separator + "file.xml");
         JAXBContext jc = JAXBContext.newInstance(LogRequest.class);
@@ -69,10 +58,10 @@ public class LogRequestTest {
         System.out.println(req);
         System.out.println("Done testUnMarshal()");
     }
-    
+
     @Test
-    public void testMarshal_UnMarshal()  throws Exception {
-        System.out.println("Entering testMarshl_UnMarshal()");
+    public void testMarshalUnMarshal() throws Exception {
+        System.out.println("Entering testMarshlUnMarshal()");
         LogRequest req = new LogRequest();
         List<String> baseNames = new ArrayList<String>();
         List<String> nodeIds = new ArrayList<String>();
@@ -89,11 +78,8 @@ public class LogRequestTest {
         Unmarshaller jaxbUnmarshaller = jc.createUnmarshaller();
         LogRequest reqNew = (LogRequest) jaxbUnmarshaller.unmarshal(file);
         assertTrue("The object after marshal and unMarshal should be the same with "
-                + "the origianl one",req.toString().equals(reqNew.toString()));
-        System.out.println("Done testMarshl_UnMarshal() ");
+                + "the origianl one", req.toString().equals(reqNew.toString()));
+        System.out.println("Done testMarshlUnMarshal() ");
     }
 
 }
-
-
-

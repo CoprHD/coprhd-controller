@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.cinder.model;
 
@@ -19,36 +9,37 @@ package com.emc.storageos.cinder.model;
  * 
  */
 public class AccessWrapper {
-	public Access access;
-    public class Access{
+    public Access access;
+
+    public class Access {
         public Token token;
         public Service[] serviceCatalog;
         public User user;
         public Metadata metadata;
     }
 
-    public class Token{
+    public class Token {
         public String issued_at;
         public String expires;
         public Tenant tenant;
         public String id;
     }
 
-    public class Tenant{
+    public class Tenant {
         public String description;
         public boolean enabled;
         public String name;
         public String id;
     }
 
-    public class Service{
+    public class Service {
         public Endpoint[] endpoints;
         public String type;
         public String name;
         public String[] endpoint_links;
     }
 
-    public class Endpoint{
+    public class Endpoint {
         public String adminURL;
         public String internalURL;
         public String publicURL;
@@ -56,7 +47,7 @@ public class AccessWrapper {
         public String id;
     }
 
-    public class User{
+    public class User {
         public String username;
         public String name;
         public String id;
@@ -64,11 +55,11 @@ public class AccessWrapper {
         public String[] roles_links;
     }
 
-    public class Role{
+    public class Role {
         public String name;
     }
 
-    public class Metadata{
+    public class Metadata {
         public String[] roles;
         public int is_admin;
     }

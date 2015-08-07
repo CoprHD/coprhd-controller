@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.engine.service;
@@ -160,7 +160,7 @@ public abstract class AbstractExecutionService implements ExecutionService {
     public OrderStatus getCompletedOrderStatus() {
         return completedOrderStatus;
     }
-    
+
     /** construct an Object array for passing into the fail task methods **/
     protected Object[] args(Object... args) {
         return args;

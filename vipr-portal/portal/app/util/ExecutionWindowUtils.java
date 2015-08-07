@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -27,10 +27,10 @@ import com.emc.vipr.model.catalog.ExecutionWindowUpdateParam;
 import com.google.common.collect.Lists;
 
 public class ExecutionWindowUtils {
-    
+
     public static final int MAX_EVENTS = 25;
     public static final int TIME_RANGE_PADDING_IN_HOURS = 2;
-    
+
     public static boolean isAnyExecutionWindowActive() {
         List<ExecutionWindowRestRep> windows = getExecutionWindows();
         for (ExecutionWindowRestRep window : windows) {
@@ -40,7 +40,7 @@ public class ExecutionWindowUtils {
         }
         return false;
     }
-    
+
     public static boolean isExecutionWindowActive(ExecutionWindowRestRep executionWindow) {
         if (executionWindow != null) {
             executionWindow.isActive(Calendar.getInstance());
@@ -51,10 +51,10 @@ public class ExecutionWindowUtils {
     public static ExecutionWindowRestRep getActiveOrNextExecutionWindow() {
         return getActiveOrNextExecutionWindow(Calendar.getInstance());
     }
-    
+
     public static ExecutionWindowRestRep getActiveOrNextExecutionWindow(Calendar time) {
         List<ExecutionWindowRestRep> windows = ExecutionWindowUtils.getExecutionWindows();
-        
+
         // Check active windows
         ExecutionWindowRestRep activeWindow = getActiveExecutionWindow(windows, time);
         if (activeWindow != null) {
@@ -65,11 +65,11 @@ public class ExecutionWindowUtils {
             return getNextExecutionWindow(windows, time);
         }
     }
-    
+
     public static ExecutionWindowRestRep getNextExecutionWindow(Calendar time) {
         return getNextExecutionWindow(ExecutionWindowUtils.getExecutionWindows(), time);
     }
-    
+
     public static ExecutionWindowRestRep getActiveExecutionWindow(Collection<ExecutionWindowRestRep> windows, Calendar time) {
         for (ExecutionWindowRestRep window : windows) {
             if (window.isActive(time)) {
@@ -78,7 +78,7 @@ public class ExecutionWindowUtils {
         }
         return null;
     }
-    
+
     public static ExecutionWindowRestRep getNextExecutionWindow(Collection<ExecutionWindowRestRep> windows, Calendar time) {
         Calendar nextWindowTime = null;
         ExecutionWindowRestRep nextWindow = null;
@@ -91,7 +91,7 @@ public class ExecutionWindowUtils {
         }
         return nextWindow;
     }
-    
+
     public static Calendar calculateNextWindowTime(ExecutionWindowRestRep window) {
         return calculateNextWindowTime(Calendar.getInstance(), window);
     }
@@ -99,13 +99,13 @@ public class ExecutionWindowUtils {
     public static Calendar calculateNextWindowTime(Calendar time, ExecutionWindowRestRep window) {
         return window.calculateNext(time);
     }
-    
+
     public static boolean isOverlapping(ExecutionWindowRestRep newExecutionWindow) {
         DateTimeZone tz = DateTimeZone.UTC;
         List<ExecutionWindowRestRep> executionWindows = ExecutionWindowUtils.getExecutionWindows();
         DateTime startOfWeek = getStartOfWeek(tz);
         DateTime endDateTime = startOfWeek.plusDays(31);
-        
+
         List<Event> events = asEvents(executionWindows, startOfWeek, endDateTime, tz);
         List<Event> newEvents = asEvents(newExecutionWindow, startOfWeek, endDateTime, tz, 365);
         for (Event event : events) {
@@ -120,25 +120,25 @@ public class ExecutionWindowUtils {
         }
         return false;
     }
-    
+
     private static boolean isOverlapping(Event left, Event right) {
-        return (StringUtils.equals(left.id, right.id) == false) && 
-                (left.startMillis < right.endMillis) && 
+        return (StringUtils.equals(left.id, right.id) == false) &&
+                (left.startMillis < right.endMillis) &&
                 (right.startMillis < left.endMillis);
     }
-    
+
     public static DateTime getStartOfWeek(DateTimeZone tz) {
         DateTime startOfWeek = new DateTime(tz);
         startOfWeek = startOfWeek.withDayOfWeek(DateTimeConstants.MONDAY);
         startOfWeek = startOfWeek.withMillisOfDay(0);
         startOfWeek = startOfWeek.withZone(DateTimeZone.UTC);
         return startOfWeek;
-    }    
-    
+    }
+
     public static List<Event> asEvents(List<ExecutionWindowRestRep> executionWindows, DateTime start, DateTime end, DateTimeZone tz) {
         return asEvents(executionWindows, start, end, tz, MAX_EVENTS);
     }
-    
+
     public static List<Event> asEvents(List<ExecutionWindowRestRep> executionWindows, DateTime start, DateTime end,
             DateTimeZone tz, long maxNumberOfEvents) {
         List<Event> events = Lists.newArrayList();
@@ -148,12 +148,13 @@ public class ExecutionWindowUtils {
             }
         }
         return events;
-    }    
+    }
 
     private static List<Event> asEvents(ExecutionWindowRestRep executionWindow, DateTime start, DateTime end, DateTimeZone tz,
             long maxNumberOfEvents) {
-        
-        long lengthInMillis = TimeUtils.toMillis(executionWindow.getExecutionWindowLength(), executionWindow.getExecutionWindowLengthType());
+
+        long lengthInMillis = TimeUtils
+                .toMillis(executionWindow.getExecutionWindowLength(), executionWindow.getExecutionWindowLengthType());
         List<Event> events = Lists.newArrayList();
 
         DateTime indexDate = start.withZone(DateTimeZone.UTC).minusHours(TIME_RANGE_PADDING_IN_HOURS);
@@ -190,7 +191,7 @@ public class ExecutionWindowUtils {
 
         return events;
     }
-    
+
     private static boolean isScheduled(DateTime indexDate, ExecutionWindowRestRep executionWindow) {
         if (indexDate != null && executionWindow != null) {
             if (ExecutionWindowRestRep.DAILY.equals(executionWindow.getExecutionWindowType())) {
@@ -216,55 +217,55 @@ public class ExecutionWindowUtils {
                 else if (isLastDayOfMonth(dayOfMonth, indexDate)) {
                     return true;
                 }
-            }        
+            }
         }
         return false;
-    }    
-    
+    }
+
     private static boolean isLastDayOfMonth(Integer dayOfMonth, DateTime date) {
         if (dayOfMonth != null && date != null) {
             // Is last day of month?
             if (date.dayOfMonth().get() == date.dayOfMonth().getMaximumValue()) {
                 // Is value store for day of month greater than or equal to current day
-                if (dayOfMonth >= date.dayOfMonth().getMaximumValue()) { 
+                if (dayOfMonth >= date.dayOfMonth().getMaximumValue()) {
                     return true;
                 }
             }
         }
         return false;
     }
-    
+
     public static ExecutionWindowRestRep getExecutionWindow(RelatedResourceRep rep) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.executionWindows().get(rep);
     }
-    
+
     public static ExecutionWindowRestRep getExecutionWindow(String name, URI tenantId) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         List<ExecutionWindowRestRep> executionWindows = catalog.executionWindows().getByTenant(tenantId);
-        for (ExecutionWindowRestRep executionWindow: executionWindows) {
+        for (ExecutionWindowRestRep executionWindow : executionWindows) {
             if (name.equals(executionWindow.getName())) {
                 return executionWindow;
             }
         }
         return null;
     }
-    
+
     public static ExecutionWindowRestRep getExecutionWindow(URI executionWindowId) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.executionWindows().get(executionWindowId);
-    }    
-    
+    }
+
     public static List<ExecutionWindowRestRep> getExecutionWindows(URI tenantId) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.executionWindows().getByTenant(tenantId);
     }
-    
+
     public static List<ExecutionWindowRestRep> getExecutionWindows() {
         ViPRCatalogClient2 catalog = getCatalogClient();
         List<NamedRelatedResourceRep> reps = catalog.executionWindows().listByUserTenant();
         return catalog.executionWindows().getByRefs(reps);
-    }    
+    }
 
     public static void deleteExecutionWindow(ExecutionWindowRestRep executionWindow) {
         if (executionWindow != null) {
@@ -272,15 +273,15 @@ public class ExecutionWindowUtils {
             catalog.executionWindows().deactivate(executionWindow.getId());
         }
     }
-    
+
     public static ExecutionWindowRestRep createExecutionWindow(ExecutionWindowCreateParam createParam) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.executionWindows().create(createParam);
     }
-    
+
     public static ExecutionWindowRestRep updateExecutionWindow(URI id, ExecutionWindowUpdateParam updateParam) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.executionWindows().update(id, updateParam);
     }
-    
+
 }

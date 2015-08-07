@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.hds.api;
 
@@ -85,7 +75,7 @@ public class RESTClient {
      */
     ClientResponse put(URI uri, String body) {
         return setResourceHeaders(_client.resource(uri)).type(MediaType.TEXT_XML)
-            .put(ClientResponse.class, body);
+                .put(ClientResponse.class, body);
     }
 
     /**
@@ -98,7 +88,7 @@ public class RESTClient {
      */
     ClientResponse post(URI uri, String body) {
         return setResourceHeaders(_client.resource(uri)).type(MediaType.TEXT_XML)
-            .post(ClientResponse.class, body);
+                .post(ClientResponse.class, body);
     }
 
     /**

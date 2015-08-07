@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -16,21 +16,22 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class CompositeValidationError extends ValidationError {
 
     private List<ValidationError> errors;
-    
+
     public CompositeValidationError() {
         super();
     }
-    
+
     public CompositeValidationError(String error, String field) {
         super(error, field);
-        
+
     }
+
     public void addValidationError(ValidationError error) {
         getErrors().add(error);
     }
-    
+
     @XmlElementWrapper(name = "errors")
-    @XmlElement(name="error")
+    @XmlElement(name = "error")
     public List<ValidationError> getErrors() {
         if (errors == null) {
             errors = new ArrayList<>();
@@ -43,9 +44,11 @@ public class CompositeValidationError extends ValidationError {
     }
 
     @Override
-    public void setError(String error) {};
-    
+    public void setError(String error) {
+    };
+
     @Override
-    public void setField(String field) {};
-    
+    public void setField(String field) {
+    };
+
 }

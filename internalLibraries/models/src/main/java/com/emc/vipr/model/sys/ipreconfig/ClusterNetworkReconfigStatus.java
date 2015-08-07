@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.vipr.model.sys.ipreconfig;
@@ -25,18 +15,25 @@ import javax.xml.bind.annotation.XmlType;
 @XmlRootElement(name = "ipreconfig_status")
 public class ClusterNetworkReconfigStatus {
     private static final long IPRECONFIG_SUCCEEDSTATUS_DISPLAY_TIMEOUT = 24 * 60 * 60 * 1000; // Keep "Succeed" status for 1 day in GUI
+
     /**
      * The status of ip reconfig
      */
-    @XmlType(name="clusterNetworkReconfigStatus_Status")
+    @XmlType(name = "clusterNetworkReconfigStatus_Status")
     public enum Status {
         STARTED("STARTED"),
         SUCCEED("SUCCEED"),
         FAILED("FAILED");
 
         private String name;
-        private Status(String name) { this.name = name; }
-        public String toString() {return name;}
+
+        private Status(String name) {
+            this.name = name;
+        }
+
+        public String toString() {
+            return name;
+        }
     }
 
     private Status status;
@@ -71,11 +68,11 @@ public class ClusterNetworkReconfigStatus {
     }
 
     public boolean isRecentlyReconfigured() {
-    	if (expiration == null) {
-    		return false;
-    	}
+        if (expiration == null) {
+            return false;
+        }
         long expiration_time = Long.valueOf(expiration);
-        if(System.currentTimeMillis() >= expiration_time + IPRECONFIG_SUCCEEDSTATUS_DISPLAY_TIMEOUT) {
+        if (System.currentTimeMillis() >= expiration_time + IPRECONFIG_SUCCEEDSTATUS_DISPLAY_TIMEOUT) {
             return false;
         }
         return true;

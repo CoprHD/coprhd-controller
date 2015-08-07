@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.auth.local;
 
@@ -31,7 +21,7 @@ import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMappin
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
- *  Attribute repository class for local users. 
+ * Attribute repository class for local users.
  */
 public class StorageOSLocalPersonAttributeDao implements StorageOSPersonAttributeDao {
 
@@ -52,8 +42,8 @@ public class StorageOSLocalPersonAttributeDao implements StorageOSPersonAttribut
     @Override
     public StorageOSUserDAO getStorageOSUser(final Credentials credentials,
             ValidationFailureReason[] failureReason) {
-        String uid = ((UsernamePasswordCredentials)credentials).getUserName();
-        if( uid == null ) {
+        String uid = ((UsernamePasswordCredentials) credentials).getUserName();
+        if (uid == null) {
             throw APIException.badRequests.theParametersAreNotValid(Credentials.class
                     .getName());
         }
@@ -76,7 +66,7 @@ public class StorageOSLocalPersonAttributeDao implements StorageOSPersonAttribut
      */
     @Override
     public Map<URI, UserMapping> getUserTenants(String username) {
-        return Collections.singletonMap( _permissionsHelper.getRootTenant().getId(), null);
+        return Collections.singletonMap(_permissionsHelper.getRootTenant().getId(), null);
     }
 
     @Override

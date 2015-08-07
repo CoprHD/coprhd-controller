@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block.tasks;
@@ -14,7 +14,7 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 
 public class GetBlockResource extends ViPRExecutionTask<BlockObjectRestRep> {
-    
+
     private URI resourceId;
 
     public GetBlockResource(String resourceId) {
@@ -32,20 +32,20 @@ public class GetBlockResource extends ViPRExecutionTask<BlockObjectRestRep> {
         ViPRCoreClient client = getClient();
         ResourceType volumeType = ResourceType.fromResourceId(resourceId.toString());
         switch (volumeType) {
-        case VOLUME:
-            VolumeRestRep volume = client.blockVolumes().get(resourceId);
-            if (volume != null) {
-                return volume;
-            }
-            break;
-        case BLOCK_SNAPSHOT:
-            BlockSnapshotRestRep snapshot = client.blockSnapshots().get(resourceId);
-            if (snapshot != null) {
-                return snapshot;
-            }
-            break;
+            case VOLUME:
+                VolumeRestRep volume = client.blockVolumes().get(resourceId);
+                if (volume != null) {
+                    return volume;
+                }
+                break;
+            case BLOCK_SNAPSHOT:
+                BlockSnapshotRestRep snapshot = client.blockSnapshots().get(resourceId);
+                if (snapshot != null) {
+                    return snapshot;
+                }
+                break;
         }
         throw stateException("GetBlockResource.illegalState.notFound", resourceId);
     }
-    
+
 }

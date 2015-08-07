@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.security.password.rules;
@@ -41,32 +31,29 @@ public abstract class AbstractCharacterRule implements CharacterRule {
         return numCharacters;
     }
 
-
     /**
      * Returns the number of the type of characters in the supplied password for
      * the implementing class.
-     *
-     * @param  password  to get character count from
-     *
-     * @return  number of characters
+     * 
+     * @param password to get character count from
+     * 
+     * @return number of characters
      */
     public abstract int getNumber(Password password);
 
-
     /**
      * Returns the proper Exception
-     *
+     * 
      * @return
      */
     public abstract BadRequestException getException();
 
     /**
      * Returns the type of character managed by this rule.
-     *
-     * @return  name of a character type, e.g. "digits."
+     * 
+     * @return name of a character type, e.g. "digits."
      */
     public abstract String getType();
-
 
     @Override
     public void validate(Password password) {

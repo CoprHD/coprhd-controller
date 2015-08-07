@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.properties;
@@ -39,7 +39,6 @@ public class CustomPropertyPage extends DefaultPropertyPage {
         return null;
     }
 
-
     /**
      * Gets the list of custom properties.
      * 
@@ -53,9 +52,9 @@ public class CustomPropertyPage extends DefaultPropertyPage {
      * Removes the property from the map and adds to the custom properties list.
      * 
      * @param properties
-     *        the properties map.
+     *            the properties map.
      * @param name
-     *        the name of the custom property.
+     *            the name of the custom property.
      * @return the custom property.
      */
     protected Property addCustomProperty(Map<String, Property> properties, String name) {
@@ -67,9 +66,9 @@ public class CustomPropertyPage extends DefaultPropertyPage {
      * Add a property as a password field.
      * 
      * @param properties
-     *        the properties map.
+     *            the properties map.
      * @param name
-     *        the property name.
+     *            the property name.
      * @return the custom property.
      */
     protected Property addCustomPasswordProperty(Map<String, Property> properties, String name) {
@@ -79,7 +78,7 @@ public class CustomPropertyPage extends DefaultPropertyPage {
         }
         return prop;
     }
-    
+
     protected Property addCustomBooleanProperty(Map<String, Property> properties, String name) {
         Property prop = addCustomProperty(properties, name);
         if (prop != null) {
@@ -92,7 +91,7 @@ public class CustomPropertyPage extends DefaultPropertyPage {
      * Adds a custom property to the list of custom properties.
      * 
      * @param property
-     *        the property.
+     *            the property.
      * @return the custom property.
      */
     protected Property addCustomProperty(Property property) {

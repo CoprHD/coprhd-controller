@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.fast;
 
@@ -49,7 +39,7 @@ public class ControllerConfigurationProcessor extends Processor {
                         .getKey(Constants.SYSTEMNAME).getValue().toString();
                 String serialID = (String) keyMap.get(Constants._serialID);
                 if (systemName.contains(serialID)) {
-                    addPath(keyMap, operation.get_result(), controllerConfigurationService);
+                    addPath(keyMap, operation.getResult(), controllerConfigurationService);
                     if (systemName.toLowerCase().contains(Constants.SYMMETRIX)) {
                         keyMap.put(Constants.VMAXConfigurationService,
                                 controllerConfigurationService);

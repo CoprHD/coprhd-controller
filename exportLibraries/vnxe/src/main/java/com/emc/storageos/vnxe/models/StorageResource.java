@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.vnxe.models;
@@ -18,8 +8,9 @@ package com.emc.storageos.vnxe.models;
 import java.util.List;
 
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-@JsonIgnoreProperties(ignoreUnknown=true)
-public class StorageResource extends VNXeBase{
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class StorageResource extends VNXeBase {
     private List<Integer> operationalStatus;
     private Health health;
     private String name;
@@ -34,13 +25,13 @@ public class StorageResource extends VNXeBase{
     private boolean isSnapSchedulePaused;
     private TieringPolicyEnum relocationPolicy;
     private List<Long> perTierSizeused;
-    //private List<BlockHostAccess> blockHostAccess;
+    // private List<BlockHostAccess> blockHostAccess;
     private long metadataSize;
     private long metadataSizeAllocated;
     private long snapSizeTotal;
     private long snapSizeAllocated;
     private int snapCount;
-    
+
     public List<Integer> getOperationalStatus() {
         return operationalStatus;
     }
@@ -204,7 +195,7 @@ public class StorageResource extends VNXeBase{
         MICROSOFT_EXCHANGE2010,
         STANDALONE;
     }
-    
+
     public static enum TieringPolicyEnum {
         AUTOTIER_HIGH(0),
         AUTOTIER(1),
@@ -212,24 +203,25 @@ public class StorageResource extends VNXeBase{
         LOWEST(3),
         NO_DATA_MOVEMENT(4),
         MIXED(0xffff);
-        
+
         private int value;
 
         private TieringPolicyEnum(int value) {
             this.value = value;
         }
+
         @org.codehaus.jackson.annotate.JsonValue
         public int getValue() {
             return this.value;
         }
-        
+
         public static String[] getTieringPolicyNames() {
-            String[] policies = {AUTOTIER_HIGH.name(),
-                                 AUTOTIER.name(),
-                                 HIGHEST.name(),
-                                 LOWEST.name()};
+            String[] policies = { AUTOTIER_HIGH.name(),
+                    AUTOTIER.name(),
+                    HIGHEST.name(),
+                    LOWEST.name() };
             return policies;
-            
+
         }
     }
 }

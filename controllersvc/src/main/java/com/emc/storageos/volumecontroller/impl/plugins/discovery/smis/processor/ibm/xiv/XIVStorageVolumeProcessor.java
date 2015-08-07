@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.ibm.xiv;
@@ -50,7 +40,7 @@ public class XIVStorageVolumeProcessor extends StorageProcessor {
     private static final String SYSTEMNAME = "SystemName";
     private static final String DEVICEID = "DeviceID";
     private static final int BATCH_SIZE = 200;
-    
+
     private DbClient _dbClient = null;
     private List<Volume> _updateVolumes = null;
     private List<BlockSnapshot> _updateSnapShots;
@@ -152,7 +142,7 @@ public class XIVStorageVolumeProcessor extends StorageProcessor {
         return NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                 systemName.toUpperCase(), id);
     }
-    
+
     private long returnProvisionedCapacity(CIMInstance volumeInstance) {
         long blocksize = Long.parseLong(volumeInstance.getPropertyValue(
                 BLOCK_SIZE).toString());

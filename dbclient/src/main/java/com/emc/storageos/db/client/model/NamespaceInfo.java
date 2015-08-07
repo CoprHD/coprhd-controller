@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
@@ -18,8 +8,6 @@ package com.emc.storageos.db.client.model;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Object service namespace information
@@ -30,7 +18,7 @@ public class NamespaceInfo extends DataObject {
 
     private NsTenantZoneMap _tenant_Zone_settings = new NsTenantZoneMap();
 
-    private byte[] _headMetaData ;
+    private byte[] _headMetaData;
 
     private URI _defaultProject;
 
@@ -46,22 +34,23 @@ public class NamespaceInfo extends DataObject {
      */
     @XmlElement
     @Name("zones")
-    public NsTenantZoneMap getZones(){
+    public NsTenantZoneMap getZones() {
         return _tenant_Zone_settings;
     }
 
-    public void setZones(NsTenantZoneMap tenantZoneMap){
+    public void setZones(NsTenantZoneMap tenantZoneMap) {
         _tenant_Zone_settings = tenantZoneMap;
         setChanged("zones");
     }
+
     @XmlElement
     @Name("headMetaData")
     public byte[] getHeadMetadata() {
-        return _headMetaData;
+        return _headMetaData.clone();
     }
 
     public void setHeadMetadata(byte[] headMetadata) {
-        _headMetaData = headMetadata;
+        _headMetaData = headMetadata.clone();
         setChanged("headMetaData");
     }
 

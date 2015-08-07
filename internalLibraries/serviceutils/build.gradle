@@ -9,6 +9,7 @@ dependencies {
             library(spring),
             library(commons_lang),
             library(owasp_esapi),
+            library(json_sanitizer),
             library(jsoup),
             library(jmdns)
 }

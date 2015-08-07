@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block;
@@ -25,8 +25,8 @@ public class ChangeVolumeVirtualPoolService extends ViPRService {
 
     @Param(ServiceParams.TARGET_VIRTUAL_POOL)
     private URI targetVirtualPool;
-    
-    @Param(value=ServiceParams.CONSISTENCY_GROUP, required=false)
+
+    @Param(value = ServiceParams.CONSISTENCY_GROUP, required = false)
     private URI consistencyGroup;
 
     @Override
@@ -34,5 +34,5 @@ public class ChangeVolumeVirtualPoolService extends ViPRService {
         Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(volumeId, targetVirtualPool, consistencyGroup));
         addAffectedResources(tasks);
     }
-    
+
 }

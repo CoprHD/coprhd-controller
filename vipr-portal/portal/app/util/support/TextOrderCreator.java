@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util.support;
@@ -25,9 +25,9 @@ import com.google.common.collect.Lists;
  * Converts an Order to a Textual Representation
  */
 public class TextOrderCreator {
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yy hh:mm");
+    private static final String DATE_FORMAT = "dd-MM-yy hh:mm";
     private static final String DETAIL_INDENT = "      \t                            \t";
-    
+
     private final ViPRCatalogClient2 client;
     private final OrderRestRep order;
     private final StringBuffer buffer;
@@ -38,13 +38,12 @@ public class TextOrderCreator {
         this.buffer = new StringBuffer();
     }
 
-    public String getText()  {
+    public String getText() {
         try {
             writeDetails();
             writeRequestParameters();
             writeExecutionState();
-        }
-        catch (Throwable e) {
+        } catch (Exception e) {
             writeHeader("ERROR CREATING ORDER");
             buffer.append(ExceptionUtils.getFullStackTrace(e));
         }
@@ -94,7 +93,7 @@ public class TextOrderCreator {
         writeLogs(state);
         writeTaskLogs(state);
     }
-    
+
     private void writeLogs(ExecutionStateRestRep state) {
         List<OrderLogRestRep> logs = client.orders().getLogs(order.getId());
         writeHeader("Logs");
@@ -102,33 +101,33 @@ public class TextOrderCreator {
             writeLog(log);
         }
     }
-    
+
     private void writeTaskLogs(ExecutionStateRestRep state) {
         List<ExecutionLogRestRep> logs = client.orders().getExecutionLogs(order.getId());
         List<ExecutionLogRestRep> precheckLogs = getTaskLogs(logs, ExecutionPhase.PRECHECK);
         List<ExecutionLogRestRep> executeLogs = getTaskLogs(logs, ExecutionPhase.EXECUTE);
         List<ExecutionLogRestRep> rollbackLogs = getTaskLogs(logs, ExecutionPhase.ROLLBACK);
 
-        if (precheckLogs.size() > 0) {
+        if (!precheckLogs.isEmpty()) {
             writeHeader("Precheck Steps");
             for (ExecutionLogRestRep log : precheckLogs) {
                 writeLog(log);
             }
         }
-        if (executeLogs.size() > 0) {
+        if (!executeLogs.isEmpty()) {
             writeHeader("Execute Steps");
             for (ExecutionLogRestRep log : executeLogs) {
                 writeLog(log);
             }
         }
-        if (rollbackLogs.size() > 0) {
+        if (!rollbackLogs.isEmpty()) {
             writeHeader("Rollback Steps");
             for (ExecutionLogRestRep log : rollbackLogs) {
                 writeLog(log);
             }
         }
     }
-    
+
     private List<ExecutionLogRestRep> getTaskLogs(List<ExecutionLogRestRep> logs, ExecutionPhase phase) {
         List<ExecutionLogRestRep> phaseLogs = Lists.newArrayList();
         for (ExecutionLogRestRep log : logs) {
@@ -138,7 +137,7 @@ public class TextOrderCreator {
         }
         return phaseLogs;
     }
-    
+
     private void writeLog(OrderLogRestRep log) {
         buffer.append("[").append(log.getLevel()).append("]");
         buffer.append("\t").append(log.getDate());
@@ -150,7 +149,7 @@ public class TextOrderCreator {
         }
         buffer.append("\n");
     }
-    
+
     private void writeLog(ExecutionLogRestRep log) {
         buffer.append("[").append(log.getLevel()).append("]");
         buffer.append("\t").append(log.getDate());
@@ -168,7 +167,7 @@ public class TextOrderCreator {
         }
         buffer.append("\n");
     }
-    
+
     private void writeHeader(String header) {
         buffer.append("\n");
         buffer.append(header);
@@ -178,11 +177,12 @@ public class TextOrderCreator {
     }
 
     private void writeField(String label, Date date) {
+        final SimpleDateFormat DATE = new SimpleDateFormat(DATE_FORMAT);
         if (date == null) {
             writeField(label, "");
         }
         else {
-            writeField(label, DATE_FORMAT.format((date)));
+            writeField(label, DATE.format((date)));
         }
     }
 

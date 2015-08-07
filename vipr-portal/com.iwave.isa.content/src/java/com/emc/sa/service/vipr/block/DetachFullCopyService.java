@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block;
@@ -17,7 +17,7 @@ public class DetachFullCopyService extends ViPRService {
 
     @Param(COPIES)
     protected List<String> copyIds;
-    
+
     @Override
     public void execute() throws Exception {
         BlockStorageUtils.detachFullCopies(uris(copyIds));

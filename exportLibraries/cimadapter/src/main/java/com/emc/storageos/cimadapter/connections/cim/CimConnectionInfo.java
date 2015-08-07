@@ -1,13 +1,7 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
  */
-// Copyright 2012 by EMC Corporation ("EMC").
-//
-// UNPUBLISHED  CONFIDENTIAL  AND  PROPRIETARY  PROPERTY OF EMC. The copyright
-// notice above does not evidence any actual  or  intended publication of this
-// software. Disclosure and dissemination are pursuant to separate agreements.
-// Unauthorized use, distribution or dissemination are strictly prohibited.
 
 package com.emc.storageos.cimadapter.connections.cim;
 
@@ -34,7 +28,7 @@ public class CimConnectionInfo {
     private String _user = "";
 
     // The password for the CIM connection.
-    private String _password = "";
+    private String _pass_word = "";
 
     // The interop NS for the CIM connection.
     private String _interopNS = CimConstants.DFLT_CIM_CONNECTION_INTEROP_NS;
@@ -130,7 +124,7 @@ public class CimConnectionInfo {
      * @return The connection password.
      */
     public String getPassword() {
-        return _password;
+        return _pass_word;
     }
 
     /**
@@ -139,7 +133,7 @@ public class CimConnectionInfo {
      * @param value The connection password.
      */
     public void setPassword(String value) {
-        _password = value;
+        _pass_word = value;
         _connectionParams.put(CimConstants.CIM_PW, value);
     }
 

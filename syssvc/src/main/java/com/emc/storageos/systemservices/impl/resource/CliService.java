@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.resource;
 
@@ -38,16 +28,17 @@ public class CliService {
 
     /**
      * Get ViPR cli
+     * 
      * @brief Get ViPR CLI
      * @prereq none
      * @return cli details.
      */
     @GET
     @Produces({ MediaType.APPLICATION_OCTET_STREAM })
-    public Response getCli() throws FileNotFoundException{
+    public Response getCli() throws FileNotFoundException {
         _log.debug("getCli(): start");
 
         final InputStream in = new FileInputStream(_filePath);
-        return Response.ok(in).header("content-disposition","attachment; filename = ViPR-cli.tar.gz").build();
+        return Response.ok(in).header("content-disposition", "attachment; filename = ViPR-cli.tar.gz").build();
     }
 }

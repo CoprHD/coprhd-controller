@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.windows.model.wmi;
@@ -72,12 +72,12 @@ public class FibreChannelTargetMapping implements Serializable {
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof FibreChannelTargetMapping) {
-            return equals((FibreChannelTargetMapping) obj);
+            return equalsFibreChannelTargetMapping((FibreChannelTargetMapping) obj);
         }
         return false;
     }
 
-    public boolean equals(FibreChannelTargetMapping mapping) {
+    public boolean equalsFibreChannelTargetMapping(FibreChannelTargetMapping mapping) {
         if (mapping == this) {
             return true;
         }

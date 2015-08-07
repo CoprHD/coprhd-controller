@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
@@ -36,14 +26,14 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
     private List<URI> _initiatorURIs;
 
     public ExportMaskRemoveInitiatorCompleter(URI egUri, URI emUri, List<URI> initiatorURIs,
-                                              String task) {
+            String task) {
         super(ExportGroup.class, egUri, emUri, task);
         _initiatorURIs = new ArrayList<URI>();
         _initiatorURIs.addAll(initiatorURIs);
     }
 
-	private void updateExportGroups(DbClient dbClient, Operation.Status status)
-	throws DeviceControllerException {
+    private void updateExportGroups(DbClient dbClient, Operation.Status status)
+            throws DeviceControllerException {
         ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
         ExportMask exportMask = (getMask() != null) ?
                 dbClient.queryObject(ExportMask.class, getMask()) : null;
@@ -64,11 +54,11 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
                     "Done ExportMaskRemoveInitiator - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
         }
-	}
+    }
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status,
-                         ServiceCoded coded) throws DeviceControllerException {
+            ServiceCoded coded) throws DeviceControllerException {
         try {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             ExportMask exportMask = (getMask() != null) ?

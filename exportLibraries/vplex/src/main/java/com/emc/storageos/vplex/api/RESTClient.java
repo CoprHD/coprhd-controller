@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
@@ -62,7 +52,7 @@ public class RESTClient {
      * @return A ClientResponse reference.
      */
     ClientResponse get(URI uri, String vplexSessionId, String jsonFormat, String cacheControlMaxAge) {
-        return setResourceHeaders(_client.resource(uri), vplexSessionId, 
+        return setResourceHeaders(_client.resource(uri), vplexSessionId,
                 jsonFormat, cacheControlMaxAge).get(ClientResponse.class);
     }
 
@@ -76,9 +66,9 @@ public class RESTClient {
      * @return A ClientResponse reference.
      */
     ClientResponse put(URI uri, String vplexSessionId, String jsonFormat) {
-        return setResourceHeaders(_client.resource(uri), vplexSessionId, 
+        return setResourceHeaders(_client.resource(uri), vplexSessionId,
                 jsonFormat, VPlexApiConstants.CACHE_CONTROL_MAXAGE_ZERO).put(
-                        ClientResponse.class);
+                ClientResponse.class);
     }
 
     /**
@@ -92,9 +82,9 @@ public class RESTClient {
      * @return A ClientResponse reference.
      */
     ClientResponse put(URI uri, String body, String vplexSessionId, String jsonFormat) {
-        return setResourceHeaders(_client.resource(uri), vplexSessionId, 
+        return setResourceHeaders(_client.resource(uri), vplexSessionId,
                 jsonFormat, VPlexApiConstants.CACHE_CONTROL_MAXAGE_ZERO).type(
-                        MediaType.APPLICATION_JSON).put(ClientResponse.class, body);
+                MediaType.APPLICATION_JSON).put(ClientResponse.class, body);
     }
 
     /**
@@ -108,9 +98,9 @@ public class RESTClient {
      * @return A ClientResponse reference.
      */
     ClientResponse post(URI uri, String body, String vplexSessionId, String jsonFormat) {
-        return setResourceHeaders(_client.resource(uri), vplexSessionId, 
+        return setResourceHeaders(_client.resource(uri), vplexSessionId,
                 jsonFormat, VPlexApiConstants.CACHE_CONTROL_MAXAGE_ZERO).type(
-                        MediaType.APPLICATION_JSON).post(ClientResponse.class, body);
+                MediaType.APPLICATION_JSON).post(ClientResponse.class, body);
     }
 
     /**
@@ -129,28 +119,28 @@ public class RESTClient {
      * @param cacheControlMaxAge cache control max age
      */
     Builder setResourceHeaders(WebResource resource, String vplexSessionId, String jsonFormat, String cacheControlMaxAge) {
-        
+
         // Set the headers for the username, password, and connection.
         Builder resBuilder = resource
-            .header(VPlexApiConstants.USER_NAME_HEADER, _username)
-            .header(VPlexApiConstants.PASSWORD_HEADER, _password)
-            .header(VPlexApiConstants.CONNECTION_HEADER,
-                VPlexApiConstants.CONNECTION_HEADER_VALUE_CLOSE);
-        
+                .header(VPlexApiConstants.USER_NAME_HEADER, _username)
+                .header(VPlexApiConstants.PASS_WORD_HEADER, _password)
+                .header(VPlexApiConstants.CONNECTION_HEADER,
+                        VPlexApiConstants.CONNECTION_HEADER_VALUE_CLOSE);
+
         // Set the session id cookie. Can be null on first request.
         if (vplexSessionId != null) {
             resBuilder.cookie(new Cookie(VPlexApiConstants.SESSION_COOKIE, vplexSessionId));
         }
-        
+
         // will look like this: application/json;format=1 or format=0
         resBuilder.accept(MediaType.APPLICATION_JSON + jsonFormat);
-        
+
         // if using JSON response format 1, also set VPLEX API cache-control
         if (VPlexApiConstants.ACCEPT_JSON_FORMAT_1.equals(jsonFormat)) {
-            resBuilder.header(VPlexApiConstants.CACHE_CONTROL_HEADER, 
+            resBuilder.header(VPlexApiConstants.CACHE_CONTROL_HEADER,
                     VPlexApiConstants.CACHE_CONTROL_MAXAGE_KEY + cacheControlMaxAge);
         }
-        
+
         return resBuilder;
     }
 }

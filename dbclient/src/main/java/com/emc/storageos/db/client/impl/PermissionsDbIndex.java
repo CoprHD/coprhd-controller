@@ -1,14 +1,12 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.db.client.impl;                                                    
+package com.emc.storageos.db.client.impl;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.net.URI;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,23 +24,23 @@ public class PermissionsDbIndex extends DbIndex {
     }
 
     String getRowKey(CompositeColumnName column, Object value) {
-            return column.getTwo();
+        return column.getTwo();
     }
 
     String getRowKey(Column<CompositeColumnName> column) {
-         return column.getName().getTwo();
+        return column.getName().getTwo();
     }
 
     @Override
-    boolean addColumn(String recordKey, CompositeColumnName column, Object value, 
-                      String className, RowMutator mutator, Integer ttl, DataObject obj) {
+    boolean addColumn(String recordKey, CompositeColumnName column, Object value,
+            String className, RowMutator mutator, Integer ttl, DataObject obj) {
         String rowKey = getRowKey(column, value);
 
         ColumnListMutation<IndexColumnName> indexColList =
                 mutator.getIndexColumnList(indexCF, rowKey);
 
         IndexColumnName indexEntry =
-           new IndexColumnName(className, recordKey, value.toString(), mutator.getTimeUUID());
+                new IndexColumnName(className, recordKey, value.toString(), mutator.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, value.toString(), ttl);
 
@@ -51,17 +49,17 @@ public class PermissionsDbIndex extends DbIndex {
 
     @Override
     boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
-                         String className, RowMutator mutator,
-                         Map<String,List<Column<CompositeColumnName>>> fieldColumnMap) {
+            String className, RowMutator mutator,
+            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
         String rowKey = getRowKey(column);
 
         ColumnListMutation<IndexColumnName> indexColList =
-             mutator.getIndexColumnList(indexCF, rowKey);
+                mutator.getIndexColumnList(indexCF, rowKey);
 
         UUID uuid = column.getName().getTimeUUID();
 
-        IndexColumnName indexEntry = 
-             new IndexColumnName(className, recordKey, column.getStringValue(), uuid);
+        IndexColumnName indexEntry =
+                new IndexColumnName(className, recordKey, column.getStringValue(), uuid);
 
         indexColList.deleteColumn(indexEntry);
 
@@ -70,7 +68,7 @@ public class PermissionsDbIndex extends DbIndex {
 
     @Override
     public String toString() {
-        StringBuilder builder  = new StringBuilder("PermissionsDbIndex class");
+        StringBuilder builder = new StringBuilder("PermissionsDbIndex class");
         builder.append("\t");
         builder.append(super.toString());
         builder.append("\n");

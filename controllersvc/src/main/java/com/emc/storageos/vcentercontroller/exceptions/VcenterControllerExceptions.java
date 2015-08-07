@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.vcentercontroller.exceptions;
@@ -16,8 +16,8 @@ public interface VcenterControllerExceptions {
     @DeclareServiceCode(ServiceCode.VCENTER_CONTROLLER_ERROR)
     public VcenterControllerException hostException(final String details, final Throwable e);
 
-	@DeclareServiceCode(ServiceCode.VCENTER_CONTROLLER_ERROR)
-	public VcenterControllerException unexpectedException(final String opName, final Throwable e);
+    @DeclareServiceCode(ServiceCode.VCENTER_CONTROLLER_ERROR)
+    public VcenterControllerException unexpectedException(final String opName, final Throwable e);
 
     @DeclareServiceCode(ServiceCode.VCENTER_CONTROLLER_ERROR)
     public VcenterControllerException objectNotFoundException(final String opName, final Throwable e);

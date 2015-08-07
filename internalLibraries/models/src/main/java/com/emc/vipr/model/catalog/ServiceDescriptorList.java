@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -14,15 +14,17 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class ServiceDescriptorList {
 
     private List<ServiceDescriptorRestRep> serviceDescriptors;
-    
-    public ServiceDescriptorList() {}
-    
+
+    public ServiceDescriptorList() {
+    }
+
     public ServiceDescriptorList(List<ServiceDescriptorRestRep> serviceDescriptors) {
         this.serviceDescriptors = serviceDescriptors;
     }
 
     /**
      * List of service descriptors
+     * 
      * @valid none
      */
     @XmlElement(name = "service_descriptor")
@@ -35,6 +37,6 @@ public class ServiceDescriptorList {
 
     public void setServiceDescriptors(List<ServiceDescriptorRestRep> serviceDescriptors) {
         this.serviceDescriptors = serviceDescriptors;
-    }    
-    
+    }
+
 }

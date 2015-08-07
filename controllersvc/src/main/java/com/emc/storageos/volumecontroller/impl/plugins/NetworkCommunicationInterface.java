@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.plugins;
@@ -7,9 +7,7 @@ package com.emc.storageos.volumecontroller.impl.plugins;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
-import com.emc.storageos.networkcontroller.impl.NetworkCollectionException;
 import com.emc.storageos.networkcontroller.impl.NetworkDiscoveryWorker;
 import com.emc.storageos.networkcontroller.impl.NetworkSystemDevice;
 import com.emc.storageos.plugins.AccessProfile;
@@ -45,8 +43,8 @@ public class NetworkCommunicationInterface extends ExtendedCommunicationInterfac
             worker.setCoordinator(_coordinator);
             worker.verifyVersion(accessProfile.getSystemId());
             worker.updatePhysicalInventory(accessProfile.getSystemId());
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw NetworkDeviceControllerException.exceptions.discoverNetworkSystemFailed(e);
         }
-    }    
+    }
 }

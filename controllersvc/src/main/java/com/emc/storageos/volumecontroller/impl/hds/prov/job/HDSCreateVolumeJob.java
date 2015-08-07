@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) 2012. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.hds.prov.job;
 
@@ -34,15 +24,15 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
  * A HDS Volume Create job
  */
 public class HDSCreateVolumeJob extends HDSAbstractCreateVolumeJob {
-    
+
     private static final Logger log = LoggerFactory.getLogger(HDSCreateVolumeJob.class);
     // These atomic references are for use in the volume rename step in processVolume
     private static final AtomicReference<NameGenerator> _nameGeneratorRef = new AtomicReference<NameGenerator>();
 
     public HDSCreateVolumeJob(String hdsJob,
-                               URI storageSystem,
-                               URI storagePool,
-                               TaskCompleter taskCompleter) {
+            URI storageSystem,
+            URI storagePool,
+            TaskCompleter taskCompleter) {
         super(hdsJob, storageSystem, storagePool, taskCompleter, "CreateSingleVolume");
         // Keep a reference to these singletons
         _nameGeneratorRef.compareAndSet(null,
@@ -50,22 +40,22 @@ public class HDSCreateVolumeJob extends HDSAbstractCreateVolumeJob {
     }
 
     public HDSCreateVolumeJob(String hdsJob,
-                               URI storageSystem,
-                               URI storagePool,
-                               TaskCompleter taskCompleter,
-                               String name) {
+            URI storageSystem,
+            URI storagePool,
+            TaskCompleter taskCompleter,
+            String name) {
         super(hdsJob, storageSystem, storagePool, taskCompleter, name);
     }
 
     /**
      * This simply updates the deviceLabel name for the single volume that was created.
-     *
-     * @param dbClient     [in] - Client for reading/writing from/to database.
-     * @param client       [in] - HDSAPI Client for accessing HiCommand DM data
-     * @param volume       [in] - Reference to Bourne's Volume object
+     * 
+     * @param dbClient [in] - Client for reading/writing from/to database.
+     * @param client [in] - HDSAPI Client for accessing HiCommand DM data
+     * @param volume [in] - Reference to Bourne's Volume object
      */
     @Override
-    void  specificProcessing(DbClient dbClient, HDSApiClient client, Volume volume) {
+    void specificProcessing(DbClient dbClient, HDSApiClient client, Volume volume) {
         try {
             // Get the tenant name from the volume
             TenantOrg tenant = dbClient.queryObject(TenantOrg.class, volume.getTenant().getURI());
@@ -85,5 +75,5 @@ public class HDSCreateVolumeJob extends HDSAbstractCreateVolumeJob {
             log.error("Encountered an error while trying to set the volume name", e);
         }
     }
-    
+
 }

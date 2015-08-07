@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.ssl;
 
@@ -42,7 +32,9 @@ public class ViPRProtocolSocketFactory implements ProtocolSocketFactory {
         sslSocketFactory = new ViPRSSLSocketFactory(coordinator);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see org.apache.commons.httpclient.protocol.ProtocolSocketFactory#createSocket(java.lang.String, int, java.net.InetAddress, int)
      */
     @Override
@@ -51,8 +43,11 @@ public class ViPRProtocolSocketFactory implements ProtocolSocketFactory {
         return sslSocketFactory.createSocket(host, port, localAddress, localPort);
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.commons.httpclient.protocol.ProtocolSocketFactory#createSocket(java.lang.String, int, java.net.InetAddress, int, org.apache.commons.httpclient.params.HttpConnectionParams)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see org.apache.commons.httpclient.protocol.ProtocolSocketFactory#createSocket(java.lang.String, int, java.net.InetAddress, int,
+     * org.apache.commons.httpclient.params.HttpConnectionParams)
      */
     @Override
     public Socket createSocket(String host, int port, InetAddress localAddress,
@@ -75,12 +70,14 @@ public class ViPRProtocolSocketFactory implements ProtocolSocketFactory {
         }
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see org.apache.commons.httpclient.protocol.ProtocolSocketFactory#createSocket(java.lang.String, int)
      */
     @Override
     public Socket createSocket(String host, int port) throws IOException,
-    UnknownHostException {
+            UnknownHostException {
         return sslSocketFactory.createSocket(host, port);
     }
 }

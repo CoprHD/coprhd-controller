@@ -7,6 +7,9 @@
 //
 repositories {
     maven {
+        url "https://build.coprhd.org/jenkins/userContent/coprhd-build/sourceforge.net/projects/"
+    }
+    maven {
         url "http://sourceforge.net/projects/"
     }
 }

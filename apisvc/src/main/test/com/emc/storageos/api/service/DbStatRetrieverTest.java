@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service;
@@ -32,7 +32,7 @@ import com.sun.jersey.api.client.ClientResponse.Status;
 public class DbStatRetrieverTest {
     /**
      * test feed output files
-    */
+     */
     private static final String XmlTestOutputFile = "xmlStatsOutput.xml";
 
     @Test
@@ -43,7 +43,7 @@ public class DbStatRetrieverTest {
 
         DummyDBClient dbClient = new DummyDBClient();
         MeteringService statResource = new MeteringService();
-        //statResource.setDbClient(dbClient);
+        // statResource.setDbClient(dbClient);
         DbStatRetriever dummyDbStatRetriever = new DbStatRetriever();
         dummyDbStatRetriever.setDbClient(dbClient);
         statResource.setStatRetriever(dummyDbStatRetriever);
@@ -56,7 +56,6 @@ public class DbStatRetrieverTest {
         Assert.assertEquals(Status.OK.getStatusCode(), r.getStatus());
         Assert.assertTrue(r.getEntity() instanceof StreamingOutput);
         StreamingOutput so = (StreamingOutput) r.getEntity();
-
 
         File of = new File(XmlTestOutputFile);
 
@@ -80,10 +79,9 @@ public class DbStatRetrieverTest {
         // expected number of stats unmarshaled
         Assert.assertEquals(10, stats.stats.size());
         deleteIfExists(XmlTestOutputFile);
-     
+
     }
-    
-    
+
     @Test
     public void statXmlServiceDBExceptionsTest() throws WebApplicationException,
             IOException, JAXBException {
@@ -92,7 +90,7 @@ public class DbStatRetrieverTest {
 
         DummyDBClient dbClient = new DummyDBClient();
         MeteringService statResource = new MeteringService();
-        //statResource.setDbClient(dbClient);
+        // statResource.setDbClient(dbClient);
         DbStatRetriever dummyDbStatRetriever = new DbStatRetriever();
         dummyDbStatRetriever.setDbClient(dbClient);
         statResource.setStatRetriever(dummyDbStatRetriever);
@@ -106,10 +104,9 @@ public class DbStatRetrieverTest {
         Assert.assertTrue(r.getEntity() instanceof StreamingOutput);
         StreamingOutput so = (StreamingOutput) r.getEntity();
 
-
         File of = new File(XmlTestOutputFile);
         OutputStream os = new FileOutputStream(of);
-        try{
+        try {
             so.write(os);
         } catch (Exception e) {
             Assert.assertTrue(e.toString().contains("I/O"));
@@ -117,8 +114,6 @@ public class DbStatRetrieverTest {
             os.close();
         }
     }
-    
-    
 
     @Test
     public void xmlStatIllegalTimeBucketArgumentTest()
@@ -136,8 +131,7 @@ public class DbStatRetrieverTest {
         try {
             statResource.getStats("xxxyyy", header);
             Assert.fail("Expected a BadRequestException");
-        }
-        catch (BadRequestException e) {
+        } catch (BadRequestException e) {
             Assert.assertEquals(ServiceCode.API_PARAMETER_INVALID_TIME_FORMAT, e.getServiceCode());
         }
     }
@@ -158,13 +152,11 @@ public class DbStatRetrieverTest {
         try {
             statResource.getStats("", header);
             Assert.fail("Expected a BadRequestException");
-        }
-        catch (BadRequestException e) {
+        } catch (BadRequestException e) {
             Assert.assertEquals(ServiceCode.API_PARAMETER_INVALID_TIME_FORMAT, e.getServiceCode());
         }
     }
 
-  
     private void deleteIfExists(String fname) {
         File f = new File(fname);
 

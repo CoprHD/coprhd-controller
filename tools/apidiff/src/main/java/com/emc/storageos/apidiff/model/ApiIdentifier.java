@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2013 EMC Corporation 
- * All Rights Reserved 
- *
- * This software contains the intellectual property of EMC Corporation 
- * or is licensed to EMC Corporation from third parties.  Use of this 
- * software and the intellectual property contained therein is expressly 
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.apidiff.model;
@@ -48,12 +38,15 @@ public class ApiIdentifier {
 
     @Override
     public boolean equals(Object apiIdentifier) {
-        if (this == apiIdentifier)
+        if (this == apiIdentifier) {
             return true;
-        if (apiIdentifier == null)
+        }
+        if (apiIdentifier == null) {
             return false;
-        if (this.getClass() != apiIdentifier.getClass())
+        }
+        if (this.getClass() != apiIdentifier.getClass()) {
             return false;
+        }
         return this.path.equals(((ApiIdentifier) apiIdentifier).path) &&
                 this.httpMethod.equals(((ApiIdentifier) apiIdentifier).httpMethod);
     }

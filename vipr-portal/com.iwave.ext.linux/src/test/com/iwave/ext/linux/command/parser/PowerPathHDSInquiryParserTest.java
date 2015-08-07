@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.linux.command.parser;
@@ -12,6 +12,7 @@ import java.io.StringWriter;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import com.iwave.ext.linux.model.PowerPathDevice;
@@ -22,6 +23,7 @@ public class PowerPathHDSInquiryParserTest {
 
     private static final String HITACHI = "HITACHI";
     private static final String HDS = "HDS";
+    private static Logger log = Logger.getLogger(PowerPathHDSInquiryParserTest.class);
 
     @Test
     public void test() {
@@ -63,7 +65,7 @@ public class PowerPathHDSInquiryParserTest {
             IOUtils.copy(diskUtilFile, writer);
         } catch (IOException e) {
             // TODO Auto-generated catch block
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
             throw new RuntimeException(e);
         }
         String text = writer.toString();

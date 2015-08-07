@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- *  software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.server.upgrade.impl.callback;
 
@@ -43,7 +33,7 @@ public class DbSMISProviderToStorageProviderMigrationTest extends DbSimpleMigrat
     private static final Logger log = LoggerFactory.getLogger(DbSMISProviderToStorageProviderMigrationTest.class);
 
     // Constants for testing VPLEX storage systems.
-    private static URI VPLEX_SYS_ID;
+    private static volatile URI VPLEX_SYS_ID;
     private static final int VPLEX_SYS_PORT = 443;
     private static final String VPLEX_SYS_LABEL = "vplex";
     private static final String VPLEX_SYS_IP = "10.247.96.154";
@@ -55,9 +45,11 @@ public class DbSMISProviderToStorageProviderMigrationTest extends DbSimpleMigrat
 
     @BeforeClass
     public static void setup() throws IOException {
-        customMigrationCallbacks.put("1.1", new ArrayList<BaseCustomMigrationCallback>() {{
-            add(new SMISProviderToStorageProviderMigration());
-        }});
+        customMigrationCallbacks.put("1.1", new ArrayList<BaseCustomMigrationCallback>() {
+            {
+                add(new SMISProviderToStorageProviderMigration());
+            }
+        });
 
         DbsvcTestBase.setup();
         log.info("completed setup");
@@ -80,9 +72,9 @@ public class DbSMISProviderToStorageProviderMigrationTest extends DbSimpleMigrat
          * Mock data for migration test
          * 
          */
-        StorageSystem storageSystem1= new StorageSystem();
-        StorageSystem storageSystem2= new StorageSystem();
-        StorageSystem storageSystem3= new StorageSystem();
+        StorageSystem storageSystem1 = new StorageSystem();
+        StorageSystem storageSystem2 = new StorageSystem();
+        StorageSystem storageSystem3 = new StorageSystem();
 
         SMISProvider smisProvider1 = new SMISProvider();
         SMISProvider smisProvider2 = new SMISProvider();
@@ -132,99 +124,99 @@ public class DbSMISProviderToStorageProviderMigrationTest extends DbSimpleMigrat
         validateStorageProviderInstances(true);
     }
 
-    private void validateSMISProviderInstances(boolean isAfterMigration){
+    private void validateSMISProviderInstances(boolean isAfterMigration) {
         int size = 0;
         List<URI> keys = _dbClient.queryByType(SMISProvider.class, true);
         Iterator<SMISProvider> iter = _dbClient.queryIterativeObjects(SMISProvider.class, keys);
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             size++;
             SMISProvider smisProvider = iter.next();
             StringSet storageSystems = smisProvider.getStorageSystems();
             Assert.assertNotNull(storageSystems);
             int storageSystemCount = 0;
-            for(String storageSystemURI: storageSystems){
+            for (String storageSystemURI : storageSystems) {
                 storageSystemCount++;
             }
-            if(!isAfterMigration){
-                if("smis1".equals(smisProvider.getLabel())){
-                    Assert.assertEquals("StorageSystems count is mismatch for "+smisProvider.getLabel()
-                            ,2, storageSystemCount);
-                }else if("smis3".equals(smisProvider.getLabel()) || "smis2".equals(smisProvider.getLabel())){
-                    Assert.assertEquals("StorageSystems count is mismatch for "+smisProvider.getLabel(),
+            if (!isAfterMigration) {
+                if ("smis1".equals(smisProvider.getLabel())) {
+                    Assert.assertEquals("StorageSystems count is mismatch for " + smisProvider.getLabel()
+                            , 2, storageSystemCount);
+                } else if ("smis3".equals(smisProvider.getLabel()) || "smis2".equals(smisProvider.getLabel())) {
+                    Assert.assertEquals("StorageSystems count is mismatch for " + smisProvider.getLabel(),
                             1, storageSystemCount);
                 }
             }
 
         }
-        if(isAfterMigration){
-            Assert.assertEquals("SMISProvider instance should be removed after successful migration",0, size);
-        }else{
-            Assert.assertEquals("SMISProvider instance size should be 3 before migration",3, size);
+        if (isAfterMigration) {
+            Assert.assertEquals("SMISProvider instance should be removed after successful migration", 0, size);
+        } else {
+            Assert.assertEquals("SMISProvider instance size should be 3 before migration", 3, size);
         }
 
     }
 
-    private void validateStorageSystemInstances(boolean isAfterMigration) throws URISyntaxException{
+    private void validateStorageSystemInstances(boolean isAfterMigration) throws URISyntaxException {
         int size = 0;
         List<URI> keys = _dbClient.queryByType(StorageSystem.class, true);
         Iterator<StorageSystem> iter = _dbClient.queryIterativeObjects(StorageSystem.class, keys);
         Class dbModelCLass = null;
-        if(isAfterMigration){
+        if (isAfterMigration) {
             dbModelCLass = StorageProvider.class;
-        }else{
+        } else {
             dbModelCLass = SMISProvider.class;
         }
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             size++;
             StorageSystem storageSystem = iter.next();
             if (DiscoveredDataObject.Type.vplex.name().equals(storageSystem.getSystemType())) {
                 verifyVPlexSystem(storageSystem, isAfterMigration);
             } else {
-                Assert.assertTrue("Active Provider URI should point to "+ dbModelCLass
-                        ,URIUtil.isType(storageSystem.getActiveProviderURI(), dbModelCLass));
+                Assert.assertTrue("Active Provider URI should point to " + dbModelCLass
+                        , URIUtil.isType(storageSystem.getActiveProviderURI(), dbModelCLass));
                 StringSet providers = storageSystem.getProviders();
-                for(String provider: providers){
+                for (String provider : providers) {
                     URI providerURI = new URI(provider);
-                    Assert.assertTrue("Provider URI should point to "+ dbModelCLass
-                            ,URIUtil.isType(providerURI, dbModelCLass));
+                    Assert.assertTrue("Provider URI should point to " + dbModelCLass
+                            , URIUtil.isType(providerURI, dbModelCLass));
                 }
             }
         }
-        Assert.assertEquals("StorageSystem size should be 4",4, size);
+        Assert.assertEquals("StorageSystem size should be 4", 4, size);
     }
 
-    private void validateStorageProviderInstances(boolean isAfterMigration){
+    private void validateStorageProviderInstances(boolean isAfterMigration) {
         int size = 0;
         List<URI> keys = _dbClient.queryByType(StorageProvider.class, true);
         Iterator<StorageProvider> iter = _dbClient.queryIterativeObjects(StorageProvider.class, keys);
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             size++;
             StorageProvider storageProvider = iter.next();
             if (StorageProvider.InterfaceType.vplex.name().equals(storageProvider.getInterfaceType())) {
-                    verifyVPlexStorageProvider(storageProvider);
+                verifyVPlexStorageProvider(storageProvider);
             } else {
                 Assert.assertEquals("Interface type should be smis", StorageProvider.InterfaceType.smis.name()
-                        ,storageProvider.getInterfaceType());
+                        , storageProvider.getInterfaceType());
                 StringSet storageSystems = storageProvider.getStorageSystems();
                 int storageSystemCount = 0;
-                for(String storageSystemURI: storageSystems){
+                for (String storageSystemURI : storageSystems) {
                     storageSystemCount++;
                 }
-                if(isAfterMigration){
-                    if("smis1".equals(storageProvider.getLabel())){
-                        Assert.assertEquals("StorageSystems count is mismatch for "+storageProvider.getLabel()
-                                ,2, storageSystemCount);
-                    }else if("smis3".equals(storageProvider.getLabel()) || "smis2".equals(storageProvider.getLabel())){
-                        Assert.assertEquals("StorageSystems count is mismatch for "+storageProvider.getLabel(),
+                if (isAfterMigration) {
+                    if ("smis1".equals(storageProvider.getLabel())) {
+                        Assert.assertEquals("StorageSystems count is mismatch for " + storageProvider.getLabel()
+                                , 2, storageSystemCount);
+                    } else if ("smis3".equals(storageProvider.getLabel()) || "smis2".equals(storageProvider.getLabel())) {
+                        Assert.assertEquals("StorageSystems count is mismatch for " + storageProvider.getLabel(),
                                 1, storageSystemCount);
                     }
                 }
             }
         }
-        if(isAfterMigration){
-            Assert.assertEquals("StorageProvider size should be 4",4, size);
-        } else{
-            Assert.assertEquals("StorageProvider size should be 0",0, size);
+        if (isAfterMigration) {
+            Assert.assertEquals("StorageProvider size should be 4", 4, size);
+        } else {
+            Assert.assertEquals("StorageProvider size should be 0", 0, size);
         }
     }
 
@@ -250,9 +242,9 @@ public class DbSMISProviderToStorageProviderMigrationTest extends DbSimpleMigrat
 
     /**
      * Verify the changes to the VPLEX storage system after the migration.
-     *
+     * 
      * @param vplexSystem Reference to the VPLEX test system.
-     *
+     * 
      * @param isAfterMigration true if being called after migration completes.
      */
     private void verifyVPlexSystem(StorageSystem vplexSystem, boolean isAfterMigration) {
@@ -269,30 +261,30 @@ public class DbSMISProviderToStorageProviderMigrationTest extends DbSimpleMigrat
 
     /**
      * Verify the storage provider created for the VPLEX system after migration.
-     *
+     * 
      * @param storageProvider The VPLEX storage provider.
      */
     private void verifyVPlexStorageProvider(StorageProvider storageProvider) {
         Assert.assertEquals("The VPLEX provider IP is not correct", VPLEX_SYS_IP,
-            storageProvider.getIPAddress());
+                storageProvider.getIPAddress());
         Assert.assertEquals("The VPLEX provider Port is not correct", VPLEX_SYS_PORT,
-            storageProvider.getPortNumber().intValue());
+                storageProvider.getPortNumber().intValue());
         Assert.assertEquals("The VPLEX provider use ssl is not correct", Boolean.TRUE,
-            storageProvider.getUseSSL());
+                storageProvider.getUseSSL());
         Assert.assertEquals("The VPLEX provider user is not correct", VPLEX_SYS_USER,
-            storageProvider.getUserName());
+                storageProvider.getUserName());
         Assert.assertEquals("The VPLEX provider password is not correct", VPLEX_SYS_PW,
-            storageProvider.getPassword());
+                storageProvider.getPassword());
         Assert.assertEquals("The VPLEX provider label is not correct", VPLEX_SYS_LABEL,
-            storageProvider.getLabel());
+                storageProvider.getLabel());
         Assert.assertEquals("The VPLEX provider version is not correct", VPLEX_SYS_VERSION,
-            storageProvider.getVersionString());
+                storageProvider.getVersionString());
         Assert.assertEquals("The VPLEX provider IP is not correct", VPLEX_SYS_IP,
-            storageProvider.getIPAddress());
+                storageProvider.getIPAddress());
         Assert.assertEquals("The VPLEX provider compatibility status is not correct", VPLEX_SYS_COMP_STATUS.toString(),
-            storageProvider.getCompatibilityStatus());
+                storageProvider.getCompatibilityStatus());
         Assert.assertEquals("The VPLEX provider registration status is not correct", VPLEX_SYS_REG_STATUS.toString(),
-            storageProvider.getRegistrationStatus());
+                storageProvider.getRegistrationStatus());
         StringSet managedSystemIds = storageProvider.getStorageSystems();
         Assert.assertEquals("The VPLEX provider should have one managed system", 1, managedSystemIds.size());
         String vplexSystemId = managedSystemIds.iterator().next();

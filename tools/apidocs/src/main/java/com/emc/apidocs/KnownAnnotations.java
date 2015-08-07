@@ -1,10 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.apidocs;
-
-import javax.ws.rs.Path;
 
 /**
  * Names of common annotations that are needed during processing
@@ -22,8 +20,8 @@ public class KnownAnnotations {
     public static final String InheritCheckPermission_Annotation = "com.emc.storageos.security.authorization.InheritCheckPermission";
     public static final String DefaultPermissions_Annotation = "com.emc.storageos.security.authorization.DefaultPermissions";
 
-    public static final String Length_Annotation="com.emc.storageos.model.valid.Length";
-    public static final String Range_Annotation="com.emc.storageos.model.valid.Range";
+    public static final String Length_Annotation = "com.emc.storageos.model.valid.Length";
+    public static final String Range_Annotation = "com.emc.storageos.model.valid.Range";
 
     public static final String Path_Annotation = "javax.ws.rs.Path";
     public static final String PathParam_Annotation = "javax.ws.rs.PathParam";
@@ -31,8 +29,7 @@ public class KnownAnnotations {
 
     public static final String Deprecated_Annotation = "java.lang.Deprecated";
 
-
     private static String getFQNName(Class clazz) {
-        return clazz.getPackage()+"."+clazz.getSimpleName();
+        return clazz.getPackage() + "." + clazz.getSimpleName();
     }
 }

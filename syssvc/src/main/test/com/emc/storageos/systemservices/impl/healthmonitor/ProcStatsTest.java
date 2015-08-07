@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.healthmonitor;
 
@@ -26,10 +16,10 @@ import java.util.Map;
 
 public class ProcStatsTest implements StatConstants {
     private static final String INVALID_PID = "0";
-    private static String validPID = null;
+    private static volatile String validPID = null;
 
     @BeforeClass
-    public static void getValidPID() {
+    public static void getValidPID() throws Exception {
         File procDir = new File(PROC_DIR);
         File[] procFiles = procDir.listFiles();
         String sname;
@@ -38,12 +28,9 @@ public class ProcStatsTest implements StatConstants {
             if (validPID.equalsIgnoreCase(SELF_DIR)) {
                 continue;
             }
-            try {
-                sname = ProcStats.getServiceName(validPID);
-                if (sname != null && !sname.isEmpty() && !"monitor".equals(sname)) {
-                    break;
-                }
-            } catch (Exception e) {
+            sname = ProcStats.getServiceName(validPID);
+            if (sname != null && !sname.isEmpty() && !"monitor".equals(sname)) {
+                break;
             }
         }
         Assert.assertNotNull(validPID);
@@ -75,6 +62,7 @@ public class ProcStatsTest implements StatConstants {
             ProcStats.getServiceName(INVALID_PID);
             Assert.fail();
         } catch (Exception e) {
+            Assert.assertTrue(true);
         }
     }
 

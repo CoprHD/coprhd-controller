@@ -1,22 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
 
 import java.util.*;
-
 
 /**
  * Abstract base for map that tracks changes
@@ -33,7 +22,7 @@ public abstract class AbstractChangeTrackingMap<K> extends HashMap<String, K> {
 
     /**
      * Constructs a new map with the same mappings as source
-     *
+     * 
      * @param source
      */
     public AbstractChangeTrackingMap(Map<String, K> source) {
@@ -42,7 +31,7 @@ public abstract class AbstractChangeTrackingMap<K> extends HashMap<String, K> {
 
     /**
      * Get removed key set
-     *
+     * 
      * @return removed keys
      */
     public Set<String> getRemovedKeySet() {
@@ -54,7 +43,7 @@ public abstract class AbstractChangeTrackingMap<K> extends HashMap<String, K> {
 
     /**
      * Get modified keys set
-     *
+     * 
      * @return modified keys set
      */
     public Set<String> getChangedKeySet() {
@@ -75,9 +64,10 @@ public abstract class AbstractChangeTrackingMap<K> extends HashMap<String, K> {
 
     /**
      * Incrementally adds entry into the hash map
+     * 
      * @param key
      * @param value
-     * @return              Previous value for the key, if one exists
+     * @return Previous value for the key, if one exists
      */
     @Override
     public K put(String key, K value) {
@@ -93,6 +83,7 @@ public abstract class AbstractChangeTrackingMap<K> extends HashMap<String, K> {
 
     /**
      * Adds entry into hashmap, not tracked as a change
+     * 
      * @param key
      * @param value
      */
@@ -102,7 +93,7 @@ public abstract class AbstractChangeTrackingMap<K> extends HashMap<String, K> {
 
     /**
      * Removes entry from map without tracking
-     *
+     * 
      * @param key
      */
     public void removeNoTrack(String key) {
@@ -111,7 +102,8 @@ public abstract class AbstractChangeTrackingMap<K> extends HashMap<String, K> {
 
     /**
      * Incrementally add multiple key, value pairs into the Map
-     * @param add   HashMap to add key, value pairs from
+     * 
+     * @param add HashMap to add key, value pairs from
      */
     public void putAll(HashMap<String, K> add) {
         Iterator<Map.Entry<String, K>> entryIt = add.entrySet().iterator();
@@ -123,6 +115,7 @@ public abstract class AbstractChangeTrackingMap<K> extends HashMap<String, K> {
 
     /**
      * Incrementally remove a key from the map
+     * 
      * @param key
      */
     public void remove(String key) {
@@ -148,9 +141,10 @@ public abstract class AbstractChangeTrackingMap<K> extends HashMap<String, K> {
     @Override
     public void clear() {
         Set<String> keys = super.keySet();
-        if ( keys != null && _changed != null)
-                _changed.removeAll(keys);
-         
+        if (keys != null && _changed != null) {
+            _changed.removeAll(keys);
+        }
+
         if (_remove == null) {
             _remove = new HashMap<String, K>();
         }
@@ -162,10 +156,11 @@ public abstract class AbstractChangeTrackingMap<K> extends HashMap<String, K> {
 
     /**
      * replace current entries with the ones passed in
+     * 
      * @param newEntries
      */
     public void replace(Map<String, K> newEntries) {
-        if ((newEntries == null) || (newEntries.size() == 0 )) {
+        if ((newEntries == null) || (newEntries.isEmpty())) {
             clear();
             return;
         }
@@ -173,21 +168,24 @@ public abstract class AbstractChangeTrackingMap<K> extends HashMap<String, K> {
         Set<String> keys = super.keySet();
         List<String> removedKeys = new ArrayList();
         for (String key : keys) {
-            if (!newEntries.containsKey(key))
+            if (!newEntries.containsKey(key)) {
                 removedKeys.add(key);
+            }
         }
 
-        for (String key : removedKeys)
+        for (String key : removedKeys) {
             remove(key);
+        }
 
         Set<Map.Entry<String, K>> entries = newEntries.entrySet();
-        for (Map.Entry<String, K> entry : entries)
+        for (Map.Entry<String, K> entry : entries) {
             put(entry.getKey(), entry.getValue());
+        }
     }
 
     /**
      * Deserializes string value into K
-     *
+     * 
      * @param value
      * @return
      */
@@ -195,7 +193,7 @@ public abstract class AbstractChangeTrackingMap<K> extends HashMap<String, K> {
 
     /**
      * Serializes K into string
-     *
+     * 
      * @param value
      * @return
      */

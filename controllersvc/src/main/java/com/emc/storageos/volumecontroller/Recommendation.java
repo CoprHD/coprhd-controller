@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller;
@@ -16,7 +16,7 @@ public class Recommendation implements Serializable {
     private URI _sourcePool;
     private String _deviceType;
     private int _resourceCount;
-    
+
     public int getResourceCount() {
         return _resourceCount;
     }
@@ -41,12 +41,12 @@ public class Recommendation implements Serializable {
         this._sourceDevice = _sourceDevice;
     }
 
-	public String getDeviceType() {
-		return _deviceType;
-	}
+    public String getDeviceType() {
+        return _deviceType;
+    }
 
-	public void setDeviceType(String _deviceType) {
-		this._deviceType = _deviceType;
-	}
+    public void setDeviceType(String _deviceType) {
+        this._deviceType = _deviceType;
+    }
 
 }

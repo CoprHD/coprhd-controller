@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.computesystemcontroller.impl.adapter;
@@ -9,7 +9,6 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -59,8 +58,8 @@ public class AixHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             host.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
             save(host);
             throw ComputeSystemControllerException.exceptions.incompatibleHostVersion(
-            		getSupportedType(), version.toString(),
-                    getVersionValidator().getAixMinimumVersion(false).toString()); 
+                    getSupportedType(), version.toString(),
+                    getVersionValidator().getAixMinimumVersion(false).toString());
         }
     }
 
@@ -82,7 +81,7 @@ public class AixHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
     protected AixVersion getVersion(Host host) {
         AixSystem cli = getCli(host);
         AixVersion version = cli.getVersion();
-        if(version == null) {
+        if (version == null) {
             error("Could not determine version of aix host %s", host.getLabel());
             return new AixVersion("");
         } else {
@@ -98,47 +97,46 @@ public class AixHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
     protected void discoverInitiators(Host host, List<Initiator> oldInitiators, HostStateChange changes) {
         AixSystem aix = getCli(host);
         List<Initiator> addedInitiators = Lists.newArrayList();
-        
+
         try {
             for (HBAInfo hba : aix.listInitiators()) {
                 Initiator initiator;
                 String wwpn = SanUtils.normalizeWWN(hba.getWwpn());
                 if (findInitiatorByPort(oldInitiators, wwpn) == null) {
-                	initiator = getOrCreateInitiator(oldInitiators, wwpn);
-                	addedInitiators.add(initiator);
+                    initiator = getOrCreateInitiator(oldInitiators, wwpn);
+                    addedInitiators.add(initiator);
                 } else {
-                	initiator = getOrCreateInitiator(oldInitiators, wwpn);
+                    initiator = getOrCreateInitiator(oldInitiators, wwpn);
                 }
                 discoverFCInitiator(host, initiator, hba);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             LOG.error("Failed to list FC Ports, skipping");
         }
 
         try {
             for (String iqn : aix.listIQNs()) {
-            	Initiator initiator;
-            	if (findInitiatorByPort(oldInitiators, iqn) == null) {
-                	initiator = getOrCreateInitiator(oldInitiators, iqn);
-                	addedInitiators.add(initiator);
-            	} else {
-            		initiator = getOrCreateInitiator(oldInitiators, iqn);
-            	}
+                Initiator initiator;
+                if (findInitiatorByPort(oldInitiators, iqn) == null) {
+                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                    addedInitiators.add(initiator);
+                } else {
+                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                }
                 discoverISCSIInitiator(host, initiator, iqn);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             LOG.error("Failed to list iSCSI Ports, skipping");
         }
-        
+
         // update export groups with new initiators if host is in use.
         if (!addedInitiators.isEmpty()) {
-            Collection<URI> addedInitiatorIds = Lists.newArrayList(Collections2.transform(addedInitiators, CommonTransformerFunctions.fctnDataObjectToID()));
+            Collection<URI> addedInitiatorIds = Lists.newArrayList(Collections2.transform(addedInitiators,
+                    CommonTransformerFunctions.fctnDataObjectToID()));
             changes.setNewInitiators(addedInitiatorIds);
         }
     }
-    
+
     private void discoverFCInitiator(Host host, Initiator initiator, HBAInfo hba) {
         setInitiator(initiator, host);
         initiator.setProtocol(Protocol.FC.name());
@@ -178,10 +176,10 @@ public class AixHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         setHostInterfaceRegistrationStatus(ipInterface, host);
         save(ipInterface);
     }
-    
-	public void setDbCLient(DbClient dbClient) {
-		super.setDbClient(dbClient);
-	}
+
+    public void setDbCLient(DbClient dbClient) {
+        super.setDbClient(dbClient);
+    }
 
     @Override
     protected void setNativeGuid(Host host) {

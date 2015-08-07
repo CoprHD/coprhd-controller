@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.datadomain.restapi.model;
 
@@ -22,7 +12,7 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 /**
  * Created by zeldib on 2/10/14.
  */
-@JsonRootName(value="network_detail")
+@JsonRootName(value = "network_detail")
 public class DDNetworkDetails {
 
     private String id;
@@ -66,10 +56,10 @@ public class DDNetworkDetails {
 
     private int txqueuelen;
 
-
     public String getId() {
         return id;
     }
+
     public void setId(String id) {
         this.id = id;
     }
@@ -77,6 +67,7 @@ public class DDNetworkDetails {
     public String getName() {
         return name;
     }
+
     public void setName(String name) {
         this.name = name;
     }
@@ -84,21 +75,24 @@ public class DDNetworkDetails {
     public boolean getEnabled() {
         return enabled;
     }
+
     public void setName(boolean enabled) {
         this.enabled = enabled;
     }
 
-    @JsonProperty(value="address")
-    public String getIp(){
+    @JsonProperty(value = "address")
+    public String getIp() {
         return ip;
     }
-    public void setIp(String ip){
+
+    public void setIp(String ip) {
         this.ip = ip;
     }
 
     public String getNetmask() {
         return netmask;
     }
+
     public void setNetmask(String netmask) {
         this.netmask = netmask;
     }
@@ -106,6 +100,7 @@ public class DDNetworkDetails {
     public boolean getDhcp() {
         return dhcp;
     }
+
     public void setDhcp(boolean dhcp) {
         this.dhcp = dhcp;
     }
@@ -113,6 +108,7 @@ public class DDNetworkDetails {
     public boolean getBooting() {
         return booting;
     }
+
     public void setBooting(boolean booting) {
         this.booting = booting;
     }
@@ -120,6 +116,7 @@ public class DDNetworkDetails {
     public boolean getVirtual() {
         return virtual;
     }
+
     public void setVirtual(boolean virtual) {
         this.virtual = virtual;
     }
@@ -127,74 +124,84 @@ public class DDNetworkDetails {
     public boolean getPrimary() {
         return primary;
     }
+
     public void setPrimary(boolean primary) {
         this.primary = primary;
     }
 
-    public int getMtu(){
+    public int getMtu() {
         return mtu;
     }
-    public void setMtu(int mtu){
+
+    public void setMtu(int mtu) {
         this.mtu = mtu;
     }
 
-    @JsonProperty(value="link_speed")
-    public int getLinkSpeed(){
+    @JsonProperty(value = "link_speed")
+    public int getLinkSpeed() {
         return linkSpeed;
     }
-    public void setLinkSpeed(int speed){
+
+    public void setLinkSpeed(int speed) {
         this.linkSpeed = speed;
     }
 
-    @JsonProperty(value="link_duplex")
+    @JsonProperty(value = "link_duplex")
     public int getLinkDuplex() {
         return linkDuplex;
     }
+
     public void setLinkDuplex(int linkDuplex) {
         this.linkDuplex = linkDuplex;
     }
 
-    @JsonProperty(value="link_auto_nego")
-    public boolean getLinkAutoNego(){
+    @JsonProperty(value = "link_auto_nego")
+    public boolean getLinkAutoNego() {
         return linkAutoNego;
     }
-    public void setLinkAutoNego(boolean lan){
+
+    public void setLinkAutoNego(boolean lan) {
         this.linkAutoNego = lan;
     }
 
-    @JsonProperty(value="master_id")
+    @JsonProperty(value = "master_id")
     private String getMasterId() {
         return masterId;
     }
+
     public void setMasterId(String masterId) {
         this.masterId = masterId;
     }
 
-    public int getUpdelay(){
+    public int getUpdelay() {
         return updelay;
     }
-    public void setUpdelay(int delay){
+
+    public void setUpdelay(int delay) {
         this.updelay = delay;
     }
 
-    public int getDowndelay(){
+    public int getDowndelay() {
         return downdelay;
     }
-    public void setDowndelay(int delay){
+
+    public void setDowndelay(int delay) {
         this.downdelay = delay;
     }
 
-    public int getRate(){
+    public int getRate() {
         return rate;
     }
-    public void setRate(int rate){
+
+    public void setRate(int rate) {
         this.rate = rate;
     }
 
-    public int getTxqueuelen(){
+    public int getTxqueuelen() {
         return txqueuelen;
     }
-    public void setTxqueuelen(int txqueuelen){
+
+    public void setTxqueuelen(int txqueuelen) {
         this.txqueuelen = txqueuelen;
     }
 

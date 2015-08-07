@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -21,10 +21,10 @@ public class SecretKeysDataTable extends DataTable {
         public String creationTimestamp;
 
         public SecretKey(String id, String secretKey, String creationTimestamp) {
-        	this.id = id;
-        	this.secretKey = secretKey;
-        	this.creationTimestamp = creationTimestamp;
+            this.id = id;
+            this.secretKey = secretKey;
+            this.creationTimestamp = creationTimestamp;
         }
-        
+
     }
 }

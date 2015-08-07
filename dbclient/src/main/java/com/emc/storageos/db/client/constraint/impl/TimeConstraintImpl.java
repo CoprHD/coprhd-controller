@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.constraint.impl;
 
@@ -18,14 +8,13 @@ import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;                                            
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import java.net.URI;
 import java.util.Date;
@@ -37,8 +26,8 @@ import java.util.Date;
  * between this time period.
  */
 public class TimeConstraintImpl extends ConstraintImpl implements DecommissionedConstraint {
-    private static final long MILLIS_TO_MICROS = 1000l;
-    private static int DEFAULT_PAGE_SIZE = 100;
+    private static final long MILLIS_TO_MICROS = 1000L;
+    private static final int DEFAULT_PAGE_SIZE = 100;
     private Keyspace keyspace;
     private final ColumnFamily<String, IndexColumnName> cf;
     private final String rowKey;
@@ -49,14 +38,14 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
 
     /**
      * Constructs the time constraint.
-     *
+     * 
      * @param clazz DataObject class
      * @param cf Column Family
      * @param startTimeMillis Start time in milliseconds or -1 for no filtering on start time.
      * @param endTimeMillis End time in milliseconds or -1 for no filtering on end time.
      */
     public TimeConstraintImpl(Class<? extends DataObject> clazz, ColumnFamily<String, IndexColumnName> cf,
-                              Boolean value, long startTimeMillis, long endTimeMillis) {
+            Boolean value, long startTimeMillis, long endTimeMillis) {
         this.cf = cf;
         rowKey = clazz.getSimpleName();
         this.startTimeMicros = startTimeMillis * MILLIS_TO_MICROS;
@@ -67,17 +56,17 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
 
     /**
      * Constructs the time constraint.
-     *
+     * 
      * @param clazz DataObject class
      * @param cf Column Family
      * @param startTime Start time Date or null for no filtering on start time
      * @param endTime End time Date or null for no filtering on end time
      */
     public TimeConstraintImpl(Class<? extends DataObject> clazz, Boolean value,
-                              ColumnFamily<String, IndexColumnName> cf, Date startTime, Date endTime) {
+            ColumnFamily<String, IndexColumnName> cf, Date startTime, Date endTime) {
         this(clazz, cf, value,
-            startTime == null ? -1 : startTime.getTime(),
-            endTime == null ? -1 : endTime.getTime());
+                startTime == null ? -1 : startTime.getTime(),
+                endTime == null ? -1 : endTime.getTime());
     }
 
     @Override
@@ -86,7 +75,7 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
     }
 
     @Override
-    public <T> void execute(final QueryResult<T> result) throws DatabaseException {
+    public <T> void execute(final QueryResult<T> result) {
         RowQuery<String, IndexColumnName> query;
         if (value == null) {
             query = keyspace.prepareQuery(cf).getKey(rowKey)
@@ -120,7 +109,6 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
                 if (endTimeMicros > 0 && timeMarked > endTimeMicros) {
                     return false;
                 }
-
                 return true;
             }
         };
@@ -148,7 +136,7 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
     protected RowQuery<String, IndexColumnName> genQuery() {
         RowQuery<String, IndexColumnName> query;
         if (value == null) {
-            query =  keyspace.prepareQuery(cf).getKey(rowKey)
+            query = keyspace.prepareQuery(cf).getKey(rowKey)
                     .withColumnRange(new RangeBuilder().setLimit(pageCount).build());
         } else {
             query = keyspace.prepareQuery(cf).getKey(rowKey)

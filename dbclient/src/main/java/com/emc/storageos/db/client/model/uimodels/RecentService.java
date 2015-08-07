@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.uimodels;
@@ -10,12 +10,12 @@ import java.net.URI;
 
 @Cf("RecentService")
 public class RecentService extends ModelObject {
-    
+
     public static final String USER_ID = "userId";
     public static final String CATALOG_SERVICE_ID = "catalogServiceId";
-    
+
     private String userId;
-    
+
     private URI catalogServiceId;
 
     @AlternateId("UserToRecentService")
@@ -39,5 +39,5 @@ public class RecentService extends ModelObject {
         this.catalogServiceId = catalogServiceId;
         setChanged(CATALOG_SERVICE_ID);
     }
-       
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.uimodels;
@@ -11,10 +11,10 @@ import java.net.URI;
 
 @Cf("ExecutionWindow")
 public class ExecutionWindow extends ModelObject implements TenantDataObject {
-    
+
     /** URI to indicate that the next execution window should be used. */
     public static final URI NEXT = URI.create("urn:storageos:ExecutionWindow:NEXT:");
-    
+
     public static final String HOUR_OF_DAY_IN_UTC = "hourOfDayInUTC";
     public static final String MINUTE_OF_DAY_IN_UTC = "mintueOfHourInUTC";
     public static final String EXECUTION_WINDOW_LENGTH = "executionWindowLength";
@@ -24,25 +24,24 @@ public class ExecutionWindow extends ModelObject implements TenantDataObject {
     public static final String DAY_OF_MONTH = "dayOfMonth";
     public static final String LAST_DAY_OF_MONTH = "lastDayOfMonth";
     public static final String TENANT = TenantDataObject.TENANT_COLUMN_NAME;
-    
-    private Integer hourOfDayInUTC;
-    
-    private Integer minuteOfHourInUTC;
-    
-    private Integer executionWindowLength;
-    
-    private String executionWindowLengthType;
-    
-    private String executionWindowType;
-    
-    private Integer dayOfWeek;
-    
-    private Integer dayOfMonth;
-    
-    private Boolean lastDayOfMonth = Boolean.FALSE;
-    
-    private String tenant;
 
+    private Integer hourOfDayInUTC;
+
+    private Integer minuteOfHourInUTC;
+
+    private Integer executionWindowLength;
+
+    private String executionWindowLengthType;
+
+    private String executionWindowType;
+
+    private Integer dayOfWeek;
+
+    private Integer dayOfMonth;
+
+    private Boolean lastDayOfMonth = Boolean.FALSE;
+
+    private String tenant;
 
     @Name(HOUR_OF_DAY_IN_UTC)
     public Integer getHourOfDayInUTC() {
@@ -125,7 +124,7 @@ public class ExecutionWindow extends ModelObject implements TenantDataObject {
         this.lastDayOfMonth = lastDayOfMonth;
         setChanged(LAST_DAY_OF_MONTH);
     }
-    
+
     @AlternateId("TenantToExecutionWindow")
     @Name(TENANT)
     public String getTenant() {
@@ -135,13 +134,13 @@ public class ExecutionWindow extends ModelObject implements TenantDataObject {
     public void setTenant(String tenant) {
         this.tenant = tenant;
         setChanged(TENANT);
-    }        
+    }
 
     /**
      * Determines if the NamedURI refers to the 'next' execution window.
      * 
      * @param id
-     *        the named URI id.
+     *            the named URI id.
      * @return true if the named URI refers to the next window.
      */
     public static boolean isNextWindow(NamedURI id) {
@@ -153,15 +152,15 @@ public class ExecutionWindow extends ModelObject implements TenantDataObject {
      * Determines if this ID corresponds to the 'next' execution window.
      * 
      * @param id
-     *        the ID.
+     *            the ID.
      * @return true if the ID refers to the next window.
      */
     public static boolean isNextWindow(URI id) {
         return NEXT.equals(id);
     }
-    
+
     @Override
     public Object[] auditParameters() {
-        return new Object[] {getLabel(), getTenant(), getId() };
-    }        
+        return new Object[] { getLabel(), getTenant(), getId() };
+    }
 }

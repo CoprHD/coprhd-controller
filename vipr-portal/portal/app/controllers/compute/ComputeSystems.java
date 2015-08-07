@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.compute;
@@ -161,11 +161,11 @@ public class ComputeSystems extends ViprResourceController {
         }
     }
 
-    @FlashException(keep=true, referrer={"create","edit"})
+    @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(ComputeSystemForm computeSystems) {
 
         computeSystems.validate("computeSystems");
-         
+
         if (Validation.hasErrors()) {
             handleError(computeSystems);
         }
@@ -192,7 +192,7 @@ public class ComputeSystems extends ViprResourceController {
         Validation.keep();
         if (computeSystems.isNew()) {
             create();
-        } 
+        }
         else {
             edit(computeSystems.id);
         }
@@ -240,7 +240,7 @@ public class ComputeSystems extends ViprResourceController {
         list();
     }
 
-    @FlashException(referrer={"listElements"})
+    @FlashException(referrer = { "listElements" })
     public static void deregisterElements(@As(",") String[] ids,
             String computeSystemId) {
         deregisterElements(uris(ids), computeSystemId);
@@ -252,7 +252,7 @@ public class ComputeSystems extends ViprResourceController {
         listElements(computeSystemId);
     }
 
-    @FlashException(referrer={"listElements"})
+    @FlashException(referrer = { "listElements" })
     public static void registerElements(@As(",") String[] ids,
             String computeSystemId) {
         registerElements(uris(ids), computeSystemId);
@@ -297,14 +297,14 @@ public class ComputeSystems extends ViprResourceController {
 
         @MaxSize(2048)
         public String ipAddress;
-        
+
         public Boolean useSSL;
-        
+
         @Required
         public Integer portNumber;
 
         public String systemType;
-        
+
         public String osInstallNetwork;
 
         @MaxSize(2048)
@@ -312,11 +312,11 @@ public class ComputeSystems extends ViprResourceController {
         public String userName;
 
         @MaxSize(2048)
-        public String password = "";
+        public String password = "";// NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
 
         @MaxSize(2048)
-        public String confirmPassword = "";
-        
+        public String confirmPassword = "";// NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
+
         public String vlanList;
 
         public ComputeSystemForm() {
@@ -334,7 +334,8 @@ public class ComputeSystems extends ViprResourceController {
             this.osInstallNetwork = computeSystem.getOsInstallNetwork();
             this.vlanList = computeSystem.getOsInstallNetwork();
             this.userName = computeSystem.getUsername();
-            this.password = ""; // the platform will never return the real password
+            this.password = ""; // the platform will never return the real password //NOSONAR
+                                // ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
             this.unregistered = RegistrationStatus.isUnregistered(computeSystem
                     .getRegistrationStatus());
 
@@ -346,7 +347,7 @@ public class ComputeSystems extends ViprResourceController {
 
         public void validate(String fieldName) {
             Validation.valid(fieldName, this);
-            
+
             if (isNew()) {
                 Validation.required(fieldName + ".ipAddress", this.ipAddress);
                 Validation.required(fieldName + ".password", this.password);
@@ -356,7 +357,7 @@ public class ComputeSystems extends ViprResourceController {
                     Validation.addError(fieldName + ".ipAddress",
                             MessagesUtils.get("computeSystem.invalid.ipAddress"));
                 }
-            } 
+            }
 
             if (!StringUtils.equals(StringUtils.trim(password),
                     StringUtils.trim(confirmPassword))) {
@@ -364,21 +365,21 @@ public class ComputeSystems extends ViprResourceController {
                         .addError(fieldName + ".confirmPassword", MessagesUtils
                                 .get("computeSystem.confirmPassword.not.match"));
             }
-            
-            if (!StringUtils.isEmpty(osInstallNetwork) && StringUtils.isNumeric(osInstallNetwork)) {            	
-            	try {
-            		int osInstall = Integer.parseInt(osInstallNetwork);
-            		if (osInstall < 1 || osInstall > 4093) {
-                		Validation.addError(fieldName + ".osInstallNetwork",
-                                MessagesUtils.get("computeSystem.invalid.osInstallNetwork"));            			
-            		}
-            	} catch (NumberFormatException e) {
-            		Validation.addError(fieldName + ".osInstallNetwork",
+
+            if (!StringUtils.isEmpty(osInstallNetwork) && StringUtils.isNumeric(osInstallNetwork)) {
+                try {
+                    int osInstall = Integer.parseInt(osInstallNetwork);
+                    if (osInstall < 1 || osInstall > 4093) {
+                        Validation.addError(fieldName + ".osInstallNetwork",
+                                MessagesUtils.get("computeSystem.invalid.osInstallNetwork"));
+                    }
+                } catch (NumberFormatException e) {
+                    Validation.addError(fieldName + ".osInstallNetwork",
                             MessagesUtils.get("computeSystem.invalid.osInstallNetwork"));
-            	}
-            	
+                }
+
             } else if (!StringUtils.isEmpty(osInstallNetwork)) {
-            	Validation.addError(fieldName + ".osInstallNetwork",
+                Validation.addError(fieldName + ".osInstallNetwork",
                         MessagesUtils.get("computeSystem.invalid.osInstallNetwork"));
             }
 
@@ -411,21 +412,21 @@ public class ComputeSystems extends ViprResourceController {
             ComputeSystemUpdate updateParam = new ComputeSystemUpdate();
             ComputeSystemRestRep origCS = ComputeSystemUtils.getComputeSystem(this.id);
             updateParam.setName(this.name);
-            //password is optional on update - but setting "" to update param gives an error
-            if (this.password != null && this.password.length()>0) {
+            // password is optional on update - but setting "" to update param gives an error
+            if (this.password != null && this.password.length() > 0) {
                 updateParam.setPassword(this.password);
             }
             updateParam.setPortNumber(this.portNumber);
             if (!this.osInstallNetwork.isEmpty()) {
                 updateParam.setOsInstallNetwork(this.osInstallNetwork);
             }
-            else if (origCS.getOsInstallNetwork()!=null) {
-            updateParam.setOsInstallNetwork(" ");
+            else if (origCS.getOsInstallNetwork() != null) {
+                updateParam.setOsInstallNetwork(" ");
             }
             if (this.vlanList != null && !this.vlanList.isEmpty()) {
                 if (vlanList.equalsIgnoreCase(VlanListTypes.NO_OSINSTALL_NONE)) {
                     updateParam.setOsInstallNetwork(" ");
-                } 
+                }
                 else {
                     updateParam.setOsInstallNetwork(this.vlanList);
                 }

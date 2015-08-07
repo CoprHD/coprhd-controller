@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.catalog.search;
@@ -17,10 +17,10 @@ import java.util.List;
  * multiple paths by chaining the .path() command or .segments() if the user has
  * an already split path segments. After the path is build the user can call either
  * category() or service() to retrieve the data from this path.
- *
+ * 
  * Examples:
- *   client.browse().path("BlockStorageServices").category();
- *   client.browse().path("BlockStorageServices/CreateBlockVolume").service();
+ * client.browse().path("BlockStorageServices").category();
+ * client.browse().path("BlockStorageServices/CreateBlockVolume").service();
  */
 public class CatalogSearchBuilder {
     private ViPRCatalogClient2 catalog;
@@ -34,13 +34,13 @@ public class CatalogSearchBuilder {
 
     /**
      * Appends a path to this builder to search.
-     *
+     * 
      * @param path '/' separated path.
      * @return This Builder
      */
     public CatalogSearchBuilder path(String path) {
         String[] segments = path.split("/");
-        for (String segment: segments) {
+        for (String segment : segments) {
             if (segment != null && !segment.equals("")) {
                 this.segments.add(segment);
             }
@@ -50,12 +50,12 @@ public class CatalogSearchBuilder {
 
     /**
      * Appends a series of path segments to the builder.
-     *
+     * 
      * @param segments segements of the path to add.
      * @return This Builder
      */
     public CatalogSearchBuilder segments(String... segments) {
-        for (String segment: segments) {
+        for (String segment : segments) {
             if (segment != null && !segment.equals("")) {
                 this.segments.add(segment);
             }
@@ -65,12 +65,12 @@ public class CatalogSearchBuilder {
 
     /**
      * Searches the build path and returns a category at this location.
-     *
+     * 
      * @return Category matching the built path.
      */
     public CatalogCategoryRestRep category() {
         CatalogCategoryRestRep parent = catalog.categories().getRootCatalogCategory(tenantId);
-        for (String segment: segments) {
+        for (String segment : segments) {
             parent = getChildCategory(parent, segment);
         }
         return parent;
@@ -78,11 +78,11 @@ public class CatalogSearchBuilder {
 
     /**
      * Searches the build path and returns a service at this location.
-     *
+     * 
      * @return Service matching the built path.
      */
     public CatalogServiceRestRep service() {
-        if (segments.size() < 1) {
+        if (segments.isEmpty()) {
             return null;
         }
 

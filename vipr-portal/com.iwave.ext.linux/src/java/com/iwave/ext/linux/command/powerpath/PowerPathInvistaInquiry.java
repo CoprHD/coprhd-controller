@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.linux.command.powerpath;
@@ -15,13 +15,13 @@ public class PowerPathInvistaInquiry extends LinuxResultsCommand<List<PowerPathD
 
     public PowerPathInvistaInquiry() {
         setCommand(CommandConstants.POWERPATHINQUIRY);
-        
+
         // add the display of the wwns
         addArgument("-invista_wwn");
-        
+
         // only display powerpath pseudo devices
         addArgument("-f_powerpath");
-        
+
         // do not display the 'progress' dots
         addArgument("-no_dots");
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.host.vcenter;
@@ -18,14 +18,16 @@ import java.util.List;
 public class VcenterList {
     private List<NamedRelatedResourceRep> vcenters;
 
-    public VcenterList() {}
-    
+    public VcenterList() {
+    }
+
     public VcenterList(List<NamedRelatedResourceRep> vcenters) {
         this.vcenters = vcenters;
     }
 
     /**
      * List of vCenter objects that exists in ViPR.
+     * 
      * @valid none
      */
     @XmlElement(name = "vcenter")

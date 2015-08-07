@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.providerfinders;
@@ -20,7 +20,7 @@ import java.net.URI;
  * Created by bibbyi1 on 3/24/2015.
  */
 public class FindProviderWithGroup implements FindProviderStrategy {
-    private static final Logger log = LoggerFactory.getLogger(FindReachableProvider.class);
+    private static final Logger log = LoggerFactory.getLogger(FindProviderWithGroup.class);
 
     private DbClient dbClient;
     private SmisCommandHelper helper;

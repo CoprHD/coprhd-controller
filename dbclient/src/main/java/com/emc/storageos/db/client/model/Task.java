@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -22,7 +22,8 @@ import java.util.StringTokenizer;
  * Represents a Resource Task
  */
 @Cf("Task")
-@NoInactiveIndex // Because ViPR will create/delete lots of this object, this prevents too many tombstones in Decommissioned index
+@NoInactiveIndex
+// Because ViPR will create/delete lots of this object, this prevents too many tombstones in Decommissioned index
 public class Task extends DataObject {
     private static final Logger _log = LoggerFactory.getLogger(Operation.class);
 
@@ -44,10 +45,10 @@ public class Task extends DataObject {
     public enum Status {
         pending, ready, error;
 
-        public static Status toStatus(String status){
-            try{
+        public static Status toStatus(String status) {
+            try {
                 return valueOf(status.toLowerCase());
-            }catch (Exception e){
+            } catch (Exception e) {
                 throw new IllegalArgumentException("status: " + status + " is not a valid status");
             }
         }
@@ -56,7 +57,7 @@ public class Task extends DataObject {
     public Task() {
     }
 
-    @NamedRelationIndex(cf="TaskResource")
+    @NamedRelationIndex(cf = "TaskResource")
     @Name("resource")
     public NamedURI getResource() {
         return resource;
@@ -83,14 +84,14 @@ public class Task extends DataObject {
     }
 
     @Name("taskStatus")
-    @AggregatedIndex(cf="AggregatedIndex",groupBy="tenant")
+    @AggregatedIndex(cf = "AggregatedIndex", groupBy = "tenant")
     public String getStatus() {
         return status;
     }
 
     public void setStatus(String status) {
         if (!isValidStatus(status)) {
-               throw new IllegalArgumentException("status: " + status + " is not a valid status");
+            throw new IllegalArgumentException("status: " + status + " is not a valid status");
         }
 
         this.status = status;
@@ -162,10 +163,10 @@ public class Task extends DataObject {
 
     /**
      * Used to indicate that a task has completed
-     *
+     * 
      * This places an entry into a timeseries index that can later be queried
-     *
-     * Do not call directly, use {@link #setEndTime(java.util.Calendar)}} instead
+     * 
+     * Do not call directly, use {@link #setEndTime(java.util.Calendar)} instead
      */
     @Name("completedFlag")
     @DecommissionedIndex("timeseriesIndex")
@@ -217,7 +218,7 @@ public class Task extends DataObject {
     }
 
     @Name("tenant")
-    @RelationIndex(type=TenantOrg.class, cf = "RelationIndex")
+    @RelationIndex(type = TenantOrg.class, cf = "RelationIndex")
     public URI getTenant() {
         return tenant;
     }
@@ -243,17 +244,19 @@ public class Task extends DataObject {
 
     /**
      * This method sets the status of the operation to "ready"
+     * 
      * @return
      */
-    public void ready(){
+    public void ready() {
         ready("Operation completed successfully");
     }
 
     /**
      * This method sets the status of the operation to "ready"
+     * 
      * @return
      */
-    public void ready(String message){
+    public void ready(String message) {
         setMessage(message);
         setStatus(Status.ready.name());
     }
@@ -273,25 +276,26 @@ public class Task extends DataObject {
 
     /**
      * This method sets the status of the operation to "error"
+     * 
      * @return
      */
-    public void error(ServiceCoded sc){
+    public void error(ServiceCoded sc) {
 
-        if(sc!=null) {
+        if (sc != null) {
             setServiceCode(sc.getServiceCode().getCode());
             setMessage(sc.getMessage());
         }
         setStatus(Status.error.name());
-        if (sc instanceof Exception){
+        if (sc instanceof Exception) {
             _log.info("Setting operation to error due to an exception");
-            _log.info("Caused by: ", (Exception)sc);
+            _log.info("Caused by: ", (Exception) sc);
         }
     }
 
     /**
      * Checks to see whether the provided status is one of the defined valid
      * status(es).
-     *
+     * 
      * @param statusStr - Status String
      * @return true, if the provided status is valid. otherwise false.
      */

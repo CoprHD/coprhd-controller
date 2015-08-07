@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.security.helpers;
@@ -31,7 +21,6 @@ import com.sun.jersey.api.client.ClientRequest;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.filter.ClientFilter;
 
-
 public class ServiceClientRetryFilter extends ClientFilter {
     private static final Logger log = LoggerFactory
             .getLogger(ServiceClientRetryFilter.class);
@@ -51,7 +40,7 @@ public class ServiceClientRetryFilter extends ClientFilter {
     public ClientResponse handle(ClientRequest clientRequest)
             throws ClientHandlerException {
         int i = 0;
-        Throwable cause = null; 
+        Throwable cause = null;
 
         int sleepMs = 0;
         while (i < maxRetries) {
@@ -65,13 +54,13 @@ public class ServiceClientRetryFilter extends ClientFilter {
                     log.error("401 Unauthorized, Please check the secret_key and certificate_chain.");
                     throw APIException.unauthorized.requestNotAuthorized();
                 }
-                if (status != ClientResponse.Status.SERVICE_UNAVAILABLE ) {
+                if (status != ClientResponse.Status.SERVICE_UNAVAILABLE) {
                     return response;
                 }
                 log.info("remote service is unavailable req={} status={}", clientRequest.getURI(), status);
             } catch (ClientHandlerException e) {
-            	StackTraceElement[] stackTrace = e.getStackTrace();
-            	
+                StackTraceElement[] stackTrace = e.getStackTrace();
+
                 log.info("jersey client error. StackTrace=" + Arrays.toString(stackTrace));
                 Class clazz = e.getCause().getClass();
                 if (clazz == ConnectException.class) {
@@ -87,15 +76,17 @@ public class ServiceClientRetryFilter extends ClientFilter {
                 } else {
                     cause = e;
                     break;
-                }         
-                cause = e; 
+                }
+                cause = e;
             }
-            sleepMs = (i-1) * retryInterval; 
+            sleepMs = (i - 1) * retryInterval;
             log.info("request failed, retry {} times", i);
             if (sleepMs > 0) {
                 try {
                     Thread.sleep(sleepMs);
-                } catch (InterruptedException ignore) {}
+                } catch (InterruptedException ignore) {
+                    log.error("Unexpected Error", ignore);
+                }
             }
         }
         throw new ClientHandlerException("Request retries limit exceeded.", cause);

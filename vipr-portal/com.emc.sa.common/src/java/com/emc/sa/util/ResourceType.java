@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.util;
@@ -16,7 +16,7 @@ public enum ResourceType {
     FILE_SHARE("FileShare"),
     FILE_SNAPSHOT("Snapshot"),
     QUOTA_DIRECTORY("QuotaDirectory"),
-    BLOCK_SNAPSHOT("BlockSnapshot"), 
+    BLOCK_SNAPSHOT("BlockSnapshot"),
     BLOCK_CONTINUOUS_COPY("BlockMirror"),
     VPLEX_CONTINUOUS_COPY("VplexMirror"),
     PROJECT("Project"),
@@ -62,7 +62,7 @@ public enum ResourceType {
         }
         return UNKNOWN;
     }
-    
+
     public static ResourceType fromResourceId(String resourceId) {
         Matcher m = RESOURCE_ID.matcher(resourceId);
         String label = m.find() ? m.group(1) : null;
@@ -79,18 +79,18 @@ public enum ResourceType {
 
         return UNKNOWN;
     }
-    
+
     public static boolean isType(ResourceType resourceType, String resourceId) {
         if (resourceType != null && StringUtils.isNotBlank(resourceId)) {
             return resourceType.equals(ResourceType.fromResourceId(resourceId));
         }
         return false;
     }
-    
+
     public static boolean isType(ResourceType resourceType, URI resourceId) {
         if (resourceId != null) {
-            return isType(resourceType, resourceId.toString());            
+            return isType(resourceType, resourceId.toString());
         }
         return false;
-    }    
+    }
 }

@@ -1,9 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
-
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,7 +18,6 @@ import play.i18n.Messages;
 import util.datatable.DataTable;
 
 import com.emc.storageos.model.compute.ComputeSystemRestRep;
-
 
 public class ComputeSystemsDataTable extends DataTable {
 
@@ -48,7 +46,6 @@ public class ComputeSystemsDataTable extends DataTable {
         public Integer port;
         public String registrationStatus;
 
-
         public ComputeSystemsInfo() {
         }
 
@@ -61,23 +58,24 @@ public class ComputeSystemsDataTable extends DataTable {
             this.osInstallNetworkDisplay = computeSystem.getOsInstallNetwork();
             if (StringUtils.isBlank(this.osInstallNetworkDisplay)) {
                 this.osInstallNetworkDisplay = VlanListTypes.NO_OSINSTALL_NONE;
-            } 
+            }
             else if (StringUtils.isNotBlank(this.osInstallNetworkDisplay) && StringUtils.isNotBlank(computeSystem.getVlans())) {
                 boolean found = false;
-                //verify the vlan is good
+                // verify the vlan is good
                 List<String> vlanList = new ArrayList<String>(Arrays.asList(computeSystem.getVlans().split(",")));
                 for (String vlan : vlanList) {
                     if (vlan.equals(computeSystem.getOsInstallNetwork())) {
                         found = true;
                         break;
-                     }
+                    }
                 }
                 if (!found) {
-                    this.osInstallNetworkDisplay = Messages.get("computeSystem.invalidOsInstallNetwork", computeSystem.getOsInstallNetwork());
+                    this.osInstallNetworkDisplay = Messages.get("computeSystem.invalidOsInstallNetwork",
+                            computeSystem.getOsInstallNetwork());
                 }
             }
             this.port = computeSystem.getPortNumber();
-            this.userName = computeSystem.getUsername();           
+            this.userName = computeSystem.getUsername();
             this.systemType = ComputeSystemTypes.getDisplayValue(computeSystem.getSystemType());
             this.registrationStatus = computeSystem.getRegistrationStatus();
         }

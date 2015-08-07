@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.ibm;
 
@@ -24,12 +14,12 @@ public interface IBMSmisConstants extends SmisConstants {
     static final String DATA_TYPE_SETTING = "IBMTSDS_DataTypeSetting";
     static final String SYSTEM_BLOCK_SIZE = "IBMTSDS:SystemBlockSize";
     static final String CP_QUANTITY = "Quantity";
-    
+
     static final String CP_VIRTUAL_SPACE_CONSUMED = "VirtualSpaceConsumed";
     static final String[] PS_POOL_CAPACITIES = new String[] { CP_REMAININGMANAGEDSPACE, CP_VIRTUAL_SPACE_CONSUMED };
     static final String CP_RETURN_CODE = "ReturnCode";
     static final String CP_RETURN_CODES = "ReturnCodes";
-    
+
     static final String STORAGE_HARDWARE_ID_MANAGEMENT_SERVICE_NAME = "StorageHardwareIDManagementService for ";
     static final String CP_SYSTEM_SPECIFIC_COLLECTION = "IBMTSDS_SystemSpecificCollection";
     static final String CP_COLLECTION = "Collection";
@@ -44,19 +34,19 @@ public interface IBMSmisConstants extends SmisConstants {
 
     static final String CONTROLLER_CONFIGURATION_SERVICE_NAME = "ControllerConfigurationService for ";
     static final String CP_SCSI_PROTOCOL_CONTROLLER = "IBMTSDS_SCSIProtocolController";
-        
+
     static final String CP_PROTOCOL_CONTROLLER_FOR_PORT = "CIM_ProtocolControllerForPort";
     static final String CP_LOGICALPORT = "CIM_LogicalPort";
     static final String[] PS_CNTRL_NAME_AND_ID = new String[] { CP_NAME, CP_SYSTEM_NAME, CP_DEVICE_ID };
-    
+
     static final String CP_PERMANENT_ADDRESS = "PermanentAddress";
-    static final String[] PS_PERMANENT_ADDRESS = new String[] { CP_PERMANENT_ADDRESS };    
+    static final String[] PS_PERMANENT_ADDRESS = new String[] { CP_PERMANENT_ADDRESS };
     static final String PORT_NETWORK_ID = "portNetworkId";
-    
+
     static final String EXPOSE_PATHS = "ExposePaths";
     static final String HIDE_PATHS = "HidePaths";
     static final String DELETE_PROTOCOL_CONTROLLER = "DeleteProtocolController";
-    
+
     static final String REPLICATION_SERVICE_NAME = "ReplicationService for ";
     static final String CP_CONSISTENCY_GROUP = "IBMTSDS_ConsistencyGroup";
     static final String CP_SNAPSHOT_GROUP = "IBMTSDS_SnapshotGroup";

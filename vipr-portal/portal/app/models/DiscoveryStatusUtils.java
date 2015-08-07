@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models;
@@ -104,12 +104,12 @@ public class DiscoveryStatusUtils {
             return null;
         }
     }
-    
+
     public static String getCompatibilityStatus(DiscoveredSystemObjectRestRep data) {
-    	return data.getCompatibilityStatus();
+        return data.getCompatibilityStatus();
     }
-    
+
     public static String getCompatibilityStatus(StorageProviderRestRep data) {
-    	return data.getCompatibilityStatus();
+        return data.getCompatibilityStatus();
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -23,8 +23,8 @@ public class AssetOptionUtils {
 
     public static List<AssetOption> getAssetOptions(String assetType) {
         return getAssetOptions(assetType, Collections.<String, String> emptyMap());
-    }    
-    
+    }
+
     public static List<AssetOption> getAssetOptions(String assetType, Map<String, String> assetParameters) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         AssetOptionsRequest request = new AssetOptionsRequest();
@@ -39,5 +39,5 @@ public class AssetOptionUtils {
         request.setTenantId(uri(Models.currentAdminTenant()));
         request.setAvailableAssetTypes(availableAssetTypes);
         return catalog.assetOptions().getAssetDependencies(assetType, availableAssetTypes);
-    }    
+    }
 }

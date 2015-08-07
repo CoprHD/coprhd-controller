@@ -1,14 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2013-2014 EMC Corporation All Rights Reserved
- * 
- * This software contains the intellectual property of EMC Corporation or is licensed to
- * EMC Corporation from third parties. Use of this software and the intellectual property
- * contained therein is expressly limited to the terms and conditions of the License
- * Agreement under which it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.keystore;
 
@@ -28,7 +20,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.RSAPrivateCrtKey;
 import java.util.*;
 
 import com.emc.storageos.security.ApplicationContextUtil;
@@ -58,19 +49,19 @@ public class KeyCertificatePairGeneratorTest {
     static final String LOCALHOST_IP = "LOCALHOST_IP";
     private static final String CERTIFICATE_CRT_PATH =
             System.getProperty("user.dir")
-            + "/src/main/test/com/emc/storageos/security/keystore/RSACorporateServerCAv2.crt";
+                    + "/src/main/test/com/emc/storageos/security/keystore/RSACorporateServerCAv2.crt";
     private static final String CERTIFICATE_PEM_PATH =
             System.getProperty("user.dir")
-            + "/src/main/test/com/emc/storageos/security/keystore/RSACorporateServerCAv2.pem";
+                    + "/src/main/test/com/emc/storageos/security/keystore/RSACorporateServerCAv2.pem";
     private static final String CERTIFICATE_DER_PATH =
             System.getProperty("user.dir")
-            + "/src/main/test/com/emc/storageos/security/keystore/RSACorporateServerCAv2.der";
+                    + "/src/main/test/com/emc/storageos/security/keystore/RSACorporateServerCAv2.der";
     private static final String CERTIFICATE_P7B_PATH =
             System.getProperty("user.dir")
-            + "/src/main/test/com/emc/storageos/security/keystore/RSACorporateServerCAv2.p7b";
+                    + "/src/main/test/com/emc/storageos/security/keystore/RSACorporateServerCAv2.p7b";
     private static final String CERTIFICATE_P7C_PATH =
             System.getProperty("user.dir")
-            + "/src/main/test/com/emc/storageos/security/keystore/RSACorporateServerCAv2.p7c";
+                    + "/src/main/test/com/emc/storageos/security/keystore/RSACorporateServerCAv2.p7c";
     private static final String CERTIFICATE_SHA_FINGERPRINT =
             "d67b3f1a57ec78fb2b9c1c3a8acdf789406dcc5a";
     private static final BigInteger CERTIFICATE_SERIAL_NUMBER = new BigInteger(
@@ -162,7 +153,7 @@ public class KeyCertificatePairGeneratorTest {
         defaultValues = new KeyCertificateAlgorithmValuesHolder(coordinatorClient);
 
         String envVar = System.getenv(LOCALHOST_IP);
-        if(StringUtils.isNotBlank(envVar)) {
+        if (StringUtils.isNotBlank(envVar)) {
             localhostIP = envVar;
         }
         InetAddress localhost = InetAddress.getByName(localhostIP);
@@ -208,7 +199,7 @@ public class KeyCertificatePairGeneratorTest {
             Assert.fail();
         } catch (BadRequestException e) {
             System.err.println(e.getMessage());
-            System.err.println(e);  
+            System.err.println(e);
             Assert.fail();
         }
 
@@ -263,7 +254,7 @@ public class KeyCertificatePairGeneratorTest {
         try {
             certChain =
                     KeyCertificatePairGenerator
-                    .getCertificateChainFromString(p7bCertificate);
+                            .getCertificateChainFromString(p7bCertificate);
             Assert.fail();
         } catch (CertificateException e) {
             // we won't support p7c encoded certificate chains with more than 1
@@ -276,7 +267,7 @@ public class KeyCertificatePairGeneratorTest {
         try {
             certChain =
                     KeyCertificatePairGenerator
-                    .getCertificateChainFromString(p7cCertificate);
+                            .getCertificateChainFromString(p7cCertificate);
             Assert.fail();
         } catch (CertificateException e) {
             // we won't support p7c encoded certificate chains with more than 1
@@ -291,7 +282,7 @@ public class KeyCertificatePairGeneratorTest {
      * @throws IOException
      */
     private String getStringFromFile(String filePath) throws FileNotFoundException,
-    IOException {
+            IOException {
         File file;
         FileInputStream fis;
         byte[] data;
@@ -303,10 +294,9 @@ public class KeyCertificatePairGeneratorTest {
         return new String(data);
     }
 
-
     @Test
     public void testGetCertificateChainAsString() throws IOException,
-    CertificateException {
+            CertificateException {
         String pemCertificate = getStringFromFile(CERTIFICATE_PEM_PATH);
         Certificate[] pemCertChain =
                 KeyCertificatePairGenerator.getCertificateChainFromString(pemCertificate);
@@ -314,29 +304,30 @@ public class KeyCertificatePairGeneratorTest {
                 KeyCertificatePairGenerator.getCertificateChainAsString(pemCertChain);
         Certificate[] generatedPemCertChain =
                 KeyCertificatePairGenerator
-                .getCertificateChainFromString(generatedPemCertificate);
+                        .getCertificateChainFromString(generatedPemCertificate);
 
         Assert.assertArrayEquals(pemCertChain, generatedPemCertChain);
     }
-/*
-    @Test
-    public void testGetKeyBytesFromString() throws FileNotFoundException,
-    SecurityException, NoSuchAlgorithmException, Exception {
-        byte[] keyBytes =
-                KeyCertificatePairGenerator.loadPrivateKeyFromPEMString(RSA_PRIVATE_KEY);
-        RSAPrivateCrtKey rsaKey =
-                (RSAPrivateCrtKey) KeyCertificatePairGenerator
-                .loadPrivateKeyFromBytes(keyBytes);
-        Assert.assertEquals(KEY_MODULUS, rsaKey.getModulus());
-        Assert.assertEquals(KEY_PUBLIC_EXPONENT, rsaKey.getPublicExponent());
-        Assert.assertEquals(KEY_PRIVATE_EXPONENT, rsaKey.getPrivateExponent());
-        Assert.assertEquals(KEY_PRIME_P, rsaKey.getPrimeP());
-        Assert.assertEquals(KEY_PRIME_Q, rsaKey.getPrimeQ());
-        Assert.assertEquals(KEY_PRIME_EXPONENT_P, rsaKey.getPrimeExponentP());
-        Assert.assertEquals(KEY_PRIME_EXPONENT_Q, rsaKey.getPrimeExponentQ());
-        Assert.assertEquals(KEY_CRT_COEFFICIENT, rsaKey.getCrtCoefficient());
-    }
-*/
+
+    /*
+     * @Test
+     * public void testGetKeyBytesFromString() throws FileNotFoundException,
+     * SecurityException, NoSuchAlgorithmException, Exception {
+     * byte[] keyBytes =
+     * KeyCertificatePairGenerator.loadPrivateKeyFromPEMString(RSA_PRIVATE_KEY);
+     * RSAPrivateCrtKey rsaKey =
+     * (RSAPrivateCrtKey) KeyCertificatePairGenerator
+     * .loadPrivateKeyFromBytes(keyBytes);
+     * Assert.assertEquals(KEY_MODULUS, rsaKey.getModulus());
+     * Assert.assertEquals(KEY_PUBLIC_EXPONENT, rsaKey.getPublicExponent());
+     * Assert.assertEquals(KEY_PRIVATE_EXPONENT, rsaKey.getPrivateExponent());
+     * Assert.assertEquals(KEY_PRIME_P, rsaKey.getPrimeP());
+     * Assert.assertEquals(KEY_PRIME_Q, rsaKey.getPrimeQ());
+     * Assert.assertEquals(KEY_PRIME_EXPONENT_P, rsaKey.getPrimeExponentP());
+     * Assert.assertEquals(KEY_PRIME_EXPONENT_Q, rsaKey.getPrimeExponentQ());
+     * Assert.assertEquals(KEY_CRT_COEFFICIENT, rsaKey.getCrtCoefficient());
+     * }
+     */
     /**
      * @param x509Certificate
      */
@@ -355,7 +346,7 @@ public class KeyCertificatePairGeneratorTest {
         checkNotBefore(x509Certificate.getNotBefore());
 
         Assert.assertEquals(x509Certificate.getNotAfter().getTime() - x509Certificate.getNotBefore().getTime(),
-                valuesHolder.getCertificateValidityInDays() * 86400000l);
+                valuesHolder.getCertificateValidityInDays() * 86400000L);
         String issuerDN = null;
         if (StringUtils.isNotBlank(localhostName)) {
             issuerDN =
@@ -375,7 +366,7 @@ public class KeyCertificatePairGeneratorTest {
 
     private void checkNotBefore(Date notBefore) {
         long diff = new Date().getTime() - notBefore.getTime();
-        long daysDiff = diff/24/3600/1000;
+        long daysDiff = diff / 24 / 3600 / 1000;
         if (diff < 13) {
             Assert.fail("The diff of NotBefore from today should be > 13 days but now it is " + daysDiff);
         }

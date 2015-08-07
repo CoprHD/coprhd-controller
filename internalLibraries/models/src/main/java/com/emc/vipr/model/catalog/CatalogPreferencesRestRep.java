@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -21,8 +21,8 @@ import com.emc.storageos.model.RestLinkRep;
 public class CatalogPreferencesRestRep extends DataObjectRestRep {
 
     private String approverEmail;
-    private String approvalUrl;    
-    
+    private String approvalUrl;
+
     public CatalogPreferencesRestRep() {
 
     }

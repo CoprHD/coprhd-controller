@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -34,7 +34,7 @@ public abstract class ProjectResources<T extends DataObjectRestRep> extends Abst
      * Finds the list of resources in the given project.
      * 
      * @param project
-     *        the project.
+     *            the project.
      * @return the list of resources.
      */
     public List<T> findByProject(ProjectRestRep project) {
@@ -45,9 +45,9 @@ public abstract class ProjectResources<T extends DataObjectRestRep> extends Abst
      * Finds the list of resources in the given project, optionally filtering the results.
      * 
      * @param project
-     *        the project.
+     *            the project.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of resources.
      */
     public List<T> findByProject(ProjectRestRep project, ResourceFilter<T> filter) {
@@ -58,7 +58,7 @@ public abstract class ProjectResources<T extends DataObjectRestRep> extends Abst
      * Finds the list of resources in the given project by ID.
      * 
      * @param projectId
-     *        the ID of the project.
+     *            the ID of the project.
      * @return the list of resources.
      */
     public List<T> findByProject(URI projectId) {
@@ -69,9 +69,9 @@ public abstract class ProjectResources<T extends DataObjectRestRep> extends Abst
      * Finds the list of resources in the given project by ID, optionally filtering the results.
      * 
      * @param projectId
-     *        the ID of the project.
+     *            the ID of the project.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of resources.
      */
     public List<T> findByProject(URI projectId, ResourceFilter<T> filter) {

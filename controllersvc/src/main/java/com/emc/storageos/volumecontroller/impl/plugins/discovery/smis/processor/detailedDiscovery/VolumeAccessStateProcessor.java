@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014-2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014-2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery;
 
@@ -28,7 +18,6 @@ import javax.cim.UnsignedInteger32;
 import javax.wbem.CloseableIterator;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
-
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,35 +41,36 @@ import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.
  * we don't have any other option again to get Volumes from Pools.
  */
 public class VolumeAccessStateProcessor extends StorageProcessor {
-	
-	private Logger _logger = LoggerFactory.getLogger(VolumeAccessStateProcessor.class);
-	private List<Object> _args;
-	private DbClient _dbClient;
+
+    private Logger _logger = LoggerFactory.getLogger(VolumeAccessStateProcessor.class);
+    private List<Object> _args;
+    private DbClient _dbClient;
     private PartitionManager _partitionManager;
-    
-    List<UnManagedVolume> _unManagedVolumesUpdate  = null;
+
+    List<UnManagedVolume> _unManagedVolumesUpdate = null;
     Set<URI> unManagedVolumesReturnedFromProvider = new HashSet<URI>();
-    
-    
+
     public void setPartitionManager(PartitionManager partitionManager) {
         _partitionManager = partitionManager;
     }
 
-	@Override
-	public void processResult(Operation operation, Object resultObj,
-			Map<String, Object> keyMap) throws BaseCollectionException {
-		CloseableIterator<CIMInstance> volumeInstances = null;
+    @Override
+    public void processResult(Operation operation, Object resultObj,
+            Map<String, Object> keyMap) throws BaseCollectionException {
+        CloseableIterator<CIMInstance> volumeInstances = null;
         try {
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
             WBEMClient client = (WBEMClient) keyMap.get(Constants._cimClient);
-            _unManagedVolumesUpdate  = new ArrayList<UnManagedVolume>();
+            _unManagedVolumesUpdate = new ArrayList<UnManagedVolume>();
             CIMObjectPath storagePoolPath = getObjectPathfromCIMArgument(_args);
             String poolNativeGuid = NativeGUIDGenerator
                     .generateNativeGuidForPool(storagePoolPath);
             StoragePool pool = checkStoragePoolExistsInDB(poolNativeGuid, _dbClient);
-            if(pool == null){
-            	_logger.error("Skipping unmanaged volume discovery of Access Sattes as the storage pool with path {} doesn't exist in ViPR",storagePoolPath.toString());
-            	return;
+            if (pool == null) {
+                _logger.error(
+                        "Skipping unmanaged volume discovery of Access Sattes as the storage pool with path {} doesn't exist in ViPR",
+                        storagePoolPath.toString());
+                return;
             }
             EnumerateResponse<CIMInstance> volumeInstanceChunks = (EnumerateResponse<CIMInstance>) resultObj;
             volumeInstances = volumeInstanceChunks.getResponses();
@@ -92,28 +82,28 @@ public class VolumeAccessStateProcessor extends StorageProcessor {
                         volumeInstanceChunks.getContext(), new UnsignedInteger32(BATCH_SIZE));
                 processVolumes(volumeInstanceChunks.getResponses(), keyMap, operation);
             }
-            if (null != _unManagedVolumesUpdate && _unManagedVolumesUpdate.size() > 0) {
+            if (null != _unManagedVolumesUpdate && !_unManagedVolumesUpdate.isEmpty()) {
                 _partitionManager.updateInBatches(_unManagedVolumesUpdate,
                         getPartitionSize(keyMap), _dbClient, "UnManagedVolume");
             }
-            
-        }catch(Exception e) {
-        	_logger.error("Discovering Access States of unManaged Volumes failed",e);
+
+        } catch (Exception e) {
+            _logger.error("Discovering Access States of unManaged Volumes failed", e);
         } finally {
-        	volumeInstances.close();
+            volumeInstances.close();
         }
-		
-	}
-	
-	private void processVolumes(Iterator<CIMInstance> it,
+
+    }
+
+    private void processVolumes(Iterator<CIMInstance> it,
             Map<String, Object> keyMap, Operation operation) {
 
         while (it.hasNext()) {
-            
+
             try {
-            	CIMInstance volumeInstance = it.next();
+                CIMInstance volumeInstance = it.next();
                 CIMObjectPath volumePath = volumeInstance.getObjectPath();
-                //TODO add logic to get Access
+                // TODO add logic to get Access
                 String access = null;
                 Object value = volumeInstance.getPropertyValue(SupportedVolumeInformation.ACCESS.toString());
                 if (value != null) {
@@ -139,44 +129,44 @@ public class VolumeAccessStateProcessor extends StorageProcessor {
                 String unManagedVolumeNativeGuid = getUnManagedVolumeNativeGuidFromVolumePath(volumePath);
                 UnManagedVolume unManagedVolume = checkUnManagedVolumeExistsInDB(
                         unManagedVolumeNativeGuid, _dbClient);
-               if (null != unManagedVolume) {
-                   _logger.debug("Adding Access {}",unManagedVolumeNativeGuid);
-                   StringSet accessSet = new StringSet();
-                   if (access != null) {
-                       accessSet.add(access);
-                   }
-                   if ( null == unManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.ACCESS.toString())) {
-                	   unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.ACCESS.toString(), accessSet);
-                   } else {
-                	   unManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.ACCESS.toString()).replace(accessSet);
-                   }
-                   
-                   if ( null == unManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.STATUS_DESCRIPTIONS.toString())) {
-                	   unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.STATUS_DESCRIPTIONS.toString(), statusDesc);
-                   } else {
-                	   unManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.STATUS_DESCRIPTIONS.toString()).replace(statusDesc);
-                   }
-                  
-                   _unManagedVolumesUpdate.add(unManagedVolume);
-               }
-               
-                
+                if (null != unManagedVolume) {
+                    _logger.debug("Adding Access {}", unManagedVolumeNativeGuid);
+                    StringSet accessSet = new StringSet();
+                    if (access != null) {
+                        accessSet.add(access);
+                    }
+                    if (null == unManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.ACCESS.toString())) {
+                        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.ACCESS.toString(), accessSet);
+                    } else {
+                        unManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.ACCESS.toString()).replace(accessSet);
+                    }
+
+                    if (null == unManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.STATUS_DESCRIPTIONS.toString())) {
+                        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.STATUS_DESCRIPTIONS.toString(), statusDesc);
+                    } else {
+                        unManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.STATUS_DESCRIPTIONS.toString())
+                                .replace(statusDesc);
+                    }
+
+                    _unManagedVolumesUpdate.add(unManagedVolume);
+                }
+
                 if (_unManagedVolumesUpdate.size() > BATCH_SIZE) {
                     _partitionManager.updateInBatches(_unManagedVolumesUpdate,
                             getPartitionSize(keyMap), _dbClient, "UnManagedVolume");
                     _unManagedVolumesUpdate.clear();
                 }
-              
+
             } catch (Exception ex) {
-                _logger.error("Processing UnManaged Storage Volume",ex);
+                _logger.error("Processing UnManaged Storage Volume", ex);
             }
         }
     }
 
-	@Override
-	protected void setPrerequisiteObjects(List<Object> inputArgs)
-			throws BaseCollectionException {
-		_args = inputArgs;
-	}
+    @Override
+    protected void setPrerequisiteObjects(List<Object> inputArgs)
+            throws BaseCollectionException {
+        _args = inputArgs;
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 /**
@@ -38,8 +38,7 @@ public class IGroup {
         // Invoke
         try {
             server.invokeElem(elem);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             String msg = "Failed to create initiator group: " + name;
             log.error(msg, e);
             throw new NetAppException(msg, e);
@@ -61,8 +60,7 @@ public class IGroup {
         // Invoke
         try {
             server.invokeElem(elem);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             String msg = "Failed to destroy initiator group: " + name;
             log.error(msg, e);
             throw new NetAppException(msg, e);
@@ -79,8 +77,7 @@ public class IGroup {
         // Invoke
         try {
             server.invokeElem(elem);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             String msg = "Failed to add initiator '" + initiator + "' to group '" + name + "'";
             log.error(msg, e);
             throw new NetAppException(msg, e);
@@ -97,8 +94,7 @@ public class IGroup {
         // Invoke
         try {
             server.invokeElem(elem);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             String msg = "Failed to remove initiator '" + initiator + "' from group '" + name + "'";
             log.error(msg, e);
             throw new NetAppException(msg, e);
@@ -117,8 +113,7 @@ public class IGroup {
         NaElement result = null;
         try {
             result = server.invokeElem(elem).getChildByName("initiator-groups");
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             String msg = "Failed to list initiator groups";
             log.error(msg, e);
             throw new NetAppException(msg, e);
@@ -142,7 +137,7 @@ public class IGroup {
 
             iGroups.add(info);
         }
-        
+
         return iGroups;
     }
 }

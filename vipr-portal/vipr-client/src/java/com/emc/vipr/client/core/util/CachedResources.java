@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core.util;
@@ -27,7 +27,7 @@ import com.emc.vipr.client.exceptions.ViPRHttpException;
  * another type.
  * 
  * @param <T>
- *        the resource type.
+ *            the resource type.
  */
 public class CachedResources<T extends DataObjectRestRep> {
     private static final int NOT_FOUND = 404;
@@ -43,7 +43,7 @@ public class CachedResources<T extends DataObjectRestRep> {
      * caching and returning a null value.
      * 
      * @param id
-     *        the resource ID.
+     *            the resource ID.
      * @return the resource.
      */
     public T get(URI id) {
@@ -56,8 +56,7 @@ public class CachedResources<T extends DataObjectRestRep> {
         try {
             T value = cache(resources.get(id));
             return value;
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == NOT_FOUND) {
                 cache.put(id, null);
                 return null;
@@ -70,7 +69,7 @@ public class CachedResources<T extends DataObjectRestRep> {
      * Gets a list resource by reference, first checking if it is already in the cache.
      * 
      * @param ref
-     *        the resource reference.
+     *            the resource reference.
      * @return the resource.
      */
     public T get(RelatedResourceRep ref) {
@@ -82,7 +81,7 @@ public class CachedResources<T extends DataObjectRestRep> {
      * <code>getByRefs(refs, null)</code>.
      * 
      * @param refs
-     *        the resource references.
+     *            the resource references.
      * @return the list of resources.
      * 
      * @see #getByRefs(Collection, ResourceFilter)
@@ -96,9 +95,9 @@ public class CachedResources<T extends DataObjectRestRep> {
      * filtered as they are retrieved.
      * 
      * @param refs
-     *        the resource references.
+     *            the resource references.
      * @param filter
-     *        the filter to apply (may be null).
+     *            the filter to apply (may be null).
      * @return the list of resources.
      */
     public List<T> getByRefs(Collection<? extends RelatedResourceRep> refs, ResourceFilter<T> filter) {
@@ -106,11 +105,10 @@ public class CachedResources<T extends DataObjectRestRep> {
     }
 
     /**
-     * Gets a list of resources by IDs, checking the cache for each. This is a convenience method for
-     * <code>getByIds(ids, null)</code>.
+     * Gets a list of resources by IDs, checking the cache for each. This is a convenience method for <code>getByIds(ids, null)</code>.
      * 
      * @param ids
-     *        the resource IDs.
+     *            the resource IDs.
      * @return the resources.
      * 
      * @see #getByIds(Collection, ResourceFilter)
@@ -124,9 +122,9 @@ public class CachedResources<T extends DataObjectRestRep> {
      * as they are retrieved.
      * 
      * @param ids
-     *        the resource IDs.
+     *            the resource IDs.
      * @param filter
-     *        the filter to apply (may be null).
+     *            the filter to apply (may be null).
      * @return the resources.
      */
     public List<T> getByIds(Collection<URI> ids, ResourceFilter<T> filter) {
@@ -150,7 +148,7 @@ public class CachedResources<T extends DataObjectRestRep> {
             }
         }
         // Fetch any missing values and store them into the cache
-        if (fetchIds.size() > 0) {
+        if (!fetchIds.isEmpty()) {
             List<T> results = resources.getByIds(fetchIds, filter);
             for (T result : results) {
                 values.add(cache(result));
@@ -163,7 +161,7 @@ public class CachedResources<T extends DataObjectRestRep> {
      * Determines if the cache contains the given resource by ID
      * 
      * @param id
-     *        resource ID.
+     *            resource ID.
      * @return true if the cache contains the resource.
      */
     public boolean isCached(URI id) {
@@ -174,7 +172,7 @@ public class CachedResources<T extends DataObjectRestRep> {
      * Gets the resource from the cache only.
      * 
      * @param id
-     *        the resource ID.
+     *            the resource ID.
      * @return the cached resource.
      */
     public T getCached(URI id) {
@@ -185,7 +183,7 @@ public class CachedResources<T extends DataObjectRestRep> {
      * Adds the resource to the cache.
      * 
      * @param value
-     *        the resource to cache.
+     *            the resource to cache.
      * @return the resource.
      */
     protected T cache(T value) {
@@ -206,7 +204,7 @@ public class CachedResources<T extends DataObjectRestRep> {
      * Removes a resource from the cache.
      * 
      * @param id
-     *        the resource ID.
+     *            the resource ID.
      * @return the previously cached value.
      */
     public T remove(URI id) {
@@ -217,7 +215,7 @@ public class CachedResources<T extends DataObjectRestRep> {
      * Removes a resource from the cache.
      * 
      * @param ref
-     *        the resource reference.
+     *            the resource reference.
      * @return the previously cached value.
      */
     public T remove(RelatedResourceRep ref) {

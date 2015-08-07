@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.windows;
@@ -44,7 +44,7 @@ public class UnmountAndDeleteBlockVolumeService extends WindowsService {
         unmountBlockVolumeHelpers.get(0).unmountVolumes();
 
         BlockStorageUtils.removeVolumes(uris(volumeIds));
-        
+
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());
         }

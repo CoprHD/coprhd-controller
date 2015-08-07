@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -75,7 +75,7 @@ public class StorageTiers extends AbstractCoreBulkResources<StorageTierRestRep> 
      * <tt>getByRefs(list(), filter)</tt>.
      * 
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of all storage tiers.
      */
     @Override
@@ -90,7 +90,7 @@ public class StorageTiers extends AbstractCoreBulkResources<StorageTierRestRep> 
      * API Call: <tt>GET /vdc/storage-pools/{storagePoolId}/storage-tiers</tt>
      * 
      * @param storagePoolId
-     *        the ID of the storage pool.
+     *            the ID of the storage pool.
      * @return the list of storage tier references.
      */
     public List<NamedRelatedResourceRep> listByStoragePool(URI storagePoolId) {
@@ -104,7 +104,7 @@ public class StorageTiers extends AbstractCoreBulkResources<StorageTierRestRep> 
      * <tt>getByRefs(listByStoragePool(id))</tt>.
      * 
      * @param id
-     *        the ID of the storage pool.
+     *            the ID of the storage pool.
      * @return the list of storage tiers.
      */
     public List<StorageTierRestRep> getByStoragePool(URI id) {
@@ -118,7 +118,7 @@ public class StorageTiers extends AbstractCoreBulkResources<StorageTierRestRep> 
      * API Call: <tt>GET /vdc/auto-tier-policy/{autoTierPolicyId}/storage-tiers</tt>
      * 
      * @param autoTierPolicyId
-     *        the ID of the auto tier policy.
+     *            the ID of the auto tier policy.
      * @return the list of storage pool references.
      */
     public List<NamedRelatedResourceRep> listByAutoTieringPolicy(URI autoTierPolicyId) {
@@ -132,7 +132,7 @@ public class StorageTiers extends AbstractCoreBulkResources<StorageTierRestRep> 
      * <tt>getByRefs(listByAutoTieringPolicy(id))</tt>
      * 
      * @param id
-     *        the ID of the auto tier policy.
+     *            the ID of the auto tier policy.
      * @return the list of storage tiers.
      */
     public List<StorageTierRestRep> getByAutoTieringPolicy(URI id) {

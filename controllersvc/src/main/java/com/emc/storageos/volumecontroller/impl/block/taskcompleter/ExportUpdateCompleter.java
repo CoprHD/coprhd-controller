@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
@@ -34,10 +24,10 @@ import com.emc.storageos.volumecontroller.BlockExportController;
 
 /**
  * Completer for {@link BlockExportController#exportGroupUpdate(URI, Map, List, List, List, String)}.
- * In order for this call to be repeatable, the export group is updated only when the 
+ * In order for this call to be repeatable, the export group is updated only when the
  * call. completes successfully. It is the completer task to update the export group
  * when the job status is ready.
- *
+ * 
  */
 public class ExportUpdateCompleter extends ExportTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(ExportUpdateCompleter.class);
@@ -46,12 +36,12 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
     private Map<URI, Integer> _addedBlockObjects = new HashMap<URI, Integer>();
     private Map<URI, Integer> _removedBlockObjects = new HashMap<URI, Integer>();
     private List<URI> _addedInitiators = new ArrayList<URI>();
-    private List<URI> _removedInitiators =  new ArrayList<URI>();
+    private List<URI> _removedInitiators = new ArrayList<URI>();
     private List<URI> _addedHosts = new ArrayList<URI>();
     private List<URI> _removedHosts = new ArrayList<URI>();
     private List<URI> _addedClusters = new ArrayList<URI>();
     private List<URI> _removedClusters = new ArrayList<URI>();
-    
+
     /**
      * Constructor for export updates.
      * 
@@ -67,13 +57,13 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
      * @param task task id
      */
     public ExportUpdateCompleter(
-			URI egUri,
-			Map<URI, Integer> addedBlockObjects,
-			Map<URI, Integer> removedBlockObjects,
-			List<URI> addedInitiators, List<URI> removedInitiators,
-			List<URI> addedHosts, List<URI> removedHosts,
-			List<URI> addedClusters, List<URI> removedClusters,
-			String task) {
+            URI egUri,
+            Map<URI, Integer> addedBlockObjects,
+            Map<URI, Integer> removedBlockObjects,
+            List<URI> addedInitiators, List<URI> removedInitiators,
+            List<URI> addedHosts, List<URI> removedHosts,
+            List<URI> addedClusters, List<URI> removedClusters,
+            String task) {
         super(ExportGroup.class, egUri, task);
         _addedBlockObjects = addedBlockObjects;
         _removedBlockObjects = removedBlockObjects;
@@ -83,26 +73,26 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
         _removedHosts = removedHosts;
         _addedClusters = addedClusters;
         _removedClusters = removedClusters;
-	}
+    }
 
-	public ExportUpdateCompleter(URI egUri, String task) {
+    public ExportUpdateCompleter(URI egUri, String task) {
         super(ExportGroup.class, egUri, task);
-	}
+    }
 
-	protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
-            throws DeviceControllerException{
+    protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
+            throws DeviceControllerException {
         try {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             Operation operation = new Operation();
             switch (status) {
-            case error:
-                operation.error(coded);
-                break;
-            case ready:
-                operation.ready();
-                break;
-            default:
-                break;
+                case error:
+                    operation.error(coded);
+                    break;
+                case ready:
+                    operation.ready();
+                    break;
+                default:
+                    break;
             }
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
             // update the export group data if the job completes successfully
@@ -114,7 +104,8 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             _log.info(String.format("Done ExportMaskUpdate - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
 
-            recordBlockExportOperation(dbClient, OperationTypeEnum.UPDATE_EXPORT_GROUP, status, eventMessage(status, exportGroup), exportGroup);
+            recordBlockExportOperation(dbClient, OperationTypeEnum.UPDATE_EXPORT_GROUP, status, eventMessage(status, exportGroup),
+                    exportGroup);
         } catch (Exception e) {
             _log.error(String.format("Failed updating status for ExportMaskUpdate - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
@@ -128,46 +119,46 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
                 String.format(EXPORT_UPDATED_MSG, exportGroup.getLabel()) :
                 String.format(EXPORT_UPDATE_FAILED_MSG, exportGroup.getLabel());
     }
-    
+
     /**
      * Update the export group data.
      * 
      * @param exportGroup the export group to be updated.
      */
-    private void updateExportGroup (ExportGroup exportGroup) {
+    private void updateExportGroup(ExportGroup exportGroup) {
         // TODO
         // Consider removing clusters when all their hosts are removed
         // and removing hosts when all their initiators are removed.
-    	if (_addedInitiators != null) {
-    		exportGroup.addInitiators(_addedInitiators);
-    	}
+        if (_addedInitiators != null) {
+            exportGroup.addInitiators(_addedInitiators);
+        }
 
-    	if (_removedInitiators != null) {
-    		exportGroup.removeInitiators(_removedInitiators);
-    	}
+        if (_removedInitiators != null) {
+            exportGroup.removeInitiators(_removedInitiators);
+        }
 
-    	if (_addedHosts != null) {
-    		exportGroup.addHosts(_addedHosts);
-    	}
+        if (_addedHosts != null) {
+            exportGroup.addHosts(_addedHosts);
+        }
 
-    	if (_removedHosts != null) {
-    		exportGroup.removeHosts(_removedHosts);
-    	}
+        if (_removedHosts != null) {
+            exportGroup.removeHosts(_removedHosts);
+        }
 
-    	if (_addedClusters != null) {
-    		exportGroup.addClusters(_addedClusters);
-    	}
+        if (_addedClusters != null) {
+            exportGroup.addClusters(_addedClusters);
+        }
 
-    	if (_removedClusters != null) {
-    		exportGroup.removeClusters(_removedClusters);
-    	}
+        if (_removedClusters != null) {
+            exportGroup.removeClusters(_removedClusters);
+        }
 
-    	if (_addedBlockObjects != null) {
-    		exportGroup.addVolumes(_addedBlockObjects);
-    	}
+        if (_addedBlockObjects != null) {
+            exportGroup.addVolumes(_addedBlockObjects);
+        }
 
-    	if (_removedBlockObjects != null) {
-    		exportGroup.removeVolumes(_removedBlockObjects);
-    	}
+        if (_removedBlockObjects != null) {
+            exportGroup.removeVolumes(_removedBlockObjects);
+        }
     }
 }

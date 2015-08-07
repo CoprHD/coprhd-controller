@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.compute;
@@ -15,8 +15,9 @@ import java.util.List;
 public class ComputeSystemList {
     private List<NamedRelatedResourceRep> computeSystems;
 
-    public ComputeSystemList() {}
-    
+    public ComputeSystemList() {
+    }
+
     public ComputeSystemList(List<NamedRelatedResourceRep> computeSystems) {
         this.computeSystems = computeSystems;
     }
@@ -25,7 +26,7 @@ public class ComputeSystemList {
      * List of compute system URLs with name
      * 
      * @valid none
-     */ 
+     */
     @XmlElement(name = "compute_system")
     public List<NamedRelatedResourceRep> getComputeSystems() {
         if (computeSystems == null) {

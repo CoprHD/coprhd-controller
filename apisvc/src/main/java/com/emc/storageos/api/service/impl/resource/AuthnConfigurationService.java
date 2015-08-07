@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.resource;
@@ -59,8 +49,8 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.map;
  * API for creating and manipulating authentication providers
  */
 @Path("/vdc/admin/authnproviders")
-@DefaultPermissions( read_roles = {Role.SECURITY_ADMIN},
-write_roles = {Role.SECURITY_ADMIN})
+@DefaultPermissions(read_roles = { Role.SECURITY_ADMIN },
+        write_roles = { Role.SECURITY_ADMIN })
 public class AuthnConfigurationService extends TaggedResource {
     private static final Logger _log = LoggerFactory.getLogger(AuthnConfigurationService.class);
 
@@ -71,13 +61,15 @@ public class AuthnConfigurationService extends TaggedResource {
     private static final URI _URI_RELOAD = URI.create("/internal/reload");
 
     private static final String EVENT_SERVICE_TYPE = "authconfig";
+
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
     }
 
-    /**     
-     * Get detailed information for the authentication provider with the given URN  
+    /**
+     * Get detailed information for the authentication provider with the given URN
+     * 
      * @param id authentication provider URN
      * @brief Show authentication provider
      * @return Provider details
@@ -97,14 +89,17 @@ public class AuthnConfigurationService extends TaggedResource {
         return map(getProviderById(id, false));
     }
 
-    /**     
+    /**
      * List authentication providers in the zone.
+     * 
      * @brief List authentication providers
      * @return List of authentication providers
      */
-    @GET  // no id, just "/"
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public AuthnProviderList listProviders() {
+    @GET
+    // no id, just "/"
+            @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+            public
+            AuthnProviderList listProviders() {
         // TODO: if you need to copy/paste this code, please modify the AbstractPermissionFilter class instead and
         // related CheckPermission annotation code to support "TENANT_ADMIN_IN_ANY_TENANT" permission.
         StorageOSUser user = getUserFromContext();
@@ -118,7 +113,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
         List<NamedElementQueryResultList.NamedElement> elements =
                 new ArrayList<NamedElementQueryResultList.NamedElement>(configs.size());
-        for (AuthnProvider p: configs) {
+        for (AuthnProvider p : configs) {
             elements.add(NamedElementQueryResultList.NamedElement.createElement(p.getId(), p.getLabel()));
         }
         providers.setResult(elements.iterator());
@@ -133,7 +128,6 @@ public class AuthnConfigurationService extends TaggedResource {
         return getProviderById(id, false);
     }
 
-
     @Override
     protected URI getTenantOwner(URI id) {
         return null;
@@ -143,11 +137,10 @@ public class AuthnConfigurationService extends TaggedResource {
      * Create an authentication provider.
      * The submitted provider element values will be validated.
      * <p>
-     * The minimal set of parameters include: 
-     * mode, server_urls, manager_dn, manager_password, domains, search_base,
-     * search_filter and group_attribute  
+     * The minimal set of parameters include: mode, server_urls, manager_dn, manager_password, domains, search_base, search_filter and
+     * group_attribute
      * <p>
-     *     
+     * 
      * @param param AuthnCreateParam The provider representation with all necessary elements.
      * @brief Create an authentication provider
      * @return Newly created provider details as AuthnProviderRestRep
@@ -167,18 +160,18 @@ public class AuthnConfigurationService extends TaggedResource {
             StringBuilder errorString = new StringBuilder();
             if (!Validator.isUsableAuthenticationProvider(validateP, errorString)) {
                 throw BadRequestException.badRequests.
-                authnProviderCouldNotBeValidated(errorString.toString());
+                        authnProviderCouldNotBeValidated(errorString.toString());
             }
         }
 
         AuthnProvider provider = map(param);
         provider.setId(URIUtil.createId(AuthnProvider.class));
 
-        //Now validate the authn provider to make sure
-        //either both group object classes and
+        // Now validate the authn provider to make sure
+        // either both group object classes and
         // member attributes present or
-        //both of them empty. Throw bad request exception
-        //if only one of them presents.
+        // both of them empty. Throw bad request exception
+        // if only one of them presents.
         validateLDAPGroupProperties(provider);
 
         _log.debug("Saving the provider: {}: {}", provider.getId(), provider.toString());
@@ -188,14 +181,15 @@ public class AuthnConfigurationService extends TaggedResource {
                 provider.toString(), provider.getId().toString());
 
         // TODO:
-        //recordTenantEvent(RecordableEventManager.EventType.ProfiletCreated,
-        //              "Authentication Profile created", provider.getId());
+        // recordTenantEvent(RecordableEventManager.EventType.ProfiletCreated,
+        // "Authentication Profile created", provider.getId());
 
         return map(provider);
     }
 
-    /**         
+    /**
      * Update the parameters of the target authentication provider. The ID is the URN of the authentication provider.
+     * 
      * @param param required The representation of the provider parameters to be modified.
      * @param id the URN of a ViPR authentication provider
      * @param allow Set this field to true to allow modification of the group-attribute field
@@ -216,13 +210,13 @@ public class AuthnConfigurationService extends TaggedResource {
         ArgValidator.checkEntityNotNull(provider, id, isIdEmbeddedInURL(id));
         validateAuthnUpdateParam(param, provider);
         // after the overlay, manager dn or manager password may end up null if they were
-        // not part of the param object.  If so we need to grab a copy now from the db model
-        // object.  When we validate, we cannot have null values.
+        // not part of the param object. If so we need to grab a copy now from the db model
+        // object. When we validate, we cannot have null values.
         AuthnProviderParamsToValidate validateP = AuthMapper.mapToValidateUpdate(param, provider);
         boolean wasAlreadyDisabled = provider.getDisable();
         // copy existing domains in separate set
-        StringSet existingDomains = new StringSet(provider.getDomains()); 
-        
+        StringSet existingDomains = new StringSet(provider.getDomains());
+
         // up front check to see if we are modifying the group attribute.
         // this may trigger an audit.
         boolean groupAttributeModified = false;
@@ -231,7 +225,7 @@ public class AuthnConfigurationService extends TaggedResource {
                 !provider.getGroupAttribute().equalsIgnoreCase(param.getGroupAttribute())) {
             if (!allow) {
                 throw APIException.badRequests.
-                modificationOfGroupAttributeNotAllowed(param.getGroupAttribute());
+                        modificationOfGroupAttributeNotAllowed(param.getGroupAttribute());
             } else {
                 _log.warn("GROUP ATTRIBUTE FOR PROVIDER {} {} IS BEING " +
                         "MODIFIED USING THE FORCE FLAG, TENANT MAPPINGS, " +
@@ -258,7 +252,7 @@ public class AuthnConfigurationService extends TaggedResource {
             StringBuilder errorString = new StringBuilder();
             if (!Validator.isUsableAuthenticationProvider(validateP, errorString)) {
                 throw BadRequestException.badRequests.
-                authnProviderCouldNotBeValidated(errorString.toString());
+                        authnProviderCouldNotBeValidated(errorString.toString());
             }
         } else if (!wasAlreadyDisabled) {
             // if we are disabling it and it wasn't already disabled, then
@@ -266,11 +260,11 @@ public class AuthnConfigurationService extends TaggedResource {
             verifyDomainsIsNotInUse(provider.getDomains());
         }
 
-        //Now validate the authn provider to make sure
-        //either both group object classes and
+        // Now validate the authn provider to make sure
+        // either both group object classes and
         // member attributes present or
-        //both of them empty. Throw bad request exception
-        //if only one of them presents.
+        // both of them empty. Throw bad request exception
+        // if only one of them presents.
         validateLDAPGroupProperties(provider);
 
         _log.debug("Saving to the DB the updated provider: {}", provider.toString());
@@ -285,7 +279,7 @@ public class AuthnConfigurationService extends TaggedResource {
         }
         return map(getProviderById(id, false));
     }
-    
+
     /**
      * Overlay an existing AuthnConfiguration object using a new AuthnConfiguration
      * update parameter. Regardless of whether the new AuthnConfiguration update
@@ -328,15 +322,16 @@ public class AuthnConfigurationService extends TaggedResource {
             }
             Set<String> toAdd = param.getDomainChanges().getAdd();
             if (toAdd != null) {
-            	for (String s: toAdd) {
-            		// When Authn provider is added, the domains are converted to lower case, we need to do the same when update provider. 
-            		// This change is made to fix bug CTRL-5076
-            		ssOld.add(s.toLowerCase());
-            	}
+                for (String s : toAdd) {
+                    // When Authn provider is added, the domains are converted to lower case, we need to do the same when update provider.
+                    // This change is made to fix bug CTRL-5076
+                    ssOld.add(s.toLowerCase());
+                }
             }
             Set<String> toRemove = param.getDomainChanges().getRemove();
             ssOld.removeAll(toRemove);
-            // We shouldn't convert toRemove to lower case. It will disallow us removing the domain we don't want, moreover it might remove a entry we want to keep.
+            // We shouldn't convert toRemove to lower case. It will disallow us removing the domain we don't want, moreover it might remove
+            // a entry we want to keep.
             authn.setDomains(ssOld);
         }
 
@@ -376,7 +371,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
         authn.setDescription(param.getDescription());
 
-        authn.setDisable( param.getDisable() != null ? param.getDisable() : authn.getDisable() );
+        authn.setDisable(param.getDisable() != null ? param.getDisable() : authn.getDisable());
 
         authn.setMaxPageSize(param.getMaxPageSize());
 
@@ -415,12 +410,11 @@ public class AuthnConfigurationService extends TaggedResource {
         }
     }
 
-
     /**
      * check if given domains are in use or not,
-     *
+     * 
      * if any of them is in use, throw exception.
-     *
+     * 
      * @param domains
      */
     private void verifyDomainsIsNotInUse(StringSet domains) {
@@ -439,8 +433,9 @@ public class AuthnConfigurationService extends TaggedResource {
 
     /**
      * Queries all tenants in the system for which the passed in domain set
-     * has a match in their user mapping.  If so, will throw an exception.
+     * has a match in their user mapping. If so, will throw an exception.
      * Else will just return normally.
+     * 
      * @param domains the domains to check
      */
     private void checkForActiveTenantsUsingDomains(StringSet domains) {
@@ -448,7 +443,7 @@ public class AuthnConfigurationService extends TaggedResource {
         // provider's domain(s).
         List<URI> matchingTenants = new ArrayList<URI>();
         for (String domainToCheck : domains) {
-            Map <URI, List<UserMapping>> mappings = _permissionsHelper.getAllUserMappingsForDomain(domainToCheck);
+            Map<URI, List<UserMapping>> mappings = _permissionsHelper.getAllUserMappingsForDomain(domainToCheck);
             Set<URI> tenantIDset;
             if (mappings == null) {
                 _log.debug("No matching tenant found for domain {}", domainToCheck);
@@ -466,7 +461,7 @@ public class AuthnConfigurationService extends TaggedResource {
                 }
             }
         }
-        if (matchingTenants.size() > 0) {
+        if (!matchingTenants.isEmpty()) {
             throw APIException.badRequests.cannotDeleteAuthProviderWithTenants(matchingTenants.size(),
                     matchingTenants);
         }
@@ -476,28 +471,27 @@ public class AuthnConfigurationService extends TaggedResource {
      * check local vdc to see if any vdc role assignments belongs to the passed in domain set.
      * if so, throw an exception;
      * else, return silently.
-     *
+     * 
      * @param domains the domains to check
      */
     private void checkForVdcRolesUsingDomains(StringSet domains) {
         // get local vdc's role assignments
         VirtualDataCenter localVdc = VdcUtil.getLocalVdc();
         List<RoleAssignmentEntry> vdcRoles =
-            _permissionsHelper.convertToRoleAssignments(localVdc.getRoleAssignments(), true);
+                _permissionsHelper.convertToRoleAssignments(localVdc.getRoleAssignments(), true);
 
         List<String> matchingUsers = checkRolesUsingDomains(vdcRoles, domains);
 
-        if (matchingUsers.size() > 0) {
+        if (!matchingUsers.isEmpty()) {
             throw APIException.badRequests.cannotDeleteAuthProviderWithVdcRoles(matchingUsers.size(), matchingUsers);
         }
     }
-
 
     /**
      * check tenants to see if any tenant role assignments belongs to the passed in domain set.
      * if so, throw an exception;
      * else, return silently.
-     *
+     * 
      * @param domains the domains to check
      */
     private void checkForTenantRolesUsingDomains(StringSet domains) {
@@ -509,17 +503,17 @@ public class AuthnConfigurationService extends TaggedResource {
                     _permissionsHelper.convertToRoleAssignments(tenant.getRoleAssignments(), false);
 
             List<String> matchingUsers = checkRolesUsingDomains(tenantRoles, domains);
-            if (matchingUsers.size() > 0) {
-                throw APIException.badRequests.cannotDeleteAuthProviderWithTenantRoles(tenant.getLabel(), matchingUsers.size(), matchingUsers);
+            if (!matchingUsers.isEmpty()) {
+                throw APIException.badRequests.cannotDeleteAuthProviderWithTenantRoles(tenant.getLabel(), matchingUsers.size(),
+                        matchingUsers);
             }
         }
 
     }
 
-
     /**
      * compare role assignments against domain(s), return matching users.
-     *
+     * 
      * @param roleAssignments
      * @param domains
      */
@@ -547,11 +541,11 @@ public class AuthnConfigurationService extends TaggedResource {
 
         return matchingUsers;
     }
-    
-    
-    /**     
+
+    /**
      * Delete the provider with the provided id.
-     * Authentication services will no longer use this provider for authentication.     
+     * Authentication services will no longer use this provider for authentication.
+     * 
      * @param id the URN of a ViPR provider authentication to be deleted
      * @brief Delete authentication provider
      * @return No data returned in response body
@@ -564,7 +558,7 @@ public class AuthnConfigurationService extends TaggedResource {
         AuthnProvider provider = getProviderById(id, false);
         ArgValidator.checkEntityNotNull(provider, id, isIdEmbeddedInURL(id));
         verifyDomainsIsNotInUse(provider.getDomains());
-    
+
         _dbClient.removeObject(provider);
         notifyChange();
 
@@ -591,13 +585,13 @@ public class AuthnConfigurationService extends TaggedResource {
         return provider;
     }
 
-
     /**
      * Checks if an authn provider exists for the given domain
+     * 
      * @param domain
      * @return true if a provider exists, false otherwise
      */
-    private boolean doesProviderExistForDomain(String domain){
+    private boolean doesProviderExistForDomain(String domain) {
         URIQueryResultList providers = new URIQueryResultList();
         try {
             _dbClient.queryByConstraint(
@@ -612,9 +606,9 @@ public class AuthnConfigurationService extends TaggedResource {
 
     private void validateAuthnProviderParam(AuthnProviderBaseParam param, AuthnProvider provider,
             Set<String> server_urls, Set<String> domains, Set<String> group_whitelist_values) {
-        if (param.getLabel() != null && !param.getLabel().isEmpty()) {   
-            if (provider == null || !provider.getLabel().equalsIgnoreCase(param.getLabel())) {   
-            	checkForDuplicateName(param.getLabel(), AuthnProvider.class);
+        if (param.getLabel() != null && !param.getLabel().isEmpty()) {
+            if (provider == null || !provider.getLabel().equalsIgnoreCase(param.getLabel())) {
+                checkForDuplicateName(param.getLabel(), AuthnProvider.class);
             }
         }
         // validate syntax of the provided parameters for POST and PUT operations
@@ -623,7 +617,7 @@ public class AuthnConfigurationService extends TaggedResource {
             for (String domain : domains) {
                 ArgValidator.checkFieldNotEmpty(domain, "domain");
                 if (provider == null || !provider.getDomains().contains(domain.toLowerCase())) {
-                    if(doesProviderExistForDomain(domain)) {
+                    if (doesProviderExistForDomain(domain)) {
                         throw APIException.badRequests.domainAlreadyExists(domain);
                     }
                 }
@@ -634,24 +628,24 @@ public class AuthnConfigurationService extends TaggedResource {
             try {
                 // Just validate that the mode is one of the enums
                 ProvidersType.valueOf(param.getMode());
-            } catch(IllegalArgumentException ex) {
+            } catch (IllegalArgumentException ex) {
                 throw APIException.badRequests.invalidParameter("mode", param.getMode(), ex);
             }
         }
         if (server_urls != null) {
             boolean isNonSecure = false;
-            boolean isSecure    = false;
+            boolean isSecure = false;
             for (String url : server_urls) {
                 ArgValidator.checkFieldNotEmpty(url, "server_urls");
                 String lowerCaseUrl = url.toLowerCase();
-                if(lowerCaseUrl.startsWith("ldap://") ){
+                if (lowerCaseUrl.startsWith("ldap://")) {
                     isNonSecure = true;
                 } else if (lowerCaseUrl.startsWith("ldaps://")) {
                     isSecure = true;
                 } else {
                     throw APIException.badRequests.invalidParameter("server_url", url);
                 }
-                if( isNonSecure && isSecure ) {
+                if (isNonSecure && isSecure) {
                     throw APIException.badRequests.cannotMixLdapAndLdapsUrls();
                 }
             }
@@ -663,7 +657,7 @@ public class AuthnConfigurationService extends TaggedResource {
             }
 
             String afterEqual = searchFilter.substring(searchFilter.indexOf("="));
-            if( !afterEqual.contains("%u") && !afterEqual.contains("%U")) {
+            if (!afterEqual.contains("%u") && !afterEqual.contains("%U")) {
                 throw APIException.badRequests.searchFilterMustContainPercentU();
             }
         }
@@ -672,7 +666,7 @@ public class AuthnConfigurationService extends TaggedResource {
             try {
                 // Just validate that the scope is one of the enums
                 SearchScope.valueOf(param.getSearchScope());
-            } catch(IllegalArgumentException ex) {
+            } catch (IllegalArgumentException ex) {
                 throw APIException.badRequests.invalidParameter("search_scope", param.getSearchScope(), ex);
             }
         }
@@ -693,15 +687,15 @@ public class AuthnConfigurationService extends TaggedResource {
                 ArgValidator.checkFieldNotEmpty(groupName, "group_whitelist_values");
             }
         }
-        if (param.getMaxPageSize() != null ) {
-        	if (param.getMaxPageSize() <= 0) {
-                throw APIException.badRequests.parameterMustBeGreaterThan("max_page_size",0);
-            }            
+        if (param.getMaxPageSize() != null) {
+            if (param.getMaxPageSize() <= 0) {
+                throw APIException.badRequests.parameterMustBeGreaterThan("max_page_size", 0);
+            }
         }
     }
 
     private void validateAuthnCreateParam(AuthnCreateParam param) {
-        if (param == null){
+        if (param == null) {
             throw APIException.badRequests.resourceEmptyConfiguration("authn provider");
         }
 
@@ -724,12 +718,12 @@ public class AuthnConfigurationService extends TaggedResource {
 
         checkIfCreateLDAPGroupPropertiesSupported(param);
 
-        validateAuthnProviderParam(param, null, param.getServerUrls(), param.getDomains(), 
+        validateAuthnProviderParam(param, null, param.getServerUrls(), param.getDomains(),
                 param.getGroupWhitelistValues());
     }
 
     private void validateAuthnUpdateParam(AuthnUpdateParam param, AuthnProvider provider) {
-        if (param == null){
+        if (param == null) {
             throw APIException.badRequests.resourceEmptyConfiguration("authn provider");
         }
         _log.debug("Vdc authentication update param: {}", param);
@@ -744,7 +738,7 @@ public class AuthnConfigurationService extends TaggedResource {
         if (param.getDomainChanges() != null && !param.getDomainChanges().getAdd().isEmpty()) {
             domains = param.getDomainChanges().getAdd();
         }
-        if (param.getGroupWhitelistValueChanges() != null && 
+        if (param.getGroupWhitelistValueChanges() != null &&
                 !param.getGroupWhitelistValueChanges().getAdd().isEmpty()) {
             group_whitelist_values = param.getGroupWhitelistValueChanges().getAdd();
         }
@@ -767,11 +761,11 @@ public class AuthnConfigurationService extends TaggedResource {
                     if (response.getStatus() != ClientResponse.Status.OK.getStatusCode()) {
                         _log.error("Failed to reload authN providers on endpoint {} response {}", endpoint, response.toString());
                     }
-                } catch (Exception e){
+                } catch (Exception e) {
                     _log.error("Caught exception trying to reload an authsvc on {} continuing", endpoint, e);
                 }
             }
-        } catch ( CoordinatorException e ) {
+        } catch (CoordinatorException e) {
             _log.error("Caught coordinator exception trying to find an authsvc endpoint", e);
         }
     }
@@ -781,7 +775,7 @@ public class AuthnConfigurationService extends TaggedResource {
      */
     private synchronized void persistProfileAndNotifyChange(AuthnProvider modifiedProvider,
             boolean newObject) {
-        modifiedProvider.setLast_modified(System.currentTimeMillis());
+        modifiedProvider.setLastModified(System.currentTimeMillis());
         if (newObject) {
             _dbClient.createObject(modifiedProvider);
         } else {
@@ -797,14 +791,14 @@ public class AuthnConfigurationService extends TaggedResource {
     }
 
     @Override
-    protected ResourceTypeEnum getResourceType(){
+    protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.AUTHN_PROVIDER;
     }
 
     /***
      * Make sure all the VDCs in the federation are in the minimum expected version
      * for using the ldap group support.
-     *
+     * 
      * @param createParam set of group object classes.
      */
     private void checkIfCreateLDAPGroupPropertiesSupported(AuthnCreateParam createParam) {
@@ -812,7 +806,7 @@ public class AuthnConfigurationService extends TaggedResource {
         if (createParam != null) {
             if (StringUtils.isNotEmpty(createParam.getGroupAttribute())) {
                 checkCompatibleVersion = true;
-            } else if (!CollectionUtils.isEmpty(createParam.getGroupWhitelistValues())){
+            } else if (!CollectionUtils.isEmpty(createParam.getGroupWhitelistValues())) {
                 checkCompatibleVersion = true;
             } else if (!CollectionUtils.isEmpty(createParam.getGroupObjectClasses())) {
                 checkCompatibleVersion = true;
@@ -829,7 +823,7 @@ public class AuthnConfigurationService extends TaggedResource {
     /***
      * Make sure all the VDCs in the federation are in the minimum expected version
      * for using the ldap group support.
-     *
+     * 
      * @param updateParam set of group object classes.
      */
     private void checkIfUpdateLDAPGroupPropertiesSupported(AuthnUpdateParam updateParam) {
@@ -839,15 +833,15 @@ public class AuthnConfigurationService extends TaggedResource {
                 checkCompatibleVersion = true;
             } else if (updateParam.getGroupWhitelistValueChanges() != null &&
                     (!CollectionUtils.isEmpty(updateParam.getGroupWhitelistValueChanges().getAdd()) ||
-                            !CollectionUtils.isEmpty(updateParam.getGroupWhitelistValueChanges().getRemove()))) {
+                    !CollectionUtils.isEmpty(updateParam.getGroupWhitelistValueChanges().getRemove()))) {
                 checkCompatibleVersion = true;
             } else if (updateParam.getGroupObjectClassChanges() != null &&
                     (!CollectionUtils.isEmpty(updateParam.getGroupObjectClassChanges().getAdd()) ||
-                            !CollectionUtils.isEmpty(updateParam.getGroupObjectClassChanges().getRemove()))){
+                    !CollectionUtils.isEmpty(updateParam.getGroupObjectClassChanges().getRemove()))) {
                 checkCompatibleVersion = true;
             } else if (updateParam.getGroupMemberAttributeChanges() != null &&
                     (!CollectionUtils.isEmpty(updateParam.getGroupMemberAttributeChanges().getAdd()) ||
-                            !CollectionUtils.isEmpty(updateParam.getGroupMemberAttributeChanges().getRemove()))){
+                    !CollectionUtils.isEmpty(updateParam.getGroupMemberAttributeChanges().getRemove()))) {
                 checkCompatibleVersion = true;
             }
         }
@@ -860,12 +854,12 @@ public class AuthnConfigurationService extends TaggedResource {
     /**
      * Check if all the VDCs in the federation are in the same expected
      * or minimum supported version for this api.
-     *
+     * 
      */
-    private void checkCompatibleVersionForLDAPGroupSupport () {
-        if(!_dbClient.checkGeoCompatible(AuthnProvider.getExpectedGeoVDCVersionForLDAPGroupSupport())) {
+    private void checkCompatibleVersionForLDAPGroupSupport() {
+        if (!_dbClient.checkGeoCompatible(AuthnProvider.getExpectedGeoVDCVersionForLDAPGroupSupport())) {
             throw APIException.badRequests.incompatibleGeoVersions(AuthnProvider.getExpectedGeoVDCVersionForLDAPGroupSupport(),
-                            FEATURE_NAME_LDAP_GROUP_SUPPORT);
+                    FEATURE_NAME_LDAP_GROUP_SUPPORT);
         }
     }
 
@@ -873,7 +867,7 @@ public class AuthnConfigurationService extends TaggedResource {
      * Validate the ldap group properties (object classes and member attributes)
      * and throws bad request exception if either one of object classes
      * or member attributes present in the authn provider.
-     *
+     * 
      * @param authnProvider to be validated for ldap group properties.
      * @throws APIException
      */
@@ -886,8 +880,8 @@ public class AuthnConfigurationService extends TaggedResource {
         boolean isGroupObjectClassesEmpty = CollectionUtils.isEmpty(authnProvider.getGroupObjectClassNames());
         boolean isGroupMemberAttributesEmpty = CollectionUtils.isEmpty(authnProvider.getGroupMemberAttributeTypeNames());
 
-        //Return error if either only one of object classes or member attributes
-        //is entered and other one is empty.
+        // Return error if either only one of object classes or member attributes
+        // is entered and other one is empty.
         if (isGroupObjectClassesEmpty ^ isGroupMemberAttributesEmpty) {
             String param = "Group object classes";
             if (!isGroupObjectClassesEmpty) {
@@ -901,11 +895,11 @@ public class AuthnConfigurationService extends TaggedResource {
      * Check if any of the user group using the domains in the authnprovider or not.
      * if so, throw an exception;
      * else, return silently.
-     *
+     * 
      * @param domains the domains to check
      */
     private void checkForUserGroupsUsingDomains(StringSet domains) {
-        if(CollectionUtils.isEmpty(domains)) {
+        if (CollectionUtils.isEmpty(domains)) {
             _log.error("Invalid domains");
             return;
         }

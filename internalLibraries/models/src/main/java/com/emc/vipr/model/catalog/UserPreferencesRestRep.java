@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -22,8 +22,8 @@ public class UserPreferencesRestRep extends DataObjectRestRep {
 
     private String username;
     private Boolean notifyByEmail;
-    private String email;    
-    
+    private String email;
+
     public UserPreferencesRestRep() {
     }
 

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012-2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.processmonitor;
 
@@ -38,7 +28,7 @@ public class ScheduledProcessMonitor {
         try {
             _logger.info("Process Monitor Scheduled");
             processMonitorMetrics = new ProcessMonitorMetrics();
-            processMonitorMetrics.setServiceName(_serviceName); 
+            processMonitorMetrics.setServiceName(_serviceName);
             _scheduledProcessMonitor.scheduleAtFixedRate(
                     new ProcessMonitor(processMonitorMetrics), 0, Long.parseLong(_interval),
                     TimeUnit.SECONDS);

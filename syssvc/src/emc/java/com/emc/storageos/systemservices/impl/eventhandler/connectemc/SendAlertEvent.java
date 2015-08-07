@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.eventhandler.connectemc;
 
@@ -49,13 +39,12 @@ import com.emc.storageos.model.event.EventParameters;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.vipr.model.sys.logging.LogRequest;
 
-import static com.emc.storageos.systemservices.impl.eventhandler.connectemc
-        .CallHomeConstants.*;
+import static com.emc.storageos.systemservices.impl.eventhandler.connectemc.CallHomeConstants.*;
 
 /**
  * Class that builds alert event with all its attachments.
  */
-public class SendAlertEvent extends SendEvent implements Runnable{
+public class SendAlertEvent extends SendEvent implements Runnable {
     private static final Logger _log = LoggerFactory
             .getLogger(SendAlertEvent.class);
     private int _eventId;
@@ -67,9 +56,11 @@ public class SendAlertEvent extends SendEvent implements Runnable{
     private String _msgRegex;
     private int maxCount;
     private EventParameters _eventParameters;
-    private final static List<String> sysEventlogFileNames = new ArrayList<String>() {{
-        add("systemevents");
-    }};
+    private final static List<String> sysEventlogFileNames = new ArrayList<String>() {
+        {
+            add("systemevents");
+        }
+    };
     private URI sysEventId;
     private String operationId;
     protected DbClient dbClient;
@@ -77,10 +68,10 @@ public class SendAlertEvent extends SendEvent implements Runnable{
     private static final AlertsLogger alertsLog = AlertsLogger.getAlertsLogger();
 
     public SendAlertEvent(ServiceImpl service, DbClient dbClient,
-                     LogSvcPropertiesLoader logSvcPropertiesLoader, URI sysEventId,
-                     String operationId, MediaType mediaType,
-                     LicenseInfoExt licenseInfo, BasePermissionsHelper permissionsHelper,
-                     CoordinatorClientExt coordinator) {
+            LogSvcPropertiesLoader logSvcPropertiesLoader, URI sysEventId,
+            String operationId, MediaType mediaType,
+            LicenseInfoExt licenseInfo, BasePermissionsHelper permissionsHelper,
+            CoordinatorClientExt coordinator) {
         super(service, logSvcPropertiesLoader, mediaType,
                 licenseInfo, coordinator);
         this.dbClient = dbClient;
@@ -91,17 +82,15 @@ public class SendAlertEvent extends SendEvent implements Runnable{
 
     @Override
     public void run() {
-        try{
+        try {
             super.callEMCHome();
             dbClient.ready(SysEvent.class, sysEventId, operationId);
-            alertsLog.warn("Alert event initiated by "+ _eventParameters.getContact()+" is sent successfully");
-        }
-        catch (APIException api) {
+            alertsLog.warn("Alert event initiated by " + _eventParameters.getContact() + " is sent successfully");
+        } catch (APIException api) {
             dbClient.error(SysEvent.class, sysEventId, operationId, api);
-            alertsLog.error("Failed to send alert event initiated by "+
-                    _eventParameters.getContact() + ". "+ api.getMessage());
-        }
-        finally {
+            alertsLog.error("Failed to send alert event initiated by " +
+                    _eventParameters.getContact() + ". " + api.getMessage());
+        } finally {
             SysEvent sysEvent = permissionsHelper.getObjectById(sysEventId, SysEvent.class);
             dbClient.removeObject(sysEvent);
         }
@@ -167,12 +156,12 @@ public class SendAlertEvent extends SendEvent implements Runnable{
      * specified, in zip format with fileName as zip entry.
      */
     private synchronized void generateLogFile(LogRequest logReqInfo, MediaType mediaType,
-                                 String filePath, String fileName) throws IOException{
+            String filePath, String fileName) throws IOException {
         ZipOutputStream outputStream = null;
         try {
             _log.info("Populating logs to file: {} start", filePath);
-            logReqInfo.setMaxBytes(getAttachmentsMaxSizeMB()*
-                    BYTE_TO_MB*logSvcPropertiesLoader.getZipFactor());
+            logReqInfo.setMaxBytes(getAttachmentsMaxSizeMB() *
+                    BYTE_TO_MB * logSvcPropertiesLoader.getZipFactor());
             final LogNetworkStreamMerger logRequestMgr = new LogNetworkStreamMerger
                     (logReqInfo, mediaType, logSvcPropertiesLoader);
             outputStream = new ZipOutputStream(new FileOutputStream(filePath));
@@ -188,7 +177,7 @@ public class SendAlertEvent extends SendEvent implements Runnable{
                     }
                 }
             };
-            ZipEntry ze= new ZipEntry(fileName);
+            ZipEntry ze = new ZipEntry(fileName);
             outputStream.putNextEntry(ze);
             responseStream.write(outputStream);
             _log.info("Populating logs to file: {} end", filePath);
@@ -218,21 +207,21 @@ public class SendAlertEvent extends SendEvent implements Runnable{
     @Override
     protected ArrayList<String> collectQueryParameters() {
         ArrayList<String> params = new ArrayList<String>();
-        params.add("event_id="+_eventId);
-        params.add("logNames="+_logNames);
-        params.add("severity="+_severity);
-        params.add("start="+_start);
-        params.add("end="+_end);
-        params.add("nodeIds="+_nodeIds);
-        params.add("msgRegex="+_msgRegex);
-        params.add("maxCount="+maxCount);
+        params.add("event_id=" + _eventId);
+        params.add("logNames=" + _logNames);
+        params.add("severity=" + _severity);
+        params.add("start=" + _start);
+        params.add("end=" + _end);
+        params.add("nodeIds=" + _nodeIds);
+        params.add("msgRegex=" + _msgRegex);
+        params.add("maxCount=" + maxCount);
 
         return params;
     }
 
     /**
      * build events data as marshalled string of xml data.
-     *
+     * 
      * @return
      */
     private String buildEventData() throws JAXBException {

@@ -1,11 +1,10 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.compute;
 
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResource;
-import static com.emc.sa.service.vipr.ViPRExecutionUtils.addRollback;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.execute;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.getOrderTenant;
 
@@ -58,63 +57,62 @@ import com.google.common.collect.Lists;
 public class ComputeUtils {
 
     public static final URI nullConsistencyGroup = null;
-	
+
     public static List<Host> createHosts(URI cluster, URI vcp, List<String> hostNamesIn,
             URI varray) throws Exception {
 
-        // new hosts will be created with lower case hostNames.  force it here so we can find host afterwards
+        // new hosts will be created with lower case hostNames. force it here so we can find host afterwards
         List<String> hostNames = Lists.newArrayList();
-        for(String hostNameIn : hostNamesIn){
+        for (String hostNameIn : hostNamesIn) {
             hostNames.add(hostNameIn != null ? hostNameIn.toLowerCase() : null);
         }
-        
-        Host [] hosts = new Host[hostNames.size()];
+
+        Host[] hosts = new Host[hostNames.size()];
         Tasks<HostRestRep> tasks = null;
         List<String> hostsToDeactivate = Lists.newArrayList();
         try {
-            tasks = execute(new CreateHosts(vcp, cluster, hostNames, varray));                    
-        }
-        catch (Exception e) {
-            ExecutionUtils.currentContext().logError("computeutils.createhosts.failure", 
+            tasks = execute(new CreateHosts(vcp, cluster, hostNames, varray));
+        } catch (Exception e) {
+            ExecutionUtils.currentContext().logError("computeutils.createhosts.failure",
                     e.getMessage());
         }
         // Some tasks could succeed while others could error out.
         List<HostRestRep> hostsInCluster = ComputeUtils.getHostsInCluster(cluster);
         List<URI> hostURIsToDeactivate = Lists.newArrayList();
-        
-        List<String> succeededHosts = Lists.newArrayList();
-		if ((tasks != null) && (tasks.getTasks() != null)) {
-			for (Task<HostRestRep> task : tasks.getTasks()) {
-				URI hostUri = task.getResourceId();
-				addAffectedResource(hostUri);
-				Host host = execute(new GetHost(hostUri));
-				int hostIndex = hostNames.indexOf(host.getHostName());
-				succeededHosts.add(host.getHostName());
-				hosts[hostIndex] = host;
-			}
-			for (String hostName : hostNames) {
-				if (!succeededHosts.contains(hostName)) {
-					hostsToDeactivate.add(hostName);
-				}
-			}
 
-			for (HostRestRep hostRep : hostsInCluster) {
-				if (hostsToDeactivate.contains(hostRep.getName())) {
-					hostURIsToDeactivate.add(hostRep.getId());
-				}
-			}
-		}
+        List<String> succeededHosts = Lists.newArrayList();
+        if ((tasks != null) && (tasks.getTasks() != null)) {
+            for (Task<HostRestRep> task : tasks.getTasks()) {
+                URI hostUri = task.getResourceId();
+                addAffectedResource(hostUri);
+                Host host = execute(new GetHost(hostUri));
+                int hostIndex = hostNames.indexOf(host.getHostName());
+                succeededHosts.add(host.getHostName());
+                hosts[hostIndex] = host;
+            }
+            for (String hostName : hostNames) {
+                if (!succeededHosts.contains(hostName)) {
+                    hostsToDeactivate.add(hostName);
+                }
+            }
+
+            for (HostRestRep hostRep : hostsInCluster) {
+                if (hostsToDeactivate.contains(hostRep.getName())) {
+                    hostURIsToDeactivate.add(hostRep.getId());
+                }
+            }
+        }
         else { // If all the hosts failed, then the tasks are returned as null.
-        	   // In this case we need to deactivate all the hosts that we wanted to create.
-			for (HostRestRep hostRep : hostsInCluster) {
-				if (hostNames.contains(hostRep.getName())) {
-					hostURIsToDeactivate.add(hostRep.getId());
-				}
-			}
-		}		
-		for (URI hostToDeactivate : hostURIsToDeactivate) {
-			execute(new DeactivateHost(hostToDeactivate, true));
-		}
+               // In this case we need to deactivate all the hosts that we wanted to create.
+            for (HostRestRep hostRep : hostsInCluster) {
+                if (hostNames.contains(hostRep.getName())) {
+                    hostURIsToDeactivate.add(hostRep.getId());
+                }
+            }
+        }
+        for (URI hostToDeactivate : hostURIsToDeactivate) {
+            execute(new DeactivateHost(hostToDeactivate, true));
+        }
         return Arrays.asList(hosts);
     }
 
@@ -131,7 +129,7 @@ public class ComputeUtils {
                     getOrderTenant(), filter);
             for (HostRestRep hostRestRep : resp) {
                 hostNames.add(hostRestRep.getHostName());
-            } 
+            }
         }
         return hostNames;
     }
@@ -144,7 +142,7 @@ public class ComputeUtils {
 
     public static Cluster getCluster(String clusterName) {
         List<ClusterRestRep> clusters = execute(new FindCluster(clusterName));
-        if ((clusters == null) || (clusters.size() == 0)) {
+        if ((clusters == null) || (clusters.isEmpty())) {
             return null;
         }
         if (clusters.size() > 1) {
@@ -161,7 +159,7 @@ public class ComputeUtils {
         }
         List<HostRestRep> hostRestReps = execute(new FindHostsInCluster(cluster.getId()));
         List<String> hostNames = Lists.newArrayList();
-        if (hostRestReps != null ) {
+        if (hostRestReps != null) {
             for (HostRestRep hostRestRep : hostRestReps) {
                 hostNames.add(hostRestRep.getHostName());
             }
@@ -188,14 +186,13 @@ public class ComputeUtils {
         }
         return hosts;
     }
-    
+
     public static boolean deactivateCluster(Cluster cluster) {
-        if (cluster != null) { 
+        if (cluster != null) {
             try {
                 execute(new DeactivateCluster(cluster));
                 return true;
-            } 
-            catch (Exception e) {
+            } catch (Exception e) {
                 ExecutionUtils.currentContext().logError("computeutils.deactivatecluster.failure",
                         e.getMessage());
             }
@@ -207,12 +204,12 @@ public class ComputeUtils {
             URI virtualArray, URI virtualPool, Double size,
             List<Host> hosts, ViPRCoreClient client) {
 
-    	if (hosts == null) {
+        if (hosts == null) {
             return Lists.newArrayList();
         }
         ArrayList<Task<VolumeRestRep>> tasks = new ArrayList<>();
         ArrayList<String> volumeNames = new ArrayList<>();
-        for (Host host: hosts) {
+        for (Host host : hosts) {
             if (host == null) {
                 volumeNames.add(null);
                 continue;
@@ -220,7 +217,7 @@ public class ComputeUtils {
             String volumeName = host.getHostName().replaceAll("[^A-Za-z0-9_]", "_").concat("_boot");
             while (!BlockStorageUtils.getVolumeByName(volumeName).isEmpty()) { // vol name used?
                 if (volumeName.matches(".*_\\d+$")) { // incr suffix number
-                    int volNumber = Integer.parseInt(volumeName.substring(volumeName.lastIndexOf("_")+1));
+                    int volNumber = Integer.parseInt(volumeName.substring(volumeName.lastIndexOf("_") + 1));
                     volumeName = volumeName.replaceAll("_\\d+$", "_" + ++volNumber);
                 }
                 else {
@@ -229,18 +226,17 @@ public class ComputeUtils {
             }
             try {
                 tasks.add(BlockStorageUtils.createVolumesByName(project, virtualArray,
-                        virtualPool, size, nullConsistencyGroup, volumeName));  // does not wait for task    
+                        virtualPool, size, nullConsistencyGroup, volumeName));  // does not wait for task
                 volumeNames.add(volumeName);
-            }
-            catch(ExecutionException e){
-            	String errorMessage = e.getMessage() == null? "" : e.getMessage();
-                ExecutionUtils.currentContext().logError("computeutils.makebootvolumes.failure", 
+            } catch (ExecutionException e) {
+                String errorMessage = e.getMessage() == null ? "" : e.getMessage();
+                ExecutionUtils.currentContext().logError("computeutils.makebootvolumes.failure",
                         host.getHostName(), errorMessage);
-            }            
+            }
         }
 
         // monitor tasks
-        URI [] volumeIds = new URI[hosts.size()];
+        URI[] volumeIds = new URI[hosts.size()];
         while (!tasks.isEmpty()) {
             waitAndRefresh(tasks);
             for (Task<VolumeRestRep> successfulTask : getSuccessfulTasks(tasks)) {
@@ -254,12 +250,12 @@ public class ComputeUtils {
             }
             for (Task<VolumeRestRep> failedTask : getFailedTasks(tasks)) {
                 String volumeName = failedTask.getResource().getName();
-                String errorMessage = failedTask.getMessage() == null? "" : failedTask.getMessage();
-                ExecutionUtils.currentContext().logError("computeutils.makebootvolumes.createvolume.failure", 
+                String errorMessage = failedTask.getMessage() == null ? "" : failedTask.getMessage();
+                ExecutionUtils.currentContext().logError("computeutils.makebootvolumes.createvolume.failure",
                         volumeName, errorMessage);
                 tasks.remove(failedTask);
             }
-        }    
+        }
         return Arrays.asList(volumeIds);
     }
 
@@ -282,22 +278,20 @@ public class ComputeUtils {
         }
         return failedTasks;
     }
-   
-    private static <T> void  waitAndRefresh(List<Task<T>> tasks) {
+
+    private static <T> void waitAndRefresh(List<Task<T>> tasks) {
         long t = 100;  // >0 to keep waitFor(t) from waiting until task completes
-        for (Task<T> task: tasks) {
+        for (Task<T> task : tasks) {
             try {
                 task.waitFor(t); // internal polling interval overrides (typically ~10 secs)
-            }
-            catch (TimeoutException te) {
+            } catch (TimeoutException te) {
                 // ignore timeout after polling interval
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 ExecutionUtils.currentContext().logError("computeutils.task.exception", e.getMessage());
-            }        
+            }
         }
     }
-    
+
     public static List<URI> exportBootVols(List<URI> volumeIds, List<Host> hosts, URI project, URI virtualArray,
             boolean updateBootVolumeOnHost) {
 
@@ -315,9 +309,8 @@ public class ComputeUtils {
                     Task<ExportGroupRestRep> task = BlockStorageUtils.createHostExportNoWait(project,
                             virtualArray, Arrays.asList(volumeIds.get(x)), -1, hosts.get(x));
                     tasks.add(task);
-                }
-                catch (ExecutionException e) {
-                	String errorMessage = e.getMessage() == null? "" : e.getMessage();
+                } catch (ExecutionException e) {
+                    String errorMessage = e.getMessage() == null ? "" : e.getMessage();
                     ExecutionUtils.currentContext().logError("computeutils.exportbootvolumes.failure",
                             hosts.get(x).getHostName(), errorMessage);
                 }
@@ -335,8 +328,8 @@ public class ComputeUtils {
 
         // monitor tasks
         List<String> hostNames = Lists.newArrayList();
-        for(Host host : hosts) {
-            if(host != null) {
+        for (Host host : hosts) {
+            if (host != null) {
                 hostNames.add(host.getHostName());
             }
             else {
@@ -344,7 +337,7 @@ public class ComputeUtils {
             }
         }
 
-        URI [] exportIds = new URI[hosts.size()];
+        URI[] exportIds = new URI[hosts.size()];
         while (!tasks.isEmpty()) {
             waitAndRefresh(tasks);
             for (Task<ExportGroupRestRep> successfulTask : getSuccessfulTasks(tasks)) {
@@ -356,8 +349,8 @@ public class ComputeUtils {
                 tasks.remove(successfulTask);
             }
             for (Task<ExportGroupRestRep> failedTask : getFailedTasks(tasks)) {
-            	String errorMessage = failedTask.getMessage() == null? "" : failedTask.getMessage();
-                ExecutionUtils.currentContext().logError("computeutils.exportbootvolumes.failure", 
+                String errorMessage = failedTask.getMessage() == null ? "" : failedTask.getMessage();
+                ExecutionUtils.currentContext().logError("computeutils.exportbootvolumes.failure",
                         failedTask.getResource().getName(), errorMessage);
                 tasks.remove(failedTask);
             }
@@ -392,20 +385,18 @@ public class ComputeUtils {
             if ((host != null) && (bootVolumeIds.get(hosts.indexOf(host)) == null)) {
                 try {
                     execute(new RemoveHostFromCluster(host.getId()));
-                }
-                catch(Exception e) {
-                    ExecutionUtils.currentContext().logError("computeutils.deactivatehost.failure", 
-                            host.getHostName(),e.getMessage());
+                } catch (Exception e) {
+                    ExecutionUtils.currentContext().logError("computeutils.deactivatehost.failure",
+                            host.getHostName(), e.getMessage());
                 }
                 hostsToRemove.add(host);
             }
         }
-        if(!hostsToRemove.isEmpty()){
+        if (!hostsToRemove.isEmpty()) {
             try {
                 return deactivateHosts(hostsToRemove);
-            }
-            catch(Exception e) {
-                ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure", 
+            } catch (Exception e) {
+                ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
                         e.getMessage());
             }
         }
@@ -414,7 +405,7 @@ public class ComputeUtils {
 
     public static List<Host> deactivateHostsWithNoExport(List<Host> hosts,
             List<URI> exportIds) {
-    	if (hosts == null) {
+        if (hosts == null) {
             return Lists.newArrayList();
         }
         List<Host> hostsToRemove = Lists.newArrayList();
@@ -423,52 +414,48 @@ public class ComputeUtils {
             if ((exportIds.get(hosts.indexOf(host)) == null) && (host != null)) {
                 try {
                     execute(new RemoveHostFromCluster(host.getId()));
-                }
-                catch(Exception e) {
-                    ExecutionUtils.currentContext().logError("computeutils.deactivatehost.noexport", 
-                            host.getHostName(),e.getMessage());
+                } catch (Exception e) {
+                    ExecutionUtils.currentContext().logError("computeutils.deactivatehost.noexport",
+                            host.getHostName(), e.getMessage());
                 }
                 hostsToRemove.add(host);
             }
         }
-        if(!hostsToRemove.isEmpty()){
+        if (!hostsToRemove.isEmpty()) {
             try {
                 return deactivateHosts(hostsToRemove);
-            }
-            catch(Exception e) {
-                ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure", 
+            } catch (Exception e) {
+                ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
                         e.getMessage());
             }
         }
         return hosts;
     }
 
-    
-    public static List<Host> deactivateHosts(List<Host> hosts) {  
+    public static List<Host> deactivateHosts(List<Host> hosts) {
         List<URI> hostURIs = Lists.newArrayList();
-        for(Host host : hosts) {
+        for (Host host : hosts) {
             hostURIs.add(host.getId());
         }
         List<URI> successfulHostURIs = deactivateHostURIs(hostURIs);
-        
+
         ListIterator<Host> hostItr = nonNull(hosts).listIterator();
-        while(hostItr.hasNext()) {
-            if(!successfulHostURIs.contains(hostItr.next().getId())) {
+        while (hostItr.hasNext()) {
+            if (!successfulHostURIs.contains(hostItr.next().getId())) {
                 hostItr.set(null);
             }
         }
         return hosts;
-    }    
-    
-    
-    public static List<URI> deactivateHostURIs(List<URI> hostURIs) {    
+    }
+
+    public static List<URI> deactivateHostURIs(List<URI> hostURIs) {
         ArrayList<Task<HostRestRep>> tasks = new ArrayList<>();
-        for(URI hostURI : hostURIs) {
-                tasks.add(execute(new DeactivateHostNoWait(hostURI,true)));
+        for (URI hostURI : hostURIs) {
+            tasks.add(execute(new DeactivateHostNoWait(hostURI, true)));
         }
-        ExecutionUtils.currentContext().logInfo("computeutils.deactivatehost.inprogress",hostURIs);
+        ExecutionUtils.currentContext().logInfo("computeutils.deactivatehost.inprogress", hostURIs);
         // monitor tasks
-        List<URI> successfulHostIds = Lists.newArrayList();        
+        List<URI> successfulHostIds = Lists.newArrayList();
         while (!tasks.isEmpty()) {
             waitAndRefresh(tasks);
             for (Task<HostRestRep> successfulTask : getSuccessfulTasks(tasks)) {
@@ -477,40 +464,39 @@ public class ComputeUtils {
                 tasks.remove(successfulTask);
             }
             for (Task<HostRestRep> failedTask : getFailedTasks(tasks)) {
-                ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure", 
+                ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
                         failedTask.getResource().getName(), failedTask.getMessage());
                 tasks.remove(failedTask);
             }
-        }    
+        }
         return successfulHostIds;
     }
-    
-    public static List<HostRestRep> installOsOnHosts(List<HostRestRep> hosts, List<OsInstallParam> osInstallParams){
-        
-        if ( (hosts == null) || hosts.isEmpty()) {
+
+    public static List<HostRestRep> installOsOnHosts(List<HostRestRep> hosts, List<OsInstallParam> osInstallParams) {
+
+        if ((hosts == null) || hosts.isEmpty()) {
             return Collections.emptyList();
         }
-        
+
         // execute all tasks (no waiting)
         List<Task<HostRestRep>> tasks = Lists.newArrayList();
-        for(HostRestRep host : hosts) {
-            if(host != null) {
+        for (HostRestRep host : hosts) {
+            if (host != null) {
                 int hostIndex = hosts.indexOf(host);
-                if (hostIndex > (osInstallParams.size()-1)) {
-                	continue;
+                if (hostIndex > (osInstallParams.size() - 1)) {
+                    continue;
                 }
-                if(osInstallParams.get(hostIndex) == null){
-                	continue;
+                if (osInstallParams.get(hostIndex) == null) {
+                    continue;
                 }
                 try {
-                	tasks.add(execute(new InstallOs(host, osInstallParams.get(hostIndex))));
-                }
-                catch (Exception e) {
-                	ExecutionUtils.currentContext().logError("computeutils.installOs.failure", 
-                			host.getId() + "  " + e.getMessage());
+                    tasks.add(execute(new InstallOs(host, osInstallParams.get(hostIndex))));
+                } catch (Exception e) {
+                    ExecutionUtils.currentContext().logError("computeutils.installOs.failure",
+                            host.getId() + "  " + e.getMessage());
                 }
             }
-        }    
+        }
         // monitor tasks
         List<URI> successfulHostIds = Lists.newArrayList();
         while (!tasks.isEmpty()) {
@@ -519,10 +505,10 @@ public class ComputeUtils {
                 tasks.remove(successfulTask);
                 URI hostId = successfulTask.getResource().getId();
                 Host newHost = execute(new GetHost(hostId));
-                if(newHost == null) {
-                    ExecutionUtils.currentContext().logError("computeutils.installOs.installing.failure", 
+                if (newHost == null) {
+                    ExecutionUtils.currentContext().logError("computeutils.installOs.installing.failure",
                             successfulTask.getResource().getName());
-                } 
+                }
                 else {
                     ExecutionUtils.currentContext().logInfo("computeutils.installOs.success",
                             newHost.getHostName());
@@ -532,19 +518,19 @@ public class ComputeUtils {
             }
             for (Task<HostRestRep> failedTask : getFailedTasks(tasks)) {
                 tasks.remove(failedTask);
-            	String errorMessage = failedTask.getMessage() == null? "" : failedTask.getMessage();
-                ExecutionUtils.currentContext().logError("computeutils.installOs.installing.failure.task", 
+                String errorMessage = failedTask.getMessage() == null ? "" : failedTask.getMessage();
+                ExecutionUtils.currentContext().logError("computeutils.installOs.installing.failure.task",
                         failedTask.getResource().getName(), errorMessage);
             }
         }
         // remove failed hosts
-        for (ListIterator<HostRestRep> itr=hosts.listIterator(); itr.hasNext();){
+        for (ListIterator<HostRestRep> itr = hosts.listIterator(); itr.hasNext();) {
             HostRestRep host = itr.next();
-            if((host != null) && !successfulHostIds.contains(host.getId())) {
+            if ((host != null) && !successfulHostIds.contains(host.getId())) {
                 itr.set(null);
             }
         }
-        
+
         return hosts;
     }
 
@@ -556,7 +542,7 @@ public class ComputeUtils {
         }
         return hostURIs;
     }
-    
+
     public static List<HostRestRep> getHostsInCluster(URI clusterId) {
         return execute(new FindHostsInCluster(clusterId));
     }
@@ -564,7 +550,7 @@ public class ComputeUtils {
     static <T> List<T> nonNull(List<T> objectList) {
         List<T> objectListToReturn = new ArrayList<>();
         if (objectList != null) {
-            for (T object:objectList) {
+            for (T object : objectList) {
                 if (object != null) {
                     objectListToReturn.add(object);
                 }
@@ -573,13 +559,13 @@ public class ComputeUtils {
         return objectListToReturn;
     }
 
-    static List<String> removeExistingHosts(List<String> hostNames,Cluster cluster) {
+    static List<String> removeExistingHosts(List<String> hostNames, Cluster cluster) {
         for (String hostNameFound : ComputeUtils.findHostNamesInCluster(cluster)) {
-            for (int i=0; i<hostNames.size(); i++) {
+            for (int i = 0; i < hostNames.size(); i++) {
                 String hostName = hostNames.get(i);
-                if(hostNameFound.equals(hostName)) {
+                if (hostNameFound.equals(hostName)) {
                     ExecutionUtils.currentContext().logWarn("computeutils.removeexistinghosts.warn", hostName);
-                    hostNames.set(i,null);
+                    hostNames.set(i, null);
                 }
             }
         }
@@ -590,9 +576,8 @@ public class ComputeUtils {
         if ((cluster != null) && (datacenter != null)) {
             try {
                 execute(new CreateVcenterCluster(cluster.getId(), datacenter));
-            }
-            catch(Exception e) {
-                ExecutionUtils.getMessage("compute.cluster.vcenter.sync.failed",e.getMessage());
+            } catch (Exception e) {
+                ExecutionUtils.getMessage("compute.cluster.vcenter.sync.failed", e.getMessage());
                 return false;
             }
         }
@@ -600,18 +585,17 @@ public class ComputeUtils {
     }
 
     public static boolean updateVcenterCluster(Cluster cluster, URI datacenter) {
-        if ( (cluster != null) && (datacenter != null)) {
+        if ((cluster != null) && (datacenter != null)) {
             try {
                 execute(new UpdateVcenterCluster(cluster.getId(), datacenter));
-            }
-            catch(Exception e) {
-                ExecutionUtils.getMessage("compute.cluster.vcenter.sync.failed",e.getMessage());
+            } catch (Exception e) {
+                ExecutionUtils.getMessage("compute.cluster.vcenter.sync.failed", e.getMessage());
                 return false;
             }
         }
         return true;
     }
-    
+
     public static boolean isComputePoolCapacityAvailable(ViPRCoreClient client, URI vcp, int numHosts) {
         ComputeElementListRestRep resp = client.computeVpools().getMatchedComputeElements(vcp);
         int size = resp.getList().size();
@@ -642,59 +626,58 @@ public class ComputeUtils {
         return ips;
     }
 
-    public static String getOrderErrors(Cluster cluster, 
-            List<String> hostNames, URI computeImage,URI vcenterId) {
+    public static String getOrderErrors(Cluster cluster,
+            List<String> hostNames, URI computeImage, URI vcenterId) {
         StringBuffer orderErrors = new StringBuffer();
 
         List<HostRestRep> hosts = Lists.newArrayList();
 
         try {
             hosts = getHostsInCluster(cluster.getId());
-        }
-        catch(Exception e){
+        } catch (Exception e) {
             // catches if cluster was removed & marked for delete
             ExecutionUtils.currentContext().logError("compute.cluster.get.hosts.failed", e.getMessage());
         }
-        
+
         List<String> hostNamesInCluster = Lists.newArrayList();
         for (HostRestRep host : hosts) {
-        	hostNamesInCluster.add(host.getName());
+            hostNamesInCluster.add(host.getName());
         }
-        
-    	int numberOfFailedHosts = 0;
+
+        int numberOfFailedHosts = 0;
         for (String hostName : hostNames) {
             if (hostName != null && !hostNamesInCluster.contains(hostName)) {
                 numberOfFailedHosts++;
             }
         }
         if (numberOfFailedHosts > 0) {
-    		orderErrors.append(ExecutionUtils.getMessage("compute.cluster.hosts.failed",
+            orderErrors.append(ExecutionUtils.getMessage("compute.cluster.hosts.failed",
                     numberOfFailedHosts + "  "));
-    	}
+        }
 
-        for(HostRestRep host : hosts) {               	
-            if(vcenterId != null && (host.getvCenterDataCenter() == null)) {
+        for (HostRestRep host : hosts) {
+            if (vcenterId != null && (host.getvCenterDataCenter() == null)) {
                 orderErrors.append(ExecutionUtils.getMessage("compute.cluster.vcenter.push.failed",
                         host.getHostName()) + "  ");
             }
         }
-        
+
         // Check if the OS installed on the new hosts that were created by the order
         if (computeImage != null) {
-        	List<HostRestRep> newHosts = Lists.newArrayList();
+            List<HostRestRep> newHosts = Lists.newArrayList();
             for (HostRestRep host : hosts) {
-        	    if (hostNames.contains(host.getHostName())) {
-        		    newHosts.add(host);
-        	    }
+                if (hostNames.contains(host.getHostName())) {
+                    newHosts.add(host);
+                }
             }
             for (HostRestRep host : newHosts) {
-                if((host.getType() == null) || host.getType().isEmpty() ||                
-                    host.getType().equals(Host.HostType.No_OS.name())) {                    
+                if ((host.getType() == null) || host.getType().isEmpty() ||
+                        host.getType().equals(Host.HostType.No_OS.name())) {
                     orderErrors.append(ExecutionUtils.getMessage("computeutils.installOs.failure",
                             host.getHostName()) + "  ");
                 }
             }
-        }        
+        }
         return orderErrors.toString();
     }
 
@@ -720,6 +703,7 @@ public class ComputeUtils {
     public static class FqdnTable {
         @Param
         protected String fqdns;
+
         public String toString() {
             return "fqdns=" + fqdns;
         }
@@ -727,16 +711,16 @@ public class ComputeUtils {
 
     public static void setHostBootVolumes(List<Host> hosts,
             List<URI> bootVolumeIds) {
-        for(Host host : hosts){
-            if(host != null) {
+        for (Host host : hosts) {
+            if (host != null) {
                 host.setBootVolumeId(bootVolumeIds.get(hosts.indexOf(host)));
             }
-        }   
+        }
     }
-    
+
     public static Map<String, URI> getHostNameBootVolume(List<Host> hosts) {
 
-        if (hosts == null || hosts.size() == 0) {
+        if (hosts == null || hosts.isEmpty()) {
             return Collections.emptyMap();
         }
 

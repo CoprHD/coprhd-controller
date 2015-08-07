@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.zkutils;
 
@@ -22,7 +12,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 
-import com.emc.storageos.security.helpers.SecurityService;
 import com.emc.storageos.security.helpers.SecurityUtil;
 import com.emc.storageos.security.keystore.KeyStoreExporter;
 import com.emc.storageos.security.keystore.impl.*;
@@ -30,9 +19,6 @@ import com.emc.storageos.security.keystore.impl.*;
 import com.emc.storageos.security.ssh.PEMUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import org.springframework.context.support.GenericXmlApplicationContext;
 
@@ -48,7 +34,7 @@ public class KeystoreCmdHandler {
     private GenericXmlApplicationContext ctx;
 
     public KeystoreCmdHandler() throws KeyStoreException, NoSuchAlgorithmException,
-    CertificateException, IOException, InterruptedException {
+            CertificateException, IOException, InterruptedException {
         try {
             // To using Spring profile feature
             ctx = new GenericXmlApplicationContext();
@@ -65,7 +51,7 @@ public class KeystoreCmdHandler {
     }
 
     private String[] getContextFiles() {
-        return new String[] {ZKUtil.ZKUTI_CONF, "zkutil-oss-conf.xml", "zkutil-emc-conf.xml"};
+        return new String[] { ZKUtil.ZKUTI_CONF, "zkutil-oss-conf.xml", "zkutil-emc-conf.xml" };
     }
 
     public void getViPRKey() {

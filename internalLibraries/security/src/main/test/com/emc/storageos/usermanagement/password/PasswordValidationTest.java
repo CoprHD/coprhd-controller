@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.usermanagement.password;
@@ -7,6 +7,7 @@ package com.emc.storageos.usermanagement.password;
 import com.emc.storageos.usermanagement.setup.LocalUserMode;
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
+
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -18,11 +19,13 @@ public class PasswordValidationTest extends LocalUserMode {
     private static Logger logger = LoggerFactory.getLogger(PasswordValidationTest.class);
 
     private static ViPRSystemClient svcuserClient;
-    private static String svcuserOldPassword = "ChangeMe";
-    private static String svcuserPassword = "Emc2@southborough";
+    private static String svcuserOldPassword = "ChangeMe"; // NOSONAR
+                                                           // ("Suppressing: removing this hard-coded password since it's vipr's default password")
+    private static String svcuserPassword = "Emc2@southborough"; // NOSONAR
+                                                                 // ("Suppressing: removing this hard-coded password since it's temp vipr's password")
 
     @BeforeClass
-    public static void setupPasswordValidation() throws Exception {
+    public synchronized static void setupPasswordValidation() throws Exception {
         svcuserClient = new ViPRSystemClient(controllerNodeEndpoint, true).withLogin("svcuser", svcuserPassword);
     }
 
@@ -51,7 +54,7 @@ public class PasswordValidationTest extends LocalUserMode {
     public void PasswordLowercaseValidation() throws Exception {
         try {
             waitForClusterStable();
-            svcuserClient.password().update(svcuserOldPassword, "1234567890123", false,  false);
+            svcuserClient.password().update(svcuserOldPassword, "1234567890123", false, false);
             Assert.fail("should fail");
         } catch (ServiceErrorException see) {
             logger.info("error code: " + see.getCode());

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.response;
@@ -26,51 +16,78 @@ import com.emc.storageos.model.adapters.CalendarAdapter;
 import java.net.URI;
 import java.util.Calendar;
 
-
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @Deprecated
 public abstract class LegacyDataObjectRestRep
 {
-    private class ConcreteDataObject extends DataObject { }
-
-    protected DataObject  _resource;
-
-
-    public LegacyDataObjectRestRep() {
-        _resource = new  ConcreteDataObject();
+    private class ConcreteDataObject extends DataObject {
     }
 
-    public LegacyDataObjectRestRep(DataObject resource){
+    protected DataObject _resource;
+
+    public LegacyDataObjectRestRep() {
+        _resource = new ConcreteDataObject();
+    }
+
+    public LegacyDataObjectRestRep(DataObject resource) {
         _resource = resource;
     }
 
     protected DataObject getData() {
         return _resource;
     }
-    
+
     @XmlElement
-    public String getName()            { return _resource.getLabel(); }
-    public void   setName(String name) { _resource.setLabel(name); }
+    public String getName() {
+        return _resource.getLabel();
+    }
+
+    public void setName(String name) {
+        _resource.setLabel(name);
+    }
 
     @XmlElement(name = "id")
-    public URI getId()         { return _resource.getId(); }
-    public void  setId(URI id)   { _resource.setId(id);}
+    public URI getId() {
+        return _resource.getId();
+    }
 
-    @XmlElement( name = "link")
+    public void setId(URI id) {
+        _resource.setId(id);
+    }
+
+    @XmlElement(name = "link")
     public RestLinkRep getRestLink() {
-        return new RestLinkRep("self",RestLinkFactory.newLink(_resource)); }
-    public void setRestLink(RestLinkRep link) { }
+        return new RestLinkRep("self", RestLinkFactory.newLink(_resource));
+    }
+
+    public void setRestLink(RestLinkRep link) {
+    }
 
     @XmlElement(name = "creation_time")
     @XmlJavaTypeAdapter(CalendarAdapter.class)
-    public Calendar getCreationTime() { return _resource.getCreationTime();}
-    public void setCreationTime(Calendar creationTime) {_resource.setCreationTime(creationTime);}
+    public Calendar getCreationTime() {
+        return _resource.getCreationTime();
+    }
+
+    public void setCreationTime(Calendar creationTime) {
+        _resource.setCreationTime(creationTime);
+    }
 
     @XmlElement
-    public Boolean getInactive() {  return _resource.getInactive();}
-    public void setInactive(Boolean inactive) { _resource.setInactive(inactive);  }
+    public Boolean getInactive() {
+        return _resource.getInactive();
+    }
+
+    public void setInactive(Boolean inactive) {
+        _resource.setInactive(inactive);
+    }
 
     @XmlElementWrapper(name = "tags")
-    public ScopedLabelSet getTag() { return _resource.getTag(); }
-    public void setTag(ScopedLabelSet tags) { _resource.setTag(tags); }
+    public ScopedLabelSet getTag() {
+        return _resource.getTag();
+    }
+
+    public void setTag(ScopedLabelSet tags) {
+        _resource.setTag(tags);
+    }
 }

@@ -56,11 +56,12 @@
         </td>
         <td class="time" bind-once>{{log.time_ms | date : 'yyyy-MM-dd HH:mm:ss.sss'}}</td>
         <td class="severity" bind-once>
-          <span class="label" ng-class="{
+          <span  class="label" ng-class="{
             'label-danger': log.severity == 'ERROR',
             'label-warning': log.severity == 'WARN',
             'label-info': log.severity == 'INFO',
-            'label-default': ['ERROR', 'WARN', 'INFO'].indexOf(log.severity) == -1 
+            'label-default': log.severity == 'DEBUG',
+            'label:empty': ['ERROR', 'WARN', 'INFO', 'DEBUG'].indexOf(log.severity) == -1 
             }">{{log.severity}}</span>
         </td>
         <td class="message" bind-once>{{log.message}}</td>

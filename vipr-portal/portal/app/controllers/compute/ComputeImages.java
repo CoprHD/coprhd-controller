@@ -1,13 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.compute;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 import static controllers.Common.backToReferrer;
-import static controllers.Common.flashException;
-
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
@@ -86,7 +84,6 @@ public class ComputeImages extends ViprResourceController {
         render(computeImage);
     }
 
-
     public static void create() {
         addReferenceData();
         ComputeImageForm computeImages = new ComputeImageForm();
@@ -99,12 +96,13 @@ public class ComputeImages extends ViprResourceController {
             createAClone(imageId);
         }
     }
-    public static void createAClone(String imageId ) {
+
+    public static void createAClone(String imageId) {
         addReferenceData();
-        
+
         ComputeImageRestRep computeImage = ComputeImageUtils
                 .getComputeImage(imageId);
-        ComputeImageForm computeImages = new ComputeImageForm(computeImage,true);        
+        ComputeImageForm computeImages = new ComputeImageForm(computeImage, true);
         render("@edit", computeImages);
     }
 
@@ -118,18 +116,18 @@ public class ComputeImages extends ViprResourceController {
             ComputeImageForm computeImages = new ComputeImageForm(
                     computeImage);
             render("@edit", computeImages);
-        } 
+        }
         else {
             flash.error(MessagesUtils.get(UNKNOWN, id));
             list();
         }
     }
 
-    @FlashException(keep=true, referrer={"create","edit"})
+    @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(ComputeImageForm computeImages) {
 
         computeImages.validate("computeImages");
-         
+
         if (Validation.hasErrors()) {
             handleError(computeImages);
         }
@@ -146,15 +144,16 @@ public class ComputeImages extends ViprResourceController {
         if (computeImages.isNew()) {
             if (computeImages.imageId == null) {
                 create();
-            } 
+            }
             else {
                 createAClone(computeImages.imageId.toString());
             }
-        } 
+        }
         else {
             edit(computeImages.id);
         }
     }
+
     @FlashException("list")
     public static void delete(@As(",") String[] ids) {
         delete(uris(ids));
@@ -170,7 +169,6 @@ public class ComputeImages extends ViprResourceController {
         list();
     }
 
-
     public static class ComputeImageForm {
 
         public String id;
@@ -182,22 +180,21 @@ public class ComputeImages extends ViprResourceController {
 
         @MaxSize(2048)
         public String imageUrl;
-        
+
         public URI imageId;
-        
-        public String imageName;        
-        
+
+        public String imageName;
+
         public String imageType;
-        
+
         public String computeImageStatus;
-        
+
         public String lastImageStatusMessage;
-        
+
         public String cloneName;
         public String cloneExtractedName;
         public String cloneType;;
         public String cloneUrl;
-
 
         public ComputeImageForm() {
         }
@@ -218,30 +215,31 @@ public class ComputeImages extends ViprResourceController {
             this.cloneExtractedName = computeImage.getImageName();
             this.cloneType = ComputeImageTypes.getDisplayValue(computeImage.getImageType());
             this.cloneUrl = computeImage.getImageUrl();
-        }        
-        
+        }
+
         public boolean isNew() {
             return StringUtils.isBlank(this.id);
         }
+
         public boolean isCreate() {
             return StringUtils.isBlank(this.id) && this.imageId == null;
         }
-        
+
         public void validate(String fieldName) {
             Validation.valid(fieldName, this);
             Validation.required(fieldName + ".name", this.name);
-            if (isCreate()) {                
+            if (isCreate()) {
                 Validation.required(fieldName + ".imageUrl", this.imageUrl);
                 try {
-                    new URL(this.imageUrl);
-                } catch (MalformedURLException e) {    
+                    new URL(this.imageUrl);// NOSONAR
+                                           // ("Suppressing Sonar violation of Object being dropped without using it. Object is used for validation purpose")
+                } catch (MalformedURLException e) {
                     Validation.addError(fieldName + ".imageUrl",
-                            MessagesUtils.get("computeImage.invalid.url"));                
+                            MessagesUtils.get("computeImage.invalid.url"));
                 }
             }
 
         }
-
 
         public Task<ComputeImageRestRep> save() {
             if (isNew()) {
@@ -250,8 +248,7 @@ public class ComputeImages extends ViprResourceController {
                 return update();
             }
         }
-        
-        
+
         private Task<ComputeImageRestRep> create() {
             ComputeImageCreate createParam = new ComputeImageCreate();
             createParam.setName(this.name);
@@ -262,8 +259,8 @@ public class ComputeImages extends ViprResourceController {
         private Task<ComputeImageRestRep> update() {
             ComputeImageUpdate updateParam = new ComputeImageUpdate();
             updateParam.setName(this.name);
-            
-            if (this.computeImageStatus.equals("NOT_AVAILABLE") && this.imageUrl != null && this.imageUrl.length()>0) {
+
+            if (this.computeImageStatus.equals("NOT_AVAILABLE") && this.imageUrl != null && this.imageUrl.length() > 0) {
                 updateParam.setImageUrl(this.imageUrl);
             }
             return ComputeImageUtils.update(id, updateParam);

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) $today_year. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
@@ -46,25 +36,25 @@ public class BlockMirrorDetachCompleter extends BlockMirrorTaskCompleter {
             BlockMirror mirror = dbClient.queryObject(BlockMirror.class, getMirrorURI());
             Volume volume = dbClient.queryObject(Volume.class, mirror.getSource());
 
-            if (status == Status.ready){
+            if (status == Status.ready) {
                 _log.info("Removing sync details for mirror " + mirror.getId());
                 mirror.setSynchronizedInstance(NullColumnValueGetter.getNullStr());
                 mirror.setSyncState(NullColumnValueGetter.getNullStr());
                 dbClient.persistObject(mirror);
                 _log.info("Removing mirror {} from source volume {}", mirror.getId().toString(),
                         volume.getId().toString());
-                if(volume.getMirrors()!=null){
+                if (volume.getMirrors() != null) {
                     volume.getMirrors().remove(mirror.getId().toString());
                     dbClient.persistObject(volume);
                 }
             }
 
             switch (status) {
-            case error:
-                dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
-                break;
-            default:
-                dbClient.ready(Volume.class, volume.getId(), getOpId());
+                case error:
+                    dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
+                    break;
+                default:
+                    dbClient.ready(Volume.class, volume.getId(), getOpId());
             }
 
             recordBlockMirrorOperation(dbClient, OperationTypeEnum.DETACH_VOLUME_MIRROR,

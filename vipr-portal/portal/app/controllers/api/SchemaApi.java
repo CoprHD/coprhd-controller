@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.api;
@@ -17,22 +17,22 @@ import java.io.StringWriter;
 
 /**
  * API to retrieve schemas for the API.
- *
+ * 
  * @author Chris Dail
  */
 @With(Common.class)
 public class SchemaApi extends Controller {
-   public static void schema() throws IOException {
-       final StringWriter writer = new StringWriter();
+    public static void schema() throws IOException {
+        final StringWriter writer = new StringWriter();
 
-       ApiModelPlugin.getInstance().getCtx().generateSchema(new SchemaOutputResolver() {
-           public Result createOutput(String namespaceUri, String filename) throws IOException {
-               Logger.debug("Generating API Schemas %s", filename);
-               StreamResult result = new StreamResult(writer);
-               result.setSystemId("schema.xsd");
-               return result;
-           }
-       });
-       renderXml(writer.toString());
-   }
+        ApiModelPlugin.getInstance().getCtx().generateSchema(new SchemaOutputResolver() {
+            public Result createOutput(String namespaceUri, String filename) throws IOException {
+                Logger.debug("Generating API Schemas %s", filename);
+                StreamResult result = new StreamResult(writer);
+                result.setSystemId("schema.xsd");
+                return result;
+            }
+        });
+        renderXml(writer.toString());
+    }
 }

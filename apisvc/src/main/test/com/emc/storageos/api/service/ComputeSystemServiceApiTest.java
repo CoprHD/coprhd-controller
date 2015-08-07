@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service;
@@ -50,7 +50,7 @@ public class ComputeSystemServiceApiTest extends ApiTestBase {
 
         List<String> urls = new ArrayList<String>();
         urls.add(_apiServer);
-        rSys = createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, urls);
+        rSys = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, urls);
 
         TenantResponse tenantResp = rSys.path("/tenant").get(TenantResponse.class);
         _rootTenantId = tenantResp.getTenant();
@@ -63,7 +63,7 @@ public class ComputeSystemServiceApiTest extends ApiTestBase {
                 EnvConfig.get("sanity", "ucsm.host"),
                 EnvConfig.get("sanity", "ucsm.host.username"),
                 EnvConfig.get("sanity", "ucsm.host.password"),
-                "api-test-compute-system",80);
+                "api-test-compute-system", 80);
 
         Assert.assertNotNull(taskCreateComputeSystem, "Compute System Task should not be null");
         Assert.assertNotNull(taskCreateComputeSystem.getOpId(), "Compute System Task Id should not be null");

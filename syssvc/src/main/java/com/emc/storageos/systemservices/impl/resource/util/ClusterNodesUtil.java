@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.resource.util;
 
@@ -35,13 +25,13 @@ public class ClusterNodesUtil {
 
     // A reference to the coordinator client for retrieving the registered
     // Bourne nodes.
-    private static CoordinatorClient _coordinator;
+    private static volatile CoordinatorClient _coordinator;
 
     // A reference to the service for getting Bourne cluster information.
-    private static Service _service;
+    private static volatile Service _service;
 
-    private static CoordinatorClientExt _coordinatorExt;
-    
+    private static volatile CoordinatorClientExt _coordinatorExt;
+
     public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
     }
@@ -56,21 +46,21 @@ public class ClusterNodesUtil {
 
     /**
      * Gets a reference to the node connection info for the nodes requested.
-     *
+     * 
      * @param nodeNames List of node names whose information is returned
      * @return A list containing the connection info for all nodes in the Bourne
      *         cluster.
      * @throws IllegalStateException When an exception occurs trying to get the
-     *                               cluster nodes.
+     *             cluster nodes.
      */
     public static List<NodeInfo> getClusterNodeInfo(List<String> nodeNames) {
         List<NodeInfo> nodeInfoList = new ArrayList<NodeInfo>();
         List<String> validNodeIds = new ArrayList<String>();
         try {
-            if( nodeNames != null && nodeNames.size() > 0 ){
+            if (nodeNames != null && !nodeNames.isEmpty()) {
                 _log.info("Getting cluster node info for ids: {}", nodeNames);
             }
-            else{
+            else {
                 _log.info("Getting cluster node info for all nodes");
             }
 
@@ -82,7 +72,7 @@ public class ClusterNodesUtil {
             for (Service svc : svcList) {
                 _log.debug("Got service with node id " + svc.getNodeName());
                 // if there are node ids requested
-                if (nodeNames != null && nodeNames.size() > 0 &&
+                if (nodeNames != null && !nodeNames.isEmpty() &&
                         !nodeNames.contains(svc.getNodeName())) {
                     continue;
                 }
@@ -99,11 +89,11 @@ public class ClusterNodesUtil {
             throw APIException.internalServerErrors.getObjectFromError("cluster nodes info", "coordinator", e);
         }
 
-        //validate if all requested node ids information is retrieved
-        if(nodeNames != null && nodeNames.size() > 0 &&
-                !validNodeIds.containsAll(nodeNames)){
+        // validate if all requested node ids information is retrieved
+        if (nodeNames != null && !nodeNames.isEmpty() &&
+                !validNodeIds.containsAll(nodeNames)) {
             nodeNames.removeAll(validNodeIds);
-            throw APIException.badRequests.parameterIsNotValid("node id(s): "+nodeNames);
+            throw APIException.badRequests.parameterIsNotValid("node id(s): " + nodeNames);
         }
         return nodeInfoList;
     }
@@ -115,8 +105,8 @@ public class ClusterNodesUtil {
     public static List<NodeInfo> getClusterNodeInfo() {
         return getClusterNodeInfo(null);
     }
-    
+
     public static ArrayList<String> getUnavailableControllerNodes() {
-    	return _coordinatorExt.getUnavailableControllerNodes();
+        return _coordinatorExt.getUnavailableControllerNodes();
     }
- }
+}

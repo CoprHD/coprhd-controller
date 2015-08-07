@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
@@ -42,20 +32,20 @@ public class ExportCreateCompleter extends ExportTaskCompleter {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             Operation operation = new Operation();
             switch (status) {
-            case error:
-                operation.error(coded);
-                break;
-            case ready:
-                operation.ready();
-                break;
-            default:
-                break;
+                case error:
+                    operation.error(coded);
+                    break;
+                case ready:
+                    operation.ready();
+                    break;
+                default:
+                    break;
             }
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
             // If the operation does not complete successfully,
             // then make sure that the inactive flag is set to true
             if (!hasActiveMasks(dbClient, exportGroup)) {
-            exportGroup.setInactive(status != Operation.Status.ready);
+                exportGroup.setInactive(status != Operation.Status.ready);
             }
             dbClient.persistObject(exportGroup);
 
@@ -63,7 +53,8 @@ public class ExportCreateCompleter extends ExportTaskCompleter {
             _log.info(String.format("Done ExportMaskCreate - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
 
-            recordBlockExportOperation(dbClient, OperationTypeEnum.CREATE_EXPORT_GROUP, status, eventMessage(status, exportGroup), exportGroup);
+            recordBlockExportOperation(dbClient, OperationTypeEnum.CREATE_EXPORT_GROUP, status, eventMessage(status, exportGroup),
+                    exportGroup);
         } catch (Exception e) {
             _log.error(String.format("Failed updating status for ExportMaskCreate - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);

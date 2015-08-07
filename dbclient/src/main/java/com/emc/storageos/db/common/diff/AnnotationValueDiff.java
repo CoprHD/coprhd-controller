@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.common.diff;
@@ -44,11 +34,11 @@ public class AnnotationValueDiff extends Diff {
         valueCT = PrimitiveChangeTracker.newInstance(src.getValue(), tgt.getValue(), tgt);
 
         if ((RelationIndex.class.equals(tgt.getAnnoClass()) && tgt.getName().equals("cf"))
-                || (AlternateId.class.equals(tgt.getAnnoClass()) && tgt.getName().equals("value")) ) {
+                || (AlternateId.class.equals(tgt.getAnnoClass()) && tgt.getName().equals("value"))) {
             isCfValueOfRelationIndex = true;
             if (valueCT != null && valueCT.isChanged()) {
-                log.info("Cf value of index {} has changed from {} to {}", new Object[]{
-                        tgt.describe(), valueCT.getOldValue(), valueCT.getNewValue()});
+                log.info("Cf value of index {} has changed from {} to {}", new Object[] {
+                        tgt.describe(), valueCT.getOldValue(), valueCT.getNewValue() });
             }
         }
     }
@@ -64,14 +54,16 @@ public class AnnotationValueDiff extends Diff {
     }
 
     public boolean isUpgradable() {
-        if (valueCT == null || isCfValueOfRelationIndex)
+        if (valueCT == null || isCfValueOfRelationIndex) {
             return true;
+        }
         return valueCT.isUpgradable();
     }
 
     public boolean isChanged() {
-        if (valueCT == null)
+        if (valueCT == null) {
             return false;
+        }
         return valueCT.isChanged();
     }
 }

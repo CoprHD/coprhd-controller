@@ -1,21 +1,12 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.svcs.errorhandling.resources;
 
 import java.util.Locale;
+import java.util.Arrays;
 
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.utils.Messages;
@@ -37,7 +28,7 @@ public abstract class InternalException extends RuntimeException implements Serv
         this._code = code;
         this._bundleName = detailBase;
         this._key = detailKey;
-        this._parameters = detailParams;
+        this._parameters = (detailParams != null) ? Arrays.copyOf(detailParams, detailParams.length) : null;
     }
 
     protected InternalException(final ServiceCode code, final Throwable cause,

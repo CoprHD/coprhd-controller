@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.file;
 
@@ -33,12 +23,10 @@ import com.emc.storageos.volumecontroller.impl.plugins.metering.ZeroRecordGenera
 
 /**
  * FileCacheSyncher is responsible to do File specific operations.
- *
+ * 
  */
 public class FileZeroRecordGenerator extends ZeroRecordGenerator {
     private Logger _logger = LoggerFactory.getLogger(FileZeroRecordGenerator.class);
-
- 
 
     /**
      * Inject FileShareURI of the given nativeGuid.
@@ -63,7 +51,6 @@ public class FileZeroRecordGenerator extends ZeroRecordGenerator {
         return fileshareURIs;
     }
 
-
     @Override
     public void generateZeroRecord(Stat zeroStatRecord,
             Map<String, Object> keyMap) {
@@ -82,13 +69,12 @@ public class FileZeroRecordGenerator extends ZeroRecordGenerator {
         zeroStatRecord.setSnapshotCount(0);
     }
 
-
     @Override
     protected Stat getStatObject(URI resourceURI, DbClient dbClient) {
-        if(URIUtil.isType(resourceURI, FileShare.class)) {
+        if (URIUtil.isType(resourceURI, FileShare.class)) {
             FileShare fs = dbClient.queryObject(FileShare.class, resourceURI);
             if (!fs.checkInternalFlags(Flag.NO_METERING)) {
-                return new Stat();                
+                return new Stat();
             }
         }
         return null;

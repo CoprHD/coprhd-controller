@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -12,8 +12,8 @@ public class UserPreferencesUpdateParam {
 
     private String username;
     private Boolean notifyByEmail;
-    private String email;   
-    
+    private String email;
+
     @XmlElement(name = "notify_by_email")
     public Boolean getNotifyByEmail() {
         return notifyByEmail;

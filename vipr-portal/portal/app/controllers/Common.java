@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers;
@@ -70,10 +70,13 @@ public class Common extends Controller {
     public static final String NOTIFICATIONS = "notifications";
     public static final String REFERRER = "referrer";
     public static final String ANGULAR_RENDER_ARGS = "angularRenderArgs";
-    
+
     public static final String CACHE_EXPR = "2min";
-    
-    @Before(priority=0)
+
+    public static final String[] paramsToClean =
+    { "name", "authenticityToken", "button.save", "referrerUrl", "nodeId", "taskId" };
+
+    @Before(priority = 0)
     @Unrestricted
     public static void checkSetup() {
         if (StringUtils.isNotBlank(Security.getAuthToken())) {
@@ -100,7 +103,7 @@ public class Common extends Controller {
         boolean isFormEncoded = StringUtils.equals(request.contentType, "application/x-www-form-urlencoded");
         boolean isApiRequest = StringUtils.startsWith(request.path, "/api/");
         if (isPost && isFormEncoded && !isApiRequest) {
-            String authenticityToken = SecurityUtils.stripXSS( params.get("authenticityToken") );
+            String authenticityToken = SecurityUtils.stripXSS(params.get("authenticityToken"));
             if (authenticityToken == null) {
                 Logger.warn("No authenticity token from %s for request: %s", request.remoteAddress, request.url);
             }
@@ -108,18 +111,24 @@ public class Common extends Controller {
         }
     }
 
-    @Before(priority=0)
+    @Before(priority = 0)
     public static void xssCheck() {
-    	String[] data = params.getAll("name");
-    	if (data == null)
-    		return;
-    	
-    	for (String val : data) {
-    		val = SecurityUtils.stripXSS(val);
-    	}
+        for (String param : paramsToClean) {
+            String[] data = params.getAll(param);
+
+            if ((data != null) && (data.length > 0)) {
+                Logger.debug("Cleaning data for " + param);
+                String[] cleanValues = new String[data.length];
+                for (int i = 0; i < data.length; ++i) {
+                    cleanValues[i] = SecurityUtils.stripXSS(data[i]);
+                }
+
+                params.put(param, cleanValues);
+            }
+        }
     }
-    
-    @Before(priority=5)
+
+    @Before(priority = 5)
     public static void addCommonRenderArgs() {
         // Set cache control. We don't want caching of our dynamic pages
         response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -127,7 +136,7 @@ public class Common extends Controller {
         UserInfo userInfo = Security.getUserInfo();
 
         angularRenderArgs().put(USER, userInfo);
-        angularRenderArgs().put(AUTHENTICITY_TOKEN, SecurityUtils.stripXSS( session.getAuthenticityToken() ));
+        angularRenderArgs().put(AUTHENTICITY_TOKEN, SecurityUtils.stripXSS(session.getAuthenticityToken()));
         renderArgs.put(USER, userInfo);
         renderArgs.put(TOKEN, Security.getAuthToken());
         renderArgs.put(VDCS, getVDCs());
@@ -142,7 +151,7 @@ public class Common extends Controller {
     @Util
     public static Map<String, Object> angularRenderArgs() {
         @SuppressWarnings("unchecked")
-        Map<String, Object> scope = (Map<String, Object>)renderArgs.get(ANGULAR_RENDER_ARGS);
+        Map<String, Object> scope = (Map<String, Object>) renderArgs.get(ANGULAR_RENDER_ARGS);
 
         if (scope == null) {
             scope = new HashMap<String, Object>();
@@ -172,7 +181,7 @@ public class Common extends Controller {
                 params.flash();
                 Validation.keep();
             }
-            
+
             String action = handler.value();
             String[] referrer = handler.referrer();
             if (!action.isEmpty()) {
@@ -188,7 +197,8 @@ public class Common extends Controller {
                     if (m.find()) {
                         redirectToReferrer();
                     } else {
-                        Logger.error(String.format("The redirect page is not valid base on the FlashException referrer restriction: %s", referrer.toString()));
+                        Logger.error(String.format("The redirect page is not valid base on the FlashException referrer restriction: %s",
+                                referrer.toString()));
                     }
                 } else {
                     Logger.error("Unable to redirect. No referrer available in request header");
@@ -220,7 +230,7 @@ public class Common extends Controller {
             throw new RuntimeException(msg);
         }
     }
-    
+
     @Util
     public static void handleExpiredToken(Throwable throwable) {
         if (throwable instanceof ViPRHttpException) {
@@ -241,7 +251,7 @@ public class Common extends Controller {
 
     /**
      * Gets a user printable message for an exception.
-     *
+     * 
      * @param throwable Exception to get the message for
      */
     @Util
@@ -256,7 +266,7 @@ public class Common extends Controller {
     /**
      * This method captures the user printable message for an exception. It logs it to the log file and
      * adds the message to the flash error for display. For AJAX requests, the message is rendered as an error.
-     *
+     * 
      * @param throwable Exception to get the message for
      */
     @Util
@@ -273,7 +283,7 @@ public class Common extends Controller {
     }
 
     /**
-     * Gets the referrer URL.  If there is a flash scope value, it takes precedence over a query parameter.
+     * Gets the referrer URL. If there is a flash scope value, it takes precedence over a query parameter.
      * 
      * @return the referrer URL.
      */
@@ -283,7 +293,7 @@ public class Common extends Controller {
         String referrerParam = params.get(REFERRER);
         String referrer = null;
         if (StringUtils.isNotBlank(referrerFlash)) {
-            referrer =  referrerFlash;
+            referrer = referrerFlash;
         }
         else if (StringUtils.isNotBlank(referrerParam)) {
             referrer = referrerParam;
@@ -310,6 +320,7 @@ public class Common extends Controller {
                 cleanUrl += "?" + query;
             }
         } catch (URISyntaxException ignore) {
+            Logger.error(ignore.getMessage());
         }
 
         return cleanUrl;
@@ -385,8 +396,7 @@ public class Common extends Controller {
         ClusterInfo clusterInfo = null;
         try {
             clusterInfo = BourneUtil.getSysClient().upgrade().getClusterInfo();
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             Logger.error(e, "Failed to get cluster state");
             error(e.getHttpCode(), e.getMessage());
         }
@@ -395,6 +405,7 @@ public class Common extends Controller {
 
     /**
      * Gets the clusterInfo if the user has access
+     * 
      * @return the cluster info, or null
      */
     @Util
@@ -407,7 +418,7 @@ public class Common extends Controller {
             return null;
         }
     }
-    
+
     public static void clusterInfoWithRoleCheckJson() {
         renderJSON(getClusterInfoWithRoleCheck());
     }
@@ -428,7 +439,7 @@ public class Common extends Controller {
     @Util
     public static List<VirtualDataCenterRestRep> getVDCs() {
         List<VirtualDataCenterRestRep> vdcs = Cache.get(VDCS, List.class);
-        if(vdcs == null) {
+        if (vdcs == null) {
             try {
                 vdcs = VirtualDataCenterUtils.getAllVDCs();
             }
@@ -463,7 +474,7 @@ public class Common extends Controller {
         angularRenderArgs().remove(ANGULAR_RENDER_ARGS);
         angularRenderArgs().keySet().removeAll(Arrays.asList(exclude));
     }
-    
+
     @Util
     public static void flashParamsExcept(String... paramNames) {
         Set<String> names = Sets.newHashSet(params.all().keySet());
@@ -471,7 +482,7 @@ public class Common extends Controller {
         String[] array = new String[names.size()];
         params.flash(names.toArray(array));
     }
-    
+
     public static void redirectTo(String action) {
         redirect(action);
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -16,12 +16,12 @@ import static com.emc.storageos.db.client.model.uimodels.InitialSetup.*;
 
 public class SetupUtils {
     private static boolean complete = false;
-    
+
     public static boolean isSetupComplete() {
         if (StorageOsPlugin.isEnabled()) {
             CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
             Configuration setupConfig = coordinatorClient.queryConfiguration(CONFIG_KIND, CONFIG_ID);
-            complete = (setupConfig != null) && 
+            complete = (setupConfig != null) &&
                     StringUtils.equals(setupConfig.getConfig(COMPLETE), Boolean.TRUE.toString());
         }
         // In Dev mode we don't have coordinator so assume always setup
@@ -31,7 +31,7 @@ public class SetupUtils {
         else {
             complete = false;
         }
-        
+
         return complete;
     }
 
@@ -39,7 +39,7 @@ public class SetupUtils {
         if (complete) {
             return;
         }
-        
+
         if (StorageOsPlugin.isEnabled()) {
             CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
             ConfigurationImpl config = new ConfigurationImpl();
@@ -55,7 +55,7 @@ public class SetupUtils {
 
     /**
      * Checks if the build is a open source build or emc enterprise build
-     *
+     * 
      * @return true if it is an open source build otherwise false.
      */
     public static boolean isOssBuild() {

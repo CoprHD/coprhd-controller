@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -42,7 +42,7 @@ public interface TenantResources<T extends DataObjectRestRep> {
      * Lists resources associated with a given tenant.
      * 
      * @param tenantId
-     *        the tenant ID.
+     *            the tenant ID.
      * @return the list of resource references.
      */
     public List<NamedRelatedResourceRep> listByTenant(URI tenantId);
@@ -51,7 +51,7 @@ public interface TenantResources<T extends DataObjectRestRep> {
      * Gets the resources associated with a given tenant.
      * 
      * @param tenantId
-     *        the tenant ID.
+     *            the tenant ID.
      * @return the list of resources for this tenant.
      * 
      * @see Resources#getByRefs(java.util.Collection)
@@ -62,9 +62,9 @@ public interface TenantResources<T extends DataObjectRestRep> {
      * Gets the resources associated with a given tenant, optionally filtering the results as they are returned.
      * 
      * @param tenantId
-     *        the tenant ID.
+     *            the tenant ID.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of resources for the tenant.
      * 
      * @see Resources#getByRefs(java.util.Collection, ResourceFilter)

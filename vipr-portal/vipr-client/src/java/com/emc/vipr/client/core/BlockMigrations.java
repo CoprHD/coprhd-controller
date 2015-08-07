@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -90,7 +90,7 @@ public class BlockMigrations extends AbstractCoreBulkResources<MigrationRestRep>
      * API Call: <tt>POST /block/migrations/{id}/pause</tt>
      * 
      * @param id
-     *        the ID of the block volume migration.
+     *            the ID of the block volume migration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<MigrationRestRep> pause(URI id) {
@@ -103,7 +103,7 @@ public class BlockMigrations extends AbstractCoreBulkResources<MigrationRestRep>
      * API Call: <tt>POST /block/migrations/{id}/resume</tt>
      * 
      * @param id
-     *        the ID of the block volume migration.
+     *            the ID of the block volume migration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<MigrationRestRep> resume(URI id) {
@@ -116,7 +116,7 @@ public class BlockMigrations extends AbstractCoreBulkResources<MigrationRestRep>
      * API Call: <tt>POST /block/migrations/{id}/commit</tt>
      * 
      * @param id
-     *        the ID of the block volume migration.
+     *            the ID of the block volume migration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<MigrationRestRep> commit(URI id) {
@@ -129,7 +129,7 @@ public class BlockMigrations extends AbstractCoreBulkResources<MigrationRestRep>
      * API Call: <tt>POST /block/migrations/{id}/cancel</tt>
      * 
      * @param id
-     *        the ID of the block volume migration.
+     *            the ID of the block volume migration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<MigrationRestRep> cancel(URI id) {

@@ -110,7 +110,10 @@
       
       <dt class="moreDetails">&{'resources.volume.nativeid'}:</dt>
       <dd class="moreDetails">#{spaceForNull volume.nativeId/}</dd>
-      
+      #{if !isAccessStateEmpty}
+      <dt class="moreDetails">&{'resources.volume.accessstate'}:</dt>
+      <dd class="moreDetails">#{spaceForNull volume.accessState/}</dd>
+      #{/if}
       #{Resources.commonAttributes resource:volume /}
     </dl>
   

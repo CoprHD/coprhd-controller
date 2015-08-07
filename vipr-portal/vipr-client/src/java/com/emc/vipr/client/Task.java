@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client;
@@ -16,7 +16,7 @@ import java.util.List;
 
 /**
  * Representation of an asynchronous task returned from an operation.
- *
+ * 
  * @param <R> Type of the underlying resource running the operation.
  */
 public class Task<R> {
@@ -32,13 +32,13 @@ public class Task<R> {
 
     /**
      * Gets the underlying task resource.
-     *
+     * 
      * @return TaskResourceRep for this task.
      */
     public TaskResourceRep getTaskResource() {
         return task;
     }
-    
+
     public URI getResourceId() {
         NamedRelatedResourceRep resource = getResource();
         if (resource == null) {
@@ -57,7 +57,7 @@ public class Task<R> {
 
     /**
      * Delegates to the underlying task.
-     *
+     * 
      * @return Reference to the task resource.
      */
     public NamedRelatedResourceRep getResource() {
@@ -108,7 +108,7 @@ public class Task<R> {
 
     /**
      * Queries the task and updates information on this task.
-     *
+     * 
      * @return This task.
      */
     public Task<R> refresh() {
@@ -119,7 +119,7 @@ public class Task<R> {
     /**
      * Waits for a task to complete (go into a pending or error state). If an error occurs
      * it will be thrown as an exception.
-     *
+     * 
      * @throws ViPRException Thrown if the task is in an error state.
      * @return This task.
      */
@@ -130,7 +130,7 @@ public class Task<R> {
     /**
      * Waits for a task to complete (go into a pending or error state). If an error occurs
      * it will be thrown as an exception.
-     *
+     * 
      * @param timeoutMillis Timeout after a number of milliseconds
      * @throws TimeoutException Thrown if a timeout occurs.
      * @throws ViPRException Thrown if the task is in an error state.
@@ -150,7 +150,7 @@ public class Task<R> {
      * Waits for a task to complete (go into a pending or error state). If an error occurs
      * it will be thrown as an exception. If the task was successful this returns the
      * actual object for the underlying resource.
-     *
+     * 
      * @throws TimeoutException Thrown if a timeout occurs.
      * @throws ViPRException Thrown if the task is in an error state.
      * @return Resource object.
@@ -164,7 +164,7 @@ public class Task<R> {
      * Waits for a task to complete (go into a pending or error state). If an error occurs
      * it will be thrown as an exception. If the task was successful this returns the
      * actual object for the underlying resource.
-     *
+     * 
      * @param timeoutMillis Timeout after a number of milliseconds
      * @throws TimeoutException Thrown if a timeout occurs.
      * @throws ViPRException Thrown if the task is in an error state.

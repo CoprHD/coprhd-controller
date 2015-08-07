@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper;
@@ -70,7 +70,7 @@ import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
 public class BlockMapper {
 
     private static final Logger logger = LoggerFactory.getLogger(BlockMapper.class);
-    
+
     public static void mapBlockObjectFields(BlockObject from, BlockObjectRestRep to) {
         mapDataObjectFields(from, to);
         to.setWwn(from.getWWN());
@@ -81,18 +81,18 @@ public class BlockMapper {
         to.setNativeId(from.getNativeId() != null ? from.getNativeId() : "");
         to.setConsistencyGroup(toRelatedResource(ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP, from.getConsistencyGroup()));
     }
-    
+
     public static VolumeRestRep map(Volume from) {
-    	return map(null, from);
+        return map(null, from);
     }
-    
+
     public static VolumeRestRep map(DbClient dbClient, Volume from) {
         if (from == null) {
             return null;
         }
         VolumeRestRep to = new VolumeRestRep();
         mapBlockObjectFields(from, to);
-        
+
         if (from.getProject() != null) {
             to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject().getURI()));
         }
@@ -114,10 +114,10 @@ public class BlockMapper {
         if (from.getPool() != null) {
             to.setPool(toRelatedResource(ResourceTypeEnum.STORAGE_POOL, from.getPool()));
         }
-            
+
         // RecoverPoint specific section
         RecoverPointRestRep toRp = null;
-        
+
         if (from.checkForRp()) {
             toRp = new RecoverPointRestRep();
             toRp.setProtectionSystem(toRelatedResource(ResourceTypeEnum.PROTECTION_SYSTEM, from.getProtectionController()));
@@ -132,7 +132,7 @@ public class BlockMapper {
                 }
                 toRp.setRpTargets(rpTargets);
             }
-            
+
             if (from.getProtectionSet() != null) {
                 toRp.setProtectionSet(toRelatedResource(ResourceTypeEnum.PROTECTION_SET, from.getProtectionSet().getURI(), from.getId()));
             }
@@ -141,12 +141,13 @@ public class BlockMapper {
         // Mirror specific section
         MirrorRestRep toMirror = null;
         if ((from.getMirrors() != null) && (!from.getMirrors().isEmpty())) {
-        	toMirror = new MirrorRestRep();
-    		List<VirtualArrayRelatedResourceRep> mirrors = new ArrayList<VirtualArrayRelatedResourceRep>();
-        	for (String mirror : from.getMirrors()) {
-        		mirrors.add(toTargetVolumeRelatedResource(ResourceTypeEnum.BLOCK_MIRROR, URI.create(mirror), from.getId(), getVarray(dbClient, mirror)));
-        	}
-        	toMirror.setMirrors(mirrors);
+            toMirror = new MirrorRestRep();
+            List<VirtualArrayRelatedResourceRep> mirrors = new ArrayList<VirtualArrayRelatedResourceRep>();
+            for (String mirror : from.getMirrors()) {
+                mirrors.add(toTargetVolumeRelatedResource(ResourceTypeEnum.BLOCK_MIRROR, URI.create(mirror), from.getId(),
+                        getVarray(dbClient, mirror)));
+            }
+            toMirror.setMirrors(mirrors);
         }
 
         // Full copy specific section
@@ -161,7 +162,8 @@ public class BlockMapper {
             if (fromFullCopies != null) {
                 List<VirtualArrayRelatedResourceRep> fullCopies = new ArrayList<VirtualArrayRelatedResourceRep>();
                 for (String fullCopy : fromFullCopies) {
-                    fullCopies.add(toTargetVolumeRelatedResource(ResourceTypeEnum.VOLUME, URI.create(fullCopy), getVarray(dbClient, fullCopy)));
+                    fullCopies.add(toTargetVolumeRelatedResource(ResourceTypeEnum.VOLUME, URI.create(fullCopy),
+                            getVarray(dbClient, fullCopy)));
                 }
                 toFullCopy.setFullCopyVolumes(fullCopies);
             }
@@ -176,78 +178,77 @@ public class BlockMapper {
         // SRDF specific section
         SRDFRestRep toSRDF = null;
         if ((from.getSrdfTargets() != null) && (!from.getSrdfTargets().isEmpty())) {
-        	toSRDF = new SRDFRestRep();
-    		List<VirtualArrayRelatedResourceRep> targets = new ArrayList<VirtualArrayRelatedResourceRep>();
-        	for (String target : from.getSrdfTargets()) {
-        		targets.add(toTargetVolumeRelatedResource(ResourceTypeEnum.VOLUME, URI.create(target), getVarray(dbClient, target)));
-        	}
+            toSRDF = new SRDFRestRep();
+            List<VirtualArrayRelatedResourceRep> targets = new ArrayList<VirtualArrayRelatedResourceRep>();
+            for (String target : from.getSrdfTargets()) {
+                targets.add(toTargetVolumeRelatedResource(ResourceTypeEnum.VOLUME, URI.create(target), getVarray(dbClient, target)));
+            }
             toSRDF.setPersonality(from.getPersonality());
-        	toSRDF.setSRDFTargetVolumes(targets);
+            toSRDF.setSRDFTargetVolumes(targets);
         } else if (!NullColumnValueGetter.isNullNamedURI(from.getSrdfParent())) {
-        	toSRDF = new SRDFRestRep();
+            toSRDF = new SRDFRestRep();
             toSRDF.setPersonality(from.getPersonality());
             toSRDF.setAssociatedSourceVolume(toRelatedResource(ResourceTypeEnum.VOLUME, from.getSrdfParent().getURI()));
         }
-        
 
         // Protection object encapsulates mirrors and RP
-        if (toMirror!=null || toRp!=null || toFullCopy!=null || toSRDF!=null) {
-        	ProtectionRestRep toProtection = new ProtectionRestRep();
-        	toProtection.setMirrorRep(toMirror);
-        	toProtection.setRpRep(toRp);
+        if (toMirror != null || toRp != null || toFullCopy != null || toSRDF != null) {
+            ProtectionRestRep toProtection = new ProtectionRestRep();
+            toProtection.setMirrorRep(toMirror);
+            toProtection.setRpRep(toRp);
             toProtection.setFullCopyRep(toFullCopy);
             toProtection.setSrdfRep(toSRDF);
-        	to.setProtection(toProtection);
+            to.setProtection(toProtection);
         }
-        
+
         if ((from.getAssociatedVolumes() != null) && (!from.getAssociatedVolumes().isEmpty())) {
-    		List<RelatedResourceRep> backingVolumes = new ArrayList<RelatedResourceRep>();
-        	for (String backingVolume : from.getAssociatedVolumes()) {
-        		backingVolumes.add(toRelatedResource(ResourceTypeEnum.VOLUME, URI.create(backingVolume)));
-        	}
-        	to.setHaVolumes(backingVolumes);
+            List<RelatedResourceRep> backingVolumes = new ArrayList<RelatedResourceRep>();
+            for (String backingVolume : from.getAssociatedVolumes()) {
+                backingVolumes.add(toRelatedResource(ResourceTypeEnum.VOLUME, URI.create(backingVolume)));
+            }
+            to.setHaVolumes(backingVolumes);
         }
 
         return to;
     }
-    
-    private static URI getVarray(DbClient dbClient, String target) {
-    	if (dbClient != null) {
-    		if (URIUtil.isType(URI.create(target), VplexMirror.class)) {
-    			VplexMirror mirror = dbClient.queryObject(VplexMirror.class, URI.create(target));
-    			return mirror.getVirtualArray();
-    		}
-    		BlockObject volume = BlockObject.fetch(dbClient, URI.create(target));
-    		return volume == null ? null : volume.getVirtualArray();
-    	}
-    	return null;
-	}
 
-	private static VirtualArrayRelatedResourceRep toTargetVolumeRelatedResource(
-			ResourceTypeEnum type, URI id, URI varray) {
-    	VirtualArrayRelatedResourceRep resourceRep = new VirtualArrayRelatedResourceRep();
+    private static URI getVarray(DbClient dbClient, String target) {
+        if (dbClient != null) {
+            if (URIUtil.isType(URI.create(target), VplexMirror.class)) {
+                VplexMirror mirror = dbClient.queryObject(VplexMirror.class, URI.create(target));
+                return mirror.getVirtualArray();
+            }
+            BlockObject volume = BlockObject.fetch(dbClient, URI.create(target));
+            return volume == null ? null : volume.getVirtualArray();
+        }
+        return null;
+    }
+
+    private static VirtualArrayRelatedResourceRep toTargetVolumeRelatedResource(
+            ResourceTypeEnum type, URI id, URI varray) {
+        VirtualArrayRelatedResourceRep resourceRep = new VirtualArrayRelatedResourceRep();
         if (NullColumnValueGetter.isNullURI(id)) {
             return null;
         }
         resourceRep.setId(id);
         resourceRep.setLink(toLink(type, id));
         resourceRep.setVirtualArray(toRelatedResource(ResourceTypeEnum.VARRAY, varray));
-		return resourceRep;
-	}
-	
-	private static VirtualArrayRelatedResourceRep toTargetVolumeRelatedResource(
-			ResourceTypeEnum type, URI id, URI parentId, URI varray) {
-    	VirtualArrayRelatedResourceRep resourceRep = new VirtualArrayRelatedResourceRep();
+        return resourceRep;
+    }
+
+    private static VirtualArrayRelatedResourceRep toTargetVolumeRelatedResource(
+            ResourceTypeEnum type, URI id, URI parentId, URI varray) {
+        VirtualArrayRelatedResourceRep resourceRep = new VirtualArrayRelatedResourceRep();
         if (NullColumnValueGetter.isNullURI(id)) {
             return null;
         }
         resourceRep.setId(id);
         resourceRep.setLink(toLink(type, id, parentId));
         resourceRep.setVirtualArray(toRelatedResource(ResourceTypeEnum.VARRAY, varray));
-		return resourceRep;
-	}
+        return resourceRep;
+    }
 
-	public static BlockSnapshotRestRep map(DbClient dbClient, BlockSnapshot from) {
+    public static BlockSnapshotRestRep map(DbClient dbClient, BlockSnapshot from) {
         if (from == null) {
             return null;
         }
@@ -256,7 +257,7 @@ public class BlockMapper {
 
         // Map the consistency group
         to.setConsistencyGroup(toRelatedResource(ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP, from.getConsistencyGroup()));
-        
+
         if (from.getParent() != null) {
             URI parentURI = from.getParent().getURI();
             URIQueryResultList results = new URIQueryResultList();
@@ -294,7 +295,7 @@ public class BlockMapper {
         }
         return to;
     }
-    
+
     public static VplexMirrorRestRep map(VplexMirror from) {
         if (from == null) {
             return null;
@@ -312,19 +313,19 @@ public class BlockMapper {
         to.setVirtualPool(toRelatedResource(ResourceTypeEnum.BLOCK_VPOOL, from.getVirtualPool()));
         return to;
     }
-    
+
     public static BlockConsistencyGroupRestRep map(BlockConsistencyGroup from, Set<URI> volumes, DbClient dbClient) {
-    	if(from == null){
-    		return null;
-    	}
-    	
-    	BlockConsistencyGroupRestRep to = new BlockConsistencyGroupRestRep();
-    	mapDataObjectFields(from, to);
-    	
-    	to.setVirtualArray(toRelatedResource(ResourceTypeEnum.VARRAY, from.getVirtualArray()));
-    	to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject().getURI()));
-    	to.setStorageController(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageController()));
-    	
+        if (from == null) {
+            return null;
+        }
+
+        BlockConsistencyGroupRestRep to = new BlockConsistencyGroupRestRep();
+        mapDataObjectFields(from, to);
+
+        to.setVirtualArray(toRelatedResource(ResourceTypeEnum.VARRAY, from.getVirtualArray()));
+        to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject().getURI()));
+        to.setStorageController(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageController()));
+
         try {
             if (from.getSystemConsistencyGroups() != null) {
                 to.setSystemConsistencyGroups(new StringSetMapAdapter().marshal(from.getSystemConsistencyGroups()));
@@ -333,44 +334,44 @@ public class BlockMapper {
             // internally ignored
             logger.debug(e.getMessage(), e);
         }
-        
-    	if (from.getTypes() != null) {
-    	    to.setTypes(from.getTypes());
-    	    
-    	    if (dbClient != null && volumes != null && volumes.iterator().hasNext()) {
-    	        // Get the first volume in the list.  From this we are able to obtain the
-    	        // link status and protection set (RP) information for all volumes in the
-    	        // CG.
-    	        Volume volume = dbClient.queryObject(Volume.class, volumes.iterator().next()); 
-    	        
-    	        if (from.getTypes().contains(BlockConsistencyGroup.Types.RP.toString()) && volume.getProtectionSet() != null) {
+
+        if (from.getTypes() != null) {
+            to.setTypes(from.getTypes());
+
+            if (dbClient != null && volumes != null && volumes.iterator().hasNext()) {
+                // Get the first volume in the list. From this we are able to obtain the
+                // link status and protection set (RP) information for all volumes in the
+                // CG.
+                Volume volume = dbClient.queryObject(Volume.class, volumes.iterator().next());
+
+                if (from.getTypes().contains(BlockConsistencyGroup.Types.RP.toString()) && volume.getProtectionSet() != null) {
                     // Get the protection set from the first volume and set the appropriate fields
                     ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
                     to.setRpConsistenyGroupId(protectionSet.getProtectionId());
                     to.setLinkStatus(protectionSet.getProtectionStatus());
                     to.setRpProtectionSystem(protectionSet.getProtectionSystem());
-    	        } else if (from.getTypes().contains(BlockConsistencyGroup.Types.SRDF.toString())) {
-                    // Operations cannot be performed individually on volumes within an SRDF CG, hence 
+                } else if (from.getTypes().contains(BlockConsistencyGroup.Types.SRDF.toString())) {
+                    // Operations cannot be performed individually on volumes within an SRDF CG, hence
                     // we can take any one of the volume's link status and update the CG link status.
                     to.setLinkStatus(volume.getLinkStatus());
-    	        }
-    	    }
-    	}
-    	
-    	if (volumes != null) {
-	        List<RelatedResourceRep> volumesResourceRep = new ArrayList<RelatedResourceRep>();
-	        for (URI volumeUri : volumes) {
-	            Volume volume = dbClient.queryObject(Volume.class, volumeUri);
-	            // Only display CG volumes that are non-RP or RP source volumes.
-	            if (!volume.checkForRp() || (volume.checkForRp() && volume.getPersonality() != null 
-	                    && volume.getPersonality().equals(PersonalityTypes.SOURCE.name()))) {
-	                volumesResourceRep.add(toRelatedResource(ResourceTypeEnum.VOLUME, volumeUri));
-	            }
-	        }
-	        to.setVolumes(volumesResourceRep);
+                }
+            }
         }
-    	
-		return to;
+
+        if (volumes != null) {
+            List<RelatedResourceRep> volumesResourceRep = new ArrayList<RelatedResourceRep>();
+            for (URI volumeUri : volumes) {
+                Volume volume = dbClient.queryObject(Volume.class, volumeUri);
+                // Only display CG volumes that are non-RP or RP source volumes.
+                if (!volume.checkForRp() || (volume.checkForRp() && volume.getPersonality() != null
+                        && volume.getPersonality().equals(PersonalityTypes.SOURCE.name()))) {
+                    volumesResourceRep.add(toRelatedResource(ResourceTypeEnum.VOLUME, volumeUri));
+                }
+            }
+            to.setVolumes(volumesResourceRep);
+        }
+
+        return to;
     }
 
     public static MigrationRestRep map(Migration from) {
@@ -413,7 +414,7 @@ public class BlockMapper {
         } else if (!uniquePolicyNames) {
             list.getAutoTierPolicies().add(
                     toNamedRelatedResource(policy, policy.getNativeGuid()));
-        } 
+        }
     }
 
     public static StorageTierRestRep map(StorageTier from) {
@@ -439,38 +440,37 @@ public class BlockMapper {
         to.setNativeGuid(from.getNativeGuid());
         try {
             to.setVolumeInformation(new StringSetMapAdapter().marshal(from.getVolumeInformation()));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             // Intentionally ignored
         }
         to.setVolumeCharacteristics(new StringMapAdapter().marshal(from.getVolumeCharacterstics()));
         to.setStorageSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageSystemUri()));
         to.setStoragePool(toRelatedResource(ResourceTypeEnum.STORAGE_POOL, from.getStoragePoolUri()));
-        
+
         List<String> uems = new ArrayList<String>();
         for (String uem : from.getUnmanagedExportMasks()) {
             uems.add(uem);
         }
         to.setUnManagedExportMasks(uems);
-        
+
         List<String> initiatorUris = new ArrayList<String>();
         for (String uri : from.getInitiatorUris()) {
             initiatorUris.add(uri);
         }
         to.setInitiatorUris(initiatorUris);
-        
+
         List<String> initiatorNetworkIds = new ArrayList<String>();
         for (String id : from.getInitiatorNetworkIds()) {
             initiatorNetworkIds.add(id);
         }
         to.setInitiatorNetworkIds(initiatorNetworkIds);
-        
+
         List<String> storagePortUris = new ArrayList<String>();
         for (String uri : from.getStoragePortUris()) {
             storagePortUris.add(uri);
         }
         to.setStoragePortUris(storagePortUris);
-        
+
         return to;
     }
 
@@ -483,7 +483,7 @@ public class BlockMapper {
         to.setNativeId(from.getNativeId());
         to.setMaskName(from.getMaskName());
         to.setStorageSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageSystemUri()));
-        
+
         if ((from.getKnownInitiatorUris() != null) && (!from.getKnownInitiatorUris().isEmpty())) {
             List<RelatedResourceRep> reps = new ArrayList<RelatedResourceRep>();
             for (String uri : from.getKnownInitiatorUris()) {
@@ -518,20 +518,22 @@ public class BlockMapper {
 
         to.setUnmanagedInitiatorNetworkIds(from.getUnmanagedInitiatorNetworkIds());
         to.setUnmanagedStoragePortNetworkIds(from.getUnmanagedStoragePortNetworkIds());
-        
+
         return to;
     }
-    
+
     public static NamedRelatedVirtualPoolRep toVirtualPoolResource(VirtualPool vpool) {
         ResourceTypeEnum type = BlockMapper.getResourceType(VirtualPool.Type.valueOf(vpool.getType()));
         return new NamedRelatedVirtualPoolRep(vpool.getId(), toLink(type, vpool.getId()), vpool.getLabel(), vpool.getType());
     }
 
-    public static VirtualPoolChangeRep toVirtualPoolChangeRep(VirtualPool vpool, List<VirtualPoolChangeOperationEnum> allowedOpertions, String notAllowedReason) {
+    public static VirtualPoolChangeRep toVirtualPoolChangeRep(VirtualPool vpool, List<VirtualPoolChangeOperationEnum> allowedOpertions,
+            String notAllowedReason) {
         ResourceTypeEnum type = BlockMapper.getResourceType(VirtualPool.Type.valueOf(vpool.getType()));
-        return new VirtualPoolChangeRep(vpool.getId(), toLink(type, vpool.getId()), vpool.getLabel(), vpool.getType(), notAllowedReason, allowedOpertions);
+        return new VirtualPoolChangeRep(vpool.getId(), toLink(type, vpool.getId()), vpool.getLabel(), vpool.getType(), notAllowedReason,
+                allowedOpertions);
     }
-    
+
     public static ResourceTypeEnum getResourceType(VirtualPool.Type cosType) {
         if (VirtualPool.Type.block == cosType) {
             return ResourceTypeEnum.BLOCK_VPOOL;

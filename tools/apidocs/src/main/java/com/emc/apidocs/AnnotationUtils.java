@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.apidocs;
@@ -7,8 +7,6 @@ package com.emc.apidocs;
 import com.sun.javadoc.AnnotationDesc;
 import com.sun.javadoc.Parameter;
 import com.sun.javadoc.ProgramElementDoc;
-
-import java.util.Collections;
 
 /**
  * A collection of Utitilties for processing annotations
@@ -37,7 +35,6 @@ public class AnnotationUtils {
 
         return false;
     }
-
 
     public static boolean hasAnnotation(Parameter element, String name) {
         for (AnnotationDesc annotation : element.annotations()) {
@@ -76,7 +73,7 @@ public class AnnotationUtils {
     /**
      * Retrieves the element from the Annotation if present from a parameter, i.e @PathParam("id")
      * If the annotation isn't present, or the element isn't present, the defaultValue is returned.
-     *
+     * 
      * For Annotations with just a value, i.e @Path("/mypath") the element name is {@link KnownAnnotations.Value_Element}
      */
     public static <T> T getAnnotationValue(Parameter parameter, String annotation, String elementName, T defaultValue) {
@@ -84,7 +81,7 @@ public class AnnotationUtils {
         if (annotationDesc != null) {
             for (AnnotationDesc.ElementValuePair element : annotationDesc.elementValues()) {
                 if (element.element().name().equals(elementName)) {
-                    return (T)element.value().value();
+                    return (T) element.value().value();
                 }
             }
         }
@@ -94,8 +91,8 @@ public class AnnotationUtils {
 
     /**
      * Retrieves the element from the Annotation if present, i.e @XmlElement(required=true) would be an annotation of XmlElement
-     * and an element name of "required".  If the annotation isn't present, or the element isn't present, the defaultValue is returned.
-     *
+     * and an element name of "required". If the annotation isn't present, or the element isn't present, the defaultValue is returned.
+     * 
      * For Annotations with just a value, i.e @Path("/mypath") the element name is {@link KnownAnnotations.Value_Element}
      */
     public static <T> T getAnnotationValue(ProgramElementDoc method, String annotation, String elementName, T defaultValue) {
@@ -103,7 +100,7 @@ public class AnnotationUtils {
         if (annotationDesc != null) {
             for (AnnotationDesc.ElementValuePair element : annotationDesc.elementValues()) {
                 if (element.element().name().equals(elementName)) {
-                    return (T)element.value().value();
+                    return (T) element.value().value();
                 }
             }
         }

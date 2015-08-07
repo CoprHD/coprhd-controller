@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -54,7 +54,7 @@ public class Projects extends AbstractCoreBulkResources<ProjectRestRep> implemen
      * Creates a project in the user's tenant.
      * 
      * @param input
-     *        the project configuration.
+     *            the project configuration.
      * @return the newly created project.
      */
     public ProjectRestRep create(ProjectParam input) {
@@ -67,9 +67,9 @@ public class Projects extends AbstractCoreBulkResources<ProjectRestRep> implemen
      * API Call: <tt>POST /tenants/{tenantId}/projects</tt>
      * 
      * @param tenantId
-     *        the ID of the tenant.
+     *            the ID of the tenant.
      * @param input
-     *        the project configuration.
+     *            the project configuration.
      * @return the newly created project.
      */
     public ProjectRestRep create(URI tenantId, ProjectParam input) {
@@ -84,9 +84,9 @@ public class Projects extends AbstractCoreBulkResources<ProjectRestRep> implemen
      * API Call: <tt>PUT /projects/{id}</tt>
      * 
      * @param id
-     *        the ID of the project to update.
+     *            the ID of the project to update.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      */
     public void update(URI id, ProjectUpdateParam input) {
         client.put(String.class, input, getIdUrl(), id);
@@ -98,7 +98,7 @@ public class Projects extends AbstractCoreBulkResources<ProjectRestRep> implemen
      * API Call: <tt>POST /projects/{id}/deactivate</tt>
      * 
      * @param id
-     *        the ID of project to deactivate.
+     *            the ID of project to deactivate.
      */
     public void deactivate(URI id) {
         doDeactivate(id);
@@ -120,7 +120,7 @@ public class Projects extends AbstractCoreBulkResources<ProjectRestRep> implemen
      * API Call: <tt>GET /tenants/{tenantId}/projects</tt>
      * 
      * @param tenantId
-     *        the ID of the tenant.
+     *            the ID of the tenant.
      * @return the list of project references.
      */
     public List<NamedRelatedResourceRep> listByTenant(URI tenantId) {
@@ -166,7 +166,7 @@ public class Projects extends AbstractCoreBulkResources<ProjectRestRep> implemen
      * API Call: <tt>GET /projects/{id}/resources</tt>
      * 
      * @param id
-     *        the ID of the project.
+     *            the ID of the project.
      * @return the list of project resource references.
      */
     public List<TypedRelatedResourceRep> listResources(URI id) {

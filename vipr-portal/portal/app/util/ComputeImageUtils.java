@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -23,7 +23,6 @@ import com.emc.vipr.client.core.util.CachedResources;
 
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 
-
 public class ComputeImageUtils {
     private static final String NAME_NOT_AVAILABLE = "ComputeImages.nameNotAvailable";
 
@@ -38,8 +37,7 @@ public class ComputeImageUtils {
     public static ComputeImageRestRep getComputeImage(URI id) {
         try {
             return getViprClient().computeImages().get(id);
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
@@ -51,12 +49,9 @@ public class ComputeImageUtils {
         return getViprClient().computeImages().getAll();
     }
 
- 
     public static List<ComputeImageRestRep> getComputeImages(Collection<URI> ids) {
         return getViprClient().computeImages().getByIds(ids);
     }
-
-
 
     public static String getName(ComputeImageRestRep computeImage) {
         if (StringUtils.isNotBlank(computeImage.getName())) {
@@ -66,8 +61,6 @@ public class ComputeImageUtils {
             return MessagesUtils.get(NAME_NOT_AVAILABLE);
         }
     }
-
-
 
     public static Task<ComputeImageRestRep> create(ComputeImageCreate param) {
         return getViprClient().computeImages().create(param);
@@ -83,6 +76,6 @@ public class ComputeImageUtils {
 
     public static Task<ComputeImageRestRep> cloneImage(ComputeImageCreate param) {
         return getViprClient().computeImages().cloneImage(param);
-    }    
-    
+    }
+
 }

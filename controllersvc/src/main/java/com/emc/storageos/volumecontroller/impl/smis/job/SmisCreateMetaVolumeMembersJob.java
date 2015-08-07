@@ -1,23 +1,12 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) 2012. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.volumecontroller.Job;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MetaVolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
@@ -43,7 +32,8 @@ public class SmisCreateMetaVolumeMembersJob extends SmisJob {
     private List<String> _metaMembers = new ArrayList<String>();
     private MetaVolumeTaskCompleter _metaVolumeTaskCompleter;
 
-    public SmisCreateMetaVolumeMembersJob(CIMObjectPath cimJob, URI storageSystem, Volume metaHead, int count, MetaVolumeTaskCompleter metaVolumeTaskCompleter) {
+    public SmisCreateMetaVolumeMembersJob(CIMObjectPath cimJob, URI storageSystem, Volume metaHead, int count,
+            MetaVolumeTaskCompleter metaVolumeTaskCompleter) {
         super(cimJob, storageSystem, metaVolumeTaskCompleter.getVolumeTaskCompleter(), "CreateMetaVolumeMembers");
         _metaVolumeTaskCompleter = metaVolumeTaskCompleter;
         _count = count;
@@ -54,10 +44,9 @@ public class SmisCreateMetaVolumeMembersJob extends SmisJob {
         return _metaMembers;
     }
 
-
     /**
      * Called to update the job status when the create meta members job completes.
-     *
+     * 
      * @param jobContext The job context.
      */
     public void updateStatus(JobContext jobContext) throws Exception {
@@ -86,7 +75,8 @@ public class SmisCreateMetaVolumeMembersJob extends SmisJob {
 
                 if (volumePaths.size() != _count) {
                     logMsgBuilder.append("\n");
-                    logMsgBuilder.append(String.format("   Failed to create required number %s of meta members for meta head %s caused by %s: , task: %s.",
+                    logMsgBuilder.append(String.format(
+                            "   Failed to create required number %s of meta members for meta head %s caused by %s: , task: %s.",
                             _count, _metaHead.getLabel(), _errorDescription, opId));
                     _log.error(logMsgBuilder.toString());
                     setFailedStatus(logMsgBuilder.toString());
@@ -101,20 +91,22 @@ public class SmisCreateMetaVolumeMembersJob extends SmisJob {
                         CIMProperty<String> deviceID = (CIMProperty<String>) volumePath.getKey(SmisConstants.CP_DEVICE_ID);
                         String nativeID = deviceID.getValue();
                         _metaMembers.add(nativeID);
-                        logMsgBuilder.append(String.format("\n   Meta member device ID: %s", nativeID));
+                        logMsgBuilder.append(String.format("%n   Meta member device ID: %s", nativeID));
                     }
                     _log.info(logMsgBuilder.toString());
                 }
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 logMsgBuilder.append("\n");
                 logMsgBuilder.append(String.format(
-                        "Task %s failed to create meta members for meta head volume: %s caused by: %s", opId, _metaHead.getLabel(), _errorDescription));
+                        "Task %s failed to create meta members for meta head volume: %s caused by: %s", opId, _metaHead.getLabel(),
+                        _errorDescription));
                 _log.error(logMsgBuilder.toString());
                 setFailedStatus(logMsgBuilder.toString());
             }
         } catch (Exception e) {
             _log.error("Caught an exception while trying to updateStatus for " + this.getJobName(), e);
-            setPostProcessingErrorStatus("Encountered an internal error during " + this.getJobName() + " job status processing : " + e.getMessage());
+            setPostProcessingErrorStatus("Encountered an internal error during " + this.getJobName() + " job status processing : "
+                    + e.getMessage());
         } finally {
             if (iterator != null) {
                 iterator.close();
@@ -138,7 +130,7 @@ public class SmisCreateMetaVolumeMembersJob extends SmisJob {
             }
             // Do this last, after everything is complete. Do not update status in case of success. This is not independent
             // operation.
-            if ( isJobInTerminalFailedState() ){
+            if (isJobInTerminalFailedState()) {
                 super.updateStatus(jobContext);
             }
         }

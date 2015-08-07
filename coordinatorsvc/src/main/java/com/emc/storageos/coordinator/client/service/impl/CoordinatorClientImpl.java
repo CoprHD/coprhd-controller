@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.coordinator.client.service.impl;
@@ -87,7 +77,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     private final ExecutorService nodeChangeWorker = new NamedThreadPoolExecutor(NODE_POOL_NAME, 1);
 
     private DbVersionInfo dbVersionInfo;
-    
+
     private static Properties defaultProperties;
     private static Properties ovfProperties;
 
@@ -140,15 +130,20 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     public void setDbVersionInfo(DbVersionInfo info) {
         dbVersionInfo = info;
     }
-    
+
+    // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+    // This method is only called in tests and when Spring initialization, safe to suppress
+    @SuppressWarnings("squid:S2444")
     public static void setDefaultProperties(Properties defaults) {
         defaultProperties = defaults;
     }
 
+    // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+    // This method is only called in tests and when Spring initialization, safe to suppress
+    @SuppressWarnings("squid:S2444")
     public static void setOvfProperties(Properties ovfProps) {
         ovfProperties = ovfProps;
     }
-    
 
     @Override
     public void start() throws IOException {
@@ -160,7 +155,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 .addListener(new org.apache.curator.framework.state.ConnectionStateListener() {
                     @Override
                     public void stateChanged(CuratorFramework client, final ConnectionState newState) {
-                        log.info("Entering stateChanged method : {}",newState);
+                        log.info("Entering stateChanged method : {}", newState);
                         _connectionStateWorker.submit(new Callable<Object>() {
                             @Override
                             public Object call() throws Exception {
@@ -325,7 +320,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     /**
      * Set node info to zk so that it can be available for lookup in coordinatorclient.
      * 
-     * @param nodeId  the node_id to be persisted
+     * @param nodeId the node_id to be persisted
      * @param addresses A string of ip addresses(v4/v6) with ',' as separator
      */
     public void setNodeDualInetAddressInfo(String nodeId, String addresses) {
@@ -503,8 +498,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             throw CoordinatorException.retryables.errorWhileFindingNode(fullPath, e);
         }
 
-        if (services == null)
+        if (services == null) {
             return new ArrayList<>();
+        }
 
         return services;
     }
@@ -531,7 +527,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             return data;
         } catch (Exception e) {
             log.warn("e=", e);
-            }
+        }
         return data;
     }
 
@@ -541,7 +537,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         String serviceRoot = String.format("%1$s/%2$s", name, version);
         List<String> servicePaths = lookupServicePath(serviceRoot);
 
-        if (servicePaths.size() == 0) {
+        if (servicePaths.isEmpty()) {
             throw CoordinatorException.retryables.cannotLocateService(String.format("%1$s/%2$s",
                     ZkPath.SERVICE.toString(), serviceRoot));
         }
@@ -589,8 +585,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
             for (String spath : servicePaths) {
                 byte[] data = getServiceData(serviceRoot, spath);
-                if (data == null)
+                if (data == null) {
                     continue;
+                }
                 Service service = ServiceImpl.parse(data);
                 allActiveSvcs.add(service);
             }
@@ -599,7 +596,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
-   public <T> DistributedQueue<T> getQueue(String name, DistributedQueueConsumer<T> consumer,
+    public <T> DistributedQueue<T> getQueue(String name, DistributedQueueConsumer<T> consumer,
             QueueSerializer<T> serializer, int maxThreads, int maxItem) throws CoordinatorException {
         DistributedQueue<T> queue = new DistributedQueueImpl<T>(_zkConnection, consumer,
                 serializer, name, maxThreads, maxItem);
@@ -675,7 +672,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             path.ensure(_zkConnection.curator().getZookeeperClient());
         } catch (Exception e) {
             throw new RetryableCoordinatorException(ServiceCode.COORDINATOR_SVC_NOT_FOUND, e,
-                   "Unable to get lock {0}. Caused by: {1}", new Object[] { name, e.getMessage() });
+                    "Unable to get lock {0}. Caused by: {1}", new Object[] { name, e.getMessage() });
         }
         String lockPath = ZKPaths.makePath(ZkPath.MUTEX.toString(), name);
         return new InterProcessSemaphoreMutex(_zkConnection.curator(), lockPath);
@@ -698,40 +695,42 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         LeaderLatch leaderLatch = new LeaderLatch(_zkConnection.curator(), latchPath);
         return leaderLatch;
     }
-  
-   /**
+
+    /**
      * Get property
-     *
+     * 
      * This method gets target properties from coordinator service as a string
      * and merges it with the defaults and the ovf properties
      * Syssvc is responsible for publishing the target property information into coordinator
-     *
+     * 
      * @return property object
      * @throws CoordinatorException
      */
     @Override
     public PropertyInfo getPropertyInfo() throws CoordinatorException {
         PropertyInfo info = new PropertyInfo();
-        Map<String, String> defaults = new HashMap<String,String>((Map)defaultProperties);
+        Map<String, String> defaults = new HashMap<String, String>((Map) defaultProperties);
         final Configuration config = queryConfiguration(TARGET_PROPERTY, TARGET_PROPERTY_ID);
-        if ( null == config || null == config.getConfig(TARGET_INFO) ) {
+        if (null == config || null == config.getConfig(TARGET_INFO)) {
             log.debug("getPropertyInfo(): no properties saved in coordinator returning defaults");
             info.setProperties(defaults);
         } else {
             final String infoStr = config.getConfig(TARGET_INFO);
             try {
                 log.debug("getPropertyInfo(): properties saved in coordinator=" + Strings.repr(infoStr));
-                info.setProperties(mergeProps(defaults, decodeFromString(infoStr).getProperties()));               
+                info.setProperties(mergeProps(defaults, decodeFromString(infoStr).getProperties()));
             } catch (final Exception e) {
                 throw CoordinatorException.fatals.unableToDecodeDataFromCoordinator(e);
             }
         }
         // add the ovf properties
-        info.getProperties().putAll((Map)ovfProperties);
+        info.getProperties().putAll((Map) ovfProperties);
         return info;
     }
+
     /**
      * Merge properties
+     * 
      * @param defaultProps
      * @param overrideProps
      * @return map containing key, value pair
@@ -739,7 +738,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     public static Map<String, String> mergeProps(Map<String, String> defaultProps, Map<String, String> overrideProps) {
         Map<String, String> mergedProps = new HashMap<String, String>(defaultProps);
         for (Map.Entry<String, String> entry : overrideProps.entrySet()) {
-                mergedProps.put(entry.getKey(), entry.getValue());
+            mergedProps.put(entry.getKey(), entry.getValue());
         }
         return mergedProps;
     }
@@ -909,7 +908,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             byte[] data = _zkConnection.curator().getData().forPath(path);
 
             CoordinatorSerializable state = clazz.newInstance();
-            return (T)state.decodeFromString(new String(data, "UTF-8"));
+            return (T) state.decodeFromString(new String(data, "UTF-8"));
         } catch (KeeperException.NoNodeException ignore) {
             // Ignore exception, don't re-throw
             log.debug("Caught exception but ignoring it: " + ignore);
@@ -934,8 +933,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
         try {
             byte[] data = state.encodeAsString().getBytes("UTF-8");
-
-            for (boolean exist = _zkConnection.curator().checkExists().forPath(path) != null; ; exist = !exist) {
+            // This is reported because the for loop's stop condition and incrementer don't act on the same variable to make sure loop ends
+            // Here the loop can end (break or throw Exception) from inside, safe to suppress
+            for (boolean exist = _zkConnection.curator().checkExists().forPath(path) != null;; exist = !exist) { // NOSONAR("squid:S1994")
                 try {
                     if (exist) {
                         _zkConnection.curator().setData().forPath(path, data);
@@ -1024,10 +1024,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         if (targetPowerOffState.getPowerOffState() != PowerOffState.State.NONE) {
             log.info("Control nodes' state POWERINGOFF");
             return ClusterInfo.ClusterState.POWERINGOFF;
-        } else if (differentConfigVersions.size() != 0) {
+        } else if (!differentConfigVersions.isEmpty()) {
             log.info("Control nodes' state UPDATING: {}", Strings.repr(targetPropertiesGiven));
             return ClusterInfo.ClusterState.UPDATING;
-        } else if (differentCurrents.size() == 0 && differentVersions.size() == 0) {
+        } else if (differentCurrents.isEmpty() && differentVersions.isEmpty()) {
             // check for the extra upgrading states
             if (isDbSchemaVersionChanged()) {
                 MigrationStatus status = getMigrationStatus();
@@ -1039,24 +1039,24 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
                 log.info("Control nodes state is {}", status);
                 switch (status) {
-                case RUNNING:
-                    return ClusterInfo.ClusterState.UPGRADING_CONVERT_DB;
-                case FAILED:
-                    return ClusterInfo.ClusterState.UPGRADING_FAILED;
-                case DONE:
-                    break;
-                default:
-                    log.error(
-                            "The current db schema version doesn't match the target db schema version, "
-                                    + "but the current migration status is {} ", status);
+                    case RUNNING:
+                        return ClusterInfo.ClusterState.UPGRADING_CONVERT_DB;
+                    case FAILED:
+                        return ClusterInfo.ClusterState.UPGRADING_FAILED;
+                    case DONE:
+                        break;
+                    default:
+                        log.error(
+                                "The current db schema version doesn't match the target db schema version, "
+                                        + "but the current migration status is {} ", status);
                 }
             }
             log.info("Control nodes' state STABLE");
             return ClusterInfo.ClusterState.STABLE;
-        } else if (differentCurrents.size() == 0) {
+        } else if (differentCurrents.isEmpty()) {
             log.info("Control nodes' state SYNCING: {}", Strings.repr(differentVersions));
             return ClusterInfo.ClusterState.SYNCING;
-        } else if (differentVersions.size() == 0) {
+        } else if (differentVersions.isEmpty()) {
             log.info("Control nodes' state UPGRADING: {}", Strings.repr(differentCurrents));
             return ClusterInfo.ClusterState.UPGRADING;
         } else {
@@ -1099,10 +1099,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     public MigrationStatus getMigrationStatus() {
-        log.debug("getMigrationStatus: target version: \"{}\"" , getTargetDbSchemaVersion());
+        log.debug("getMigrationStatus: target version: \"{}\"", getTargetDbSchemaVersion());
         // TODO support geodbsvc
         Configuration config = queryConfiguration(getVersionedDbConfigPath(Constants.DBSVC_NAME, getTargetDbSchemaVersion()),
-                                                  GLOBAL_ID);
+                GLOBAL_ID);
         if (config == null || config.getConfig(MIGRATION_STATUS) == null) {
             log.debug("config is null");
             return null;
@@ -1113,17 +1113,17 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private boolean isGeoDbsvc(String serviceName) {
-    	return Constants.GEODBSVC_NAME.equalsIgnoreCase(serviceName);
+        return Constants.GEODBSVC_NAME.equalsIgnoreCase(serviceName);
     }
-    
+
     @Override
     public String getDbConfigPath(String serviceName) {
         return isGeoDbsvc(serviceName) ? Constants.GEODB_CONFIG : Constants.DB_CONFIG;
     }
-    
+
     @Override
     public String getVersionedDbConfigPath(String serviceName, String version) {
-    	String kind = getDbConfigPath(serviceName);
+        String kind = getDbConfigPath(serviceName);
         if (version != null) {
             kind = String.format("%s/%s", kind, version);
         }
@@ -1268,7 +1268,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
         return (controlNodeState != null && (controlNodeState
                 .equals(ClusterInfo.ClusterState.INITIALIZING) || (controlNodeState
-                        .equals(ClusterInfo.ClusterState.STABLE) )));
+                .equals(ClusterInfo.ClusterState.STABLE))));
     }
 
     @Override
@@ -1292,7 +1292,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         nodeWatcher.removeListener(listener);
     }
 
-     /**
+    /**
      * To share NodeCache for listeners listening same path.
      * The empty NodeCache (counter zero) means the NodeCache should be closed.
      * Note: it is not thread safe since we do synchronization at higher level
@@ -1308,7 +1308,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
 
         public void plus() {
-            count ++;
+            count++;
         }
 
         public void minus() {
@@ -1392,7 +1392,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             synchronized (this) {
                 refer = nodeCacheReferenceMap.get(listener.getPath());
 
-                if (refer == null) return;
+                if (refer == null) {
+                    return;
+                }
 
                 refer.minus();
                 if (refer.empty()) {

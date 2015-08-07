@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.services.util;
@@ -22,8 +12,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NamedThreadPoolExecutorTest {
+	private static final Logger logger = LoggerFactory.getLogger(NamedThreadPoolExecutorTest.class);
 
     class MyCallable implements Callable<String> {
 
@@ -37,6 +30,7 @@ public class NamedThreadPoolExecutorTest {
     }
 
     class MyTask implements Runnable {
+    	
         private String name = "";
 
         @Override
@@ -46,6 +40,7 @@ public class NamedThreadPoolExecutorTest {
                 System.out.println("Name=" + name);
                 Thread.sleep(1000L);
             } catch (InterruptedException e) {
+            	logger.error(e.getMessage(), e);
             }
         }
 

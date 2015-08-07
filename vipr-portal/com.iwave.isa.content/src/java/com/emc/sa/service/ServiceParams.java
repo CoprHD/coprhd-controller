@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service;
@@ -31,9 +31,9 @@ public interface ServiceParams {
     public String EXPORT_NAME = "exportName";
     public String RW_USER_SIDS = "rwUserSids";
     public String RW_GROUP_SIDS = "rwGroupSids";
-    
+
     public String SHARE_COMMENT = "shareComment";
-    
+
     public String PROJECT = "project";
     public String VIRTUAL_ARRAY = "virtualArray";
     public String VIRTUAL_POOL = "virtualPool";
@@ -55,13 +55,13 @@ public interface ServiceParams {
     public String VOLUME = "volume";
     public String SNAPSHOT = "snapshot";
     public String EXPORT = "export";
-    public String CONSISTENCY_GROUP="consistencyGroup";
+    public String CONSISTENCY_GROUP = "consistencyGroup";
     public String HLU = "hlu";
     public String COPIES = "copies";
-    
+
     public String TARGET_VIRTUAL_POOL = "targetVirtualPool";
     public String TARGET_VIRTUAL_ARRAY = "targetVirtualArray";
-    
+
     public String DATA_STORE = "dataStoreName";
     public String DATASTORE_DESCRIPTION = "dataStoreDescription";
     public String FILE_SHARE_ID = "fileShareID";
@@ -73,7 +73,7 @@ public interface ServiceParams {
     public String PARTITION_TYPE = "partitionType";
     public String LABEL = "label";
 
-    public String CLUSTER = "cluster";    
+    public String CLUSTER = "cluster";
     public String COMPUTE_IMAGE = "computeImage";
     public String FQDNS = "fqdns";
     public String HOST_IPS = "ips";
@@ -83,16 +83,16 @@ public interface ServiceParams {
     public String PLATFORM = "platform";
     public String NTP_SERVER = "ntpServer";
     public String MANAGEMENT_NETWORK = "managementNetwork";
-    public String HOST_PASSWORD = "hostPassword";
-    public String CONFIRM_PASSWORD = "confirmPassword";
-    
+    public String HOST_PASSWORD = "hostPassword"; // NOSONAR ("False positive, field does not store a password”)
+    public String CONFIRM_PASSWORD = "confirmPassword"; // NOSONAR ("False positive, field does not store a password”)
+
     public String MAXUSERS = "maxUsers";
     public String PERMISSIONTYPE = "permissionType";
     public String PERMISSION = "permission";
     public String SECURITY = "security";
     public String USER = "user";
     public String SUB_DIRECTORY = "subDirectory";
-    
+
     public String SUBDIRECTORY = "subDirectory";
     public String ALLDDIRECTORY = "allDirectory";
     public String COMMENT = "comment";

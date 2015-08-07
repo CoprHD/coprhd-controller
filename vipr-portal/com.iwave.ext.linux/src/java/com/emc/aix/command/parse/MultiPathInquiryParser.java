@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.aix.command.parse;
@@ -16,14 +16,14 @@ public class MultiPathInquiryParser {
 
     private static Pattern DEVICE_BLOCK_START_PATTERN = Pattern.compile("DEVICE\\s+:VEND\\s+:PROD\\s+:WWN\\s");
     private static Pattern DEVICE_PATTERN = Pattern.compile("([\\/\\w]+)\\s+:(\\w+)\\s+:(\\w+)\\s+:(\\w{16,32})");
-    
+
     private TextParser deviceBlockParser = new TextParser();
-    
+
     public MultiPathInquiryParser() {
         deviceBlockParser.setStartPattern(DEVICE_BLOCK_START_PATTERN);
         deviceBlockParser.setRepeatPattern(DEVICE_PATTERN);
     }
-    
+
     public List<MultiPathDevice> parseDevices(String output) {
         List<MultiPathDevice> devices = Lists.newArrayList();
         for (String deviceBlock : deviceBlockParser.parseTextBlocks(output)) {
@@ -34,7 +34,7 @@ public class MultiPathInquiryParser {
 
     private MultiPathDevice parseDevice(String deviceBlock) {
         Matcher deviceMatcher = DEVICE_PATTERN.matcher(deviceBlock);
-        if ( deviceMatcher.find() ) {
+        if (deviceMatcher.find()) {
             MultiPathDevice device = new MultiPathDevice();
             device.setDevice(deviceMatcher.group(1));
             device.setVendor(deviceMatcher.group(2));

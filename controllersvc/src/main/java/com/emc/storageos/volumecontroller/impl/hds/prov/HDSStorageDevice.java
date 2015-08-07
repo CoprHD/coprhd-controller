@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.hds.prov;
 
@@ -66,11 +56,9 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
-import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CleanupMetaVolumeMembersCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MetaVolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MultiVolumeTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeExpandCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.hds.prov.job.HDSCleanupMetaVolumeMembersJob;
@@ -90,35 +78,34 @@ import com.emc.storageos.volumecontroller.impl.smis.MirrorOperations;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.workflow.WorkflowService;
 
-
 /**
  * Hitachi Data System specific provisioning implementation class.
  * This class is responsible to do all provisioning operations by interacting with XML API Server which is running on
  * HiCommand Device Manager.
- *
+ * 
  */
 public class HDSStorageDevice extends DefaultBlockStorageDevice {
-    
+
     private static final Logger log = LoggerFactory.getLogger(HDSStorageDevice.class);
-    
+
     private DbClient dbClient;
-    
+
     private NameGenerator nameGenerator;
-    
+
     private HDSApiFactory hdsApiFactory;
-    
+
     private ExportMaskOperations exportMaskOperationsHelper;
-    
+
     private MetaVolumeOperations metaVolumeOperations;
-    
+
     private CloneOperations cloneOperations;
-    
+
     private MirrorOperations mirrorOperations;
-    
+
     private SnapshotOperations snapshotOperations;
-    
+
     private static String QUICK_FORMAT_TYPE = "quick";
-    
+
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
@@ -133,17 +120,21 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
     public void setHdsApiFactory(HDSApiFactory hdsApiFactory) {
         this.hdsApiFactory = hdsApiFactory;
     }
-    
+
     public void setExportMaskOperationsHelper(ExportMaskOperations exportMaskOperationsHelper) {
         this.exportMaskOperationsHelper = exportMaskOperationsHelper;
     }
-    
+
     public void setMetaVolumeOperations(final MetaVolumeOperations metaVolumeOperations) {
         this.metaVolumeOperations = metaVolumeOperations;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doCreateVolumes(com.emc.storageos.db.client.model.StorageSystem, com.emc.storageos.db.client.model.StoragePool, java.lang.String, java.util.List, com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doCreateVolumes(com.emc.storageos.db.client.model.StorageSystem,
+     * com.emc.storageos.db.client.model.StoragePool, java.lang.String, java.util.List,
+     * com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doCreateVolumes(StorageSystem storageSystem, StoragePool storagePool,
@@ -158,7 +149,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                 "Create Volume Start - Array:%s, Pool:%s", storageSystem.getSerialNumber(),
                 storagePool.getNativeGuid()));
         for (Volume volume : volumes) {
-            logMsgBuilder.append(String.format("\nVolume:%s , IsThinlyProvisioned: %s",
+            logMsgBuilder.append(String.format("%nVolume:%s , IsThinlyProvisioned: %s",
                     volume.getLabel(), volume.getThinlyProvisioned()));
 
             if ((label == null) && (volumes.size() == 1)) {
@@ -181,7 +172,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
         log.info(logMsgBuilder.toString());
         try {
             multiVolumeCheckForHitachiModel(volumes, storageSystem);
-            
+
             HDSApiClient hdsApiClient = hdsApiFactory.getClient(
                     HDSUtils.getHDSServerManagementServerInfo(storageSystem),
                     storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
@@ -219,25 +210,25 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
             taskCompleter.error(dbClient, serviceError);
         }
         if (opCreationFailed) {
-            for (Volume vol: volumes) {
+            for (Volume vol : volumes) {
                 vol.setInactive(true);
                 dbClient.persistObject(vol);
             }
         }
 
         logMsgBuilder = new StringBuilder(String.format(
-            "Create Volumes End - Array:%s, Pool:%s", storageSystem.getSerialNumber(),
-            storagePool.getNativeGuid()));
+                "Create Volumes End - Array:%s, Pool:%s", storageSystem.getSerialNumber(),
+                storagePool.getNativeGuid()));
         for (Volume volume : volumes) {
-            logMsgBuilder.append(String.format("\nVolume:%s", volume.getLabel()));
+            logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
         }
         log.info(logMsgBuilder.toString());
     }
-    
 
     /**
      * Few Hitachi models doesn't support multivolume creation in single request.
      * We shouldn't allow user to use bulk volume creation.
+     * 
      * @param volumes
      * @param storageSystem
      */
@@ -249,8 +240,12 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExpandVolume(com.emc.storageos.db.client.model.StorageSystem, com.emc.storageos.db.client.model.StoragePool, com.emc.storageos.db.client.model.Volume, java.lang.Long, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExpandVolume(com.emc.storageos.db.client.model.StorageSystem,
+     * com.emc.storageos.db.client.model.StoragePool, com.emc.storageos.db.client.model.Volume, java.lang.Long,
+     * com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doExpandVolume(StorageSystem storageSystem, StoragePool storagePool, Volume volume,
@@ -267,7 +262,8 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
             String asyncTaskMessageId = null;
 
             if (volume.getThinlyProvisioned()) {
-                asyncTaskMessageId = hdsApiClient.modifyThinVolume(systemObjectID, HDSUtils.getLogicalUnitObjectId(volume.getNativeId(), storageSystem), size);
+                asyncTaskMessageId = hdsApiClient.modifyThinVolume(systemObjectID,
+                        HDSUtils.getLogicalUnitObjectId(volume.getNativeId(), storageSystem), size);
             }
 
             if (null != asyncTaskMessageId) {
@@ -288,8 +284,12 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                 storageSystem.getSerialNumber(), storagePool.getNativeGuid(), volume.getLabel()));
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExpandAsMetaVolume(com.emc.storageos.db.client.model.StorageSystem, com.emc.storageos.db.client.model.StoragePool, com.emc.storageos.db.client.model.Volume, long, com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExpandAsMetaVolume(com.emc.storageos.db.client.model.StorageSystem,
+     * com.emc.storageos.db.client.model.StoragePool, com.emc.storageos.db.client.model.Volume, long,
+     * com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doExpandAsMetaVolume(StorageSystem storageSystem,
@@ -297,7 +297,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
             MetaVolumeRecommendation recommendation, VolumeExpandCompleter volumeCompleter)
             throws DeviceControllerException {
         StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                "Expand Meta Volume Start - Array:%s, Pool:%s \n    Volume: %s, id: %s",
+                "Expand Meta Volume Start - Array:%s, Pool:%s %n Volume: %s, id: %s",
                 storageSystem.getSerialNumber(), storagePool.getNativeId(), metaHead.getLabel(),
                 metaHead.getId()));
         log.info(logMsgBuilder.toString());
@@ -312,7 +312,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                             metaHead, metaMemberCount, metaMemberCapacity,
                             metaVolumeTaskCompleter);
             log.info("ldevMetaMembers created successfully: {}", newMetaMembers);
-            
+
             if (metaVolumeTaskCompleter.getLastStepStatus() == Job.JobStatus.SUCCESS) {
                 metaVolumeOperations.expandMetaVolume(storageSystem, storagePool, metaHead, newMetaMembers, metaVolumeTaskCompleter);
             } else {
@@ -330,8 +330,11 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doDeleteVolumes(com.emc.storageos.db.client.model.StorageSystem, java.lang.String, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doDeleteVolumes(com.emc.storageos.db.client.model.StorageSystem,
+     * java.lang.String, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doDeleteVolumes(StorageSystem storageSystem, String opId,
@@ -350,7 +353,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
             String systemObjectId = HDSUtils.getSystemObjectID(storageSystem);
             log.info("volumes size: {}", volumes.size());
             for (Volume volume : volumes) {
-                logMsgBuilder.append(String.format("\nVolume:%s", volume.getLabel()));
+                logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
                 String logicalUnitObjectId = HDSUtils.getLogicalUnitObjectId(
                         volume.getNativeId(), storageSystem);
                 LogicalUnit logicalUnit = hdsApiClient.getLogicalUnitInfo(systemObjectId,
@@ -372,20 +375,20 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                 } else {
                     thickLogicalUnitIdList.add(logicalUnitObjectId);
                 }
-                
+
             }
             log.info(logMsgBuilder.toString());
             if (!multiVolumeTaskCompleter.isVolumeTaskCompletersEmpty()) {
                 if (null != thickLogicalUnitIdList && !thickLogicalUnitIdList.isEmpty()) {
                     String asyncThickLUsJobId = hdsApiClient.deleteThickLogicalUnits(systemObjectId,
-                        thickLogicalUnitIdList);
+                            thickLogicalUnitIdList);
                     if (null != asyncThickLUsJobId) {
                         ControllerServiceImpl.enqueueJob(new QueueJob(new HDSDeleteVolumeJob(
                                 asyncThickLUsJobId, volumes.get(0).getStorageController(),
                                 taskCompleter)));
                     }
                 }
-                
+
                 if (null != thinLogicalUnitIdList && !thinLogicalUnitIdList.isEmpty()) {
                     String asyncThinHDSJobId = hdsApiClient.deleteThinLogicalUnits(
                             systemObjectId, thinLogicalUnitIdList);
@@ -419,13 +422,17 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
         StringBuilder logMsgBuilder = new StringBuilder(String.format(
                 "Delete Volume End - Array: %s", storageSystem.getSerialNumber()));
         for (Volume volume : volumes) {
-            logMsgBuilder.append(String.format("\nVolume:%s", volume.getLabel()));
+            logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
         }
         log.info(logMsgBuilder.toString());
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportGroupCreate(com.emc.storageos.db.client.model.StorageSystem, com.emc.storageos.db.client.model.ExportMask, java.util.Map, java.util.List, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportGroupCreate(com.emc.storageos.db.client.model.StorageSystem,
+     * com.emc.storageos.db.client.model.ExportMask, java.util.Map, java.util.List, java.util.List,
+     * com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doExportGroupCreate(StorageSystem storage, ExportMask exportMask,
@@ -437,8 +444,11 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
         log.info("{} doExportGroupCreate END ...", storage.getSerialNumber());
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportGroupDelete(com.emc.storageos.db.client.model.StorageSystem, com.emc.storageos.db.client.model.ExportMask, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportGroupDelete(com.emc.storageos.db.client.model.StorageSystem,
+     * com.emc.storageos.db.client.model.ExportMask, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doExportGroupDelete(StorageSystem storage, ExportMask exportMask,
@@ -452,32 +462,34 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doExportAddVolume(StorageSystem storage,
-                                  ExportMask exportMask,
-                                  URI volume, Integer lun,
-                                  TaskCompleter taskCompleter) throws DeviceControllerException {
+            ExportMask exportMask,
+            URI volume, Integer lun,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         log.info("{} doExportAddVolume START ...", storage.getSerialNumber());
         Map<URI, Integer> map = new HashMap<URI, Integer>();
         map.put(volume, lun);
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(storage.getSystemType(), map, dbClient);
-        exportMaskOperationsHelper.addVolume(storage, exportMask.getId(), volumeLunArray,taskCompleter);
+        exportMaskOperationsHelper.addVolume(storage, exportMask.getId(), volumeLunArray, taskCompleter);
         log.info("{} doExportAddVolume END ...", storage.getSerialNumber());
     }
 
     @Override
     public void doExportAddVolumes(StorageSystem storage, ExportMask exportMask,
-                                   Map<URI, Integer> volumes,
-                                   TaskCompleter taskCompleter) throws DeviceControllerException {
+            Map<URI, Integer> volumes,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         log.info("{} doExportAddVolume START ...", storage.getSerialNumber());
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(storage.getSystemType(), volumes, dbClient);
-        
+
         exportMaskOperationsHelper.addVolume(storage, exportMask.getId(),
-                volumeLunArray,taskCompleter);
+                volumeLunArray, taskCompleter);
         log.info("{} doExportAddVolume END ...", storage.getSerialNumber());
     }
 
-
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportRemoveVolume(com.emc.storageos.db.client.model.StorageSystem, com.emc.storageos.db.client.model.ExportMask, java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportRemoveVolume(com.emc.storageos.db.client.model.StorageSystem,
+     * com.emc.storageos.db.client.model.ExportMask, java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doExportRemoveVolume(StorageSystem storage, ExportMask exportMask,
@@ -487,8 +499,11 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
         log.info("{} doExportRemoveVolume END ...", storage.getSerialNumber());
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportRemoveVolumes(com.emc.storageos.db.client.model.StorageSystem, com.emc.storageos.db.client.model.ExportMask, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportRemoveVolumes(com.emc.storageos.db.client.model.StorageSystem,
+     * com.emc.storageos.db.client.model.ExportMask, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doExportRemoveVolumes(StorageSystem storage, ExportMask exportMask,
@@ -501,8 +516,12 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
 
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportAddInitiator(com.emc.storageos.db.client.model.StorageSystem, com.emc.storageos.db.client.model.ExportMask, com.emc.storageos.db.client.model.Initiator, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportAddInitiator(com.emc.storageos.db.client.model.StorageSystem,
+     * com.emc.storageos.db.client.model.ExportMask, com.emc.storageos.db.client.model.Initiator, java.util.List,
+     * com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doExportAddInitiator(StorageSystem storage, ExportMask exportMask,
@@ -513,8 +532,11 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
         log.info("{} doExportAddInitiator END ...", storage.getSerialNumber());
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportAddInitiators(com.emc.storageos.db.client.model.StorageSystem, com.emc.storageos.db.client.model.ExportMask, java.util.List, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportAddInitiators(com.emc.storageos.db.client.model.StorageSystem,
+     * com.emc.storageos.db.client.model.ExportMask, java.util.List, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doExportAddInitiators(StorageSystem storage, ExportMask exportMask,
@@ -526,8 +548,12 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
         log.info("{} doExportAddInitiator END ...", storage.getSerialNumber());
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportRemoveInitiator(com.emc.storageos.db.client.model.StorageSystem, com.emc.storageos.db.client.model.ExportMask, com.emc.storageos.db.client.model.Initiator, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportRemoveInitiator(com.emc.storageos.db.client.model.StorageSystem,
+     * com.emc.storageos.db.client.model.ExportMask, com.emc.storageos.db.client.model.Initiator, java.util.List,
+     * com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doExportRemoveInitiator(StorageSystem storage, ExportMask exportMask,
@@ -539,8 +565,11 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
         log.info("{} doExportRemoveInitiator END ...", storage.getSerialNumber());
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportRemoveInitiators(com.emc.storageos.db.client.model.StorageSystem, com.emc.storageos.db.client.model.ExportMask, java.util.List, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportRemoveInitiators(com.emc.storageos.db.client.model.StorageSystem,
+     * com.emc.storageos.db.client.model.ExportMask, java.util.List, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doExportRemoveInitiators(StorageSystem storage, ExportMask exportMask,
@@ -552,28 +581,37 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
         log.info("{} doExportRemoveInitiator END ...", storage.getSerialNumber());
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doCreateSnapshot(com.emc.storageos.db.client.model.StorageSystem, java.util.List, java.lang.Boolean, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doCreateSnapshot(com.emc.storageos.db.client.model.StorageSystem,
+     * java.util.List, java.lang.Boolean, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
             Boolean createInactive, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-    	// CG support is not yet implemented for HDS
-    	snapshotOperations.createSingleVolumeSnapshot(storage, snapshotList.get(0), createInactive, taskCompleter);
+        // CG support is not yet implemented for HDS
+        snapshotOperations.createSingleVolumeSnapshot(storage, snapshotList.get(0), createInactive, taskCompleter);
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doDeleteSnapshot(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doDeleteSnapshot(com.emc.storageos.db.client.model.StorageSystem,
+     * java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doDeleteSnapshot(StorageSystem storage, URI snapshot,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-    	snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
+        snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doRestoreFromSnapshot(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doRestoreFromSnapshot(com.emc.storageos.db.client.model.StorageSystem,
+     * java.net.URI, java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot,
@@ -581,95 +619,123 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
         snapshotOperations.restoreSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doCreateMirror(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, java.lang.Boolean, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doCreateMirror(com.emc.storageos.db.client.model.StorageSystem,
+     * java.net.URI, java.lang.Boolean, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doCreateMirror(StorageSystem storage, URI mirror, Boolean createInactive,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-    	log.info("Started doCreateMirror");
-    	mirrorOperations.createSingleVolumeMirror(storage, mirror, createInactive, taskCompleter);
-    	log.info("Completed doCreateMirror");
+        log.info("Started doCreateMirror");
+        mirrorOperations.createSingleVolumeMirror(storage, mirror, createInactive, taskCompleter);
+        log.info("Completed doCreateMirror");
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doFractureMirror(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, java.lang.Boolean, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doFractureMirror(com.emc.storageos.db.client.model.StorageSystem,
+     * java.net.URI, java.lang.Boolean, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doFractureMirror(StorageSystem storage, URI mirror, Boolean sync,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-    	log.info("Started doFractureMirror");
+        log.info("Started doFractureMirror");
         mirrorOperations.fractureSingleVolumeMirror(storage, mirror, sync, taskCompleter);
         log.info("Completed doFractureMirror");
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doDetachMirror(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doDetachMirror(com.emc.storageos.db.client.model.StorageSystem,
+     * java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doDetachMirror(StorageSystem storage, URI mirror,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-    	log.info("Started doDetachMirror");
-    	mirrorOperations.detachSingleVolumeMirror(storage, mirror, taskCompleter);
-    	log.info("Completed doDetachMirror");
+        log.info("Started doDetachMirror");
+        mirrorOperations.detachSingleVolumeMirror(storage, mirror, taskCompleter);
+        log.info("Completed doDetachMirror");
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doResumeNativeContinuousCopy(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.volumecontroller.BlockStorageDevice#doResumeNativeContinuousCopy(com.emc.storageos.db.client.model.StorageSystem,
+     * java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doResumeNativeContinuousCopy(StorageSystem storage, URI mirror,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-    	log.info("Started doResumeNativeContinuousCopy");
-    	mirrorOperations.resumeSingleVolumeMirror(storage, mirror, taskCompleter);
-    	log.info("Completed doResumeNativeContinuousCopy");
+        log.info("Started doResumeNativeContinuousCopy");
+        mirrorOperations.resumeSingleVolumeMirror(storage, mirror, taskCompleter);
+        log.info("Completed doResumeNativeContinuousCopy");
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doDeleteMirror(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doDeleteMirror(com.emc.storageos.db.client.model.StorageSystem,
+     * java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doDeleteMirror(StorageSystem storage, URI mirror,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-    	log.info("Started doDeleteMirror");
-    	mirrorOperations.deleteSingleVolumeMirror(storage, mirror, taskCompleter);
-    	log.info("Completed doDeleteMirror");
+        log.info("Started doDeleteMirror");
+        mirrorOperations.deleteSingleVolumeMirror(storage, mirror, taskCompleter);
+        log.info("Completed doDeleteMirror");
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doCreateClone(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, java.net.URI, java.lang.Boolean, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doCreateClone(com.emc.storageos.db.client.model.StorageSystem,
+     * java.net.URI, java.net.URI, java.lang.Boolean, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doCreateClone(StorageSystem storageSystem, URI sourceVolumeURI,
             URI cloneVolumeURI, Boolean createInactive, TaskCompleter taskCompleter) {
-    	log.info("Inside doCreateClone");
-    	cloneOperations.createSingleClone(storageSystem, sourceVolumeURI, cloneVolumeURI, createInactive, taskCompleter);
-    	log.info("Completed doCreateClone");
+        log.info("Inside doCreateClone");
+        cloneOperations.createSingleClone(storageSystem, sourceVolumeURI, cloneVolumeURI, createInactive, taskCompleter);
+        log.info("Completed doCreateClone");
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doDetachClone(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doDetachClone(com.emc.storageos.db.client.model.StorageSystem,
+     * java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doDetachClone(StorageSystem storage, URI cloneVolume,
             TaskCompleter taskCompleter) {
-    	log.info("Started detach clone operation");
-    	cloneOperations.detachSingleClone(storage, cloneVolume, taskCompleter);
-    	log.info("Completed detach clone operation");
+        log.info("Started detach clone operation");
+        cloneOperations.detachSingleClone(storage, cloneVolume, taskCompleter);
+        log.info("Completed detach clone operation");
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doCreateConsistencyGroup(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doCreateConsistencyGroup(com.emc.storageos.db.client.model.StorageSystem,
+     * java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroup,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-        //throw new DeviceControllerException("UnSupported Operation");
-    	taskCompleter.ready(dbClient);
+        // throw new DeviceControllerException("UnSupported Operation");
+        taskCompleter.ready(dbClient);
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#findExportMasks(com.emc.storageos.db.client.model.StorageSystem, java.util.List, boolean)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#findExportMasks(com.emc.storageos.db.client.model.StorageSystem,
+     * java.util.List, boolean)
      */
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
@@ -677,27 +743,37 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
         return exportMaskOperationsHelper.findExportMasks(storage, initiatorNames, mustHaveAllPorts);
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#refreshExportMask(com.emc.storageos.db.client.model.StorageSystem, com.emc.storageos.db.client.model.ExportMask)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#refreshExportMask(com.emc.storageos.db.client.model.StorageSystem,
+     * com.emc.storageos.db.client.model.ExportMask)
      */
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
         return exportMaskOperationsHelper.refreshExportMask(storage, mask);
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doActivateFullCopy(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doActivateFullCopy(com.emc.storageos.db.client.model.StorageSystem,
+     * java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doActivateFullCopy(StorageSystem storageSystem, URI fullCopy,
             TaskCompleter completer) {
-    	log.info("Activate FullCopy started");
-    	cloneOperations.activateSingleClone(storageSystem, fullCopy, completer);
-    	log.info("Activate FullCopy completed");
+        log.info("Activate FullCopy started");
+        cloneOperations.activateSingleClone(storageSystem, fullCopy, completer);
+        log.info("Activate FullCopy completed");
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doCleanupMetaMembers(com.emc.storageos.db.client.model.StorageSystem, com.emc.storageos.db.client.model.Volume, com.emc.storageos.volumecontroller.impl.block.taskcompleter.CleanupMetaVolumeMembersCompleter)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doCleanupMetaMembers(com.emc.storageos.db.client.model.StorageSystem,
+     * com.emc.storageos.db.client.model.Volume,
+     * com.emc.storageos.volumecontroller.impl.block.taskcompleter.CleanupMetaVolumeMembersCompleter)
      */
     @Override
     public void doCleanupMetaMembers(StorageSystem storageSystem, Volume volume,
@@ -716,13 +792,14 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                     .loadStepData(sourceStepId);
             if (metaMembers != null && !metaMembers.isEmpty()) {
                 log.info(String.format(
-                        "doCleanupMetaMembers: Members stored for meta volume: \n   %s",
+                        "doCleanupMetaMembers: Members stored for meta volume: %n %s",
                         metaMembers));
                 // Check if volumes still exist in array and if it is not composite member (already
                 // added to the meta volume)
                 Set<String> volumeIds = new HashSet<String>();
                 for (String logicalUnitObjectId : metaMembers) {
-                    LogicalUnit logicalUnit = hdsApiClient.getLogicalUnitInfo(HDSUtils.getSystemObjectID(storageSystem), logicalUnitObjectId);
+                    LogicalUnit logicalUnit = hdsApiClient.getLogicalUnitInfo(HDSUtils.getSystemObjectID(storageSystem),
+                            logicalUnitObjectId);
                     if (logicalUnit != null) {
                         log.debug("doCleanupMetaMembers: Volume: " + logicalUnitObjectId
                                 + ", Usage of volume: " + logicalUnit.getComposite());
@@ -736,17 +813,17 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                     log.info("doCleanupMetaMembers: No meta members to cleanup in array.");
                 } else {
                     log.info(String
-                            .format("doCleanupMetaMembers: Members to cleanup in array: \n   %s",
+                            .format("doCleanupMetaMembers: Members to cleanup in array: %n   %s",
                                     volumeIds));
                     // Prepare parameters and call method to delete meta members from array
-                   
+
                     HDSCleanupMetaVolumeMembersJob hdsJobCompleter = null;
                     // When "cleanup" is separate workflow step, call async (for example rollback
                     // step in volume expand)
                     // Otherwise, call synchronously (for example when cleanup is part of meta
                     // volume create rollback)
                     String asyncMessageId = hdsApiClient.deleteThickLogicalUnits(HDSUtils.getSystemObjectID(storageSystem), volumeIds);
-                   
+
                     if (cleanupCompleter.isWFStep()) {
                         if (asyncMessageId != null) {
                             ControllerServiceImpl.enqueueJob(new QueueJob(
@@ -788,30 +865,30 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doWaitForSynchronized(Class<? extends BlockObject> clazz,
-        StorageSystem storageObj, URI target, TaskCompleter completer) {
+            StorageSystem storageObj, URI target, TaskCompleter completer) {
         log.info("START waitForSynchronized for {}", target);
 
         try {
             Volume targetObj = dbClient.queryObject(Volume.class, target);
             // Source could be either Volume or BlockSnapshot
             BlockObject sourceObj = BlockObject.fetch(dbClient,
-                targetObj.getAssociatedSourceVolume());
+                    targetObj.getAssociatedSourceVolume());
 
             // We split the pair which causes the data to be synchronized.
             // When the split is complete that data is synchronized.
             HDSApiClient hdsApiClient = hdsApiFactory.getClient(
-                HDSUtils.getHDSServerManagementServerInfo(storageObj),
-                storageObj.getSmisUserName(), storageObj.getSmisPassword());
+                    HDSUtils.getHDSServerManagementServerInfo(storageObj),
+                    storageObj.getSmisUserName(), storageObj.getSmisPassword());
             HDSApiProtectionManager hdsApiProtectionManager = hdsApiClient
-                .getHdsApiProtectionManager();
+                    .getHdsApiProtectionManager();
             String replicationGroupObjectID = hdsApiProtectionManager
-                .getReplicationGroupObjectId();
+                    .getReplicationGroupObjectId();
             ReplicationInfo replicationInfo = hdsApiProtectionManager
-                .getReplicationInfoFromSystem(sourceObj.getNativeId(),
-                    targetObj.getNativeId()).first;
+                    .getReplicationInfoFromSystem(sourceObj.getNativeId(),
+                            targetObj.getNativeId()).first;
             hdsApiProtectionManager.modifyShadowImagePair(replicationGroupObjectID,
-                replicationInfo.getObjectID(),
-                HDSApiProtectionManager.ShadowImageOperationType.split);
+                    replicationInfo.getObjectID(),
+                    HDSApiProtectionManager.ShadowImageOperationType.split);
 
             // Update state in case we are waiting for synchronization
             // after creation of a new full copy that was not created
@@ -825,8 +902,8 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
 
             // Queue job to wait for replication status to move to split.
             ControllerServiceImpl.enqueueJob(new QueueJob(new HDSReplicationSyncJob(
-                storageObj.getId(), sourceObj.getNativeId(), targetObj.getNativeId(),
-                ReplicationStatus.SPLIT, completer)));
+                    storageObj.getId(), sourceObj.getNativeId(), targetObj.getNativeId(),
+                    ReplicationStatus.SPLIT, completer)));
         } catch (Exception e) {
             log.error("Exception occurred while waiting for synchronization", e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -875,9 +952,9 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                 storage, exportMask, volumeURIs, newVpool, rollback, taskCompleter);
     }
 
-	public void setCloneOperations(CloneOperations cloneOperations) {
-		this.cloneOperations = cloneOperations;
-	}
+    public void setCloneOperations(CloneOperations cloneOperations) {
+        this.cloneOperations = cloneOperations;
+    }
 
     @Override
     public void doModifyVolumes(StorageSystem storage, StoragePool storagePool, String opId, List<Volume> volumes,
@@ -890,7 +967,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
             try {
                 HDSApiClient hdsApiClient = hdsApiFactory.getClient(HDSUtils.getHDSServerManagementServerInfo(storage),
                         storage.getSmisUserName(), storage.getSmisPassword());
-                logMsgBuilder.append(String.format("\nVolume:%s , IsThinlyProvisioned: %s, tieringPolicy: %s",
+                logMsgBuilder.append(String.format("%nVolume:%s , IsThinlyProvisioned: %s, tieringPolicy: %s",
                         volume.getLabel(), volume.getThinlyProvisioned(), volume.getAutoTieringPolicyUri()));
                 LogicalUnit logicalUnit = hdsApiClient.getLogicalUnitInfo(systemObjectID,
                         HDSUtils.getLogicalUnitObjectId(volume.getNativeId(), storage));
@@ -931,26 +1008,26 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
             }
         }
     }
-	
-	public void setMirrorOperations(MirrorOperations mirrorOperations) {
-		this.mirrorOperations = mirrorOperations;
-	}
 
-	public void setSnapshotOperations(SnapshotOperations snapshotOperations) {
-		this.snapshotOperations = snapshotOperations;
-	}
-    
+    public void setMirrorOperations(MirrorOperations mirrorOperations) {
+        this.mirrorOperations = mirrorOperations;
+    }
+
+    public void setSnapshotOperations(SnapshotOperations snapshotOperations) {
+        this.snapshotOperations = snapshotOperations;
+    }
+
     @Override
     public void doRestoreFromClone(StorageSystem storageSystem, URI cloneURI,
-        TaskCompleter taskCompleter) {
+            TaskCompleter taskCompleter) {
         log.info("Restore from full copy {} started", cloneURI);
         cloneOperations.restoreFromSingleClone(storageSystem, cloneURI, taskCompleter);
         log.info("Restore from full copy completed");
     }
-    
+
     @Override
     public void doResyncClone(StorageSystem storageSystem, URI cloneURI,
-        TaskCompleter taskCompleter) {
+            TaskCompleter taskCompleter) {
         log.info("Resynchronize full copy {} started", cloneURI);
         cloneOperations.resyncSingleClone(storageSystem, cloneURI, taskCompleter);
         log.info("Resynchronize full copy completed");

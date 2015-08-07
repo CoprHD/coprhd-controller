@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -24,8 +24,6 @@ import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.client.impl.RestClient;
-
-
 
 /**
  * Initiators resources.
@@ -57,9 +55,9 @@ public class Initiators extends AbstractCoreBulkResources<InitiatorRestRep> {
      * Gets a list of initiators from the given URL.
      * 
      * @param url
-     *        the URL to get.
+     *            the URL to get.
      * @param args
-     *        the URL arguments.
+     *            the URL arguments.
      * @return the list of initiator references.
      */
     protected List<NamedRelatedResourceRep> getList(String url, Object... args) {
@@ -73,9 +71,9 @@ public class Initiators extends AbstractCoreBulkResources<InitiatorRestRep> {
      * API Call: <tt>POST /compute/hosts/{hostId}/initiators</tt>
      * 
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @param input
-     *        the initiator configuration.
+     *            the initiator configuration.
      * @return a task for monitoring the progress of the initiator creation.
      */
     public Task<InitiatorRestRep> create(URI hostId, InitiatorCreateParam input) {
@@ -88,9 +86,9 @@ public class Initiators extends AbstractCoreBulkResources<InitiatorRestRep> {
      * API Call: <tt>PUT /compute/initiators/{id}</tt>
      * 
      * @param id
-     *        the ID of the initiator.
+     *            the ID of the initiator.
      * @param input
-     *        the updated configuration.
+     *            the updated configuration.
      * @return the updated initiator.
      */
     public InitiatorRestRep update(URI id, InitiatorUpdateParam input) {
@@ -103,7 +101,7 @@ public class Initiators extends AbstractCoreBulkResources<InitiatorRestRep> {
      * API Call: <tt>POST /compute/initiators/{id}/deactivate</tt>
      * 
      * @param id
-     *        the ID of the initiator.
+     *            the ID of the initiator.
      * @return a task for monitoring the progress of the initiator de-activation.
      */
     public Task<InitiatorRestRep> deactivate(URI id) {
@@ -116,7 +114,7 @@ public class Initiators extends AbstractCoreBulkResources<InitiatorRestRep> {
      * API Call: <tt>GET /compute/initiators/{id}/exports</tt>
      * 
      * @param id
-     *        the ID of the initiator.
+     *            the ID of the initiator.
      * @return the list of exports for the initiator.
      */
     public List<ITLRestRep> getExports(URI id) {
@@ -130,7 +128,7 @@ public class Initiators extends AbstractCoreBulkResources<InitiatorRestRep> {
      * API Call: <tt>GET /compute/hosts/{hostId}/initiators</tt>
      * 
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @return the list of initiator references.
      */
     public List<NamedRelatedResourceRep> listByHost(URI hostId) {
@@ -141,7 +139,7 @@ public class Initiators extends AbstractCoreBulkResources<InitiatorRestRep> {
      * Gets a list of initiators for the given host.
      * 
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @return the list of initiators.
      */
     public List<InitiatorRestRep> getByHost(URI hostId) {
@@ -152,9 +150,9 @@ public class Initiators extends AbstractCoreBulkResources<InitiatorRestRep> {
      * Gets the list of initiators for the given host, optionally filtering the results.
      * 
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of initiators.
      */
     public List<InitiatorRestRep> getByHost(URI hostId, ResourceFilter<InitiatorRestRep> filter) {
@@ -168,7 +166,7 @@ public class Initiators extends AbstractCoreBulkResources<InitiatorRestRep> {
      * API Call: <tt>GET /vdc/networks/{networkId}/initiators</tt>
      * 
      * @param networkId
-     *        the ID of the network.
+     *            the ID of the network.
      * @return the list of initiator references.
      */
     public List<NamedRelatedResourceRep> listByNetwork(URI networkId) {
@@ -179,7 +177,7 @@ public class Initiators extends AbstractCoreBulkResources<InitiatorRestRep> {
      * Gets the list of initiators in the given network.
      * 
      * @param networkId
-     *        the ID of the network.
+     *            the ID of the network.
      * @return the list of initiators.
      */
     public List<InitiatorRestRep> getByNetwork(URI networkId) {
@@ -190,36 +188,36 @@ public class Initiators extends AbstractCoreBulkResources<InitiatorRestRep> {
      * Gets the list of initiators in the given network, optionally filtering the results.
      * 
      * @param networkId
-     *        the ID of the network.
+     *            the ID of the network.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of initiators.
      */
     public List<InitiatorRestRep> getByNetwork(URI networkId, ResourceFilter<InitiatorRestRep> filter) {
         List<NamedRelatedResourceRep> refs = listByNetwork(networkId);
         return getByRefs(refs, filter);
     }
-    
+
     /**
      * Registers the given initiator by ID.
      * <p>
      * API Call: <tt>POST /compute/initiators/{id}/register</tt>
      * 
      * @param id
-     *        the ID of the initiator.
+     *            the ID of the initiator.
      * @return the updated initiator.
      */
     public InitiatorRestRep register(URI id) {
         return client.post(InitiatorRestRep.class, getIdUrl() + "/register", id);
     }
-    
+
     /**
      * De-registers the given initiator by ID.
      * <p>
      * API Call: <tt>POST /computer/initiators/{id}/deregister</tt>
      * 
      * @param id
-     *        the ID of the initiator.
+     *            the ID of the initiator.
      * @return the updated initiator.
      */
     public InitiatorRestRep deregister(URI id) {

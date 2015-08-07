@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.metering.plugins.smis;
 
@@ -38,8 +28,8 @@ import com.emc.storageos.db.exceptions.DatabaseException;
  */
 public class Cassandraforplugin {
     private static final String SERVICE_BEAN = "dbsvc";
-    private static final Logger _logger      = LoggerFactory
-                                                     .getLogger(Cassandraforplugin.class);
+    private static final Logger _logger = LoggerFactory
+            .getLogger(Cassandraforplugin.class);
 
     public static long query(DbClient dbClient) {
         ExecutorService executor = Executors.newFixedThreadPool(10);
@@ -54,6 +44,7 @@ public class Cassandraforplugin {
         try {
             latch.await(60, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
+            _logger.error(e.getMessage(), e);
         }
         return latch.getCount();
     }
@@ -71,7 +62,7 @@ public class Cassandraforplugin {
     private static class DummyQueryResult implements TimeSeriesQueryResult<Stat> {
         private CountDownLatch _latch;
 
-        DummyQueryResult ( CountDownLatch latch ) {
+        DummyQueryResult(CountDownLatch latch) {
             _latch = latch;
         }
 

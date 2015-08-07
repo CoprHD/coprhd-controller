@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.file;
@@ -35,7 +35,7 @@ public class IngestUnmanagedFilesystemsService extends ViPRService {
 
     @Param(VIRTUAL_ARRAY)
     protected URI virtualArray;
-    
+
     @Override
     public void precheck() throws Exception {
         super.precheck();

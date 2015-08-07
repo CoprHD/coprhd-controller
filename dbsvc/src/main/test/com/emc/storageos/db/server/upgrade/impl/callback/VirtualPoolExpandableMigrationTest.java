@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.server.upgrade.impl.callback;
 
@@ -37,6 +27,7 @@ import java.util.List;
 public class VirtualPoolExpandableMigrationTest extends DbSimpleMigrationTestBase {
 
     private static final Logger log = LoggerFactory.getLogger(VirtualPoolExpandableMigrationTest.class);
+
     @BeforeClass
     public static void setup() throws IOException {
 
@@ -45,9 +36,11 @@ public class VirtualPoolExpandableMigrationTest extends DbSimpleMigrationTestBas
          * The key should be the source version from getSourceVersion().
          * The value should be a list of migration callbacks under test.
          */
-        customMigrationCallbacks.put("1.1", new ArrayList<BaseCustomMigrationCallback>() {{
-            add(new VirtualPoolExpandableMigration());
-        }});
+        customMigrationCallbacks.put("1.1", new ArrayList<BaseCustomMigrationCallback>() {
+            {
+                add(new VirtualPoolExpandableMigration());
+            }
+        });
 
         DbsvcTestBase.setup();
     }
@@ -96,16 +89,19 @@ public class VirtualPoolExpandableMigrationTest extends DbSimpleMigrationTestBas
         Iterator<VirtualPool> vpIter = _dbClient.queryIterativeObjects(VirtualPool.class, vpURIs);
         while (vpIter.hasNext()) {
             VirtualPool vp = vpIter.next();
-            log.info(String.format("Verifying VirtualPool %s, nonDisruptiveExpansion: %s, local mirrors: %s, expandable: %s, fastExpansion; %s",
-                    vp.getId().toString(), vp.getNonDisruptiveExpansion(), vp.getMaxNativeContinuousCopies(), vp.getExpandable(), vp.getFastExpansion()));
+            log.info(String.format(
+                    "Verifying VirtualPool %s, nonDisruptiveExpansion: %s, local mirrors: %s, expandable: %s, fastExpansion; %s",
+                    vp.getId().toString(), vp.getNonDisruptiveExpansion(), vp.getMaxNativeContinuousCopies(), vp.getExpandable(),
+                    vp.getFastExpansion()));
             if (vp.getNonDisruptiveExpansion()) {
                 Assert.assertTrue("For vpool with nonDisruptiveExpansion true, expandable and fastExpansion properties should be true.",
                         vp.getExpandable() && vp.getFastExpansion());
-            } else if (VirtualPool.vPoolSpecifiesMirrors(vp, _dbClient)){
+            } else if (VirtualPool.vPoolSpecifiesMirrors(vp, _dbClient)) {
                 Assert.assertTrue("For vpool which specifies local mirrors, expandable and fastExpansion properties should be both false.",
                         !(vp.getExpandable() || vp.getFastExpansion()));
             } else {
-                Assert.assertTrue("For vpool with nonDisruptiveExpansion false and no local mirrors, expandable should be false and fastExpansion" +
+                Assert.assertTrue(
+                        "For vpool with nonDisruptiveExpansion false and no local mirrors, expandable should be false and fastExpansion" +
                                 " should be false.", !(vp.getExpandable() || vp.getFastExpansion()));
             }
         }
@@ -122,4 +118,3 @@ public class VirtualPoolExpandableMigrationTest extends DbSimpleMigrationTestBas
         }
     }
 }
-

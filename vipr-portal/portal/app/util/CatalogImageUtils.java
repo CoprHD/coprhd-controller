@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -23,25 +23,25 @@ public class CatalogImageUtils {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.images().getByTenant(uri(Models.currentAdminTenant()));
     }
-    
+
     public static CatalogImageRestRep getCatalogImage(URI id) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.images().get(id);
     }
-    
+
     public static void deleteCatalogImage(URI id) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         catalog.images().deactivate(id);
     }
-    
+
     public static CatalogImageRestRep createCatalogImage(CatalogImageCreateParam createParam) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.images().create(createParam);
     }
-    
+
     public static CatalogImageRestRep updateCatalogImage(URI id, CatalogImageUpdateParam updateParam) {
         ViPRCatalogClient2 catalog = getCatalogClient();
-        return catalog.images().update(id, updateParam);        
+        return catalog.images().update(id, updateParam);
     }
 
 }

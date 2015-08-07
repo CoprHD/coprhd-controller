@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc;
 
@@ -29,10 +19,10 @@ import com.emc.storageos.systemservices.impl.logsvc.merger.LogStreamMerger;
 import com.emc.vipr.model.sys.logging.LogRequest;
 
 public class LogStreamMergerTest {
-	
-    private static LogSvcPropertiesLoader propertiesLoader;
+
+    private static volatile LogSvcPropertiesLoader propertiesLoader;
     private static final Logger logger = LoggerFactory.getLogger(LogStreamMergerTest.class);
-    
+
     @BeforeClass
     public static void setup() {
         propertiesLoader = new LogSvcPropertiesLoader() {
@@ -52,10 +42,12 @@ public class LogStreamMergerTest {
     @Test
     @Ignore
     public void testMergeSortCorrectness() throws Exception {
-        List<String> svcs = new ArrayList<String>() {{
-            add("controllersvc");
-            add("coordinatorsvc");
-        }};
+        List<String> svcs = new ArrayList<String>() {
+            {
+                add("controllersvc");
+                add("coordinatorsvc");
+            }
+        };
         LogRequest req = new LogRequest.Builder().baseNames(svcs).build();
         LogStreamMerger merger = new LogStreamMerger(req, propertiesLoader);
         long prevTime = -1;

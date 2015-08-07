@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.catalog;
@@ -23,12 +23,11 @@ import com.emc.vipr.model.catalog.ServiceFieldRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
 import com.emc.vipr.model.catalog.ServiceItemRestRep;
 
-
-public class AssetOptions  {
+public class AssetOptions {
 
     protected final ViPRCatalogClient2 parent;
     protected final RestClient client;
-    
+
     public AssetOptions(ViPRCatalogClient2 parent, RestClient client) {
         this.parent = parent;
         this.client = client;
@@ -46,41 +45,43 @@ public class AssetOptions  {
     }
 
     public List<AssetOption> getAssetOptions(String assetType, AssetOptionsRequest request) {
-        AssetOptionsResponse response = client.post(AssetOptionsResponse.class, request, PathConstants.ASSET_OPTIONS2_OPTIONS_URL, cleanAssetType(assetType));
+        AssetOptionsResponse response = client.post(AssetOptionsResponse.class, request, PathConstants.ASSET_OPTIONS2_OPTIONS_URL,
+                cleanAssetType(assetType));
         return response.getOptions();
     }
-    
+
     public List<String> getAssetDependencies(String assetType, String serviceDescriptorName) {
         ServiceDescriptorRestRep serviceDescriptor = parent.serviceDescriptors().getServiceDescriptor(serviceDescriptorName);
         return getAssetDependencies(assetType, serviceDescriptor);
     }
-    
+
     public List<String> getAssetDependencies(String assetType, URI catalogServiceId) {
         CatalogServiceRestRep catalogService = parent.services().get(catalogServiceId);
         ServiceDescriptorRestRep serviceDescriptor = catalogService.getServiceDescriptor();
         return getAssetDependencies(assetType, serviceDescriptor);
     }
-    
+
     public List<String> getAssetDependencies(String assetType, ServiceDescriptorRestRep serviceDescriptor) {
         return getAssetDependencies(assetType, getAllAssetTypes(serviceDescriptor));
-    }    
-    
-    public List<String> getAssetDependencies(String assetType, Set<String> availableAssetTypes) { 
+    }
+
+    public List<String> getAssetDependencies(String assetType, Set<String> availableAssetTypes) {
         AssetDependencyRequest request = new AssetDependencyRequest();
         request.setTenantId(uri(parent.getUserInfo().getTenant()));
         request.setAvailableAssetTypes(availableAssetTypes);
         return getAssetDependencies(assetType, request);
     }
-    
+
     public List<String> getAssetDependencies(String assetType, AssetDependencyRequest request) {
-        AssetDependencyResponse response = client.post(AssetDependencyResponse.class, request, PathConstants.ASSET_OPTIONS2_DEP_URL, cleanAssetType(assetType));
-        return response.getAssetDependencies();    
+        AssetDependencyResponse response = client.post(AssetDependencyResponse.class, request, PathConstants.ASSET_OPTIONS2_DEP_URL,
+                cleanAssetType(assetType));
+        return response.getAssetDependencies();
     }
-    
+
     private String cleanAssetType(String assetType) {
         return assetType.replaceFirst("assetType\\.", "");
-    }    
-    
+    }
+
     public static Set<String> getAllAssetTypes(ServiceDescriptorRestRep serviceDescriptor) {
         Set<String> allAvailableAssets = new HashSet<>();
         for (ServiceFieldRestRep field : getAllFields(serviceDescriptor.getItems())) {
@@ -89,8 +90,8 @@ public class AssetOptions  {
             }
         }
         return allAvailableAssets;
-    }    
-    
+    }
+
     public static List<ServiceFieldRestRep> getAllFields(List<? extends ServiceItemRestRep> items) {
         List<ServiceFieldRestRep> allFields = new ArrayList<>();
         for (ServiceItemRestRep item : items) {
@@ -105,6 +106,6 @@ public class AssetOptions  {
             }
         }
         return allFields;
-    }        
-    
+    }
+
 }

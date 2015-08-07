@@ -1,13 +1,15 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.providerfinders;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,24 +31,25 @@ public class FindReachableProvider implements FindProviderStrategy {
 
     @Override
     public StorageSystem find() {
-        StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, target.getStorageController());
-        Volume source = dbClient.queryObject(Volume.class, target.getSrdfParent().getURI());
-        StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, source.getStorageController());
+        RemoteDirectorGroup rdfGroup = dbClient.queryObject(RemoteDirectorGroup.class, target.getSrdfGroup());
+        StorageSystem rdfGroupSourceSystem = dbClient.queryObject(StorageSystem.class, rdfGroup.getSourceStorageSystemUri());
 
-        //if source is not reachable, then try target
-        //Scan would have helped us to find the reachable system but we need to wait for every 10 minutes, had this code explicitly
+        // if source (from RDFGroup) is not reachable, then try target system.
+        // Scan would have helped us to find the reachable system but we need to wait for every 10 minutes, had this code explicitly
         // to find reachable systems before invoking fail over.
-        StorageSystem reachableSystem = sourceSystem;
-        if (!helper.checkConnectionliveness(sourceSystem)) {
-            log.info("Source Site {} Not reachable",sourceSystem.getActiveProviderURI());
-            if (helper.checkConnectionliveness(targetSystem)) {
-                log.info("target Site {}  reachable",targetSystem.getActiveProviderURI());
-                reachableSystem = targetSystem;
+        StorageSystem reachableSystem = rdfGroupSourceSystem;
+        if (!helper.checkConnectionliveness(reachableSystem)) {
+            StorageSystem rdfGroupTargetSystem = dbClient.queryObject(StorageSystem.class, rdfGroup.getRemoteStorageSystemUri());
+            log.info("Source Site {} not reachable", rdfGroupSourceSystem.getActiveProviderURI());
+            if (helper.checkConnectionliveness(rdfGroupTargetSystem)) {
+                log.info("Target Site {} reachable", rdfGroupTargetSystem.getActiveProviderURI());
+                reachableSystem = rdfGroupTargetSystem;
             } else {
+                log.info("Target Site {} not reachable", rdfGroupTargetSystem.getActiveProviderURI());
                 return null;
             }
         }
-        log.info("Reachable System found {}",reachableSystem.getActiveProviderURI());
+        log.info("Reachable System found {}", reachableSystem.getActiveProviderURI());
         return reachableSystem;
     }
 }

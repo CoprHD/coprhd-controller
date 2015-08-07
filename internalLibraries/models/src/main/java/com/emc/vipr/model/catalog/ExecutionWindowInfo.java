@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -8,56 +8,56 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class ExecutionWindowInfo extends ModelInfo {
-    
+
     /**
      * Hour of the day for this execution window
      */
-    private Integer hourOfDayInUTC;                    
-    
+    private Integer hourOfDayInUTC;
+
     /**
      * Minute of the day for this execution window
      */
-    private Integer minuteOfHourInUTC;            
-    
+    private Integer minuteOfHourInUTC;
+
     /**
      * Length of this execution window
      */
     private Integer executionWindowLength;
-    
+
     /**
      * Length type of the execution window: MINUTES, HOURS, DAYS
      */
-    private String executionWindowLengthType;          
-    
+    private String executionWindowLengthType;
+
     /**
      * Type of the execution window: DAILY, WEEKLY, MONTHLY
      */
-    private String executionWindowType;                
-    
+    private String executionWindowType;
+
     /**
      * Day of the week for this execution window
      */
-    private Integer dayOfWeek;                        
-    
+    private Integer dayOfWeek;
+
     /**
      * Day of the month for this execution window
      */
-    private Integer dayOfMonth;                  
-    
+    private Integer dayOfMonth;
+
     /**
      * Indicates the day of the week is the last day of the month
      */
-    private Boolean lastDayOfMonth = Boolean.FALSE;     
-    
+    private Boolean lastDayOfMonth = Boolean.FALSE;
+
     /**
      * Tenant that this execution window applies to
      */
-    private String tenant;                             
-    
+    private String tenant;
+
     /**
      * Label for this execution window
      */
-    private String label;                                
+    private String label;
 
     public Integer getHourOfDayInUTC() {
         return hourOfDayInUTC;

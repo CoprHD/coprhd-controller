@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.descriptor;
@@ -32,7 +32,7 @@ public class ServiceField extends ServiceItem {
     public static final String TYPE_CHOICE = "choice";
     public static final String TYPE_STORAGE_SIZE = "storageSize";
     public static final String TYPE_BOOLEAN = "boolean";
-    public static final String TYPE_PASSWORD = "password";
+    public static final String TYPE_PASSWORD = "password"; // NOSONAR ("False positive, field does not store a password”)
 
     /** Indicates whether the field is required. */
     private boolean required = true;

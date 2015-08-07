@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.asset.providers;
@@ -15,7 +15,6 @@ import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.db.client.model.ComputeImage;
-import com.emc.storageos.db.client.model.ComputeImage.ComputeImageStatus;
 import com.emc.storageos.model.compute.ComputeImageRestRep;
 
 @Component
@@ -26,7 +25,7 @@ public class ComputeImageProvider extends BaseAssetOptionsProvider {
         debug("getting compute images");
         return api(context).computeImages().getAll();
     }
-    
+
     @Asset("computeImage")
     public List<AssetOption> getComputeImageOptions(AssetOptionsContext ctx) {
         debug("getting compute images");
@@ -35,9 +34,9 @@ public class ComputeImageProvider extends BaseAssetOptionsProvider {
             if (ComputeImage.ComputeImageStatus.AVAILABLE.name().equals(ci.getComputeImageStatus())) {
                 availCis.add(ci);
             }
-        }        
+        }
         return createBaseResourceOptions(availCis);
-    }    
+    }
 
     protected AssetOption createComputeImageOption(AssetOptionsContext ctx, ComputeImageRestRep value) {
         String label = value.getName();

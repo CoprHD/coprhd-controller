@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.tenant;
@@ -7,18 +7,13 @@ package controllers.tenant;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getViprClient;
 
-import java.net.URI;
-
 import com.emc.vipr.client.exceptions.ServiceErrorException;
 import controllers.Common;
 import play.Logger;
-import play.Play;
 import play.exceptions.ActionNotFoundException;
 import play.mvc.Controller;
 import play.mvc.Util;
 import util.TenantUtils;
-
-import com.emc.storageos.model.tenant.TenantOrgRestRep;
 
 import controllers.security.Security;
 import controllers.util.Models;
@@ -33,14 +28,15 @@ public class TenantSelector extends Controller {
         if (url != null) {
             try {
                 redirect(Common.toSafeRedirectURL(url));
-            }  catch(ActionNotFoundException noAction) {
-                Logger.error(noAction, "Action not found for %s",url);
+            } catch (ActionNotFoundException noAction) {
+                Logger.error(noAction, "Action not found for %s", url);
                 badRequest();
             }
         }
     }
 
-    @Util public static void addRenderArgs() {
+    @Util
+    public static void addRenderArgs() {
         if (Security.isSecurityAdmin()) {
             renderArgs.put("tenants", TenantUtils.getSubTenantOptions());
         }

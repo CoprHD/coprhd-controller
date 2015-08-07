@@ -1,13 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2008-2013 EMC Corporation All Rights Reserved This software
- * contains the intellectual property of EMC Corporation or is licensed to EMC
- * Corporation from third parties. Use of this software and the intellectual
- * property contained therein is expressly limited to the terms and conditions
- * of the License Agreement under which it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.vpool;
 
@@ -25,14 +18,15 @@ public class VirtualPoolAvailableAttributesResourceRep {
 
     private String name;
     private Set<String> attributeValues;
-    
-    public VirtualPoolAvailableAttributesResourceRep() {}
-    
+
+    public VirtualPoolAvailableAttributesResourceRep() {
+    }
+
     public VirtualPoolAvailableAttributesResourceRep(String name, Set<String> attributeValues) {
         this.name = name;
         this.attributeValues = attributeValues;
     }
-    
+
     /**
      * The attribute name.
      * 
@@ -49,7 +43,7 @@ public class VirtualPoolAvailableAttributesResourceRep {
     public void setName(String name) {
         this.name = name;
     }
-    
+
     @XmlElementWrapper(name = "values")
     /**
      * The possible values for the attribute.

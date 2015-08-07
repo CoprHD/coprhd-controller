@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.networkcontroller;
@@ -27,29 +27,29 @@ public class SSHSession {
     private static final Logger _log = LoggerFactory.getLogger(SSHSession.class);
     static final Integer timeout = 15000;           // in milliseconds
     static final Integer connectTimeout = 10000;    // in milliseconds
-    
+
     public SSHSession() {
     }
-    
-    public void connect(String hostname, Integer port, String username, String password) 
-    throws Exception {
+
+    public void connect(String hostname, Integer port, String username, String password)
+            throws Exception {
         jsch = new JSch();
-        session=jsch.getSession(username, hostname, port);
+        session = jsch.getSession(username, hostname, port);
         session.setPassword(password);
         Hashtable<String, String> config = new Hashtable<String, String>();
         config.put("StrictHostKeyChecking", "no");
         session.setConfig(config);
         session.connect(timeout);
-        
+
         channel = session.openChannel("shell");
-        ((ChannelShell)channel).setPtyType("vt102");
-//        channel.setInputStream(System.in);
-//        channel.setOutputStream(System.out);
+        ((ChannelShell) channel).setPtyType("vt102");
+        // channel.setInputStream(System.in);
+        // channel.setOutputStream(System.out);
         ins = channel.getInputStream();
         outs = channel.getOutputStream();
         channel.connect(connectTimeout);
     }
-    
+
     public void setTimeout(int timeout) {
         try {
             session.setTimeout(timeout);
@@ -57,9 +57,11 @@ public class SSHSession {
             _log.error("Couldn't set timeout: " + ex.getLocalizedMessage());
         }
     }
-    
-    public boolean isConnected() { return channel.isConnected(); }
-    
+
+    public boolean isConnected() {
+        return channel.isConnected();
+    }
+
     public void disconnect() {
         channel.disconnect();
         session.disconnect();
@@ -84,9 +86,5 @@ public class SSHSession {
     public OutputStream getOuts() {
         return outs;
     }
-    
-    
-    
-    
 
 }

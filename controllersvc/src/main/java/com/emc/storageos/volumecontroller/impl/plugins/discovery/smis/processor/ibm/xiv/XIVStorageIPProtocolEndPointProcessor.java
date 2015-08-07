@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.ibm.xiv;
 
@@ -52,8 +42,8 @@ public class XIVStorageIPProtocolEndPointProcessor extends StorageEndPointProces
                 StoragePort port = null;
                 try {
                     ipPointInstance = it.next();
-                    String portInstanceID = getObjectPathfromCIMArgument(args).toString();   
-                    port = _dbClient.queryObject(StoragePort.class, (URI)keyMap.get(portInstanceID));
+                    String portInstanceID = getObjectPathfromCIMArgument(args).toString();
+                    port = _dbClient.queryObject(StoragePort.class, (URI) keyMap.get(portInstanceID));
                     keyMap.put(ipPointInstance.getObjectPath().toString(), port.getId());
                     updateIPEndPointDetails(port, ipPointInstance);
                 } catch (Exception e) {
@@ -63,7 +53,6 @@ public class XIVStorageIPProtocolEndPointProcessor extends StorageEndPointProces
             }
         } catch (Exception e) {
             _logger.error("Port IP End Point Discovery failed -->{}", getMessage(e));
-        } finally {
         }
     }
 

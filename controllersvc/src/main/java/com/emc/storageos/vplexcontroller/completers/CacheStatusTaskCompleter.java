@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplexcontroller.completers;
 
@@ -36,10 +26,10 @@ public class CacheStatusTaskCompleter extends TaskCompleter {
 
     // Logger reference.
     private static final Logger s_logger = LoggerFactory
-        .getLogger(CacheStatusTaskCompleter.class);
+            .getLogger(CacheStatusTaskCompleter.class);
 
     /**
-     *
+     * 
      * @param migrationURI
      * @param taskId
      */
@@ -52,13 +42,13 @@ public class CacheStatusTaskCompleter extends TaskCompleter {
      */
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
-        throws DeviceControllerException {
+            throws DeviceControllerException {
 
         URI vplexVolumeURI = getId();
         String opId = getOpId();
         s_logger.info(String.format(
-            "Cache invalidate for volume %s for step %s completed with status %s",
-            vplexVolumeURI, opId, status.name()));
+                "Cache invalidate for volume %s for step %s completed with status %s",
+                vplexVolumeURI, opId, status.name()));
 
         // Update the workflow status.
         updateWorkflowStatus(status, coded);

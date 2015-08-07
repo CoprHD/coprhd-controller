@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.services.util;
@@ -25,16 +15,16 @@ public class Strings {
         for (int i = 0; i < objs.length; i++) {
             if (i > 0) {
                 s.append(sep);
-            } 
+            }
             s.append(objs[i].toString());
         }
         return s.toString();
     }
-    
+
     public static String join(final String sep, String... strings) {
-        return join(sep, (Object[])strings);
+        return join(sep, (Object[]) strings);
     }
-    
+
     public static String repr(final Object object) {
         if (object == null) {
             return "(null)";
@@ -61,11 +51,11 @@ public class Strings {
             return s.toString();
         }
     }
-    
+
     public static String repr(final String string) {
-        return repr((Object)string);
+        return repr((Object) string);
     }
-    
+
     public static String repr(final Object... objs) {
         String[] reprs = new String[objs.length];
         for (int i = 0; i < reprs.length; i++) {
@@ -73,17 +63,17 @@ public class Strings {
         }
         return Arrays.toString(reprs);
     }
-    
+
     public static String repr(final String... strings) {
-        return repr((Object[])strings);
+        return repr((Object[]) strings);
     }
 
     public static String repr(final List list) {
-        return (list==null)?"null":repr((Object[])list.toArray());
+        return (list == null) ? "null" : repr((Object[]) list.toArray());
     }
 
     public static String repr(final Set set) {
-        return (set==null)?"null":repr((Object[])set.toArray());
+        return (set == null) ? "null" : repr((Object[]) set.toArray());
     }
 
     public static void main(String[] args) {

@@ -1,9 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
 
+//("Suppressing Sonar violation of Password Hardcoded. Password related fields are not hardcoded here.")
+@SuppressWarnings("squid:S2068")
 public class ConfigProperty {
     public static final String NETWORK_VIRTUAL_IP = "network_vip";
     public static final String NETWORK_STANDALONE_IP = "network_standalone_ipaddr";
@@ -35,7 +37,7 @@ public class ConfigProperty {
     public static final String CONNECTEMC_ENCRYPTION = "system_connectemc_encrypt";
     public static final String CONNECTEMC_TARGET_EMAIL = "system_connectemc_smtp_emcto";
     public static final String CONNECTEMC_NOTIFY_EMAIL = "system_connectemc_smtp_to";
-    
+
     public static final String IMAGE_SERVER_ADDRESS = "image_server_address";
     public static final String IMAGE_SERVER_OS_NETWORK_ADDRESS = "image_server_os_network_ip";
     public static final String IMAGE_SERVER_USERNAME = "image_server_username";

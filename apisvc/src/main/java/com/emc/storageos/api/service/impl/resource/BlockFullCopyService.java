@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -38,13 +28,13 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 @Path("/block/full-copies")
 @DefaultPermissions(read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, read_acls = {
-    ACL.OWN, ACL.ALL }, write_roles = { Role.TENANT_ADMIN }, write_acls = { ACL.OWN,
-    ACL.ALL })
+        ACL.OWN, ACL.ALL }, write_roles = { Role.TENANT_ADMIN }, write_acls = { ACL.OWN,
+        ACL.ALL })
 public class BlockFullCopyService extends TaskResourceService {
-    
+
     // A reference to the tenants service.
     private TenantsService _tenantsService;
-    
+
     // A reference to the placement manager.
     private PlacementManager _placementManager;
 
@@ -56,7 +46,7 @@ public class BlockFullCopyService extends TaskResourceService {
     public void setPlacementManager(PlacementManager placementManager) {
         _placementManager = placementManager;
     }
-    
+
     /**
      * Setter for the tenants service for Spring configuration.
      * 
@@ -71,7 +61,7 @@ public class BlockFullCopyService extends TaskResourceService {
      */
     @Override
     protected DataObject queryResource(URI id) {
-        ArgValidator.checkUri(id);        
+        ArgValidator.checkUri(id);
         Volume fullCopy = _permissionsHelper.getObjectById(id, Volume.class);
         ArgValidator.checkEntityNotNull(fullCopy, id, isIdEmbeddedInURL(id));
         return fullCopy;
@@ -88,7 +78,7 @@ public class BlockFullCopyService extends TaskResourceService {
 
         Project project = _permissionsHelper.getObjectById(projectURI, Project.class);
         ArgValidator.checkEntityNotNull(project, projectURI,
-            isIdEmbeddedInURL(projectURI));
+                isIdEmbeddedInURL(projectURI));
         return project.getTenantOrg().getURI();
     }
 
@@ -99,7 +89,7 @@ public class BlockFullCopyService extends TaskResourceService {
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.VOLUME;
     }
-    
+
     /**
      * Activate a full copy. For supported platforms, if the full copy source is
      * a volume and that volume is part of a consistency group, this call will
@@ -116,14 +106,14 @@ public class BlockFullCopyService extends TaskResourceService {
      * @return TaskList
      */
     @POST
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/activate")
     public TaskList activateFullCopy(@PathParam("id") URI fullCopyURI)
-        throws InternalException {
+            throws InternalException {
         Volume fullCopyVolume = queryFullCopy(fullCopyURI);
         return getFullCopyManager().activateFullCopy(
-            fullCopyVolume.getAssociatedSourceVolume(), fullCopyURI);
+                fullCopyVolume.getAssociatedSourceVolume(), fullCopyURI);
     }
 
     /**
@@ -142,16 +132,16 @@ public class BlockFullCopyService extends TaskResourceService {
      * @return TaskList
      */
     @POST
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/detach")
     public TaskList detachFullCopy(@PathParam("id") URI fullCopyURI)
-        throws InternalException {
+            throws InternalException {
         Volume fullCopyVolume = queryFullCopy(fullCopyURI);
         return getFullCopyManager().detachFullCopy(
-            fullCopyVolume.getAssociatedSourceVolume(), fullCopyURI);
+                fullCopyVolume.getAssociatedSourceVolume(), fullCopyURI);
     }
-    
+
     /**
      * Restores the full copy source with the data on the full copy with the
      * passed URI. For supported platforms, if the full copy source is a volume
@@ -172,10 +162,10 @@ public class BlockFullCopyService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/restore")
     public TaskList restoreFullCopy(@PathParam("id") URI fullCopyURI)
-        throws InternalException {
+            throws InternalException {
         Volume fullCopyVolume = queryFullCopy(fullCopyURI);
         return getFullCopyManager().restoreFullCopy(
-            fullCopyVolume.getAssociatedSourceVolume(), fullCopyURI);
+                fullCopyVolume.getAssociatedSourceVolume(), fullCopyURI);
     }
 
     /**
@@ -198,10 +188,10 @@ public class BlockFullCopyService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/resynchronize")
     public TaskList resynchronizeFullCopy(@PathParam("id") URI fullCopyURI)
-        throws InternalException {
+            throws InternalException {
         Volume fullCopyVolume = queryFullCopy(fullCopyURI);
         return getFullCopyManager().resynchronizeFullCopy(
-            fullCopyVolume.getAssociatedSourceVolume(), fullCopyURI);
+                fullCopyVolume.getAssociatedSourceVolume(), fullCopyURI);
     }
 
     /**
@@ -220,10 +210,10 @@ public class BlockFullCopyService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/check-progress")
     public VolumeRestRep checkFullCopyProgress(@PathParam("id") URI fullCopyURI)
-        throws InternalException {
+            throws InternalException {
         Volume fullCopyVolume = queryFullCopy(fullCopyURI);
         return getFullCopyManager().checkFullCopyProgress(
-            fullCopyVolume.getAssociatedSourceVolume(), fullCopyURI);
+                fullCopyVolume.getAssociatedSourceVolume(), fullCopyURI);
     }
 
     /**
@@ -234,8 +224,8 @@ public class BlockFullCopyService extends TaskResourceService {
      */
     private BlockFullCopyManager getFullCopyManager() {
         BlockFullCopyManager fcManager = new BlockFullCopyManager(_dbClient,
-            _permissionsHelper, _auditMgr, _coordinator, _placementManager, sc, uriInfo,
-            _request, _tenantsService);
+                _permissionsHelper, _auditMgr, _coordinator, _placementManager, sc, uriInfo,
+                _request, _tenantsService);
         return fcManager;
     }
 

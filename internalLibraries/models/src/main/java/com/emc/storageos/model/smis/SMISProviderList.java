@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.smis;
@@ -16,14 +16,16 @@ public class SMISProviderList {
 
     private List<NamedRelatedResourceRep> smisProviders;
 
-    public SMISProviderList() {}
-    
+    public SMISProviderList() {
+    }
+
     public SMISProviderList(List<NamedRelatedResourceRep> smisProviders) {
         this.smisProviders = smisProviders;
     }
 
     /**
      * List of SMIS Providers.
+     * 
      * @valid none
      */
     @XmlElement(name = "smis_provider")
@@ -37,5 +39,5 @@ public class SMISProviderList {
     public void setSmisProviders(List<NamedRelatedResourceRep> smisProviders) {
         this.smisProviders = smisProviders;
     }
-    
+
 }

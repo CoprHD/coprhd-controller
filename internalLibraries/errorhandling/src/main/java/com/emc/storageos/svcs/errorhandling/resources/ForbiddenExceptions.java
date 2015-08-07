@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.svcs.errorhandling.resources;
@@ -24,14 +14,11 @@ import java.util.List;
  * This interface holds all the methods used to create an error condition that
  * will be associated with an HTTP status of Forbidden (403)
  * <p/>
- * Remember to add the English message associated to the method in
- * ForbiddenExceptions.properties and use the annotation
- * {@link DeclareServiceCode} to set the service code associated to this error
- * condition. You may need to create a new service code if there is no an
- * existing one suitable for your error condition.
+ * Remember to add the English message associated to the method in ForbiddenExceptions.properties and use the annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
+ * is no an existing one suitable for your error condition.
  * <p/>
- * For more information or to see an example, check the Developers Guide section
- * in the Error Handling Wiki page:
+ * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
  * http://confluence.lab.voyence.com/display/OS/Error+Handling+Framework+and+Exceptions+in+ViPR
  */
 @MessageBundle
@@ -51,7 +38,7 @@ public interface ForbiddenExceptions {
 
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException failedReadingTenantRoles(final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException failedReadingProjectACLs(final Throwable cause);
 
@@ -69,7 +56,7 @@ public interface ForbiddenExceptions {
 
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException onlySecurityAdminsCanModifyUserMapping();
-    
+
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException onlyAdminsCanProvisionFileSystems(final String... roles);
 
@@ -97,23 +84,23 @@ public interface ForbiddenExceptions {
 
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException tenantCannotAccessVirtualPool(final String virtualPool);
-    
+
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException tenantCannotAccessComputeVirtualPool(final String computeVirtualPool);
 
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException
             specifiedOwnerIsNotValidForProjectTenant(final String cause);
-    
+
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException onlyAdminsCanReleaseFileSystems(final String... roles);
-    
+
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException onlyAdminsCanUndoReleasedFileSystems(final String... roles);
-    
+
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
-    public ForbiddenException onlyPreviouslyReleasedFileSystemsCanBeUndone(); 
-    
+    public ForbiddenException onlyPreviouslyReleasedFileSystemsCanBeUndone();
+
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException localUsersNotAllowedForSingleSignOn(final String userName);
 

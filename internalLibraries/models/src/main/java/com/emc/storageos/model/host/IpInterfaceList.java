@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.host;
@@ -17,15 +17,17 @@ import java.util.List;
 @XmlRootElement(name = "ip_interfaces")
 public class IpInterfaceList {
     private List<NamedRelatedResourceRep> ipInterfaces;
-    
-    public IpInterfaceList() {}
-    
+
+    public IpInterfaceList() {
+    }
+
     public IpInterfaceList(List<NamedRelatedResourceRep> ipInterfaces) {
         this.ipInterfaces = ipInterfaces;
     }
 
     /**
      * List of IPv4 or IPv6 interfaces of a host that exists in ViPR.
+     * 
      * @valid none
      */
     @XmlElement(name = "ip_interface")

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.ibm.xiv;
 
@@ -74,41 +64,41 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 
 /**
  * IBM XIV SMI-S block controller implementation.
- *
+ * 
  * Key characteristics of IBM XIV array:
- *
+ * 
  * 1. CIM method may return without exception, but with error code
- *      a. return code is checked
- *      b. depending on different situations, may throw exception, or ignore the error code
- *
+ * a. return code is checked
+ * b. depending on different situations, may throw exception, or ignore the error code
+ * 
  * 2. all CIM methods are synchronous (there is no job returned from CIM call)
- *      a. XIVSmisStorageDevicePostProcessor is called to handle CIM call result,
- *          which is handled via SmisXXXJob in case of asynchronous call.
- *      b. for some methods (remove members from CG, or create group snapshots),
- *          result may not be available immediately after a successful return,
- *          in such cases, workaround are made (see IBMSmisSynchSubTaskJob).
- *
+ * a. XIVSmisStorageDevicePostProcessor is called to handle CIM call result,
+ * which is handled via SmisXXXJob in case of asynchronous call.
+ * b. for some methods (remove members from CG, or create group snapshots),
+ * result may not be available immediately after a successful return,
+ * in such cases, workaround are made (see IBMSmisSynchSubTaskJob).
+ * 
  * 3. all XIV volumes are thin provisioned regardless the pool type
-
+ * 
  * 4. all volumes in a CG has to be on the same storage pool
- *      a. user cannot specify storage pool in CG creation, CG's storage pool association
- *          is set implicitly by member volumes
- *      b. creating an empty CG on array will result a CG associated to a storage pool
- *          that system selected. User cannot change the association afterwards.
- *
+ * a. user cannot specify storage pool in CG creation, CG's storage pool association
+ * is set implicitly by member volumes
+ * b. creating an empty CG on array will result a CG associated to a storage pool
+ * that system selected. User cannot change the association afterwards.
+ * 
  * 5. in mapping, target ports cannot be specified
- *      a. target ports can be configured by zoning, so zoning must be done before masking
- *
+ * a. target ports can be configured by zoning, so zoning must be done before masking
+ * 
  * 6. one host could have only one mapping representation on array side
- *      a. a mapping on array side may not have any initiator/target port/LUN (empty mapping)
- *      b. there could be multiple volumes in the mapping
- *      c. one volume can be mapped to multiple hosts
- *      d. host name is used on array side if no conflict,
- *          otherwise, array side name will be set as tag of the host in ViPR
- *
+ * a. a mapping on array side may not have any initiator/target port/LUN (empty mapping)
+ * b. there could be multiple volumes in the mapping
+ * c. one volume can be mapped to multiple hosts
+ * d. host name is used on array side if no conflict,
+ * otherwise, array side name will be set as tag of the host in ViPR
+ * 
  * 7. XIV Open API doesn't support creating/exporting to a cluster (an array side cluster)
- *      a. a set of volumes can be mapping to multiple hosts via ViPR cluster
- *
+ * a. a set of volumes can be mapping to multiple hosts via ViPR cluster
+ * 
  */
 public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
     private static final Logger _log = LoggerFactory
@@ -118,7 +108,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
     protected XIVSmisCommandHelper _helper;
     private IBMCIMObjectPathFactory _cimPath;
     private NameGenerator _nameGenerator;
-    
+
     // TODO - place holder for now
     private XIVSmisStorageDevicePreProcessor _smisStorageDevicePreProcessor;
     private XIVSmisStorageDevicePostProcessor _smisStorageDevicePostProcessor;
@@ -155,23 +145,23 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             final XIVSmisStorageDevicePostProcessor smisStorageDevicePostProcessor) {
         _smisStorageDevicePostProcessor = smisStorageDevicePostProcessor;
     }
-    
+
     public void setExportMaskOperationsHelper(final ExportMaskOperations exportMaskOperationsHelper) {
         _exportMaskOperationsHelper = exportMaskOperationsHelper;
     }
-        
+
     public void setSnapshotOperations(final SnapshotOperations snapshotOperations) {
         _snapshotOperations = snapshotOperations;
     }
 
     public void setCloneOperations(final CloneOperations cloneOperations) {
         _cloneOperations = cloneOperations;
-    }   
-    
+    }
+
     public void setIsForceSnapshotGroupRemoval(boolean isForceSnapshotGroupRemoval) {
         this.isForceSnapshotGroupRemoval = isForceSnapshotGroupRemoval;
     }
-    
+
     /*
      * (non-Javadoc)
      * 
@@ -227,20 +217,20 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             CIMArgument[] outArgs = new CIMArgument[5];
             _helper.invokeMethod(storageSystem, configSvcPath,
                     SmisConstants.CREATE_OR_MODIFY_ELEMENTS_FROM_STORAGE_POOL,
-                    inArgs, outArgs);            
+                    inArgs, outArgs);
             volumeURIs = _smisStorageDevicePostProcessor
                     .processVolumeCreation(storageSystem, storagePool.getId(),
                             volumes, outArgs);
-            
-            if (volumeURIs.size() > 0) {
-            	// see SmisAbstractCreateVolumeJob.addVolumeToConsistencyGroup
+
+            if (!volumeURIs.isEmpty()) {
+                // see SmisAbstractCreateVolumeJob.addVolumeToConsistencyGroup
                 // All the volumes will be in the same consistency group
                 final URI consistencyGroupId = firstVolume.getConsistencyGroup();
                 if (consistencyGroupId != null) {
                     addVolumesToCG(storageSystem, consistencyGroupId, new ArrayList<URI>(volumeURIs), true);
                 }
             }
-            
+
             taskCompleter.ready(_dbClient);
         } catch (final InternalException e) {
             _log.error("Problem in doCreateVolumes: ", e);
@@ -279,7 +269,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 storageSystem.getLabel(), storagePool.getNativeId()));
         for (Volume volume : volumes) {
             logMsgBuilder
-                    .append(String.format("\nVolume:%s", volume.getLabel()));
+                    .append(String.format("%nVolume:%s", volume.getLabel()));
         }
         _log.info(logMsgBuilder.toString());
     }
@@ -350,7 +340,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                     "Delete Volume Start - Array:%s", storageSystem.getLabel()));
             MultiVolumeTaskCompleter multiVolumeTaskCompleter = (MultiVolumeTaskCompleter) taskCompleter;
             for (Volume volume : volumes) {
-                logMsgBuilder.append(String.format("\nVolume:%s",
+                logMsgBuilder.append(String.format("%nVolume:%s",
                         volume.getLabel()));
 
                 if (volume.getConsistencyGroup() != null) {
@@ -359,7 +349,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                         removeVolumeFromConsistencyGroup(storageSystem, cg, volume);
                     }
                 }
-                
+
                 CIMInstance volumeInstance = _helper.checkExists(storageSystem,
                         volume, false, false);
                 if (volumeInstance == null) {
@@ -441,7 +431,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                     .unableToCallStorageProvider(e.getMessage());
             taskCompleter.error(_dbClient, error);
         } catch (DeviceControllerException e) {
-            taskCompleter.error(_dbClient, e);           
+            taskCompleter.error(_dbClient, e);
         } catch (Exception e) {
             _log.error("Problem in doDeleteVolume: ", e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed(
@@ -453,12 +443,14 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 "Delete Volume End - Array: %s", storageSystem.getLabel()));
         for (Volume volume : volumes) {
             logMsgBuilder
-                    .append(String.format("\nVolume:%s", volume.getLabel()));
+                    .append(String.format("%nVolume:%s", volume.getLabel()));
         }
         _log.info(logMsgBuilder.toString());
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportGroupCreate
      * (com.emc.storageos.db.client.model.StorageSystem,
      * com.emc.storageos.db.client.model.ExportMask,
@@ -480,7 +472,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 targets, initiators, taskCompleter);
         _log.info("{} doExportGroupCreate END ...", storage.getLabel());
     }
-    
+
     @Override
     public void doExportGroupDelete(final StorageSystem storage, final ExportMask exportMask,
             final TaskCompleter taskCompleter) throws DeviceControllerException {
@@ -490,7 +482,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter);
         _log.info("{} doExportGroupDelete END ...", storage.getLabel());
     }
-    
+
     @Override
     public void doExportAddVolume(final StorageSystem storage, final ExportMask exportMask,
             final URI volume, final Integer lun, final TaskCompleter taskCompleter)
@@ -504,7 +496,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter);
         _log.info("{} doExportAddVolume END ...", storage.getLabel());
     }
-    
+
     @Override
     public void doExportAddVolumes(final StorageSystem storage, final ExportMask exportMask,
             final Map<URI, Integer> volumes, final TaskCompleter taskCompleter)
@@ -516,7 +508,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter);
         _log.info("{} doExportAddVolume END ...", storage.getLabel());
     }
-    
+
     @Override
     public void doExportRemoveVolume(final StorageSystem storage, final ExportMask exportMask,
             final URI volume, final TaskCompleter taskCompleter) throws DeviceControllerException {
@@ -525,7 +517,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 Arrays.asList(volume), taskCompleter);
         _log.info("{} doExportRemoveVolume END ...", storage.getLabel());
     }
-    
+
     @Override
     public void doExportRemoveVolumes(final StorageSystem storage, final ExportMask exportMask,
             final List<URI> volumes, final TaskCompleter taskCompleter)
@@ -535,7 +527,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter);
         _log.info("{} doExportRemoveVolume END ...", storage.getLabel());
     }
-    
+
     @Override
     public void doExportAddInitiator(final StorageSystem storage, final ExportMask exportMask,
             final Initiator initiator, final List<URI> targets, final TaskCompleter taskCompleter)
@@ -545,7 +537,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 Arrays.asList(initiator), targets, taskCompleter);
         _log.info("{} doExportAddInitiator END ...", storage.getLabel());
     }
-    
+
     @Override
     public void doExportAddInitiators(final StorageSystem storage, final ExportMask exportMask,
             final List<Initiator> initiators, final List<URI> targets,
@@ -555,7 +547,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter);
         _log.info("{} doExportAddInitiator END ...", storage.getLabel());
     }
-    
+
     @Override
     public void doExportRemoveInitiator(final StorageSystem storage, final ExportMask exportMask,
             final Initiator initiator, final List<URI> targets, final TaskCompleter taskCompleter)
@@ -565,7 +557,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 Arrays.asList(initiator), targets, taskCompleter);
         _log.info("{} doExportRemoveInitiator END ...", storage.getLabel());
     }
-    
+
     @Override
     public void doExportRemoveInitiators(final StorageSystem storage, final ExportMask exportMask,
             final List<Initiator> initiators, final List<URI> targets,
@@ -575,7 +567,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 targets, taskCompleter);
         _log.info("{} doExportRemoveInitiator END ...", storage.getLabel());
     }
-    
+
     /**
      * Return a mapping of the port name to the URI of the ExportMask in which
      * it is contained.
@@ -596,12 +588,12 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         return _exportMaskOperationsHelper.findExportMasks(storage, initiatorNames,
                 mustHaveAllPorts);
     }
-    
+
     @Override
     public ExportMask refreshExportMask(final StorageSystem storage, final ExportMask mask) {
         return _exportMaskOperationsHelper.refreshExportMask(storage, mask);
     }
-    
+
     @Override
     public boolean validateStorageProviderConnection(String ipAddress,
             Integer portNumber) {
@@ -621,7 +613,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doDisconnect(final StorageSystem storage) {
     }
-    
+
     @Override
     public void doCreateSnapshot(final StorageSystem storage,
             final List<URI> snapshotList, final Boolean createInactive,
@@ -721,10 +713,13 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
 
     /*
      * (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.AbstractBlockStorageDevice#doCreateConsistencyGroup(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
-     *
+     * 
+     * @see
+     * com.emc.storageos.volumecontroller.AbstractBlockStorageDevice#doCreateConsistencyGroup(com.emc.storageos.db.client.model.StorageSystem
+     * , java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
+     * 
      * Note: this won't create CG on array side, it just associate CG with array
-     *          CG will be created on array side when adding first volumes to
+     * CG will be created on array side when adding first volumes to
      */
     @Override
     public void doCreateConsistencyGroup(final StorageSystem storage,
@@ -795,7 +790,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             // Set the consistency group to inactive
             consistencyGroup.removeSystemConsistencyGroup(storage.getId().toString(), groupName);
             if (markInactive) {
-     			consistencyGroup.setInactive(true);
+                consistencyGroup.setInactive(true);
             }
             _dbClient.persistObject(consistencyGroup);
             // Set task to ready
@@ -811,7 +806,10 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
 
     /*
      * (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.AbstractBlockStorageDevice#doAddToConsistencyGroup(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
+     * 
+     * @see
+     * com.emc.storageos.volumecontroller.AbstractBlockStorageDevice#doAddToConsistencyGroup(com.emc.storageos.db.client.model.StorageSystem
+     * , java.net.URI, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
      * Note - all block objects should be on the same storage pool
      */
     @Override
@@ -832,7 +830,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 }
             }
 
-            if (objectsToSave.size() > 0) {
+            if (!objectsToSave.isEmpty()) {
                 _dbClient.updateAndReindexObject(objectsToSave);
             }
 
@@ -856,7 +854,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 }
             }
 
-            if (objectsToSave.size() > 0) {
+            if (!objectsToSave.isEmpty()) {
                 _dbClient.persistObject(objectsToSave);
             }
 
@@ -885,7 +883,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             if (cgPathInstance != null) {
                 String[] blockObjectIds = _helper.getBlockObjectNativeIds(blockObjects);
                 removeVolumesFromCG(storage, consistencyGroup, cgPath, blockObjectIds);
-            }           
+            }
 
             // remove any references to the consistency group
             List<BlockObject> objectsToSave = new ArrayList<BlockObject>();
@@ -920,7 +918,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         _log.info("START waitForSynchronized for {}", target);
         CIMObjectPath path = IBMSmisConstants.NULL_IBM_CIM_OBJECT_PATH;
         try {
-            if (!clazz.equals(Volume.class)) {           
+            if (!clazz.equals(Volume.class)) {
                 BlockObject targetObj = _dbClient.queryObject(clazz, target);
                 path = _cimPath.getBlockObjectPath(storageObj,
                         targetObj);
@@ -939,9 +937,9 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doWaitForGroupSynchronized(StorageSystem storageObj, List<URI> target, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
-    
+
     @Override
     public Integer checkSyncProgress(final URI storage, final URI source,
             final URI target) throws DeviceControllerException {
@@ -1029,7 +1027,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                     }
                 }
 
-                if (volumeIsInGroup) {                   
+                if (volumeIsInGroup) {
                     removeVolumesFromCG(storage, cg, cgPath, new String[] { volume.getNativeId() });
                 } else {
                     _log.info(
@@ -1065,9 +1063,9 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                                 BlockConsistencyGroup.Types.LOCAL.name()))) {
             if (!isVolumeCreation) {
                 throw DeviceControllerException.exceptions
-                .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                        consistencyGroup.fetchArrayCgName(storageSystem
-                                .getId()));
+                        .consistencyGroupNotFound(consistencyGroup.getLabel(),
+                                consistencyGroup.fetchArrayCgName(storageSystem
+                                        .getId()));
             }
             else {
                 _log.info("Skipping addVolumesToCG: Volumes are not part of a consistency group");
@@ -1078,7 +1076,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         String groupName = _helper.getConsistencyGroupName(consistencyGroup,
                 storageSystem);
         if (groupName.equals(EMTPY_CG_NAME)) { // may also check if CG
-                                                      // instance
+                                               // instance
             // exists on array, or not, if
             // not, re-create it here
             // need to create CG group here with member volumes
@@ -1121,7 +1119,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                     new ArrayList<URI>(volumeURIs), cgPath);
         }
     }
-    
+
     private void removeVolumesFromCG(StorageSystem storage, BlockConsistencyGroup cg,
             CIMObjectPath cgPath, String[] blockObjectIds) throws Exception {
         CIMObjectPath[] volumePaths = _cimPath.getVolumePaths(storage, blockObjectIds);
@@ -1208,5 +1206,5 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         // TODO Auto-generated method stub
         return null;
     }
-    
+
 }

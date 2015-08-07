@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.system;
@@ -10,15 +10,15 @@ import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.model.sys.licensing.License;
 
 public class Licensing {
-			
-	private RestClient client;
-	
-	public Licensing(RestClient client) {
+
+    private RestClient client;
+
+    public Licensing(RestClient client) {
         this.client = client;
     }
-	
+
     /**
-     * Return the license file as individual xml elements and also includes the 
+     * Return the license file as individual xml elements and also includes the
      * full license text.
      * <p>
      * API Call: GET /license
@@ -26,9 +26,9 @@ public class Licensing {
      * @return The license
      */
     public License get() {
-		return client.get(License.class, LICENSE_URL);
+        return client.get(License.class, LICENSE_URL);
     }
-    
+
     /**
      * Add a license to the system.
      * <p>
@@ -39,6 +39,6 @@ public class Licensing {
     public void set(String licenseText) {
         License license = new License();
         license.setLicenseText(licenseText);
-    	client.post(String.class, license, LICENSE_URL);
+        client.post(String.class, license, LICENSE_URL);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.apidocs;
@@ -29,7 +29,7 @@ public class ApiDoclet {
     private static final String CONTENT_OPTION = "-c";
     private static final String BUILD_OPTION = "-build";
     private static final String PORTAL_SRC_OPTION = "-portalsrc";
-
+    private static final String ROOT_DIRECTORY = "-rootDirectory";
     private static final String INTERNAL_PATH = "internal";
 
     private static final List<String> DATASERVICES_CLASSES = Lists.newArrayList("S3Service", "AtmosService", "SwiftService");
@@ -37,14 +37,13 @@ public class ApiDoclet {
     private static final String SYSTEM_SERVIES_PACKAGE = "com.emc.storageos.systemservices";
 
     private static String buildNumber = null;
-
+    private static String rootDirectory = null;
     private static String portalSource = null;
     private static String outputDirectory;
     private static String contentDirectory;
 
     private static List<String> serviceBlackList = Lists.newArrayList();
     private static List<String> methodBlackList = Lists.newArrayList();
-
 
     /** MAIN Entry Point into the Doclet */
     public static boolean start(RootDoc root) {
@@ -86,22 +85,25 @@ public class ApiDoclet {
         if (option.equals(PORTAL_SRC_OPTION)) {
             return 2;
         }
+        if (option.equals(ROOT_DIRECTORY)) {
+        	return 2;
+        }
 
         return 1;
     }
 
     /** Required by Doclet to process the command line options */
-    public static boolean validOptions(String options[][],
-                                       DocErrorReporter reporter) {
+    public static synchronized boolean validOptions(String options[][],
+            DocErrorReporter reporter) {
         DocReporter.init(reporter);
         DocReporter.printWarning("Processing Options");
         boolean valid = true;
         boolean contentOptionFound = false;
         boolean outputOptionFound = false;
-        boolean portalsrcOptionFound =false;
+        boolean portalsrcOptionFound = false;
 
         // Make sure we have an OUTPUT and TEMPLATES option
-        for (int i=0;i<options.length; i++) {
+        for (int i = 0; i < options.length; i++) {
             if (options[i][0].equals(OUTPUT_OPTION)) {
                 outputOptionFound = true;
                 valid = checkOutputOption(options[i][1], reporter);
@@ -114,38 +116,42 @@ public class ApiDoclet {
                 portalsrcOptionFound = true;
                 valid = checkPortalSourceOption(options[i][1], reporter);
 
+            } else if (options[i][0].equals(ROOT_DIRECTORY)) {
+            	rootDirectory = options[i][1];
+            	reporter.printWarning(rootDirectory);
+
             } else if (options[i][0].equals(BUILD_OPTION)) {
                 buildNumber = options[i][1];
-                reporter.printWarning("Build "+buildNumber);
+                reporter.printWarning("Build " + buildNumber);
             }
         }
 
-
         if (!contentOptionFound) {
-            reporter.printError("Content dir option "+CONTENT_OPTION+" not specified");
+            reporter.printError("Content dir option " + CONTENT_OPTION + " not specified");
         }
 
         if (!outputOptionFound) {
-            reporter.printError("Output dir option "+OUTPUT_OPTION+" not specified");
+            reporter.printError("Output dir option " + OUTPUT_OPTION + " not specified");
         }
 
         if (!portalsrcOptionFound) {
-            reporter.printError("Portal Source option "+PORTAL_SRC_OPTION+" not specified");
+            reporter.printError("Portal Source option " + PORTAL_SRC_OPTION + " not specified");
         }
 
         DocReporter.printWarning("Finished Processing Options");
 
-        return valid & contentOptionFound & outputOptionFound & portalsrcOptionFound;
+        return valid && contentOptionFound && outputOptionFound && portalsrcOptionFound;
     }
 
     /** Processes the list of classes looking for ones that represent an API Service, and parsing them if found */
-    private static List<ApiService> findApiServices(ClassDoc[] classes) {
+    private static synchronized List<ApiService> findApiServices(ClassDoc[] classes) {
         List<ApiService> apiServices = new ArrayList<ApiService>();
         for (ClassDoc classDoc : classes) {
             if (DATASERVICES_CLASSES.contains(classDoc.name())) {
                 if (!classDoc.name().equals("AtmosService")) {
                     // Data Service service, so treat it slightly differently since it's actually split over operation classes
-                    String baseURL = AnnotationUtils.getAnnotationValue(classDoc, KnownAnnotations.Path_Annotation, KnownAnnotations.Value_Element, "");
+                    String baseURL = AnnotationUtils.getAnnotationValue(classDoc, KnownAnnotations.Path_Annotation,
+                            KnownAnnotations.Value_Element, "");
 
                     for (ClassDoc operationClassDoc : findDataServiceOperations(classDoc)) {
                         apiServices.add(processClass(operationClassDoc, baseURL, true));
@@ -155,7 +161,8 @@ public class ApiDoclet {
             else if (AnnotationUtils.hasAnnotation(classDoc, KnownAnnotations.Path_Annotation) &&
                     !serviceBlackList.contains(classDoc.qualifiedName()) &&
                     !serviceBlackList.contains(classDoc.name())) {
-                String baseURL = AnnotationUtils.getAnnotationValue(classDoc, KnownAnnotations.Path_Annotation, KnownAnnotations.Value_Element, "");
+                String baseURL = AnnotationUtils.getAnnotationValue(classDoc, KnownAnnotations.Path_Annotation,
+                        KnownAnnotations.Value_Element, "");
 
                 if (!isInternalPath(baseURL)) {
                     apiServices.add(processClass(classDoc, baseURL, false));
@@ -169,7 +176,7 @@ public class ApiDoclet {
         return apiServices;
     }
 
-    private static List<ApiErrorCode> findErrorCodes(ClassDoc[] classes) {
+    private static synchronized List<ApiErrorCode> findErrorCodes(ClassDoc[] classes) {
         // Find ServiceCode Class
         ClassDoc serviceCodeClass = null;
         for (ClassDoc classDoc : classes) {
@@ -204,7 +211,7 @@ public class ApiDoclet {
         return errorCodes;
     }
 
-    private static void cleanupMethods(List<ApiService> apiServices) {
+    private static synchronized void cleanupMethods(List<ApiService> apiServices) {
         // Cleanup
         for (ApiService apiService : apiServices) {
             for (ApiMethod apiMethod : apiService.methods) {
@@ -214,24 +221,32 @@ public class ApiDoclet {
         applyServiceTitleChanges(apiServices);
     }
 
-    private static void saveMetaData(List<ApiService> apiServices) {
+    private static synchronized void saveMetaData(List<ApiService> apiServices) {
         MetaData.save(KnownPaths.getOutputFile("meta_data.json"), apiServices);
     }
 
-    private static void generateFiles(ApiDifferences apiDifferences, List<ApiService> apiServices, List<ApiErrorCode> errorCodes) {
+    private static synchronized void generateFiles(ApiDifferences apiDifferences, List<ApiService> apiServices, List<ApiErrorCode> errorCodes) {
         PageGenerator pageGenerator = new PageGenerator(buildNumber);
         pageGenerator.generatePages(apiDifferences, apiServices, errorCodes);
     }
 
-    private static ApiDifferences calculateDifferences(List<ApiService> apiServices) {
-        List<ApiService> oldServices = MetaData.load(KnownPaths.getMetaDataFile("MetaData-1.1.json"));
-
+    private static synchronized ApiDifferences calculateDifferences(List<ApiService> apiServices) {
+    	Properties prop = new Properties();
+    	try {
+    		FileInputStream fileInput = new FileInputStream(rootDirectory+"gradle.properties");
+    		prop.load(fileInput);
+    	}
+    	catch (Exception e) {
+        	e.printStackTrace();
+        }
+    	String docsMetaVersion = prop.getProperty("apidocsComparisionVersion");
+        List<ApiService> oldServices = MetaData.load(KnownPaths.getMetaDataFile("MetaData-"+docsMetaVersion+".json"));
         DifferenceEngine differenceEngine = new DifferenceEngine();
         return differenceEngine.calculateDifferences(oldServices, apiServices);
     }
 
     /** Process a JAXRS Class into an API Service */
-    public static ApiService processClass(ClassDoc classDoc, String baseUrl, boolean isDataService) {
+    public static synchronized ApiService processClass(ClassDoc classDoc, String baseUrl, boolean isDataService) {
         ApiService apiService = new ApiService();
         apiService.packageName = classDoc.containingPackage().name();
         apiService.javaClassName = classDoc.name();
@@ -250,9 +265,9 @@ public class ApiDoclet {
             for (MethodDoc method : currentClass.methods()) {
 
                 if (isApiMethod(method) &&
-                    !isInternalMethod(method) &&
-                    !methodBlackList.contains(apiService.getFqJavaClassName()+"::"+method.name()) &&
-                    !methodBlackList.contains(apiService.javaClassName+"::"+method.name())) {
+                        !isInternalMethod(method) &&
+                        !methodBlackList.contains(apiService.getFqJavaClassName() + "::" + method.name()) &&
+                        !methodBlackList.contains(apiService.javaClassName + "::" + method.name())) {
                     ApiMethod apiMethod = MethodProcessor.processMethod(apiService, method, apiService.path, isDataService);
 
                     // Some methods are marked internal via brief comments, but we only know that after processing it
@@ -270,28 +285,28 @@ public class ApiDoclet {
         return apiService;
     }
 
-    public static void addDefaultPermissions(ClassDoc classDoc, ApiService apiService) {
+    public static synchronized void addDefaultPermissions(ClassDoc classDoc, ApiService apiService) {
         AnnotationDesc defaultPermissions = AnnotationUtils.getAnnotation(classDoc, KnownAnnotations.DefaultPermissions_Annotation);
 
         if (defaultPermissions != null) {
             for (AnnotationDesc.ElementValuePair pair : defaultPermissions.elementValues()) {
                 if (pair.element().name().equals("read_roles")) {
-                    for (AnnotationValue value : (AnnotationValue[])pair.value().value()) {
+                    for (AnnotationValue value : (AnnotationValue[]) pair.value().value()) {
                         apiService.addReadRole(((FieldDoc) value.value()).name());
                     }
                 }
                 else if (pair.element().name().equals("write_roles")) {
-                    for (AnnotationValue value : (AnnotationValue[])pair.value().value()) {
+                    for (AnnotationValue value : (AnnotationValue[]) pair.value().value()) {
                         apiService.addWriteRole(((FieldDoc) value.value()).name());
                     }
                 }
                 else if (pair.element().name().equals("read_acls")) {
-                    for (AnnotationValue value : (AnnotationValue[])pair.value().value()) {
+                    for (AnnotationValue value : (AnnotationValue[]) pair.value().value()) {
                         apiService.addReadAcl(((FieldDoc) value.value()).name());
                     }
                 }
                 else if (pair.element().name().equals("write_acls")) {
-                    for (AnnotationValue value : (AnnotationValue[])pair.value().value()) {
+                    for (AnnotationValue value : (AnnotationValue[]) pair.value().value()) {
                         apiService.addWriteAcl(((FieldDoc) value.value()).name());
                     }
                 }
@@ -299,7 +314,7 @@ public class ApiDoclet {
         }
     }
 
-    private static List<ClassDoc> findDataServiceOperations(ClassDoc dataService) {
+    private static synchronized List<ClassDoc> findDataServiceOperations(ClassDoc dataService) {
         List<ClassDoc> operations = new ArrayList<ClassDoc>();
         for (FieldDoc field : dataService.fields(false)) {
             if (field.name().endsWith("Operations") || field.name().endsWith("Operation")) {
@@ -310,27 +325,26 @@ public class ApiDoclet {
         return operations;
     }
 
-
-
     public static boolean isApiMethod(MethodDoc method) {
         return AnnotationUtils.hasAnnotation(method, "javax.ws.rs.POST") ||
-               AnnotationUtils.hasAnnotation(method, "javax.ws.rs.GET") ||
-               AnnotationUtils.hasAnnotation(method, "javax.ws.rs.PUT") ||
-               AnnotationUtils.hasAnnotation(method, "javax.ws.rs.DELETE");
+                AnnotationUtils.hasAnnotation(method, "javax.ws.rs.GET") ||
+                AnnotationUtils.hasAnnotation(method, "javax.ws.rs.PUT") ||
+                AnnotationUtils.hasAnnotation(method, "javax.ws.rs.DELETE");
     }
 
     public static boolean isInternalMethod(MethodDoc method) {
-        return isInternalPath(AnnotationUtils.getAnnotationValue(method, KnownAnnotations.Path_Annotation, KnownAnnotations.Value_Element,""));
+        return isInternalPath(AnnotationUtils.getAnnotationValue(method, KnownAnnotations.Path_Annotation, KnownAnnotations.Value_Element,
+                ""));
     }
 
     public static boolean isInternalPath(String path) {
-        return path.startsWith("/"+INTERNAL_PATH) || path.startsWith(INTERNAL_PATH +"/");
+        return path.startsWith("/" + INTERNAL_PATH) || path.startsWith(INTERNAL_PATH + "/");
     }
 
     /**
      * Allows users to change titles of services, rather than using the default JavaClassName
      */
-    private static void applyServiceTitleChanges(List<ApiService> services) {
+    private static synchronized void applyServiceTitleChanges(List<ApiService> services) {
         Properties titleChanges = new Properties();
         try {
             titleChanges.load(new FileInputStream(KnownPaths.getReferenceFile("ServiceTitleChanges.txt")));
@@ -342,28 +356,27 @@ public class ApiDoclet {
                     service.titleOverride = titleChanges.get(service.javaClassName).toString();
                 }
             }
-        }
-        catch (IOException e) {
-            throw new RuntimeException("Unable to load Title Changes file",e);
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to load Title Changes file", e);
         }
 
     }
 
-    private static boolean checkOutputOption(String value, DocErrorReporter reporter) {
+    private static synchronized boolean checkOutputOption(String value, DocErrorReporter reporter) {
         File file = new File(value);
         if (!file.exists()) {
-            reporter.printError("Output directory ("+OUTPUT_OPTION+") not found :"+file.getAbsolutePath());
+            reporter.printError("Output directory (" + OUTPUT_OPTION + ") not found :" + file.getAbsolutePath());
             return false;
         }
 
         if (!file.isDirectory()) {
-            reporter.printError("Output directory ("+OUTPUT_OPTION+") is not a directory :"+file.getAbsolutePath());
+            reporter.printError("Output directory (" + OUTPUT_OPTION + ") is not a directory :" + file.getAbsolutePath());
             return false;
         }
 
         outputDirectory = value;
         if (!outputDirectory.endsWith("/")) {
-            outputDirectory = outputDirectory+"/";
+            outputDirectory = outputDirectory + "/";
         }
 
         reporter.printWarning("Output Directory " + outputDirectory);
@@ -371,10 +384,10 @@ public class ApiDoclet {
         return true;
     }
 
-    private static boolean checkPortalSourceOption(String value, DocErrorReporter reporter) {
+    private static synchronized boolean checkPortalSourceOption(String value, DocErrorReporter reporter) {
         File file = new File(value);
         if (!file.exists()) {
-            reporter.printError("Portal Source directory ("+PORTAL_SRC_OPTION+") not found :"+file.getAbsolutePath());
+            reporter.printError("Portal Source directory (" + PORTAL_SRC_OPTION + ") not found :" + file.getAbsolutePath());
             return false;
         }
 
@@ -384,7 +397,7 @@ public class ApiDoclet {
         return true;
     }
 
-    private static boolean checkContentOption(String contentDir, DocErrorReporter reporter) {
+    private static synchronized boolean checkContentOption(String contentDir, DocErrorReporter reporter) {
         File contentDirFile = new File(contentDir);
         if (!contentDirFile.exists()) {
             reporter.printError("Content directory (" + CONTENT_OPTION + ") not found :" + contentDirFile.getAbsolutePath());
@@ -392,45 +405,43 @@ public class ApiDoclet {
         }
 
         if (!contentDirFile.isDirectory()) {
-            reporter.printError("Content directory ("+CONTENT_OPTION+") is not a directory :"+contentDirFile.getAbsolutePath());
+            reporter.printError("Content directory (" + CONTENT_OPTION + ") is not a directory :" + contentDirFile.getAbsolutePath());
             return false;
         }
         contentDirectory = contentDir;
         if (!contentDirectory.endsWith("/")) {
-            contentDirectory = contentDirectory+"/";
+            contentDirectory = contentDirectory + "/";
         }
-        reporter.printWarning("Content Directory "+contentDirectory);
+        reporter.printWarning("Content Directory " + contentDirectory);
 
         return true;
     }
 
-    private static void init() {
+    private static synchronized void init() {
         KnownPaths.getHTMLDir().mkdirs();
     }
 
-    private static void loadServiceBlackList() {
+    private static synchronized void loadServiceBlackList() {
         try {
             serviceBlackList = IOUtils.readLines(new FileInputStream(KnownPaths.getReferenceFile("ServiceBlacklist.txt")));
-        }
-        catch (IOException e) {
-            throw new RuntimeException("Unable to load Service blacklist",e);
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to load Service blacklist", e);
         }
     }
 
-    private static void loadMethodBlackList() {
+    private static synchronized void loadMethodBlackList() {
         try {
             methodBlackList = IOUtils.readLines(new FileInputStream(KnownPaths.getReferenceFile("MethodBlackList.txt")));
-        }
-        catch (IOException e) {
-            throw new RuntimeException("Unable to load Method blacklist",e);
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to load Method blacklist", e);
         }
     }
 
-    public static void addDeprecated(ClassDoc method, ApiService apiService) {
+    public static synchronized void addDeprecated(ClassDoc method, ApiService apiService) {
         if (AnnotationUtils.hasAnnotation(method, KnownAnnotations.Deprecated_Annotation)) {
             apiService.isDeprecated = true;
 
-            Tag[] deprecatedTags =  method.tags("@deprecated");
+            Tag[] deprecatedTags = method.tags("@deprecated");
             if (deprecatedTags.length > 0) {
                 apiService.deprecatedMessage = deprecatedTags[0].text();
             }

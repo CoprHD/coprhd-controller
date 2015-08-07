@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.compute.tasks;
@@ -24,7 +24,7 @@ public class FindCluster extends ViPRExecutionTask<List<ClusterRestRep>> {
         debug("Executing: %s", getDetail());
 
         ResourceFilter<ClusterRestRep> filter = new NameFilter<ClusterRestRep>(clusterName);
-        return getClient().clusters().getByTenant(getOrderTenant(), filter); 	
+        return getClient().clusters().getByTenant(getOrderTenant(), filter);
     }
-   
+
 }

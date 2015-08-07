@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.uimodels;
@@ -50,10 +50,10 @@ public class TenantPreferences extends ModelObject implements TenantDataObject {
         this.approvalUrl = approvalUrl;
         setChanged(APPROVAL_URL);
     }
-    
+
     @Override
     public Object[] auditParameters() {
-        return new Object[] {getLabel(), 
+        return new Object[] { getLabel(),
                 getApprovalUrl(), getApproverEmail(), getTenant(), getId() };
-    }     
+    }
 }

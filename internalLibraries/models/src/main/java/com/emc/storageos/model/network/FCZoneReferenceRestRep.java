@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.network;
@@ -18,8 +18,9 @@ public class FCZoneReferenceRestRep {
     private URI groupUri;
     private boolean createdByUser;
 
-    public FCZoneReferenceRestRep() {}
-    
+    public FCZoneReferenceRestRep() {
+    }
+
     public FCZoneReferenceRestRep(String pwwnKey, String zoneName,
             URI networkSystemUri, String fabricId, URI volumeUri, URI groupUri) {
         this.pwwnKey = pwwnKey;
@@ -32,6 +33,7 @@ public class FCZoneReferenceRestRep {
 
     /**
      * The VSAN (Virtual Storage Area Network) ID used for zoning.
+     * 
      * @valid none
      */
     @XmlElement
@@ -45,6 +47,7 @@ public class FCZoneReferenceRestRep {
 
     /**
      * The URI of the export group.
+     * 
      * @valid none
      */
     @XmlElement
@@ -58,6 +61,7 @@ public class FCZoneReferenceRestRep {
 
     /**
      * The URI of the FC (Fibre Channel) switch last used for zoning.
+     * 
      * @valid none
      */
     @XmlElement
@@ -71,6 +75,7 @@ public class FCZoneReferenceRestRep {
 
     /**
      * The port WWPN (World Wide Port Name) key.
+     * 
      * @valid none
      */
     @XmlElement
@@ -84,6 +89,7 @@ public class FCZoneReferenceRestRep {
 
     /**
      * The URI of the volume used by the export group.
+     * 
      * @valid none
      */
     @XmlElement
@@ -97,6 +103,7 @@ public class FCZoneReferenceRestRep {
 
     /**
      * The name of the zone.
+     * 
      * @valid none
      */
     @XmlElement
@@ -111,8 +118,9 @@ public class FCZoneReferenceRestRep {
     /**
      * A flag that indicates if the zone was created by the user or by the system.
      * This flag is true when the zone is found on the network system , in other words,
-     * created by the user, and re-used by the system, false when the zone is created 
+     * created by the user, and re-used by the system, false when the zone is created
      * by the system
+     * 
      * @valid true
      * @valid false
      */

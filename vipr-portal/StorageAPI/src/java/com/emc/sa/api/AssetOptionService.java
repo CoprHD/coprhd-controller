@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.api;
@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.sa.asset.AssetOptionsContext;
 import com.emc.sa.asset.AssetOptionsManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
+import com.emc.storageos.services.util.SecurityUtils;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.emc.vipr.model.catalog.AssetDependencyRequest;
 import com.emc.vipr.model.catalog.AssetDependencyResponse;
@@ -57,30 +58,32 @@ public class AssetOptionService extends CatalogResourceService {
         }
         return context;
     }
-    
+
     @POST
     @Path("/{assetType}")
     @Consumes({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
     public AssetOptionsResponse getAssetOptions(@PathParam("assetType") String assetType, AssetOptionsRequest request) {
         final Map<String, String> availableAssets = request.getAvailableAssets();
         final AssetOptionsContext context = createAssetOptionsContext(request);
+        final Map<String, String> sanitizedAvailableAssets = SecurityUtils.stripMapXSS(availableAssets);
+        final String sanitizedAssetType = SecurityUtils.stripXSS(assetType);
 
-        log.info("Retrieving asset options for " + assetType + " with available assets : "
-                + StringUtils.join(availableAssets.keySet(), ", "));
+        log.info("Retrieving asset options for " + sanitizedAssetType + " with available assets : "
+                + StringUtils.join(sanitizedAvailableAssets.keySet(), ", "));
 
         try {
-            List<AssetOption> options = assetOptionsManager.getOptions(context, assetType, availableAssets);
+            List<AssetOption> options = assetOptionsManager.getOptions(context, sanitizedAssetType, sanitizedAvailableAssets);
 
             AssetOptionsResponse response = new AssetOptionsResponse();
-            response.setAssetType(assetType);
-            response.setAvailableAssets(availableAssets);
+            response.setAssetType(sanitizedAssetType);
+            response.setAvailableAssets(sanitizedAvailableAssets);
             response.setOptions(options);
 
             return response;
-        } catch(IllegalStateException e) {
+        } catch (IllegalStateException e) {
             Response response = Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).type(MediaType.TEXT_PLAIN).build();
             throw new WebApplicationException(response);
-        } catch(ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 Response response = Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).type(MediaType.TEXT_PLAIN).build();
                 throw new WebApplicationException(response);
@@ -96,14 +99,15 @@ public class AssetOptionService extends CatalogResourceService {
             AssetDependencyRequest request) {
 
         final Set<String> availableAssetTypes = request.getAvailableAssetTypes();
+        final String sanitizedAssetType = SecurityUtils.stripXSS(assetType);
 
-        log.info("Retrieving asset dependencies for " + assetType + " with available assets : "
+        log.info("Retrieving asset dependencies for " + sanitizedAssetType + " with available assets : "
                 + StringUtils.join(availableAssetTypes, ", "));
-        
-        List<String> dependencies = assetOptionsManager.getAssetDependencies(assetType, availableAssetTypes);
+
+        List<String> dependencies = assetOptionsManager.getAssetDependencies(sanitizedAssetType, availableAssetTypes);
 
         AssetDependencyResponse response = new AssetDependencyResponse();
-        response.setAssetType(assetType);
+        response.setAssetType(sanitizedAssetType);
         response.setAssetDependencies(dependencies);
         return response;
     }

@@ -1,20 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.management.backup;
 
+import java.io.File;
 /**
  * Constants for backup project
  */
@@ -38,11 +29,11 @@ public interface BackupConstants {
     public static final String COPIES_TO_KEEP = "backup_scheduler_copies_to_keep";
     public static final String UPLOAD_URL = "backup_external_location_url";
     public static final String UPLOAD_USERNAME = "backup_external_location_username";
-    public static final String UPLOAD_PASSWORD = "backup_external_location_password";
+    public static final String UPLOAD_PASSWD = "backup_external_location_password";
     public static final int DEFAULT_BACKUP_COPIES_TO_KEEP = 5;
-    
+
     public static final int BACKUP_RETRY_COUNT = 3;
-    
+
     // The sleep time for scheduler when the cluster is upgrading
     public static final int SCHEDULER_SLEEP_TIME_FOR_UPGRADING = 10 * 60 * 1000;
 
@@ -66,7 +57,7 @@ public interface BackupConstants {
 
     // Standard date string format
     public static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
-    
+
     // Dynamic string format of listing backups
     public static final String LIST_BACKUP_TITLE = "  %%-%ds%%-10s%%-20s";
     public static final String LIST_BACKUP_INFO = "  %%-%ds%%-10.2f%%-20s";
@@ -78,10 +69,12 @@ public interface BackupConstants {
     public static final String EVENT_SERVICE_TYPE = "backup";
     public static final String BACKUP_LEADER_PATH = "backupleader";
     public static final long BACKUP_WAINT_BEFORE_RETRY_ZK_CONN = 1000L;
-    
+
     // Delimiter for host IPv4 and IPv6 in _info.properties file
     public static final String HOSTS_IP_DELIMITER = "/";
 
     public static final String STORAGEOS_USER = "storageos";
     public static final String STORAGEOS_GROUP = "storageos";
+
+    public static final File[] EMPTY_ARRAY = {};
 }

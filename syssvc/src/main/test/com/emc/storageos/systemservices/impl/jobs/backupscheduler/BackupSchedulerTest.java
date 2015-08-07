@@ -1,22 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
 import com.emc.storageos.management.backup.BackupFile;
 import com.emc.storageos.management.backup.BackupFileSet;
-import com.emc.storageos.management.backup.BackupOps;
 import com.emc.storageos.management.backup.BackupSetInfo;
 import com.emc.storageos.management.backup.BackupType;
 import com.emc.storageos.services.OperationTypeEnum;
@@ -26,9 +15,7 @@ import com.emc.storageos.systemservices.TestProductName;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
@@ -45,14 +32,16 @@ import java.util.TimeZone;
 /**
  * Unit test class for Backup Scheduler
  */
+// Suppress Sonar warning that created objects are never used. TestProductName constructor is called to set static fields
+@SuppressWarnings("squid:S1848")
 public class BackupSchedulerTest {
-    private static final String[] aliveBackupsAt20141231 = new String[]{
-        // DAY: 1
-        "vipr-2.2-1-20141231011000",
-        "vipr-2.2-1-20141230011000",
-        "vipr-2.2-1-20141229011000",
-        "vipr-2.2-1-20141228011000",
-        "vipr-2.2-1-20141227011000",
+    private static final String[] aliveBackupsAt20141231 = new String[] {
+            // DAY: 1
+            "vipr-2.2.0.0.123-1-20141231011000",
+            "vipr-2.2.0.0.123-1-20141230011000",
+            "vipr-2.2.0.0.123-1-20141229011000",
+            "vipr-2.2.0.0.123-1-20141228011000",
+            "vipr-2.2.0.0.123-1-20141227011000",
     };
 
     @Test
@@ -60,7 +49,7 @@ public class BackupSchedulerTest {
         new TestProductName();
 
         FakeConfiguration cfg = new FakeConfiguration();
-        cfg.dbSchemaVersion = "2.2";
+        cfg.setSoftwareVersion("vipr-2.2.0.0.123");
         cfg.nodeCount = 1;
         cfg.copiesToKeep = 5;
         cfg.startOffsetMinutes = 60;
@@ -82,7 +71,9 @@ public class BackupSchedulerTest {
         }
 
         for (int i = 0; i < aliveBackupsAt20141231.length; i++) {
-            Assert.assertTrue(String.format("Missing backup: %s in %s", aliveBackupsAt20141231[i], Strings.join(",", cli.localBackups.toArray(new String[1]))),
+            Assert.assertTrue(
+                    String.format("Missing backup: %s in %s", aliveBackupsAt20141231[i],
+                            Strings.join(",", cli.localBackups.toArray(new String[1]))),
                     cli.localBackups.contains(aliveBackupsAt20141231[i]));
         }
 
@@ -96,7 +87,7 @@ public class BackupSchedulerTest {
         new TestProductName();
 
         FakeConfiguration cfg = new FakeConfiguration();
-        cfg.dbSchemaVersion = "2.2";
+        cfg.setSoftwareVersion("vipr-2.2.0.0.123");
         cfg.nodeCount = 1;
         cfg.copiesToKeep = 5;
         cfg.startOffsetMinutes = 60;
@@ -122,15 +113,15 @@ public class BackupSchedulerTest {
 
         // Drive the worker so it will upload
         // NOTE: Since scheduler is disabled, no new scheduled backup will be generated, hence it will
-        //       not retire backups in cluster.
+        // not retire backups in cluster.
         upExec.runOnce();
 
         // Verify the backups are uploaded
         for (int i = 0; i < aliveBackupsAt20141231.length; i++) {
             Assert.assertTrue(String.format("Backup %s is not uploaded: %s", aliveBackupsAt20141231[i],
-                            Strings.join(",", upExec.fileMap.keySet().toArray(new String[upExec.fileMap.size()]))),
+                    Strings.join(",", upExec.fileMap.keySet().toArray(new String[upExec.fileMap.size()]))),
                     upExec.fileMap.containsKey(aliveBackupsAt20141231[i] + "-1-1.zip")
-            );
+                    );
         }
     }
 
@@ -152,7 +143,7 @@ public class BackupSchedulerTest {
         new TestProductName();
 
         FakeConfiguration cfg = new FakeConfiguration();
-        cfg.dbSchemaVersion = "2.2";
+        cfg.setSoftwareVersion("vipr-2.2.0.0.123");
         cfg.nodeCount = 1;
         cfg.copiesToKeep = 5;
         cfg.startOffsetMinutes = 60;
@@ -177,7 +168,7 @@ public class BackupSchedulerTest {
 
         // Drive the worker so it will upload
         // NOTE: Since scheduler is disabled, no new scheduled backup will be generated, hence it will
-        //       not retire backups in cluster.
+        // not retire backups in cluster.
         upExec.runOnce();
 
         Assert.assertTrue("Missing completed tag", cfg.uploadedBackups.contains(aliveBackupsAt20141231[0]));
@@ -224,17 +215,15 @@ class FakeUploadExecutor extends UploadExecutor {
     }
 }
 
-
 class FakeBackupClient extends BackupScheduler {
     public Set<String> localBackups = new HashSet<>();
 
     @Override
     public void auditBackup(OperationTypeEnum auditType,
-                            String operationalStatus,
-                            String description,
-                            Object... descparams) {
+            String operationalStatus,
+            String description,
+            Object... descparams) {
     }
-
 
     @Override
     public void createBackup(String tag) {
@@ -247,13 +236,15 @@ class FakeBackupClient extends BackupScheduler {
     }
 
     @Override
-    public List<String> getDescParams(final String tag){
-        return new ArrayList<String>(){{
-        	add(tag);
-        	add("fake");
-        }};
+    public List<String> getDescParams(final String tag) {
+        return new ArrayList<String>() {
+            {
+                add(tag);
+                add("fake");
+            }
+        };
     }
-    
+
     @Override
     public Set<String> getClusterBackupTags(boolean ignoreDownNodes) {
         return new HashSet<String>(Arrays.asList(localBackups.toArray(new String[localBackups.size()])));
@@ -279,22 +270,21 @@ class FakeBackupClient extends BackupScheduler {
         files.add(new BackupFile(createFakeInfo(tag, BackupType.db), "vipr1"));
         files.add(new BackupFile(createFakeInfo(tag, BackupType.geodb), "vipr1"));
         files.add(new BackupFile(createFakeInfo(tag, BackupType.zk), "vipr1"));
-        
+
         return files;
     }
 
-	@Override
-	public String generateZipFileName(String tag, BackupFileSet files) {
-		Set<String> availableNodes = files.uniqueNodes();
-		return ScheduledBackupTag.toZipFileName(tag, 1, availableNodes.size());
-	}
+    @Override
+    public String generateZipFileName(String tag, BackupFileSet files) {
+        Set<String> availableNodes = files.uniqueNodes();
+        return ScheduledBackupTag.toZipFileName(tag, 1, availableNodes.size());
+    }
 
-
-	@Override
+    @Override
     public void uploadTo(BackupFileSet files, long offset, OutputStream uploadStream) throws IOException {
         byte[] buf = new byte[1024];
         for (int i = 0; i < buf.length; i++) {
-            buf[i] = (byte)(i % 265);
+            buf[i] = (byte) (i % 265);
         }
 
         uploadStream.write(buf, (int) offset, buf.length - (int) offset);
@@ -316,11 +306,11 @@ class FakeConfiguration extends SchedulerConfig {
     // This controls the virtual time, which is running much faster than wall clock
     @Override
     public Calendar now() {
-        return (Calendar)this.currentTime.clone();
+        return (Calendar) this.currentTime.clone();
     }
 
     @Override
-    public void reload() throws ParseException, UnsupportedEncodingException  {
+    public void reload() throws ParseException, UnsupportedEncodingException {
     }
 
     @Override
@@ -334,7 +324,7 @@ class FakeConfiguration extends SchedulerConfig {
 
     @Override
     public AutoCloseable lock() throws Exception {
-        return new AutoCloseable(){
+        return new AutoCloseable() {
             @Override
             public void close() throws Exception {
             }

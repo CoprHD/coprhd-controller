@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor;
 
@@ -50,7 +40,7 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
  * 
  */
 public class PoolCapabilitiesProcessor extends PoolProcessor {
-    
+
     private Logger _logger = LoggerFactory.getLogger(PoolCapabilitiesProcessor.class);
     private DbClient _dbClient;
 
@@ -77,7 +67,7 @@ public class PoolCapabilitiesProcessor extends PoolProcessor {
                         addPath(keyMap, Constants.VNXPOOLCAPABILITIES,
                                 capabilitiesInstance.getObjectPath());
                     }
-                    addPath(keyMap, operation.get_result(),
+                    addPath(keyMap, operation.getResult(),
                             capabilitiesInstance.getObjectPath());
                 } catch (Exception e) {
                     _logger.warn("Pool Capabilities Discovery failed for {}-->{}",
@@ -86,7 +76,6 @@ public class PoolCapabilitiesProcessor extends PoolProcessor {
             }
         } catch (Exception e) {
             _logger.error("Pool Capabilities Discovery failed -->{}", getMessage(e));
-        } finally {
         }
     }
 
@@ -100,15 +89,15 @@ public class PoolCapabilitiesProcessor extends PoolProcessor {
             CIMObjectPath capabilitiesPath, Map<String, Object> keyMap) {
         List<String> expectedPoolSettingsTier = (List<String>) keyMap
                 .get(Constants.VNXPOOLCAPABILITIES_TIER);
-        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN 
+        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN
                 + Constants.NO_DATA_MOVEMENT);
-        expectedPoolSettingsTier.add(capabilitiesPath.toString() +Constants.HYPEN 
+        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN
                 + Constants.AUTO_TIER);
-        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN 
+        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN
                 + Constants.HIGH_AVAILABLE_TIER);
-        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN 
+        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN
                 + Constants.LOW_AVAILABLE_TIER);
-        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN 
+        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN
                 + Constants.START_HIGH_THEN_AUTO_TIER);
     }
 

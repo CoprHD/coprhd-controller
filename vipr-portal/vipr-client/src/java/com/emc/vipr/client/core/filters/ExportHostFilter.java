@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core.filters;
@@ -27,7 +27,7 @@ public class ExportHostFilter extends ExportFilter {
         }
 
         return item.getType().equals(EXCLUSIVE_EXPORT_TYPE) ||
-               (item.getType().equals(HOST_EXPORT_TYPE) && hasHost(item));
+                (item.getType().equals(HOST_EXPORT_TYPE) && hasHost(item));
     }
 
     private boolean hasHost(ExportGroupRestRep item) {

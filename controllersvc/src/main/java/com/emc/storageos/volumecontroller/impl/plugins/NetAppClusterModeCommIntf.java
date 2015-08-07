@@ -1211,10 +1211,10 @@ public class NetAppClusterModeCommIntf extends
 
                     //get a fileSystem name from the path
                     int index = fileSystem.indexOf('/', 1);
-                    if( -1 !=  index){
+                    if ( -1 !=  index) {
                         fileSystem = fileSystem.substring(0, index);
                         _logger.info("Unmanaged FileSystem Name {}", fileSystem);
-                    }
+                    } 
 
                     String fsUnManagedFsNativeGuid = NativeGUIDGenerator
                             .generateNativeGuidForPreExistingFileSystem(

@@ -77,8 +77,8 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  * APIs to view, create, modify and remove configs
  */
 @Path("/config/controller")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class CustomConfigService extends ResourceService {
     private static final Logger log = LoggerFactory.getLogger(CustomConfigService.class);
     // Constants for Events

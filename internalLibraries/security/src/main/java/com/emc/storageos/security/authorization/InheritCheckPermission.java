@@ -21,5 +21,5 @@ public @interface InheritCheckPermission {
      * 
      * @return
      */
-    boolean write_access() default false;
+    boolean writeAccess() default false;
 }

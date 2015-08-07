@@ -166,7 +166,7 @@ public class KeyCertificatePairGeneratorTest {
         KeyCertificatePairGenerator gen = new KeyCertificatePairGenerator();
         gen.setKeyCertificateAlgorithmValuesHolder(defaultValues);
         KeyCertificateEntry pair = gen.generateKeyCertificatePair();
-        AssertCertInformation((X509Certificate) pair.getCertificateChain()[0],
+        assertCertInformation((X509Certificate) pair.getCertificateChain()[0],
                 defaultValues);
     }
 
@@ -331,7 +331,7 @@ public class KeyCertificatePairGeneratorTest {
     /**
      * @param x509Certificate
      */
-    private void AssertCertInformation(X509Certificate x509Certificate, KeyCertificateAlgorithmValuesHolder valuesHolder) {
+    private void assertCertInformation(X509Certificate x509Certificate, KeyCertificateAlgorithmValuesHolder valuesHolder) {
         try {
             x509Certificate.checkValidity();
         } catch (CertificateExpiredException e) {

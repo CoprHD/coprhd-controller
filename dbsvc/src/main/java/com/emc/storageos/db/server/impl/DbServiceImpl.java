@@ -844,14 +844,6 @@ public class DbServiceImpl implements DbService {
             _gcExecutor.stop();
         }
 
-        _svcBeacon.stop();
-
-        try {
-            _dbClient.stop();
-        } catch (Exception e) {
-            _log.error("Failed to stop dbclient");
-        }
-
         if (decommission && cassandraInitialized) {
             flushCassandra();
         }

@@ -283,7 +283,7 @@ public class Validator {
                     if (tenant != null) {
                         queryParameters += "&tenantURI=" + tenant.getId();
                         if (tenant.getUserMappings() != null) {
-                            String userMappingStr = MarshallUtil.ConvertTenantUserMappingToString(tenant);
+                            String userMappingStr = MarshallUtil.convertTenantUserMappingToString(tenant);
                             String encodedUserMapping = URLEncoder.encode(userMappingStr);
                             queryParameters += "&usermappings=" + encodedUserMapping;
                         }

@@ -1723,21 +1723,11 @@ vplexexport_tests() {
 
 
 
-#########################
-# RecoverPoint
-#########################
-RECOVERPOINT_RPA_CLUSTER1_IP=10.247.169.16
-RECOVERPOINT_RPA_CLUSTER2_IP=10.247.169.17
-RECOVERPOINT_RPA_CLUSTER3_IP=10.247.169.230
-RECOVERPOINT_RPA_CLUSTER4_IP=10.247.169.190
-RECOVERPOINT_RPA_CLUSTER5_IP=10.247.169.195
-RECOVERPOINT_DEV_PORT=7225
+######################### Start of RecoverPoint ############################
+#
+# RecoverPoint can be run in a simulated and physical environment.
+#
 
-RECOVERPOINT_RPA_CLUSTER1=0x6d4760c01291090f
-RECOVERPOINT_RPA_CLUSTER2=0x478b98e918d15478
-RECOVERPOINT_RPA_CLUSTER3=0x49d637f2b520686d
-RECOVERPOINT_RPA_CLUSTER4=0xc916995fdc011a9
-RECOVERPOINT_RPA_CLUSTER5=0x22a9431c63b4fe45
 
 #########################
 # RecoverPoint Vpool create
@@ -2083,16 +2073,22 @@ rp_network_setup()
 rp_smis_setup()
 {
     echo 'SMIS setup'
-#    smisprovider show $RP_VMAXB_SMIS_DEV &> /dev/null && return $?
-#    smisprovider create $RP_VMAXB_SMIS_DEV $RP_VMAXB_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
-#
-#    smisprovider show $RP_VNX_SMIS_DEV &> /dev/null && return $?
-#    smisprovider create $RP_VNX_SMIS_DEV $RP_VNX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
 
-    smisprovider create $SMIS_PROVIDER_A $SMIS_PROVIDER_A_IP $SMIS_PORT $SMIS_USER $SMIS_PASSWORD false
-    smisprovider create $SMIS_PROVIDER_B $SMIS_PROVIDER_B_IP $SMIS_PORT $SMIS_USER $SMIS_PASSWORD false
-    smisprovider create $SMIS_PROVIDER_C $SMIS_PROVIDER_C_IP $SMIS_PORT $SMIS_USER $SMIS_PASSWORD false
-    smisprovider create $SMIS_PROVIDER_D $SMIS_PROVIDER_D_IP $SMIS_PORT $SMIS_USER $SMIS_PASSWORD false
+    if [ "$RECOVERPOINT_XIO" = "1" ]; then
+        echo 'Using XTremeIO'
+
+        discoveredsystem show $XTREMIO_NATIVEGUID &> /dev/null && return $?
+        discoveredsystem create $XTREMIO xtremio $XTREMIO_IP 443 $XTREMIO_USER $XTREMIO_PASSWD --serialno=$XTREMIO_SN
+
+        discoveredsystem show $XTREMIO2_NATIVEGUID &> /dev/null && return $?
+        discoveredsystem create $XTREMIO2 xtremio $XTREMIO2_IP 443 $XTREMIO_USER $XTREMIO_PASSWD --serialno=$XTREMIO2_SN
+    else
+        smisprovider create $RECOVERPOINT_SMIS_PROVIDER_A $RECOVERPOINT_SMIS_PROVIDER_A_IP $SMIS_PORT $SMIS_USER $SMIS_PASSWORD false
+        smisprovider create $RECOVERPOINT_SMIS_PROVIDER_B $RECOVERPOINT_SMIS_PROVIDER_B_IP $SMIS_PORT $SMIS_USER $SMIS_PASSWORD false
+    fi
+
+    smisprovider create $RECOVERPOINT_SMIS_PROVIDER_C $RECOVERPOINT_SMIS_PROVIDER_C_IP $SMIS_PORT $SMIS_USER $SMIS_PASSWORD false
+    smisprovider create $RECOVERPOINT_SMIS_PROVIDER_D $RECOVERPOINT_SMIS_PROVIDER_D_IP $SMIS_PORT $SMIS_USER $SMIS_PASSWORD false
 
     rp_vplex_setup
 
@@ -2103,95 +2099,95 @@ rp_smis_setup()
 rp_vplex_setup()
 {
     # Create VPLEX
-    storageprovider create $VPLEX_A $VPLEX_A_IP $VPLEX_A_PORT $VPLEX_A_USER $VPLEX_A_PASSWORD vplex
-    storageprovider create $VPLEX_B $VPLEX_B_IP $VPLEX_B_PORT $VPLEX_B_USER $VPLEX_B_PASSWORD vplex
+    storageprovider create $RECOVERPOINT_VPLEX_A $RECOVERPOINT_VPLEX_A_IP $RECOVERPOINT_VPLEX_A_PORT $RECOVERPOINT_VPLEX_A_USER $RECOVERPOINT_VPLEX_A_PASSWORD vplex
+    storageprovider create $RECOVERPOINT_VPLEX_B $RECOVERPOINT_VPLEX_B_IP $RECOVERPOINT_VPLEX_B_PORT $RECOVERPOINT_VPLEX_B_USER $RECOVERPOINT_VPLEX_B_PASSWORD vplex
 }
 
 rp_port_setup()
 {
-    storageport update $STORAGE_ARRAY_A_GUID FC --addvarrays varray1
-    storageport update $STORAGE_ARRAY_B_GUID FC --addvarrays varray2
-    storageport update $STORAGE_ARRAY_C_GUID FC --addvarrays varray3
-    storageport update $STORAGE_ARRAY_D_GUID FC --addvarrays varray4
+    storageport update $RECOVERPOINT_STORAGE_ARRAY_A_GUID FC --addvarrays varray1
+    storageport update $RECOVERPOINT_STORAGE_ARRAY_B_GUID FC --addvarrays varray2
+    storageport update $RECOVERPOINT_STORAGE_ARRAY_C_GUID FC --addvarrays varray3
+    storageport update $RECOVERPOINT_STORAGE_ARRAY_D_GUID FC --addvarrays varray4
 
     #VPLEX
     # Override port to varray assigments for VPLEX clusters to prevent port mixing in clusters
     # Source Site
     # Cluster 1
-    storageport update $VPLEX_A_GUID FC --group director-1-1-A --addvarrays varray1
-    storageport update $VPLEX_A_GUID FC --group director-1-1-B --addvarrays varray1
+    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-1-1-A --addvarrays varray1
+    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-1-1-B --addvarrays varray1
     # Cluster 2
-    storageport update $VPLEX_A_GUID FC --group director-2-1-A --addvarrays varray2
-    storageport update $VPLEX_A_GUID FC --group director-2-1-B --addvarrays varray2
+    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-2-1-A --addvarrays varray2
+    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-2-1-B --addvarrays varray2
 
     # Target Site
     # Cluster 1
-    storageport update $VPLEX_B_GUID FC --group director-1-1-A --addvarrays varray3
-    storageport update $VPLEX_B_GUID FC --group director-1-1-B --addvarrays varray3
+    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-A --addvarrays varray3
+    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-B --addvarrays varray3
     # Cluster 2
-    storageport update $VPLEX_B_GUID FC --group director-2-1-A --addvarrays varray4
-    storageport update $VPLEX_B_GUID FC --group director-2-1-B --addvarrays varray4
+    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-A --addvarrays varray4
+    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-B --addvarrays varray4
 }
 
-recoverpoint_setup_once()
-{
-    syssvc $CONFIG_FILE localhost set_prop controller_discovery_refresh_interval 5
-
-    if [ "$PARAM" = "xtremio" ]; then
-        echo 'Using XTremeIO'
-        rp_network_create
-        sleep 30
-        echo "Adding Storage Assets"
-
-        discoveredsystem show $XTREMIO_NATIVEGUID &> /dev/null && return $?
-        discoveredsystem create $XTREMIO xtremio $XTREMIO_IP 443 $XTREMIO_USER $XTREMIO_PASSWD --serialno=$XTREMIO_SN
-
-        discoveredsystem show $XTREMIO2_NATIVEGUID &> /dev/null && return $?
-        discoveredsystem create $XTREMIO2 xtremio $XTREMIO2_IP 443 $XTREMIO_USER $XTREMIO_PASSWD --serialno=$XTREMIO2_SN
-
-        storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
-        run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-        run storagedevice discover_all
-        sleep 90
-
-        run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
-        run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
-        run storageport update $XTREMIO_NATIVEGUID FC --addvarrays $NH
-        run storageport update $XTREMIO2_NATIVEGUID FC --addvarrays $NH2
-        #~ for storageport in ${XTREMIO_INI}
-        #~ do
-		#~ run transportzone add $NH/${SRDF_VMAXA_VSAN} ${storageport}
-        #~ done
-        #~ for porta in ${XTREMIO_STORAGE_PORTS}
-        #~ do
-		#~ storageport update $XTREMIO_NATIVEGUID FC --addvarrays $NH
-        #~ done
-
-    elif [ "$PARAM" = "simulator" ]; then
-        # simulators being used
-        echo 'Using simulators in recoverpoint_setup_once'
-        smisprovider show $PROVIDER_SIMULATOR &> /dev/null && return $?
-        smisprovider create $PROVIDER_SIMULATOR $RP_PROVIDER_SIMULATOR_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
-        networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS_IP --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
-
-
-        # VPLEX
-        VPLEX_DEV_NAME=$VPLEX_SIMULATOR
-        VPLEX_IP=$SIMULATOR_IP
-        storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
-        run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-        run storagedevice discover_all
-        transportzone assign ${SIMULATOR_VSAN_11} $NH
-    else
-        rp_smis_setup
-        sleep 30
-        rp_network_setup
-    fi
-
-
-    echo 'Protection system setup'
-    protection_system_setup
-}
+#recoverpoint_setup_once()
+#{
+#    syssvc $CONFIG_FILE localhost set_prop controller_discovery_refresh_interval 5
+#
+#    if [ "$PARAM" = "xtremio" ]; then
+#        echo 'Using XTremeIO'
+#        rp_network_create
+#        sleep 30
+#        echo "Adding Storage Assets"
+#
+#        discoveredsystem show $XTREMIO_NATIVEGUID &> /dev/null && return $?
+#        discoveredsystem create $XTREMIO xtremio $XTREMIO_IP 443 $XTREMIO_USER $XTREMIO_PASSWD --serialno=$XTREMIO_SN
+#
+#        discoveredsystem show $XTREMIO2_NATIVEGUID &> /dev/null && return $?
+#        discoveredsystem create $XTREMIO2 xtremio $XTREMIO2_IP 443 $XTREMIO_USER $XTREMIO_PASSWD --serialno=$XTREMIO2_SN
+#
+#        storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
+#        run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+#        run storagedevice discover_all
+#        sleep 90
+#
+#        run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
+#        run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+#        run storageport update $XTREMIO_NATIVEGUID FC --addvarrays $NH
+#        run storageport update $XTREMIO2_NATIVEGUID FC --addvarrays $NH2
+#        #~ for storageport in ${XTREMIO_INI}
+#        #~ do
+#		#~ run transportzone add $NH/${SRDF_VMAXA_VSAN} ${storageport}
+#        #~ done
+#        #~ for porta in ${XTREMIO_STORAGE_PORTS}
+#        #~ do
+#		#~ storageport update $XTREMIO_NATIVEGUID FC --addvarrays $NH
+#        #~ done
+#
+#    elif [ "$PARAM" = "simulator" ]; then
+#        # simulators being used
+#        echo 'Using simulators in recoverpoint_setup_once'
+#        smisprovider show $PROVIDER_SIMULATOR &> /dev/null && return $?
+#        smisprovider create $PROVIDER_SIMULATOR $RP_PROVIDER_SIMULATOR_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+#        networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS_IP --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
+#
+#
+#        # VPLEX
+#        VPLEX_DEV_NAME=$VPLEX_SIMULATOR
+#        VPLEX_IP=$SIMULATOR_IP
+#        storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
+#        run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+#        run storagedevice discover_all
+#        transportzone assign ${SIMULATOR_VSAN_11} $NH
+#    else
+#        rp_smis_setup
+#        sleep 30
+#        rp_network_setup
+#    fi
+#
+#
+#    echo 'Protection system setup'
+#    protection_system_setup
+#}
 
 recoverpoint_common_setup()
 {
@@ -2233,11 +2229,11 @@ recoverpoint_common_setup()
 
 rp_protection_system_setup()
 {
-    if [ "$PARAM" = "quick" ]; then
-        # simulators being used
-        RP_PROTECTION_SYSTEM=$RP_SIMULATOR
-        RP_IP=$RP_SIMULATOR_IP
-    fi
+#    if [ "$PARAM" = "quick" ]; then
+#        # simulators being used
+#        RP_PROTECTION_SYSTEM=$RP_SIMULATOR
+#        RP_IP=$RP_SIMULATOR_IP
+#    fi
 
     protectionsystem show $RP_PROTECTION_SYSTEM &> /dev/null && return $?
 
@@ -2514,6 +2510,11 @@ recoverpoint_tests()
 #    rpvplex_cleanup
 #    echo '**** RP+VPLEX tests end'
 #}
+
+#
+#
+#
+######################### End of RecoverPoint ############################
 
 hds_cos_setup()
 {

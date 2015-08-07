@@ -37,7 +37,7 @@ public class VirtualNAS extends VirtualArrayTaggedResource {
     private StringSet vNAStag;
 
     // State of the vNAS server
-    private String nasState;
+    private String vNasState;
 
     // storageSystem, which it belongs
     private URI storageDeviceURI;
@@ -45,11 +45,108 @@ public class VirtualNAS extends VirtualArrayTaggedResource {
     // Set of Authentication providers for the VNasServer - set values will of type AunthnProvider
     private StringSet cifsServers;
 
+    // Place holder for hosting storageDomain's information
+    private StringSet storageDomain;
+
     // place holder for the Parent NAS server the Data Mover
     private String parentNAS;
 
     // List of Storage Ports associated with this VDM - contains reference to StoragePort object type.
     private StringSet ipInterfaces;
+
+    // List of supported protocols in Virutal NAS
+    private StringSet protocols;
+
+    // the Vritual NAS server's type either Local or Domain
+    private String vNasType;
+
+
+    // -- Max Qualification Limits for the Virtual NAS
+    
+    // Number of FSID for this Virtual NAS
+    private String maxFSIDs;
+
+    // Number of exports/shares for this Virtual NAS
+    private String maxExports;
+
+    // Provisioning Capacity of this Virtual NAS
+    private String maxProvisionedCapacity;
+
+    // Placeholder for storing list of Virtual NAS servers
+    private StringSet containedVirtualNASservers;
+
+
+    @Name("maxFSIDs")
+    public String getMaxFSIDs() {
+        return maxFSIDs;
+    }
+
+    public void setMaxFSIDs(String maxFSIDs) {
+        this.maxFSIDs = maxFSIDs;
+        setChanged("maxFSIDs");
+    }
+
+    @Name("maxExports")
+    public String getTotalExports() {
+        return maxExports;
+    }
+
+    public void setMaxExports(String maxExports) {
+        this.maxExports = maxExports;
+        setChanged("totalExports");
+    }
+
+    @Name("maxProvisionedCapacity")
+    public String getMaxProvisionedCapacity() {
+        return maxProvisionedCapacity;
+    }
+
+    public void setMaxProvisionedCapacity(String provisionedCapacity) {
+        this.maxProvisionedCapacity = provisionedCapacity;
+        setChanged("maxProvisionedCapacity");
+    }
+
+
+
+    @Name("vNasState")
+    public String getvNasState() {
+        return vNasState;
+    }
+
+    public void setvNasState(String vNasState) {
+        this.vNasState = vNasState;
+        setChanged("vNasState");
+    }
+
+    @Name("storageDomain")
+    public StringSet getStorageDomain() {
+        return storageDomain;
+    }
+
+    public void setStorageDomain(StringSet storageDomain) {
+        this.storageDomain = storageDomain;
+        setChanged("storageDomain");
+    }
+
+    @Name("protocols")
+    public StringSet getProtocols() {
+        return protocols;
+    }
+
+    public void setProtocols(StringSet protocols) {
+        this.protocols = protocols;
+        setChanged("protocols");
+    }
+
+    @Name("vNasType")
+    public String getvNasType() {
+        return vNasType;
+    }
+
+    public void setvNasType(String vNasType) {
+        this.vNasType = vNasType;
+        setChanged("vNasType");
+    }
 
     @Name("cifsServers")
     public StringSet getCifsServers() {
@@ -118,35 +215,7 @@ public class VirtualNAS extends VirtualArrayTaggedResource {
         setChanged("storageDeviceURI");
     }
 
-    // Defines different States of the NAS server.
-    public static enum NasState {
-        Loaded("Loded"),
-        Mounted("Mounted"),
-        TempUnLoaded("Temporarily-unloaded"),
-        PermUnLoaded("Permanently-unloaded"),
-        UNKNOWN("N/A");
 
-        private String NasState;
-
-        private NasState(String state) {
-            NasState = state;
-        }
-
-        public String getNasState() {
-            return NasState;
-        }
-
-        private static NasState[] copyValues = values();
-
-        public static String getNasState(String name) {
-            for (NasState type : copyValues) {
-                if (type.getNasState().equalsIgnoreCase(name)) {
-                    return type.name();
-                }
-            }
-            return UNKNOWN.toString();
-        }
-    };
 
     @Name("vNASServerName")
     public String getName() {
@@ -158,15 +227,15 @@ public class VirtualNAS extends VirtualArrayTaggedResource {
         setChanged("haDomainName");
     }
 
-    @EnumType(NasState.class)
-    @Name("nasState")
+    @EnumType(vNasState.class)
+    @Name("vNasState")
     public String getNasState() {
-        return nasState;
+        return vNasState;
     }
 
     public void setNasState(String _nasState) {
-        this.nasState = _nasState;
-        setChanged("nasState");
+        this.vNasState = _nasState;
+        setChanged("vNasState");
     }
 
     @Name("vNASserverName")
@@ -209,5 +278,63 @@ public class VirtualNAS extends VirtualArrayTaggedResource {
         this.vNAStag = _tag;
         setChanged("vNAStag");
     }
+    
+    // Defines different States of the NAS server.
+    public static enum vNasState {
+        Loaded("Loded"),
+        Mounted("Mounted"),
+        TempUnLoaded("Temporarily-unloaded"),
+        PermUnLoaded("Permanently-unloaded"),
+        UNKNOWN("N/A");
+
+        private String vNasState;
+
+        private vNasState(String state) {
+            vNasState = state;
+        }
+
+        public String getNasState() {
+            return vNasState;
+        }
+
+        private static vNasState[] copyValues = values();
+
+        public static String getNasState(String name) {
+            for (vNasState type : copyValues) {
+                if (type.getNasState().equalsIgnoreCase(name)) {
+                    return type.name();
+                }
+            }
+            return UNKNOWN.toString();
+        }
+    };
+
+    // Defines different vNAS types.
+    public static enum vNasType {
+        Local("Local"),
+        Domain("Domain"),
+        UNKNOWN("N/A");
+
+        private String vNasType;
+
+        private vNasType(String state) {
+            vNasType = state;
+        }
+
+        public String getNasType() {
+            return vNasType;
+        }
+
+        private static vNasType[] copyValues = values();
+
+        public static String getNasType(String name) {
+            for (vNasType type : copyValues) {
+                if (type.getNasType().equalsIgnoreCase(name)) {
+                    return type.name();
+                }
+            }
+            return UNKNOWN.toString();
+        }
+    };
 
 }

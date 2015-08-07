@@ -14,7 +14,7 @@ import org.apache.log4j.spi.LoggingEvent;
  */
 public class AlertsLogger {
     private static Logger _log = Logger.getLogger(AlertsLogger.class);
-    private static AlertsLogger _instance = null;
+    private static volatile AlertsLogger _instance = null;
     private static final String ALERTS_FACILITY = "LOCAL7";
 
     private AlertsLogger() {

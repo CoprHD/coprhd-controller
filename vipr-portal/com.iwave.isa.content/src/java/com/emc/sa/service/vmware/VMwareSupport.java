@@ -484,7 +484,7 @@ public class VMwareSupport {
      *            the hosts to refresh;
      */
     public void refreshStorage(List<HostSystem> hosts) {
-        if (hosts.size() > 0) {
+        if (!hosts.isEmpty()) {
             execute(new RefreshStorage(hosts));
         }
     }

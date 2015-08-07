@@ -57,7 +57,7 @@ public class MethodProcessor {
             addDeprecated(method, apiMethodDesc);
 
             return apiMethodDesc;
-        } catch (Throwable e) {
+        } catch (Exception e) {
             throw new RuntimeException("Error processing " + apiService.getFqJavaClassName() + "::" + method.name(), e);
         }
     }

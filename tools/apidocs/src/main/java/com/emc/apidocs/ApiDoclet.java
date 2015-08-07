@@ -90,7 +90,7 @@ public class ApiDoclet {
     }
 
     /** Required by Doclet to process the command line options */
-    public static boolean validOptions(String options[][],
+    public static synchronized boolean validOptions(String options[][],
             DocErrorReporter reporter) {
         DocReporter.init(reporter);
         DocReporter.printWarning("Processing Options");
@@ -133,7 +133,7 @@ public class ApiDoclet {
 
         DocReporter.printWarning("Finished Processing Options");
 
-        return valid & contentOptionFound & outputOptionFound & portalsrcOptionFound;
+        return valid && contentOptionFound && outputOptionFound && portalsrcOptionFound;
     }
 
     /** Processes the list of classes looking for ones that represent an API Service, and parsing them if found */
@@ -347,7 +347,7 @@ public class ApiDoclet {
 
     }
 
-    private static boolean checkOutputOption(String value, DocErrorReporter reporter) {
+    private static synchronized boolean checkOutputOption(String value, DocErrorReporter reporter) {
         File file = new File(value);
         if (!file.exists()) {
             reporter.printError("Output directory (" + OUTPUT_OPTION + ") not found :" + file.getAbsolutePath());
@@ -369,7 +369,7 @@ public class ApiDoclet {
         return true;
     }
 
-    private static boolean checkPortalSourceOption(String value, DocErrorReporter reporter) {
+    private static synchronized boolean checkPortalSourceOption(String value, DocErrorReporter reporter) {
         File file = new File(value);
         if (!file.exists()) {
             reporter.printError("Portal Source directory (" + PORTAL_SRC_OPTION + ") not found :" + file.getAbsolutePath());
@@ -382,7 +382,7 @@ public class ApiDoclet {
         return true;
     }
 
-    private static boolean checkContentOption(String contentDir, DocErrorReporter reporter) {
+    private static synchronized boolean checkContentOption(String contentDir, DocErrorReporter reporter) {
         File contentDirFile = new File(contentDir);
         if (!contentDirFile.exists()) {
             reporter.printError("Content directory (" + CONTENT_OPTION + ") not found :" + contentDirFile.getAbsolutePath());
@@ -406,7 +406,7 @@ public class ApiDoclet {
         KnownPaths.getHTMLDir().mkdirs();
     }
 
-    private static void loadServiceBlackList() {
+    private static synchronized void loadServiceBlackList() {
         try {
             serviceBlackList = IOUtils.readLines(new FileInputStream(KnownPaths.getReferenceFile("ServiceBlacklist.txt")));
         } catch (IOException e) {
@@ -422,7 +422,7 @@ public class ApiDoclet {
         }
     }
 
-    public static void addDeprecated(ClassDoc method, ApiService apiService) {
+    public static synchronized void addDeprecated(ClassDoc method, ApiService apiService) {
         if (AnnotationUtils.hasAnnotation(method, KnownAnnotations.Deprecated_Annotation)) {
             apiService.isDeprecated = true;
 

@@ -45,11 +45,11 @@ public class VirtualArrayAssignmentChanges {
     }
 
     public boolean hasRemoved() {
-        return remove != null && remove.getVarrays().size() > 0;
+        return (remove != null && !remove.getVarrays().isEmpty());
     }
 
     public boolean hasAdded() {
-        return add != null && add.getVarrays().size() > 0;
+        return (add != null && !add.getVarrays().isEmpty());
     }
 
 }

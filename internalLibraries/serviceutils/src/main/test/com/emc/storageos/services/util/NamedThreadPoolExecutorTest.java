@@ -12,8 +12,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NamedThreadPoolExecutorTest {
+	private static final Logger logger = LoggerFactory.getLogger(NamedThreadPoolExecutorTest.class);
 
     class MyCallable implements Callable<String> {
 
@@ -27,6 +30,7 @@ public class NamedThreadPoolExecutorTest {
     }
 
     class MyTask implements Runnable {
+    	
         private String name = "";
 
         @Override
@@ -36,6 +40,7 @@ public class NamedThreadPoolExecutorTest {
                 System.out.println("Name=" + name);
                 Thread.sleep(1000L);
             } catch (InterruptedException e) {
+            	logger.error(e.getMessage(), e);
             }
         }
 

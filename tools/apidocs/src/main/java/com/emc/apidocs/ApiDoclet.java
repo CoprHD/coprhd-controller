@@ -29,7 +29,7 @@ public class ApiDoclet {
     private static final String CONTENT_OPTION = "-c";
     private static final String BUILD_OPTION = "-build";
     private static final String PORTAL_SRC_OPTION = "-portalsrc";
-
+    private static final String ROOT_DIRECTORY = "-rootDirectory";
     private static final String INTERNAL_PATH = "internal";
 
     private static final List<String> DATASERVICES_CLASSES = Lists.newArrayList("S3Service", "AtmosService", "SwiftService");
@@ -37,7 +37,7 @@ public class ApiDoclet {
     private static final String SYSTEM_SERVIES_PACKAGE = "com.emc.storageos.systemservices";
 
     private static String buildNumber = null;
-
+    private static String rootDirectory = null;
     private static String portalSource = null;
     private static String outputDirectory;
     private static String contentDirectory;
@@ -85,6 +85,9 @@ public class ApiDoclet {
         if (option.equals(PORTAL_SRC_OPTION)) {
             return 2;
         }
+        if (option.equals(ROOT_DIRECTORY)) {
+        	return 2;
+        }
 
         return 1;
     }
@@ -113,6 +116,10 @@ public class ApiDoclet {
                 portalsrcOptionFound = true;
                 valid = checkPortalSourceOption(options[i][1], reporter);
 
+            } else if (options[i][0].equals(ROOT_DIRECTORY)) {
+            	rootDirectory = options[i][1];
+            	reporter.printWarning(rootDirectory);
+
             } else if (options[i][0].equals(BUILD_OPTION)) {
                 buildNumber = options[i][1];
                 reporter.printWarning("Build " + buildNumber);
@@ -137,7 +144,7 @@ public class ApiDoclet {
     }
 
     /** Processes the list of classes looking for ones that represent an API Service, and parsing them if found */
-    private static List<ApiService> findApiServices(ClassDoc[] classes) {
+    private static synchronized List<ApiService> findApiServices(ClassDoc[] classes) {
         List<ApiService> apiServices = new ArrayList<ApiService>();
         for (ClassDoc classDoc : classes) {
             if (DATASERVICES_CLASSES.contains(classDoc.name())) {
@@ -169,7 +176,7 @@ public class ApiDoclet {
         return apiServices;
     }
 
-    private static List<ApiErrorCode> findErrorCodes(ClassDoc[] classes) {
+    private static synchronized List<ApiErrorCode> findErrorCodes(ClassDoc[] classes) {
         // Find ServiceCode Class
         ClassDoc serviceCodeClass = null;
         for (ClassDoc classDoc : classes) {
@@ -204,7 +211,7 @@ public class ApiDoclet {
         return errorCodes;
     }
 
-    private static void cleanupMethods(List<ApiService> apiServices) {
+    private static synchronized void cleanupMethods(List<ApiService> apiServices) {
         // Cleanup
         for (ApiService apiService : apiServices) {
             for (ApiMethod apiMethod : apiService.methods) {
@@ -214,24 +221,32 @@ public class ApiDoclet {
         applyServiceTitleChanges(apiServices);
     }
 
-    private static void saveMetaData(List<ApiService> apiServices) {
+    private static synchronized void saveMetaData(List<ApiService> apiServices) {
         MetaData.save(KnownPaths.getOutputFile("meta_data.json"), apiServices);
     }
 
-    private static void generateFiles(ApiDifferences apiDifferences, List<ApiService> apiServices, List<ApiErrorCode> errorCodes) {
+    private static synchronized void generateFiles(ApiDifferences apiDifferences, List<ApiService> apiServices, List<ApiErrorCode> errorCodes) {
         PageGenerator pageGenerator = new PageGenerator(buildNumber);
         pageGenerator.generatePages(apiDifferences, apiServices, errorCodes);
     }
 
-    private static ApiDifferences calculateDifferences(List<ApiService> apiServices) {
-        List<ApiService> oldServices = MetaData.load(KnownPaths.getMetaDataFile("MetaData-1.1.json"));
-
+    private static synchronized ApiDifferences calculateDifferences(List<ApiService> apiServices) {
+    	Properties prop = new Properties();
+    	try {
+    		FileInputStream fileInput = new FileInputStream(rootDirectory+"gradle.properties");
+    		prop.load(fileInput);
+    	}
+    	catch (Exception e) {
+        	e.printStackTrace();
+        }
+    	String docsMetaVersion = prop.getProperty("apidocsComparisionVersion");
+        List<ApiService> oldServices = MetaData.load(KnownPaths.getMetaDataFile("MetaData-"+docsMetaVersion+".json"));
         DifferenceEngine differenceEngine = new DifferenceEngine();
         return differenceEngine.calculateDifferences(oldServices, apiServices);
     }
 
     /** Process a JAXRS Class into an API Service */
-    public static ApiService processClass(ClassDoc classDoc, String baseUrl, boolean isDataService) {
+    public static synchronized ApiService processClass(ClassDoc classDoc, String baseUrl, boolean isDataService) {
         ApiService apiService = new ApiService();
         apiService.packageName = classDoc.containingPackage().name();
         apiService.javaClassName = classDoc.name();
@@ -270,7 +285,7 @@ public class ApiDoclet {
         return apiService;
     }
 
-    public static void addDefaultPermissions(ClassDoc classDoc, ApiService apiService) {
+    public static synchronized void addDefaultPermissions(ClassDoc classDoc, ApiService apiService) {
         AnnotationDesc defaultPermissions = AnnotationUtils.getAnnotation(classDoc, KnownAnnotations.DefaultPermissions_Annotation);
 
         if (defaultPermissions != null) {
@@ -299,7 +314,7 @@ public class ApiDoclet {
         }
     }
 
-    private static List<ClassDoc> findDataServiceOperations(ClassDoc dataService) {
+    private static synchronized List<ClassDoc> findDataServiceOperations(ClassDoc dataService) {
         List<ClassDoc> operations = new ArrayList<ClassDoc>();
         for (FieldDoc field : dataService.fields(false)) {
             if (field.name().endsWith("Operations") || field.name().endsWith("Operation")) {
@@ -329,7 +344,7 @@ public class ApiDoclet {
     /**
      * Allows users to change titles of services, rather than using the default JavaClassName
      */
-    private static void applyServiceTitleChanges(List<ApiService> services) {
+    private static synchronized void applyServiceTitleChanges(List<ApiService> services) {
         Properties titleChanges = new Properties();
         try {
             titleChanges.load(new FileInputStream(KnownPaths.getReferenceFile("ServiceTitleChanges.txt")));
@@ -402,7 +417,7 @@ public class ApiDoclet {
         return true;
     }
 
-    private static void init() {
+    private static synchronized void init() {
         KnownPaths.getHTMLDir().mkdirs();
     }
 
@@ -414,7 +429,7 @@ public class ApiDoclet {
         }
     }
 
-    private static void loadMethodBlackList() {
+    private static synchronized void loadMethodBlackList() {
         try {
             methodBlackList = IOUtils.readLines(new FileInputStream(KnownPaths.getReferenceFile("MethodBlackList.txt")));
         } catch (IOException e) {

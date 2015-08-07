@@ -53,8 +53,8 @@
 	#{/DataTable.table}
 	#{DataTable.expandHtml @itemDetails(':id'), table:'vdcs'/}
 	#{DataTable.formAction @create(), id:'createForm', table:'vdcs'/}
-	#{DataTable.formAction @delete(), id:'deleteForm', table:'vdcs'/}
-	#{DataTable.formAction @disconnect(), id:'disconnectForm', table:'vdcs'/}
+	#{DataTable.formAction @delete(), id:'deleteForm', table:'vdcs', confirm:messages.get('vdcs.deleteConfirm')/}
+	#{DataTable.formAction @disconnect(), id:'disconnectForm', table:'vdcs', confirm:messages.get('vdcs.disconnectConfirm')/}
 	#{DataTable.formAction @reconnect(), id:'reconnectForm', table:'vdcs'/}
 	#{Modal.dialog id:'secretKeyDialog', titleKey: 'vdc.secretKey.modal'}
 	  #{Modal.body cssClass:'form-horizontal'} 

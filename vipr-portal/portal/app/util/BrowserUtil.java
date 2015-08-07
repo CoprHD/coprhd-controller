@@ -14,7 +14,8 @@ public class BrowserUtil {
 
     public static boolean supportsCSSRotate() {
         double ieVersion = getIEVersion();
-        return ieVersion == -1.0 || ieVersion >= 10.0;
+        // Since this is only IE version comparison, double and float different will not be a factor here
+        return ieVersion == -1.0 || ieVersion >= 10.0; // NOSONAR ("Suppressing Floating point numbers should not be tested for equality")
     }
 
     public static double getIEVersion() {

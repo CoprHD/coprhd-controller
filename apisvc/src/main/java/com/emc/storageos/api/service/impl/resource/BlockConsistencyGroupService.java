@@ -182,7 +182,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @param param
      * 
      * @brief Create consistency group
-     * @return
+     * @return Consistency group created
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

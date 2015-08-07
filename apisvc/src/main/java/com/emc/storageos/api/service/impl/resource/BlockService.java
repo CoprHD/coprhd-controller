@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.mapper.functions.MapVolume;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.PlacementManager;
+import com.emc.storageos.api.service.impl.placement.Scheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
@@ -119,6 +120,7 @@ import com.emc.storageos.model.block.VirtualArrayChangeParam;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeBulkRep;
 import com.emc.storageos.model.block.VolumeCreate;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeExpandParam;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.storageos.model.block.VolumeRestRep;
@@ -617,6 +619,122 @@ public class BlockService extends TaskResourceService {
         return fcManager;
     }
 
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/protection/addJournalCapacity")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskList addJournalCapacity(VolumeCreate param) throws InternalException {
+        ArgValidator.checkFieldNotNull(param, "volume_create");
+        
+        ArgValidator.checkFieldUriType(param.getProject(), Project.class, "project");
+
+        // Get and validate the project.
+        Project project = _permissionsHelper.getObjectById(param.getProject(), Project.class);
+        ArgValidator.checkEntity(project, param.getProject(), isIdEmbeddedInURL(param.getProject()));
+
+        // Verify the user is authorized.
+        BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
+
+        // Get and validate the varray
+        ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");
+        VirtualArray varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,
+                param.getVarray(), uriInfo, _permissionsHelper, _dbClient);
+        ArgValidator.checkEntity(varray, param.getVarray(), isIdEmbeddedInURL(param.getVarray()));
+
+        // Get and validate the journal vPool.
+        VirtualPool vpool = getVirtualPoolForVolumeCreateRequest(project, param);
+
+        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        // Get the count indicating the number of journal volumes to add. If not
+        //passed assume 1. 
+        Integer volumeCount = 1;
+        Long volumeSize = 0L;
+        if (param.getCount() != null) {
+            if (param.getCount() <= 0) {
+                throw APIException.badRequests.parameterMustBeGreaterThan("count", 0);
+            }
+            if (param.getCount() > MAX_VOLUME_COUNT) {
+                throw APIException.badRequests.exceedingLimit("count", MAX_VOLUME_COUNT);
+            }
+            volumeCount = param.getCount();
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, volumeCount);
+        }
+
+        if (param.getSize() != null) {
+            // Validate the requested volume size is greater then 0.
+            volumeSize = SizeUtil.translateSize(param.getSize());
+            // Validate the requested volume size is at least 1 GB.
+            if (volumeSize < GB) {
+                throw APIException.badRequests.leastVolumeSize("1");
+            }
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, volumeSize);
+        }
+        
+        // verify quota
+        long size = volumeCount * SizeUtil.translateSize(param.getSize());
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+        ArgValidator.checkEntity(tenant, project.getTenantOrg().getURI(), false);
+        CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, size, "volume");    
+        
+        // TODO: Verify I need to set this information
+        if (null != vpool.getThinVolumePreAllocationPercentage()
+                && 0 < vpool.getThinVolumePreAllocationPercentage()) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, VirtualPoolUtil
+                    .getThinVolumePreAllocationSize(vpool.getThinVolumePreAllocationPercentage(), volumeSize));
+        }
+        
+        // TODO: Verify I need to set this information
+        if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
+                vpool.getSupportedProvisioningType())) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
+        }
+
+        // Get and validate the BlockConsistencyGroup
+        BlockConsistencyGroup consistencyGroup = null;
+        if (param.getConsistencyGroup() != null) {
+        	consistencyGroup = queryConsistencyGroup(param.getConsistencyGroup());
+        } else {
+        	// TODO: throw exception
+        }        
+
+        // Check that the project and the CG project are the same
+        final URI expectedId = consistencyGroup.getProject().getURI();
+        checkProjectsMatch(expectedId, project.getId());
+
+        // TODO:  Make sure that the number of journal volumes we are adding to the CG does not exceed a max allowed
+        // if there is any
+        
+        // TODO:  Figure out if this check is needed
+        // check if CG's storage system is associated to the requested virtual array
+        validateCGValidWithVirtualArray(consistencyGroup, varray);
+
+        // Validate the CG type is RP
+        if (!consistencyGroup.getRequestedTypes().contains(BlockConsistencyGroup.Types.RP.toString())) {
+        	throw APIException.badRequests.consistencyGroupIsNotCompatibleWithRequest(
+        			consistencyGroup.getId(), consistencyGroup.getTypes().toString(), BlockConsistencyGroup.Types.RP.toString());
+        }        
+                
+        // TODO: Should I verify that volumes in the CG are RP, or is it good enough
+        // that we checked the consistency group type earlier        
+
+            
+        // TODO: May not have to do this after the refactor
+        // Get the blockserviceimpl for rp or rpvplex that services this CG
+        BlockServiceApi blockServiceImpl = getBlockServiceImpl(consistencyGroup);
+        
+        // Create a unique task id if one is not passed in the request.
+        String task = UUID.randomUUID().toString();
+
+        // TODO: create OperationTypeEnum.ADD_JOURNAL_CAPACITY (this is for logging)
+        //auditOp(OperationTypeEnum.CREATE_BLOCK_VOLUME, true, AuditLogManager.AUDITOP_BEGIN,
+        //        param.getName(), volumeCount, varray.getId().toString(), actualId.toString());
+        
+        // TODO: Call below should return TaskList
+        // add the journal capacity to the CG
+        return ((RPBlockServiceApiImpl)blockServiceImpl).addJournalCapacity(param, project, varray, vpool, consistencyGroup, capabilities, task);                            
+    }
+    
     /**
      * The fundamental abstraction in the Block Store is a
      * volume. A volume is a unit of block storage capacity that has been
@@ -1038,7 +1156,35 @@ public class BlockService extends TaskResourceService {
         VirtualPool vPool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         return getBlockServiceImpl(vPool, dbClient);
     }
+    
+    /**
+     * Returns the bean responsible for servicing the request
+     * 
+     * @param BlockConsistencyGroup consistencyGroup
+     * @return block service implementation object
+     */
+    private BlockServiceApi getBlockServiceImpl(BlockConsistencyGroup consistencyGroup) {        
+        if (consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.RP) &&  
+        	consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.VPLEX)) {
+        		return getBlockServiceImpl(DiscoveredDataObject.Type.rpvplex.name());              
+        }    
+        return getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
+    }     
 
+    /**
+     * Returns the bean responsible for servicing the request
+     * 
+     * @param BlockConsistencyGroup consistencyGroup
+     * @return block scheduler object
+     */
+    private Scheduler getBlockScheduler(BlockConsistencyGroup consistencyGroup) {        
+        if (consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.RP) &&  
+        	consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.VPLEX)) {
+        		return _placementManager.getStorageScheduler(DiscoveredDataObject.Type.rpvplex.name());              
+        }    
+        return _placementManager.getStorageScheduler(DiscoveredDataObject.Type.rp.name());
+    } 
+    
     /**
      * Gets and verifies the VirtualPool passed in the request.
      * 

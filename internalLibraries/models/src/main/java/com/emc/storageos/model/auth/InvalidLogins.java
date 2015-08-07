@@ -5,6 +5,8 @@
 
 package com.emc.storageos.model.auth;
 
+import org.codehaus.jackson.annotate.JsonProperty;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -52,7 +54,8 @@ public class InvalidLogins implements Serializable {
     /**
      * @return the current number of invalid login attempts
      */
-    @XmlElement(name = "login-attempts")
+    @XmlElement(name = "login_attempts")
+    @JsonProperty("login_attempts")
     public long getLoginAttempts() {
         return _errorLoginAttempts;
     }
@@ -72,7 +75,8 @@ public class InvalidLogins implements Serializable {
     /**
      * @return the last invalid access time
      */
-    @XmlElement(name = "last-access-time")
+    @XmlElement(name = "last_access_time")
+    @JsonProperty("last_access_time")
     public String getFormattedLastAccessTime() {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(_lastAccessTime * 60 * 1000));
     }
@@ -89,7 +93,8 @@ public class InvalidLogins implements Serializable {
     }
 
 
-    @XmlElement(name = "client-ip")
+    @XmlElement(name = "client_ip")
+    @JsonProperty("client_ip")
     public String getClientIP() {
         return _clientIP;
     }

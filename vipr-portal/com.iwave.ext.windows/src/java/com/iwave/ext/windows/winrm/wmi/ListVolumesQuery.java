@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.windows.winrm.wmi;
@@ -30,7 +30,7 @@ public class ListVolumesQuery extends WinRMEnumerateOperation<Volume> {
             "ns:DeviceID");
     private static final XPathExpression DRIVE_LETTER_EXPR = XmlUtils.compileXPath(XPATH, "ns:DriveLetter");
     private static final XPathExpression DRIVE_LABEL_EXPR = XmlUtils.compileXPath(XPATH, "ns:Label");
-    
+
     public ListVolumesQuery(WinRMTarget target) {
         super(target, VOLUME_URI);
     }
@@ -38,13 +38,13 @@ public class ListVolumesQuery extends WinRMEnumerateOperation<Volume> {
     @Override
     protected void processItems(Element items, List<Volume> results) {
         for (Element item : XmlUtils.selectElements(VOLUME_EXPR, items)) {
-                Volume volume = new Volume();
-                volume.setName(getName(item));
-                volume.setCaption(getCaption(item));
-                volume.setDeviceId(getDeviceId(item));
-                volume.setDriveLetter(getDriveLetter(item));
-                volume.setDriveLabel(getDriveLabel(item));
-                results.add(volume);
+            Volume volume = new Volume();
+            volume.setName(getName(item));
+            volume.setCaption(getCaption(item));
+            volume.setDeviceId(getDeviceId(item));
+            volume.setDriveLetter(getDriveLetter(item));
+            volume.setDriveLabel(getDriveLabel(item));
+            results.add(volume);
         }
     }
 
@@ -63,9 +63,9 @@ public class ListVolumesQuery extends WinRMEnumerateOperation<Volume> {
     protected String getDriveLetter(Element item) {
         return XmlUtils.selectText(DRIVE_LETTER_EXPR, item);
     }
-    
+
     protected String getDriveLabel(Element item) {
         return XmlUtils.selectText(DRIVE_LABEL_EXPR, item);
     }
-    
+
 }

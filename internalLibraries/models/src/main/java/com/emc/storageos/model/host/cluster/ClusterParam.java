@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.host.cluster;
@@ -17,16 +17,17 @@ public abstract class ClusterParam {
 
     private URI VcenterDataCenter;
     private URI project;
-    
-    public ClusterParam() {}
-    
+
+    public ClusterParam() {
+    }
+
     public ClusterParam(URI VcenterDataCenter, URI project) {
         this.VcenterDataCenter = VcenterDataCenter;
         this.project = project;
     }
 
-    /** 
-     * The name of data center in vCenter for an ESX cluster. 
+    /**
+     * The name of data center in vCenter for an ESX cluster.
      * 
      * @valid none
      */
@@ -40,8 +41,8 @@ public abstract class ClusterParam {
         VcenterDataCenter = vcenterDataCenter;
     }
 
-    /** 
-     * This field is currently not used. Any values passed into it will be ignored. 
+    /**
+     * This field is currently not used. Any values passed into it will be ignored.
      * 
      * @valid none
      */

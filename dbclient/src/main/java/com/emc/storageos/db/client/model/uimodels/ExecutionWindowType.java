@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.uimodels;
@@ -13,8 +13,7 @@ public enum ExecutionWindowType {
         try {
             valueOf(lengthType);
             return true;
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             return false;
         }
     }

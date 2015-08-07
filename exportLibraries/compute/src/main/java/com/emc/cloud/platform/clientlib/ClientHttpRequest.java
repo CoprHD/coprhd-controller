@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 
@@ -29,29 +29,28 @@ public class ClientHttpRequest {
     private JAXBContext unmarshallingJaxbContext;
     private JAXBContext marshallingJaxbContext;
     public static final Logger log = LoggerFactory.getLogger(ClientHttpRequest.class);
-    
+
     @SuppressWarnings("unused")
     private ClientHttpRequest() {
-        //NOP - use the factory
+        // NOP - use the factory
     }
 
-    ClientHttpRequest(HttpClient httpClient,JAXBContext mjaxbContext,JAXBContext umjaxbContext) throws ClientGeneralException {  
+    ClientHttpRequest(HttpClient httpClient, JAXBContext mjaxbContext, JAXBContext umjaxbContext) throws ClientGeneralException {
         this.httpClient = httpClient;
         this.marshallingJaxbContext = mjaxbContext;
         this.unmarshallingJaxbContext = umjaxbContext;
         if (this.httpClient == null) {
-            throw new IllegalArgumentException("request object requires a non-null httpClient");           
-        }       
+            throw new IllegalArgumentException("request object requires a non-null httpClient");
+        }
         if (this.marshallingJaxbContext == null) {
             throw new IllegalArgumentException("request object requires a non-null marhsallingJaxbContext");
         }
         if (this.unmarshallingJaxbContext == null) {
             throw new IllegalArgumentException("request object requires a non-null unmarshallingJaxbContext");
         }
-        
+
     }
 
-    
     @Deprecated
     public String httpGetString(String url) throws ClientGeneralException {
         HttpGet get = new HttpGet(url);
@@ -67,11 +66,11 @@ public class ClientHttpRequest {
         }
     }
 
-	public Object httpGetXML(String url) throws ClientGeneralException {
+    public Object httpGetXML(String url) throws ClientGeneralException {
         HttpGet get = new HttpGet(url);
         get.setHeader("Content-Type", "application/xml");
         get.setHeader("ACCEPT", "application/xml");
-        
+
         log.debug("GET: " + url);
         try {
             Object response = httpClient.execute(get, new XMLHttpResponseHandler(unmarshallingJaxbContext, "GET " + url, ""));
@@ -79,19 +78,17 @@ public class ClientHttpRequest {
         } catch (ClientHttpResponseException ex) {
             throw new ClientResponseException(ex);
         } catch (ClientProtocolException ex) {
-            throw new ClientGeneralException(ClientMessageKeys.CLIENT_PROTOCOL_EXCEPTION,new String[] {ex.getMessage()}, ex);
+            throw new ClientGeneralException(ClientMessageKeys.CLIENT_PROTOCOL_EXCEPTION, new String[] { ex.getMessage() }, ex);
         } catch (IOException ex) {
-            throw new ClientGeneralException(ClientMessageKeys.IO_EXCEPTION,new String[] {ex.getMessage()}, ex);
+            throw new ClientGeneralException(ClientMessageKeys.IO_EXCEPTION, new String[] { ex.getMessage() }, ex);
         }
-	}
-	
-	
-	
-	public String httpGetObjectXML(String url) throws ClientGeneralException {
+    }
+
+    public String httpGetObjectXML(String url) throws ClientGeneralException {
         HttpGet get = new HttpGet(url);
         get.setHeader("Content-Type", "application/xml");
         get.setHeader("ACCEPT", "application/xml");
-        
+
         log.debug("GET: " + url);
         try {
             HttpResponse response = httpClient.execute(get);
@@ -104,46 +101,45 @@ public class ClientHttpRequest {
             throw new ClientGeneralException(ClientMessageKeys.IO_EXCEPTION, ex);
         }
 
-	}
-	
-	
-	public <T> T httpPostXMLObject(String url,JAXBElement<?> jaxbElement,Class<T> returnType) throws ClientGeneralException {
-		HttpPost post = new HttpPost(url);
-		post.setHeader("Content-Type", "application/xml");
-		post.setHeader("ACCEPT", "application/xml");
-		log.debug("POST: " + url);
-		try {
-			StringWriter writer = new StringWriter();
-			if(jaxbElement != null) {
-				Marshaller marshaller = marshallingJaxbContext.createMarshaller();
-				marshaller.marshal(jaxbElement, writer);
-			}
-			String payload = writer.toString();
-			if(payload != null && payload.length() != 0){
-				post.setEntity(new StringEntity(payload));
-		        // log payloads at DEBUG level only because they may contain passwords				
-				log.debug("Payload:\n" + maskPayloadCredentials(payload));
-			}
-			return httpClient.execute(post,new XMLHttpResponseHandler<T>(unmarshallingJaxbContext, "POST " + url, payload != null ? payload.toString() : ""));
-		}
-          catch (ClientHttpResponseException ex) {
-              throw getMaskedDetailClientGeneralException(ex);
-		} catch (ClientProtocolException ex) {
-			throw new ClientGeneralException(ClientMessageKeys.CLIENT_PROTOCOL_EXCEPTION, ex);
-		} catch (IOException ex) {
-			throw new ClientGeneralException(ClientMessageKeys.IO_EXCEPTION, ex);
-		} catch (JAXBException ex) {
-			throw new ClientGeneralException(ClientMessageKeys.MODEL_EXCEPTION, ex);
-		}
-	}
-		
-	public Object httpPostXMLObject(String url) throws ClientGeneralException {
+    }
+
+    public <T> T httpPostXMLObject(String url, JAXBElement<?> jaxbElement, Class<T> returnType) throws ClientGeneralException {
         HttpPost post = new HttpPost(url);
         post.setHeader("Content-Type", "application/xml");
         post.setHeader("ACCEPT", "application/xml");
         log.debug("POST: " + url);
         try {
-            Object response = httpClient.execute(post,new XMLHttpResponseHandler(unmarshallingJaxbContext, "POST " + url, ""));
+            StringWriter writer = new StringWriter();
+            if (jaxbElement != null) {
+                Marshaller marshaller = marshallingJaxbContext.createMarshaller();
+                marshaller.marshal(jaxbElement, writer);
+            }
+            String payload = writer.toString();
+            if (payload != null && payload.length() != 0) {
+                post.setEntity(new StringEntity(payload));
+                // log payloads at DEBUG level only because they may contain passwords
+                log.debug("Payload:\n" + maskPayloadCredentials(payload));
+            }
+            return httpClient.execute(post, new XMLHttpResponseHandler<T>(unmarshallingJaxbContext, "POST " + url,
+                    payload != null ? payload.toString() : ""));
+        } catch (ClientHttpResponseException ex) {
+            throw getMaskedDetailClientGeneralException(ex);
+        } catch (ClientProtocolException ex) {
+            throw new ClientGeneralException(ClientMessageKeys.CLIENT_PROTOCOL_EXCEPTION, ex);
+        } catch (IOException ex) {
+            throw new ClientGeneralException(ClientMessageKeys.IO_EXCEPTION, ex);
+        } catch (JAXBException ex) {
+            throw new ClientGeneralException(ClientMessageKeys.MODEL_EXCEPTION, ex);
+        }
+    }
+
+    public Object httpPostXMLObject(String url) throws ClientGeneralException {
+        HttpPost post = new HttpPost(url);
+        post.setHeader("Content-Type", "application/xml");
+        post.setHeader("ACCEPT", "application/xml");
+        log.debug("POST: " + url);
+        try {
+            Object response = httpClient.execute(post, new XMLHttpResponseHandler(unmarshallingJaxbContext, "POST " + url, ""));
             return response;
         } catch (ClientHttpResponseException ex) {
             throw getMaskedDetailClientGeneralException(ex);
@@ -152,9 +148,9 @@ public class ClientHttpRequest {
         } catch (IOException ex) {
             throw new ClientGeneralException(ClientMessageKeys.IO_EXCEPTION, ex);
         }
-	}
-	
-	public Object httpPutXMLObject(String url,JAXBElement<?> jaxbElement) throws ClientGeneralException {
+    }
+
+    public Object httpPutXMLObject(String url, JAXBElement<?> jaxbElement) throws ClientGeneralException {
         HttpPut post = new HttpPut(url);
         post.setHeader("Content-Type", "application/xml");
         post.setHeader("ACCEPT", "application/xml");
@@ -163,14 +159,15 @@ public class ClientHttpRequest {
             Marshaller marshaller = marshallingJaxbContext.createMarshaller();
             StringWriter writer = new StringWriter();
             marshaller.marshal(jaxbElement, writer);
-            
+
             String payload = writer.toString();
-            if(payload != null && payload.length() != 0){
+            if (payload != null && payload.length() != 0) {
                 post.setEntity(new StringEntity(payload));
-                // log payloads at DEBUG level only because they may contain passwords              
+                // log payloads at DEBUG level only because they may contain passwords
                 log.debug("Payload:\n" + maskPayloadCredentials(payload));
             }
-            Object response = httpClient.execute(post,new XMLHttpResponseHandler(unmarshallingJaxbContext, "PUT " + url, payload != null ? payload.toString() : ""));
+            Object response = httpClient.execute(post, new XMLHttpResponseHandler(unmarshallingJaxbContext, "PUT " + url,
+                    payload != null ? payload.toString() : ""));
             return response;
         } catch (ClientHttpResponseException ex) {
             throw getMaskedDetailClientGeneralException(ex);
@@ -182,8 +179,8 @@ public class ClientHttpRequest {
             throw new ClientGeneralException(ClientMessageKeys.MODEL_EXCEPTION, ex);
         }
     }
-	
-	public Object httpDeleteXMLObject(String url) throws ClientGeneralException {
+
+    public Object httpDeleteXMLObject(String url) throws ClientGeneralException {
         HttpDelete delete = new HttpDelete(url);
         delete.setHeader("Content-Type", "application/xml");
         delete.setHeader("ACCEPT", "application/xml");
@@ -200,47 +197,46 @@ public class ClientHttpRequest {
         }
     }
 
-    private String maskPayloadCredentials(String protectPayload){
-        /*Properties of the payload are pattern matched based on the below keywords
-          And then masked beyond recognition. This is protect the passwords and session cookies
-          from appearing in clear text.
-        */
-        String maskProperties[] = new String []{"inPassword","inCookie","cookie","password","Cookie","Password"};
+    private String maskPayloadCredentials(String protectPayload) {
+        /*
+         * Properties of the payload are pattern matched based on the below keywords
+         * And then masked beyond recognition. This is protect the passwords and session cookies
+         * from appearing in clear text.
+         */
+        String maskProperties[] = new String[] { "inPassword", "inCookie", "cookie", "password", "Cookie", "Password" };
 
-        String pattern="";
-        for (int index =0 ;index<maskProperties.length;index++){
-            if(index ==0){
-                //start building the pattern.
-                pattern+="(";
+        String pattern = "";
+        for (int index = 0; index < maskProperties.length; index++) {
+            if (index == 0) {
+                // start building the pattern.
+                pattern += "(";
             }
-            pattern+=maskProperties[index];
-            if(index == maskProperties.length-1){
-                //end the pattern.
-                pattern+=")\\S+(\\s|$)";
-            }else{
-                pattern+="|";
+            pattern += maskProperties[index];
+            if (index == maskProperties.length - 1) {
+                // end the pattern.
+                pattern += ")\\S+(\\s|$)";
+            } else {
+                pattern += "|";
             }
         }
         log.debug("Pattern for masking sensitive payload info {}", pattern);
-        return protectPayload.replaceAll(pattern,"$1=\"masked\"");
+        return protectPayload.replaceAll(pattern, "$1=\"masked\"");
     }
 
-    private ClientGeneralException getMaskedDetailClientGeneralException(ClientHttpResponseException ex){
+    private ClientGeneralException getMaskedDetailClientGeneralException(ClientHttpResponseException ex) {
         /*
-            Returns a ClientGeneralException with masked details for a ClientHttpResponseException
-        */
+         * Returns a ClientGeneralException with masked details for a ClientHttpResponseException
+         */
         ClientMessageKeys key = null;
         ClientGeneralException exception = null;
-        if(ex.bcode!=null){
-            try{
+        if (ex.bcode != null) {
+            try {
                 key = ClientMessageKeys.byErrorCode(Integer.parseInt(ex.bcode));
-                exception = new ClientGeneralException(key,ex);
-            }
-            catch (NumberFormatException msg){
+                exception = new ClientGeneralException(key, ex);
+            } catch (NumberFormatException msg) {
                 log.error(maskPayloadCredentials(ex.getMessage()));
                 return new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE);
-            }
-            catch(Exception msg){
+            } catch (Exception msg) {
                 log.error(maskPayloadCredentials(ex.getMessage()));
                 return new ClientResponseException(ex);
             }

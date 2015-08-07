@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -11,36 +11,37 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "order_log")
 public class OrderLogRestRep {
-    
+
     /**
      * Date for this log message
      */
-    private Date date;             
-    
+    private Date date;
+
     /**
      * Level for this log message
      */
-    private String level;        
-    
+    private String level;
+
     /**
      * Log message
      */
-    private String message;        
-    
+    private String message;
+
     /**
      * Stacktrace for error log messages
      */
-    private String stackTrace;      
-    
+    private String stackTrace;
+
     /**
      * Execution phase for this message
      */
-    private String phase;           
+    private String phase;
 
     @XmlElement(name = "date")
     public Date getDate() {
         return date;
     }
+
     public void setDate(Date date) {
         this.date = date;
     }
@@ -49,6 +50,7 @@ public class OrderLogRestRep {
     public String getLevel() {
         return level;
     }
+
     public void setLevel(String level) {
         this.level = level;
     }
@@ -57,6 +59,7 @@ public class OrderLogRestRep {
     public String getMessage() {
         return message;
     }
+
     public void setMessage(String message) {
         this.message = message;
     }
@@ -65,6 +68,7 @@ public class OrderLogRestRep {
     public String getPhase() {
         return phase;
     }
+
     public void setPhase(String phase) {
         this.phase = phase;
     }
@@ -73,6 +77,7 @@ public class OrderLogRestRep {
     public String getStackTrace() {
         return stackTrace;
     }
+
     public void setStackTrace(String stackTrace) {
         this.stackTrace = stackTrace;
     }

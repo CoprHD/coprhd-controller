@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.svcs.errorhandling.utils;
@@ -24,6 +14,7 @@ import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
@@ -74,7 +65,7 @@ public class Documenter {
             "com.emc.storageos.security.exceptions",
             "com.emc.storageos.systemservices.exceptions",
             "com.emc.storageos.volumecontroller.placement",
-	        "com.emc.storageos.vnxe"};
+            "com.emc.storageos.vnxe" };
 
     public static Collection<DocumenterEntry> createEntries() {
         final List<Class<?>> list = getMessageBundleClasses();
@@ -97,8 +88,7 @@ public class Documenter {
                     }
                     entries.add(new DocumenterEntry(interfaze, method, status, sce, parameters));
                 } catch (final Exception e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    _log.error(String.format("Fail to create document entry for method: %s", method), e);
                 }
             }
         }
@@ -249,8 +239,7 @@ public class Documenter {
             try {
                 return new URI("sos:uri:" + index);
             } catch (final URISyntaxException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                _log.error(String.format("Fail to instantiate URI with \"sos:uri:%s\"", index), e);
             }
         } else if (clazz.isAssignableFrom(Date.class)) {
             final Calendar calendar = Calendar.getInstance();
@@ -328,7 +317,7 @@ public class Documenter {
         }
 
         public Object[] getParameters() {
-            return parameters;
+            return Arrays.copyOf(parameters, parameters.length);
         }
 
         public String getParametersAsString() {
@@ -352,10 +341,10 @@ public class Documenter {
             this.interfaze = interfaze;
             this.method = method;
             this.status = status;
-            this.parameters = parameters;
             this.code = sce.getServiceCode();
             this.summary = code.getSummary();
             this.message = sce.getMessage();
+            this.parameters = (parameters != null) ? Arrays.copyOf(parameters, parameters.length) : null;
         }
     }
 }

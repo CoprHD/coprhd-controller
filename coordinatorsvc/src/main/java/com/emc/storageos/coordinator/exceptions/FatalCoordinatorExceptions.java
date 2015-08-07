@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.coordinator.exceptions;
@@ -24,16 +14,12 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
  * synchronous aspect of the controller that will be associated with an HTTP
  * status of 500
  * <p/>
- * Remember to add the English message associated to the method in
- * FatalCoodinatorExceptions.properties and use the annotation
- * {@link DeclareServiceCode} to set the service code associated to this error
- * condition. You may need to create a new service code if there is no an
- * existing one suitable for your error condition.
+ * Remember to add the English message associated to the method in FatalCoodinatorExceptions.properties and use the annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
+ * is no an existing one suitable for your error condition.
  * <p/>
- * For more information or to see an example, check the Developers Guide section
- * in the Error Handling Wiki page:
- * http://confluence.lab.voyence.com/display/OS/
- * ErrorHandling#ErrorHandling-DevelopersGuide
+ * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
+ * http://confluence.lab.voyence.com/display/OS/ ErrorHandling#ErrorHandling-DevelopersGuide
  */
 @MessageBundle
 public interface FatalCoordinatorExceptions {
@@ -115,7 +101,7 @@ public interface FatalCoordinatorExceptions {
 
     @DeclareServiceCode(ServiceCode.COORDINATOR_ERROR)
     public FatalCoordinatorException
-        unableToPersistTheState(final Throwable cause);
+            unableToPersistTheState(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.COORDINATOR_ERROR)
     public FatalCoordinatorException failedToStartDistributedQueue();
@@ -129,7 +115,7 @@ public interface FatalCoordinatorExceptions {
 
     @DeclareServiceCode(ServiceCode.COORDINATOR_ERROR)
     public FatalCoordinatorException exceedingLimit(final String of, final Number limit);
-    
+
     @DeclareServiceCode(ServiceCode.COORDINATOR_ERROR)
     public FatalCoordinatorException dataManagerPathOutOfBounds(final String path, final String basePath);
 
@@ -141,8 +127,8 @@ public interface FatalCoordinatorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_INTERNAL_INVALID_SOFTWARE_VERSION)
     public InvalidSoftwareVersionException invalidSoftwareVersion(final String parameter);
-    
+
     @DeclareServiceCode(ServiceCode.COORDINATOR_NOTCONNECTABLE_ERROR)
     public NotConnectableException notConnectableError(final String parameter);
-    
+
 }

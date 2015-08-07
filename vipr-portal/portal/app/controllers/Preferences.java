@@ -1,8 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers;
+
+import java.util.Map.Entry;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -10,6 +12,7 @@ import play.Logger;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.Controller;
+import play.mvc.Http.Header;
 import play.mvc.With;
 import util.MessagesUtils;
 import util.UserPreferencesUtils;
@@ -26,7 +29,7 @@ public class Preferences extends Controller {
     private static final String FLASH_REFERER = "flash.userPreferences.referer.url";
 
     public static void update() {
-        PreferencesForm user =  new PreferencesForm(UserPreferencesUtils.getUserPreferences());
+        PreferencesForm user = new PreferencesForm(UserPreferencesUtils.getUserPreferences());
         storeReferer(user);
         render(user);
     }
@@ -83,9 +86,9 @@ public class Preferences extends Controller {
     }
 
     private static String getRefererRequestHeader() {
-        for (String key : request.headers.keySet()) {
-            if (StringUtils.equals(key, "referer")) {
-                return request.headers.get(key).value();
+        for (Entry<String, Header> keys : request.headers.entrySet()) {
+            if (StringUtils.equals(keys.getKey(), "referer")) {
+                return keys.getValue().toString();
             }
         }
         return null;

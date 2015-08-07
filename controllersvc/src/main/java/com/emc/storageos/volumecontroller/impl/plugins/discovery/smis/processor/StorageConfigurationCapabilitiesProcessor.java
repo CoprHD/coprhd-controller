@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor;
 
@@ -32,7 +22,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
 
 public class StorageConfigurationCapabilitiesProcessor extends Processor {
     private static final String SUPPORTED_ELEMENT_TYPES = "SupportedStorageElementTypes";
@@ -101,7 +90,7 @@ public class StorageConfigurationCapabilitiesProcessor extends Processor {
             system.setSupportedProvisioningType(SupportedProvisioningTypes.NONE.toString());
         }
     }
-    
+
     /**
      * Set supported provisioning type for storage system based on
      * SupportedStorageElementTypes for VNX
@@ -116,7 +105,7 @@ public class StorageConfigurationCapabilitiesProcessor extends Processor {
         UnsignedInteger16[] supportedElementTypeArr = (UnsignedInteger16[]) storageConfigurationInstance
                 .getPropertyValue(SUPPORTED_ELEMENT_TYPES);
         String supportedElementTypes = Arrays.toString(supportedElementTypeArr);
-        _logger.debug("Capability : {}" , supportedElementTypes);
+        _logger.debug("Capability : {}", supportedElementTypes);
         if (supportedElementTypes.contains(THINLY_PROVISIONED_STORAGE_VOLUME)) {
             system.setSupportedProvisioningType(SupportedProvisioningTypes.THIN_AND_THICK
                     .toString());

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -59,13 +59,13 @@ public class ObjectFactory {
     public ValidationError createValidationError() {
         return new ValidationError();
     }
-    
+
     public ExecutionWindowInfo createExecutionWindowInfo() {
         return new ExecutionWindowInfo();
     }
-    
+
     public CompositeValidationError createCompositeValidationError() {
-         return new CompositeValidationError();
+        return new CompositeValidationError();
     }
 
     public Parameter createParameter() {

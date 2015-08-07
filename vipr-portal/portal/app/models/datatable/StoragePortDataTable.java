@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -16,7 +16,7 @@ import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 
 public class StoragePortDataTable extends DataTable {
-    
+
     public StoragePortDataTable() {
 
         addColumn("name");
@@ -77,14 +77,14 @@ public class StoragePortDataTable extends DataTable {
             this.alias = storagePort.getPortAlias();
             this.type = TransportProtocols.getDisplayValue(storagePort.getTransportType());
             this.registrationStatus = storagePort.getRegistrationStatus();
-            
-            if( OperationalStatus.OK.name().equals(storagePort.getOperationalStatus()) 
+
+            if (OperationalStatus.OK.name().equals(storagePort.getOperationalStatus())
                     && CompatibilityStatus.UNKNOWN.name().equals(storagePort.getCompatibilityStatus())) {
                 this.operationalStatus = OperationalStatus.UNKNOWN.name();
             } else {
                 this.operationalStatus = storagePort.getOperationalStatus();
             }
-            
+
             this.allocationDisqualified = storagePort.getAllocationDisqualified();
         }
     }

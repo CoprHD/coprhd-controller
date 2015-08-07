@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.dao;
@@ -41,7 +41,7 @@ public class TenantResourceFinder<T extends DataObject> extends BaseModelFinder<
     }
 
     public Iterable<T> findByLabel(String tenant, String prefix, boolean activeOnly) {
-    	Iterable<T> objects = findByIds(toURIs(client.findByPrefix(clazz, "label", prefix)), activeOnly);
+        Iterable<T> objects = findByIds(toURIs(client.findByPrefix(clazz, "label", prefix)), activeOnly);
         return TenantUtils.filter(objects, tenant);
     }
 }

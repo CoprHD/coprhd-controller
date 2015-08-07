@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.catalog;
@@ -19,12 +19,12 @@ import com.emc.storageos.security.authentication.StorageOSUser;
 
 @Component
 public class ApprovalManagerImpl implements ApprovalManager {
-    
+
     private static final Logger log = Logger.getLogger(ApprovalManagerImpl.class);
-    
+
     @Autowired
     private ModelClient client;
- 
+
     public ApprovalRequest getApprovalById(URI id) {
         if (id == null) {
             return null;
@@ -33,32 +33,32 @@ public class ApprovalManagerImpl implements ApprovalManager {
         ApprovalRequest approval = client.approvalRequests().findById(id);
 
         return approval;
-    }          
-    
+    }
+
     public List<ApprovalRequest> getApprovals(URI tenantId) {
         return client.approvalRequests().findAll(tenantId.toString());
     }
-    
+
     public List<ApprovalRequest> findApprovalsByStatus(URI tenantId, ApprovalStatus approvalStatus) {
         return client.approvalRequests().findByApprovalStatus(tenantId.toString(), approvalStatus);
     }
-    
+
     public List<ApprovalRequest> findApprovalsByOrderId(URI orderId) {
         return client.approvalRequests().findByOrderId(orderId);
     }
-    
+
     public ApprovalRequest findFirstApprovalsByOrderId(URI orderId) {
         List<ApprovalRequest> apporvalRequests = client.approvalRequests().findByOrderId(orderId);
-        if (apporvalRequests != null && apporvalRequests.size() > 0) {
+        if (apporvalRequests != null && !apporvalRequests.isEmpty()) {
             return apporvalRequests.get(0);
         }
         return null;
-    } 
-    
+    }
+
     public void createApproval(ApprovalRequest approval) {
         client.save(approval);
     }
-    
+
     public void updateApproval(ApprovalRequest approval, StorageOSUser user) {
         approval.setDateActioned(new Date());
         if (approval.approved() || approval.rejected()) {
@@ -66,10 +66,9 @@ public class ApprovalManagerImpl implements ApprovalManager {
         }
         client.save(approval);
     }
-    
+
     public void deleteApproval(ApprovalRequest approval) {
         client.delete(approval);
-    }    
-    
-    
+    }
+
 }

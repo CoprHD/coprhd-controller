@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.resource;
@@ -32,21 +22,14 @@ import com.emc.storageos.model.block.tier.AutoTieringPolicyRestRep;
 import com.emc.storageos.model.block.tier.AutoTieringPolicyBulkRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.api.mapper.BlockMapper;
-import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.mapper.functions.MapAutoTierPolicy;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageTier;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.block.tier.AutoTieringPolicyBulkRep;
-import com.emc.storageos.model.block.tier.AutoTieringPolicyRestRep;
-import com.emc.storageos.model.block.tier.StorageTierList;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
@@ -57,10 +40,10 @@ public class AutoTieringService extends TaggedResource {
 
     /**
      * Gets the AutoTier Policy with the passed id from the database.
-     *
+     * 
      * @param id the URN of a ViPR auto tier policy
      * 
-     * @return A reference to the registered  Policy.
+     * @return A reference to the registered Policy.
      */
     @Override
     protected DataObject queryResource(URI id) {
@@ -75,8 +58,9 @@ public class AutoTieringService extends TaggedResource {
         return null;
     }
 
-    /**     
-     * Show the specified auto tiering policy.     
+    /**
+     * Show the specified auto tiering policy.
+     * 
      * @param id the URN of a ViPR auto tier policy
      * @prereq none
      * @brief Show the details of the specified auto tiering policy
@@ -92,12 +76,14 @@ public class AutoTieringService extends TaggedResource {
         ArgValidator.checkEntityNotNull(policy, id, isIdEmbeddedInURL(id));
         return map(policy);
     }
-    
-    /**     
+
+    /**
      * 
      * @param provisionType The provisioning type associated with this policy [Thin,Thick or All]
-     * @param uniquePolicyNames If unique_auto_tier_policy_names is set to true, then unique auto tier policy Names alone without any storage system details will be returned, 
-     * even if the same policy exists in multiple arrays. If unique_auto_tier_policy_names is set to false, then duplicate policy names, with the storage system details, are returned
+     * @param uniquePolicyNames If unique_auto_tier_policy_names is set to true, then unique auto tier policy Names alone without any
+     *            storage system details will be returned,
+     *            even if the same policy exists in multiple arrays. If unique_auto_tier_policy_names is set to false, then duplicate policy
+     *            names, with the storage system details, are returned
      * 
      * @prereq none
      * @brief List all auto tier policies
@@ -123,11 +109,10 @@ public class AutoTieringService extends TaggedResource {
         return policyList;
     }
 
-
-
-    /**     
+    /**
      * Show the storage tiers associated with a specific auto tiering policy
-     * Only auto tiering policies belonging to VMAX systems have direct association to tiers.     
+     * Only auto tiering policies belonging to VMAX systems have direct association to tiers.
+     * 
      * @param id the URN of a ViPR auto tier policy
      * 
      * @prereq none
@@ -152,20 +137,21 @@ public class AutoTieringService extends TaggedResource {
         return storageTierList;
     }
 
-    /**     
-     * Retrieve data of auto tier policies based on input ids.     
+    /**
+     * Retrieve data of auto tier policies based on input ids.
+     * 
      * @param param POST data containing the id list.
      * 
      * @prereq none
      * @brief List data of auto tier policies.
      * @return list of representations.
-     *
+     * 
      * @throws DatabaseException When an error occurs querying the database.
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public AutoTieringPolicyBulkRep getBulkResources(BulkIdParam param) {
         return (AutoTieringPolicyBulkRep) super.getBulkResources(param);
@@ -191,11 +177,11 @@ public class AutoTieringService extends TaggedResource {
     }
 
     @Override
-    protected ResourceTypeEnum getResourceType(){
-    	return ResourceTypeEnum.AUTO_TIERING_POLICY;
+    protected ResourceTypeEnum getResourceType() {
+        return ResourceTypeEnum.AUTO_TIERING_POLICY;
     }
-    
-    private  boolean doesGivenProvisionTypeMatchAutoTierPolicy(
+
+    private boolean doesGivenProvisionTypeMatchAutoTierPolicy(
             String provisioningType, AutoTieringPolicy policy) {
         if (null == provisioningType || provisioningType.isEmpty()) {
             return true;
@@ -205,7 +191,7 @@ public class AutoTieringService extends TaggedResource {
                 policy.getProvisioningType())) {
             return true;
         }
-            
+
         if (provisioningType.equalsIgnoreCase(VirtualPool.ProvisioningType.Thick.toString())
                 && AutoTieringPolicy.ProvisioningType.ThicklyProvisioned.toString()
                         .equalsIgnoreCase(policy.getProvisioningType())) {
@@ -218,5 +204,5 @@ public class AutoTieringService extends TaggedResource {
         }
         return false;
     }
-    
-} 
+
+}

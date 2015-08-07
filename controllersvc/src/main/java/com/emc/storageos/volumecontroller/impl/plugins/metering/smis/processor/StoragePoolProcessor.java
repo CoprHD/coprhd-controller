@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor;
 
@@ -21,7 +11,6 @@ import javax.cim.CIMObjectPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.emc.storageos.plugins.BaseCollectionException;
-import com.emc.storageos.plugins.metering.smis.SMIPluginException;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.Processor;
@@ -44,12 +33,13 @@ public class StoragePoolProcessor extends Processor {
                 final CIMObjectPath path = (CIMObjectPath) it.next();
                 // Validate whether this storagePool is created by Bourne
                 if (validateStoragePool(path, keyMap)) {
-                    addPath(keyMap, operation.get_result(), path);
+                    addPath(keyMap, operation.getResult(), path);
                 }
             }
         } catch (Exception ex) {
-            if (!(ex instanceof BaseCollectionException))
+            if (!(ex instanceof BaseCollectionException)) {
                 _logger.error(" Allocated Capacity : ", ex);
+            }
         }
         resultObj = null;
     }
@@ -81,8 +71,9 @@ public class StoragePoolProcessor extends Processor {
         // To-Do: replaced by Associators , so that this check can be
         // eliminated.
         String serialID = (String) keyMap.get(Constants._serialID);
-        if (path.getKey("InstanceID").getValue().toString().contains(serialID))
+        if (path.getKey("InstanceID").getValue().toString().contains(serialID)) {
             return true;
+        }
         return false;
     }
 

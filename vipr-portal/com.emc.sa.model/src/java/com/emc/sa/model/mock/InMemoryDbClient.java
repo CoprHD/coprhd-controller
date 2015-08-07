@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.model.mock;
@@ -33,21 +33,21 @@ public class InMemoryDbClient implements DBClientWrapper {
     private Object getColumnField(DataObject o, String columnField) {
         try {
             return PropertyUtils.getProperty(o, columnField);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             return null;
         }
     }
-    
+
     private NamedElement createNamedElement(DataObject value) {
         NamedElement elem = new NamedElement();
-        elem.id = value.getId();
-        elem.name = value.getLabel();
+        elem.setId(value.getId());
+        elem.setName(value.getLabel());
         return elem;
     }
-    
+
     @Override
-    public <T extends DataObject> List<NamedElement> findByAlternateId(Class<T> clazz, String columnField, String value) throws DataAccessException {
+    public <T extends DataObject> List<NamedElement> findByAlternateId(Class<T> clazz, String columnField, String value)
+            throws DataAccessException {
         List<NamedElement> results = Lists.newArrayList();
         for (URI modelId : findAllIds(clazz)) {
             T model = findById(clazz, modelId);
@@ -57,10 +57,11 @@ public class InMemoryDbClient implements DBClientWrapper {
             }
         }
         return results;
-    }    
-    
+    }
+
     @Override
-    public <T extends DataObject> List<NamedElement> findByContainmentAndPrefix(Class<T> clazz, String columnField, URI id, String labelPrefix) throws DataAccessException {
+    public <T extends DataObject> List<NamedElement> findByContainmentAndPrefix(Class<T> clazz, String columnField, URI id,
+            String labelPrefix) throws DataAccessException {
         List<NamedElement> results = Lists.newArrayList();
         for (URI modelId : findAllIds(clazz)) {
             T model = findById(clazz, modelId);
@@ -72,7 +73,8 @@ public class InMemoryDbClient implements DBClientWrapper {
         return results;
     }
 
-    public <T extends DataObject> List<NamedElement> findByTimeRange(Class<T> clazz, String columnField, Date startTime, Date endTime) throws DataAccessException {
+    public <T extends DataObject> List<NamedElement> findByTimeRange(Class<T> clazz, String columnField, Date startTime, Date endTime)
+            throws DataAccessException {
         List<NamedElement> results = Lists.newArrayList();
         for (URI modelId : findAllIds(clazz)) {
             T model = findById(clazz, modelId);
@@ -81,7 +83,7 @@ public class InMemoryDbClient implements DBClientWrapper {
         }
         return results;
     }
-    
+
     @Override
     public <T extends DataObject> List<NamedElement> findBy(Class<T> clazz, String columnField, URI id) throws DataAccessException {
         List<NamedElement> results = Lists.newArrayList();
@@ -93,10 +95,11 @@ public class InMemoryDbClient implements DBClientWrapper {
             }
         }
         return results;
-    }    
-    
+    }
+
     @Override
-    public <T extends DataObject> List<NamedElement> findByPrefix(Class<T> clazz, String columnField, String prefix) throws DataAccessException {
+    public <T extends DataObject> List<NamedElement> findByPrefix(Class<T> clazz, String columnField, String prefix)
+            throws DataAccessException {
         List<NamedElement> results = Lists.newArrayList();
         for (URI modelId : findAllIds(clazz)) {
             T model = findById(clazz, modelId);
@@ -106,8 +109,8 @@ public class InMemoryDbClient implements DBClientWrapper {
             }
         }
         return results;
-    }    
-    
+    }
+
     @Override
     public <T extends DataObject> List<URI> findAllIds(Class<T> clazz) throws DataAccessException {
         LOG.debug("findAllIds(" + clazz.getSimpleName() + ")");

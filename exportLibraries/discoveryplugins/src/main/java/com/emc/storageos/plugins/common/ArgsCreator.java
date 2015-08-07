@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.plugins.common;
 
@@ -49,7 +39,7 @@ public class ArgsCreator {
     protected Util _util;
     protected static final Logger _logger = LoggerFactory.getLogger(ArgsCreator.class);
 
-    public ArgsCreator ( Util util ) {
+    public ArgsCreator(Util util) {
         _util = util;
     }
 
@@ -69,7 +59,7 @@ public class ArgsCreator {
     public final Object getStringValue(
             final Argument arg, final Map<String, Object> keyMap, int index) {
         Object returnobj = null;
-        returnobj = arg.get_value();
+        returnobj = arg.getValue();
         return returnobj;
     }
 
@@ -83,11 +73,11 @@ public class ArgsCreator {
      */
     public final Object createCIMPath(
             final Argument arg, final Map<String, Object> keyMap, int index) {
-        String[] items = arg.get_value().toString().split(":");
+        String[] items = arg.getValue().toString().split(":");
         CIMObjectPath path = CimObjectPathCreator.createInstance(items[1], items[0]);
         return path;
     }
-    
+
     public final Object getIntValue32(final Argument arg, final Map<String, Object> keyMap, int index) {
         return getUnsignedInteger32(arg);
     }
@@ -122,7 +112,7 @@ public class ArgsCreator {
     public final Object getReferenceValue(
             final Argument argument, final Map<String, Object> keyMap, int index) {
         Object referenceobj = null;
-        final String objectpath = (String) argument.get_value();
+        final String objectpath = (String) argument.getValue();
         if (keyMap.containsKey(objectpath)) {
             if (keyMap.get(objectpath) instanceof List<?>) {
                 @SuppressWarnings("unchecked")
@@ -153,7 +143,7 @@ public class ArgsCreator {
     public final Object getListValue(
             final Argument arg, final Map<String, Object> keyMap, int index) {
         Object listObj = null;
-        String value = arg.get_value().toString();
+        String value = arg.getValue().toString();
         if (keyMap.containsKey(value)) {
             listObj = keyMap.get(value);
         }
@@ -179,7 +169,7 @@ public class ArgsCreator {
      */
     public final Boolean getBoolValue(
             final Argument arg, final Map<String, Object> keyMap, int index) {
-        return Boolean.parseBoolean((String) arg.get_value());
+        return Boolean.parseBoolean((String) arg.getValue());
     }
 
     /**
@@ -199,8 +189,8 @@ public class ArgsCreator {
     public final Object getStringArrayValue(
             final Argument arg, final Map<String, Object> keyMap, int index) {
         String[] strArray = null;
-        if (arg.get_value() != null) {
-            String val = (String) arg.get_value();
+        if (arg.getValue() != null) {
+            String val = (String) arg.getValue();
             strArray = val.split(",");
         }
         return strArray;
@@ -221,7 +211,7 @@ public class ArgsCreator {
      */
     public final Object getIntegerValue(
             final Argument arg, final Map<String, Object> keyMap, int index) {
-        return Integer.parseInt((String) arg.get_value());
+        return Integer.parseInt((String) arg.getValue());
     }
 
     /**
@@ -241,8 +231,8 @@ public class ArgsCreator {
     public final Object getIntegerArrayValue(
             final Argument arg, final Map<String, Object> keyMap, int index) {
         String[] arr = null;
-        if (arg.get_value() != null) {
-            String val = (String) arg.get_value();
+        if (arg.getValue() != null) {
+            String val = (String) arg.getValue();
             arr = val.split(",");
         }
         int[] intarr = new int[arr.length];
@@ -275,15 +265,15 @@ public class ArgsCreator {
         populateNameList(arg, nameList);
         inputArgs = new CIMArgument[nameList.size()];
         @SuppressWarnings("unchecked")
-        List<Object> valueObjList = (List<Object>) arg.get_value(); // need to
+        List<Object> valueObjList = (List<Object>) arg.getValue(); // need to
         // change
         int argCount = 0; // implementation
         for (Object valargobj : valueObjList) {
             Argument valarg = (Argument) valargobj;
             // final Object instance = _util.returnInstance(valarg.getCreator(),
             // keyMap);
-            final Object instance = valarg.get_creator();
-            final Method method = _util.getMethod(null, valarg.get_method(), instance,
+            final Object instance = valarg.getCreator();
+            final Method method = _util.getMethod(null, valarg.getMethod(), instance,
                     Util.ENDPOINTS.ARGUMENT.toString());
             final Object[] Args = { valarg, keyMap, index };
             try {
@@ -304,8 +294,8 @@ public class ArgsCreator {
     public final Object getIntegerArrayValue16(
             final Argument arg, final Map<String, Object> keyMap, int index) {
         String[] arr = null;
-        if (arg.get_value() != null) {
-            String val = (String) arg.get_value();
+        if (arg.getValue() != null) {
+            String val = (String) arg.getValue();
             arr = val.split(",");
         }
         UnsignedInteger16[] intarr = new UnsignedInteger16[arr.length];
@@ -321,12 +311,12 @@ public class ArgsCreator {
      * @param arg
      * @return Object
      */
-    public final Object getReferenceValue_CIMWrapper(
+    public final Object getReferenceValueCIMWrapper(
             final Argument arg, final Map<String, Object> keyMap, int index) {
         Object value = getReferenceValue(arg, keyMap, index);
         if (null != value) {
             CIMObjectPath path = (CIMObjectPath) value;
-            return new CIMArgument<Object>(arg.get_name(), CIMDataType.getDataType(path),
+            return new CIMArgument<Object>(arg.getName(), CIMDataType.getDataType(path),
                     value);
         }
         return value;
@@ -338,11 +328,11 @@ public class ArgsCreator {
      * @param arg
      * @return Object
      */
-    public final Object getStringValue_CIMWrapper(
+    public final Object getStringValueCIMWrapper(
             final Argument arg, final Map<String, Object> keyMap, int index) {
         Object value = getStringValue(arg, null, index);
         if (null != value) {
-            return new CIMArgument<Object>(arg.get_name(),
+            return new CIMArgument<Object>(arg.getName(),
                     CIMDataType.getDataType(value), value);
         }
         return value;
@@ -350,8 +340,8 @@ public class ArgsCreator {
 
     public final Object getStringValueFromKey(
             final Argument arg, final Map<String, Object> keyMap, final int index) {
-        if (keyMap.containsKey(arg.get_name())) {
-            List<String> names = (List<String>) keyMap.get(arg.get_name());
+        if (keyMap.containsKey(arg.getName())) {
+            List<String> names = (List<String>) keyMap.get(arg.getName());
             return names.get(index);
         }
         return null;
@@ -367,7 +357,7 @@ public class ArgsCreator {
     public final InputStream getStreamValue(
             final Argument argument, final Map<String, Object> keyMap, int index) {
         InputStream iStream = getClass().getResourceAsStream(
-                argument.get_value().toString());
+                argument.getValue().toString());
         // set the proxy or any other configuration parameters here.
         return iStream;
     }
@@ -378,11 +368,11 @@ public class ArgsCreator {
      * @param arg
      * @return Object
      */
-    public final Object getStringArrayValue_CIMWrapper(
+    public final Object getStringArrayValueCIMWrapper(
             final Argument arg, final Map<String, Object> keyMap, int index) {
         Object value = getStringArrayValue(arg, null, index);
         if (null != value) {
-            return new CIMArgument<Object>(arg.get_name(), CIMDataType.STRING_ARRAY_T,
+            return new CIMArgument<Object>(arg.getName(), CIMDataType.STRING_ARRAY_T,
                     value);
         }
         return value;
@@ -394,11 +384,11 @@ public class ArgsCreator {
      * @param arg
      * @return Object
      */
-    public final Object getBooleanValue_CIMWrapper(
+    public final Object getBooleanValueCIMWrapper(
             final Argument arg, final Map<String, Object> keyMap, int index) {
         Object value = getBoolValue(arg, null, index);
         if (null != value) {
-            return new CIMArgument<Object>(arg.get_name(), CIMDataType.BOOLEAN_T, value);
+            return new CIMArgument<Object>(arg.getName(), CIMDataType.BOOLEAN_T, value);
         }
         return value;
     }
@@ -409,11 +399,11 @@ public class ArgsCreator {
      * @param arg
      * @return Object
      */
-    public final Object getIntValue_CIMWrapper(
+    public final Object getIntValueCIMWrapper(
             final Argument arg, final Map<String, Object> keyMap, int index) {
         Object value = getUnsignedInteger16(arg);
         if (null != value) {
-            return new CIMArgument<Object>(arg.get_name(), CIMDataType.UINT16_T, value);
+            return new CIMArgument<Object>(arg.getName(), CIMDataType.UINT16_T, value);
         }
         return value;
     }
@@ -424,13 +414,13 @@ public class ArgsCreator {
      * @param arg
      * @return Object
      */
-    public final Object getIntegerArrayValue_CIMWrapper(
+    public final Object getIntegerArrayValueCIMWrapper(
             final Argument arg, final Map<String, Object> keyMap, int index) {
         Object value = getIntegerArrayValue16(arg, null, index);
         if (null != value) {
             // workaround
             _logger.info(CIMDataType.getDataType(value).toString());
-            return new CIMArgument<Object>(arg.get_name(), CIMDataType.UINT16_ARRAY_T,
+            return new CIMArgument<Object>(arg.getName(), CIMDataType.UINT16_ARRAY_T,
                     value);
         }
         return value;
@@ -442,11 +432,11 @@ public class ArgsCreator {
      * @param arg
      * @return Object
      */
-    public final Object getIntValue16_CIMWrapper(
+    public final Object getIntValue16CIMWrapper(
             final Argument arg, final Map<String, Object> keyMap, int index) {
         UnsignedInteger16 value = getUnsignedInteger16(arg);
         if (null != value) {
-            return new CIMArgument<Object>(arg.get_name(), CIMDataType.UINT16_T, value);
+            return new CIMArgument<Object>(arg.getName(), CIMDataType.UINT16_T, value);
         }
         return value;
     }
@@ -457,13 +447,13 @@ public class ArgsCreator {
      * @param arg
      * @return Object
      */
-    public final Object getIntValue64_CIMWrapper(
+    public final Object getIntValue64CIMWrapper(
             final Argument arg, final Map<String, Object> keyMap, int index) {
         UnsignedInteger64 value = getUnsignedInteger64(arg);
-        
+
         if (null != value) {
             UnsignedInteger64 val = new UnsignedInteger64(value.toString());
-            return new CIMArgument<Object>(arg.get_name(), CIMDataType.UINT64_T, val);
+            return new CIMArgument<Object>(arg.getName(), CIMDataType.UINT64_T, val);
         }
         return value;
     }
@@ -475,47 +465,51 @@ public class ArgsCreator {
      * @param nameList
      */
     private final void populateNameList(final Argument arg, final List<Object> nameList) {
-        List<Object> valueObjList = (List<Object>) arg.get_value();
+        List<Object> valueObjList = (List<Object>) arg.getValue();
         for (Object valargobj : valueObjList) {
             Argument valarg = (Argument) valargobj;
-            nameList.add(valarg.get_name());
+            nameList.add(valarg.getName());
         }
     }
+
     /**
      * Creates UnsignedInteger16 instance for the give Argument.value.
+     * 
      * @param arg
      * @return
      */
-    public final UnsignedInteger16 getUnsignedInteger16(final Argument arg){
+    public final UnsignedInteger16 getUnsignedInteger16(final Argument arg) {
         UnsignedInteger16 value = null;
-        if(arg.get_value()!=null){
-            value = new UnsignedInteger16((String)arg.get_value());
+        if (arg.getValue() != null) {
+            value = new UnsignedInteger16((String) arg.getValue());
         }
         return value;
     }
-    
+
     /**
      * Creates UnsignedInteger32 instance for the give Argument.value.
+     * 
      * @param arg
      * @return
      */
-    public final UnsignedInteger32 getUnsignedInteger32(final Argument arg){
+    public final UnsignedInteger32 getUnsignedInteger32(final Argument arg) {
         UnsignedInteger32 value = null;
-        if(arg.get_value()!=null){
-            value = new UnsignedInteger32((String)arg.get_value());
+        if (arg.getValue() != null) {
+            value = new UnsignedInteger32((String) arg.getValue());
         }
         return value;
     }
-    
+
     /**
      * Creates UnsignedInteger64 instance for the give Argument.value.
+     * 
      * @param arg
      * @return
      */
-    public final UnsignedInteger64 getUnsignedInteger64(final Argument arg){
+    public final UnsignedInteger64 getUnsignedInteger64(final Argument arg) {
         UnsignedInteger64 value = null;
-        if(arg.get_value()!=null){
-            value = new UnsignedInteger64((String)arg.get_value());
+        if (arg.getValue() != null) {
+            value = new UnsignedInteger64((String) arg.getValue());
         }
         return value;
     }

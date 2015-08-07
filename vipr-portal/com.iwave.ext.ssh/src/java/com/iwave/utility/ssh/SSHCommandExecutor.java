@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.utility.ssh;
@@ -105,8 +105,7 @@ public class SSHCommandExecutor implements CommandExecutor {
             if (readTimeout > 0) {
                 session.setTimeout(readTimeout);
             }
-        }
-        catch (JSchException e) {
+        } catch (JSchException e) {
             throw new SSHException(e);
         }
     }
@@ -136,16 +135,13 @@ public class SSHCommandExecutor implements CommandExecutor {
                 stderr.close();
                 int exitCode = channel.getExitStatus();
                 return new CommandOutput(stdout.toString(), stderr.toString(), exitCode);
-            }
-            finally {
+            } finally {
                 channel.disconnect();
             }
-        }
-        catch (JSchException | IOException | InterruptedException | SSHException e) {
+        } catch (JSchException | IOException | InterruptedException | SSHException e) {
             log.error(String.format("SSH '%s' command failed: ", command.getCommand()), e);
             throw new CommandException(e);
-        }
-        finally {
+        } finally {
             if (isAutoDisconnect()) {
                 disconnect();
             }
@@ -172,11 +168,11 @@ public class SSHCommandExecutor implements CommandExecutor {
         for (int i = 0; i < commandLine.length(); i++) {
             char ch = commandLine.charAt(i);
             switch (ch) {
-            case '\\':
-            case '"':
-            case '$':
-                sb.append('\\');
-                break;
+                case '\\':
+                case '"':
+                case '$':
+                    sb.append('\\');
+                    break;
             }
             sb.append(ch);
         }

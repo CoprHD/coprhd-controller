@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
@@ -68,7 +58,7 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
      * @throws Exception
      */
     public void recordBlockExportEvent(DbClient dbClient, URI uri, String evtType,
-                                       Operation.Status status, String desc) throws Exception {
+            Operation.Status status, String desc) throws Exception {
         RecordableEventManager eventManager = new RecordableEventManager();
         eventManager.setDbClient(dbClient);
 
@@ -80,8 +70,8 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
         try {
             eventManager.recordEvents(event);
             _logger.info("Bourne {} event recorded", evtType);
-        } catch (Throwable th) {
-            _logger.error("Failed to record event. Event description: {}. Error: ", evtType, th);
+        } catch (Exception ex) {
+            _logger.error("Failed to record event. Event description: {}. Error: ", evtType, ex);
         }
     }
 
@@ -92,16 +82,16 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
 
     /**
      * Record block export group related event and audit
-     *
+     * 
      * @param dbClient db client
-     * @param opType   operation type
-     * @param status   operation status
-     * @param evDesc   event description
+     * @param opType operation type
+     * @param status operation status
+     * @param evDesc event description
      * @param extParam parameters array from which we could generate detail
-     *                 audit message
+     *            audit message
      */
     public void recordBlockExportOperation(DbClient dbClient, OperationTypeEnum opType,
-                                           Operation.Status status, String evDesc, Object... extParam) {
+            Operation.Status status, String evDesc, Object... extParam) {
         try {
             boolean opStatus = (Operation.Status.ready == status);
             String evType;
@@ -138,7 +128,7 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                 default:
                     _logger.error("unrecognized block export operation type");
             }
-            _logger.info(String.format("ExportGroup after %s Operation\n%s", opType, exportGroup.toString()));
+            _logger.info(String.format("ExportGroup after %s Operation%n%s", opType, exportGroup.toString()));
         } catch (Exception e) {
             _logger.error("Failed to record block export operation {}, err: {}", opType.toString(),
                     e);
@@ -147,14 +137,14 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
 
     /**
      * Checks if the given ExportGroup has remaining active masks.
-     *
+     * 
      * @param dbClient
      * @param exportGroup
      * @return true if the given ExportGroup has any remaining active masks.
      */
     protected boolean hasActiveMasks(DbClient dbClient, ExportGroup exportGroup) {
 
-        if (exportGroup.getExportMasks() != null && exportGroup.getExportMasks().size() > 0) {
+        if (exportGroup.getExportMasks() != null && !exportGroup.getExportMasks().isEmpty()) {
             for (String maskUri : exportGroup.getExportMasks()) {
                 ExportMask exportMask = dbClient.queryObject(ExportMask.class, URI.create(maskUri));
                 if (exportMask != null && !exportMask.getInactive()) {

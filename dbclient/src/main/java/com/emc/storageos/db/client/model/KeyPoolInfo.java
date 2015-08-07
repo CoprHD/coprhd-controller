@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
@@ -21,10 +11,8 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Map;
 
 /**
  * KeyPoolInfo contains all the information required for key pool file access.
@@ -46,7 +34,7 @@ public class KeyPoolInfo extends DataObject {
     private String _fileAccessMode;
 
     // previous file access mode for this keypool
-    //the value of the field is valid if _fileAccessMode is in switching mode                                                            RequestAuditFilter
+    // the value of the field is valid if _fileAccessMode is in switching mode RequestAuditFilter
     private String _prevfileAccessMode;
 
     // Time at which the current file access mode expires (ir-relevant if the current file access mode is DISABLED)
@@ -55,19 +43,19 @@ public class KeyPoolInfo extends DataObject {
     // ID of the project to which this keypool belongs
     private URI _projectID;
 
-    //start version for file access switching
+    // start version for file access switching
     private Long _startVersion;
 
-    //end version for file access switching
+    // end version for file access switching
     private Long _endVersion;
 
-    //hosts allowed to mount, separated by comma
+    // hosts allowed to mount, separated by comma
     private String _hosts;
 
-    //uid used for file access
+    // uid used for file access
     private Long _uid;
 
-    //keypool owner id
+    // keypool owner id
     private String _ownerUid;
 
     // Information regarding the hosting devices which host objects for this keypool. Each string in this set will
@@ -80,7 +68,7 @@ public class KeyPoolInfo extends DataObject {
     // to keep various flags associated with keypool properties
     private Long _flags;
 
-    //acl saved in db
+    // acl saved in db
     private String _aclStr;
 
     // flag indicating whether this keypool has been initialized - initialization is specific to the underlying hosting
@@ -104,7 +92,7 @@ public class KeyPoolInfo extends DataObject {
     // metadata
     private StringMap _metadata;
 
-    //source Keypool Name for versioning (only used by swift)
+    // source Keypool Name for versioning (only used by swift)
     private String _sourceKeypool;
 
     private Boolean _fileSystemAccessEnabled;
@@ -161,6 +149,7 @@ public class KeyPoolInfo extends DataObject {
     public URI getVPoolId() {
         return _vPoolId;
     }
+
     public void setVPoolId(URI vPool) {
         _vPoolId = vPool;
         setChanged("vPoolId");
@@ -175,8 +164,8 @@ public class KeyPoolInfo extends DataObject {
     public URI getReplicationGroup() {
         return _replicationGroup;
     }
-             
-    public void setReplicationGroup (URI repGroup) {
+
+    public void setReplicationGroup(URI repGroup) {
         _replicationGroup = repGroup;
         setChanged("repGroup");
         setLastUpdated(new Date());
@@ -196,6 +185,7 @@ public class KeyPoolInfo extends DataObject {
 
     /**
      * ID of the project to which this key pool belongs
+     * 
      * @return
      */
     @XmlElement
@@ -224,7 +214,10 @@ public class KeyPoolInfo extends DataObject {
 
     /**
      * Time at which the current file access mode expires.
-     * <p>Not used if the current file access mode is DISABLED</p>
+     * <p>
+     * Not used if the current file access mode is DISABLED
+     * </p>
+     * 
      * @return
      */
     @XmlElement
@@ -240,15 +233,17 @@ public class KeyPoolInfo extends DataObject {
     }
 
     /**
-     * <p>Current file access mode for this key pool</p>
-     * <p>Valid modes are:</p>
-     * <li>NONE - no mode, file access disabled</li>
-     * <li>disabled - file access disabled, REST-only access permitted</li>
-     * <li>switchingToReadOnly - switch to read-only mode in progress</li>
-     * <li>readOnly - read-only mode enabled</li>
-     * <li>switchingToReadWrite - switch to read-write mode in progress</li>
-     * <li>readWrite - read-write mode enabled</li>
-     * <li>switchingToDisabled - switch to disable mode in progress</li>
+     * <p>
+     * Current file access mode for this key pool
+     * </p>
+     * <p>
+     * Valid modes are:
+     * </p>
+     * <li>NONE - no mode, file access disabled</li> <li>disabled - file access disabled, REST-only access permitted</li> <li>
+     * switchingToReadOnly - switch to read-only mode in progress</li> <li>readOnly - read-only mode enabled</li> <li>switchingToReadWrite -
+     * switch to read-write mode in progress</li> <li>readWrite - read-write mode enabled</li> <li>switchingToDisabled - switch to disable
+     * mode in progress</li>
+     * 
      * @return
      */
     @XmlElement
@@ -266,6 +261,7 @@ public class KeyPoolInfo extends DataObject {
     /**
      * previous file access mode for this key pool
      * the value of the field is valid if fileAccessMode is in switching mode
+     * 
      * @return
      */
     @XmlElement
@@ -282,6 +278,7 @@ public class KeyPoolInfo extends DataObject {
 
     /**
      * Key pool version number
+     * 
      * @return
      */
     @XmlElement
@@ -298,6 +295,7 @@ public class KeyPoolInfo extends DataObject {
 
     /**
      * Time when this key pool information was last updated
+     * 
      * @return
      */
     @XmlElement
@@ -313,6 +311,7 @@ public class KeyPoolInfo extends DataObject {
 
     /**
      * start version for file access switching
+     * 
      * @return
      */
     @Name("startVersion")
@@ -328,6 +327,7 @@ public class KeyPoolInfo extends DataObject {
 
     /**
      * end version for file access switching
+     * 
      * @return
      */
     @Name("endVersion")
@@ -343,6 +343,7 @@ public class KeyPoolInfo extends DataObject {
 
     /**
      * uid (user ID) used for file access
+     * 
      * @return
      */
     @Name("uid")
@@ -358,6 +359,7 @@ public class KeyPoolInfo extends DataObject {
 
     /**
      * Key pool owner id
+     * 
      * @return
      */
     @Name("ownerUid")
@@ -373,6 +375,7 @@ public class KeyPoolInfo extends DataObject {
 
     /**
      * Comma separated endpoint values allowed to mount in file access mode
+     * 
      * @return
      */
     @Name("hosts")
@@ -388,6 +391,7 @@ public class KeyPoolInfo extends DataObject {
 
     /**
      * Various flags associated with key pool properties
+     * 
      * @return
      */
     @XmlElement
@@ -402,7 +406,7 @@ public class KeyPoolInfo extends DataObject {
         setLastUpdated(new Date());
     }
 
-    //don't want to return this to customer
+    // don't want to return this to customer
     @XmlTransient
     @Name("aclStr")
     public String getAclStr() {
@@ -455,7 +459,7 @@ public class KeyPoolInfo extends DataObject {
     }
 
     public void setKeypoolCorsConfig(String keyPoolCorsConfig) {
-        if(keyPoolCorsConfig != null) {
+        if (keyPoolCorsConfig != null) {
             _keyPoolCorsConfig = keyPoolCorsConfig;
             setChanged("keypoolCorsConfig");
         }
@@ -488,27 +492,27 @@ public class KeyPoolInfo extends DataObject {
     @XmlElement
     @Name("fileSystemAccessEnabled")
     public Boolean getFileSystemAccessEnabled() {
-        return  _fileSystemAccessEnabled;
+        return _fileSystemAccessEnabled;
     }
 
     public void setFileSystemAccessEnabled(Boolean _fileSystemAccessEnabled) {
-        if(_fileSystemAccessEnabled != null) {
-        this._fileSystemAccessEnabled = _fileSystemAccessEnabled;
-        setChanged("fileSystemAccessEnabled");
-    }
+        if (_fileSystemAccessEnabled != null) {
+            this._fileSystemAccessEnabled = _fileSystemAccessEnabled;
+            setChanged("fileSystemAccessEnabled");
+        }
     }
 
     @XmlElement
     @Name("deleted")
     public Boolean getDeleted() {
-        return (_deleted != null ) && _deleted;
+        return (_deleted != null) && _deleted;
     }
 
     public void setDeleted(Boolean deleted) {
-        if(deleted != null) {
-        _deleted = deleted;
-        setChanged("deleted");
-    }
+        if (deleted != null) {
+            _deleted = deleted;
+            setChanged("deleted");
+        }
     }
 
     @XmlTransient
@@ -518,14 +522,14 @@ public class KeyPoolInfo extends DataObject {
     }
 
     public void setVpoolType(String vpoolType) {
-        if(vpoolType == null){
+        if (vpoolType == null) {
             return;
         }
         _vpoolType = vpoolType;
         setChanged("vpoolType");
     }
 
-    //this should be preferably used to prevent assigning invalid string types
+    // this should be preferably used to prevent assigning invalid string types
     public void setVpoolType(ObjectStore.Type type) {
         setVpoolType(type.toString());
     }
@@ -549,7 +553,7 @@ public class KeyPoolInfo extends DataObject {
     }
 
     public void setRootDirForDirectoryPreservingFileAccess(
-        String rootDirForDirectoryPreservingFileAccess) {
+            String rootDirForDirectoryPreservingFileAccess) {
         _rootDirForDirectoryPreservingFileAccess = rootDirForDirectoryPreservingFileAccess;
         setChanged("rootDirForDirectoryPreservingFileAccess");
     }
@@ -569,7 +573,7 @@ public class KeyPoolInfo extends DataObject {
     @Name("preserveDirectoryStructure")
     public Boolean getPreserveDirectoryStructure() {
         return _preserveDirectoryStructure == null
-            ? Boolean.FALSE : _preserveDirectoryStructure;
+                ? Boolean.FALSE : _preserveDirectoryStructure;
     }
 
     public void setPreserveDirectoryStructure(Boolean preserveDirectoryStructure) {
@@ -586,21 +590,21 @@ public class KeyPoolInfo extends DataObject {
     }
 
     public void setHidden(Boolean hidden) {
-        if(hidden != null){
-        _hidden = hidden;
-        setChanged("hidden");
-    }
+        if (hidden != null) {
+            _hidden = hidden;
+            setChanged("hidden");
+        }
 
     }
 
     @XmlTransient
     @Name("headMetadata")
     public byte[] getHeadMetadata() {
-        return _headMetaData;
+        return _headMetaData.clone();
     }
 
     public void setHeadMetadata(byte[] headMetadata) {
-        _headMetaData = headMetadata;
+        _headMetaData = headMetadata.clone();
 
         setChanged("headMetadata");
         setLastUpdated(new Date());

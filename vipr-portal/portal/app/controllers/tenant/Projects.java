@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.tenant;
@@ -60,7 +60,7 @@ public class Projects extends ViprResourceController {
         render(dataTable);
     }
 
-    @FlashException(value="list", keep=true)
+    @FlashException(value = "list", keep = true)
     public static void listJson() {
         String userId = Security.getUserInfo().getIdentifier();
         List<ProjectRestRep> viprProjects = ProjectUtils.getProjects(Models.currentAdminTenant());
@@ -74,7 +74,7 @@ public class Projects extends ViprResourceController {
         renderJSON(DataTablesSupport.createJSON(projects, params));
     }
 
-    @FlashException(value="list", keep=true)
+    @FlashException(value = "list", keep = true)
     public static void create() {
         ProjectForm project = new ProjectForm();
         project.tenantId = Models.currentAdminTenant();
@@ -82,7 +82,7 @@ public class Projects extends ViprResourceController {
         render("@edit", project);
     }
 
-    @FlashException(value="list", keep=true)
+    @FlashException(value = "list", keep = true)
     public static void edit(String id) {
         ProjectRestRep viprProject = ProjectUtils.getProject(id);
         if (viprProject == null) {
@@ -100,14 +100,14 @@ public class Projects extends ViprResourceController {
             project.aclEntries = AclEntryForm.loadAclEntryForms(ProjectUtils.getACLs(id));
             addRenderArgs();
             render(project);
-        } 
+        }
         else {
             flash.error(MessagesUtils.get("projects.unknown", id));
             list();
         }
     }
 
-    @FlashException(keep=true, referrer={"create","edit"})
+    @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(ProjectForm project) {
         if (project == null) {
             Logger.error("No project parameters passed");
@@ -124,7 +124,7 @@ public class Projects extends ViprResourceController {
 
             saveProjectQuota(project);
             saveProjectACLs(project.id, project.aclEntries);
-        } 
+        }
         else {
             ProjectRestRep currentProject = ProjectUtils.getProject(project.id);
             if (currentProject != null) {
@@ -139,7 +139,7 @@ public class Projects extends ViprResourceController {
         flash.success(MessagesUtils.get("projects.saved", project.name));
         if (StringUtils.isNotBlank(project.referrerUrl)) {
             redirect(project.referrerUrl);
-        } 
+        }
         else {
             list();
         }
@@ -150,7 +150,7 @@ public class Projects extends ViprResourceController {
         if (Security.isTenantAdmin()) {
             if (project.enableQuota) {
                 ProjectUtils.enableQuota(project.id, project.quota);
-            } 
+            }
             else {
                 ProjectUtils.disableQuota(project.id);
             }
@@ -165,8 +165,7 @@ public class Projects extends ViprResourceController {
         changes.getRemove().addAll(AclEntryForm.getRemovedAcls(currentProjectAcls, aclEntries));
         try {
             ProjectUtils.updateACLs(projectId, changes);
-        } 
-        catch (ViPRException e) {
+        } catch (ViPRException e) {
             Logger.error(e, "Failed to update Project ACLs");
             String errorDesc = e.getMessage();
             if (e instanceof ServiceErrorException) {
@@ -234,11 +233,11 @@ public class Projects extends ViprResourceController {
 
                 if (isTrue(quota.getEnabled())) {
                     this.quota = quota.getQuotaInGb();
-                } 
+                }
                 else {
                     this.quota = null;
                 }
-            } 
+            }
             else {
                 this.enableQuota = Boolean.FALSE;
                 this.quota = null;
@@ -257,10 +256,10 @@ public class Projects extends ViprResourceController {
             boolean ownerChanged = false;
             if (isNew()) {
                 ownerChanged = StringUtils.isNotBlank(this.owner);
-            } 
+            }
             else {
                 // Require an owner for editing projects
-                Validation.required(formName+".owner", owner);
+                Validation.required(formName + ".owner", owner);
                 ProjectRestRep existingProject = ProjectUtils.getProject(this.id);
                 if (existingProject != null) {
                     ownerChanged = StringUtils.equalsIgnoreCase(existingProject.getOwner(), this.owner) == false;
@@ -270,7 +269,7 @@ public class Projects extends ViprResourceController {
             if (ownerChanged && StringUtils.isNotBlank(owner)) {
                 if (LocalUser.isLocalUser(this.owner) && ownerChanged) {
                     Validation.addError(formName + ".owner", MessagesUtils.get("Projects.localUsersNotPermitted"));
-                } 
+                }
                 else if (isValidPrincipal(RoleAssignmentType.USER, this.owner) == false) {
                     Validation.addError(formName + ".owner", MessagesUtils.get("project.owner.error.invalid"));
                 }
@@ -280,14 +279,13 @@ public class Projects extends ViprResourceController {
             if (enableQuota) {
                 if (this.quota == null) {
                     Validation.addError(fieldName, MessagesUtils.get("project.quota.error.required"));
-                } 
+                }
                 else {
                     String quotaParamName = formName + ".quota";
                     String quotaParamString = params.get(quotaParamName);
                     try {
                         Integer.parseInt(quotaParamString);
-                    } 
-                    catch (NumberFormatException e) {
+                    } catch (NumberFormatException e) {
                         Validation.addError(quotaParamName, MessagesUtils.get("project.quota.error.invalid"));
                     }
                 }
@@ -303,7 +301,7 @@ public class Projects extends ViprResourceController {
             principal.setName(name);
             if (RoleAssignmentType.GROUP.equals(type)) {
                 principal.setType(StorageOSPrincipal.Type.Group);
-            } 
+            }
             else if (RoleAssignmentType.USER.equals(type)) {
                 principal.setType(StorageOSPrincipal.Type.User);
             }

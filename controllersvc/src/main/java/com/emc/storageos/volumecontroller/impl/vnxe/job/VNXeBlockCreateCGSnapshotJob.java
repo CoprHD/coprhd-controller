@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.vnxe.job;
@@ -40,17 +30,17 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshot
 
 public class VNXeBlockCreateCGSnapshotJob extends VNXeJob {
 
-	private static final long serialVersionUID = -4468675691425659495L;
-	private static final Logger _logger = LoggerFactory.getLogger(VNXeBlockCreateCGSnapshotJob.class);
+    private static final long serialVersionUID = -4468675691425659495L;
+    private static final Logger _logger = LoggerFactory.getLogger(VNXeBlockCreateCGSnapshotJob.class);
 
-	public VNXeBlockCreateCGSnapshotJob(String jobId,
-			URI storageSystemUri, Boolean createInactive, TaskCompleter taskCompleter) {
-		super(jobId, storageSystemUri, taskCompleter, "createBlockCGSnapshot");
-		
-	}
-	
-	public void updateStatus(JobContext jobContext) throws Exception {
-		DbClient dbClient = jobContext.getDbClient();
+    public VNXeBlockCreateCGSnapshotJob(String jobId,
+            URI storageSystemUri, Boolean createInactive, TaskCompleter taskCompleter) {
+        super(jobId, storageSystemUri, taskCompleter, "createBlockCGSnapshot");
+
+    }
+
+    public void updateStatus(JobContext jobContext) throws Exception {
+        DbClient dbClient = jobContext.getDbClient();
         try {
             if (_status == JobStatus.IN_PROGRESS) {
                 return;
@@ -59,27 +49,27 @@ public class VNXeBlockCreateCGSnapshotJob extends VNXeJob {
             List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, completer.getSnapshotURIs());
             StorageSystem storage = dbClient.queryObject(StorageSystem.class, getStorageSystemUri());
             if (_status == JobStatus.SUCCESS) {
-            	VNXeApiClient vnxeApiClient = getVNXeClient(jobContext);
+                VNXeApiClient vnxeApiClient = getVNXeClient(jobContext);
                 VNXeCommandJob vnxeJob = vnxeApiClient.getJob(getJobIds().get(0));
                 ParametersOut output = vnxeJob.getParametersOut();
-                //get the luns belonging to the lun group 
+                // get the luns belonging to the lun group
                 String lunGroupSnapId = output.getId();
-                VNXeLunGroupSnap groupSnap = vnxeApiClient.getLunGroupSnapshot(lunGroupSnapId);                
+                VNXeLunGroupSnap groupSnap = vnxeApiClient.getLunGroupSnapshot(lunGroupSnapId);
                 List<VNXeLun> groupLuns = vnxeApiClient.getLunByStorageResourceId(groupSnap.getStorageResource().getId());
-            	// Create mapping of volume.nativeDeviceId to BlockSnapshot object
+                // Create mapping of volume.nativeDeviceId to BlockSnapshot object
                 Map<String, BlockSnapshot> volumeToSnapMap = new HashMap<String, BlockSnapshot>();
                 for (BlockSnapshot snapshot : snapshots) {
                     Volume volume = dbClient.queryObject(Volume.class, snapshot.getParent());
                     volumeToSnapMap.put(volume.getNativeId(), snapshot);
                 }
-                
+
                 for (VNXeLun groupLun : groupLuns) {
-                	BlockSnapshot snapshot = volumeToSnapMap.get(groupLun.getId());
-                	if(snapshot == null) {
-                		_logger.info("No snapshot found for the vnxe lun - ", groupLun.getId());
-                		continue;
-                	}
-                	snapshot.setNativeId(output.getId());
+                    BlockSnapshot snapshot = volumeToSnapMap.get(groupLun.getId());
+                    if (snapshot == null) {
+                        _logger.info("No snapshot found for the vnxe lun - ", groupLun.getId());
+                        continue;
+                    }
+                    snapshot.setNativeId(output.getId());
                     snapshot.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(storage, snapshot));
                     snapshot.setDeviceLabel(groupLun.getName());
                     snapshot.setReplicationGroupInstance(lunGroupSnapId);
@@ -90,12 +80,12 @@ public class VNXeBlockCreateCGSnapshotJob extends VNXeJob {
                     snapshot.setAllocatedCapacity(groupLun.getSnapsSizeAllocated());
                     snapshot.setProvisionedCapacity(groupLun.getSnapsSize());
                     _logger.info(String.format("Going to set blocksnapshot %1$s nativeId to %2$s (%3$s). Associated lun is %4$s (%5$s)",
-                            snapshot.getId().toString(),  output.getId(), snapshot.getLabel(), groupLun.getId(), groupLun.getName()));
-                    dbClient.persistObject(snapshot);                	
+                            snapshot.getId().toString(), output.getId(), snapshot.getLabel(), groupLun.getId(), groupLun.getName()));
+                    dbClient.persistObject(snapshot);
                 }
-                
-            } else if(_status == JobStatus.FAILED) {
-            	_logger.info("Failed to create snapshot");
+
+            } else if (_status == JobStatus.FAILED) {
+                _logger.info("Failed to create snapshot");
                 for (BlockSnapshot snapshot : snapshots) {
                     snapshot.setInactive(true);
                 }
@@ -105,8 +95,8 @@ public class VNXeBlockCreateCGSnapshotJob extends VNXeJob {
             _logger.error("Caught an exception while trying to updateStatus for VNXeBlockCreateCGSnapshotJob", e);
             setErrorStatus("Encountered an internal error during group snapshot create job status processing : " + e.getMessage());
         } finally {
-            super.updateStatus(jobContext);            
+            super.updateStatus(jobContext);
         }
-	}
+    }
 
 }

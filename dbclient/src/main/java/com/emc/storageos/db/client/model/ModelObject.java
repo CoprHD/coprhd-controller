@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -30,8 +30,8 @@ public abstract class ModelObject extends DataObject {
         this.lastUpdated = lastUpdated;
         setChanged(LAST_UPDATED);
     }
-    
+
     public Object[] auditParameters() {
-        return new Object[] {getLabel(), getId()};
+        return new Object[] { getLabel(), getId() };
     }
 }

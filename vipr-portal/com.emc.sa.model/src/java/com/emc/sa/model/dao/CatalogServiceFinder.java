@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.model.dao;
@@ -22,25 +22,25 @@ public class CatalogServiceFinder extends ModelFinder<CatalogService> {
     }
 
     public List<CatalogService> findByCatalogCategory(URI catalogCategoryId) {
-        
+
         List<CatalogService> results = Lists.newArrayList();
-        
+
         List<NamedElement> catalogServiceIds = client.findBy(CatalogService.class, CatalogService.CATALOG_CATEGORY_ID, catalogCategoryId);
         if (catalogServiceIds != null) {
             results.addAll(findByIds(toURIs(catalogServiceIds)));
-        }        
+        }
 
         SortedIndexUtils.sort(results);
-        
+
         return results;
     }
 
     public Map<URI, Set<String>> findPermissions(StorageOSUser user, URI tenantId) {
         return findPermissions(this.clazz, user, tenantId);
     }
-    
+
     public Map<URI, Set<String>> findPermissions(StorageOSUser user, URI tenantId, Set<String> filterBy) {
         return findPermissions(this.clazz, user, tenantId, filterBy);
-    }    
-    
+    }
+
 }

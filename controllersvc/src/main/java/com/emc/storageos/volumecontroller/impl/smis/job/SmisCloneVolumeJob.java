@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) $today_year. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
@@ -55,7 +45,7 @@ public class SmisCloneVolumeJob extends SmisReplicaCreationJobs {
             CloneCreateCompleter completer = (CloneCreateCompleter) getTaskCompleter();
             Volume cloneVolume = dbClient.queryObject(Volume.class, completer.getId());
 
-            // If terminal state update storage pool capacity and remove reservation for  volume capacity
+            // If terminal state update storage pool capacity and remove reservation for volume capacity
             // from pool's reserved capacity map.
             if (jobStatus == JobStatus.SUCCESS || jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 cimConnectionFactory = jobContext.getCimConnectionFactory();
@@ -77,7 +67,7 @@ public class SmisCloneVolumeJob extends SmisReplicaCreationJobs {
                 if (iterator.hasNext()) {
                     CIMObjectPath cloneVolumePath = iterator.next();
                     CIMInstance syncVolume = client.getInstance(cloneVolumePath, false, false, null);
-                    
+
                     String deviceId = cloneVolumePath.getKey(SmisConstants.CP_DEVICE_ID).getValue().toString();
                     String elementName = CIMPropertyFactory.getPropertyValue(syncVolume, SmisConstants.CP_ELEMENT_NAME);
                     String wwn = CIMPropertyFactory.getPropertyValue(syncVolume, SmisConstants.CP_WWN_NAME);
@@ -96,12 +86,13 @@ public class SmisCloneVolumeJob extends SmisReplicaCreationJobs {
                         cloneVolume.setReplicaState(ReplicationState.INACTIVE.name());
                     }
                     dbClient.persistObject(cloneVolume);
-                    
+
                 }
                 /*
-                for (URI id : completer.getIds()) {
-                    completer.ready(dbClient);
-                }*/
+                 * for (URI id : completer.getIds()) {
+                 * completer.ready(dbClient);
+                 * }
+                 */
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 String msg = String.format("Failed job to create full copy from %s to %s",
                         cloneVolume.getAssociatedSourceVolume(), cloneVolume.getId());

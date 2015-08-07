@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.smis;
@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Invocation handler for the CIMObjectPathFactoryAdapter internal proxy instance.  When a method is invoked
+ * Invocation handler for the CIMObjectPathFactoryAdapter internal proxy instance. When a method is invoked
  * on the proxy instance, the method invocation is encoded and dispatched to the invoke method where we
  * decide which factory to delegate to.
  */
@@ -24,7 +24,9 @@ public class CIMObjectPathFactoryInvocationHandler implements InvocationHandler 
     private static final Logger log = LoggerFactory.getLogger(CIMObjectPathFactoryInvocationHandler.class);
     private static final String MSG = "Delegating %s to %s";
 
-    private enum Factory { query, creator }
+    private enum Factory {
+        query, creator
+    }
 
     private Map<Factory, CIMObjectPathFactory> factories;
     private Factory defaultFactory = Factory.creator;
@@ -54,12 +56,12 @@ public class CIMObjectPathFactoryInvocationHandler implements InvocationHandler 
     /**
      * The invoke method is passed the CIMObjectPathFactory method invocation details which
      * we inspect to determine where to delegate to.
-     *
-     * @param proxy     The dynamic proxy.
-     * @param method    The encoded method.
-     * @param args      The arguments passed to the method.
-     * @return          Based on the CIMObjectPathFactory method.
-     * @throws          Throwable
+     * 
+     * @param proxy The dynamic proxy.
+     * @param method The encoded method.
+     * @param args The arguments passed to the method.
+     * @return Based on the CIMObjectPathFactory method.
+     * @throws Throwable
      */
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {

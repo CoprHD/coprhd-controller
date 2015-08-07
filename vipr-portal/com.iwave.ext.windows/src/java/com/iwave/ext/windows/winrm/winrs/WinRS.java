@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.windows.winrm.winrs;
@@ -29,13 +29,12 @@ public class WinRS {
             String commandId = submitCommand(shellId, command, arguments);
             CommandOutput output = receiveOutput(shellId, commandId);
             if (LOG.isDebugEnabled()) {
-                LOG.debug("EXIT CODE: "+output.getExitValue());
-                LOG.debug("STDOUT: "+output.getStdout());
-                LOG.debug("STDERR: "+output.getStderr());
+                LOG.debug("EXIT CODE: " + output.getExitValue());
+                LOG.debug("STDOUT: " + output.getStdout());
+                LOG.debug("STDERR: " + output.getStderr());
             }
             return output;
-        }
-        finally {
+        } finally {
             deleteShell(shellId);
         }
     }

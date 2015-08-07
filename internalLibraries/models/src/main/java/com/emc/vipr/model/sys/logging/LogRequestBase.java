@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.vipr.model.sys.logging;
 
@@ -46,13 +36,13 @@ public class LogRequestBase {
 
     /**
      * Constructor for log level requests.
-     *
-     * @param nodeIds   The list of Bourne node ids.
-     * @param logNames  The list of log file names.
-     * @param severity  The severity level to set.
+     * 
+     * @param nodeIds The list of Bourne node ids.
+     * @param logNames The list of log file names.
+     * @param severity The severity level to set.
      */
-    protected LogRequestBase(List<String> nodeIds, List<String> logNames, 
-                          LogSeverity severity) {
+    protected LogRequestBase(List<String> nodeIds, List<String> logNames,
+            LogSeverity severity) {
         if (nodeIds != null) {
             this.nodeIds = nodeIds;
         }
@@ -75,7 +65,7 @@ public class LogRequestBase {
 
     /**
      * Getter for the list of Bourne node ids.
-     *
+     * 
      * @return The list of Bourne node ids.
      */
     @XmlElement(name = "nodeIds")
@@ -88,7 +78,7 @@ public class LogRequestBase {
 
     /**
      * Setter for the list of Bourne node ids.
-     *
+     * 
      * @param nodeIds new list of nodes.
      */
     public void setNodeIds(List<String> nodeIds) {
@@ -97,7 +87,7 @@ public class LogRequestBase {
 
     /**
      * Getter for names of the logs.
-     *
+     * 
      * @return The names of the logs.
      */
     @XmlElement(name = "logNames")
@@ -117,7 +107,7 @@ public class LogRequestBase {
 
     /**
      * Getter for the log severity level.
-     *
+     * 
      * @return The log severity level.
      */
     @XmlElement(name = "severity")

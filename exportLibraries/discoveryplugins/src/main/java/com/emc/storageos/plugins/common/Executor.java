@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.plugins.common;
 
@@ -33,8 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.regex.Pattern;
-
 
 /**
  * SMIExecutor- responsible for executing SMICommands
@@ -67,31 +55,31 @@ public abstract class Executor {
      */
     protected Map<String, Object> _keyMap;
 
-    public void set_util(Util _util) {
+    public void setUtil(Util _util) {
         this._util = _util;
     }
 
-    public Util get_util() {
+    public Util getUtil() {
         return _util;
     }
 
-    public void set_keyMap(Map<String, Object> _keyMap) {
+    public void setKeyMap(Map<String, Object> _keyMap) {
         this._keyMap = _keyMap;
     }
 
-    public Map<String, Object> get_keyMap() {
+    public Map<String, Object> getKeyMap() {
         return _keyMap;
     }
 
-    public void set_generator(CommandGenerator _generator) {
+    public void setGenerator(CommandGenerator _generator) {
         this._generator = _generator;
     }
 
-    public CommandGenerator get_generator() {
+    public CommandGenerator getGenerator() {
         return _generator;
     }
 
-    public Executor () {
+    public Executor() {
         execService = Executors.newFixedThreadPool(10);
     }
 
@@ -112,7 +100,7 @@ public abstract class Executor {
      */
     public void execute(Namespace ns) throws BaseCollectionException {
         assert ns != null;
-        for (Object operationobj : ns.get_operations()) {
+        for (Object operationobj : ns.getOperations()) {
             Operation operation = (Operation) operationobj;
             executeOperation(operation);
         }
@@ -140,11 +128,11 @@ public abstract class Executor {
         // multiple Threads to complete its job without waiting.
         // Things which get shared across threads is only the ConcurrentMap,
         // hence haven't made it synchronized.
-        _processor = operation.get_processor();
+        _processor = operation.getProcessor();
         if (null != _processor) {
-             List<Object> argsList = new ArrayList<Object>();
-             argsList.add(Util.normalizedReadArgs(_keyMap, commandObj.retreiveArguments()));
-             argsList.add(commandObj.getCommandIndex());
+            List<Object> argsList = new ArrayList<Object>();
+            argsList.add(Util.normalizedReadArgs(_keyMap, commandObj.retreiveArguments()));
+            argsList.add(commandObj.getCommandIndex());
 
             _processor.setPrerequisiteObjects(argsList);
             _processor.processResult(operation, result, _keyMap);
@@ -187,7 +175,7 @@ public abstract class Executor {
                 Object resultObj = null;
                 try {
                     resultObj = commandObj.execute();
-                    processResult(operation, resultObj,commandObj);
+                    processResult(operation, resultObj, commandObj);
                 } catch (Exception e) {
                     _LOGGER.error("Execution failed for :", e);
                     // We do not want 'Provider/Firmware Not Supported Error' to get suppressed. check and throw again.
@@ -205,7 +193,7 @@ public abstract class Executor {
             _LOGGER.error("Operation Execution failed : ", e);
             customizeException(e, operation);
         }
-        _LOGGER.debug(null==operation.getMessage()? "END Executing operation": "END :" + operation.getMessage());
+        _LOGGER.debug(null == operation.getMessage() ? "END Executing operation" : "END :" + operation.getMessage());
     }
 
     /**
@@ -246,7 +234,7 @@ public abstract class Executor {
                         logMessage.append("}").append(SEMICOLON).append(NEWLINE);
                     } else if (obj instanceof CIMProperty<?>[]) {
                         logMessage.append(NEWLINE).append("Input CIMProperty Array : {");
-                        
+
                         CIMProperty<?>[] args = (CIMProperty<?>[]) obj;
                         for (CIMProperty<?> p : args) {
                             if (null != p) {
@@ -275,14 +263,15 @@ public abstract class Executor {
             }
             logMessage.append("}");
             _LOGGER.debug(logMessage.toString());
-           
+
         } catch (Exception e) {
             _LOGGER.debug("Logging operations failed", e);
         }
     }
-    
+
     /**
      * return true always to support other device types.
+     * 
      * @param operation
      * @return
      */

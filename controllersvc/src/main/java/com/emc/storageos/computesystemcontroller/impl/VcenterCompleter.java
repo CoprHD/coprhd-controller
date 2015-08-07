@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.computesystemcontroller.impl;
@@ -20,17 +20,17 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public class VcenterCompleter extends ComputeSystemCompleter {
-	
-	private static final Logger _logger = LoggerFactory
+
+    private static final Logger _logger = LoggerFactory
             .getLogger(VcenterCompleter.class);
-    
+
     public VcenterCompleter(URI id, boolean deactivateOnComplete, String opId) {
         super(Vcenter.class, id, deactivateOnComplete, opId);
     }
-    
+
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
-        super.complete(dbClient,  status,  coded);
+        super.complete(dbClient, status, coded);
         switch (status) {
             case error:
                 dbClient.error(Vcenter.class, this.getId(), getOpId(), coded);
@@ -39,13 +39,13 @@ public class VcenterCompleter extends ComputeSystemCompleter {
                 dbClient.ready(Vcenter.class, this.getId(), getOpId());
         }
 
-        if (deactivateOnComplete && status.equals(Status.ready)) {            
+        if (deactivateOnComplete && status.equals(Status.ready)) {
             Vcenter vcenter = dbClient.queryObject(Vcenter.class, this.getId());
-            
+
             List<NamedElementQueryResultList.NamedElement> datacenterUris = ComputeSystemHelper.listChildren(dbClient, vcenter.getId(),
                     VcenterDataCenter.class, "label", "vcenter");
             for (NamedElementQueryResultList.NamedElement datacenterUri : datacenterUris) {
-                VcenterDataCenter dataCenter = dbClient.queryObject(VcenterDataCenter.class, datacenterUri.id);
+                VcenterDataCenter dataCenter = dbClient.queryObject(VcenterDataCenter.class, datacenterUri.getId());
                 if (dataCenter != null && !dataCenter.getInactive()) {
                     ComputeSystemHelper.doDeactivateVcenterDataCenter(dbClient, dataCenter);
                 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.search;
@@ -29,5 +29,5 @@ public class Resources {
     public void setResource(List<TagTypedRelatedResourceRep> resource) {
         this.resource = resource;
     }
-    
+
 }

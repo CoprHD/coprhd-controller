@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models;
@@ -36,11 +36,11 @@ public class HostTypes {
     public static boolean isWindows(String type) {
         return WINDOWS.equals(type);
     }
-    
+
     public static boolean isHPUX(String type) {
-    	return HPUX.equals(type);
+        return HPUX.equals(type);
     }
-    
+
     public static boolean isSUNVCS(String type) {
         return SUNVCS.equals(type);
     }

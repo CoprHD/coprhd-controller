@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.cimadapter.connections;
 
@@ -18,6 +8,8 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -45,10 +37,12 @@ public class ConnectionManagerTest {
     private static final String BLOCK_PROVIDER_IMPL_NS = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "smis.namespace");
     private static final String PROVIDER_INTEROP_NS = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "smis.interop.namespace");
     
+    private static final Logger s_logger = LoggerFactory.getLogger(ConnectionManagerTest.class);
+    
     @SuppressWarnings("unused")
     private static final String FILE_PROVIDER_IMPL_NS = "root/emc/celerra";
 
-    private static ConnectionManager _connectionManager = null;
+    private static volatile ConnectionManager _connectionManager = null;
 
      /**
      * Loads the log service properties before executing any tests.
@@ -60,6 +54,7 @@ public class ConnectionManagerTest {
                 "AdapterSpringContext-server.xml");
             _connectionManager = (ConnectionManager) ctx.getBean("ConnectionManager");
         } catch (Exception e) {
+        	s_logger.error(e.getMessage(),e);
         }
     }
 
@@ -67,7 +62,7 @@ public class ConnectionManagerTest {
      * Tests the addConnection method when null connection info is passed.
      */
     @Test
-    public void testAddConnection_NullConnectionInfo() {
+    public void testAddConnectionNullConnectionInfo() {
         Assert.assertNotNull(_connectionManager);
         boolean wasException = false;
         try {
@@ -82,7 +77,7 @@ public class ConnectionManagerTest {
      * Tests the addConnection method for a generic CIM connection type.
      */
     @Test
-    public void testAddConnection_CIM() {
+    public void testAddConnectionCIM() {
         Assert.assertNotNull(_connectionManager);
 
         // Create the connection info.
@@ -136,7 +131,7 @@ public class ConnectionManagerTest {
      * Tests the addConnection method for an ECOM connection type.
      */
     @Test
-    public void testAddConnection_ECOM() {
+    public void testAddConnectionECOM() {
         Assert.assertNotNull(_connectionManager);
 
         // Create the connection info.
@@ -231,7 +226,7 @@ public class ConnectionManagerTest {
      * Tests the addConnection method when the provider is already connected.
      */
     @Test
-    public void testAddConnection_AlreadyConnected() {
+    public void testAddConnectionAlreadyConnected() {
         Assert.assertNotNull(_connectionManager);
 
         // Create the connection info.
@@ -303,7 +298,7 @@ public class ConnectionManagerTest {
      * Tests the addConnection method when the connection type is not valid.
      */
     @Test
-    public void testAddConnection_InvalidConnectionType() {
+    public void testAddConnectionInvalidConnectionType() {
         Assert.assertNotNull(_connectionManager);
 
         // Create the connection info.
@@ -342,7 +337,7 @@ public class ConnectionManagerTest {
      * the CIM client connection.
      */
     @Test
-    public void testAddConnection_Exception() {
+    public void testAddConnectionException() {
         Assert.assertNotNull(_connectionManager);
 
         // Create the connection info with an invalid provider host, which will
@@ -381,7 +376,7 @@ public class ConnectionManagerTest {
      * Tests the removeConnection method when passed host is null.
      */
     @Test
-    public void testRemoveConnection_NullHost() {
+    public void testRemoveConnectionNullHost() {
         Assert.assertNotNull(_connectionManager);
 
         // Remove the connection passing a null host.
@@ -398,7 +393,7 @@ public class ConnectionManagerTest {
      * Tests the removeConnection method when passed host is blank.
      */
     @Test
-    public void testRemoveConnection_BlankHost() {
+    public void testRemoveConnectionBlankHost() {
         Assert.assertNotNull(_connectionManager);
 
         // Remove the connection passing a null host.
@@ -415,7 +410,7 @@ public class ConnectionManagerTest {
      * Tests the removeConnection method when passed host is not connected.
      */
     @Test
-    public void testRemoveConnection_NotConnected() {
+    public void testRemoveConnectionNotConnected() {
         Assert.assertNotNull(_connectionManager);
 
         // Remove the connection passing a null host.
@@ -432,7 +427,7 @@ public class ConnectionManagerTest {
      * Tests the removeConnection method when passed host is connected.
      */
     @Test
-    public void testRemoveConnection_Connected() {
+    public void testRemoveConnectionConnected() {
         Assert.assertNotNull(_connectionManager);
 
         // Create the connection info.
@@ -486,7 +481,7 @@ public class ConnectionManagerTest {
      * Tests the isConnected method when passed host is null.
      */
     @Test
-    public void testIsConnected_NullHost() {
+    public void testIsConnectedNullHost() {
         Assert.assertNotNull(_connectionManager);
 
         // Remove the connection passing a null host.
@@ -503,7 +498,7 @@ public class ConnectionManagerTest {
      * Tests the isConnected method when passed host is blank.
      */
     @Test
-    public void testIsConnected_BlankHost() {
+    public void testIsConnectedBlankHost() {
         Assert.assertNotNull(_connectionManager);
 
         // Remove the connection passing a null host.
@@ -520,7 +515,7 @@ public class ConnectionManagerTest {
      * Tests the isConnected method when passed host is not connected.
      */
     @Test
-    public void testIsConnected_NotConnected() {
+    public void testIsConnectedNotConnected() {
         Assert.assertNotNull(_connectionManager);
 
         // Remove the connection passing a null host.
@@ -537,7 +532,7 @@ public class ConnectionManagerTest {
      * Tests the isConnected method when passed host is not connected.
      */
     @Test
-    public void testIsConnected_Connected() {
+    public void testIsConnectedConnected() {
         Assert.assertNotNull(_connectionManager);
 
         // Create the connection info.

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -106,9 +106,9 @@ public class StringOption implements Comparable<StringOption> {
      * Get given enum's i18n display-able string.
      * 
      * @param value
-     *        the enumeration value
+     *            the enumeration value
      * @param namePrefix
-     *        the prefix of the message key.
+     *            the prefix of the message key.
      * @return the display value.
      */
     public static String getDisplayValue(String value, String namePrefix) {

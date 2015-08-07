@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.smis;
@@ -19,8 +19,9 @@ public class SMISProviderUpdateParam {
     private String password;
     private Boolean useSSL;
 
-    public SMISProviderUpdateParam() {}
-    
+    public SMISProviderUpdateParam() {
+    }
+
     public SMISProviderUpdateParam(String name, String ipAddress,
             Integer portNumber, String userName, String password, Boolean useSSL) {
         this.name = name;
@@ -32,8 +33,8 @@ public class SMISProviderUpdateParam {
     }
 
     /**
-     * New SMIS Provider name 
-     */     
+     * New SMIS Provider name
+     */
     @XmlElement
     @Length(min = 2, max = 128)
     public String getName() {
@@ -45,9 +46,10 @@ public class SMISProviderUpdateParam {
     }
 
     /**
-     * New SMIS Provider IP address 
+     * New SMIS Provider IP address
+     * 
      * @valid example: 10.247.99.87
-     */     
+     */
     @XmlElement(name = "ip_address")
     public String getIpAddress() {
         return ipAddress;
@@ -58,9 +60,10 @@ public class SMISProviderUpdateParam {
     }
 
     /**
-     * New SMIS Provider port number 
+     * New SMIS Provider port number
+     * 
      * @valid example: 5989
-     */     
+     */
     @XmlElement(name = "port_number")
     public Integer getPortNumber() {
         return portNumber;
@@ -71,9 +74,10 @@ public class SMISProviderUpdateParam {
     }
 
     /**
-     * New SMIS Provider user name 
+     * New SMIS Provider user name
+     * 
      * @valid none
-     */     
+     */
     @XmlElement(name = "user_name")
     public String getUserName() {
         return userName;
@@ -84,9 +88,10 @@ public class SMISProviderUpdateParam {
     }
 
     /**
-     * New SMIS Provider password 
+     * New SMIS Provider password
+     * 
      * @valid none
-     */     
+     */
     @XmlElement
     public String getPassword() {
         return password;
@@ -97,10 +102,11 @@ public class SMISProviderUpdateParam {
     }
 
     /**
-     * Specifies whether to use SSL (Secure Sockets Layer) 
+     * Specifies whether to use SSL (Secure Sockets Layer)
      * as the authentication method.
-     * @valid none 
-     */     
+     * 
+     * @valid none
+     */
     @XmlElement(name = "use_ssl")
     public Boolean getUseSSL() {
         return useSSL;
@@ -109,5 +115,5 @@ public class SMISProviderUpdateParam {
     public void setUseSSL(Boolean useSSL) {
         this.useSSL = useSSL;
     }
-    
+
 }

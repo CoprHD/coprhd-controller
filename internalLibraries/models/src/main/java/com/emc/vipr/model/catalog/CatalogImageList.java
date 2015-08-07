@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -14,17 +14,19 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 
 @XmlRootElement(name = "catalog_images")
 public class CatalogImageList {
-    
+
     private List<NamedRelatedResourceRep> catalogImages;
-    
-    public CatalogImageList() {}
-    
+
+    public CatalogImageList() {
+    }
+
     public CatalogImageList(List<NamedRelatedResourceRep> catalogImages) {
         this.catalogImages = catalogImages;
     }
 
     /**
      * List of catalog images
+     * 
      * @valid none
      */
     @XmlElement(name = "catalog_image")
@@ -37,5 +39,5 @@ public class CatalogImageList {
 
     public void setCatalogImages(List<NamedRelatedResourceRep> catalogImages) {
         this.catalogImages = catalogImages;
-    }    
+    }
 }

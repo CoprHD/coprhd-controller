@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block.export;
@@ -17,8 +17,9 @@ public class HostsParam {
 
     private List<URI> hosts;
 
-    public HostsParam() {}
-    
+    public HostsParam() {
+    }
+
     public HostsParam(List<URI> hosts) {
         this.hosts = hosts;
     }
@@ -39,5 +40,5 @@ public class HostsParam {
     public void setHosts(List<URI> hosts) {
         this.hosts = hosts;
     }
-    
+
 }

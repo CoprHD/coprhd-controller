@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
@@ -21,12 +21,12 @@ import com.emc.storageos.db.client.model.ZoneInfoMap;
 public class UnManagedExportMask extends UnManagedDiscoveredObject {
 
     private static final long serialVersionUID = 1L;
-    
+
     private URI _storageSystemUri;
     private String _maskingViewPath;
     private String _maskName;
     private String _nativeId;
-    
+
     private StringSet _knownInitiatorUris;
     private StringSet _knownInitiatorNetworkIds;
     private StringSet _unmanagedInitiatorNetworkIds;
@@ -35,30 +35,29 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     private StringSet _knownVolumeUris;
     private StringSet _unmanagedVolumeUris;
     private ZoneInfoMap _zoningMap;
-    
+
     @RelationIndex(cf = "UnManagedExportMaskRelationIndex", type = StorageSystem.class)
     @Name("storageSystem")
     public URI getStorageSystemUri() {
         return _storageSystemUri;
     }
-    
+
     public void setStorageSystemUri(URI storageSystemUri) {
         this._storageSystemUri = storageSystemUri;
         setChanged("storageSystem");
     }
-    
+
     @Name("maskingViewPath")
     @AlternateId("AltIdIndex")
     public String getMaskingViewPath() {
         return _maskingViewPath;
     }
-    
+
     public void setMaskingViewPath(String maskingViewPath) {
         this._maskingViewPath = maskingViewPath;
         setChanged("maskingViewPath");
     }
-    
-    
+
     @Name("maskName")
     public String getMaskName() {
         return _maskName;
@@ -86,11 +85,11 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
         }
         return _knownInitiatorUris;
     }
-    
+
     public void setKnownInitiatorUris(StringSet knownInitiatorUris) {
         this._knownInitiatorUris = knownInitiatorUris;
     }
-    
+
     @IndexByKey
     @AlternateId("KnownInitiatorNetwordIdIndex")
     @Name("knownInitiatorNetworkIds")
@@ -100,11 +99,11 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
         }
         return _knownInitiatorNetworkIds;
     }
-    
+
     public void setKnownInitiatorNetworkIds(StringSet knownInitiatorNetworkIds) {
         this._knownInitiatorNetworkIds = knownInitiatorNetworkIds;
     }
-    
+
     @Name("unmanagedInitiatorNetworkIds")
     public StringSet getUnmanagedInitiatorNetworkIds() {
         if (null == _unmanagedInitiatorNetworkIds) {
@@ -112,11 +111,11 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
         }
         return _unmanagedInitiatorNetworkIds;
     }
-    
+
     public void setUnmanagedInitiatorNetworkIds(StringSet unmanagedInitiatorNetworkIds) {
         this._unmanagedInitiatorNetworkIds = unmanagedInitiatorNetworkIds;
     }
-    
+
     @Name("knownStoragePortUris")
     @AlternateId("UnManagedMaskStoragePorts")
     public StringSet getKnownStoragePortUris() {
@@ -125,11 +124,11 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
         }
         return _knownStoragePortUris;
     }
-    
+
     public void setKnownStoragePortUris(StringSet knownStoragePortUris) {
         this._knownStoragePortUris = knownStoragePortUris;
     }
-    
+
     @Name("unmanagedStoragePortNetworkIds")
     public StringSet getUnmanagedStoragePortNetworkIds() {
         if (null == _unmanagedStoragePortNetworkIds) {
@@ -142,8 +141,6 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
             StringSet unmanagedStoragePortNetworkIds) {
         this._unmanagedStoragePortNetworkIds = unmanagedStoragePortNetworkIds;
     }
-    
-    
 
     @Name("knownVolumeUris")
     public StringSet getKnownVolumeUris() {
@@ -186,7 +183,7 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
             _zoningMap.replace(zoningMap);
         }
     }
-    
+
     public void addZoningMap(ZoneInfoMap zoningMapEntries) {
         if (this._zoningMap == null) {
             setZoningMap(zoningMapEntries);
@@ -194,7 +191,7 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
             this._zoningMap.putAll(zoningMapEntries);
         }
     }
-    
+
     public void removeZoningMapEntry(String key) {
         if (this._zoningMap != null) {
             // This seemingly contorted logic is to avoid
@@ -202,9 +199,10 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
             _zoningMap.remove(key);
         }
     }
-    
+
     /**
      * Add an entry to create a zone between an initiator and port.
+     * 
      * @param initiator URI as String
      * @param storagePort URI as String
      */
@@ -214,15 +212,17 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
         }
         this._zoningMap.put(zoningInfo.getZoneReferenceKey(), zoningInfo);
     }
-    
+
     /**
      * Update initiator/volumes/ports
+     * 
      * @param knownIniSet
      * @param knownNetworkIdSet
      * @param knownVolumeSet
      * @param knownPortSet
      */
-    public void replaceNewWithOldResources(StringSet knownIniSet, StringSet knownNetworkIdSet, StringSet knownVolumeSet, StringSet knownPortSet) {
+    public void replaceNewWithOldResources(StringSet knownIniSet, StringSet knownNetworkIdSet, StringSet knownVolumeSet,
+            StringSet knownPortSet) {
         // CTRL - 8918 - always update the mask with new initiators and volumes.
         if (getKnownInitiatorUris() == null) {
             setKnownInitiatorUris(new StringSet());

@@ -1,12 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) $today_year. EMC Corporation All Rights Reserved This software contains the
- * intellectual property of EMC Corporation or is licensed to EMC Corporation from third parties.
- * Use of this software and the intellectual property contained therein is expressly limited to the
- * terms and conditions of the License Agreement under which it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
@@ -51,26 +45,26 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
     protected SmisCommandHelper _helper;
     protected CIMObjectPathFactory _cimPath;
     protected NameGenerator _nameGenerator;
-    
+
     public void setCimObjectPathFactory(CIMObjectPathFactory cimObjectPathFactory) {
         _cimPath = cimObjectPathFactory;
     }
-    
+
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
     }
-    
+
     public void setSmisCommandHelper(SmisCommandHelper smisCommandHelper) {
         _helper = smisCommandHelper;
     }
-    
+
     public void setNameGenerator(NameGenerator nameGenerator) {
         _nameGenerator = nameGenerator;
     }
-    
+
     @Override
     public void createSingleVolumeMirror(StorageSystem storage, URI mirror, Boolean createInactive,
-                                         TaskCompleter taskCompleter) throws DeviceControllerException {
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("createSingleVolumeMirror operation START");
         try {
             BlockMirror mirrorObj = _dbClient.queryObject(BlockMirror.class, mirror);
@@ -90,7 +84,7 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
             }
             else {
                 inArgs = _helper.getCreateElementReplicaMirrorInputArguments(storage, source, targetPool,
-                    createInactive, targetLabelToUse);
+                        createInactive, targetLabelToUse);
             }
 
             CIMArgument[] outArgs = new CIMArgument[5];
@@ -113,7 +107,7 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
             taskCompleter.error(_dbClient, serviceError);
         }
     }
-    
+
     @Override
     public void fractureSingleVolumeMirror(StorageSystem storage, URI mirror, Boolean sync, TaskCompleter taskCompleter)
             throws DeviceControllerException {
@@ -144,7 +138,7 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
             }
         }
     }
-    
+
     @Override
     public void resumeSingleVolumeMirror(StorageSystem storage, URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("resumeSingleVolumeMirror operation START");
@@ -166,7 +160,7 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
                 /**
                  * JIRA CTRL-11855
                  * User created mirror and did pause operation using SMI 4.6.2.
-                 * Then He upgraded to SMI 8.0.3. While doing mirror resume getting exception from SMI because of the 
+                 * Then He upgraded to SMI 8.0.3. While doing mirror resume getting exception from SMI because of the
                  * existing mirrorObj.getSynchronizedInstance() contains SystemName=\"SYMMETRIX+000195701573\""
                  * This is wrong with 8.0.3 as SystemName=\"SYMMETRIX-+-000195701573\"".
                  * To resolve this issue setting new value collected from current smis provider here.
@@ -183,7 +177,7 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
                     ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockResumeMirrorJob(job,
                             storage.getId(), taskCompleter)));
                 }
-                
+
             }
         } catch (Exception e) {
             _log.error("Failed to resume single volume mirror: {}", mirror);
@@ -195,7 +189,7 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
             }
         }
     }
-    
+
     @Override
     public void detachSingleVolumeMirror(StorageSystem storage, URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("detachSingleVolumeMirror operation START");
@@ -218,7 +212,7 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
             taskCompleter.error(_dbClient, serviceError);
         }
     }
-    
+
     @Override
     public void deleteSingleVolumeMirror(StorageSystem storage, URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("deleteSingleVolumeMirror operation START");

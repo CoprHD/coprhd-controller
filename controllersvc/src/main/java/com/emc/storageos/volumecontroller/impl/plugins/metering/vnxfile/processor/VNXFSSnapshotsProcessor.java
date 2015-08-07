@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
@@ -38,7 +28,7 @@ public class VNXFSSnapshotsProcessor extends VNXFileProcessor {
 
     @Override
     public void processResult(Operation operation, Object resultObj,
-                              Map<String, Object> keyMap) throws BaseCollectionException {
+            Map<String, Object> keyMap) throws BaseCollectionException {
         _logger.info("processing snapshot id response" + resultObj);
         final PostMethod result = (PostMethod) resultObj;
         try {
@@ -49,14 +39,13 @@ public class VNXFSSnapshotsProcessor extends VNXFileProcessor {
                 status = responsePacket.getPacketFault();
                 processErrorStatus(status, keyMap);
             } else {
-                
 
                 List<Object> snapshotList = getQueryResponse(responsePacket);
                 List<Checkpoint> snapsList = new ArrayList<Checkpoint>();
-                
+
                 final String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
                 _logger.info("Looking for all snapshots of filesystem {}", fsId);
-                
+
                 Iterator<Object> snapshotItr = snapshotList.iterator();
                 if (snapshotItr.hasNext()) {
                     status = (Status) snapshotItr.next();
@@ -71,7 +60,7 @@ public class VNXFSSnapshotsProcessor extends VNXFileProcessor {
                                 snapsList.add(point);
                             }
                         }
-                        _logger.info("Number of Snapshots found for FS : {} are : {}", fsId, snapsList.size()) ;
+                        _logger.info("Number of Snapshots found for FS : {} are : {}", fsId, snapsList.size());
                         keyMap.put(VNXFileConstants.SNAPSHOTS_LIST, snapsList);
                         keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
                     } else {

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
@@ -31,7 +21,7 @@ import com.google.common.base.Joiner;
 public class VolumeCreateWorkflowCompleter extends VolumeWorkflowCompleter {
 
     private static final long serialVersionUID = -322417427255890556L;
-    
+
     @XmlTransient
     private List<VolumeDescriptor> _volumeDescriptors = new ArrayList<VolumeDescriptor>();
 
@@ -45,49 +35,48 @@ public class VolumeCreateWorkflowCompleter extends VolumeWorkflowCompleter {
     }
 
     @Override
-    protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded serviceCoded){
+    protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded serviceCoded) {
 
         super.complete(dbClient, status, serviceCoded);
 
         switch (status) {
-        case error:
+            case error:
 
-            handleBlockVolumeErrors(dbClient);
-            handleVplexVolumeErrors(dbClient);
+                handleBlockVolumeErrors(dbClient);
+                handleVplexVolumeErrors(dbClient);
 
-            break;
-        default:
-            break;
-        }        
+                break;
+            default:
+                break;
+        }
     }
-    
+
     private void handleBlockVolumeErrors(DbClient dbClient) {
-        for (VolumeDescriptor volumeDescriptor : 
-            VolumeDescriptor.getDescriptors(_volumeDescriptors, VolumeDescriptor.Type.BLOCK_DATA)) {
-            
+        for (VolumeDescriptor volumeDescriptor : VolumeDescriptor.getDescriptors(_volumeDescriptors, VolumeDescriptor.Type.BLOCK_DATA)) {
+
             Volume volume = dbClient.queryObject(Volume.class, volumeDescriptor.getVolumeURI());
-            
+
             if (volume != null && (volume.getNativeId() == null || volume.getNativeId().equals(""))) {
                 _log.info("No native id was present on volume {}, marking inactive", volume.getLabel());
                 dbClient.markForDeletion(volume);
             }
         }
     }
-    
+
     private void handleVplexVolumeErrors(DbClient dbClient) {
-        
+
         List<String> finalMessages = new ArrayList<String>();
-        
-        for (VolumeDescriptor volumeDescriptor : 
-            VolumeDescriptor.getDescriptors(_volumeDescriptors, VolumeDescriptor.Type.VPLEX_VIRT_VOLUME)) {
-            
+
+        for (VolumeDescriptor volumeDescriptor : VolumeDescriptor.getDescriptors(_volumeDescriptors,
+                VolumeDescriptor.Type.VPLEX_VIRT_VOLUME)) {
+
             Volume volume = dbClient.queryObject(Volume.class, volumeDescriptor.getVolumeURI());
-            
+
             _log.info("Looking at VPLEX virtual volume {}", volume.getLabel());
-            
+
             boolean deactivateVirtualVolume = true;
             List<String> livingVolumeNames = new ArrayList<String>();
-            
+
             _log.info("Its associated volumes are: " + volume.getAssociatedVolumes());
             for (String associatedVolumeUri : volume.getAssociatedVolumes()) {
                 Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolumeUri));
@@ -97,20 +86,20 @@ public class VolumeCreateWorkflowCompleter extends VolumeWorkflowCompleter {
                     deactivateVirtualVolume = false;
                 }
             }
-            
+
             if (deactivateVirtualVolume) {
                 _log.info("VPLEX virtual volume {} has no active associated volumes, marking for deletion", volume.getLabel());
                 dbClient.markForDeletion(volume);
             } else {
-                String message = "VPLEX virtual volume "  + volume.getLabel() + " will not be marked for deletion "
-                               + "because it still has active associated volumes (";
+                String message = "VPLEX virtual volume " + volume.getLabel() + " will not be marked for deletion "
+                        + "because it still has active associated volumes (";
                 message += Joiner.on(",").join(livingVolumeNames) + ")";
                 finalMessages.add(message);
                 _log.warn(message);
             }
         }
-        
-        if (finalMessages.size() > 0) {
+
+        if (!finalMessages.isEmpty()) {
             String finalMessage = Joiner.on("; ").join(finalMessages) + ".";
             _log.error(finalMessage);
         }

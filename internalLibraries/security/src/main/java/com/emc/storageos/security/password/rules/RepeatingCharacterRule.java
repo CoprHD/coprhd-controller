@@ -1,20 +1,9 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.security.password.rules;
-
 
 import com.emc.storageos.security.password.Password;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
@@ -41,10 +30,10 @@ public class RepeatingCharacterRule implements Rule {
         int max_repeating = 1;
         char old = text.charAt(0);
 
-        for (int i=1; i<text.length(); i++) {
+        for (int i = 1; i < text.length(); i++) {
             char c = text.charAt(i);
             if (c == old) {
-                repeating ++;
+                repeating++;
                 if (repeating > max_repeating) {
                     max_repeating = repeating;
                 }

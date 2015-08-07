@@ -1,14 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.usermanagement.password;
 
-
-import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
-import com.emc.storageos.usermanagement.setup.ADMode;
 import com.emc.storageos.usermanagement.setup.LocalUserMode;
-import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
 import org.junit.Assert;
 import org.junit.Test;
@@ -17,8 +13,10 @@ import org.slf4j.LoggerFactory;
 
 public class ChangePasswordApiTest extends LocalUserMode {
     private static Logger logger = LoggerFactory.getLogger(PasswordPolicyConfigTest.class);
-    private String oldPassword="ChangeMe";
-    private String newValidPassword = "Vipr1@emc.com";
+    private String oldPassword = "ChangeMe";  // NOSONAR
+                                             // ("Suppressing: removing this hard-coded password since it's vipr's default password")
+    private String newValidPassword = "Vipr1@emc.com";  // NOSONAR
+                                                       // ("Suppressing: removing this hard-coded password since it's a temp vipr's password for testing")
 
     @Test
     public void nonLocalUser() throws Exception {
@@ -73,6 +71,7 @@ public class ChangePasswordApiTest extends LocalUserMode {
     /**
      * this is test is for verify bug fix for CTRL-7658, when change proxyuser's password
      * will get a nullpointer exception.
+     * 
      * @throws Exception
      */
     @Test
@@ -92,7 +91,7 @@ public class ChangePasswordApiTest extends LocalUserMode {
     @Test
     public void changePasswordBlockAfter10InvalideOldPassword() throws Exception {
         boolean bBlock = false;
-        for (int i=0; i<11; i++) {
+        for (int i = 0; i < 11; i++) {
             try {
                 systemClient.auth().changePassword("svcuser", "wrongOldPasswd", "newpassword");
                 Assert.fail("should fail, as old password is invalid");
@@ -113,7 +112,7 @@ public class ChangePasswordApiTest extends LocalUserMode {
     @Test
     public void updatePasswordBlockAfter10InvalideOldPassword() throws Exception {
         boolean bBlock = false;
-        for (int i=0; i<11; i++) {
+        for (int i = 0; i < 11; i++) {
             try {
                 systemClient.password().update("wrongOldPassword", "newPassword", false);
                 Assert.fail("should fail, as old password is invalid");

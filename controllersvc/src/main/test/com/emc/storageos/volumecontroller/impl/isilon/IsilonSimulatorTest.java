@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.isilon;
@@ -52,7 +42,7 @@ public class IsilonSimulatorTest {
     @Before
     public void setUp() throws Exception {
         // start up simulator server
-       // Main.main(new String[]{ "/" + getClass().getResource("/simulator-config.xml").getPath() } );
+        // Main.main(new String[]{ "/" + getClass().getResource("/simulator-config.xml").getPath() } );
         _isi = new IsilonFileStorageDevice();
         IsilonApiFactory factory = new IsilonApiFactory();
         factory.init();
@@ -94,7 +84,7 @@ public class IsilonSimulatorTest {
         // unexport
         Assert.assertTrue("doUnexport failed", _isi.doUnexport(_device, args, Arrays.asList(export))
                 .getCommandStatus().equals(Operation.Status.ready.name()));
-        Assert.assertTrue("doUnexport failed, export not deleted from FS", fs.getFsExports().keySet().size() == 0);
+        Assert.assertTrue("doUnexport failed, export not deleted from FS", fs.getFsExports().keySet().isEmpty());
 
         // delete
         Assert.assertTrue("doDeleteFs failed", _isi.doDeleteFS(_device, args)
@@ -134,7 +124,7 @@ public class IsilonSimulatorTest {
         // unexport
         Assert.assertTrue("doUnexport failed", _isi.doUnexport(_device, args, Arrays.asList(export))
                 .getCommandStatus().equals(Operation.Status.ready.name()));
-        Assert.assertTrue("doExport failed, export not deleted from snapshot", snap.getFsExports().keySet().size() == 0);
+        Assert.assertTrue("doExport failed, export not deleted from snapshot", snap.getFsExports().keySet().isEmpty());
 
         // delete
         Assert.assertTrue("doDeleteSnapshot failed", _isi.doDeleteSnapshot(_device, args)
@@ -151,4 +141,3 @@ public class IsilonSimulatorTest {
     }
 
 }
-

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.vdc;
@@ -19,28 +19,28 @@ import com.emc.storageos.model.DataObjectRestRep;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class VirtualDataCenterRestRep extends DataObjectRestRep {
 
-    private static final long NETWORK_ALARM_THRESHOLD = 30 * 60 * 1000; // 30 min  
+    private static final long NETWORK_ALARM_THRESHOLD = 30 * 60 * 1000; // 30 min
 
     private String description;
     private String apiEndpoint;
     private String status;
-    private Boolean local; 
+    private Boolean local;
     private String shortId;
     private String geoCommandEndpoint;
     private String geoDataEndpoint;
     private Long lastSeenTimeInMillis;
-            
-    private static Set<String> ALLOW_DISCONNECT_STATUS = new HashSet<String>(Arrays.asList("CONNECTED", 
-    		"REMOVE_FAILED", "REMOVE_PRECHECK_FAILED", "UPDATE_FAILED", 
-    		"DISCONNECT_PRECHECK_FAILED", "DISCONNECT_FAILED"));
-    private static Set<String> ALLOW_RECONNECT_STATUS = new HashSet<String>(Arrays.asList("DISCONNECTED", 
-    	     "RECONNECT_PRECHECK_FAILED", "RECONNECT_FAILED"));
-    
-    private static Set<String> DISALLOW_DELETE_STATUS = new HashSet<String>(Arrays.asList("DISCONNECTING", 
-            "CONNECTING_SYNCED", "RECONNECTING", "DISCONNECT_PRECHECK_FAILED","RECONNECT_PRECHECK_FAILED",
+
+    private static Set<String> ALLOW_DISCONNECT_STATUS = new HashSet<String>(Arrays.asList("CONNECTED",
+            "REMOVE_FAILED", "REMOVE_PRECHECK_FAILED", "UPDATE_FAILED",
+            "DISCONNECT_PRECHECK_FAILED", "DISCONNECT_FAILED"));
+    private static Set<String> ALLOW_RECONNECT_STATUS = new HashSet<String>(Arrays.asList("DISCONNECTED",
+            "RECONNECT_PRECHECK_FAILED", "RECONNECT_FAILED"));
+
+    private static Set<String> DISALLOW_DELETE_STATUS = new HashSet<String>(Arrays.asList("DISCONNECTING",
+            "CONNECTING_SYNCED", "RECONNECTING", "DISCONNECT_PRECHECK_FAILED", "RECONNECT_PRECHECK_FAILED",
             "CONNECTING"));
-    
-    @XmlElement(name="description")
+
+    @XmlElement(name = "description")
     public String getDescription() {
         return description;
     }
@@ -49,7 +49,7 @@ public class VirtualDataCenterRestRep extends DataObjectRestRep {
         this.description = description;
     }
 
-    @XmlElement(name="apiEndpoint")
+    @XmlElement(name = "apiEndpoint")
     public String getApiEndpoint() {
         return apiEndpoint;
     }
@@ -59,7 +59,7 @@ public class VirtualDataCenterRestRep extends DataObjectRestRep {
     }
 
     @Deprecated
-    @XmlElement(name="connectionStatus")
+    @XmlElement(name = "connectionStatus")
     public String getConnectionStatus() {
         return status;
     }
@@ -68,8 +68,8 @@ public class VirtualDataCenterRestRep extends DataObjectRestRep {
     public void setConnectionStatus(String connectionStatus) {
         this.status = connectionStatus;
     }
-    
-    @XmlElement(name="status")
+
+    @XmlElement(name = "status")
     public String getStatus() {
         return status;
     }
@@ -77,8 +77,8 @@ public class VirtualDataCenterRestRep extends DataObjectRestRep {
     public void setStatus(String status) {
         this.status = status;
     }
-     
-    @XmlElement(name="local")
+
+    @XmlElement(name = "local")
     public Boolean isLocal() {
         return local;
     }
@@ -87,7 +87,7 @@ public class VirtualDataCenterRestRep extends DataObjectRestRep {
         this.local = local;
     }
 
-    @XmlElement(name="shortId")
+    @XmlElement(name = "shortId")
     public String getShortId() {
         return shortId;
     }
@@ -96,7 +96,7 @@ public class VirtualDataCenterRestRep extends DataObjectRestRep {
         this.shortId = shortId;
     }
 
-    @XmlElement(name="geoCommandEndpoint")
+    @XmlElement(name = "geoCommandEndpoint")
     public String getGeoCommandEndpoint() {
         return geoCommandEndpoint;
     }
@@ -105,7 +105,7 @@ public class VirtualDataCenterRestRep extends DataObjectRestRep {
         this.geoCommandEndpoint = geoCommandEndpoint;
     }
 
-    @XmlElement(name="geoDataEndpoint")
+    @XmlElement(name = "geoDataEndpoint")
     public String getGeoDataEndpoint() {
         return geoDataEndpoint;
     }
@@ -113,8 +113,8 @@ public class VirtualDataCenterRestRep extends DataObjectRestRep {
     public void setGeoDataEndpoint(String geoDataEndpoint) {
         this.geoDataEndpoint = geoDataEndpoint;
     }
-    
-    @XmlElement(name="lastSeenTimeInMillis")
+
+    @XmlElement(name = "lastSeenTimeInMillis")
     public Long getLastSeenTimeInMillis() {
         return lastSeenTimeInMillis;
     }
@@ -123,19 +123,19 @@ public class VirtualDataCenterRestRep extends DataObjectRestRep {
         this.lastSeenTimeInMillis = lastSeenTimeInMillis;
     }
 
-    public boolean canDisconnect() {        
-        return (Boolean.FALSE.equals(this.local) 
-                && ALLOW_DISCONNECT_STATUS.contains(this.status != null ? this.status.toUpperCase() : ""));
+    public boolean canDisconnect() {
+        return (Boolean.FALSE.equals(this.local)
+        && ALLOW_DISCONNECT_STATUS.contains(this.status != null ? this.status.toUpperCase() : ""));
     }
-    
+
     public boolean canReconnect() {
-        return (Boolean.FALSE.equals(this.local) 
-                && ALLOW_RECONNECT_STATUS.contains(this.status != null ? this.status.toUpperCase() : ""));
-    }  
-    
+        return (Boolean.FALSE.equals(this.local)
+        && ALLOW_RECONNECT_STATUS.contains(this.status != null ? this.status.toUpperCase() : ""));
+    }
+
     public boolean canDelete() {
-        return (Boolean.FALSE.equals(this.local) 
-                && !DISALLOW_DELETE_STATUS.contains(this.status != null ? this.status.toUpperCase() : ""));
+        return (Boolean.FALSE.equals(this.local)
+        && !DISALLOW_DELETE_STATUS.contains(this.status != null ? this.status.toUpperCase() : ""));
     }
 
     public Boolean shouldAlarm() {

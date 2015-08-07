@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block;
@@ -19,8 +19,9 @@ public class VirtualArrayChangeParam {
 
     private URI virtualArray;
 
-    public VirtualArrayChangeParam() {}
-    
+    public VirtualArrayChangeParam() {
+    }
+
     public VirtualArrayChangeParam(URI virtualArray) {
         this.virtualArray = virtualArray;
     }

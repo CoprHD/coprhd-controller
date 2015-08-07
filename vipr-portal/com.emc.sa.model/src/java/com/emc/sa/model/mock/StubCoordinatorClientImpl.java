@@ -1,18 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.model.mock;
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
- */
 
 
 import com.emc.storageos.coordinator.client.service.*;
@@ -36,14 +26,13 @@ import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-
 /**
  * Dummy coordinator client for use with dbsvc unit tests
  */
 public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
     private Service _dbinfo;
     private Map<String, Configuration> _configMap = new HashMap<String, Configuration>();
-    private Map<String,InterProcessLock> _locks = new HashMap<String, InterProcessLock>();
+    private Map<String, InterProcessLock> _locks = new HashMap<String, InterProcessLock>();
 
     public StubCoordinatorClientImpl(URI endpoint) {
         ServiceImpl svc = new ServiceImpl();
@@ -65,8 +54,7 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
         addressMap.setNodeName("localhost");
         try {
             addressMap.setDualInetAddress(DualInetAddress.fromAddress("127.0.0.1"));
-        }
-        catch (UnknownHostException e) {
+        } catch (UnknownHostException e) {
             // Should never happen, ignore
         }
 
@@ -87,12 +75,14 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
     }
 
     @Override
-    public <T> DistributedQueue<T> getQueue(String name, DistributedQueueConsumer<T> consumer, QueueSerializer<T> serializer, int maxThreads, int maxItem) {
+    public <T> DistributedQueue<T> getQueue(String name, DistributedQueueConsumer<T> consumer, QueueSerializer<T> serializer,
+            int maxThreads, int maxItem) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public <T> DistributedQueue<T> getQueue(String name, DistributedQueueConsumer<T> consumer, QueueSerializer<T> serializer, int maxThreads) {
+    public <T> DistributedQueue<T>
+            getQueue(String name, DistributedQueueConsumer<T> consumer, QueueSerializer<T> serializer, int maxThreads) {
         throw new UnsupportedOperationException();
     }
 
@@ -113,8 +103,8 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
 
             @Override
             public void acquire() throws Exception {
-                synchronized (_locks){
-                    if(_locks.containsKey(_lockName)){
+                synchronized (_locks) {
+                    if (_locks.containsKey(_lockName)) {
                         throw new Exception("cannot get lock");
                     }
                     _locks.put(_lockName, this);
@@ -129,9 +119,9 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
 
             @Override
             public void release() throws Exception {
-                synchronized (_locks){
+                synchronized (_locks) {
                     InterProcessLock locked = _locks.get(_lockName);
-                    if(locked == this){
+                    if (locked == this) {
                         _locks.remove(_lockName);
                     }
                 }
@@ -140,10 +130,10 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
             @Override
             public boolean isAcquiredInThisProcess() {
                 InterProcessLock locked;
-                synchronized (_locks){
+                synchronized (_locks) {
                     locked = _locks.get(_lockName);
                 }
-                if(locked == this){
+                if (locked == this) {
                     return true;
                 }
                 return false;
@@ -194,7 +184,7 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
     @Override
     public List<Configuration> queryAllConfiguration(String kind) {
         List<Configuration> configs = new ArrayList<Configuration>();
-        for (String key: _configMap.keySet()) {
+        for (String key : _configMap.keySet()) {
             if (key.startsWith(kind)) {
                 configs.add(_configMap.get(key));
             }

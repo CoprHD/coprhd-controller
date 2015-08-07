@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.svcs.errorhandling.annotations;
@@ -37,6 +27,7 @@ import com.emc.storageos.svcs.errorhandling.utils.Documenter;
  * <p/>
  * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
  * http://confluence.lab.voyence.com/display/OS/Error+Handling+Framework+and+Exceptions+in+ViPR
+ * 
  * @author fountt1
  */
 @Retention(RetentionPolicy.RUNTIME)

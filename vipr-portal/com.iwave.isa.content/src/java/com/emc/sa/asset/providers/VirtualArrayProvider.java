@@ -1,12 +1,11 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.asset.providers;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -20,14 +19,12 @@ import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
-import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.model.catalog.AssetOption;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -50,28 +47,28 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getFileVirtualArrays(AssetOptionsContext ctx, URI storageSystem) {
         return getVirtualArrayForStorageSystem(ctx, storageSystem);
     }
-    
+
     protected List<AssetOption> getVirtualArrayForStorageSystem(AssetOptionsContext context, URI storageSystem) {
-    	ViPRCoreClient client = api(context);
-    	Set<String> virtualArrayIds = Sets.newHashSet();
-    	
-    	for (StoragePortRestRep storagePortRestRep : client.storagePorts().getByStorageSystem(storageSystem)) {
-    		virtualArrayIds.addAll(storagePortRestRep.getAssignedVirtualArrays());
-    		virtualArrayIds.addAll(storagePortRestRep.getConnectedVirtualArrays());
-    	}
-    	
-    	List<VirtualArrayRestRep> virtualArrays = client.varrays().getByIds(ResourceUtils.uris(virtualArrayIds));
-    	return createBaseResourceOptions(virtualArrays);
-    }    
-    
+        ViPRCoreClient client = api(context);
+        Set<String> virtualArrayIds = Sets.newHashSet();
+
+        for (StoragePortRestRep storagePortRestRep : client.storagePorts().getByStorageSystem(storageSystem)) {
+            virtualArrayIds.addAll(storagePortRestRep.getAssignedVirtualArrays());
+            virtualArrayIds.addAll(storagePortRestRep.getConnectedVirtualArrays());
+        }
+
+        List<VirtualArrayRestRep> virtualArrays = client.varrays().getByIds(ResourceUtils.uris(virtualArrayIds));
+        return createBaseResourceOptions(virtualArrays);
+    }
+
     @Asset("virtualArray")
-    @AssetDependencies({ "linuxHost"})
+    @AssetDependencies({ "linuxHost" })
     public List<AssetOption> getVirtualArrayForLinux(AssetOptionsContext context, URI linuxHostOrCluster) {
         return getVirtualArray(context, linuxHostOrCluster);
     }
 
     @Asset("virtualArray")
-    @AssetDependencies({ "windowsHost"})
+    @AssetDependencies({ "windowsHost" })
     public List<AssetOption> getVirtualArrayForWindows(AssetOptionsContext context, URI windowsHostOrCluster) {
         return getVirtualArray(context, windowsHostOrCluster);
     }
@@ -94,7 +91,7 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
             }
             allVirtualArrays.putAll(connectedVirtualArrays);
         }
-        
+
         // Creates options for the virtual arrays, showing an indication whether the virtual array is only
         // partially connected to the cluster
         List<AssetOption> fullyConnectedOptions = new ArrayList<>();
@@ -119,11 +116,11 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("virtualArray")
-    @AssetDependencies({"esxHost"})
+    @AssetDependencies({ "esxHost" })
     public List<AssetOption> getVirtualArrayForVMware(AssetOptionsContext context, URI vmwareHostOrCluster) {
         return getVirtualArray(context, vmwareHostOrCluster);
     }
-    
+
     @Asset("fileVirtualArray")
     public List<AssetOption> getFileVirtualArrays(AssetOptionsContext context) {
         ViPRCoreClient client = api(context);

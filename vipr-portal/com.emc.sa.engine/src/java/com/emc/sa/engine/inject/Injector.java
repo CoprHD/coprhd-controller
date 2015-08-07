@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.engine.inject;
@@ -34,8 +34,7 @@ public class Injector {
             try {
                 field.setAccessible(true);
                 field.set(target, value);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 String message = String.format("Error injecting field '%s'", fieldName);
                 throw new InjectorException(message, e);
             }

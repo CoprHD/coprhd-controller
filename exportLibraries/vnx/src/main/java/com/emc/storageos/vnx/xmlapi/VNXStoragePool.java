@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.vnx.xmlapi;
@@ -24,7 +14,7 @@ public class VNXStoragePool extends VNXBaseClass {
      * Logger instance to log messages.
      */
     private static final Logger _logger = LoggerFactory.getLogger(VNXStoragePool.class);
-    
+
     private String _name;
     private String _description;
     private String _poolId;
@@ -58,6 +48,7 @@ public class VNXStoragePool extends VNXBaseClass {
 
         return builder.toString();
     }
+
     public VNXStoragePool() {
     }
 

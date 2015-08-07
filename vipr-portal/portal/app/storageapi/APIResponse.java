@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package storageapi;
@@ -20,11 +20,14 @@ public class APIResponse<T> {
     public Throwable cause;
     public T value;
 
-    public APIResponse() {}
+    public APIResponse() {
+    }
+
     public APIResponse(Integer status, T value) {
         this.status = status;
         this.value = value;
     }
+
     public APIResponse(Throwable cause) {
         while (cause instanceof ExecutionException) {
             cause = cause.getCause();

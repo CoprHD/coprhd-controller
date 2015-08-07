@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.linux.command;
@@ -10,7 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class FindMultipathBlockDevicesCommand extends LinuxResultsCommand<List<String>> {
-    
+
     public FindMultipathBlockDevicesCommand(String device) {
         StringBuilder sb = new StringBuilder();
         sb.append("ls -1 /sys/block/*/holders/");
@@ -26,8 +26,8 @@ public class FindMultipathBlockDevicesCommand extends LinuxResultsCommand<List<S
         Pattern pattern = Pattern.compile("(\\w+)");
         Matcher matcher = pattern.matcher(getOutput().getStdout());
         this.results = new ArrayList<String>();
-        while(matcher.find()) {
+        while (matcher.find()) {
             this.results.add(matcher.group(1));
         }
-    }    
+    }
 }

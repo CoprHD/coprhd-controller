@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.authentication;
 
@@ -24,7 +14,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.WebApplicationException;
 
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +29,7 @@ public abstract class AbstractAuthenticationFilter extends AbstractRequestWrappe
 
     /**
      * Forward the request to resource handler, we are done authenticating it
+     * 
      * @param servletRequest
      * @param servletResponse
      * @param reqWrapper
@@ -47,27 +37,27 @@ public abstract class AbstractAuthenticationFilter extends AbstractRequestWrappe
      * @throws ServletException
      */
     protected void forwardToService(final ServletRequest servletRequest,
-                                    final ServletResponse servletResponse,
-                                    final AbstractRequestWrapper reqWrapper)
+            final ServletResponse servletResponse,
+            final AbstractRequestWrapper reqWrapper)
             throws IOException, ServletException {
         try {
             HttpServletRequest req = (HttpServletRequest) servletRequest;
             servletRequest.getRequestDispatcher(req.getRequestURI()).forward(reqWrapper, servletResponse);
-        }  catch (WebApplicationException e) {
+        } catch (WebApplicationException e) {
             if (ServiceCodeExceptionMapper.isStackTracePrinted(e)) {
                 _log.warn("caught WebApplicationException", e);
             } else {
                 _log.warn("caught WebApplicationException: {}", e.getMessage());
             }
-            HttpServletResponse reponse = (HttpServletResponse)servletResponse;
+            HttpServletResponse reponse = (HttpServletResponse) servletResponse;
             reponse.sendError(toHTTPStatus(e), toServiceErrorXml(e));
         }
     }
 
     @Override
     public void doFilter(final ServletRequest servletRequest,
-                         final ServletResponse servletResponse,
-                         final FilterChain filterChain) throws IOException, ServletException {
+            final ServletResponse servletResponse,
+            final FilterChain filterChain) throws IOException, ServletException {
         final HttpServletResponse response = (HttpServletResponse) servletResponse;
         final HttpServletRequest request = (HttpServletRequest) servletRequest;
         AbstractRequestWrapper reqWrapper = null;

@@ -1,0 +1,176 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import *
+
+#----------------------------------------------------------------------
+# cluster cli functions
+#----------------------------------------------------------------------
+
+def cluster_create(args):
+    bourne.connect(args.ip)
+    cluster = bourne.cluster_create(args.label, args.tenant, args.project, args.datacenter)
+    print cluster
+
+def cluster_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.cluster_query(args.name)
+    res = bourne.cluster_delete(uri)
+    print res
+
+def cluster_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.cluster_query(args.name)
+    cluster = bourne.cluster_show(uri)
+    print cluster
+
+def cluster_query(args):
+    bourne.connect(args.ip)
+    print bourne.cluster_query(args.name)
+
+def cluster_list(args):
+    bourne.connect(args.ip)
+#   cluster_display_hdr()
+    res = bourne.cluster_list(args.tenant)
+    for r in res:
+        cluster = bourne.cluster_show(r['id'])
+        print cluster
+#        cluster_display(cluster)
+
+#
+# display cluster in list form
+#
+cluster_display_fmt = '{0:16s} {1:6s} {2:45s} {3:45s} {4:45s} {5:s}'
+
+def cluster_display_hdr():
+    print cluster_display_fmt.format('name', 'active', 'owner', 'project', 'datacenter', 'id')
+
+def cluster_display(cluster):
+    project = 'null'
+    datacenter = 'null'
+    if(cluster['project']):
+        project = cluster['project']['id']  
+    if(cluster['data_center']):
+        datacenter = cluster['data_center']['id']  
+    print cluster_display_fmt.format(cluster['name'], 'NO' if cluster['inactive'] else 'YES',
+              cluster['tenant']['id'], project, datacenter, cluster['id'])
+
+# tag
+def cluster_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.cluster_query(args.name)
+    print 'Tagging cluster', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+# search
+def cluster_search(args):
+    bourne.connect(args.ip)
+    if (args.scope != None):
+        # query tenant id from tenant name
+        args.scope = bourne.tenant_query(args.scope)
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching cluster with ' + args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# cluster <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne cluster cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list )')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# cluster create label --tenant tenant
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('label',            help = 'label for the cluster')
+create.add_argument('tenant',           help = 'tenant name', default = None)
+create.add_argument('--project',        help = 'cluster project name when the cluster is assigned to a project')
+create.add_argument('--datacenter',     help = 'cluster datacenter name when the cluster is in a datacenter')
+
+# cluster delete uri
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',	help = 'name of cluster in the format tenant_name/cluster_name')
+
+# cluster show uri
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name',	help = 'name of cluster in the format tenant_name/cluster_name')
+
+# cluster query name
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name',	help = 'name of cluster in the format tenant_name/cluster_name')
+
+# cluster list --tenant tenant
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('tenant',	help = 'tenant name', default = None)
+
+# tag 
+resource_type="cluster"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching', default=None)
+search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag')
+search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        cluster_create(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        cluster_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        cluster_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        cluster_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        cluster_list(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        cluster_tag(args)
+    elif (cmd == "search"):
+        args = search.parse_args()
+        cluster_search(args)
+    else:
+        parser.print_help()
+except:
+    raise

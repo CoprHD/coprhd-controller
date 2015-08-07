@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper;
@@ -43,7 +43,8 @@ public class TaskMapper {
     public static class TaskMapperConfig {
         private DbClient dbClient;
 
-        public TaskMapperConfig(){}
+        public TaskMapperConfig() {
+        }
 
         public DbClient getDbClient() {
             return dbClient;
@@ -75,14 +76,15 @@ public class TaskMapper {
     }
 
     public static TaskResourceRep toTask(DataObject resource, String taskId) {
-        if (resource.getOpStatus() == null)
+        if (resource.getOpStatus() == null) {
             throw APIException.badRequests.requiredParameterMissingOrEmpty("status");
+        }
         Operation op = resource.getOpStatus().get(taskId);
-        
+
         if (op == null) {
             throw APIException.badRequests.invalidParameterNoOperationForTaskId(taskId);
         }
-        
+
         return toTask(resource, taskId, op);
     }
 
@@ -92,19 +94,19 @@ public class TaskMapper {
 
         taskResourceRep.setId(task.getId());
         taskResourceRep.setResource(toNamedRelatedResource(task.getResource()));
-        
+
         // Check to see if there are any associated resources
         List<NamedRelatedResourceRep> associatedRefs = Lists.newArrayList();
         for (URI assocId : task.getAssociatedResourcesList()) {
             DataObject associatedObject = getConfig().getDbClient().queryObject(assocId);
             if (associatedObject != null) {
-                associatedRefs.add(toNamedRelatedResource(associatedObject));                                
+                associatedRefs.add(toNamedRelatedResource(associatedObject));
             } else {
                 log.warn(String.format("For task %s could not find associated object %s", task.getId(), assocId));
             }
         }
 
-        taskResourceRep.setAssociatedResources(associatedRefs);        
+        taskResourceRep.setAssociatedResources(associatedRefs);
 
         if (!StringUtils.isBlank(task.getRequestId())) {
             taskResourceRep.setOpId(task.getRequestId());
@@ -115,7 +117,7 @@ public class TaskMapper {
         }
 
         if (!task.getTenant().equals(TenantOrg.SYSTEM_TENANT)) {
-             taskResourceRep.setTenant(DbObjectMapper.toRelatedResource(ResourceTypeEnum.TENANT, task.getTenant()));
+            taskResourceRep.setTenant(DbObjectMapper.toRelatedResource(ResourceTypeEnum.TENANT, task.getTenant()));
         }
 
         // Operation
@@ -136,9 +138,9 @@ public class TaskMapper {
     /**
      * Generate a task that is a complete state. This could be used for cases where the operation
      * does not need to go the controller. That is, it's completed within in the API layer.
-     *
-     * @param resource  [in] - DataObject, ViPR model object
-     * @param taskId    [in] - String task identifier
+     * 
+     * @param resource [in] - DataObject, ViPR model object
+     * @param taskId [in] - String task identifier
      * @param operation [in] - Operation
      * @return TaskResourceRep representing a Task that is completed.
      */
@@ -158,7 +160,8 @@ public class TaskMapper {
                 getConfig().getDbClient().persistObject(task);
                 return toTask(task);
             } else {
-                throw new IllegalStateException(String.format("Task not found for resource %s, op %s in either the operation or the database", resource.getId(), taskId));
+                throw new IllegalStateException(String.format(
+                        "Task not found for resource %s, op %s in either the operation or the database", resource.getId(), taskId));
             }
         }
     }
@@ -176,15 +179,16 @@ public class TaskMapper {
                 return toTask(task);
             }
             else {
-                throw new IllegalStateException(String.format("Task not found for resource %s, op %s in either the operation or the database", resource.getId(), taskId));
+                throw new IllegalStateException(String.format(
+                        "Task not found for resource %s, op %s in either the operation or the database", resource.getId(), taskId));
             }
         }
     }
 
     public static TaskResourceRep toTask(DataObject resource,
-                                         List<? extends DataObject> assocResources,
-                                         String taskId,
-                                         Operation operation) {
+            List<? extends DataObject> assocResources,
+            String taskId,
+            Operation operation) {
         TaskResourceRep task = toTask(resource, taskId, operation);
         List<NamedRelatedResourceRep> associatedReps = new
                 ArrayList<NamedRelatedResourceRep>();

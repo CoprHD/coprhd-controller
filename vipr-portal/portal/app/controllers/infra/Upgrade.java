@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.infra;
@@ -26,7 +26,7 @@ import java.util.Map;
 import static util.BourneUtil.*;
 
 @With(Common.class)
-@Restrictions({@Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN")})
+@Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
 public class Upgrade extends Controller {
     public static String TRUE = "1";
     public static String FALSE = "0";
@@ -40,7 +40,8 @@ public class Upgrade extends Controller {
     public static void clusterStatus() {
         ClusterInfo clusterInfo = getSysClient().upgrade().getClusterInfo();
         Collection<String> repositoryVersions = clusterInfo.getTargetState().getAvailable();
-        Collection<String> newVersions = clusterInfo.getNewVersions() == null ? Collections.<String>emptyList() :  clusterInfo.getNewVersions();
+        Collection<String> newVersions = clusterInfo.getNewVersions() == null ? Collections.<String> emptyList() : clusterInfo
+                .getNewVersions();
 
         String clusterState = calculateClusterState(clusterInfo);
 
@@ -48,7 +49,7 @@ public class Upgrade extends Controller {
         boolean isWorking = !isStable && !clusterState.equalsIgnoreCase(ClusterInfo.ClusterState.UNKNOWN.toString());
         boolean isDownloading = clusterState.equals(DOWNLOADING_CLUSTER_STATE);
 
-        Map<String, DownloadStatus> downloadStatus =  Maps.newHashMap();
+        Map<String, DownloadStatus> downloadStatus = Maps.newHashMap();
         if (isDownloading) {
             DownloadProgress downloadProgress = getSysClient().upgrade().getDownloadProgress();
             downloadStatus = calculateDownloadStatus(downloadProgress);
@@ -60,8 +61,8 @@ public class Upgrade extends Controller {
     public static void installVersion(String version) {
         try {
             getSysClient().upgrade().setTargetVersion(version);
-        } catch(Exception e) {
-            Logger.error(e,"Setting target version to  %s",version);
+        } catch (Exception e) {
+            Logger.error(e, "Setting target version to  %s", version);
             flash.error(e.getMessage());
         }
         flash.success(MessagesUtils.get("upgrade.setTargetVersion", version));
@@ -71,8 +72,8 @@ public class Upgrade extends Controller {
     public static void removeImage(String version) {
         try {
             getSysClient().upgrade().removeImage(version, true);
-        } catch(Exception e) {
-            Logger.error(e,"Error removing Image %s",version);
+        } catch (Exception e) {
+            Logger.error(e, "Error removing Image %s", version);
             flash.error(e.getMessage());
         }
 
@@ -82,8 +83,8 @@ public class Upgrade extends Controller {
     public static void downloadImage(String version) {
         try {
             getSysClient().upgrade().installImage(version, false);
-        } catch(Exception e) {
-            Logger.error(e,"Installing Image %s",version);
+        } catch (Exception e) {
+            Logger.error(e, "Installing Image %s", version);
             flash.error(e.getMessage());
         }
 
@@ -100,8 +101,8 @@ public class Upgrade extends Controller {
     public static void cancelDownload() {
         try {
             getSysClient().upgrade().cancelInstallImage();
-        } catch(Exception e) {
-            Logger.error(e,"Cancelling Install Image");
+        } catch (Exception e) {
+            Logger.error(e, "Cancelling Install Image");
             flash.error(e.getMessage());
         }
 
@@ -130,15 +131,16 @@ public class Upgrade extends Controller {
         return false;
     }
 
-    @Util static Map<String, DownloadStatus> calculateDownloadStatus(DownloadProgress downloadProgress) {
+    @Util
+    static Map<String, DownloadStatus> calculateDownloadStatus(DownloadProgress downloadProgress) {
         long imageSize = downloadProgress.getImageSize();
 
         Map<String, DownloadStatus> nodeProgress = Maps.newHashMap();
-        for (Map.Entry<String, NodeProgress> nodeEntry :downloadProgress.getProgress().entrySet()) {
+        for (Map.Entry<String, NodeProgress> nodeEntry : downloadProgress.getProgress().entrySet()) {
             String nodeName = nodeEntry.getKey().substring("syssvc-".length());
 
-            nodeProgress.put(nodeName, new DownloadStatus(calculatePercentage(nodeEntry.getValue().getBytesDownloaded(),imageSize),
-                                                          nodeEntry.getValue().getStatus().toString()));
+            nodeProgress.put(nodeName, new DownloadStatus(calculatePercentage(nodeEntry.getValue().getBytesDownloaded(), imageSize),
+                    nodeEntry.getValue().getStatus().toString()));
         }
 
         return nodeProgress;
@@ -146,7 +148,7 @@ public class Upgrade extends Controller {
 
     @Util
     private static int calculatePercentage(long bytes, long total) {
-        return (int)Math.round(((double)bytes/(double)total)*100);
+        return (int) Math.round(((double) bytes / (double) total) * 100);
     }
 
     private static String calculateClusterState(ClusterInfo clusterInfo) {

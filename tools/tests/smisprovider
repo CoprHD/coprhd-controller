@@ -1,0 +1,178 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import time
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# smisprovider cli functions
+#----------------------------------------------------------------------
+
+def smisprovider_create(args):
+    bourne.connect(args.ip)
+    s = bourne.smisprovider_create(args.label, args.ipaddress, args.port, args.username, args.password, args.usessl)
+    if (s['state'] == 'ready'):
+        print 'SMISProvider created with id ' + s['resource']['id']
+    else:
+        print 'SMISProvider create failed.'
+
+def smisprovider_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.smisprovider_query(args.label)
+    res = bourne.smisprovider_delete(uri)
+    print res
+
+def smisprovider_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.smisprovider_query(args.label)
+    smisprovider = bourne.smisprovider_show(uri)
+    bourne.pretty_print_json(smisprovider)
+
+def smisprovider_query(args):
+    bourne.connect(args.ip)
+    uri = bourne.smisprovider_query(args.label)
+    print uri
+
+def smisprovider_list(args):
+    bourne.connect(args.ip)
+    providers = bourne.smisprovider_list()
+    smisp_display_hdr()
+    for provider in providers['smis_provider']:
+        smisprovider = bourne.smisprovider_show(provider['id'])
+        smisp_display(smisprovider)
+
+#
+# display smis provider in list form
+#
+smisp_display_fmt = '{0:16s} {1:16s} {2:10s} {3:8s} {4:s}'
+
+def smisp_display_hdr():
+    print smisp_display_fmt.format('name', 'ip', 'status', 'reg mode', 'id')
+
+def smisp_display(smisp):
+    print smisp_display_fmt.format(smisp['name'], smisp['ip_address'], smisp['connection_status'],
+           ' ', smisp['id'])
+
+def smisprovider_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.smisprovider_query(args.name)
+    print 'Tagging smisprovider ', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+def smisprovider_search(args):
+    bourne.connect(args.ip)
+    if (args.scope != None):
+        # query tenant id from tenant name
+        args.scope = bourne.tenant_query(args.scope)
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching smisprovider with ' + args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# smisprovider <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne SMI-S provider cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | query | list)')
+parser.add_argument('--ip', metavar = 'ipaddr',	help = 'IP address of Bourne', default=bourne_ip)
+
+# smis provider create label
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('label',						help = 'Label for the SMI-S provider')
+create.add_argument('ipaddress',					help = 'IP Address')
+create.add_argument('port',						help = 'Port')
+create.add_argument('username',						help = 'Username')
+create.add_argument('password',						help = 'Password')
+create.add_argument('usessl',						help = 'UseSSL')
+
+
+# smis provider delete name
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('label', help = 'smis provider ip address');
+
+# smis provider show label
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('label', help = 'smis provider ip address');
+
+# smis provider query name
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('label', help = 'smis provider ip address')
+
+# smis provider list 
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# tag 
+resource_type="smis_provider"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching', default=None)
+search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag')
+search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "create"):
+        args = create.parse_args()
+        smisprovider_create(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        smisprovider_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        smisprovider_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        smisprovider_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        smisprovider_list(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        smisprovider_tag(args)
+    elif(cmd == "search"):
+        args = search.parse_args()
+        smisprovider_search(args)
+    else:
+        parser.print_help()
+except:
+    raise
+
+

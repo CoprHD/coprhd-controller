@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.file;
@@ -29,7 +29,7 @@ public class CreateFileSystemQuotaDirectoryHelper {
     protected String securityStyle;
     @Param(SIZE_IN_GB)
     protected String size;
-    
+
     private List<FileShareRestRep> fileSystems;
 
     public void precheck() {

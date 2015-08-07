@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -28,8 +28,7 @@ public class VCenterUtils {
     public static VcenterRestRep getVCenter(URI id) {
         try {
             return (id != null) ? getViprClient().vcenters().get(id) : null;
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
@@ -40,8 +39,7 @@ public class VCenterUtils {
     public static VcenterDataCenterRestRep getDataCenter(URI id) {
         try {
             return (id != null) ? getViprClient().vcenterDataCenters().get(id) : null;
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
@@ -64,7 +62,7 @@ public class VCenterUtils {
     public static Task<VcenterRestRep> deactivateVCenter(URI id) {
         return getViprClient().vcenters().deactivate(id);
     }
-    
+
     public static Task<VcenterRestRep> deactivateVCenter(URI vcenterId, boolean detachStorage) {
         return getViprClient().vcenters().deactivate(vcenterId, detachStorage);
     }

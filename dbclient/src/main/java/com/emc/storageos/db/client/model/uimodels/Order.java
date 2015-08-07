@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.uimodels;
@@ -31,22 +31,22 @@ public class Order extends ModelObject implements TenantDataObject {
 
     /** The user that submitted the order. */
     private String submittedByUserId;
-    
-    private URI catalogServiceId;  
-    
+
+    private URI catalogServiceId;
+
     /** The order execution state. */
     private URI executionStateId;
-    
+
     private NamedURI executionWindowId;
-    
+
     private String summary;
 
     private String message;
-    
+
     private Date dateCompleted;
 
-    private String orderStatus;   
-    
+    private String orderStatus;
+
     private String tenant;
 
     /**
@@ -127,7 +127,7 @@ public class Order extends ModelObject implements TenantDataObject {
         setChanged(SUBMITTED_BY_USER_ID);
     }
 
-    @Name(EXECUTION_STATE_ID)    
+    @Name(EXECUTION_STATE_ID)
     public URI getExecutionStateId() {
         return executionStateId;
     }
@@ -136,8 +136,8 @@ public class Order extends ModelObject implements TenantDataObject {
         this.executionStateId = executionStateId;
         setChanged(EXECUTION_STATE_ID);
     }
-    
-    @Name(EXECUTION_WINDOW_ID)    
+
+    @Name(EXECUTION_WINDOW_ID)
     public NamedURI getExecutionWindowId() {
         return executionWindowId;
     }
@@ -146,7 +146,7 @@ public class Order extends ModelObject implements TenantDataObject {
         this.executionWindowId = executionWindowId;
         setChanged(EXECUTION_WINDOW_ID);
     }
-    
+
     @AlternateId("TenantToOrder")
     @Name(TENANT)
     public String getTenant() {
@@ -166,6 +166,7 @@ public class Order extends ModelObject implements TenantDataObject {
 
     /**
      * Return value of indexed field
+     * 
      * @return
      */
     @Name("indexed")
@@ -183,10 +184,10 @@ public class Order extends ModelObject implements TenantDataObject {
     public String toString() {
         return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE);
     }
-    
+
     @Override
     public Object[] auditParameters() {
-        return new Object[] {getLabel(), 
+        return new Object[] { getLabel(),
                 getOrderNumber(), getTenant(), getId() };
-    }        
+    }
 }

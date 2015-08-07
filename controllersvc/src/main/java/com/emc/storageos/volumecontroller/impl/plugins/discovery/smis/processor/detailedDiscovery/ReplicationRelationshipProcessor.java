@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery;
 
@@ -68,7 +58,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
         _syncAspectMap = (Map<String, String>) keyMap
                 .get(Constants.SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP);
 
-        CIMInstance[] instances = (CIMInstance[]) getFromOutputArgs((CIMArgument[])resultObj, SmisConstants.SYNCHRONIZATIONS);
+        CIMInstance[] instances = (CIMInstance[]) getFromOutputArgs((CIMArgument[]) resultObj, SmisConstants.SYNCHRONIZATIONS);
         if (instances == null) {
             _logger.info("No {} returned", SmisConstants.SYNCHRONIZATIONS);
             return;
@@ -143,7 +133,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                                 // Mirrors with restorable states (fractured and split, except synchronized) are treated as full copies,
                                 // while mirrors with synchronized and other states are treated as mirrors
                                 systemName.toLowerCase().startsWith(Constants.CLARIION) &&
-                                (copyState.equals(COPY_STATE_FRACTURED) || copyState.equals(COPY_STATE_SPLIT)))) {
+                        (copyState.equals(COPY_STATE_FRACTURED) || copyState.equals(COPY_STATE_SPLIT)))) {
                     replicaObj.setType(LocalReplicaObject.Types.FullCopy);
                     replicaObj.setSyncActive(inSync);
                     replicaObj.setReplicaState(isReplicaOfSnapshot ? SNAPSHOT_CLONE_REPLICA_STATE : getReplicaState(copyState));
@@ -200,7 +190,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
 
     /**
      * create object path from source and target paths
-     *
+     * 
      * @param targetPath
      * @param sourcePath
      * @return String
@@ -222,7 +212,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
 
     /*
      * Translate CopyState to ViPR ReplicationState for clone
-     *
+     * 
      * Clone can be restored if it is ReplicationState.SYNCHRONIZED
      * corresponding CopyState values are synchronized, fractured and split
      */

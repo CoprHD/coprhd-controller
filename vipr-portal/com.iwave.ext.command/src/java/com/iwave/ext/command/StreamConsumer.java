@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.command;
@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 
+import org.apache.log4j.Logger;
+
 /**
  * Consumes an InputStream, storing the results in a byte array.
  * 
@@ -17,6 +19,8 @@ import java.io.UnsupportedEncodingException;
  */
 public class StreamConsumer {
     public static final String DEFAULT_CHARSET = "UTF-8";
+
+    private static Logger log = Logger.getLogger(StreamConsumer.class);
 
     /** The thread to run the consumer. */
     private volatile Thread thread = new Thread() {
@@ -66,16 +70,14 @@ public class StreamConsumer {
             current.interrupt();
             try {
                 current.join();
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 // Ignore
             }
         }
 
         try {
             buffer.close();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             // Ignore
         }
     }
@@ -100,8 +102,8 @@ public class StreamConsumer {
             // Flush and close the stream buffer
             buffer.flush();
             buffer.close();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
         }
     }
 
@@ -111,8 +113,7 @@ public class StreamConsumer {
     public String toString() {
         try {
             return new String(buffer.toByteArray(), charset);
-        }
-        catch (UnsupportedEncodingException e) {
+        } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
     }

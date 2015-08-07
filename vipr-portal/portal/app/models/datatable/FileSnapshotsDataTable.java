@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -44,7 +44,7 @@ public class FileSnapshotsDataTable extends DataTable {
     }
 
     public static class FileSnapshot {
-    	public String rowLink;
+        public String rowLink;
         public URI id;
         public String name;
 

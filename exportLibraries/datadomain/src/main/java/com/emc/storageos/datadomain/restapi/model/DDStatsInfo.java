@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.datadomain.restapi.model;
@@ -10,15 +10,15 @@ import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
 public class DDStatsInfo {
-	
+
     @SerializedName("resource_name")
-    @JsonProperty(value="resource_name")
+    @JsonProperty(value = "resource_name")
     private String resourceName;
-	
+
     @SerializedName("retention_info")
-    @JsonProperty(value="retention_info")
+    @JsonProperty(value = "retention_info")
     private DDRetentionInfo retentionInfo;
-	
+
     private DDRestLinkRep link;
 
     public String getResourceName() {
@@ -44,8 +44,8 @@ public class DDStatsInfo {
     public void setLink(DDRestLinkRep link) {
         this.link = link;
     }
-	
-	public String toString() {
+
+    public String toString() {
         return new Gson().toJson(this).toString();
     }
 

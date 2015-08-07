@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.blockorchestrationcontroller;
@@ -18,32 +18,32 @@ public class BlockOrchestrationControllerImpl implements BlockOrchestrationContr
 
     @Override
     public void createVolumes(List<VolumeDescriptor> volumes, String taskId)
-    throws ControllerException {
+            throws ControllerException {
         execOrchestration("createVolumes", volumes, taskId);
     }
 
     @Override
     public void deleteVolumes(List<VolumeDescriptor> volumes, String taskId)
-    throws ControllerException {
+            throws ControllerException {
         execOrchestration("deleteVolumes", volumes, taskId);
     }
-    
+
     @Override
-    public void expandVolume(List<VolumeDescriptor>volumes, String taskId)
-			throws ControllerException {
+    public void expandVolume(List<VolumeDescriptor> volumes, String taskId)
+            throws ControllerException {
         execOrchestration("expandVolume", volumes, taskId);
-		
-	}
+
+    }
 
     @Override
     public void changeVirtualPool(List<VolumeDescriptor> volumes, String taskId)
             throws ControllerException {
         execOrchestration("changeVirtualPool", volumes, taskId);
     }
-    
+
     @Override
     public void changeVirtualArray(List<VolumeDescriptor> volumeDescriptors, String taskId)
-        throws ControllerException {
+            throws ControllerException {
         execOrchestration("changeVirtualArray", volumeDescriptors, taskId);
     }
 
@@ -60,7 +60,7 @@ public class BlockOrchestrationControllerImpl implements BlockOrchestrationContr
         this._controller = controller;
     }
 
-    public Dispatcher get_dispatcher() {
+    public Dispatcher getDispatcher() {
         return _dispatcher;
     }
 

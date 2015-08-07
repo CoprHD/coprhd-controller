@@ -1,38 +1,26 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.vipr.model.sys.ipreconfig;
-
-import com.emc.storageos.model.property.PropertyConstants;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import java.io.*;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
  * Cluster IP Information
  */
-@XmlRootElement (name = "cluster_ipinfo")
-public class ClusterIpInfo implements Serializable{
+@XmlRootElement(name = "cluster_ipinfo")
+public class ClusterIpInfo implements Serializable {
 
     private ClusterIpv4Setting ipv4_setting;
     private ClusterIpv6Setting ipv6_setting;
 
-    public ClusterIpInfo() {}
+    public ClusterIpInfo() {
+    }
 
     public ClusterIpInfo(ClusterIpv4Setting ipv4_setting, ClusterIpv6Setting ipv6_setting) {
         this.ipv4_setting = ipv4_setting;
@@ -78,33 +66,52 @@ public class ClusterIpInfo implements Serializable{
         } finally {
             in.close();
         }
-        return (ClusterIpInfo)obj;
+        return (ClusterIpInfo) obj;
     }
+    /* (non-Javadoc)
+   	 * @see java.lang.Object#hashCode()
+   	 */
+    @Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result
+				+ ((ipv4_setting == null) ? 0 : ipv4_setting.hashCode());
+		result = prime * result
+				+ ((ipv6_setting == null) ? 0 : ipv6_setting.hashCode());
+		return result;
+	}
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
+        }
 
-        if (!ipv4_setting.equals(((ClusterIpInfo)obj).getIpv4Setting()))
+        if (!ipv4_setting.equals(((ClusterIpInfo) obj).getIpv4Setting())) {
             return false;
-        if (!ipv6_setting.equals(((ClusterIpInfo)obj).getIpv6Setting()))
+        }
+        if (!ipv6_setting.equals(((ClusterIpInfo) obj).getIpv6Setting())) {
             return false;
+        }
 
         return true;
     }
 
-    @Override
-    public String toString(){
+
+	@Override
+    public String toString() {
         StringBuffer propStrBuf = new StringBuffer();
         propStrBuf.append(ipv4_setting.toString());
         propStrBuf.append(ipv6_setting.toString());
         return propStrBuf.toString();
     }
 
-    /* Load key/value property map
+    /*
+     * Load key/value property map
      */
     public void loadFromPropertyMap(Map<String, String> propMap)
     {
@@ -116,8 +123,9 @@ public class ClusterIpInfo implements Serializable{
     }
 
     public boolean isDefault() {
-        if (ipv4_setting.isDefault() && ipv6_setting.isDefault())
+        if (ipv4_setting.isDefault() && ipv6_setting.isDefault()) {
             return true;
+        }
         return false;
     }
 
@@ -133,7 +141,7 @@ public class ClusterIpInfo implements Serializable{
             return errmsg;
         }
 
-        if(!ipv6_setting.isValid()) {
+        if (!ipv6_setting.isValid()) {
             errmsg = "IPv6 adresses are not valid.";
             return errmsg;
         }
@@ -143,27 +151,27 @@ public class ClusterIpInfo implements Serializable{
             return errmsg;
         }
 
-        if(ipv6_setting.isDuplicated()) {
+        if (ipv6_setting.isDuplicated()) {
             errmsg = "IPv6 adresses are duplicated.";
             return errmsg;
         }
 
-        if(!ipv4_setting.isOnSameNetworkIPv4()) {
+        if (!ipv4_setting.isOnSameNetworkIPv4()) {
             errmsg = "IPv4 adresses are not in same network.";
             return errmsg;
         }
 
-        if(!ipv6_setting.isOnSameNetworkIPv6()) {
+        if (!ipv6_setting.isOnSameNetworkIPv6()) {
             errmsg = "IPv6 adresses are not in same network.";
             return errmsg;
         }
 
-        if(ipv4_setting.getNetworkAddrs().size()!=ipv6_setting.getNetworkAddrs().size()) {
+        if (ipv4_setting.getNetworkAddrs().size() != ipv6_setting.getNetworkAddrs().size()) {
             errmsg = "Nodes number does not match between IPv4 and IPv6.";
             return errmsg;
         }
 
-        if(ipv4_setting.getNetworkAddrs().size()!=nodecount) {
+        if (ipv4_setting.getNetworkAddrs().size() != nodecount) {
             errmsg = "Nodes number does not match with the cluster.";
             return errmsg;
         }
@@ -171,4 +179,3 @@ public class ClusterIpInfo implements Serializable{
         return errmsg;
     }
 }
-

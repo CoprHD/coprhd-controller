@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- *  software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.auth.impl;
 
@@ -50,7 +40,7 @@ import org.apache.curator.framework.recipes.locks.InterProcessLock;
 
 /**
  * Cassandra based implementation of the token manager interface.
- *
+ * 
  */
 public class CassandraTokenManager extends CassandraTokenValidator implements TokenManager {
 
@@ -58,16 +48,16 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
     // the memory footprint on dbsvc and authsvc
     private static final int DEFAULT_MAX_TOKENS_PER_USERID = 100;
     private static final int DEFAULT_MAX_TOKENS_FOR_PROXYUSER = 1000;
-    
+
     private int _maxTokensPerUserId = DEFAULT_MAX_TOKENS_PER_USERID;
     private int _maxTokensForProxyUser = DEFAULT_MAX_TOKENS_FOR_PROXYUSER;
     static final String PROXY_USER = "proxyuser";
     private static final Logger _log = LoggerFactory.getLogger(CassandraTokenManager.class);
     private static final double TOKEN_WARNING_EIGHTY_PERCENT = 0.8;
-    
+
     @Autowired
     private RequestedTokenHelper tokenMapHelper;
-    
+
     public void setTokenMapHelper(RequestedTokenHelper tokenMapHelper) {
         this.tokenMapHelper = tokenMapHelper;
     }
@@ -75,9 +65,10 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
     /**
      * Sets the maximum number of auth tokens for any user (except proxyuser)
      * which can exist in the system at any given time
+     * 
      * @param max The maxTokensPerUserid to set.
-     * warning: increasing this value from the default will increase the memory
-     * footprint on dbsvc and authsvc
+     *            warning: increasing this value from the default will increase the memory
+     *            footprint on dbsvc and authsvc
      */
     public void setMaxTokensPerUserId(int max) {
         _maxTokensPerUserId = max;
@@ -86,14 +77,14 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
     /**
      * Sets the maximum number of auth tokens for the proxyuser
      * which can exist in the system at any given time
+     * 
      * @param max The maxTokensForProxyuser to set.
-     * warning: increasing this value from the default will increase the memory
-     * footprint on dbsvc and authsvc
+     *            warning: increasing this value from the default will increase the memory
+     *            footprint on dbsvc and authsvc
      */
     public void setMaxTokensForProxyUser(int max) {
         _maxTokensForProxyUser = max;
     }
-
 
     /**
      * Executor for our house keeping tasks (deleting old tokens, and updating token signature keys
@@ -107,14 +98,14 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
             // token has been borrowed at least once
             HashMap<String, TokenKeysBundle> bundles = interVDCTokenCacheHelper.getAllCachedBundles();
             for (Entry<String, TokenKeysBundle> tokenKeyBndlEntry : bundles.entrySet()) {
-                _log.info("Cached token key bundle for VDC found: {}.  Calling VDC to update...", tokenKeyBndlEntry.getKey());       
+                _log.info("Cached token key bundle for VDC found: {}.  Calling VDC to update...", tokenKeyBndlEntry.getKey());
                 try {
                     // call geo's getToken with no token, and either one or two key ids, depending on what we
                     // have in the cached bundle (if keys have never been rotated, there would be only one key id
                     TokenResponse response = geoClientCacheMgt.getGeoClient(tokenKeyBndlEntry.getKey())
-                            .getToken(null, 
-                                    tokenKeyBndlEntry.getValue().getKeyEntries().get(0), 
-                                    tokenKeyBndlEntry.getValue().getKeyEntries().size() == 2 ? 
+                            .getToken(null,
+                                    tokenKeyBndlEntry.getValue().getKeyEntries().get(0),
+                                    tokenKeyBndlEntry.getValue().getKeyEntries().size() == 2 ?
                                             tokenKeyBndlEntry.getValue().getKeyEntries().get(1) : null);
                     if (response != null) {
                         TokenResponseArtifacts artifacts = TokenResponseBuilder.parseTokenResponse(response);
@@ -131,10 +122,10 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
                     _log.error("Could not update token keys", ex);
                 }
             }
-            _log.info("Done running the key refresh thread.  There were {} cached VDC keys bundles", bundles.size());            
+            _log.info("Done running the key refresh thread.  There were {} cached VDC keys bundles", bundles.size());
         }
     }
-    
+
     private class ExpiredTokenCleaner implements Runnable {
         final static String TOKEN_CLEANER_LOCK = "token_cleaner";
         final static long MIN_TO_MICROSECS = 60 * 1000 * 1000;
@@ -165,16 +156,19 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
                     while (tokenIterator.hasNext()) {
                         Token tokenObj = tokenIterator.next();
                         if (!checkExpiration(tokenObj, false)) {
-                            deletedCount++;                            
+                            deletedCount++;
                             cleanUpRequestedTokenMap(tokenObj);
-                            // TODO: 
-                            // Streamline the following code paths:  Right now:
-                            // 1 - AuthenticationResource.logout() calls deleteToken() which calls deleteTokenInternal(), then notifyExternalVDCs which
-                            // still needs the map.  
-                            // 2 - checkExpiration calls deleteTokenInternal().  So if we put cleanUpRequestedTokenMap() in deleteTokenInternal(),
+                            // TODO:
+                            // Streamline the following code paths: Right now:
+                            // 1 - AuthenticationResource.logout() calls deleteToken() which calls deleteTokenInternal(), then
+                            // notifyExternalVDCs which
+                            // still needs the map.
+                            // 2 - checkExpiration calls deleteTokenInternal(). So if we put cleanUpRequestedTokenMap() in
+                            // deleteTokenInternal(),
                             // it would make notifyExternalVDCs miss notifications in the #1 case above.
                             // * For this reason, cleanUpRequestedTokenMap is being called separately in the various paths.
-                            // * look to see if this can be done more cleanly (moving cleanupRTkMap to somewhere common between the various places
+                            // * look to see if this can be done more cleanly (moving cleanupRTkMap to somewhere common between the various
+                            // places
                             // where token(s) are getting deleted)
                         }
                     }
@@ -198,6 +192,7 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
 
     /**
      * Removes the RequestedTokenMap associated with the passed in token if it exists.
+     * 
      * @param tokenObj
      */
     private void cleanUpRequestedTokenMap(Token tokenObj) {
@@ -209,7 +204,7 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
             _log.info("No RequestedTokenMap for token to be deleted.");
         }
     }
-    
+
     /**
      * initializer, startup the background expired token deletion thread
      * and key updater thread (no op unless multi vdc)
@@ -217,7 +212,7 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
     public void init() {
         // Token cleaner thread
         _tokenMgmtExecutor.scheduleWithFixedDelay(
-            new ExpiredTokenCleaner(), 1, _maxLifeValuesHolder.getMaxTokenIdleTimeInMins(), TimeUnit.MINUTES);
+                new ExpiredTokenCleaner(), 1, _maxLifeValuesHolder.getMaxTokenIdleTimeInMins(), TimeUnit.MINUTES);
         // Token keys updater thread
         _tokenMgmtExecutor.scheduleWithFixedDelay( // update every 20 minutes
                 new TokenKeysUpdater(), 1, FOREIGN_TOKEN_KEYS_BUNDLE_REFRESH_RATE_IN_MINS, TimeUnit.MINUTES);
@@ -232,10 +227,11 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
 
     /**
      * create a new token with the user info
+     * 
      * @param user
      * @return
      */
-    private Token createNewToken (StorageOSUserDAO user) {
+    private Token createNewToken(StorageOSUserDAO user) {
         Token token = new Token();
         token.setId(URIUtil.createId(Token.class));
         token.setUserId(user.getId()); // relative index, Id of the userDAO record
@@ -251,6 +247,7 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
     /**
      * Persist/Update the StorageOSUserDAO record
      * generates a new token or reuses an existing token.
+     * 
      * @return token as a String
      */
     @Override
@@ -290,10 +287,10 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
         return null;
     }
 
-
     /**
      * Gets a proxy token for the given user
      * If a proxy token for the given user already exists, it will be reused
+     * 
      * @return proxy-token
      */
     @Override
@@ -301,20 +298,20 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
         InterProcessLock userLock = null;
         try {
             userLock = _coordinator.getLock(userDAO.getUserName());
-            if(userLock == null) {
+            if (userLock == null) {
                 _log.error("Could not acquire lock for user: {}", userDAO.getUserName());
                 throw SecurityException.fatals.couldNotAcquireLockForUser(userDAO.getUserName());
             }
             userLock.acquire();
 
             // Look for proxy tokens based on that username.
-            // If any is found, use that.  Else, create a new one.
+            // If any is found, use that. Else, create a new one.
             ProxyToken proxyToken = getProxyTokenForUserName(userDAO.getUserName());
-            if(proxyToken != null) {
+            if (proxyToken != null) {
                 _log.debug("Found proxy token {} for user {}.  Reusing...", proxyToken.getId(), userDAO.getUserName());
                 return _tokenEncoder.encode(TokenOnWire.createTokenOnWire(proxyToken));
             }
-            // No proxy token found for this user.  Create a new one.
+            // No proxy token found for this user. Create a new one.
 
             // Create the actual proxy token
             ProxyToken pToken = new ProxyToken();
@@ -326,19 +323,18 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
             pToken.setLastValidatedTime(getCurrentTimeInMins());
             _dbClient.persistObject(pToken);
             return _tokenEncoder.encode(TokenOnWire.createTokenOnWire(pToken));
-        } catch(DatabaseException ex) {
+        } catch (DatabaseException ex) {
             _log.error("DatabaseException while persisting proxy token", ex);
         } catch (SecurityException ex) {
             _log.error("Proxy Token encoding exception. ", ex);
         } catch (Exception ex) {
             _log.error("Could not acquire lock while trying to get a proxy token.", ex);
-        }
-        finally {
+        } finally {
             try {
-                if(userLock != null) {
+                if (userLock != null) {
                     userLock.release();
                 }
-            } catch(Exception ex) {
+            } catch (Exception ex) {
                 _log.error("Unable to release proxytoken creation lock", ex);
             }
         }
@@ -377,32 +373,32 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
     public void deleteAllTokensForUser(String userName, boolean includeProxyTokens) {
         try {
             List<StorageOSUserDAO> userRecords = getUserRecords(userName.toLowerCase());
-            for (StorageOSUserDAO userRecord: userRecords) {
+            for (StorageOSUserDAO userRecord : userRecords) {
                 List<Token> tokensToDelete = getTokensForUserId(userRecord.getId());
-                for (Token token: tokensToDelete) {
+                for (Token token : tokensToDelete) {
                     _log.info("Removing token {} using userDAO {} for username {}",
-                            new String[] {token.getId().toString(), userRecord.getId().toString(), userName});
-                    _dbClient.removeObject(token);    
+                            new String[] { token.getId().toString(), userRecord.getId().toString(), userName });
+                    _dbClient.removeObject(token);
                     cleanUpRequestedTokenMap(token);
                 }
                 // making proxy token deletion optional
                 List<ProxyToken> pTokensToDelete = getProxyTokensForUserId(userRecord.getId());
                 if (includeProxyTokens) {
-                    for (ProxyToken token: pTokensToDelete) {
+                    for (ProxyToken token : pTokensToDelete) {
                         _log.info("Removing proxy token {} using userDAO {} for username {}",
-                                new String[] {token.getId().toString(), userRecord.getId().toString(), userName});
+                                new String[] { token.getId().toString(), userRecord.getId().toString(), userName });
                         _dbClient.removeObject(token);
                     }
                     _log.info("Marking for deletion: user record {} for username {}",
                             userRecord.getId().toString(), userName);
                     _dbClient.markForDeletion(userRecord);
-                } else if (pTokensToDelete.size() == 0) {
+                } else if (pTokensToDelete.isEmpty()) {
                     _log.info("No proxy tokens found. Marking for deletion: user record {} for username {}",
                             userRecord.getId().toString(), userName);
                     _dbClient.markForDeletion(userRecord);
                 }
             }
-        } catch(DatabaseException ex) {
+        } catch (DatabaseException ex) {
             throw SecurityException.fatals.exceptionDuringTokenDeletionForUser(userName,
                     ex);
         }

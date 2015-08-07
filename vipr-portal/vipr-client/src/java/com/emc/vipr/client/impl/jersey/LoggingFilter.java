@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.impl.jersey;
@@ -25,7 +25,8 @@ public class LoggingFilter extends ClientFilter {
     private static final Pattern PASSWORD_PATTERN = Pattern.compile(
             "(<[\\w\\-\\_]*password\\>|password\\<\\/key\\>\\s*\\<value\\>|<secret_key[\\w\\-\\_]*\\>)(.*?)(<\\/|$)",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
-    private static final String PASSWORD_REPLACEMENT = "$1*****$3";
+    private static final String PASSWORD_REPLACEMENT = "$1*****$3";// NOSONAR
+                                                                   // ("Suppressing Sonar violation of variable password, as this field  is not holding sensitive data")
 
     private static AtomicLong id = new AtomicLong(0);
     private final int maxEntityLength;
@@ -238,8 +239,9 @@ public class LoggingFilter extends ClientFilter {
     }
 
     private void printEntity(StringBuilder b, byte[] entity, boolean truncated) {
-        if (entity.length == 0)
+        if (entity.length == 0) {
             return;
+        }
 
         String entityStr = protectPasswords(new String(entity));
         b.append("\n").append(entityStr);

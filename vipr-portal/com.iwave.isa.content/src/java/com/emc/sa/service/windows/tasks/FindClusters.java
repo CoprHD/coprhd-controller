@@ -1,12 +1,10 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.windows.tasks;
 
 import com.iwave.ext.windows.model.wmi.MSCluster;
-import com.iwave.ext.windows.model.wmi.MSClusterNetworkInterface;
-
 import java.util.List;
 
 /**

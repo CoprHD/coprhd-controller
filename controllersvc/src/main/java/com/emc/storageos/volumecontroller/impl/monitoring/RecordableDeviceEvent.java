@@ -1,19 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.monitoring;
-
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -80,7 +69,7 @@ public abstract class RecordableDeviceEvent implements RecordableEvent {
             tenantOrg = ControllerUtils.getProjectTenantOrgURI(_dbClient, getProjectId());
         }
         if (tenantOrg == null) {
-        	// If none found we have to have a blank value in monitoring.
+            // If none found we have to have a blank value in monitoring.
             tenantOrg = URI.create("");
         }
         return tenantOrg;
@@ -110,7 +99,7 @@ public abstract class RecordableDeviceEvent implements RecordableEvent {
             } else if (resource instanceof FileShare) {
                 FileShare fs = (FileShare) resource;
                 projectId = fs.getProject().getURI();
-            } else if(resource instanceof  BlockSnapshot){
+            } else if (resource instanceof BlockSnapshot) {
                 BlockSnapshot bs = (BlockSnapshot) resource;
                 projectId = bs.getProject().getURI();
             } else {
@@ -131,7 +120,7 @@ public abstract class RecordableDeviceEvent implements RecordableEvent {
             if (resource instanceof Volume) {
                 Volume volume = (Volume) resource;
                 vpool = volume.getVirtualPool();
-            } else if (resource instanceof  BlockSnapshot) {
+            } else if (resource instanceof BlockSnapshot) {
                 BlockSnapshot bs = (BlockSnapshot) resource;
                 Volume volume = _dbClient.queryObject(Volume.class, bs.getParent().getURI());
                 if (volume != null) {
@@ -169,7 +158,7 @@ public abstract class RecordableDeviceEvent implements RecordableEvent {
      * @return The Class reference for the actual type of the resource impacted
      *         by the event
      */
-    
+
     protected abstract Class<? extends DataObject> getResourceClass();
 
     /**
@@ -180,7 +169,7 @@ public abstract class RecordableDeviceEvent implements RecordableEvent {
      * @return A reference to the resource in the database impacted by the
      *         event.
      */
-    
+
     private DataObject getResource() {
         String altNativeId = null;
         if (_resource == null && (altNativeId = getNativeGuid()) != null) {
@@ -198,10 +187,12 @@ public abstract class RecordableDeviceEvent implements RecordableEvent {
                 }
                 else if (resourceClass.getName().equals(FileShare.class.getName())) {
                     resourceURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFileShareNativeIdConstraint(altNativeId));
-                }else if (resourceClass.getName().equals(StoragePort.class.getName())) {
-                    resourceURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePortByNativeGuidConstraint(altNativeId));
-                }else if (resourceClass.getName().equals(StoragePool.class.getName())) {
-                    resourceURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePoolByNativeGuidConstraint(altNativeId));
+                } else if (resourceClass.getName().equals(StoragePort.class.getName())) {
+                    resourceURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                            .getStoragePortByNativeGuidConstraint(altNativeId));
+                } else if (resourceClass.getName().equals(StoragePool.class.getName())) {
+                    resourceURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                            .getStoragePoolByNativeGuidConstraint(altNativeId));
                 }
 
                 s_logger.debug("[Monitoring] -> Number of resources found {} having Native Guid: {}", resourceURIs.size(), altNativeId);
@@ -210,23 +201,27 @@ public abstract class RecordableDeviceEvent implements RecordableEvent {
                     List<? extends DataObject> objects = _dbClient.queryObject(resourceClass, resourceURIs);
                     _resource = objects.get(0);
                 }
-                else if (resourceURIs.size() > 1 ) {
+                else if (resourceURIs.size() > 1) {
                     List<? extends DataObject> objects = _dbClient.queryObject(resourceClass, resourceURIs);
-                    for(DataObject obj : objects) {
-                        s_logger.info("[Monitoring] -> Resource found with native guid {} with its InActive status {}", altNativeId, obj.getInactive());
-                       if(!obj.getInactive()) {
-                           _resource = obj;
-                           s_logger.info("[Monitoring] -> Found resource with label : {} and id : {}", _resource.getLabel(), _resource.getId());
-                       }
-                       else {
-                           s_logger.info("[Monitoring] -> InActive resource found and Ignoring to update");
-                       }
+                    for (DataObject obj : objects) {
+                        s_logger.info("[Monitoring] -> Resource found with native guid {} with its InActive status {}", altNativeId,
+                                obj.getInactive());
+                        if (!obj.getInactive()) {
+                            _resource = obj;
+                            s_logger.info("[Monitoring] -> Found resource with label : {} and id : {}", _resource.getLabel(),
+                                    _resource.getId());
+                        }
+                        else {
+                            s_logger.info("[Monitoring] -> InActive resource found and Ignoring to update");
+                        }
                     }
                 } else {
                     s_logger.debug("Could not find resource of type {} with nativeGUID {}", resourceClass.getSimpleName(), altNativeId);
                 }
             } catch (Exception t) {
-                s_logger.error(MessageFormatter.format("Error finding resource of type {} with nativeGUID {}", resourceClass.getName(), altNativeId).getMessage(), t);
+                s_logger.error(
+                        MessageFormatter.format("Error finding resource of type {} with nativeGUID {}", resourceClass.getName(),
+                                altNativeId).getMessage(), t);
             }
         }
         return _resource;

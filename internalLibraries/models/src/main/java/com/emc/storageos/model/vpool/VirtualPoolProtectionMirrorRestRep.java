@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.vpool;
 
@@ -26,8 +16,9 @@ public class VirtualPoolProtectionMirrorRestRep {
     private String placementVpool;
     private String haPlacementVpool;
 
-    public VirtualPoolProtectionMirrorRestRep() {}
-    
+    public VirtualPoolProtectionMirrorRestRep() {
+    }
+
     public VirtualPoolProtectionMirrorRestRep(String type, String placementVpool, String haPlacementVpool) {
         this.type = type;
         this.placementVpool = placementVpool;
@@ -61,7 +52,7 @@ public class VirtualPoolProtectionMirrorRestRep {
     public void setPlacementVpool(String placementVpool) {
         this.placementVpool = placementVpool;
     }
-    
+
     /**
      * The High Availability mirror protection virtual pool.
      * 

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
@@ -38,15 +28,15 @@ public class MultiVolumeTaskCompleter extends TaskCompleter {
 
     /**
      * Constructor.
-     *
+     * 
      * @param volumeTaskCompleters A list of volume task completers.
      * @param opId The operation id.
      */
     public MultiVolumeTaskCompleter(List<URI> ids, List<VolumeTaskCompleter> volumeTaskCompleters, String opId) {
         super(Volume.class, ids, opId);
         _volumeTaskCompleterMap = new HashMap<URI, VolumeTaskCompleter>();
-        for(VolumeTaskCompleter tc : volumeTaskCompleters) {
-        	tc.setNotifyWorkflow(false); // This completer will take care of notifying workflow
+        for (VolumeTaskCompleter tc : volumeTaskCompleters) {
+            tc.setNotifyWorkflow(false); // This completer will take care of notifying workflow
             _volumeTaskCompleterMap.put(tc.getId(), tc);
         }
     }
@@ -54,7 +44,7 @@ public class MultiVolumeTaskCompleter extends TaskCompleter {
     /**
      * Implements TaskCompleter interface by invoking the the like method for
      * the associated volume task completer instances.
-     *
+     * 
      * @param dbClient A reference to the database client.
      * @param status The completion status.
      */
@@ -69,8 +59,10 @@ public class MultiVolumeTaskCompleter extends TaskCompleter {
     public VolumeTaskCompleter skipTaskCompleter(URI volumeURI) {
         return _volumeTaskCompleterMap.remove(volumeURI);
     }
+
     /**
      * check whether VolumeTaskCompleters left out
+     * 
      * @return
      */
     public boolean isVolumeTaskCompletersEmpty() {

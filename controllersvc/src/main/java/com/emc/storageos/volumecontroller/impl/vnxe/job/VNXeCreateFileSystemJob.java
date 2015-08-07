@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.vnxe.job;
@@ -36,20 +26,21 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 /**
  * This class is for create file system job
  */
-public class VNXeCreateFileSystemJob extends VNXeJob{
+public class VNXeCreateFileSystemJob extends VNXeJob {
 
     private static final long serialVersionUID = -6248728897770826163L;
     private static final Logger _logger = LoggerFactory.getLogger(VNXeCreateFileSystemJob.class);
     private URI _storagePool;
-    public VNXeCreateFileSystemJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, 
+
+    public VNXeCreateFileSystemJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter,
             URI storagePoolUri) {
         super(jobId, storageSystemUri, taskCompleter, "createFileSystem");
         _storagePool = storagePoolUri;
     }
-    
+
     /**
      * Called to update the job status when the file system create job completes.
-     *
+     * 
      * @param jobContext The job context.
      */
     @Override
@@ -63,24 +54,24 @@ public class VNXeCreateFileSystemJob extends VNXeJob{
 
             String opId = getTaskCompleter().getOpId();
             StringBuilder logMsgBuilder = new StringBuilder(String.format("Updating status of job %s to %s", opId, _status.name()));
-            
+
             VNXeApiClient vnxeApiClient = getVNXeClient(jobContext);
-            
+
             VNXeCommandJob job = vnxeApiClient.getJob(getJobIds().get(0));
 
-            // If terminal state update storage pool capacity 
+            // If terminal state update storage pool capacity
             if (_status == JobStatus.SUCCESS || _status == JobStatus.FAILED) {
                 VNXeJob.updateStoragePoolCapacity(dbClient, vnxeApiClient, _storagePool);
             }
             URI fsId = getTaskCompleter().getId();
             FileShare fsObj = dbClient.queryObject(FileShare.class, fsId);
             if (_status == JobStatus.SUCCESS && fsObj != null) {
-            	_isSuccess = true;
+                _isSuccess = true;
                 updateFS(fsObj, dbClient, job, logMsgBuilder, vnxeApiClient);
             } else if (_status == JobStatus.FAILED && fsObj != null) {
                 logMsgBuilder.append("\n");
                 logMsgBuilder.append(String.format(
-                            "Task %s failed to create file system: %s", opId, fsId.toString()));
+                        "Task %s failed to create file system: %s", opId, fsId.toString()));
                 fsObj.setInactive(true);
                 dbClient.persistObject(fsObj);
 
@@ -88,7 +79,7 @@ public class VNXeCreateFileSystemJob extends VNXeJob{
                 logMsgBuilder.append(String.format("The file system: %s is not found anymore", fsId));
             }
             _logger.info(logMsgBuilder.toString());
-            
+
             FileDeviceController.recordFileDeviceOperation(dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM, _isSuccess, "", "", fsObj);
         } catch (Exception e) {
             _logger.error("Caught an exception while trying to updateStatus for VNXeCreateFileSystemJob", e);
@@ -97,9 +88,10 @@ public class VNXeCreateFileSystemJob extends VNXeJob{
             super.updateStatus(jobContext);
         }
     }
-    
+
     /**
      * update FileShare after it is created in VNXe
+     * 
      * @param fsId fileShare uri in vipr
      * @param dbClient DbClient
      * @param job VNXeCommandJob
@@ -107,20 +99,22 @@ public class VNXeCreateFileSystemJob extends VNXeJob{
      * @param logMsgBuilder string builder for logging
      * @param vnxeApiClient VNXeApiClient
      */
-    private void updateFS(FileShare fsObj, DbClient dbClient, VNXeCommandJob job,  
+    private void updateFS(FileShare fsObj, DbClient dbClient, VNXeCommandJob job,
             StringBuilder logMsgBuilder, VNXeApiClient vnxeApiClient) {
         try {
             fsObj.setCreationTime(Calendar.getInstance());
-            //TODO: currently, KH API does not return resourceId in the job. get around it for now.
-            //String resourceId = job.getResourceId();
+            // TODO: currently, KH API does not return resourceId in the job. get around it for now.
+            // String resourceId = job.getResourceId();
             VNXeFileSystem vnxeFS = null;
-            /*if (resourceId == null || resourceId.isEmpty()) {
-                _logger.info("The job did not return the resourceId for created file system.");
-                _logger.info("Getting the fs info by its name: " + fsObj.getName());
-                 vnxeFS = vnxeApiClient.getFileSystemByFSName(fsObj.getName());
-            } else {
-                vnxeFS = vnxeApiClient.getFileSystemByStorageResourceId(resourceId);
-            }*/
+            /*
+             * if (resourceId == null || resourceId.isEmpty()) {
+             * _logger.info("The job did not return the resourceId for created file system.");
+             * _logger.info("Getting the fs info by its name: " + fsObj.getName());
+             * vnxeFS = vnxeApiClient.getFileSystemByFSName(fsObj.getName());
+             * } else {
+             * vnxeFS = vnxeApiClient.getFileSystemByStorageResourceId(resourceId);
+             * }
+             */
             vnxeFS = vnxeApiClient.getFileSystemByFSName(fsObj.getName());
             if (vnxeFS != null) {
                 fsObj.setNativeId(vnxeFS.getId());
@@ -129,7 +123,7 @@ public class VNXeCreateFileSystemJob extends VNXeJob{
                 String mountPath = "/" + fsObj.getName();
                 fsObj.setMountPath(mountPath);
                 fsObj.setPath(mountPath);
-    
+
                 dbClient.persistObject(fsObj);
                 if (logMsgBuilder.length() != 0) {
                     logMsgBuilder.append("\n");
@@ -137,7 +131,7 @@ public class VNXeCreateFileSystemJob extends VNXeJob{
                 logMsgBuilder.append(String.format(
                         "Created file system successfully .. NativeId: %s, URI: %s", fsObj.getNativeId(),
                         getTaskCompleter().getId()));
-                
+
             } else {
                 logMsgBuilder.append("Could not find corresponding file system in the VNXe, using the fs name: ");
                 logMsgBuilder.append(fsObj.getName());
@@ -145,7 +139,7 @@ public class VNXeCreateFileSystemJob extends VNXeJob{
         } catch (IOException e) {
             _logger.error("Caught an exception while trying to update file system attributes", e);
         }
-        
+
     }
-    
+
 }

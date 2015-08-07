@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.auth.ldap;
 
@@ -20,13 +10,17 @@ import java.util.regex.Pattern;
  * Group filter white list.
  * 
  */
+
+// Suppress the following two sonar warnings. the following arrays are passed as arguments or returned as a result
+// and not modified outside of the class. related arrays are: _values, _compiledPatterns.
+@SuppressWarnings({ "pmd:ArrayIsStoredDirectly", "pmd:MethodReturnsInternalArray" })
 public class GroupWhiteList {
     private String _type;
     private String[] _values;
     private Pattern[] _compiledPatterns;
 
     public static final GroupWhiteList SID = new GroupWhiteList("objectSid",
-        "*");
+            "*");
 
     /**
      * Default constructor
@@ -88,8 +82,9 @@ public class GroupWhiteList {
      * @return compiled list of white list values
      */
     public Pattern[] getCompiledPatterns() {
-        if (_compiledPatterns != null)
+        if (_compiledPatterns != null) {
             return _compiledPatterns;
+        }
 
         if (_values != null && _values.length > 0) {
             _compiledPatterns = new Pattern[_values.length];
@@ -98,7 +93,7 @@ public class GroupWhiteList {
                 int i = 0;
                 for (String value : _values) {
                     _compiledPatterns[i] = Pattern.compile(value.replace("*",
-                        ".*"), Pattern.CASE_INSENSITIVE|Pattern.UNICODE_CASE);
+                            ".*"), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
                     i++;
                 }
             }

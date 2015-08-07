@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.catalog;
@@ -25,12 +25,11 @@ public class ExecutionWindows extends AbstractResources<ExecutionWindowInfo> {
         super(parent, client, ExecutionWindowInfo.class, EXECUTION_WINDOWS_URL);
     }
 
-
     /**
      * Lists Execution Windows.
      * <p>
      * API Call: GET /admin/api/executionwindows
-     *
+     * 
      * @return References to approval requests.
      */
     @Deprecated
@@ -42,7 +41,7 @@ public class ExecutionWindows extends AbstractResources<ExecutionWindowInfo> {
      * Retrieves all execution windows. Convenience method to list windows and retrieve all.
      * <p>
      * API Call: GET /admin/api/executionwindows
-     *
+     * 
      * @see #list()
      * @see #getByRefs(java.util.Collection)
      * @return All approval requests
@@ -55,8 +54,9 @@ public class ExecutionWindows extends AbstractResources<ExecutionWindowInfo> {
     /**
      * Create a new execution window.
      * <p>
-     *     API Call: POST /admin/api/executionwindows
+     * API Call: POST /admin/api/executionwindows
      * </p>
+     * 
      * @param window Execution window create information
      */
     @Deprecated
@@ -67,8 +67,9 @@ public class ExecutionWindows extends AbstractResources<ExecutionWindowInfo> {
     /**
      * Updates and existing execution window.
      * <p>
-     *     API Call: PUT /admin/api/executionwindows/{id}
+     * API Call: PUT /admin/api/executionwindows/{id}
      * </p>
+     * 
      * @param id Identifier of the execution window to update
      * @param window Execution window update information
      */
@@ -80,8 +81,9 @@ public class ExecutionWindows extends AbstractResources<ExecutionWindowInfo> {
     /**
      * Deletes an execution window.
      * <p>
-     *     API Call: DELETE /admin/api/executionwindows/{id}
+     * API Call: DELETE /admin/api/executionwindows/{id}
      * </p>
+     * 
      * @param id Identifier of the execution window to delete.
      */
     @Deprecated

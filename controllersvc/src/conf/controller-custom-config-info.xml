@@ -50,6 +50,7 @@
                 <ref bean="hdsHostStorageDomainNickName"/>
                 <ref bean="hdsHostModeOption" />
                 <ref bean="vplexStorageViewName"/>
+                <ref bean="vplexMigrationSpeed"/>
             </list>
         </property>
     </bean>
@@ -790,6 +791,27 @@
         </property>
     </bean>
     
+    <bean id="vplexMigrationSpeed" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VPlexMigrationSpeed"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="String"/>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vplex"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="Lowest"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="predefinedValuesConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
     
     <bean id="xtremIOVolumeFolderName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
     	<property name="name" value="XtremIOVolumeFolderName"/>
@@ -1179,6 +1201,20 @@
             </map>
         </property>
         <property name="description" value="The minimum value is 0"/>
+    </bean>
+    
+    <bean id="predefinedValuesConstraint" class="com.emc.storageos.customconfigcontroller.PredefinedValuesConstraint">
+        <property name="predefinedValues">
+            <set>
+                <value>Lowest</value>
+                <value>Low</value>
+                <value>Medium</value>
+                <value>High</value>
+                <value>Highest</value>
+            </set>
+        </property>
+        <property name="defaultValue" value="Lowest"/>
+        <property name="description" value="The predefined value set"/>
     </bean>
     
     <bean id="nameResolver" class="com.emc.storageos.customconfigcontroller.CustomNameResolver">

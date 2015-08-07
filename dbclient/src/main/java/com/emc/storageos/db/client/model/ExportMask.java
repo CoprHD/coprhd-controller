@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
@@ -36,7 +26,7 @@ import static com.emc.storageos.db.client.util.CommonTransformerFunctions.collec
 @Cf("ExportMask")
 public class ExportMask extends DataObject {
 
-	private URI _storageDevice;
+    private URI _storageDevice;
     private String _maskName;
     private String _nativeId;
     private StringMap _volumes;
@@ -67,14 +57,14 @@ public class ExportMask extends DataObject {
     // create. Otherwise, it was already existing on the array (created outside of
     // Bourne).
     private Boolean _createdBySystem;
-    
+
     // Not technically part of the ExportMask on the array, but this is the
     // map of initiators to storagePorts used for zoning. If there is an
     // entry here, then the corresponding SAN zone will be created between
     // the Initiator and StoragePort. If there is no entry here, then
     // no zone will be created. If _zoningMap is null, then all initiators
     // are zoned to all ports within the ExportMask.
-    // Initiator::id ->  Set<StoragePort::id>
+    // Initiator::id -> Set<StoragePort::id>
     private StringSetMap _zoningMap;
 
     // This is the name of the resource that this mask applies to. It can be a
@@ -82,7 +72,7 @@ public class ExportMask extends DataObject {
     // associated to the thing that we would to export volumes to. It is here mostly
     // as a convenience.
     private String _resource;
-    
+
     // Captures the Device Specific information that are created for this export mask.
     private StringSetMap _deviceDataMap;
 
@@ -173,8 +163,6 @@ public class ExportMask extends DataObject {
         }
         return result;
     }
-    
-   
 
     /**
      * @return the _deviceData
@@ -183,10 +171,11 @@ public class ExportMask extends DataObject {
     public StringSetMap getDeviceDataMap() {
         return _deviceDataMap;
     }
-    
+
     /**
      * Returns a StringSet from the deviceDataMap entries corresponding to the supplied key.
      * If the key is not present, an empty StringSet is returned.
+     * 
      * @param key -- String Key
      * @return -- StringSet (will be empty if no entries for key)
      */
@@ -203,7 +192,7 @@ public class ExportMask extends DataObject {
     public void setDeviceDataMap(StringSetMap deviceData) {
         this._deviceDataMap = deviceData;
     }
-    
+
     public void addDeviceDataMap(StringSetMap deviceDataMapEntries) {
         if (this._deviceDataMap == null) {
             setDeviceDataMap(deviceDataMapEntries);
@@ -211,14 +200,14 @@ public class ExportMask extends DataObject {
             this._deviceDataMap.putAll(deviceDataMapEntries);
         }
     }
-    
+
     public void replaceDeviceDataMapEntries(StringSetMap deviceDataMapEntries) {
         if (null != deviceDataMapEntries
                 && !deviceDataMapEntries.isEmpty()) {
             _deviceDataMap.replace(deviceDataMapEntries);
         }
     }
-    
+
     public void removeDeviceDataMapEntry(String key) {
         if (this._deviceDataMap != null) {
             // This seemingly consorted logic is to avoid
@@ -233,7 +222,7 @@ public class ExportMask extends DataObject {
             }
         }
     }
-    
+
     /**
      * Enumeration of key values for the DeviceDataMap.
      */
@@ -243,13 +232,13 @@ public class ExportMask extends DataObject {
         // prevents the Networking code from deleting zoningMap entries when removing zones
         ImmutableZoningMap
     };
-    
+
     /**
      * Add a mapping of the specified block object to an HLU value.
-     *
+     * 
      * @param blockObjectURI - URI of a BlockObject instance
      * @param lun - Integer HLU value
-     *
+     * 
      */
     public void addVolume(URI blockObjectURI, Integer lun) {
         if (getVolumes() == null) {
@@ -268,9 +257,9 @@ public class ExportMask extends DataObject {
                 // Non unassigned values are placed by the
                 // ExportMaskOperationsHelper#setHLUFromProtocolControllers call,
                 // which pulls the HLU from the provider. Add the volume entry only if:
-                //    - it doesn't exist in the map
-                //   OR
-                //    - it is not the LUN_UNASSIGNED value
+                // - it doesn't exist in the map
+                // OR
+                // - it is not the LUN_UNASSIGNED value
                 if (!_volumes.containsKey(entry.getKey().toString()) ||
                         hlu != ExportGroup.LUN_UNASSIGNED) {
                     _volumes.put(entry.getKey().toString(), hlu.toString());
@@ -293,7 +282,7 @@ public class ExportMask extends DataObject {
     }
 
     /**
-     *
+     * 
      * @param initiator
      * @return true if newly added, else false
      */
@@ -304,9 +293,9 @@ public class ExportMask extends DataObject {
         if (_initiators == null) {
             _initiators = new StringSet();
         }
-		if (!_initiators.contains(initiator.getId().toString())) {
-			_initiators.add(initiator.getId().toString());
-		}
+        if (!_initiators.contains(initiator.getId().toString())) {
+            _initiators.add(initiator.getId().toString());
+        }
     }
 
     public void addInitiators(Collection<Initiator> initiators) {
@@ -358,7 +347,7 @@ public class ExportMask extends DataObject {
     }
 
     /**
-     *
+     * 
      * @param target
      * @return true if newly added, else false
      */
@@ -423,8 +412,7 @@ public class ExportMask extends DataObject {
     public void setUserAddedInitiators(StringMap userAddedInitiators) {
         _userAddedInitiators = userAddedInitiators;
     }
-    
-    
+
     @Name("existingInitiators")
     public StringSet getExistingInitiators() {
         return _existingInitiators;
@@ -453,7 +441,7 @@ public class ExportMask extends DataObject {
             addToUserCreatedInitiators(initiator);
         }
     }
-    
+
     public void addToExistingInitiatorIfAbsent(List<Initiator> initiators) {
         for (Initiator initiator : initiators) {
             addToExistingInitiatorsIfAbsent(initiator);
@@ -560,7 +548,7 @@ public class ExportMask extends DataObject {
     /**
      * This method will add to the existing initiators list only if the port doesn't
      * already exist in either the existing or user-created initiator list.
-     *
+     * 
      * @param port [in] - Port name to add to the existing initiator list.
      */
     public void addToExistingInitiatorsIfAbsent(String port) {
@@ -568,7 +556,7 @@ public class ExportMask extends DataObject {
             _existingInitiators = new StringSet();
         }
         String normalizedPort = Initiator.normalizePort(port);
-        if (!_existingInitiators.contains(normalizedPort)&&
+        if (!_existingInitiators.contains(normalizedPort) &&
                 (_userAddedInitiators == null ||
                 !_userAddedInitiators.containsKey(normalizedPort))) {
             _existingInitiators.add(normalizedPort);
@@ -578,7 +566,7 @@ public class ExportMask extends DataObject {
     /**
      * This method will add to the existing initiators list only if the port doesn't
      * already exist in either the existing or user-created initiator list.
-     *
+     * 
      * @param ports [in] - List of port names to add to the existing initiator list.
      */
     public void addToExistingInitiatorsIfAbsent(List<String> ports) {
@@ -589,7 +577,7 @@ public class ExportMask extends DataObject {
             String normalizedPort = Initiator.normalizePort(port);
             if (!_existingInitiators.contains(normalizedPort) &&
                     (_userAddedInitiators == null ||
-                            !_userAddedInitiators.containsKey(normalizedPort))) {
+                    !_userAddedInitiators.containsKey(normalizedPort))) {
                 _existingInitiators.add(normalizedPort);
             }
         }
@@ -625,9 +613,9 @@ public class ExportMask extends DataObject {
     /**
      * This method will add to the existing volumes list only if the WWN doesn't
      * already exist in either the existing or user-created volume list.
-     *
+     * 
      * @param volumeWWN [in] - World Wide Name of volume that will have to be added
-     *                   to the existing volumes list for this mask.
+     *            to the existing volumes list for this mask.
      */
     public void addToExistingVolumesIfAbsent(String volumeWWN, String hlu) {
         if (_existingVolumes == null) {
@@ -636,7 +624,7 @@ public class ExportMask extends DataObject {
         String normalizedWWN = BlockObject.normalizeWWN(volumeWWN);
         if (!_existingVolumes.containsKey(normalizedWWN) &&
                 (_userAddedVolumes == null ||
-                        !_userAddedVolumes.containsKey(normalizedWWN))) {
+                !_userAddedVolumes.containsKey(normalizedWWN))) {
             _existingVolumes.put(normalizedWWN, hlu);
         }
     }
@@ -644,9 +632,9 @@ public class ExportMask extends DataObject {
     /**
      * This method will add to the existing volumes list only those members that don't
      * already exist in either the existing or user-created volume list.
-     *
+     * 
      * @param volumeWWNs [in] - World Wide Names of volumes that will have to be added
-     *                   to the existing volumes list for this mask.
+     *            to the existing volumes list for this mask.
      */
     public void addToExistingVolumesIfAbsent(Map<String, Integer> volumeWWNs) {
         if (_existingVolumes == null) {
@@ -656,7 +644,7 @@ public class ExportMask extends DataObject {
             String normalizedWWN = BlockObject.normalizeWWN(wwn);
             if (!_existingVolumes.containsKey(normalizedWWN) &&
                     (_userAddedVolumes == null ||
-                            !_userAddedVolumes.containsKey(normalizedWWN))) {
+                    !_userAddedVolumes.containsKey(normalizedWWN))) {
                 String hluStr = ExportGroup.LUN_UNASSIGNED_STR;
                 Integer hlu = volumeWWNs.get(normalizedWWN);
                 if (hlu != null) {
@@ -686,24 +674,24 @@ public class ExportMask extends DataObject {
     }
 
     /**
-    *
-    * @param String initiatorId
-    * @return true if the initiator is in the mask, else false
-    */
+     * 
+     * @param String initiatorId
+     * @return true if the initiator is in the mask, else false
+     */
     public boolean hasInitiator(String initiatorId) {
         boolean hasInitiator = false;
         if (_initiators != null) {
             hasInitiator = _initiators.contains(initiatorId);
         }
-        
-        return hasInitiator; 	
+
+        return hasInitiator;
     }
 
     public boolean hasUserInitiator(String port) {
         boolean hasInitiator = false;
         if (_userAddedInitiators != null) {
             hasInitiator =
-                    _userAddedInitiators.containsKey(Initiator.normalizePort(port)) ;
+                    _userAddedInitiators.containsKey(Initiator.normalizePort(port));
         }
         return hasInitiator;
     }
@@ -761,7 +749,8 @@ public class ExportMask extends DataObject {
     }
 
     /**
-     * Contains a "perfect subset" of the ports sent in.  Contains a subset, and no other initiators.
+     * Contains a "perfect subset" of the ports sent in. Contains a subset, and no other initiators.
+     * 
      * @param ports ports of a compute resource
      * @return true if contains a subset and ONLY that subset
      */
@@ -844,7 +833,7 @@ public class ExportMask extends DataObject {
     public void setZoningMap(StringSetMap zoningMap) {
         this._zoningMap = zoningMap;
     }
-    
+
     public void addZoningMap(StringSetMap zoningMapEntries) {
         if (this._zoningMap == null) {
             setZoningMap(zoningMapEntries);
@@ -852,7 +841,7 @@ public class ExportMask extends DataObject {
             this._zoningMap.putAll(zoningMapEntries);
         }
     }
-    
+
     public void removeZoningMapEntry(String key) {
         if (this._zoningMap != null) {
             // This seemingly contorted logic is to avoid
@@ -862,7 +851,7 @@ public class ExportMask extends DataObject {
                 StringSet values = new StringSet();
                 values.addAll(set);
                 for (String value : values) {
-                   _zoningMap.remove(key, value);
+                    _zoningMap.remove(key, value);
                 }
             }
         }
@@ -870,6 +859,7 @@ public class ExportMask extends DataObject {
 
     /**
      * Add an entry to create a zone between an initiator and port.
+     * 
      * @param initiator URI as String
      * @param storagePort URI as String
      */
@@ -901,34 +891,33 @@ public class ExportMask extends DataObject {
     }
 
     public boolean hasAnyInitiators() {
-    	if (_existingInitiators != null && !_existingInitiators.isEmpty()) {
-    		return true;
-    	}
-    	if (_userAddedInitiators != null && !_userAddedInitiators.isEmpty()) {
-    		return true;
-    	}
-    			
-    	return false;
+        if (_existingInitiators != null && !_existingInitiators.isEmpty()) {
+            return true;
+        }
+        if (_userAddedInitiators != null && !_userAddedInitiators.isEmpty()) {
+            return true;
+        }
+
+        return false;
     }
-    
+
     /**
      * Convenience method to check if HLU for a volume is already in use.
      * 
      * @param hluValue HLU value
      * @return true if any volume has mentioned hluValue else false
      */
-    public boolean anyVolumeHasHLU(String hluValue){
-    	boolean hasHLU = false;
-    	StringMap existingVolumesInMask = getExistingVolumes();
+    public boolean anyVolumeHasHLU(String hluValue) {
+        boolean hasHLU = false;
+        StringMap existingVolumesInMask = getExistingVolumes();
         StringMap viprAddedVolumes = getVolumes();
-        if((existingVolumesInMask != null && existingVolumesInMask.containsValue(hluValue)) ||
-        	(viprAddedVolumes != null && viprAddedVolumes.containsValue(hluValue))){
-        	hasHLU = true;
+        if ((existingVolumesInMask != null && existingVolumesInMask.containsValue(hluValue)) ||
+                (viprAddedVolumes != null && viprAddedVolumes.containsValue(hluValue))) {
+            hasHLU = true;
         }
-    	return hasHLU;
+        return hasHLU;
     }
-    
-    
+
     public int returnTotalVolumeCount() {
         int userVolumes = (_userAddedVolumes != null) ? _userAddedVolumes.size() : 0;
         int existingVolumes = (_existingVolumes != null) ? _existingVolumes.size() : 0;
@@ -936,19 +925,19 @@ public class ExportMask extends DataObject {
     }
 
     @Override
-	public String toString() {
+    public String toString() {
         return String.format(
                 "ExportMask %s (%s)\n" +
-                "\tInactive            : %s\n" +
-                "\tCreatedBySystem     : %s\n" +
-                "\tVolumes             : %s\n" +
-                "\tInitiators          : %s\n" +
-                "\tStoragePorts        : %s\n" +
-                "\tUserAddedVolumes    : %s\n" +
-                "\tExistingVolumes     : %s\n" +
-                "\tUserAddedInitiators : %s\n" +
-                "\tExistingInitiators  : %s\n" +
-                "\tZoningMap           : %s\n",
+                        "\tInactive            : %s\n" +
+                        "\tCreatedBySystem     : %s\n" +
+                        "\tVolumes             : %s\n" +
+                        "\tInitiators          : %s\n" +
+                        "\tStoragePorts        : %s\n" +
+                        "\tUserAddedVolumes    : %s\n" +
+                        "\tExistingVolumes     : %s\n" +
+                        "\tUserAddedInitiators : %s\n" +
+                        "\tExistingInitiators  : %s\n" +
+                        "\tZoningMap           : %s\n",
                 _maskName,
                 _id,
                 _inactive,
@@ -961,5 +950,5 @@ public class ExportMask extends DataObject {
                 collectionString(_userAddedInitiators),
                 collectionString(_existingInitiators),
                 _zoningMap);
-	}
+    }
 }

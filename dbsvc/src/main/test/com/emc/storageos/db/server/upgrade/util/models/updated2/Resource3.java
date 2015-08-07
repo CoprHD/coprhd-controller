@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.server.upgrade.util.models.updated2;
 
@@ -18,8 +8,6 @@ import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.RelationIndex;
-import com.emc.storageos.db.client.upgrade.CustomMigrationCallback;
-import com.emc.storageos.db.server.upgrade.util.callbacks2.Resource3NewFlagsInitializer;
 import java.net.URI;
 
 @Cf("Resource3")
@@ -27,7 +15,7 @@ public class Resource3 extends DataObject {
     private URI res4; // Test custom callback execution order
     private Long extraFlags; // Test custom callback execution order
     private Long newFlags; // Test custom callback execution order
-    
+
     // Deliberately put this up front to make sure that the field order doesn't matter
     @Name("newFlags")
     public Long getNewFlags() {

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.common.diff;
@@ -38,13 +28,13 @@ public class AnnotationTypeDiff extends Diff {
 
     public AnnotationTypeDiff(AnnotationType src, AnnotationType tgt) {
         type = src.getType();
-        
+
         for (AnnotationValue av : src.getValueList()) {
             av.setParent(src);
         }
 
-        valueCT = CollectionChangeTracker.<AnnotationValue, AnnotationValueDiff>newInstance(
-                AnnotationValue.class, AnnotationValueDiff.class, src.getValueList(), 
+        valueCT = CollectionChangeTracker.<AnnotationValue, AnnotationValueDiff> newInstance(
+                AnnotationValue.class, AnnotationValueDiff.class, src.getValueList(),
                 tgt.getValueList());
     }
 
@@ -59,15 +49,17 @@ public class AnnotationTypeDiff extends Diff {
     }
 
     public boolean isUpgradable() {
-        if (valueCT != null && !valueCT.isUpgradable())
+        if (valueCT != null && !valueCT.isUpgradable()) {
             return false;
+        }
 
         return true;
     }
 
     public boolean isChanged() {
-        if (valueCT != null && valueCT.isChanged())
+        if (valueCT != null && valueCT.isChanged()) {
             return true;
+        }
 
         return false;
     }
@@ -75,13 +67,14 @@ public class AnnotationTypeDiff extends Diff {
     /**
      * Return a list of new annotation values from the target schemas with parent
      * CF/field/annotation information
-     *
+     * 
      * Note that it only includes new annotation values of EXISITING annotations, not
      * annotation values of new annotations
      */
     public List<AnnotationValue> getNewAnnotationValues() {
-        if (valueCT != null) 
+        if (valueCT != null) {
             return valueCT.getNewList();
+        }
 
         return new ArrayList<AnnotationValue>();
     }

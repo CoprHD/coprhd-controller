@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -65,7 +65,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * API Call: <tt>POST /block/consistency-groups</tt>
      * 
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return the created block consistency group.
      */
     public BlockConsistencyGroupRestRep create(BlockConsistencyGroupCreate input) {
@@ -78,9 +78,9 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * API Call: <tt>PUT /block/consistency-groups/{id}</tt>
      * 
      * @param id
-     *        the ID of the block consistency group to update.
+     *            the ID of the block consistency group to update.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return a task for monitoring the progress of the update operation.
      */
     public Task<BlockConsistencyGroupRestRep> update(URI id, BlockConsistencyGroupUpdate input) {
@@ -93,7 +93,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * API Call: <tt>POST /block/consistency-groups/{id}/deactivate</tt>
      * 
      * @param id
-     *        the ID of the block consistency group to deactivate.
+     *            the ID of the block consistency group to deactivate.
      * @return a task for monitoring the progres of the deactivate operation.
      * 
      * @see #doDeactivateWithTask(URI)

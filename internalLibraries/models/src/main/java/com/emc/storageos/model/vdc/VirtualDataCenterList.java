@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.vdc;
@@ -15,8 +15,9 @@ import java.util.List;
 public class VirtualDataCenterList {
     private List<NamedRelatedResourceRep> virtualDataCenters;
 
-    public VirtualDataCenterList() {}
-    
+    public VirtualDataCenterList() {
+    }
+
     public VirtualDataCenterList(List<NamedRelatedResourceRep> virtualDataCenters) {
         this.virtualDataCenters = virtualDataCenters;
     }
@@ -25,7 +26,7 @@ public class VirtualDataCenterList {
      * List of storage system URLs with name
      * 
      * @valid none
-     */ 
+     */
     @XmlElement(name = "virtual_data_center")
     public List<NamedRelatedResourceRep> getVirtualDataCenters() {
         if (virtualDataCenters == null) {

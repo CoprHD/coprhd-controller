@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.netapp;
@@ -61,7 +51,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
             .getLogger(NetAppFileStorageDevice.class);
 
     private DbClient _dbClient;
-    
+
     private static int BYTESPERMB = 1048576;
     private static final String VOL_ROOT = "/vol/";
     private static final String VOL_ROOT_NO_SLASH = "/vol";
@@ -75,58 +65,57 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
     private static final String RW_HOSTS = "rwHosts";
     private static final int QUOTA_DIR_MAX_PATH = 100;
     private static final int QUOTA_DIR_MAX_NAME = 64;
-	
+
     public NetAppFileStorageDevice() {
     }
-    
-    public void setDbClient(DbClient dbc) {
-    	_dbClient = dbc;
-    }
-    
 
-    private String genDetailedMessage (String methodName, String entityName) {
-    	StringBuilder detailedMessage = new StringBuilder("NetAppFileStorageDevice ");
-    	
-    	detailedMessage.append(methodName);
-    	detailedMessage.append(" failed for ");
-    	detailedMessage.append(entityName);
-    	
-    	return detailedMessage.toString();
+    public void setDbClient(DbClient dbc) {
+        _dbClient = dbc;
     }
-    
+
+    private String genDetailedMessage(String methodName, String entityName) {
+        StringBuilder detailedMessage = new StringBuilder("NetAppFileStorageDevice ");
+
+        detailedMessage.append(methodName);
+        detailedMessage.append(" failed for ");
+        detailedMessage.append(entityName);
+
+        return detailedMessage.toString();
+    }
+
     @Override
     public BiosCommandResult doCreateFS(StorageSystem storage,
             FileDeviceInputOutput args) throws ControllerException {
 
         BiosCommandResult result = new BiosCommandResult();
         try {
-        	_log.info("NetAppFileStorageDevice doCreateFS - start");
-        	
-        	if (null == args.getFsName()) {
+            _log.info("NetAppFileStorageDevice doCreateFS - start");
+
+            if (null == args.getFsName()) {
                 _log.error("NetAppFileStorageDevice::doCreateFS failed:  Filesystem name is either missing or empty");
-                ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateFileSystem();                
+                ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateFileSystem();
                 serviceError.setMessage(FileSystemConstants.FS_ERR_FS_NAME_MISSING_OR_EMPTY);
                 result = BiosCommandResult.createErrorResult(serviceError);
                 return result;
-        	}
+            }
 
-        	if (null == args.getPoolNativeId()) {
+            if (null == args.getPoolNativeId()) {
                 _log.error("NetAppFileStorageDevice::doCreateFS failed:  PoolNativeId either missing or empty");
                 ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateFileSystem();
                 serviceError.setMessage(FileSystemConstants.FS_ERR_POOL_NATIVE_ID_MISSING_OR_EMPTY);
                 result = BiosCommandResult.createErrorResult(serviceError);
                 return result;
-        	}
+            }
 
-        	if (null == args.getFsCapacity()) {
+            if (null == args.getFsCapacity()) {
                 _log.error("NetAppFileStorageDevice::doCreateFS failed:  Filesystem capacity is either missing or empty");
                 ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateFileSystem();
-                serviceError.setMessage(FileSystemConstants.FS_ERR_FS_CAPACITY_MISSING_OR_EMPTY);   
+                serviceError.setMessage(FileSystemConstants.FS_ERR_FS_CAPACITY_MISSING_OR_EMPTY);
                 result = BiosCommandResult.createErrorResult(serviceError);
                 return result;
-        	}
+            }
 
-        	String nativeId;
+            String nativeId;
             if (args.getFsName().startsWith(VOL_ROOT)) {
                 nativeId = args.getFsName();
             } else {
@@ -138,7 +127,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
                     nativeId);
             args.setFsNativeGuid(fsNativeGuid);
 
-            String portGroup = findVfilerName(args.getFs());            
+            String portGroup = findVfilerName(args.getFs());
             NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
                     storage.getPortNumber(), storage.getUsername(),
                     storage.getPassword()).https(true).vFiler(portGroup).build();
@@ -173,63 +162,62 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
             ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateFileSystem();
             serviceError.setMessage(e.getLocalizedMessage());
             result = BiosCommandResult.createErrorResult(serviceError);
-        }
-        catch (Exception e) {
-        	_log.error("NetAppFileStorageDevice::doCreateFS failed with an Exception", e);
-        	ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateFileSystem();
-        	serviceError.setMessage(e.getLocalizedMessage());
-        	result = BiosCommandResult.createErrorResult(serviceError);        	
+        } catch (Exception e) {
+            _log.error("NetAppFileStorageDevice::doCreateFS failed with an Exception", e);
+            ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateFileSystem();
+            serviceError.setMessage(e.getLocalizedMessage());
+            result = BiosCommandResult.createErrorResult(serviceError);
         }
         return result;
     }
-    
+
     /**
-     * Deleting a file system: - deletes FileSystem and any correponding exports, smb shares 
+     * Deleting a file system: - deletes FileSystem and any correponding exports, smb shares
      * 
-     * @param   StorageSystem storage 
-     * @param   args  FileDeviceInputOutput
-     * @return  BiosCommandResult
-     * @throws  ControllerException
+     * @param StorageSystem storage
+     * @param args FileDeviceInputOutput
+     * @return BiosCommandResult
+     * @throws ControllerException
      */
 
     @Override
     public BiosCommandResult doDeleteFS(StorageSystem storage,
             FileDeviceInputOutput args) throws ControllerException {
-    	BiosCommandResult result = new BiosCommandResult();
+        BiosCommandResult result = new BiosCommandResult();
         try {
-        	_log.info("NetAppFileStorageDevice doDeleteFS - start");        	
-        	
-        	if (null == args.getFsName()) {
+            _log.info("NetAppFileStorageDevice doDeleteFS - start");
+
+            if (null == args.getFsName()) {
                 _log.error("NetAppFileStorageDevice::doDeletFS failed:  Filesystem name is either missing or empty");
                 ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteFileSystem();
                 serviceError.setMessage("Filesystem name is either missing or empty");
                 result = BiosCommandResult.createErrorResult(serviceError);
                 return result;
-        	}
-        	
-        	FileShare fileshare = args.getFs();
-        	// Now get the VFiler from the fileShare
-        	String portGroup = findVfilerName(fileshare);
-        	if (null != args.getFsShares()  && !args.getFsShares().isEmpty()) {
-        		if (!netAppDeleteCIFSExports(storage, args.getFsShares(), portGroup)) {
-                    _log.info("NetAppFileStorageDevice doDeletFS:netAppDeleteCIFSExports {} - failed", args.getFsName());        			
-        		}
-        		else {
-        			_log.info("NetAppFileStorageDevice doDeletFS:netAppDeleteCIFSExports {} - succeeded", args.getFsName());
-        		}        		
-        	}
-        	boolean failedStatus = false;
-        	NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
-	                storage.getPortNumber(), storage.getUsername(),
-	                storage.getPassword()).https(true).vFiler(portGroup).build();
+            }
+
+            FileShare fileshare = args.getFs();
+            // Now get the VFiler from the fileShare
+            String portGroup = findVfilerName(fileshare);
+            if (null != args.getFsShares() && !args.getFsShares().isEmpty()) {
+                if (!netAppDeleteCIFSExports(storage, args.getFsShares(), portGroup)) {
+                    _log.info("NetAppFileStorageDevice doDeletFS:netAppDeleteCIFSExports {} - failed", args.getFsName());
+                }
+                else {
+                    _log.info("NetAppFileStorageDevice doDeletFS:netAppDeleteCIFSExports {} - succeeded", args.getFsName());
+                }
+            }
+            boolean failedStatus = false;
+            NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
+                    storage.getPortNumber(), storage.getUsername(),
+                    storage.getPassword()).https(true).vFiler(portGroup).build();
             if (!nApi.deleteFS(args.getFsName())) {
                 failedStatus = true;
             }
             if (failedStatus == true) {
                 _log.error("NetAppFileStorageDevice doDeletFS {} - failed",
                         args.getFsName());
-                ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteFileSystem();                
-                result = BiosCommandResult.createErrorResult(serviceError);                
+                ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteFileSystem();
+                result = BiosCommandResult.createErrorResult(serviceError);
             } else {
                 _log.info("NetAppFileStorageDevice doDeletFS {} - complete",
                         args.getFsName());
@@ -240,21 +228,19 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
             ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteFileSystem();
             serviceError.setMessage(e.getLocalizedMessage());
             result = BiosCommandResult.createErrorResult(serviceError);
-        }
-        catch (Exception e) {
-        	_log.error("NetAppFileStorageDevice::doDeleteFS failed with an Exception", e);
-        	ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteFileSystem();
-        	serviceError.setMessage(e.getLocalizedMessage());
-        	result = BiosCommandResult.createErrorResult(serviceError);        	
+        } catch (Exception e) {
+            _log.error("NetAppFileStorageDevice::doDeleteFS failed with an Exception", e);
+            ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteFileSystem();
+            serviceError.setMessage(e.getLocalizedMessage());
+            result = BiosCommandResult.createErrorResult(serviceError);
         }
         return result;
     }
 
-    
     private Boolean netAppDeleteNFSExports(StorageSystem storage,
             FSExportMap exportMap) throws NetAppException {
 
-        int failedCount = 0;        
+        int failedCount = 0;
         Iterator<Map.Entry<String, FileExport>> it = exportMap.entrySet()
                 .iterator();
 
@@ -265,10 +251,11 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
             NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
                     storage.getPortNumber(), storage.getUsername(),
                     storage.getPassword()).https(true).build();
-            if (!nApi.deleteNFS(fsExport.getPath())) 
+            if (!nApi.deleteNFS(fsExport.getPath())) {
                 failedCount++;
-            else
+            } else {
                 exportMap.remove(key);
+            }
         }
 
         if (failedCount > 0) {
@@ -284,8 +271,8 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
         int failedCount = 0;
         Iterator<Entry<String, SMBFileShare>> it = currentShares.entrySet()
                 .iterator();
-        
-        List<String> removedShareKeys = new ArrayList<String>();  
+
+        List<String> removedShareKeys = new ArrayList<String>();
 
         while (it.hasNext()) {
             Map.Entry<String, SMBFileShare> entry = it.next();
@@ -298,12 +285,12 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
                 failedCount++;
             }
             else {
-            	removedShareKeys.add(key);
+                removedShareKeys.add(key);
             }
         }
-        
-        for (String keys: removedShareKeys) {
-        	currentShares.remove(keys);        	
+
+        for (String keys : removedShareKeys) {
+            currentShares.remove(keys);
         }
 
         if (failedCount > 0) {
@@ -312,14 +299,12 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
             return true;
         }
     }
-    
 
- 
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-            throws ControllerException {    	
-    	_log.info("NetAppFileStorageDevice doExport - start");
+            throws ControllerException {
+        _log.info("NetAppFileStorageDevice doExport - start");
         // Verify inputs.
         validateExportArgs(exportList);
         List<String> rootHosts = new ArrayList<String>();
@@ -333,7 +318,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
 
         FSExportMap existingExpMap = args.getFileObjExports();
         List<FileExport> existingExportList = new ArrayList<FileExport>();
-                
+
         FileExport existingExport = null;
         Iterator<String> it = existingExpMap.keySet().iterator();
         while (it.hasNext()) {
@@ -342,33 +327,33 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
                     existingExport.getFileExportKey());
             existingExportList.add(existingExport);
         }
-       
-        //If it's a sub-directory no need to take existing hosts.
-        boolean isSubDir = checkIfSubDirectory(args.getFsMountPath(), exportList.get(0).getMountPath()); 
-        if(isSubDir) {
-        	existingExportList = null;
+
+        // If it's a sub-directory no need to take existing hosts.
+        boolean isSubDir = checkIfSubDirectory(args.getFsMountPath(), exportList.get(0).getMountPath());
+        if (isSubDir) {
+            existingExportList = null;
         }
-        
+
         // TODO: Revisit once new Data Model for Exports is implemented.
         Map<String, List<String>> existingHosts = null;
 
-        if ((null != existingExportList) && (existingExportList.size() > 0)) {
+        if ((null != existingExportList) && !existingExportList.isEmpty()) {
             existingHosts = sortHostsFromCurrentExports(existingExportList);
         }
 
         if (null != existingHosts) {
             if ((null != existingHosts.get(ROOT_HOSTS))
-                    && (existingHosts.get(ROOT_HOSTS).size() > 0)) {
+                    && !existingHosts.get(ROOT_HOSTS).isEmpty()) {
                 addNewHostsOnly(rootHosts, existingHosts.get(ROOT_HOSTS));
             }
 
             if ((null != existingHosts.get(RW_HOSTS))
-                    && (existingHosts.get(RW_HOSTS).size() > 0)) {
+                    && !existingHosts.get(RW_HOSTS).isEmpty()) {
                 addNewHostsOnly(rwHosts, existingHosts.get(RW_HOSTS));
             }
 
             if ((null != existingHosts.get(RO_HOSTS))
-                    && (existingHosts.get(RO_HOSTS).size() > 0)) {
+                    && !existingHosts.get(RO_HOSTS).isEmpty()) {
                 addNewHostsOnly(roHosts, existingHosts.get(RO_HOSTS));
             }
         }
@@ -387,34 +372,34 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
                         export.getSecurityType(), export.getPermissions(),
                         export.getRootUserMapping(), export.getProtocol(),
                         export.getStoragePort(), export.getPath(),
-                        export.getMountPath(),export.getSubDirectory(),export.getComments());
+                        export.getMountPath(), export.getSubDirectory(), export.getComments());
 
                 args.getFileObjExports().put(fileExport.getFileExportKey(),
                         fileExport);
                 String portGroup = null;
                 FileShare fileshare = null;
                 if (args.getFileOperation() == true) {
-	            	fileshare = args.getFs();
-	            	portGroup = findVfilerName(fileshare);
+                    fileshare = args.getFs();
+                    portGroup = findVfilerName(fileshare);
                 } else {
-	            	// Get the FS from the snapshot
-	            	URI snapShotUID = args.getSnapshotId();
-	            	Snapshot snapshot = _dbClient.queryObject(Snapshot.class, snapShotUID);            	
-	            	fileshare = _dbClient.queryObject(FileShare.class, snapshot.getParent().getURI());
-	            	// Now get the VFiler from the fileshare
-	            	portGroup = findVfilerName(fileshare);
-                }            
+                    // Get the FS from the snapshot
+                    URI snapShotUID = args.getSnapshotId();
+                    Snapshot snapshot = _dbClient.queryObject(Snapshot.class, snapShotUID);
+                    fileshare = _dbClient.queryObject(FileShare.class, snapshot.getParent().getURI());
+                    // Now get the VFiler from the fileshare
+                    portGroup = findVfilerName(fileshare);
+                }
                 NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
                         storage.getPortNumber(), storage.getUsername(),
                         storage.getPassword()).https(true).vFiler(portGroup).build();
 
                 List<String> endpointsList = export.getClients();
-                if (endpointsList == null) {                	
-    		        _log.error("NetAppFileStorageDevice::doExport {} failed:  No endpoints specified", args.getFsId());
-    		        ServiceError serviceError = DeviceControllerErrors.netapp.unableToExportFileSystem();
-    		        serviceError.setMessage(FileSystemConstants.FS_ERR_NO_ENDPOINTS_SPECIFIED);
-    		        result = BiosCommandResult.createErrorResult(serviceError);
-    		        return result;        	
+                if (endpointsList == null) {
+                    _log.error("NetAppFileStorageDevice::doExport {} failed:  No endpoints specified", args.getFsId());
+                    ServiceError serviceError = DeviceControllerErrors.netapp.unableToExportFileSystem();
+                    serviceError.setMessage(FileSystemConstants.FS_ERR_NO_ENDPOINTS_SPECIFIED);
+                    result = BiosCommandResult.createErrorResult(serviceError);
+                    return result;
                 }
 
                 sortNewEndPoints(rootHosts, rwHosts, roHosts, endpointsList,
@@ -425,10 +410,10 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
 
                 if (!nApi.exportFS(exportPath, mountPath, rootHosts, rwHosts,
                         roHosts, root_user, export.getSecurityType())) {
-        			_log.error("NetAppFileStorageDevice::doExport {} failed", args.getFsId());
-        			ServiceError serviceError = DeviceControllerErrors.netapp.unableToExportFileSystem();
-        			serviceError.setMessage(genDetailedMessage("doExport", args.getFsId().toString()));
-        			result = BiosCommandResult.createErrorResult(serviceError);    			
+                    _log.error("NetAppFileStorageDevice::doExport {} failed", args.getFsId());
+                    ServiceError serviceError = DeviceControllerErrors.netapp.unableToExportFileSystem();
+                    serviceError.setMessage(genDetailedMessage("doExport", args.getFsId().toString()));
+                    result = BiosCommandResult.createErrorResult(serviceError);
                     return result;
                 }
                 result = BiosCommandResult.createSuccessfulResult();
@@ -450,7 +435,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
         _log.info("NetAppFileStorageDevice::doExport {} - complete", args.getFsId());
         return result;
     }
-    
+
     private void addNewHostsOnly(List<String> permHosts, List<String> newHosts) {
         if (null != newHosts) {
             for (String newHost : newHosts) {
@@ -465,23 +450,22 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
     /*
      * We check to see if fsMountPath is same as exportMountPath, if not we know that it's sub-directory
      * Also we need to make sure that fsMountPath is a substring of exportMountPath if it were to be sub-directory.
-     * 
      */
     private boolean checkIfSubDirectory(String fsMountPath, String exportMountPath) {
-    	if(exportMountPath.contains(fsMountPath) && !exportMountPath.equals(fsMountPath)){
-    		return true;
-        }else {
-        	return false;
+        if (exportMountPath.contains(fsMountPath) && !exportMountPath.equals(fsMountPath)) {
+            return true;
+        } else {
+            return false;
         }
     }
-    
+
     private Map<String, List<String>> sortHostsFromCurrentExports(
             List<FileExport> curExpList) {
 
         Map<String, List<String>> currentHostsList = new HashMap<String, List<String>>();
         for (FileExport curExport : curExpList) {
             if ((null != curExport.getClients())
-                    && (curExport.getClients().size() > 0)) {
+                    && !curExport.getClients().isEmpty()) {
                 if (curExport.getPermissions().toString().equals(ROOT_PERM)) {
                     currentHostsList.put(ROOT_HOSTS, curExport.getClients());
                 } else if (curExport.getPermissions().toString()
@@ -501,7 +485,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
     private void sortNewEndPoints(List<String> rootHosts, List<String> rwHosts,
             List<String> roHosts, List<String> endPointList, String permission) {
         for (String endPoint : endPointList) {
-            if ((null != endPointList) && (endPointList.size() > 0)) {
+            if ((null != endPointList) && !endPointList.isEmpty()) {
                 if (permission.equals(ROOT_PERM)
                         && !(rootHosts.contains(endPoint))) {
                     rootHosts.add(endPoint);
@@ -524,26 +508,27 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppFileStorageDevice doUnexport: {} - start", args.getFileObjId());
-        	
+
             for (int expCount = 0; expCount < exportList.size(); expCount++) {
                 FileExport export = exportList.get(expCount);
 
-                String portGroup = findVfilerName(args.getFs());    
+                String portGroup = findVfilerName(args.getFs());
                 NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
                         storage.getPortNumber(), storage.getUsername(),
                         storage.getPassword()).https(true).vFiler(portGroup).build();
 
-                if(export.getPermissions() == null)
+                if (export.getPermissions() == null) {
                     export.setPermissions("ro");
+                }
 
                 String mountPath = export.getMountPath();
                 String exportPath = export.getPath();
 
                 if (!nApi.unexportFS(exportPath, mountPath)) {
-        			_log.error("NetAppFileStorageDevice::doUnexport {} failed", args.getFileObjId());
-        			ServiceError serviceError = DeviceControllerErrors.netapp.unableToUnexportFileSystem();
-        			serviceError.setMessage(genDetailedMessage("doUnexport", args.getFileObjId().toString()));
-        			result = BiosCommandResult.createErrorResult(serviceError);    			
+                    _log.error("NetAppFileStorageDevice::doUnexport {} failed", args.getFileObjId());
+                    ServiceError serviceError = DeviceControllerErrors.netapp.unableToUnexportFileSystem();
+                    serviceError.setMessage(genDetailedMessage("doUnexport", args.getFileObjId().toString()));
+                    result = BiosCommandResult.createErrorResult(serviceError);
                     return result;
                 } else {
                     _log.info("NetAppFileStorageDevice doUnexport {} - completed", args.getFileObjId());
@@ -560,7 +545,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
             ServiceError serviceError = DeviceControllerErrors.netapp.unableToUnexportFileSystem();
             serviceError.setMessage(e.getLocalizedMessage());
             result = BiosCommandResult.createErrorResult(serviceError);
-        }        
+        }
         _log.info("NetAppFileStorageDevice doUnexport {} - complete", args.getFileObjId());
         return result;
     }
@@ -568,25 +553,25 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doExpandFS(StorageSystem storage, FileDeviceInputOutput args)
             throws ControllerException {
-    	
-    	BiosCommandResult result = new BiosCommandResult();
+
+        BiosCommandResult result = new BiosCommandResult();
         try {
-        	
-        	_log.info("NetAppFileStorageDevice doExpandFS - start");
-        	
+
+            _log.info("NetAppFileStorageDevice doExpandFS - start");
+
             long newFsExpandSize = args.getNewFSCapacity();
             String volumeName = args.getFsName();
-            if (args.getNewFSCapacity()%BYTESPERMB == 0) {
+            if (args.getNewFSCapacity() % BYTESPERMB == 0) {
                 newFsExpandSize = newFsExpandSize / BYTESPERMB;
             } else {
-                newFsExpandSize = newFsExpandSize / BYTESPERMB +1;
+                newFsExpandSize = newFsExpandSize / BYTESPERMB + 1;
             }
             _log.info("FileSystem new size translation : {} : {}", args.getNewFSCapacity(), newFsExpandSize);
             String strNewFsSize = String.valueOf(newFsExpandSize) + "m";
             NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
                     storage.getPortNumber(), storage.getUsername(),
                     storage.getPassword()).https(true).build();
-            if(!nApi.setVolumeSize(volumeName, strNewFsSize)){
+            if (!nApi.setVolumeSize(volumeName, strNewFsSize)) {
                 _log.error("NetAppFileStorageDevice doExpandFS - failed");
                 ServiceError serviceError = DeviceControllerErrors.netapp.unableToExpandFileSystem();
                 result = BiosCommandResult.createErrorResult(serviceError);
@@ -594,28 +579,27 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
                 _log.info("NetAppFileStorageDevice doExpandFS - complete");
                 result = BiosCommandResult.createSuccessfulResult();
             }
-        } catch (NetAppException e){
+        } catch (NetAppException e) {
             _log.error("NetAppFileStorageDevice::doExpandFS failed with a NetAppException", e);
             ServiceError serviceError = DeviceControllerErrors.netapp.unableToExpandFileSystem();
             serviceError.setMessage(e.getLocalizedMessage());
             result = BiosCommandResult.createErrorResult(serviceError);
-        }
-        catch (Exception e) {
-        	_log.error("NetAppFileStorageDevice::doExpandFS failed with an Exception", e);
-        	ServiceError serviceError = DeviceControllerErrors.netapp.unableToExpandFileSystem();
-        	serviceError.setMessage(e.getLocalizedMessage());
-        	result = BiosCommandResult.createErrorResult(serviceError);        	
+        } catch (Exception e) {
+            _log.error("NetAppFileStorageDevice::doExpandFS failed with an Exception", e);
+            ServiceError serviceError = DeviceControllerErrors.netapp.unableToExpandFileSystem();
+            serviceError.setMessage(e.getLocalizedMessage());
+            result = BiosCommandResult.createErrorResult(serviceError);
         }
         return result;
     }
 
     /**
-     * Creates FileShare CIFS/SMB shares 
+     * Creates FileShare CIFS/SMB shares
      * 
-     * @param   StorageSystem storage 
-     * @param   SMBFileShare  smbFileShare
-     * @return  BiosCommandResult
-     * @throws  ControllerException
+     * @param StorageSystem storage
+     * @param SMBFileShare smbFileShare
+     * @return BiosCommandResult
+     * @throws ControllerException
      */
     @Override
     public BiosCommandResult doShare(StorageSystem storage,
@@ -626,32 +610,32 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
         String forceGroup = null;
         BiosCommandResult result = new BiosCommandResult();
         try {
-        	_log.info("NetAppFileStorageDevice doShare - start");
+            _log.info("NetAppFileStorageDevice doShare - start");
             SMBShareMap smbShareMap = args.getFileObjShares();
             SMBFileShare existingShare = (smbShareMap == null) ? null
                     : smbShareMap.get(smbFileShare.getName());
-            Boolean modOrCreateShareSuccess;   
+            Boolean modOrCreateShareSuccess;
             if (existingShare != null) {
-            	modOrCreateShareSuccess = modifyNtpShare(storage, args, smbFileShare, forceGroup, existingShare);            	
+                modOrCreateShareSuccess = modifyNtpShare(storage, args, smbFileShare, forceGroup, existingShare);
             }
             else {
-            	modOrCreateShareSuccess = createNtpShare(storage, args, smbFileShare, forceGroup);
+                modOrCreateShareSuccess = createNtpShare(storage, args, smbFileShare, forceGroup);
             }
             if (modOrCreateShareSuccess.booleanValue() == true) {
                 _log.info("NetAppFileStorageDevice doShare {} - complete",
-                		smbFileShare.getName());
+                        smbFileShare.getName());
                 // Update the collection.
                 if (args.getFileObjShares() == null) {
                     args.initFileObjShares();
                 }
-                //set Mount Point
-                smbFileShare.setMountPoint(smbFileShare.getNetBIOSName(),smbFileShare.getStoragePortNetworkId(),
-                		smbFileShare.getStoragePortName(),smbFileShare.getName());
+                // set Mount Point
+                smbFileShare.setMountPoint(smbFileShare.getNetBIOSName(), smbFileShare.getStoragePortNetworkId(),
+                        smbFileShare.getStoragePortName(), smbFileShare.getName());
                 args.getFileObjShares().put(smbFileShare.getName(), smbFileShare);
                 result = BiosCommandResult.createSuccessfulResult();
             } else {
                 _log.error("NetAppFileStorageDevice doShare {} - failed",
-                		smbFileShare.getName());
+                        smbFileShare.getName());
                 ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateFileShare();
                 result = BiosCommandResult.createErrorResult(serviceError);
             }
@@ -669,16 +653,14 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
         return result;
     }
 
-   
-   
     /**
-     * Deletes  CIFS FileShare
+     * Deletes CIFS FileShare
      * 
-     * @param   StorageSystem storage 
-     * @param   FileDeviceInputOutput args
-     * @param   SMBFileShare  smbFileShare
-     * @return  BiosCommandResult
-     * @throws  ControllerException
+     * @param StorageSystem storage
+     * @param FileDeviceInputOutput args
+     * @param SMBFileShare smbFileShare
+     * @return BiosCommandResult
+     * @throws ControllerException
      */
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage,
@@ -686,29 +668,29 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
             throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
-        	_log.info("NetAppFileStorageDevice doDeleteShare - start");
+            _log.info("NetAppFileStorageDevice doDeleteShare - start");
             FileShare fileshare = null;
             if (args.getFileOperation() == true) {
-            	fileshare = args.getFs();
+                fileshare = args.getFs();
             } else {
-            	URI snapShotUID = args.getSnapshotId();
-            	Snapshot snapshot = _dbClient.queryObject(Snapshot.class, snapShotUID);            	
-            	fileshare = _dbClient.queryObject(FileShare.class, snapshot.getParent().getURI());
-            } 
+                URI snapShotUID = args.getSnapshotId();
+                Snapshot snapshot = _dbClient.queryObject(Snapshot.class, snapShotUID);
+                fileshare = _dbClient.queryObject(FileShare.class, snapshot.getParent().getURI());
+            }
             // Now get the VFiler from the fileShare
             String portGroup = findVfilerName(fileshare);
             NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
                     storage.getPortNumber(), storage.getUsername(),
                     storage.getPassword()).https(true).vFiler(portGroup).build();
-            SMBShareMap shares = args.getFileObjShares();            
+            SMBShareMap shares = args.getFileObjShares();
             if (shares == null || shares.isEmpty()) {
-            	 _log.error("NetAppFileStorageDevice::doDeleteShare failed: FileShare(s) is either missing or empty");
+                _log.error("NetAppFileStorageDevice::doDeleteShare failed: FileShare(s) is either missing or empty");
                 ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteFileShare();
                 serviceError.setMessage("FileShare(s) is either missing or empty");
                 result = BiosCommandResult.createErrorResult(serviceError);
             }
             SMBFileShare fileShare = shares.get(smbFileShare.getName());
-            if (fileShare != null) {   
+            if (fileShare != null) {
                 if (!nApi.deleteShare(smbFileShare.getName())) {
                     _log.error("NetAppFileStorageDevice doDeleteShare {} - failed",
                             args.getFileObjId());
@@ -721,32 +703,31 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
                     args.getFileObjShares().remove(smbFileShare.getName());
                     args.getFileObjShares().remove(smbFileShare.getNativeId());
                     result = BiosCommandResult.createSuccessfulResult();
-                }                
+                }
             }
-        } catch (NetAppException e) {        	
+        } catch (NetAppException e) {
             _log.error("NetAppFileStorageDevice::doDeleteShare failed with a NetAppException", e);
             ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteFileShare();
             serviceError.setMessage(e.getLocalizedMessage());
-            result = BiosCommandResult.createErrorResult(serviceError);      	
-        }
-        catch (Exception e) {        	
-        	_log.error("NetAppFileStorageDevice::doCreateFS failed with an Exception", e);
-        	ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteFileShare();
-        	serviceError.setMessage(e.getLocalizedMessage());
-        	result = BiosCommandResult.createErrorResult(serviceError);        	
+            result = BiosCommandResult.createErrorResult(serviceError);
+        } catch (Exception e) {
+            _log.error("NetAppFileStorageDevice::doCreateFS failed with an Exception", e);
+            ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteFileShare();
+            serviceError.setMessage(e.getLocalizedMessage());
+            result = BiosCommandResult.createErrorResult(serviceError);
         }
         return result;
     }
-    
+
     /**
-     * Deletes  CIFS FileShares
+     * Deletes CIFS FileShares
      * 
-     * @param   StorageSystem storage 
-     * @param   FileDeviceInputOutput args
-     * @return  BiosCommandResult
-     * @throws  ControllerException
+     * @param StorageSystem storage
+     * @param FileDeviceInputOutput args
+     * @return BiosCommandResult
+     * @throws ControllerException
      */
-    
+
     @Override
     public BiosCommandResult doDeleteShares(StorageSystem storage,
             FileDeviceInputOutput args) throws ControllerException {
@@ -763,95 +744,95 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
         BiosCommandResult result = new BiosCommandResult();
         result.setCommandSuccess(false);
         result.setCommandStatus(Operation.Status.error.name());
-        result.setMessage("Modify FS NOT supported for NetApp.");        
+        result.setMessage("Modify FS NOT supported for NetApp.");
         return result;
     }
-    
+
     @Override
     public BiosCommandResult doSnapshotFS(StorageSystem storage,
             FileDeviceInputOutput args) throws ControllerException {
-    	BiosCommandResult result = new BiosCommandResult();
-    	try {
-    		_log.info("NetAppFileStorageDevice doSnapshotFS - start");
-    		if (null == args.getFsName()) {
-		        _log.error("NetAppFileStorageDevice::doSnapshotFS failed:  Filesystem name is either missing or empty");
-		        ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateSnapshot();                
-		        serviceError.setMessage(FileSystemConstants.FS_ERR_FS_NAME_MISSING_OR_EMPTY);
-		        result = BiosCommandResult.createErrorResult(serviceError);
-		        return result;        	
-    		}
-    		if (null == args.getSnapshotName()) {
-			    _log.error("NetAppFileStorageDevice::doSnapshotFS failed:  Snapshot name is either missing or empty");
-			    ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateSnapshot();                
-			    serviceError.setMessage(FileSystemConstants.FS_ERR_SNAPSHOT_NAME_MISSING_OR_EMPTY);
-			    result = BiosCommandResult.createErrorResult(serviceError);
-			    return result;
-    		}
-    		boolean failedStatus = false;
-    		NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(), storage.getPortNumber(), storage.getUsername(), 
-    				storage.getPassword()).https(true).build();
-    		if (!nApi.createSnapshot(args.getFsName(), args.getSnapshotName())) {
-    			failedStatus = true;    			
-    		}
-    		if (failedStatus == true) {
-    			_log.error("NetAppFileStorageDevice doSnapshotFS {} - failed", args.getFsId());
-    			ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateSnapshot();
-    			serviceError.setMessage(genDetailedMessage("doSnapshotFS", args.getFsName()));
-    			result = BiosCommandResult.createErrorResult(serviceError);    			
-    		} else {
-    			_log.info("doSnapshotFS - Snapshot, {}  was successfully created for filesystem, {} ", args.getSnapshotName(), 
-    					args.getFsName());
-			    // Set snapshot Path and MountPath information
-			    args.setSnapshotMountPath(getSnapshotMountPath(args.getFsMountPath(), args.getSnapshotName()));
-			    args.setSnapshotPath(getSnapshotPath(args.getFsPath(), args.getSnapshotName()));
-			    args.setSnapNativeId(args.getSnapshotName());
-			    result = BiosCommandResult.createSuccessfulResult();
-    		}
-    	} catch (NetAppException e) {
+        BiosCommandResult result = new BiosCommandResult();
+        try {
+            _log.info("NetAppFileStorageDevice doSnapshotFS - start");
+            if (null == args.getFsName()) {
+                _log.error("NetAppFileStorageDevice::doSnapshotFS failed:  Filesystem name is either missing or empty");
+                ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateSnapshot();
+                serviceError.setMessage(FileSystemConstants.FS_ERR_FS_NAME_MISSING_OR_EMPTY);
+                result = BiosCommandResult.createErrorResult(serviceError);
+                return result;
+            }
+            if (null == args.getSnapshotName()) {
+                _log.error("NetAppFileStorageDevice::doSnapshotFS failed:  Snapshot name is either missing or empty");
+                ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateSnapshot();
+                serviceError.setMessage(FileSystemConstants.FS_ERR_SNAPSHOT_NAME_MISSING_OR_EMPTY);
+                result = BiosCommandResult.createErrorResult(serviceError);
+                return result;
+            }
+            boolean failedStatus = false;
+            NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(), storage.getPortNumber(), storage.getUsername(),
+                    storage.getPassword()).https(true).build();
+            if (!nApi.createSnapshot(args.getFsName(), args.getSnapshotName())) {
+                failedStatus = true;
+            }
+            if (failedStatus == true) {
+                _log.error("NetAppFileStorageDevice doSnapshotFS {} - failed", args.getFsId());
+                ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateSnapshot();
+                serviceError.setMessage(genDetailedMessage("doSnapshotFS", args.getFsName()));
+                result = BiosCommandResult.createErrorResult(serviceError);
+            } else {
+                _log.info("doSnapshotFS - Snapshot, {}  was successfully created for filesystem, {} ", args.getSnapshotName(),
+                        args.getFsName());
+                // Set snapshot Path and MountPath information
+                args.setSnapshotMountPath(getSnapshotMountPath(args.getFsMountPath(), args.getSnapshotName()));
+                args.setSnapshotPath(getSnapshotPath(args.getFsPath(), args.getSnapshotName()));
+                args.setSnapNativeId(args.getSnapshotName());
+                result = BiosCommandResult.createSuccessfulResult();
+            }
+        } catch (NetAppException e) {
             _log.error("NetAppFileStorageDevice::doSnapshotFS failed with a NetAppException", e);
             ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateSnapshot();
             serviceError.setMessage(e.getLocalizedMessage());
             result = BiosCommandResult.createErrorResult(serviceError);
-    	} catch (Exception e) {
+        } catch (Exception e) {
             _log.error("NetAppFileStorageDevice::doSnapshotFS failed with an Exception", e);
             ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateSnapshot();
             serviceError.setMessage(e.getLocalizedMessage());
             result = BiosCommandResult.createErrorResult(serviceError);
-    	}
-    	return result;
+        }
+        return result;
     }
 
     @Override
     public BiosCommandResult doRestoreFS(StorageSystem storage,
             FileDeviceInputOutput args) throws ControllerException {
-    	BiosCommandResult result = new BiosCommandResult();
+        BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppFileStorageDevice doRestoreFS - start");
             if (null == args.getFsName()) {
-    			_log.error("NetAppFileStorageDevice::doRestoreFS failed:  Filesystem name is either missing or empty");
-    			ServiceError serviceError = DeviceControllerErrors.netapp.unableToRestoreFileSystem();                
-    			serviceError.setMessage(FileSystemConstants.FS_ERR_FS_NAME_MISSING_OR_EMPTY);
-    			result = BiosCommandResult.createErrorResult(serviceError);
-    			return result;        	
+                _log.error("NetAppFileStorageDevice::doRestoreFS failed:  Filesystem name is either missing or empty");
+                ServiceError serviceError = DeviceControllerErrors.netapp.unableToRestoreFileSystem();
+                serviceError.setMessage(FileSystemConstants.FS_ERR_FS_NAME_MISSING_OR_EMPTY);
+                result = BiosCommandResult.createErrorResult(serviceError);
+                return result;
             }
 
             if (null == args.getSnapshotName()) {
-    		    _log.error("NetAppFileStorageDevice::doRestoreFS failed:  Snapshot name is either missing or empty");
-    		    ServiceError serviceError = DeviceControllerErrors.netapp.unableToRestoreFileSystem();                
-    		    serviceError.setMessage(FileSystemConstants.FS_ERR_SNAPSHOT_NAME_MISSING_OR_EMPTY);
-    		    result = BiosCommandResult.createErrorResult(serviceError);
-    		    return result;
+                _log.error("NetAppFileStorageDevice::doRestoreFS failed:  Snapshot name is either missing or empty");
+                ServiceError serviceError = DeviceControllerErrors.netapp.unableToRestoreFileSystem();
+                serviceError.setMessage(FileSystemConstants.FS_ERR_SNAPSHOT_NAME_MISSING_OR_EMPTY);
+                result = BiosCommandResult.createErrorResult(serviceError);
+                return result;
             }
-            NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(), storage.getPortNumber(), storage.getUsername(), 
-            		storage.getPassword()).https(true).build();
+            NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(), storage.getPortNumber(), storage.getUsername(),
+                    storage.getPassword()).https(true).build();
             if (!nApi.restoreSnapshot(args.getFsName(), args.getSnapshotName())) {
-            	_log.error("NetAppFileStorageDevice doRestoreFS {} - failed", args.getFsName());
-    			ServiceError serviceError = DeviceControllerErrors.netapp.unableToRestoreFileSystem();
-    			result = BiosCommandResult.createErrorResult(serviceError);    			
+                _log.error("NetAppFileStorageDevice doRestoreFS {} - failed", args.getFsName());
+                ServiceError serviceError = DeviceControllerErrors.netapp.unableToRestoreFileSystem();
+                result = BiosCommandResult.createErrorResult(serviceError);
             } else {
-    			_log.info("doRestoreFS - restore of snapshot, {}  was successfully for filesystem, {} ", args.getSnapshotName(), 
-    					args.getFsName());
-    			result = BiosCommandResult.createSuccessfulResult();
+                _log.info("doRestoreFS - restore of snapshot, {}  was successfully for filesystem, {} ", args.getSnapshotName(),
+                        args.getFsName());
+                result = BiosCommandResult.createSuccessfulResult();
             }
         } catch (NetAppException e) {
             _log.error("NetAppFileStorageDevice::doRestoreFS failed with a NetAppException", e);
@@ -866,7 +847,6 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
         }
         return result;
     }
-    
 
     // Get FS snapshot list from the array.
     @Override
@@ -902,14 +882,14 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
                 }
                 _log.info(
                         "NetAppFileStorageDevice getFSSnapshotList - successful for filesystem, {} ",
-                         args.getFsName());         
+                        args.getFsName());
                 result.setCommandSuccess(true);
                 result.setCommandStatus(Operation.Status.ready.name());
                 result.setMessage("List of snapshots for FS " + args.getFsName()
                         + " was successfully retreived from device ");
             }
         } catch (NetAppException e) {
-            String[] params = {storage.getId().toString(), args.getFsName()};
+            String[] params = { storage.getId().toString(), args.getFsName() };
             throw new DeviceControllerException(
                     "Failed to retrieve list of snapshots from device {1} for filesystem {2}",
                     params);
@@ -917,7 +897,6 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
         return result;
     }
 
-    
     @Override
     public BiosCommandResult doDeleteSnapshot(StorageSystem storage,
             FileDeviceInputOutput args) throws ControllerException {
@@ -970,7 +949,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
     @Override
     public void doConnect(StorageSystem storage) {
         // FIX ME
-        
+
     }
 
     @Override
@@ -1009,19 +988,20 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
                         && !rootUser.equalsIgnoreCase("root")) {
                     Integer.parseInt(rootUser);
                 }
-            } catch (NumberFormatException nfe) {                
+            } catch (NumberFormatException nfe) {
                 throw new DeviceControllerException(
                         "Invalid Root User Mapping {0} ",
                         new Object[] { nfe });
             }
         }
     }
-    
+
     /**
      * create NetApp snapshot path from file share path and snapshot name
-     * @param   fsPath mount path of the fileshare
-     * @param   name        snapshot name
-     * @return  String
+     * 
+     * @param fsPath mount path of the fileshare
+     * @param name snapshot name
+     * @return String
      */
     private String getSnapshotPath(String fsPath, String name) {
         return String.format("%1$s/.snapshot/%2$s",
@@ -1030,22 +1010,24 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
 
     /**
      * create NetApp snapshot path from file share path and snapshot name
-     * @param   fsPath mount path of the fileshare
-     * @param   name        snapshot name
-     * @return  String
+     * 
+     * @param fsPath mount path of the fileshare
+     * @param name snapshot name
+     * @return String
      */
     private String getSnapshotMountPath(String fsPath, String name) {
         return String.format("%1$s/.snapshot/%2$s",
                 fsPath, name);
     }
-    
+
     /**
-     * create NetApp share with right permissions 
-     * @param   StorageSystem mount path of the fileshare
-     * @param   args containing input/out arguments of filedevice
-     * @param   smbFileShare smbFileshare object
-     * @param   forceGroup Name of the group the fileshare belongs.
-     * @return  
+     * create NetApp share with right permissions
+     * 
+     * @param StorageSystem mount path of the fileshare
+     * @param args containing input/out arguments of filedevice
+     * @param smbFileShare smbFileshare object
+     * @param forceGroup Name of the group the fileshare belongs.
+     * @return
      */
     private Boolean createNtpShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare,
@@ -1064,44 +1046,45 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
                     shareId, args.getFileObjId());
             return false;
         } else {
-        	// share creation is successful,no need to set permission,clear the default one. 
-        	List<CifsAcl> existingAcls =new ArrayList<CifsAcl>();
-        	CifsAcl defaultAcl = new CifsAcl();
-        	// By default NetApp share get everyone full access.
-        	defaultAcl.setUserName("everyone");
-        	defaultAcl.setAccess(CifsAccess.full);
-        	existingAcls.add(defaultAcl);
-        	nApi.deleteCIFSShareAcl(smbFileShare.getName(), existingAcls);
-        	smbFileShare.setNativeId(shareId);
-        	if(null != args.getFileObj())  {
-        		nApi.setQtreemode(args.getFsPath(), NTFS_QTREE_SETTING);
-        	}
-        	smbFileShare.setNetBIOSName(nApi.getNetBiosName());
-        	_log.info("NetAppFileStorageDevice doShare for {} with id {} - complete",
-        			shareId, args.getFileObjId());
-        	return true;        																																																																																														
+            // share creation is successful,no need to set permission,clear the default one.
+            List<CifsAcl> existingAcls = new ArrayList<CifsAcl>();
+            CifsAcl defaultAcl = new CifsAcl();
+            // By default NetApp share get everyone full access.
+            defaultAcl.setUserName("everyone");
+            defaultAcl.setAccess(CifsAccess.full);
+            existingAcls.add(defaultAcl);
+            nApi.deleteCIFSShareAcl(smbFileShare.getName(), existingAcls);
+            smbFileShare.setNativeId(shareId);
+            if (null != args.getFileObj()) {
+                nApi.setQtreemode(args.getFsPath(), NTFS_QTREE_SETTING);
+            }
+            smbFileShare.setNetBIOSName(nApi.getNetBiosName());
+            _log.info("NetAppFileStorageDevice doShare for {} with id {} - complete",
+                    shareId, args.getFileObjId());
+            return true;
         }
     }
-    
+
     /**
      * modify NetApp share with right permissions and other parameters
-     * @param   StorageSystem mount path of the fileshare
-     * @param   args containing input/out arguments of filedevice
-     * @param   smbFileShare existingShare smbFileshare object that needs to be modified.
-     * @param   forceGroup Name of the group the fileshare belongs.
-     * @return  
+     * 
+     * @param StorageSystem mount path of the fileshare
+     * @param args containing input/out arguments of filedevice
+     * @param smbFileShare existingShare smbFileshare object that needs to be modified.
+     * @param forceGroup Name of the group the fileshare belongs.
+     * @return
      */
     private Boolean modifyNtpShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare,
             String forceGroup, SMBFileShare existingShare) throws NetAppException {
-    	String portGroup = findVfilerName(args.getFs());
+        String portGroup = findVfilerName(args.getFs());
         NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
-  		storage.getPortNumber(), storage.getUsername(),
-   		storage.getPassword()).https(true).vFiler(portGroup).build();
-        //String shareId = args.getFileObj().getPath();
+                storage.getPortNumber(), storage.getUsername(),
+                storage.getPassword()).https(true).vFiler(portGroup).build();
+        // String shareId = args.getFileObj().getPath();
         String shareId = smbFileShare.getPath();
         if (!nApi.modifyShare(shareId, smbFileShare.getName(), smbFileShare.getDescription(),
-        		smbFileShare.getMaxUsers(), smbFileShare.getPermission(), forceGroup)) {
+                smbFileShare.getMaxUsers(), smbFileShare.getPermission(), forceGroup)) {
             _log.info(
                     "NetAppFileStorageDevice doShare (modification) for {} with id {} - failed",
                     shareId, args.getFileObjId());
@@ -1113,13 +1096,14 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
             return true;
         }
     }
+
     /**
-     * Return the vFiler name associated with the file system.  If a vFiler is not associated with
+     * Return the vFiler name associated with the file system. If a vFiler is not associated with
      * this file system, then it will return null.
      */
     private String findVfilerName(FileShare fs) {
         String portGroup = null;
-        
+
         URI port = fs.getStoragePort();
         if (port == null) {
             _log.info("No storage port URI to retrieve vFiler name");
@@ -1140,687 +1124,690 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
         }
         return portGroup;
     }
-    
-    
+
     /**
      * Return true if qtree name and its path in valid length, otherwise false.
      */
     private Boolean validQuotaDirectoryPath(String volName, String quotaDirName) {
-        if ( volName == null && quotaDirName == null ) {
+        if (volName == null && quotaDirName == null) {
             _log.info("Invalid volume name and quota directory name ");
             return false;
         } else {
-        	// NetApp accepts maximum of 64-character as a quota directory name.
-        	if(quotaDirName.length() > QUOTA_DIR_MAX_NAME){
-        		_log.error("quota directory name is too long {}, maximum {} chars", quotaDirName.length(), QUOTA_DIR_MAX_NAME);
-        		return false;
-        	}
-        	
-        	String qtreePath = VOL_ROOT + volName + "/" + quotaDirName;
-        	// each entry in /etc/quotas file is with maximum of 160 characters.
-        	// "/vol/<volname>/qtreename tree <size> - - - -"
-            if (qtreePath.length() > QUOTA_DIR_MAX_PATH ) {
-            	_log.error("quota directory path is too long {}, maximum {} chars", qtreePath.length(), QUOTA_DIR_MAX_PATH);
-        		return false;
-                
+            // NetApp accepts maximum of 64-character as a quota directory name.
+            if (quotaDirName.length() > QUOTA_DIR_MAX_NAME) {
+                _log.error("quota directory name is too long {}, maximum {} chars", quotaDirName.length(), QUOTA_DIR_MAX_NAME);
+                return false;
+            }
+
+            String qtreePath = VOL_ROOT + volName + "/" + quotaDirName;
+            // each entry in /etc/quotas file is with maximum of 160 characters.
+            // "/vol/<volname>/qtreename tree <size> - - - -"
+            if (qtreePath.length() > QUOTA_DIR_MAX_PATH) {
+                _log.error("quota directory path is too long {}, maximum {} chars", qtreePath.length(), QUOTA_DIR_MAX_PATH);
+                return false;
+
             }
         }
         return true;
     }
-    
+
     // New Qtree methods
     @Override
     public BiosCommandResult doCreateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory qtree) throws ControllerException {
-    	BiosCommandResult result = new BiosCommandResult();
-    	try {
-    		_log.info("NetAppFileStorageDevice doCreateQuotaDirectory - start");
-    		
-    		String volName = args.getFsName();  			// Using NetApp terminology here
-    		String qtreeName = args.getQuotaDirectoryName();
-    		Boolean oplocks = qtree.getOpLock();
-    		String securityStyle = qtree.getSecurityStyle();
-    		Long size = qtree.getSize();
-    		
-    		if (null == volName) {
-		        _log.error("NetAppFileStorageDevice::doCreateQuotaDirectory failed:  Filesystem name is either missing or empty");
-		        ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateQtree();             
-		        serviceError.setMessage(FileSystemConstants.FS_ERR_FS_NAME_MISSING_OR_EMPTY);
-		        result = BiosCommandResult.createErrorResult(serviceError);
-		        return result;        	
-    		}
-    		
-    		if (null == qtreeName) {
-		        _log.error("NetAppFileStorageDevice::doCreateQuotaDirectory failed:  Qtree name is either missing or empty");
-		        ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateQtree();             
-		        serviceError.setMessage(FileSystemConstants.FS_ERR_QUOTADIR_NAME_MISSING_OR_EMPTY);
-		        result = BiosCommandResult.createErrorResult(serviceError);
-		        return result;        	    			
-    		}    		
-    		
-    		if(!validQuotaDirectoryPath(volName, qtreeName) ){
-    			 _log.error("NetAppFileStorageDevice::doCreateQuotaDirectory failed:  Qtree name or path is too long");
- 		        ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateQtree();             
- 		        serviceError.setMessage(FileSystemConstants.FS_ERR_QUOTADIR_NAME_PATH_TOO_LONG);
- 		        result = BiosCommandResult.createErrorResult(serviceError);
- 		        return result;
-    		}
-    		
-    		String portGroup = findVfilerName(args.getFs()); 
-    		_log.info("NetAppFileStorageDevice::NetAppFileStorageDevice - For FS: {}, vFiler: {}", volName, portGroup);
+        BiosCommandResult result = new BiosCommandResult();
+        try {
+            _log.info("NetAppFileStorageDevice doCreateQuotaDirectory - start");
+
+            String volName = args.getFsName();  			// Using NetApp terminology here
+            String qtreeName = args.getQuotaDirectoryName();
+            Boolean oplocks = qtree.getOpLock();
+            String securityStyle = qtree.getSecurityStyle();
+            Long size = qtree.getSize();
+
+            if (null == volName) {
+                _log.error("NetAppFileStorageDevice::doCreateQuotaDirectory failed:  Filesystem name is either missing or empty");
+                ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateQtree();
+                serviceError.setMessage(FileSystemConstants.FS_ERR_FS_NAME_MISSING_OR_EMPTY);
+                result = BiosCommandResult.createErrorResult(serviceError);
+                return result;
+            }
+
+            if (null == qtreeName) {
+                _log.error("NetAppFileStorageDevice::doCreateQuotaDirectory failed:  Qtree name is either missing or empty");
+                ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateQtree();
+                serviceError.setMessage(FileSystemConstants.FS_ERR_QUOTADIR_NAME_MISSING_OR_EMPTY);
+                result = BiosCommandResult.createErrorResult(serviceError);
+                return result;
+            }
+
+            if (!validQuotaDirectoryPath(volName, qtreeName)) {
+                _log.error("NetAppFileStorageDevice::doCreateQuotaDirectory failed:  Qtree name or path is too long");
+                ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateQtree();
+                serviceError.setMessage(FileSystemConstants.FS_ERR_QUOTADIR_NAME_PATH_TOO_LONG);
+                result = BiosCommandResult.createErrorResult(serviceError);
+                return result;
+            }
+
+            String portGroup = findVfilerName(args.getFs());
+            _log.info("NetAppFileStorageDevice::NetAppFileStorageDevice - For FS: {}, vFiler: {}", volName, portGroup);
             NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
                     storage.getPortNumber(), storage.getUsername(),
                     storage.getPassword()).https(true).vFiler(portGroup).build();
-            
-        	nApi.createQtree(qtreeName, volName, oplocks, securityStyle, size, portGroup );
-        	result = BiosCommandResult.createSuccessfulResult();   		
-    	} catch (NetAppException e) {
+
+            nApi.createQtree(qtreeName, volName, oplocks, securityStyle, size, portGroup);
+            result = BiosCommandResult.createSuccessfulResult();
+        } catch (NetAppException e) {
             _log.error("NetAppFileStorageDevice::doCreateQuotaDirectory failed with a NetAppException", e);
             _log.info("NetAppFileStorageDevice::doCreateQuotaDirectory e.getLocalizedMessage(): {}", e.getLocalizedMessage());
             ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateQtree();
             serviceError.setMessage(e.getLocalizedMessage());
             result = BiosCommandResult.createErrorResult(serviceError);
-    	} catch (Exception e) {
+        } catch (Exception e) {
             _log.error("NetAppFileStorageDevice::doCreateQuotaDirectory failed with an Exception", e);
             ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateQtree();
             serviceError.setMessage(e.getLocalizedMessage());
             result = BiosCommandResult.createErrorResult(serviceError);
-    	}
-    	return result;
+        }
+        return result;
     }
-    
+
     @Override
     public BiosCommandResult doDeleteQuotaDirectory(StorageSystem storage,
-            FileDeviceInputOutput args) throws ControllerException {    	
-    	BiosCommandResult result = new BiosCommandResult();
-    	try {
-    		_log.info("NetAppFileStorageDevice doDeleteQuotaDirectory - start");
+            FileDeviceInputOutput args) throws ControllerException {
+        BiosCommandResult result = new BiosCommandResult();
+        try {
+            _log.info("NetAppFileStorageDevice doDeleteQuotaDirectory - start");
 
-    		String volName = args.getFsName();  			// Using NetApp terminology here
-    		String qtreeName = args.getQuotaDirectoryName();
+            String volName = args.getFsName();  			// Using NetApp terminology here
+            String qtreeName = args.getQuotaDirectoryName();
 
-    		if (null == volName) {
-		        _log.error("NetAppFileStorageDevice::doDeleteQuotaDirectory failed:  Filesystem name is either missing or empty");
-		        ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteQtree();             
-		        serviceError.setMessage(FileSystemConstants.FS_ERR_FS_NAME_MISSING_OR_EMPTY);
-		        result = BiosCommandResult.createErrorResult(serviceError);
-		        return result;        	
-    		}
-    		
-    		if (null == qtreeName) {
-		        _log.error("NetAppFileStorageDevice::doCreateQuotaDirectory failed:  Qtree name is either missing or empty");
-		        ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteQtree();             
-		        serviceError.setMessage(FileSystemConstants.FS_ERR_QUOTADIR_NAME_MISSING_OR_EMPTY);
-		        result = BiosCommandResult.createErrorResult(serviceError);
-		        return result;        	    			
-    		}
-    		
-    		String portGroup = findVfilerName(args.getFs());   
+            if (null == volName) {
+                _log.error("NetAppFileStorageDevice::doDeleteQuotaDirectory failed:  Filesystem name is either missing or empty");
+                ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteQtree();
+                serviceError.setMessage(FileSystemConstants.FS_ERR_FS_NAME_MISSING_OR_EMPTY);
+                result = BiosCommandResult.createErrorResult(serviceError);
+                return result;
+            }
+
+            if (null == qtreeName) {
+                _log.error("NetAppFileStorageDevice::doCreateQuotaDirectory failed:  Qtree name is either missing or empty");
+                ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteQtree();
+                serviceError.setMessage(FileSystemConstants.FS_ERR_QUOTADIR_NAME_MISSING_OR_EMPTY);
+                result = BiosCommandResult.createErrorResult(serviceError);
+                return result;
+            }
+
+            String portGroup = findVfilerName(args.getFs());
             NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
                     storage.getPortNumber(), storage.getUsername(),
                     storage.getPassword()).https(true).vFiler(portGroup).build();
-            
-        	nApi.deleteQtree(qtreeName, volName, portGroup);
-        	result = BiosCommandResult.createSuccessfulResult();
-    	} catch (NetAppException e) {
+
+            nApi.deleteQtree(qtreeName, volName, portGroup);
+            result = BiosCommandResult.createSuccessfulResult();
+        } catch (NetAppException e) {
             _log.error("NetAppFileStorageDevice::doDeleteQuotaDirectory failed with a NetAppException", e);
             ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteQtree();
             serviceError.setMessage(e.getLocalizedMessage());
             result = BiosCommandResult.createErrorResult(serviceError);
-    	} catch (Exception e) {
+        } catch (Exception e) {
             _log.error("NetAppFileStorageDevice::doDeleteQuotaDirectory failed with an Exception", e);
             ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteQtree();
             serviceError.setMessage(e.getLocalizedMessage());
             result = BiosCommandResult.createErrorResult(serviceError);
-    	}
-    	return result;
-    }  
-    
-    
+        }
+        return result;
+    }
+
     @Override
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory qtree) throws ControllerException {
-    	BiosCommandResult result = new BiosCommandResult();
-    	
-    	try {
-    		_log.info("NetAppFileStorageDevice doUpdateQuotaDirectory - start");
-    		
-    		String volName = args.getFsName();  			// Using NetApp terminology here
-    		String qtreeName = args.getQuotaDirectoryName();
-    		Boolean oplocks = qtree.getOpLock();
-    		String securityStyle = qtree.getSecurityStyle();
-    		Long size = qtree.getSize();
-    		
-    		if (null == volName) {
-		        _log.error("NetAppFileStorageDevice::doUpdateQuotaDirectory failed:  Filesystem name is either missing or empty");
-		        ServiceError serviceError = DeviceControllerErrors.netapp.unableToUpdateQtree();             
-		        serviceError.setMessage(FileSystemConstants.FS_ERR_FS_NAME_MISSING_OR_EMPTY);
-		        result = BiosCommandResult.createErrorResult(serviceError);
-		        return result;        	
-    		}
-    		
-    		if (null == qtreeName) {
-		        _log.error("NetAppFileStorageDevice::doUpdateQuotaDirectory failed:  Qtree name is either missing or empty");
-		        ServiceError serviceError = DeviceControllerErrors.netapp.unableToUpdateQtree();             
-		        serviceError.setMessage(FileSystemConstants.FS_ERR_QUOTADIR_NAME_MISSING_OR_EMPTY);
-		        result = BiosCommandResult.createErrorResult(serviceError);
-		        return result;        	    			
-    		}    		
-    		
-    		String portGroup = findVfilerName(args.getFs());            
+        BiosCommandResult result = new BiosCommandResult();
+
+        try {
+            _log.info("NetAppFileStorageDevice doUpdateQuotaDirectory - start");
+
+            String volName = args.getFsName();  			// Using NetApp terminology here
+            String qtreeName = args.getQuotaDirectoryName();
+            Boolean oplocks = qtree.getOpLock();
+            String securityStyle = qtree.getSecurityStyle();
+            Long size = qtree.getSize();
+
+            if (null == volName) {
+                _log.error("NetAppFileStorageDevice::doUpdateQuotaDirectory failed:  Filesystem name is either missing or empty");
+                ServiceError serviceError = DeviceControllerErrors.netapp.unableToUpdateQtree();
+                serviceError.setMessage(FileSystemConstants.FS_ERR_FS_NAME_MISSING_OR_EMPTY);
+                result = BiosCommandResult.createErrorResult(serviceError);
+                return result;
+            }
+
+            if (null == qtreeName) {
+                _log.error("NetAppFileStorageDevice::doUpdateQuotaDirectory failed:  Qtree name is either missing or empty");
+                ServiceError serviceError = DeviceControllerErrors.netapp.unableToUpdateQtree();
+                serviceError.setMessage(FileSystemConstants.FS_ERR_QUOTADIR_NAME_MISSING_OR_EMPTY);
+                result = BiosCommandResult.createErrorResult(serviceError);
+                return result;
+            }
+
+            String portGroup = findVfilerName(args.getFs());
             NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
                     storage.getPortNumber(), storage.getUsername(),
                     storage.getPassword()).https(true).vFiler(portGroup).build();
-            
-        	nApi.updateQtree(qtreeName, volName, oplocks, securityStyle, size, portGroup);
-        	result = BiosCommandResult.createSuccessfulResult();   		
-    	} catch (NetAppException e) {
+
+            nApi.updateQtree(qtreeName, volName, oplocks, securityStyle, size, portGroup);
+            result = BiosCommandResult.createSuccessfulResult();
+        } catch (NetAppException e) {
             _log.error("NetAppFileStorageDevice::doUpdateQuotaDirectory failed with a NetAppException", e);
             ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateQtree();
             serviceError.setMessage(e.getLocalizedMessage());
             result = BiosCommandResult.createErrorResult(serviceError);
-    	} catch (Exception e) {
+        } catch (Exception e) {
             _log.error("NetAppFileStorageDevice::doUpdateQuotaDirectory failed with an Exception", e);
             ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateQtree();
             serviceError.setMessage(e.getLocalizedMessage());
             result = BiosCommandResult.createErrorResult(serviceError);
-    	}
-    	return result;
-    }    
-    
-        
-        @Override
-    	public BiosCommandResult deleteExportRules(StorageSystem storage,
-    			FileDeviceInputOutput args) throws ControllerException {
-    		BiosCommandResult result = new BiosCommandResult();
-    		
-    		NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
-					storage.getPortNumber(), storage.getUsername(),
-					storage.getPassword()).https(true).build();
-    		
-    		List<ExportRule> allExports = args.getExistingDBExportRules();
-    		String subDir = args.getSubDirectory();
-    		boolean allDirs = args.isAllDir();
-    		FileShare fs = args.getFs();
-    		
-    		String exportPath;
-    		String subDirExportPath="";
- 			subDir = args.getSubDirectory();
- 			
- 			if(!args.getFileOperation()) {
- 				exportPath = args.getSnapshotPath();
- 				if (subDir != null
-     					&& subDir.length() > 0) {
- 					subDirExportPath = args.getSnapshotPath() + "/"
-     						+ subDir;
-     			}
-     				
- 			} else {
- 				exportPath = args.getFs().getPath();
- 				if (subDir != null
-     					&& subDir.length() > 0) {
- 					subDirExportPath = args.getFs().getPath() + "/"
-     						+ subDir;
-     			}
- 			}
- 			
-			_log.info("exportPath : {}",exportPath);
-			args.setExportPath(exportPath);
-			
-    		_log.info("Number of existing exports found {}", allExports.size());
-    		try {
-    			if (allDirs) {
-    				
-    				Set<String> allPaths= new HashSet<String>();
-    				// ALL EXPORTS
-    				_log.info("Deleting all exports specific to filesystem at device and rules from DB including sub dirs rules and exports");
-    				for (ExportRule rule : allExports) {
-    					allPaths.add(rule.getExportPath());
-    				}
-    				
-    				for(String path : allPaths){
-    					_log.info("deleting export path : {} ",path);
-    					nApi.deleteNFSExport(path);
-    				}
-    				
-    			} else if (subDir != null && !subDir.isEmpty()) {
-    				// Filter for a specific Sub Directory export
-    				_log.info("Deleting all subdir exports rules at ViPR and  sub directory export at device {}", subDir);
-    				for (ExportRule rule : allExports) {
-    					if (rule.getExportPath().endsWith("/"+subDir)) {
-    						nApi.deleteNFSExport(subDirExportPath);
-    						break;
-    					}
-    				}
-    			} else {
-    				// Filter for No SUBDIR - main export rules with no sub dirs
-    				_log.info("Deleting all export rules  from DB and export at device not included sub dirs");
-    				nApi.deleteNFSExport(exportPath);
-    			}
-    			
-    			
-    			} catch (NetAppException e) {
-    			_log.info("Exception:" + e.getMessage());
-    			throw new DeviceControllerException(
-    					"Exception while performing export for {0} ",
-    					new Object[] { args.getFsId() });
-    		}
+        }
+        return result;
+    }
 
-    		_log.info("NetAppFileStorageDevice exportFS {} - complete",
-    				args.getFsId());
-    		result.setCommandSuccess(true);
-    		result.setCommandStatus(Operation.Status.ready.name());
-    		return result;
-    	}
-        @Override
-     	public BiosCommandResult updateExportRules(StorageSystem storage,
-     			FileDeviceInputOutput args) throws ControllerException {
+    @Override
+    public BiosCommandResult deleteExportRules(StorageSystem storage,
+            FileDeviceInputOutput args) throws ControllerException {
+        BiosCommandResult result = new BiosCommandResult();
 
-        	// Requested Export Rules
-     		List<ExportRule> exportAdd = args.getExportRulesToAdd();
-     		List<ExportRule> exportDelete = args.getExportRulesToDelete();
-     		List<ExportRule> exportModify = args.getExportRulesToModify();
-     		
-     		// To be processed export rules
-     		List<ExportRule> exportsToRemove = new ArrayList<>();
-     		List<ExportRule> exportsToAdd = new ArrayList<>();
-     		
-     		String exportPath;
- 			String subDir = args.getSubDirectory();
- 			
-			if (!args.getFileOperation()) {
-				exportPath = args.getSnapshotPath();
-				if (subDir != null && subDir.length() > 0) {
-					exportPath = args.getSnapshotPath() + "/" + subDir;
-				}
-	
-			} else {
-				exportPath = args.getFs().getPath();
-				if (subDir != null && subDir.length() > 0) {
-					exportPath = args.getFs().getPath() + "/" + subDir;
-				}
-			}
-	
-			_log.info("exportPath : {}", exportPath);
-			args.setExportPath(exportPath);
+        NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
+                storage.getPortNumber(), storage.getUsername(),
+                storage.getPassword()).https(true).build();
 
-			// ALL EXPORTS
-			List<ExportRule> existingDBExportRule = args.getExistingDBExportRules();
-			List<ExportRule> exportsToprocess = new ArrayList<>();
-			for (ExportRule rule : existingDBExportRule) {
-				if (rule.getExportPath().equalsIgnoreCase(exportPath)) {
-					exportsToprocess.add(rule);
-				}
-			}
-     		_log.info("Number of existng Rules found {}", exportsToprocess.size());
+        List<ExportRule> allExports = args.getExistingDBExportRules();
+        String subDir = args.getSubDirectory();
+        boolean allDirs = args.isAllDir();
+        FileShare fs = args.getFs();
 
-     		//Handle Modified export Rules
-     		if (exportsToprocess.size() > 0) {
-     			for (ExportRule existingRule : exportsToprocess) {
-     				for (ExportRule modifiedrule : exportModify) {
-     					if (modifiedrule.getSecFlavor().equals(
-     							existingRule.getSecFlavor())) {
-     						_log.info("Modifying Export Rule from {}, To {}",
-     								existingRule, modifiedrule);
-     						// use a separate list to avoid concurrent modification exception for now.
-     						exportsToRemove.add(existingRule);
-     						exportsToAdd.add(modifiedrule);
-     					}
-     				}
-     			}
+        String exportPath;
+        String subDirExportPath = "";
+        subDir = args.getSubDirectory();
 
-     			// Handle Add export Rules
-     			if (exportAdd != null && exportAdd.size() > 0) {
-     				for (ExportRule newExport : exportAdd) {
-     					_log.info("Adding Export Rule {}", newExport);
-     					exportsToAdd.add(newExport);
-     				}
-     			}
+        if (!args.getFileOperation()) {
+            exportPath = args.getSnapshotPath();
+            if (subDir != null
+                    && subDir.length() > 0) {
+                subDirExportPath = args.getSnapshotPath() + "/"
+                        + subDir;
+            }
 
-     			// Handle Delete export Rules
-     			if (exportDelete != null && exportDelete.size() > 0) {
-     				for (ExportRule existingRule : exportsToprocess) {
-     					for (ExportRule oldExport : exportDelete) {
-     						if (oldExport.getSecFlavor().equals(
-     								existingRule.getSecFlavor())) {
-     							_log.info("Deleting Export Rule {}", existingRule);
-     							exportsToRemove.add(existingRule);
-     						}
-     					}
-     				}
-     			}
-     			// No of exports found to remove from the list
-    			_log.info("No of exports found to remove from the existing exports list {}", exportsToRemove.size());
-    			exportsToprocess.removeAll(exportsToRemove);
-    			_log.info("No of exports found to add to the existing exports list {}", exportsToAdd.size());
-    			exportsToprocess.addAll(exportsToAdd);
-    			
-    			// Since NetApp will remove the export itself when we removed all the export rules, 
-    			// adding a default rule will keep the export alive.
-    			
-    			if(exportsToprocess.isEmpty() && exportsToRemove.size() >= 1){
-    				// If all exports rules deleted, export will get deleted too. So set back to its defaults
-    				ExportRule rule = new ExportRule();
-    				rule.setSecFlavor("sys");
-    				rule.setAnon("root");
-    				java.util.Set<String>  roHosts = new HashSet<>();
-    				roHosts.add("Default");
-    				rule.setReadOnlyHosts(roHosts);
-    				exportsToprocess.add(rule);
-    			}
-     			
-     		} else
-     		{
-     			if(exportsToprocess == null)
-     			{
-     				exportsToprocess = new ArrayList<>();
-     			}
-     			exportsToprocess.addAll(exportAdd);
-     			exportsToprocess.addAll(exportModify);
-     		}
+        } else {
+            exportPath = args.getFs().getPath();
+            if (subDir != null
+                    && subDir.length() > 0) {
+                subDirExportPath = args.getFs().getPath() + "/"
+                        + subDir;
+            }
+        }
 
-     		// if only delete provided with no existing rules -- How do we handle this? [GOPI]
-     		
-     		_log.info("Number of Export Rules to update after processing found {}", exportsToprocess.size());
-     		BiosCommandResult result = new BiosCommandResult();
-     		try {
-     		    
-                String portGroup = null;
-                if (args.getFileOperation() == true) {
-                    FileShare fileshare = args.getFs();
-                    portGroup = findVfilerName(fileshare);
-                } else {
-                    // Get the FS from the snapshot
-                    URI snapshotUID = args.getSnapshotId();
-                    Snapshot snapshot = _dbClient.queryObject(Snapshot.class, snapshotUID);             
-                    FileShare fileshare = _dbClient.queryObject(FileShare.class, snapshot.getParent().getURI());
-                    
-                    portGroup = findVfilerName(fileshare);
-                }                 		    
+        _log.info("exportPath : {}", exportPath);
+        args.setExportPath(exportPath);
 
-     			NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
-     					storage.getPortNumber(), storage.getUsername(),
-     					storage.getPassword()).https(true).vFiler(portGroup).build();
-     			
-     			if (!nApi
-     					.modifyNFSShare(exportPath, exportsToprocess)) {
-     				_log.error("NetAppFileStorageDevice updateFSExportRules {} - failed",
-     						args.getFsId());
-     				result.setMessage("NetAppFileStorageDevice updateFSExportRules {} - failed");
-     				result.setCommandStatus(Operation.Status.error.name());
-     				return result;
-     			}
+        _log.info("Number of existing exports found {}", allExports.size());
+        try {
+            if (allDirs) {
 
-     			if ((args.getFileOperation() == true)
-     					&& args.getSubDirectory() == null) {
-     				nApi.setQtreemode(exportPath, UNIX_QTREE_SETTING);
-     			}
-     		} catch (NetAppException e) {
-     			_log.info("Exception:" + e.getMessage());
-     			throw new DeviceControllerException(
-     					"Exception while performing export for {0} ",
-     					new Object[] { args.getFsId() });
-     		}
+                Set<String> allPaths = new HashSet<String>();
+                // ALL EXPORTS
+                _log.info("Deleting all exports specific to filesystem at device and rules from DB including sub dirs rules and exports");
+                for (ExportRule rule : allExports) {
+                    allPaths.add(rule.getExportPath());
+                }
 
-     		_log.info("NetAppFileStorageDevice updateFSExportRules {} - complete",
-     				args.getFsId());
-     		result.setCommandSuccess(true);
-     		result.setCommandStatus(Operation.Status.ready.name());
-     		return result;
-     	}
+                for (String path : allPaths) {
+                    _log.info("deleting export path : {} ", path);
+                    nApi.deleteNFSExport(path);
+                }
 
-        @Override
-        public BiosCommandResult updateShareACLs(StorageSystem storage,
-        		FileDeviceInputOutput args) {
-        	
-        	List<ShareACL> existingAcls = new ArrayList<ShareACL>();
-        	existingAcls =args.getExistingShareAcls();
+            } else if (subDir != null && !subDir.isEmpty()) {
+                // Filter for a specific Sub Directory export
+                _log.info("Deleting all subdir exports rules at ViPR and  sub directory export at device {}", subDir);
+                for (ExportRule rule : allExports) {
+                    if (rule.getExportPath().endsWith("/" + subDir)) {
+                        nApi.deleteNFSExport(subDirExportPath);
+                        break;
+                    }
+                }
+            } else {
+                // Filter for No SUBDIR - main export rules with no sub dirs
+                _log.info("Deleting all export rules  from DB and export at device not included sub dirs");
+                nApi.deleteNFSExport(exportPath);
+            }
 
-        	BiosCommandResult result = new BiosCommandResult();
+        } catch (NetAppException e) {
+            _log.info("Exception:" + e.getMessage());
+            throw new DeviceControllerException(
+                    "Exception while performing export for {0} ",
+                    new Object[] { args.getFsId() });
+        }
 
-        	NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
-        			storage.getPortNumber(), storage.getUsername(),
-        			storage.getPassword()).https(true).build();
-        	try {
-        		processAclsForShare(nApi, args);
-        		result = BiosCommandResult.createSuccessfulResult();
-        	} catch (Exception e) {
+        _log.info("NetAppFileStorageDevice exportFS {} - complete",
+                args.getFsId());
+        result.setCommandSuccess(true);
+        result.setCommandStatus(Operation.Status.ready.name());
+        return result;
+    }
 
-        		_log.error("NetAppFileStorageDevice::updateShareACLs failed with an Exception", e);
-        		ServiceError serviceError = DeviceControllerErrors.netapp.unableToUpdateCIFSShareAcl();
-        		serviceError.setMessage(e.getLocalizedMessage());
-        		result = BiosCommandResult.createErrorResult(serviceError);
+    @Override
+    public BiosCommandResult updateExportRules(StorageSystem storage,
+            FileDeviceInputOutput args) throws ControllerException {
 
-        		//if delete or modify fails , revert to old acl
-        		_log.info("update ACL failed ,going to roll back to existing ACLs");
-        		rollbackShareACLs(storage,args,existingAcls);
-        	}
+        // Requested Export Rules
+        List<ExportRule> exportAdd = args.getExportRulesToAdd();
+        List<ExportRule> exportDelete = args.getExportRulesToDelete();
+        List<ExportRule> exportModify = args.getExportRulesToModify();
 
-        	return result;
+        // To be processed export rules
+        List<ExportRule> exportsToRemove = new ArrayList<>();
+        List<ExportRule> exportsToAdd = new ArrayList<>();
+
+        String exportPath;
+        String subDir = args.getSubDirectory();
+
+        if (!args.getFileOperation()) {
+            exportPath = args.getSnapshotPath();
+            if (subDir != null && subDir.length() > 0) {
+                exportPath = args.getSnapshotPath() + "/" + subDir;
+            }
+
+        } else {
+            exportPath = args.getFs().getPath();
+            if (subDir != null && subDir.length() > 0) {
+                exportPath = args.getFs().getPath() + "/" + subDir;
+            }
+        }
+
+        _log.info("exportPath : {}", exportPath);
+        args.setExportPath(exportPath);
+
+        // ALL EXPORTS
+        List<ExportRule> existingDBExportRule = args.getExistingDBExportRules();
+        List<ExportRule> exportsToprocess = new ArrayList<>();
+        for (ExportRule rule : existingDBExportRule) {
+            if (rule.getExportPath().equalsIgnoreCase(exportPath)) {
+                exportsToprocess.add(rule);
+            }
+        }
+        _log.info("Number of existng Rules found {}", exportsToprocess.size());
+
+        // Handle Modified export Rules
+        if (exportsToprocess != null && !exportsToprocess.isEmpty()) {
+            for (ExportRule existingRule : exportsToprocess) {
+                for (ExportRule modifiedrule : exportModify) {
+                    if (modifiedrule.getSecFlavor().equals(
+                            existingRule.getSecFlavor())) {
+                        _log.info("Modifying Export Rule from {}, To {}",
+                                existingRule, modifiedrule);
+                        // use a separate list to avoid concurrent modification exception for now.
+                        exportsToRemove.add(existingRule);
+                        exportsToAdd.add(modifiedrule);
+                    }
+                }
+            }
+
+            // Handle Add export Rules
+            if (exportAdd != null && !exportAdd.isEmpty()) {
+                for (ExportRule newExport : exportAdd) {
+                    _log.info("Adding Export Rule {}", newExport);
+                    exportsToAdd.add(newExport);
+                }
+            }
+
+            // Handle Delete export Rules
+            if (exportDelete != null && !exportDelete.isEmpty()) {
+                for (ExportRule existingRule : exportsToprocess) {
+                    for (ExportRule oldExport : exportDelete) {
+                        if (oldExport.getSecFlavor().equals(
+                                existingRule.getSecFlavor())) {
+                            _log.info("Deleting Export Rule {}", existingRule);
+                            exportsToRemove.add(existingRule);
+                        }
+                    }
+                }
+            }
+            // No of exports found to remove from the list
+            _log.info("No of exports found to remove from the existing exports list {}", exportsToRemove.size());
+            exportsToprocess.removeAll(exportsToRemove);
+            _log.info("No of exports found to add to the existing exports list {}", exportsToAdd.size());
+            exportsToprocess.addAll(exportsToAdd);
+
+            // Since NetApp will remove the export itself when we removed all the export rules,
+            // adding a default rule will keep the export alive.
+
+            if (exportsToprocess.isEmpty() && !exportsToRemove.isEmpty()) {
+                // If all exports rules deleted, export will get deleted too. So set back to its defaults
+                ExportRule rule = new ExportRule();
+                rule.setSecFlavor("sys");
+                rule.setAnon("root");
+                java.util.Set<String> roHosts = new HashSet<>();
+                roHosts.add("Default");
+                rule.setReadOnlyHosts(roHosts);
+                exportsToprocess.add(rule);
+            }
+
+        } else
+        {
+            if (exportsToprocess == null)
+            {
+                exportsToprocess = new ArrayList<>();
+            }
+            exportsToprocess.addAll(exportAdd);
+            exportsToprocess.addAll(exportModify);
+        }
+
+        // if only delete provided with no existing rules -- How do we handle this? [GOPI]
+
+        _log.info("Number of Export Rules to update after processing found {}", exportsToprocess.size());
+        BiosCommandResult result = new BiosCommandResult();
+        try {
+
+            String portGroup = null;
+            if (args.getFileOperation() == true) {
+                FileShare fileshare = args.getFs();
+                portGroup = findVfilerName(fileshare);
+            } else {
+                // Get the FS from the snapshot
+                URI snapshotUID = args.getSnapshotId();
+                Snapshot snapshot = _dbClient.queryObject(Snapshot.class, snapshotUID);
+                FileShare fileshare = _dbClient.queryObject(FileShare.class, snapshot.getParent().getURI());
+
+                portGroup = findVfilerName(fileshare);
+            }
+
+            NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
+                    storage.getPortNumber(), storage.getUsername(),
+                    storage.getPassword()).https(true).vFiler(portGroup).build();
+
+            if (!nApi
+                    .modifyNFSShare(exportPath, exportsToprocess)) {
+                _log.error("NetAppFileStorageDevice updateFSExportRules {} - failed",
+                        args.getFsId());
+                result.setMessage("NetAppFileStorageDevice updateFSExportRules {} - failed");
+                result.setCommandStatus(Operation.Status.error.name());
+                return result;
+            }
+
+            if ((args.getFileOperation() == true)
+                    && args.getSubDirectory() == null) {
+                nApi.setQtreemode(exportPath, UNIX_QTREE_SETTING);
+            }
+        } catch (NetAppException e) {
+            _log.info("Exception:" + e.getMessage());
+            throw new DeviceControllerException(
+                    "Exception while performing export for {0} ",
+                    new Object[] { args.getFsId() });
+        }
+
+        _log.info("NetAppFileStorageDevice updateFSExportRules {} - complete",
+                args.getFsId());
+        result.setCommandSuccess(true);
+        result.setCommandStatus(Operation.Status.ready.name());
+        return result;
+    }
+
+    @Override
+    public BiosCommandResult updateShareACLs(StorageSystem storage,
+            FileDeviceInputOutput args) {
+
+        List<ShareACL> existingAcls = new ArrayList<ShareACL>();
+        existingAcls = args.getExistingShareAcls();
+
+        BiosCommandResult result = new BiosCommandResult();
+
+        NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
+                storage.getPortNumber(), storage.getUsername(),
+                storage.getPassword()).https(true).build();
+        try {
+            processAclsForShare(nApi, args);
+            result = BiosCommandResult.createSuccessfulResult();
+        } catch (Exception e) {
+
+            _log.error("NetAppFileStorageDevice::updateShareACLs failed with an Exception", e);
+            ServiceError serviceError = DeviceControllerErrors.netapp.unableToUpdateCIFSShareAcl();
+            serviceError.setMessage(e.getLocalizedMessage());
+            result = BiosCommandResult.createErrorResult(serviceError);
+
+            // if delete or modify fails , revert to old acl
+            _log.info("update ACL failed ,going to roll back to existing ACLs");
+            rollbackShareACLs(storage, args, existingAcls);
+        }
+
+        return result;
+
+    }
+
+    private void processAclsForShare(NetAppApi nApi,
+            FileDeviceInputOutput args) {
+
+        // add and modify are same for NetApp call.
+        List<ShareACL> aclsToAddModify = new ArrayList<ShareACL>();
+        aclsToAddModify.addAll(args.getShareAclsToAdd());
+        aclsToAddModify.addAll(args.getShareAclsToModify());
+        List<ShareACL> aclsToDelete = args.getShareAclsToDelete();
+        String shareName = args.getShareName();
+        deleteShareAcl(nApi, shareName, aclsToDelete);
+        addShareAcl(nApi, shareName, aclsToAddModify);
+
+    }
+
+    private void addShareAcl(NetAppApi nApi, String shareName, List<ShareACL> aclsToAdd) {
+
+        if (aclsToAdd == null || aclsToAdd.isEmpty()) {
+            return;
+        }
+
+        List<CifsAcl> acls = new ArrayList<CifsAcl>();
+        for (ShareACL newAcl : aclsToAdd) {
+            CifsAcl cif_new = new CifsAcl();
+            String domain = newAcl.getDomain();
+
+            String userOrGroup = newAcl.getGroup() == null ?
+                    newAcl.getUser() : newAcl.getGroup();
+
+            if (domain != null && !domain.isEmpty()) {
+                userOrGroup = domain + "\\" + userOrGroup;
+            }
+
+            // for netapp api user and group are same.and need to set only user
+            cif_new.setUserName(userOrGroup);
+            cif_new.setShareName(shareName);
+            cif_new.setAccess(getAccessEnum(newAcl.getPermission()));
+            acls.add(cif_new);
+        }
+        nApi.modifyCIFSShareAcl(shareName, acls);
+
+    }
+
+    private CifsAccess getAccessEnum(String permission) throws NetAppException {
+
+        CifsAccess access = null;
+        if (permission != null) {
+            switch (permission.toLowerCase()) {
+                case "read":
+                    access = CifsAccess.read;
+                    break;
+
+                case "change":
+                    access = CifsAccess.change;
+                    break;
+                case "fullcontrol":
+                    access = CifsAccess.full;
+                    break;
+                default:
+                    throw new IllegalArgumentException(permission + " is not a valid permission for Cifs Share");
+            }
+        }
+        return access;
+    }
+
+    private void deleteShareAcl(NetAppApi nApi, String shareName, List<ShareACL> aclsToDelete) {
+
+        if (aclsToDelete == null || aclsToDelete.isEmpty()) {
+            return;
+        }
+
+        List<CifsAcl> acls = new ArrayList<CifsAcl>();
+        for (ShareACL newAcl : aclsToDelete) {
+
+            CifsAcl cif_new = new CifsAcl();
+            String domain = newAcl.getDomain();
+            String userOrGroup = newAcl.getGroup() == null ?
+                    newAcl.getUser() : newAcl.getGroup();
+
+            if (domain != null && !domain.isEmpty()) {
+                userOrGroup = domain + "\\" + userOrGroup;
+            }
+            // for netapp api user and group are same.and need to set only user
+            cif_new.setUserName(userOrGroup);
+            cif_new.setShareName(shareName);
+            cif_new.setAccess(getAccessEnum(newAcl.getPermission()));
+            acls.add(cif_new);
+
+        }
+        nApi.deleteCIFSShareAcl(shareName, acls);
+
+    }
+
+    private BiosCommandResult rollbackShareACLs(StorageSystem storage, FileDeviceInputOutput args,
+            List<ShareACL> existingList) {
+
+        BiosCommandResult result = new BiosCommandResult();
+
+        NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
+                storage.getPortNumber(), storage.getUsername(),
+                storage.getPassword()).https(true).build();
+
+        try {
+            // We can have multiple ace added/modified in one put call ,some of them can fail due to some reason.
+            // In case of failure, to make it consistent in vipr db and NetApp share, delete all currently
+            // added and modified ace and revert it to old acl.
+            _log.info("NetAppFileStorageDevice::Rolling back update ACL by trying delete ACL for share {}", args.getShareName());
+            List<ShareACL> aclsToClear = new ArrayList<ShareACL>();
+            aclsToClear.addAll(args.getShareAclsToAdd());
+            aclsToClear.addAll(args.getShareAclsToModify());
+            forceDeleteShareAcl(nApi, args.getShareName(), aclsToClear);
+            _log.info("NetAppFileStorageDevice::Adding back old ACL to Share {}", args.getShareName());
+            forceAddShareAcl(nApi, args.getShareName(), existingList);
+            result = BiosCommandResult.createSuccessfulResult();
+        } catch (Exception e) {
+
+            _log.error("NetAppFileStorageDevice::Roll Back of ACL failed with an Exception", e);
+            ServiceError serviceError = DeviceControllerErrors.netapp.unableToUpdateCIFSShareAcl();
+            serviceError.setMessage(e.getLocalizedMessage());
+            result = BiosCommandResult.createErrorResult(serviceError);
 
         }
 
-        private void processAclsForShare(NetAppApi nApi,
-        		FileDeviceInputOutput args) {
+        return result;
+    }
 
-        	//add and modify are same for NetApp call.
-        	List<ShareACL> aclsToAddModify = new ArrayList<ShareACL>();
-        	aclsToAddModify.addAll(args.getShareAclsToAdd());
-        	aclsToAddModify.addAll(args.getShareAclsToModify());
-        	List<ShareACL> aclsToDelete = args.getShareAclsToDelete();
-        	String shareName = args.getShareName();
-        	deleteShareAcl(nApi,shareName,aclsToDelete);
-        	addShareAcl(nApi,shareName,aclsToAddModify);
+    private void forceDeleteShareAcl(NetAppApi nApi, String shareName, List<ShareACL> aclsToDelete) {
 
+        if (aclsToDelete == null || aclsToDelete.isEmpty()) {
+            return;
+        }
+
+        List<CifsAcl> acls = new ArrayList<CifsAcl>();
+        for (ShareACL newAcl : aclsToDelete) {
+
+            CifsAcl cif_new = new CifsAcl();
+            String domain = newAcl.getDomain();
+            String userOrGroup = newAcl.getGroup() == null ?
+                    newAcl.getUser() : newAcl.getGroup();
+
+            if (domain != null && !domain.isEmpty()) {
+                userOrGroup = domain + "\\" + userOrGroup;
+            }
+            // for netapp api user and group are same.and need to set only user
+            cif_new.setUserName(userOrGroup);
+            cif_new.setShareName(shareName);
+            cif_new.setAccess(getAccessEnum(newAcl.getPermission()));
+            acls.add(cif_new);
+
+        }
+        for (CifsAcl cifsAcl : acls) {
+            try {
+                List<CifsAcl> singleACL = new ArrayList<CifsAcl>();
+                singleACL.add(cifsAcl);
+                nApi.deleteCIFSShareAcl(shareName, singleACL);
+            } catch (Exception e) {
+
+                _log.error("NetAppFileStorageDevice:: Force delete of ACL for user [" + cifsAcl.getUserName()
+                        + "] failed with an Exception", e);
+            }
+        }
+
+    }
+
+    private void forceAddShareAcl(NetAppApi nApi, String shareName, List<ShareACL> aclsToAdd) {
+
+        if (aclsToAdd == null || aclsToAdd.isEmpty()) {
+            return;
+        }
+
+        List<CifsAcl> acls = new ArrayList<CifsAcl>();
+        for (ShareACL newAcl : aclsToAdd) {
+            CifsAcl cif_new = new CifsAcl();
+            String domain = newAcl.getDomain();
+
+            String userOrGroup = newAcl.getGroup() == null ?
+                    newAcl.getUser() : newAcl.getGroup();
+
+            if (domain != null && !domain.isEmpty()) {
+                userOrGroup = domain + "\\" + userOrGroup;
+            }
+
+            // for netapp api user and group are same.and need to set only user
+            cif_new.setUserName(userOrGroup);
+            cif_new.setShareName(shareName);
+            cif_new.setAccess(getAccessEnum(newAcl.getPermission()));
+            acls.add(cif_new);
+        }
+
+        for (CifsAcl cifsAcl : acls) {
+            try {
+                List<CifsAcl> singleACL = new ArrayList<CifsAcl>();
+                singleACL.add(cifsAcl);
+                nApi.modifyCIFSShareAcl(shareName, singleACL);
+            } catch (Exception e) {
+                _log.error("NetAppFileStorageDevice:: Force add of ACL for user [" + cifsAcl.getUserName() + "] failed with an Exception",
+                        e);
+            }
+        }
+
+    }
+
+    @Override
+    public BiosCommandResult deleteShareACLs(StorageSystem storage,
+            FileDeviceInputOutput args) {
+
+        BiosCommandResult result = new BiosCommandResult();
+        List<ShareACL> existingAcls = new ArrayList<ShareACL>();
+        existingAcls = args.getExistingShareAcls();
+
+        NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
+                storage.getPortNumber(), storage.getUsername(),
+                storage.getPassword()).https(true).build();
+
+        try {
+            deleteShareAcl(nApi, args.getShareName(), existingAcls);
+            result = BiosCommandResult.createSuccessfulResult();
+        } catch (Exception e) {
+
+            _log.error("NetAppFileStorageDevice::Delete All ACL failed with an Exception", e);
+            ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteCIFSShareAcl();
+            serviceError.setMessage(e.getLocalizedMessage());
+            result = BiosCommandResult.createErrorResult(serviceError);
 
         }
 
-        private void addShareAcl(NetAppApi nApi, String shareName,List<ShareACL> aclsToAdd) {
+        return result;
 
-        	if(aclsToAdd.size() < 1)
-        		return;
-
-        	List<CifsAcl> acls = new ArrayList<CifsAcl>();  
-        	for(ShareACL newAcl : aclsToAdd) {
-        		CifsAcl cif_new = new CifsAcl();
-        		String domain = newAcl.getDomain();
-        		
-        		String userOrGroup = newAcl.getGroup() == null ?
-        				newAcl.getUser() : newAcl.getGroup();
-        		
-        		if (domain != null && !domain.isEmpty()) {
-        			userOrGroup = domain + "\\" + userOrGroup;
-        		}
-        		
-        		//for netapp api user and group are same.and need to set only user
-        		cif_new.setUserName(userOrGroup);
-        		cif_new.setShareName(shareName);
-        		cif_new.setAccess(getAccessEnum(newAcl.getPermission())); 
-        		acls.add(cif_new);
-        	}
-        	nApi.modifyCIFSShareAcl(shareName,acls);
-
-        }
-        private CifsAccess getAccessEnum(String permission)  throws NetAppException {
-
-        	CifsAccess access=null;
-        	if(permission != null) {
-        		switch (permission.toLowerCase()){
-        		case "read" : access= CifsAccess.read;
-        		break;
-
-        		case "change" : access= CifsAccess.change;
-        		break;
-        		case "fullcontrol" : access= CifsAccess.full;
-        		break;
-        		default: 
-        			throw new IllegalArgumentException(permission + " is not a valid permission for Cifs Share");
-        		}
-        	}
-        	return access;        	
-        }
-        private void deleteShareAcl(NetAppApi nApi, String shareName,List<ShareACL> aclsToDelete) {
-
-        	if(aclsToDelete.size() < 1)
-        		return;
-
-        	List<CifsAcl> acls = new ArrayList<CifsAcl>();  
-        	for(ShareACL newAcl : aclsToDelete) {
-
-        		CifsAcl cif_new =new CifsAcl();
-        		String domain = newAcl.getDomain();
-        		String userOrGroup = newAcl.getGroup() == null ?
-        				newAcl.getUser() : newAcl.getGroup(); 
-        		
-        		if (domain != null && !domain.isEmpty()) {
-        			userOrGroup = domain + "\\" + userOrGroup;
-        		}
-        		//for netapp api user and group are same.and need to set only user
-        		cif_new.setUserName(userOrGroup);
-        		cif_new.setShareName(shareName);
-        		cif_new.setAccess(getAccessEnum(newAcl.getPermission())); 
-        		acls.add(cif_new);
-
-        	}
-        	nApi.deleteCIFSShareAcl(shareName,acls);
-
-        }
-
-        private  BiosCommandResult rollbackShareACLs(StorageSystem storage,FileDeviceInputOutput args,
-        		List<ShareACL> existingList)  {
-
-        	BiosCommandResult result = new BiosCommandResult();
-
-        	NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
-        			storage.getPortNumber(), storage.getUsername(),
-        			storage.getPassword()).https(true).build();
-
-        	try {	
-        		//We can have multiple ace added/modified in one put call ,some of them can fail due to some reason.
-        		//In case of failure, to make it consistent in vipr db and NetApp share, delete all currently 
-        		// added and modified ace and revert it to old acl.
-        		_log.info("NetAppFileStorageDevice::Rolling back update ACL by trying delete ACL for share {}",args.getShareName());
-        		List<ShareACL> aclsToClear = new ArrayList<ShareACL>();
-        		aclsToClear.addAll(args.getShareAclsToAdd());
-        		aclsToClear.addAll(args.getShareAclsToModify());
-        		forceDeleteShareAcl(nApi,args.getShareName(),aclsToClear);
-        		_log.info("NetAppFileStorageDevice::Adding back old ACL to Share {}",args.getShareName());
-        		forceAddShareAcl(nApi,args.getShareName(),existingList);
-        		result = BiosCommandResult.createSuccessfulResult(); 
-        	} catch (Exception e) {
-
-        		_log.error("NetAppFileStorageDevice::Roll Back of ACL failed with an Exception", e);
-        		ServiceError serviceError = DeviceControllerErrors.netapp.unableToUpdateCIFSShareAcl();
-        		serviceError.setMessage(e.getLocalizedMessage());
-        		result = BiosCommandResult.createErrorResult(serviceError);
-
-        	}
-
-        	return result;
-        }
-        
-
-        private void forceDeleteShareAcl(NetAppApi nApi, String shareName,List<ShareACL> aclsToDelete) {
-
-        	if(aclsToDelete.size() < 1)
-        		return;
-
-        	List<CifsAcl> acls = new ArrayList<CifsAcl>();  
-        	for(ShareACL newAcl : aclsToDelete) {
-
-        		CifsAcl cif_new =new CifsAcl();
-        		String domain = newAcl.getDomain();
-        		String userOrGroup = newAcl.getGroup() == null ?
-        				newAcl.getUser() : newAcl.getGroup(); 
-
-        				if (domain != null && !domain.isEmpty()) {
-        					userOrGroup = domain + "\\" + userOrGroup;
-        				}
-        				//for netapp api user and group are same.and need to set only user
-        				cif_new.setUserName(userOrGroup);
-        				cif_new.setShareName(shareName);
-        				cif_new.setAccess(getAccessEnum(newAcl.getPermission())); 
-        				acls.add(cif_new);
-
-        	}
-        	for (CifsAcl cifsAcl : acls) {
-        		try {
-        			List<CifsAcl> singleACL =  new ArrayList<CifsAcl>();  
-        			singleACL.add(cifsAcl);
-        			nApi.deleteCIFSShareAcl(shareName,singleACL);    			
-        		} catch (Exception e) {
-
-        			_log.error("NetAppFileStorageDevice:: Force delete of ACL for user ["+cifsAcl.getUserName()+"] failed with an Exception", e);    				
-        		}
-        	}
-
-        }
-
-        private void forceAddShareAcl(NetAppApi nApi, String shareName,List<ShareACL> aclsToAdd) {
-
-        	if(aclsToAdd.size() < 1)
-        		return;
-
-        	List<CifsAcl> acls = new ArrayList<CifsAcl>();  
-        	for(ShareACL newAcl : aclsToAdd) {
-        		CifsAcl cif_new = new CifsAcl();
-        		String domain = newAcl.getDomain();
-
-        		String userOrGroup = newAcl.getGroup() == null ?
-        				newAcl.getUser() : newAcl.getGroup();
-
-        				if (domain != null && !domain.isEmpty()) {
-        					userOrGroup = domain + "\\" + userOrGroup;
-        				}
-
-        				//for netapp api user and group are same.and need to set only user
-        				cif_new.setUserName(userOrGroup);
-        				cif_new.setShareName(shareName);
-        				cif_new.setAccess(getAccessEnum(newAcl.getPermission())); 
-        				acls.add(cif_new);
-        	}
-
-        	for (CifsAcl cifsAcl : acls) {
-        		try {
-        			List<CifsAcl> singleACL =  new ArrayList<CifsAcl>();  
-        			singleACL.add(cifsAcl);
-        			nApi.modifyCIFSShareAcl(shareName,singleACL);    			
-        		} catch (Exception e) {
-        			_log.error("NetAppFileStorageDevice:: Force add of ACL for user ["+cifsAcl.getUserName()+"] failed with an Exception", e);    				
-        		}
-        	}
-
-        }
-
-        @Override
-        public BiosCommandResult deleteShareACLs(StorageSystem storage,
-        		FileDeviceInputOutput args)  {
-
-        	BiosCommandResult result = new BiosCommandResult();
-        	List<ShareACL> existingAcls = new ArrayList<ShareACL>();
-        	existingAcls =args.getExistingShareAcls();
-
-        	NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
-        			storage.getPortNumber(), storage.getUsername(),
-        			storage.getPassword()).https(true).build();
-
-
-        	try {	
-        		deleteShareAcl(nApi,args.getShareName(),existingAcls);
-        		result = BiosCommandResult.createSuccessfulResult();
-        	} catch (Exception e) {
-
-        		_log.error("NetAppFileStorageDevice::Delete All ACL failed with an Exception", e);
-        		ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteCIFSShareAcl();
-        		serviceError.setMessage(e.getLocalizedMessage());
-        		result = BiosCommandResult.createErrorResult(serviceError);
-
-        	}
-
-
-        	return result;
-
-        }
-
+    }
 
 }

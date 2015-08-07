@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.uimodels;
@@ -13,13 +13,13 @@ public class CatalogServiceField extends ModelObject implements SortedIndexDataO
     public static final String OVERRIDE = "override";
     public static final String CATALOG_SERVICE_ID = "catalogServiceId";
     public static final String SORTED_INDEX = "sortedIndex";
-    
+
     private String value;
-    
+
     private Boolean override = true;
-    
+
     private NamedURI catalogServiceId;
-    
+
     private Integer sortedIndex;
 
     @Name(VALUE)
@@ -52,7 +52,7 @@ public class CatalogServiceField extends ModelObject implements SortedIndexDataO
         this.catalogServiceId = catalogServiceId;
         setChanged(CATALOG_SERVICE_ID);
     }
-    
+
     @Name(SORTED_INDEX)
     public Integer getSortedIndex() {
         return sortedIndex;
@@ -61,11 +61,11 @@ public class CatalogServiceField extends ModelObject implements SortedIndexDataO
     public void setSortedIndex(Integer sortedIndex) {
         this.sortedIndex = sortedIndex;
         setChanged(SORTED_INDEX);
-    }    
-    
+    }
+
     @Override
     public Object[] auditParameters() {
-        return new Object[] {getLabel(), getId() };
-    }    
-    
+        return new Object[] { getLabel(), getId() };
+    }
+
 }

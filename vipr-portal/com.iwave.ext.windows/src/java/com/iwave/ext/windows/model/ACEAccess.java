@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.windows.model;
@@ -25,20 +25,20 @@ public enum ACEAccess implements Serializable {
 
     public static ACEAccess valueOfLabel(String label) {
         for (ACEAccess t : values()) {
-            if (label.equals(t.label))
+            if (label.equals(t.label)) {
                 return t;
+            }
         }
         throw new IllegalArgumentException(label + " is not a valid label for CifsAccess");
     }
-    
 
     public void setLabel(String label) {
     }
-    
+
     public String getLabel() {
         return label;
     }
-    
+
     @Override
     public String toString() {
         return label;

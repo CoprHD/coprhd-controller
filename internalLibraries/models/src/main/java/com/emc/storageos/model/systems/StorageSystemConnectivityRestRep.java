@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.model.systems;
@@ -24,7 +14,6 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-
 @XmlRootElement(name = "storage_connectivity")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class StorageSystemConnectivityRestRep {
@@ -36,9 +25,10 @@ public class StorageSystemConnectivityRestRep {
 
     // the type of protection
     private Set<String> connectionTypes;
-    
-    public StorageSystemConnectivityRestRep() {}
-    
+
+    public StorageSystemConnectivityRestRep() {
+    }
+
     public StorageSystemConnectivityRestRep(
             NamedRelatedResourceRep protectionSystem,
             NamedRelatedResourceRep storageSystem, Set<String> connectionTypes) {
@@ -54,7 +44,7 @@ public class StorageSystemConnectivityRestRep {
      * @valid vplex
      * 
      */
-    @XmlElement(name="connection_type")
+    @XmlElement(name = "connection_type")
     public Set<String> getConnectionTypes() {
         if (connectionTypes == null) {
             connectionTypes = new LinkedHashSet<String>();
@@ -65,12 +55,13 @@ public class StorageSystemConnectivityRestRep {
     public void setConnectionTypes(Set<String> connectionTypes) {
         this.connectionTypes = connectionTypes;
     }
+
     /**
      * The system protecting the primary storage system
      * 
      * @valid none
      */
-    @XmlElement(name="protection_system")
+    @XmlElement(name = "protection_system")
     public NamedRelatedResourceRep getProtectionSystem() {
         return protectionSystem;
     }
@@ -84,7 +75,7 @@ public class StorageSystemConnectivityRestRep {
      * 
      * @valid none
      */
-    @XmlElement(name="storage_system")
+    @XmlElement(name = "storage_system")
     public NamedRelatedResourceRep getStorageSystem() {
         return storageSystem;
     }

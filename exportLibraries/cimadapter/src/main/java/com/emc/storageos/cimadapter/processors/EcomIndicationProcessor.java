@@ -1,13 +1,7 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
  */
-// Copyright 2012 by EMC Corporation ("EMC").
-//
-// UNPUBLISHED  CONFIDENTIAL  AND  PROPRIETARY  PROPERTY OF EMC. The copyright
-// notice above does not evidence any actual  or  intended publication of this
-// software. Disclosure and dissemination are pursuant to separate agreements.
-// Unauthorized use, distribution or dissemination are strictly prohibited.
 
 package com.emc.storageos.cimadapter.processors;
 
@@ -21,8 +15,7 @@ import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
 import com.emc.storageos.cimadapter.connections.ecom.EcomConnection;
 
 /**
- * The EcomIndicationProcessor class extends the
- * {@link DefaultCimIndicationProcessor} class and does some additional
+ * The EcomIndicationProcessor class extends the {@link DefaultCimIndicationProcessor} class and does some additional
  * processing for indications received from ECOM connections.
  */
 public class EcomIndicationProcessor extends DefaultCimIndicationProcessor {

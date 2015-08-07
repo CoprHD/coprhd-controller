@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.providerfinders;
@@ -22,7 +22,7 @@ public class FindProviderFactory {
         this.dbClient = dbClient;
         this.helper = helper;
     }
-    
+
     public FindProviderFactory(DbClient dbClient, SmisCommandHelper helper, CIMObjectPathFactory cimPathFactory) {
         this.dbClient = dbClient;
         this.helper = helper;
@@ -36,12 +36,12 @@ public class FindProviderFactory {
     public FindProviderStrategy anyReachable(Volume target) {
         return new FindReachableProvider(dbClient, helper, target);
     }
-    
+
     /**
-     * FindProviderStrategyByCG returns 
-     *      storage system (as is) if CG is found on its active provider,
-     *      or storage system (updated with provider info) if CG is found on its passive provider,
-     *      or null (if CG is not found on any of its provider).
+     * FindProviderStrategyByCG returns
+     * storage system (as is) if CG is found on its active provider,
+     * or storage system (updated with provider info) if CG is found on its passive provider,
+     * or null (if CG is not found on any of its provider).
      */
     public FindProviderStrategy withGroup(StorageSystem system, String groupName) {
         return new FindProviderStrategyByCG(dbClient, system, groupName, helper, cimPathFactory);

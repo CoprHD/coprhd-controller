@@ -1,19 +1,9 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
 
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
- */
 
 import java.util.Arrays;
 
@@ -36,7 +26,7 @@ public class ZoneInfo extends AbstractSerializableNestedObject {
     private static final String NETWORK_WWN = "networkWwn";
     private static final String FABRIC_ID = "fabricId";
     private static final String NETWORK_SYSTEM_ID = "networkSystemId";
-    
+
     public ZoneInfo() {
     }
 
@@ -122,6 +112,6 @@ public class ZoneInfo extends AbstractSerializableNestedObject {
     }
 
     public String getZoneReferenceKey() {
-        return FCZoneReference.makeEndpointsKey(Arrays.asList(new String[] {getInitiatorWwn(), getPortWwn()}));
+        return FCZoneReference.makeEndpointsKey(Arrays.asList(new String[] { getInitiatorWwn(), getPortWwn() }));
     }
 }

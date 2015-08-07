@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.model.project;
@@ -26,20 +16,21 @@ public class ProjectRestRep extends DataObjectRestRep {
     private RelatedResourceRep tenant;
     private String owner;
 
-    public ProjectRestRep() {}
-    
+    public ProjectRestRep() {
+    }
+
     public ProjectRestRep(RelatedResourceRep tenant, String owner) {
         this.tenant = tenant;
         this.owner = owner;
     }
 
     /**
-     * Owner of the project is the user who created it or 
-     * explicitly assigned as owner to the project, is allowed 
+     * Owner of the project is the user who created it or
+     * explicitly assigned as owner to the project, is allowed
      * full access to the project and all its resources"
      * 
      * @valid none
-     *
+     * 
      */
     @XmlElement(name = "owner")
     public String getOwner() {
@@ -49,12 +40,12 @@ public class ProjectRestRep extends DataObjectRestRep {
     public void setOwner(String owner) {
         this.owner = owner;
     }
-     
+
     /**
      * 
-     *  The tenant that this project is associated with.
-     *  
-     *  @valid none
+     * The tenant that this project is associated with.
+     * 
+     * @valid none
      */
     @XmlElement(name = "tenant")
     public RelatedResourceRep getTenant() {

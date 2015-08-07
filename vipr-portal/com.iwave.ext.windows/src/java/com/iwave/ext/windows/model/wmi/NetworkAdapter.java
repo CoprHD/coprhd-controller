@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.windows.model.wmi;
@@ -63,12 +63,12 @@ public class NetworkAdapter implements Serializable {
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof NetworkAdapter) {
-            return equals((NetworkAdapter) obj);
+            return equalsNetworkAdapter((NetworkAdapter) obj);
         }
         return false;
     }
 
-    public boolean equals(NetworkAdapter adapter) {
+    public boolean equalsNetworkAdapter(NetworkAdapter adapter) {
         if (adapter == this) {
             return true;
         }

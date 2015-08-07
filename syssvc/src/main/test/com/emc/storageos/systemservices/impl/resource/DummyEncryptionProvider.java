@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.systemservices.impl.resource;
@@ -80,7 +80,6 @@ public class DummyEncryptionProvider implements EncryptionProvider {
             throw new IllegalStateException(e);
         }
     }
-
 
     private byte[] decode(byte[] input) {
         if (input.length < 2 || input[0] != ENC_PROVIDER_VERSION) {

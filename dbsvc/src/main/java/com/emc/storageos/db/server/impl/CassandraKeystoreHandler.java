@@ -1,21 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.server.impl;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.security.keystore.impl.DistributedLoadKeyStoreParam;
 import com.emc.storageos.security.keystore.impl.KeyStoreUtil;
 import com.emc.storageos.security.keystore.impl.KeystoreEngine;
@@ -49,7 +38,7 @@ public class CassandraKeystoreHandler {
     private final CoordinatorClient coordinator;
 
     public CassandraKeystoreHandler(CoordinatorClient coordinator, String keyStoreFile, String trustStoreFile, String password)
-            throws KeyStoreException, NoSuchAlgorithmException,  CertificateException, IOException, InterruptedException {
+            throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, InterruptedException {
         this.coordinator = coordinator;
         keystore = KeyStoreUtil.getViPRKeystore(coordinator);
 
@@ -69,7 +58,7 @@ public class CassandraKeystoreHandler {
                 keystore.getCertificateChain(KeystoreEngine.ViPR_KEY_AND_CERTIFICATE_ALIAS);
         return viprCertificateChain;
     }
-    
+
     public void saveKeyStore() throws Exception {
         log.info("Trying to generate keystore {}", keyStoreFile);
         KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
@@ -78,14 +67,14 @@ public class CassandraKeystoreHandler {
                 keystore.getKey(KeystoreEngine.ViPR_KEY_AND_CERTIFICATE_ALIAS, null),
                 password, keystore.getCertificateChain(KeystoreEngine.ViPR_KEY_AND_CERTIFICATE_ALIAS));
         ks.store(new FileOutputStream(keyStoreFile), password);
-        log.info("The keystore file {} is generated successfully.",keyStoreFile);
+        log.info("The keystore file {} is generated successfully.", keyStoreFile);
     }
-    
+
     public void saveTrustStore() throws Exception {
         log.info("Trying to generate truststore {}", trustStoreFile);
         KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
         ks.load(null, password);
-        
+
         DistributedLoadKeyStoreParam loadStoreParam;
         loadStoreParam = new DistributedLoadKeyStoreParam();
         loadStoreParam.setCoordinator(coordinator);

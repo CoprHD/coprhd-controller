@@ -1,14 +1,12 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.security;
 
 import controllers.deadbolt.*;
 import models.deadbolt.RoleHolder;
-import play.Play;
 import play.mvc.Controller;
-import play.mvc.Http;
 import play.mvc.Util;
 import util.BourneUtil;
 
@@ -26,8 +24,7 @@ public class DummyDeadboltHandler extends Controller implements DeadboltHandler 
         // Ensure the cookie is still good
         try {
             Security.getUserInfo();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             removeResponseCookie(AUTH_TOKEN_KEY);
             removeRequestCookie(AUTH_TOKEN_KEY);
         }
@@ -68,7 +65,7 @@ public class DummyDeadboltHandler extends Controller implements DeadboltHandler 
      * Http.Response.removeCookie() sets the HttpOnly and secure
      * attributes of the cookie to false and that could lead to
      * XSS.
-     *
+     * 
      * @param name of the cookie to be removed from the response.
      */
     @Util
@@ -79,7 +76,7 @@ public class DummyDeadboltHandler extends Controller implements DeadboltHandler 
     /***
      * Removes the session cookie from the request by
      * setting the cookie value with "" and path with "/".
-     *
+     * 
      * @param name of the cookie to be removed from the request.
      */
     @Util

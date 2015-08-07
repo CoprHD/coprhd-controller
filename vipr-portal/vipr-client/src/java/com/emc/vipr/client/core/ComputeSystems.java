@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -88,7 +88,7 @@ public class ComputeSystems extends AbstractCoreBulkResources<ComputeSystemRestR
      * <tt>getByRefs(list(), filter)</tt>.
      * 
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of all compute systems.
      */
     @Override
@@ -103,7 +103,7 @@ public class ComputeSystems extends AbstractCoreBulkResources<ComputeSystemRestR
      * API Call: <tt>POST /vdc/compute-systems</tt>
      * 
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<ComputeSystemRestRep> create(ComputeSystemCreate input) {
@@ -116,9 +116,9 @@ public class ComputeSystems extends AbstractCoreBulkResources<ComputeSystemRestR
      * API Call: <tt>PUT /vdc/compute-systems/{id}</tt>
      * 
      * @param id
-     *        the ID of the compute system.
+     *            the ID of the compute system.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<ComputeSystemRestRep> update(URI id, ComputeSystemUpdate input) {
@@ -131,14 +131,13 @@ public class ComputeSystems extends AbstractCoreBulkResources<ComputeSystemRestR
      * API Call: <tt>POST /vdc/compute-systems/{id}/deactivate</tt>
      * 
      * @param id
-     *        the ID of the compute system.
+     *            the ID of the compute system.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<ComputeSystemRestRep> deactivate(URI id) {
         return doDeactivateWithTask(id);
     }
 
- 
     /**
      * Begins discovery on all compute systems.
      * <p>
@@ -154,9 +153,9 @@ public class ComputeSystems extends AbstractCoreBulkResources<ComputeSystemRestR
      * Begins discovery on the given compute system.
      * <p>
      * API Call: <tt>POST /vdc/compute-systems/{id}/discover</tt>
-     *
+     * 
      * @param id
-     *        the ID of the compute system.
+     *            the ID of the compute system.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<ComputeSystemRestRep> discover(URI id) {
@@ -170,7 +169,7 @@ public class ComputeSystems extends AbstractCoreBulkResources<ComputeSystemRestR
      * API Call: <tt>POST /vdc/storage-systems/{id}/register</tt>
      * 
      * @param id
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @return the updated storage system.
      */
     public ComputeSystemRestRep register(URI id) {
@@ -183,7 +182,7 @@ public class ComputeSystems extends AbstractCoreBulkResources<ComputeSystemRestR
      * API Call: <tt>POST /vdc/storage-systems/{id}/deregister</tt>
      * 
      * @param id
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @return the updated storage system.
      */
     public ComputeSystemRestRep deregister(URI id) {
@@ -196,11 +195,11 @@ public class ComputeSystems extends AbstractCoreBulkResources<ComputeSystemRestR
      * API Call: <tt>GET /vdc/compute-systems/{id}/compute-elements</tt>
      * 
      * @param id
-     *        the ID of the compute system.
+     *            the ID of the compute system.
      * @return the list of Compute Elements.
      */
     public List<ComputeElementRestRep> getComputeElements(URI id) {
-    	ComputeElementListRestRep response = client.get(ComputeElementListRestRep.class, getIdUrl() + "/compute-elements", id);
+        ComputeElementListRestRep response = client.get(ComputeElementListRestRep.class, getIdUrl() + "/compute-elements", id);
         return defaultList(response.getList());
     }
 }

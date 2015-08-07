@@ -5,7 +5,7 @@
 
     <bean id="vnxfileStoragePoolNameSpace"
           class="com.emc.storageos.plugins.common.domainmodel.Namespace">
-        <property name="_operations">
+        <property name="operations">
             <list>
                 <ref bean="loginoperation" />
                 <ref bean="vnxStoragePoolOperation" />
@@ -16,10 +16,10 @@
 
     <bean id="vnxStoragePoolOperation"
           class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_processor" ref="vnxStoragePoolProcessor" />
+        <property name="processor" ref="vnxStoragePoolProcessor" />
         <property name="instance" ref="retriever" />
-        <property name="_method" value="execute" />
-        <property name="_arguments">
+        <property name="method" value="execute" />
+        <property name="arguments">
             <list>
                 <ref bean="uri" />
                 <ref bean="cookie" />
@@ -37,9 +37,9 @@
     
     <bean id="vnxStoragePoolOperationQuery"
           class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="fetchStoragePoolInfo" />
-        <property name="_value" value="" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="fetchStoragePoolInfo" />
+        <property name="value" value="" />
     </bean>
     
 

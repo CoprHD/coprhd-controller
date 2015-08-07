@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.monitoring.cim.indicationProcessor;
@@ -36,7 +26,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.MonitoringProperti
  * CIM_InstModification 2.3 CIM_InstDeletion
  */
 @Component
-public class CIMIndicationProcessor{
+public class CIMIndicationProcessor {
 
     /**
      * Logger to log the debug statements
@@ -59,7 +49,6 @@ public class CIMIndicationProcessor{
     @Autowired
     private MonitoringPropertiesLoader _monitoringPropertiesLoader;
 
-    
     /**
      * Default Constructor
      */
@@ -78,7 +67,7 @@ public class CIMIndicationProcessor{
 
         String cimIndicationType = getCimIndicationType(cimNotification);
         if (_monitoringPropertiesLoader.isToLogIndications()) {
-            _logger.debug("Indication with key : value pairs received --> \n" +getIndicationData(cimNotification));
+            _logger.debug("Indication with key : value pairs received --> \n" + getIndicationData(cimNotification));
         }
 
         if (cimIndicationType != null && cimIndicationType.equals(CimConstants.CIM_ALERT_INDICATION_TYPE)) {
@@ -101,16 +90,17 @@ public class CIMIndicationProcessor{
 
     /**
      * build the String from Hashtable with its key value pairs
+     * 
      * @param cimNotification
      */
     static public String getIndicationData(Hashtable<String, String> cimNotification) {
-            Set<String> enumKeys = cimNotification.keySet();
-            StringBuilder sb = new StringBuilder();
+        Set<String> enumKeys = cimNotification.keySet();
+        StringBuilder sb = new StringBuilder();
 
-            for (String key : enumKeys) {
-                sb.append(key).append(" : ").append(cimNotification.get(key)).append("\n");
-            }
-            return sb.toString();
+        for (String key : enumKeys) {
+            sb.append(key).append(" : ").append(cimNotification.get(key)).append("\n");
+        }
+        return sb.toString();
     }
 
     /**

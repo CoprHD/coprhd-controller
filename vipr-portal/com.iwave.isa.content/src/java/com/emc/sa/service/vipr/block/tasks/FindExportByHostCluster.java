@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block.tasks;
@@ -29,6 +29,6 @@ public class FindExportByHostCluster extends ViPRExecutionTask<ExportGroupRestRe
     @Override
     public ExportGroupRestRep executeTask() throws Exception {
         List<ExportGroupRestRep> exports = getClient().blockExports().findByHostOrCluster(host, projectId, varray);
-        return exports.size() > 0 ? exports.get(0) : null;
+        return exports.isEmpty() ? null : exports.get(0);
     }
 }

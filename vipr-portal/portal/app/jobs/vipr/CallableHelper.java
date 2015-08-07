@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package jobs.vipr;
@@ -22,7 +22,7 @@ public class CallableHelper {
                     promise.invoke(result);
                     return result;
                 }
-                catch (Throwable t) {
+                catch (Exception t) {
                     promise.invokeWithException(t);
                     return null;
                 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.systemservices.impl.upgrade;
@@ -113,7 +103,7 @@ public class UpgradeManager extends AbstractManager {
             }
 
             log.info("Step0: dbCurrentVersionEncrypted={} dbEncrypted={} migration done={}",
-                    new Object[]{dbCurrentVersionEncrypted, dbEncrypted, isDBMigrationDone});
+                    new Object[] { dbCurrentVersionEncrypted, dbEncrypted, isDBMigrationDone });
 
             if (isDBMigrationDone && !dbEncrypted) {
                 // we've finished the upgrade, so
@@ -202,16 +192,16 @@ public class UpgradeManager extends AbstractManager {
             // Step4: if target version is changed, update
             log.info("Step4: If target version is changed, update");
             final SoftwareVersion currentVersion = localInfo.getCurrentVersion();
-            final SoftwareVersion targetVersion  = targetInfo.getCurrentVersion();
+            final SoftwareVersion targetVersion = targetInfo.getCurrentVersion();
             if (currentVersion != null && targetVersion != null && !currentVersion.equals(targetVersion)) {
                 log.info("Step4: Current version: {} != target version: {}. Switch version.", currentVersion, targetVersion);
 
-                if (! getUpgradeLock(svcId)) {
+                if (!getUpgradeLock(svcId)) {
                     retrySleep();
                     continue;
                 }
 
-                if (! isQuorumMaintained()) {
+                if (!isQuorumMaintained()) {
                     try {
                         coordinator.releasePersistentLock(svcId, upgradeLockId);
                     } catch (Exception e) {
@@ -234,13 +224,13 @@ public class UpgradeManager extends AbstractManager {
             log.info("Step5: Adjust dbsvc num_tokens if necessary");
             if (!coordinator.isLocalNodeTokenAdjusted()) {
                 try {
-                    if (! getUpgradeLock(svcId)) {
+                    if (!getUpgradeLock(svcId)) {
                         log.info("Step5: Get upgrade lock for adjusting dbsvc num_tokens failed. Retry");
                         retrySleep();
                         continue;
                     }
 
-                    if (! areAllDbsvcActive()) {
+                    if (!areAllDbsvcActive()) {
                         try {
                             coordinator.releasePersistentLock(svcId, upgradeLockId);
                         } catch (Exception e) {
@@ -274,12 +264,13 @@ public class UpgradeManager extends AbstractManager {
      * If datanodes are configured and previous version can be found, revert the upgrade.
      * If datanodes are configured but previous version cannot be found, reset the system_datanode_ipaddrs property
      * and proceed.
+     * 
      * @throws Exception
      */
     private void handleDataNodes() throws Exception {
         PropertyInfoExt targetPropInfo = coordinator.getTargetInfo(PropertyInfoExt.class);
         String datanodeList = targetPropInfo.getAllProperties().get("system_datanode_ipaddrs");
-        if ( datanodeList != null && ! datanodeList.isEmpty() ) {
+        if (datanodeList != null && !datanodeList.isEmpty()) {
             log.error("datanodeList is: {}", datanodeList);
             log.error("There are datanodes configured in the system, the 2.2 version doesn't support this feature, roll back to previous version");
             String previousVersion = getPreviousVersion();
@@ -297,7 +288,7 @@ public class UpgradeManager extends AbstractManager {
             } else {
                 log.warn("Reverting to version {}", previousVersion);
                 RepositoryInfo revertedTargetInfo = new RepositoryInfo(new SoftwareVersion(previousVersion),
-                coordinator.getTargetInfo(RepositoryInfo.class).getVersions());
+                        coordinator.getTargetInfo(RepositoryInfo.class).getVersions());
                 coordinator.setTargetInfo(revertedTargetInfo, false);
             }
         }
@@ -306,6 +297,7 @@ public class UpgradeManager extends AbstractManager {
     /**
      * Try to acquire the property lock, like upgrade lock, this also requires rolling reboot
      * so upgrade lock should be acquired at the same time
+     * 
      * @param svcId
      * @return
      */
@@ -320,7 +312,7 @@ public class UpgradeManager extends AbstractManager {
             return false;
         }
 
-        //release the property lock
+        // release the property lock
         try {
             coordinator.releasePersistentLock(svcId, propertyLockId);
         } catch (Exception e) {
@@ -336,7 +328,7 @@ public class UpgradeManager extends AbstractManager {
         // by the first upgraded node holding the lock during upgrade from 2.0/2.1 to 2.2.
         targetInfo = coordinator.getTargetInfo(RepositoryInfo.class);
         SoftwareVersion newTargetVersion = targetInfo.getCurrentVersion();
-        if (! targetVersion.equals(newTargetVersion)) {
+        if (!targetVersion.equals(newTargetVersion)) {
             log.warn("Step4: target version has changed (was: {}, now is: {}). Aborting version change.",
                     targetVersion, newTargetVersion);
         } else {
@@ -350,11 +342,12 @@ public class UpgradeManager extends AbstractManager {
         String previousVersion = null;
         log.info("Trying to find previous version from control nodes...");
         Map<String, NodeState> nodestates = coordinator.getClusterInfo().getControlNodes();
-        for (Entry<String, NodeState> entry: nodestates.entrySet()) {
+        for (Entry<String, NodeState> entry : nodestates.entrySet()) {
             if (!entry.getKey().equals(coordinator.getMyNodeName())) {
                 previousVersion = entry.getValue().getCurrent();
-                if (previousVersion != null)
+                if (previousVersion != null) {
                     return previousVersion;
+                }
             }
         }
 
@@ -370,9 +363,10 @@ public class UpgradeManager extends AbstractManager {
     private boolean isDbCurrentVersionEncrypted() {
         String currentDbVersion = coordinator.getCurrentDbSchemaVersion();
         if (currentDbVersion.startsWith("1.") || // Vipr 1.x
-            currentDbVersion.startsWith("2.0") || // Vipr 2.0.x
-            currentDbVersion.startsWith("2.1")) // Vipr 2.1.x
+                currentDbVersion.startsWith("2.0") || // Vipr 2.0.x
+                currentDbVersion.startsWith("2.1")) {
             return false;
+        }
 
         return true;
     }
@@ -389,7 +383,7 @@ public class UpgradeManager extends AbstractManager {
         File dbEncryptFlag = new File(dbNoEncryptFlagFile);
         try {
             dbEncryptFlag.delete();
-        }catch (Exception e) {
+        } catch (Exception e) {
             log.error("Failed to delete file {} e", dbEncryptFlag.getName(), e);
             return false;
         }
@@ -400,7 +394,7 @@ public class UpgradeManager extends AbstractManager {
         File dbEncryptFlag = new File(dbNoEncryptFlagFile);
         try {
             new FileOutputStream(dbEncryptFlag).close();
-        }catch (Exception e) {
+        } catch (Exception e) {
             log.error("Failed to create file {} e", dbEncryptFlag.getName(), e);
             return false;
         }
@@ -409,7 +403,7 @@ public class UpgradeManager extends AbstractManager {
 
     /**
      * Initialize local and target info
-     *
+     * 
      * @throws Exception
      */
     private void initializeLocalAndTargetInfo(String svcId) throws Exception {
@@ -421,7 +415,7 @@ public class UpgradeManager extends AbstractManager {
 
         // set target if empty
         targetInfo = coordinator.getTargetInfo(RepositoryInfo.class);
-        if (targetInfo == null || ! isValidRepo) {
+        if (targetInfo == null || !isValidRepo) {
             try {
                 // Set the updated propperty info in coordinator
                 // on devkits, don't check the stability of the "cluster"
@@ -442,9 +436,10 @@ public class UpgradeManager extends AbstractManager {
 
     /**
      * Syncing nodes
-     * @param syncinfo      syncing info
-     * @param controlNodeInSync   control node which is in sync with target
-     * @param svcId        node service id
+     * 
+     * @param syncinfo syncing info
+     * @param controlNodeInSync control node which is in sync with target
+     * @param svcId node service id
      */
     private boolean syncNodes(SyncInfo syncinfo, String controlNodeInSync, String svcId) {
         boolean needToWaitSyncFinish = true;
@@ -467,7 +462,7 @@ public class UpgradeManager extends AbstractManager {
                 } catch (Exception e) {
                     log.error("Step3a: ", e);
                     if ((e instanceof APIException) &&
-                        (((APIException)e).getServiceCode() == ServiceCode.SYS_DOWNLOAD_IMAGE_ERROR)) {
+                            (((APIException) e).getServiceCode() == ServiceCode.SYS_DOWNLOAD_IMAGE_ERROR)) {
                         needToWaitSyncFinish = false;
                         log.info("Step3a: Leader gives up lock");
                         coordinator.releaseRemoteDownloadLock(svcId);
@@ -480,7 +475,7 @@ public class UpgradeManager extends AbstractManager {
                 log.info("Step3a: Wait nodeInSync to finish download");
             }
         } else if (controlNodeInSync != null) {
-            //  both control node and extra node can sync with controlNodeInSync if it's not null
+            // both control node and extra node can sync with controlNodeInSync if it's not null
             try {
                 if (syncToNodeInSync(localInfo, targetInfo, controlNodeInSync, syncinfo)) {
                     coordinator.setNodeSessionScopeInfo(localRepository.getRepositoryInfo());
@@ -492,9 +487,9 @@ public class UpgradeManager extends AbstractManager {
         }
         return needToWaitSyncFinish;
     }
-    
+
     private SyncInfo getSyncInfoCommon(final RepositoryInfo localInfo,
-                                       final RepositoryInfo targetInfo) {
+            final RepositoryInfo targetInfo) {
         log.info("Step3: Synchronizing with target repository. Local repository information: {}", localInfo);
         log.info("Target repository information: {}", targetInfo);
         SyncInfo syncinfo = SyncInfoBuilder.getTargetSyncInfo(localInfo, targetInfo);
@@ -504,12 +499,12 @@ public class UpgradeManager extends AbstractManager {
     }
 
     private boolean syncWithRemote(final RepositoryInfo localInfo,
-                                   final RepositoryInfo targetInfo,
-                                   final SyncInfo syncinfo)
+            final RepositoryInfo targetInfo,
+            final SyncInfo syncinfo)
             throws RemoteRepositoryException, LocalRepositoryException {
 
         // Step1 - if something to install, install
-        if (syncinfo.getToInstall() != null && syncinfo.getToInstall().size() > 0) {
+        if (syncinfo.getToInstall() != null && !syncinfo.getToInstall().isEmpty()) {
             final SoftwareVersion toInstall = syncinfo.getToInstall().get(0);
             File image = null;
             if (toInstall != null && (image = getRemoteImage(toInstall)) == null) {
@@ -525,7 +520,7 @@ public class UpgradeManager extends AbstractManager {
         }
 
         // Step2 - if something to remove, remove
-        if (syncinfo.getToRemove() != null && syncinfo.getToRemove().size() > 0) {
+        if (syncinfo.getToRemove() != null && !syncinfo.getToRemove().isEmpty()) {
             for (SoftwareVersion v : syncinfo.getToRemove()) {
                 localRepository.removeVersion(v);
             }
@@ -534,11 +529,11 @@ public class UpgradeManager extends AbstractManager {
     }
 
     private boolean syncToNodeInSync(final RepositoryInfo localInfo,
-                                     final RepositoryInfo leaderInfo, final String leader,
-                                     final SyncInfo syncinfo)
+            final RepositoryInfo leaderInfo, final String leader,
+            final SyncInfo syncinfo)
             throws SysClientException, LocalRepositoryException {
         // Step1 - if something to install, install
-        if (syncinfo.getToInstall() != null && syncinfo.getToInstall().size() > 0) {
+        if (syncinfo.getToInstall() != null && !syncinfo.getToInstall().isEmpty()) {
             final SoftwareVersion toInstall = syncinfo.getToInstall().get(0);
             File image = null;
             if (toInstall != null && (image = getLeaderImage(toInstall, leader)) == null) {
@@ -554,7 +549,7 @@ public class UpgradeManager extends AbstractManager {
         }
 
         // Step2 - if something to remove, remove
-        if (syncinfo.getToRemove() != null && syncinfo.getToRemove().size() > 0) {
+        if (syncinfo.getToRemove() != null && !syncinfo.getToRemove().isEmpty()) {
             for (SoftwareVersion v : syncinfo.getToRemove()) {
                 localRepository.removeVersion(v);
             }
@@ -564,10 +559,10 @@ public class UpgradeManager extends AbstractManager {
 
     /**
      * Get a control node which repository info is synced with target
-     *
-     * @param  targetRepository     target repository
-     * @return      node id
-     * @throws      Exception
+     * 
+     * @param targetRepository target repository
+     * @return node id
+     * @throws Exception
      */
     private String getAControlNodeInSync(RepositoryInfo targetRepository) throws Exception {
         final Map<Service, RepositoryInfo> localRepo = coordinator.getAllNodeInfos(RepositoryInfo.class, CONTROL_NODE_SYSSVC_ID_PATTERN);
@@ -581,7 +576,7 @@ public class UpgradeManager extends AbstractManager {
         }
 
         // return nodeId which is synced
-        if (candidates.size() > 0) {
+        if (!candidates.isEmpty()) {
             return candidates.get(new Random().nextInt(candidates.size()));
         }
 
@@ -589,7 +584,7 @@ public class UpgradeManager extends AbstractManager {
     }
 
     private File getRemoteImage(final SoftwareVersion version) throws RemoteRepositoryException {
-        final File   file = new File(DOWNLOAD_DIR + '/' + version + SOFTWARE_IMAGE_SUFFIX);
+        final File file = new File(DOWNLOAD_DIR + '/' + version + SOFTWARE_IMAGE_SUFFIX);
         String prefix = MessageFormat.format("Step3a: version={0} local path=\"{1}\": ", version, file);
 
         log.info(prefix);
@@ -605,7 +600,8 @@ public class UpgradeManager extends AbstractManager {
             } catch (Exception e) {
                 throw APIException.internalServerErrors.getObjectFromError("Node downloading info", "coordinator", e);
             }
-            coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(downloadingInfo._version,downloadingInfo._size,downloadingInfo._size,DownloadStatus.COMPLETED,new ArrayList<Integer>(Arrays.asList(0,0))), "downloadinfo", coordinator.getMySvcId());
+            coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(downloadingInfo._version, downloadingInfo._size, downloadingInfo._size,
+                    DownloadStatus.COMPLETED, new ArrayList<Integer>(Arrays.asList(0, 0))), "downloadinfo", coordinator.getMySvcId());
             // Because the file exists, we set the downloadinfo directly to COMPLETED status
             log.info(prefix + "Success!");
             return file;
@@ -630,10 +626,10 @@ public class UpgradeManager extends AbstractManager {
         try {
             URL url = remoteRepository.getImageURL(version);
             if (url == null) {
-                throw new IllegalStateException("Image URL is null"); 
+                throw new IllegalStateException("Image URL is null");
             }
             return url;
-        } catch (Exception e){
+        } catch (Exception e) {
             log.error("Get remote image URL for version({}) failed", version.toString(), e);
             throw APIException.internalServerErrors.downloadUpgradeImageError(e);
         }
@@ -654,20 +650,22 @@ public class UpgradeManager extends AbstractManager {
             try {
                 downloadingInfo = coordinator.getNodeGlobalScopeInfo(DownloadingInfo.class, "downloadinfo", coordinator.getMySvcId());
                 // if the downloading info is present and the version is the same then update the progress
-                if(downloadingInfo != null && version.toString().equals(downloadingInfo._version)) {
-                    coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(downloadingInfo._version,downloadingInfo._size,downloadingInfo._size,DownloadStatus.COMPLETED,new ArrayList<Integer>(Arrays.asList(0,0))), "downloadinfo", coordinator.getMySvcId());
+                if (downloadingInfo != null && version.toString().equals(downloadingInfo._version)) {
+                    coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(downloadingInfo._version, downloadingInfo._size,
+                            downloadingInfo._size, DownloadStatus.COMPLETED, new ArrayList<Integer>(Arrays.asList(0, 0))), "downloadinfo",
+                            coordinator.getMySvcId());
                 }
             } catch (Exception e) {
                 throw APIException.internalServerErrors.getObjectFromError("Node downloading info", "coordinator", e);
             }
-            
+
             // Because the file exists, we set the downloadinfo directly to COMPLETED status
             log.info(prefix + "Success!");
             return file;
         }
 
         log.info(prefix + "Opening remote image stream");
-        try{
+        try {
             String uri = SysClientFactory.URI_GET_IMAGE + "?version=" + version;
             final InputStream in = SysClientFactory.getSysClient(coordinator
                     .getNodeEndpointForSvcId(leader))
@@ -676,8 +674,7 @@ public class UpgradeManager extends AbstractManager {
 
             log.info(prefix + "Starting background download.");
             UpgradeImageDownloader.getInstance(this).startBackgroundDownload(prefix, file, in, uri, version.toString());
-        }
-        catch (URISyntaxException e){
+        } catch (URISyntaxException e) {
             log.error("Internal error occurred while prepareing get image URI: {}", e);
         }
         return null;
@@ -685,6 +682,7 @@ public class UpgradeManager extends AbstractManager {
 
     /**
      * Check if remote download is progressing
+     * 
      * @return true if remote download is progressing; false otherwise
      */
     private boolean isDownloadInProgress() {
@@ -693,11 +691,12 @@ public class UpgradeManager extends AbstractManager {
 
     /**
      * Method used to try remote download
-     *
+     * 
      * if the method is called the first time, since expireTime is initialized as 0,
-     *   set expireTime to Now() + 5 mins and set counter to 1.
+     * set expireTime to Now() + 5 mins and set counter to 1.
      * if current time is less than expireTime, increment counter and return true if counter not greater than maximal try count
      * if current time is not less than expireTime, reset timer and set counter to 1
+     * 
      * @return true if succeed; false otherwise
      */
     private boolean tryRemoteDownload() {
@@ -713,7 +712,8 @@ public class UpgradeManager extends AbstractManager {
 
     /**
      * Method used to decide if remote download is allowed
-     *  similar to tryRemoteDownload except tryRemoteDownload will increment the try count
+     * similar to tryRemoteDownload except tryRemoteDownload will increment the try count
+     * 
      * @return true if allowed; false otherwise
      */
     private boolean isRemoteDownloadAllowed() {

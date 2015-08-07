@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.scaleio.api;
@@ -23,7 +13,7 @@ public class ScaleIOAddVolumeCommand extends AbstractScaleIOQueryCommand<ScaleIO
     public static final String ADDED_VOLUME_SUCCESS = "AddedVolumeSuccess";
     public static final String ADDED_VOLUME_FAILED = "AddedVolumeFailed";
 
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern("Successfully created volume of size (\\d+) GB. Object ID (\\w+)", ADDED_VOLUME_SUCCESS),
     };
 
@@ -40,7 +30,8 @@ public class ScaleIOAddVolumeCommand extends AbstractScaleIOQueryCommand<ScaleIO
         addArgument(String.format("--size_gb %s", volumeSize));
     }
 
-    public ScaleIOAddVolumeCommand(ScaleIOCommandSemantics semantics, String protectionDomainName, String storagePoolName, String volumeName, String volumeSize, boolean thinProvisioned) {
+    public ScaleIOAddVolumeCommand(ScaleIOCommandSemantics semantics, String protectionDomainName, String storagePoolName,
+            String volumeName, String volumeSize, boolean thinProvisioned) {
         results = new ScaleIOAddVolumeResult();
         results.setRequestedSize(volumeSize);
         results.setName(volumeName);
@@ -65,7 +56,7 @@ public class ScaleIOAddVolumeCommand extends AbstractScaleIOQueryCommand<ScaleIO
 
     @Override
     ParsePattern[] getOutputPatternSpecification() {
-        return PARSING_CONFIG;
+        return PARSING_CONFIG.clone(); // No need to check not null condition here.
     }
 
     @Override

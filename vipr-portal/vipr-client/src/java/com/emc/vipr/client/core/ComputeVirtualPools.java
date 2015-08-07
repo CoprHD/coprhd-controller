@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -55,13 +55,13 @@ public class ComputeVirtualPools extends AbstractCoreBulkResources<ComputeVirtua
      * Gets a list of virtual pool references from the given url.
      * 
      * @param url
-     *        the URL to retrieve.
+     *            the URL to retrieve.
      * @param args
-     *        the arguments for the URL.
+     *            the arguments for the URL.
      * @return the list of virtual pool references.
      */
     protected List<NamedRelatedResourceRep> getList(String url, Object... args) {
-    	ComputeVirtualPoolList response = client.get(ComputeVirtualPoolList.class, url, args);
+        ComputeVirtualPoolList response = client.get(ComputeVirtualPoolList.class, url, args);
         return ResourceUtils.defaultList(response.getComputeVirtualPool());
     }
 
@@ -94,7 +94,7 @@ public class ComputeVirtualPools extends AbstractCoreBulkResources<ComputeVirtua
      * Gets all compute virtual pools, optionally filtering the results.
      * 
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of compute virtual pools.
      */
     @Override
@@ -109,7 +109,7 @@ public class ComputeVirtualPools extends AbstractCoreBulkResources<ComputeVirtua
      * API Call: <tt>POST /compute/vpools</tt>
      * 
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return the newly created compute virtual pool.
      */
     public ComputeVirtualPoolRestRep create(ComputeVirtualPoolCreateParam input) {
@@ -122,9 +122,9 @@ public class ComputeVirtualPools extends AbstractCoreBulkResources<ComputeVirtua
      * API Call: <tt>PUT /compute/vpools/{id}</tt>
      * 
      * @param id
-     *        the ID of the compute virtual pool to update.
+     *            the ID of the compute virtual pool to update.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated compute virtual pool.
      */
     public ComputeVirtualPoolRestRep update(URI id, ComputeVirtualPoolUpdateParam input) {
@@ -137,7 +137,7 @@ public class ComputeVirtualPools extends AbstractCoreBulkResources<ComputeVirtua
      * API Call: <tt>POST /compute/vpools/{id}/deactivate</tt>
      * 
      * @param id
-     *        the ID of the compute virtual pool to deactivate.
+     *            the ID of the compute virtual pool to deactivate.
      */
     public void deactivate(URI id) {
         doDeactivate(id);
@@ -168,21 +168,22 @@ public class ComputeVirtualPools extends AbstractCoreBulkResources<ComputeVirtua
     }
 
     public List<NamedRelatedResourceRep> listComputeElements(URI id) {
-    	//TODO implement
+        // TODO implement
         return defaultList(null);
     }
+
     /**
      * Lists the compute elements that would match a virtual compute pool with the given configuration.
      * <p>
      * API Call: <tt>POST /compute/vpools/matching-elements</tt>
      * 
      * @param input
-     *        the configuration for a potential virtual compute pool.
+     *            the configuration for a potential virtual compute pool.
      * @return the list of matching compute element references.
      */
     public List<ComputeElementRestRep> listMatchingComputeElements(ComputeVirtualPoolCreateParam input) {
-    	ComputeElementListRestRep response = client.post(ComputeElementListRestRep.class, input, baseUrl + "/matching-compute-elements");
-    	return defaultList(response.getList());
+        ComputeElementListRestRep response = client.post(ComputeElementListRestRep.class, input, baseUrl + "/matching-compute-elements");
+        return defaultList(response.getList());
     }
 
     /**
@@ -191,14 +192,14 @@ public class ComputeVirtualPools extends AbstractCoreBulkResources<ComputeVirtua
      * API Call: <tt>PUT /compute/vpools/{id}/assign-matched-elements</tt>
      * 
      * @param id
-     *        the ID of the compute virtual pool to update.
+     *            the ID of the compute virtual pool to update.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated compute virtual pool.
      */
     public ComputeVirtualPoolRestRep assignComputeElements(URI id, ComputeVirtualPoolElementUpdateParam input) {
         return client.put(ComputeVirtualPoolRestRep.class, input, getIdUrl() + "/assign-matched-elements", id);
-    }    
+    }
 
     /**
      * Lists elements of a compute virtual pool.
@@ -206,24 +207,24 @@ public class ComputeVirtualPools extends AbstractCoreBulkResources<ComputeVirtua
      * API Call: <tt>GET /compute/vpools/{id}/matched-elements</tt>
      * 
      * @param id
-     *        the ID of the compute virtual pool .
+     *            the ID of the compute virtual pool .
      * @return the list of elements from the compute virtual pool.
      */
     public ComputeElementListRestRep getMatchedComputeElements(URI id) {
         return client.get(ComputeElementListRestRep.class, getIdUrl() + "/compute-elements", id);
     }
-    
+
     /**
      * Get a compute virtual pool.
      * <p>
      * API Call: <tt>GET /compute/vpools/{id}</tt>
      * 
      * @param id
-     *        the ID of the compute virtual pool .
+     *            the ID of the compute virtual pool .
      * @return the list of elements from the compute virtual pool.
      */
     public ComputeVirtualPoolRestRep getComputeVirtualPool(URI id) {
         return client.get(ComputeVirtualPoolRestRep.class, getIdUrl(), id);
-    }    
+    }
 
 }

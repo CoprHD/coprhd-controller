@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.text;
@@ -245,8 +245,7 @@ public class TextParser {
     protected Integer getInteger(String value) {
         try {
             return Integer.parseInt(value);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             return null;
         }
     }
@@ -254,8 +253,7 @@ public class TextParser {
     protected Long getLong(String value) {
         try {
             return Long.parseLong(value);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             return null;
         }
     }

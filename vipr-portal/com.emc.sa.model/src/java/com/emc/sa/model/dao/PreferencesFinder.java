@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.model.dao;
@@ -13,23 +13,23 @@ import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedE
 
 public class PreferencesFinder extends ModelFinder<UserPreferences> {
 
-	public PreferencesFinder(DBClientWrapper client) {
-		super(UserPreferences.class, client);
-	}
+    public PreferencesFinder(DBClientWrapper client) {
+        super(UserPreferences.class, client);
+    }
 
-	public UserPreferences findByUserId(String userId) {
-		if (StringUtils.isBlank(userId)) {
-			return null;
-		}
-		final List<NamedElement> userPrefsIds = client.findByAlternateId(UserPreferences.class,  UserPreferences.USER_ID, userId);
-		final List<UserPreferences> userPrefs = findByIds(toURIs(userPrefsIds));
-		if (userPrefs.size() > 1) {
-			throw new IllegalStateException("There should only be 1 user preferences object for a user");
-		}
-		else if (userPrefs.size() == 0) {
-			// if there isn't a user prefs object in the DB yet then we haven't saved one for this user yet.
-			return null;
-		}
-		return userPrefs.get(0);
-	}
+    public UserPreferences findByUserId(String userId) {
+        if (StringUtils.isBlank(userId)) {
+            return null;
+        }
+        final List<NamedElement> userPrefsIds = client.findByAlternateId(UserPreferences.class, UserPreferences.USER_ID, userId);
+        final List<UserPreferences> userPrefs = findByIds(toURIs(userPrefsIds));
+        if (userPrefs.size() > 1) {
+            throw new IllegalStateException("There should only be 1 user preferences object for a user");
+        }
+        else if (userPrefs.isEmpty()) {
+            // if there isn't a user prefs object in the DB yet then we haven't saved one for this user yet.
+            return null;
+        }
+        return userPrefs.get(0);
+    }
 }

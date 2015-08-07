@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc.merger;
 
@@ -43,14 +33,14 @@ public abstract class AbstractLogStreamMerger {
     private boolean finished = false;
     private AtomicLong logCounter = new AtomicLong(0);
     private int finishedCount = 0; // finished streams
-    private long prevLogTime; //defaults to 0
+    private long prevLogTime; // defaults to 0
 
- // Logger reference.
+    // Logger reference.
     private static final Logger logger = LoggerFactory.getLogger(AbstractLogStreamMerger.class);
 
     /**
      * This is the routine handles the request, sends back the response(outputstream)
-     *
+     * 
      * @throws java.io.IOException
      * @throws org.apache.commons.compress.compressors.CompressorException
      */
@@ -85,7 +75,7 @@ public abstract class AbstractLogStreamMerger {
         if (oldest != null) {
             logHeads[index] = null;
             logCounter.addAndGet(1);
-            if(LogUtil.permitCurrentLog(request.getMaxCount(), logCounter.get(),
+            if (LogUtil.permitCurrentLog(request.getMaxCount(), logCounter.get(),
                     oldest.getTime(), prevLogTime)) {
                 oldestResult = oldest;
             }
@@ -113,16 +103,16 @@ public abstract class AbstractLogStreamMerger {
     public void setFinished(boolean finished) {
         this.finished = finished;
     }
-    
+
     public long getLogCount() {
-    	return this.logCounter.get();
+        return this.logCounter.get();
     }
-    
+
     public LogStatusInfo getStatus() {
-    	return this.status;
+        return this.status;
     }
-    
+
     public void clearStatus() {
-    	this.status.clear();
+        this.status.clear();
     }
 }

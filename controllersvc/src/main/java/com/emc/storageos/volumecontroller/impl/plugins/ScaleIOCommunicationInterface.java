@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.plugins;
@@ -121,8 +111,8 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                     }
                     viewObject.setDeviceType(scaleIOType);
                     viewObject.addprovider(accessProfile.getSystemId().toString());
-                    viewObject.setProperty(StorageSystemViewObject.MODEL,"ScaleIO ECS");
-                    viewObject.setProperty(StorageSystemViewObject.SERIAL_NUMBER,id);
+                    viewObject.setProperty(StorageSystemViewObject.MODEL, "ScaleIO ECS");
+                    viewObject.setProperty(StorageSystemViewObject.SERIAL_NUMBER, id);
                     storageSystemsCache.put(nativeGuid, viewObject);
                 }
             }
@@ -202,7 +192,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                         List<StoragePool> pools =
                                 queryActiveResourcesByAltId(_dbClient, StoragePool.class, "nativeGuid", nativeGuid);
                         StoragePool pool = null;
-                        if (pools.size() == 0) {
+                        if (pools.isEmpty()) {
                             log.info("Pool {} is new", storagePool);
                             pool = new StoragePool();
                             pool.setId(URIUtil.createId(StoragePool.class));
@@ -250,7 +240,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                         pool.setMinimumThinVolumeSize(minThinSize);
                         pool.setInactive(false);
                         pool.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
-                        
+
                     }
                 }
                 log.info(String.format("For StorageSystem %s, discovered %d new pools and %d pools to update",
@@ -260,9 +250,9 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                 allPools.addAll(updatePools);
                 _dbClient.createObject(newPools);
                 _dbClient.updateAndReindexObject(updatePools);
-                List<StoragePool> notVisiblePools = DiscoveryUtils.checkStoragePoolsNotVisible(allPools, _dbClient, 
+                List<StoragePool> notVisiblePools = DiscoveryUtils.checkStoragePoolsNotVisible(allPools, _dbClient,
                         storageSystem.getId());
-                if (notVisiblePools != null && !notVisiblePools.isEmpty()){
+                if (notVisiblePools != null && !notVisiblePools.isEmpty()) {
                     allPools.addAll(notVisiblePools);
                 }
                 StoragePortAssociationHelper.runUpdatePortAssociationsProcess(ports, null, _dbClient, _coordinator, allPools);
@@ -317,8 +307,8 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * Create a Host object for every SDC that is found on the system. Create a single
      * initiator for the host in the specified Network.
-     *
-     * @param network           [in] Network object to associated the hosts' initiator ports
+     * 
+     * @param network [in] Network object to associated the hosts' initiator ports
      * @param queryAllSDCResult [in] - SDC query result
      */
     private void createHost(Network network, ScaleIOQueryAllSDCResult queryAllSDCResult) {
@@ -383,7 +373,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
             host = findHostByHostName(ip);
             if (host == null) {
                 log.info(String.format("Could not find any existing Host with IpInterface or Hostname %s. " +
-                                "Creating new Host for SDC %s", ip, guid));
+                        "Creating new Host for SDC %s", ip, guid));
                 // Host with IP address not found, need to create it
                 host = new Host();
                 host.setId(URIUtil.createId(Host.class));
@@ -422,8 +412,8 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
     private Host findHostByHostName(String ip) {
         Host host = null;
         List<Host> results =
-                    CustomQueryUtility.
-                            queryActiveResourcesByAltId(_dbClient, Host.class, "hostName", ip);
+                CustomQueryUtility.
+                        queryActiveResourcesByAltId(_dbClient, Host.class, "hostName", ip);
         if (results != null && !results.isEmpty()) {
             Collection<URI> hostIdStrings = Collections2.transform(results,
                     CommonTransformerFunctions.fctnDataObjectToID());
@@ -436,10 +426,10 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
 
     /**
      * Create initiator for the specified host
-     *
+     * 
      * @param host [in] - Host object reference
-     * @param ip   [in] - IP address string
-     * @param id   [id] - Indentifier for the port
+     * @param ip [in] - IP address string
+     * @param id [id] - Indentifier for the port
      * @return Initiator object
      */
     private Initiator createInitiator(Host host, String ip, String id) {
@@ -466,22 +456,22 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
      * This will create an IP network for the SIO system to contain the iSCSI initiators
      * associated with the system (if any). It will also create the iSCSI initiators and
      * StoragePorts, placing them in the IP network.
-     *
-     * @param storageSystem                [in] - StorageSystem object (ProtectionDomain)
-     * @param protectionDomainName         [in] - Protection Domain name
-     * @param compatibilityStatus          [in] - Compatibility status to use on the ports
-     * @param installationId               [in] - Installation ID unique to ScaleIO instance
+     * 
+     * @param storageSystem [in] - StorageSystem object (ProtectionDomain)
+     * @param protectionDomainName [in] - Protection Domain name
+     * @param compatibilityStatus [in] - Compatibility status to use on the ports
+     * @param installationId [in] - Installation ID unique to ScaleIO instance
      * @param queryAllSCSIInitiatorsResult [in] - Result of querying ScaleIO for SCSI initiators
-     * @param queryAllSDCResult            [in] - Result of querying ScaleIO for SDC clients
-     * @param ports                        [out] - List to update with iSCSI StoragePorts that were discovered
+     * @param queryAllSDCResult [in] - Result of querying ScaleIO for SDC clients
+     * @param ports [out] - List to update with iSCSI StoragePorts that were discovered
      * @return - true if there were SCSI initiators found on the system.
      * @throws IOException
      */
     private boolean createSCSIInitiatorsAndStoragePorts(StorageSystem storageSystem, String protectionDomainName,
-                                                        DiscoveredDataObject.CompatibilityStatus compatibilityStatus,
-                                                        String installationId,
-                                                        ScaleIOQueryAllSCSIInitiatorsResult queryAllSCSIInitiatorsResult,
-                                                        ScaleIOQueryAllSDCResult queryAllSDCResult, List<StoragePort> ports) throws IOException {
+            DiscoveredDataObject.CompatibilityStatus compatibilityStatus,
+            String installationId,
+            ScaleIOQueryAllSCSIInitiatorsResult queryAllSCSIInitiatorsResult,
+            ScaleIOQueryAllSDCResult queryAllSDCResult, List<StoragePort> ports) throws IOException {
         boolean hasSCSIInitiators = false;
         if (queryAllSCSIInitiatorsResult != null && !queryAllSCSIInitiatorsResult.getAllInitiatorIds().isEmpty()) {
             List<String> initiatorsToAddToNetwork = new ArrayList<>();
@@ -502,8 +492,8 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
             }
 
             List<StoragePort> iSCSIPorts =
-            createSCSIStoragePorts(storageSystem, protectionDomainName, compatibilityStatus,
-                    networkForSCSIInitiators, queryAllSDCResult);
+                    createSCSIStoragePorts(storageSystem, protectionDomainName, compatibilityStatus,
+                            networkForSCSIInitiators, queryAllSDCResult);
             ports.addAll(iSCSIPorts);
         }
         return hasSCSIInitiators;
@@ -511,7 +501,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
 
     /**
      * Create an IP Network object for iSCSI initiators.
-     *
+     * 
      * @param uniqueId [in] - Unique string identifier for the network
      * @return Network object
      */
@@ -536,7 +526,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
 
     /**
      * Create iSCSI initiator for the specified host
-     *
+     * 
      * @param iqn [id] - iSCSI IQN for the port
      * @return Initiator object
      */
@@ -560,7 +550,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
 
     /**
      * Create a Network object for the ScaleIO instance and associate it with the VArray
-     *
+     * 
      * @param uniqueId [in] - Unique string identifier for the network
      * @return Network object
      */
@@ -586,16 +576,16 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * Create a StoragePort for each SDS in the ScaleIO instance. These are psuedo-StoragePorts
      * for the purpose of tying up the host-end to the storage-end of the Network
-     *
-     * @param storageSystem        [in] - StorageSystem object (ProtectionDomain)
-     * @param compatibilityStatus  [in] - Compatibility status to use on the ports
-     * @param network              [in] - Network to associate with the ports
-     * @param queryAllSDSResult    [in] - SDS query result
+     * 
+     * @param storageSystem [in] - StorageSystem object (ProtectionDomain)
+     * @param compatibilityStatus [in] - Compatibility status to use on the ports
+     * @param network [in] - Network to associate with the ports
+     * @param queryAllSDSResult [in] - SDS query result
      * @param protectionDomainName [in] - Protection Domain name
      */
     private List<StoragePort> createStoragePorts(StorageSystem storageSystem, String compatibilityStatus, Network network,
-                                                 ScaleIOQueryAllSDSResult queryAllSDSResult,
-                                                 String protectionDomainName) throws IOException {
+            ScaleIOQueryAllSDSResult queryAllSDSResult,
+            String protectionDomainName) throws IOException {
         List<StoragePort> ports = new ArrayList<>();
         List<String> endpoints = new ArrayList<>();
         String id = queryAllSDSResult.getProtectionDomainId(protectionDomainName);
@@ -653,27 +643,22 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
      * targets to iSCSI initiators. These are psuedo-StoragePorts or the purpose of tying up
      * the host-end to the storage-end of the IP Network
      * <p/>
-     * Note about StoragePorts created here:
-     * The iSCSI target ports are generated and created per StorageSystem, keeping them
-     * in line with other arrays. However, ScaleIO itself has a different way of presenting
-     * the targets. The targets are actually on the SDC client hosts -- any SDC client in the
-     * ScaleIO system that has the SCSI software running on it will be able to present an
-     * iSCSI target to an iSCSI initiator. The name of this target will take the form of
-     * iqn.2010-12.com.ecs:[SDC GUID]. In order for ViPR to support multiple using multiple
-     * StorageSystems (ProtectionDomains) using the same set of SDC, we have to invent targets
-     * per ProtectionDomain. This means that we will created a slightly modified IDQ to
-     * distinguish between them: iqn.2010-12.com.ecs.[PD name]:[SDC GUID]. Having such an
-     * implementation does not affect the volume export because ScaleIO does not require
-     * specifying the target.
-     *
-     * @param storageSystem       [in] - StorageSystem object (ProtectionDomain)
+     * Note about StoragePorts created here: The iSCSI target ports are generated and created per StorageSystem, keeping them in line with
+     * other arrays. However, ScaleIO itself has a different way of presenting the targets. The targets are actually on the SDC client hosts
+     * -- any SDC client in the ScaleIO system that has the SCSI software running on it will be able to present an iSCSI target to an iSCSI
+     * initiator. The name of this target will take the form of iqn.2010-12.com.ecs:[SDC GUID]. In order for ViPR to support multiple using
+     * multiple StorageSystems (ProtectionDomains) using the same set of SDC, we have to invent targets per ProtectionDomain. This means
+     * that we will created a slightly modified IDQ to distinguish between them: iqn.2010-12.com.ecs.[PD name]:[SDC GUID]. Having such an
+     * implementation does not affect the volume export because ScaleIO does not require specifying the target.
+     * 
+     * @param storageSystem [in] - StorageSystem object (ProtectionDomain)
      * @param compatibilityStatus [in] - Compatibility status to use on the ports
-     * @param network             [in] - Network to associate with the ports
-     * @param queryAllSDCResult   [in] - SDS query result
+     * @param network [in] - Network to associate with the ports
+     * @param queryAllSDCResult [in] - SDS query result
      */
     private List<StoragePort> createSCSIStoragePorts(StorageSystem storageSystem, String protectionDomainName,
-                                                     DiscoveredDataObject.CompatibilityStatus compatibilityStatus,
-                                                     Network network, ScaleIOQueryAllSDCResult queryAllSDCResult)
+            DiscoveredDataObject.CompatibilityStatus compatibilityStatus,
+            Network network, ScaleIOQueryAllSDCResult queryAllSDCResult)
             throws IOException {
         List<StoragePort> ports = new ArrayList<>();
         List<String> endpoints = new ArrayList<>();

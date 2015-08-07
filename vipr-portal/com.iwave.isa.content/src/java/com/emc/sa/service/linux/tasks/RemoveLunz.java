@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.linux.tasks;
@@ -28,8 +28,7 @@ public class RemoveLunz extends LinuxExecutionTask<Void> {
     public void execute() throws Exception {
         try {
             executeCommand(new RemoveSCSIDeviceCommand(host, channel, id, "0"), SHORT_TIMEOUT);
-        }
-        catch (CommandException e) {
+        } catch (CommandException e) {
             if (e.getOutput() != null && e.getOutput().getExitValue() != 0) {
                 // Ignore
             }

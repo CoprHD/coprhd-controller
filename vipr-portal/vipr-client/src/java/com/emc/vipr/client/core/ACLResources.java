@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -20,7 +20,7 @@ public interface ACLResources {
      * API Call: GET <tt><i>baseUrl</i>/{id}/acl</tt>
      * 
      * @param id
-     *        the resource ID.
+     *            the resource ID.
      * @return the list of ACL entries.
      */
     public List<ACLEntry> getACLs(URI id);
@@ -31,9 +31,9 @@ public interface ACLResources {
      * API Call: PUT <tt><i>baseUrl</i>/{id}/acl</tt>
      * 
      * @param id
-     *        the resource ID.
+     *            the resource ID.
      * @param aclChanges
-     *        the ACL changes to perform (ACL entries to add/remove).
+     *            the ACL changes to perform (ACL entries to add/remove).
      * @return the resulting list of ACL entries after performing the update.
      */
     public List<ACLEntry> updateACLs(URI id, ACLAssignmentChanges aclChanges);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -20,39 +20,43 @@ public class ExecutionStateRestRep {
     private String currentTask;
     private List<String> affectedResources;
     private Date lastUpdated;
-    
+
     @XmlElement(name = "start_date")
     public Date getStartDate() {
         return startDate;
     }
+
     public void setStartDate(Date startDate) {
         this.startDate = startDate;
     }
-    
+
     @XmlElement(name = "end_date")
     public Date getEndDate() {
         return endDate;
     }
+
     public void setEndDate(Date endDate) {
         this.endDate = endDate;
     }
-    
+
     @XmlElement(name = "execution_status")
     public String getExecutionStatus() {
         return executionStatus;
     }
+
     public void setExecutionStatus(String executionStatus) {
         this.executionStatus = executionStatus;
     }
-    
+
     @XmlElement(name = "current_task")
     public String getCurrentTask() {
         return currentTask;
     }
+
     public void setCurrentTask(String currentTask) {
         this.currentTask = currentTask;
     }
-    
+
     @XmlElement(name = "affected_resource")
     public List<String> getAffectedResources() {
         if (this.affectedResources == null) {
@@ -60,6 +64,7 @@ public class ExecutionStateRestRep {
         }
         return affectedResources;
     }
+
     public void setAffectedResources(List<String> affectedResources) {
         this.affectedResources = affectedResources;
     }
@@ -71,6 +76,6 @@ public class ExecutionStateRestRep {
 
     public void setLastUpdated(Date lastUpdated) {
         this.lastUpdated = lastUpdated;
-    }    
-    
+    }
+
 }

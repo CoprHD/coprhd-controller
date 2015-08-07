@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.model.protection;
@@ -24,7 +14,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DiscoveredSystemObjectRestRep;
 
-
 @XmlRootElement(name = "protection_system")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class ProtectionSystemRestRep extends DiscoveredSystemObjectRestRep {
@@ -36,11 +25,13 @@ public class ProtectionSystemRestRep extends DiscoveredSystemObjectRestRep {
     private Boolean reachableStatus;
     private String username;
     private List<ProtectionSystemRPClusterRestRep> rpClusters;
-    
-    public ProtectionSystemRestRep() {}
-    
+
+    public ProtectionSystemRestRep() {
+    }
+
     /**
      * The Installation ID of this Protection System
+     * 
      * @valid example: 6b93babb3bc882b3a1695247e2d9b78f13ebddc0
      */
     @XmlElement(name = "installation_id")
@@ -54,6 +45,7 @@ public class ProtectionSystemRestRep extends DiscoveredSystemObjectRestRep {
 
     /**
      * IP Address of the Protection System device
+     * 
      * @valid IPv4 only
      * @valid example: 10.27.100.99
      */
@@ -68,6 +60,7 @@ public class ProtectionSystemRestRep extends DiscoveredSystemObjectRestRep {
 
     /**
      * The Major Version of the Protection System device
+     * 
      * @valid example: 3.5.SP2(n123)
      */
     @XmlElement(name = "major_version")
@@ -81,6 +74,7 @@ public class ProtectionSystemRestRep extends DiscoveredSystemObjectRestRep {
 
     /**
      * The Minor Version of the Protection System device
+     * 
      * @valid example: none - The full version is normally displayed only in the Major Version field
      */
     @XmlElement(name = "minor_version")
@@ -94,7 +88,8 @@ public class ProtectionSystemRestRep extends DiscoveredSystemObjectRestRep {
 
     /**
      * Management Port Number of the Protection System device
-     * @valid Numerical value 1 through 65535 
+     * 
+     * @valid Numerical value 1 through 65535
      * @valid example: 7225
      */
     @XmlElement(name = "port_number")
@@ -107,8 +102,9 @@ public class ProtectionSystemRestRep extends DiscoveredSystemObjectRestRep {
     }
 
     /**
-     * Reachable Status which indicates that the Portection System is reachable 
+     * Reachable Status which indicates that the Portection System is reachable
      * by ViPR doing a ping. (establish connection)
+     * 
      * @valid true
      * @valid false
      */
@@ -128,6 +124,7 @@ public class ProtectionSystemRestRep extends DiscoveredSystemObjectRestRep {
 
     /**
      * The user name to connect to the Protection System device management port
+     * 
      * @valid example: user1
      */
     public void setUsername(String username) {
@@ -136,10 +133,10 @@ public class ProtectionSystemRestRep extends DiscoveredSystemObjectRestRep {
 
     @XmlElement(name = "clusters")
     public List<ProtectionSystemRPClusterRestRep> getRpClusters() {
-		return rpClusters;
-	}
+        return rpClusters;
+    }
 
-	public void setRpClusters(List<ProtectionSystemRPClusterRestRep> rpClusters) {
-		this.rpClusters = rpClusters;
-	}
+    public void setRpClusters(List<ProtectionSystemRPClusterRestRep> rpClusters) {
+        this.rpClusters = rpClusters;
+    }
 }

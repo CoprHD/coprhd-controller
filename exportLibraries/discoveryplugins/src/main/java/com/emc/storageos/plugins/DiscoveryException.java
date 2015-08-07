@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.plugins;
@@ -8,7 +8,7 @@ import com.emc.storageos.svcs.errorhandling.model.ExceptionMessagesProxy;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
-public class DiscoveryException extends InternalException{
+public class DiscoveryException extends InternalException {
 
     private static final long serialVersionUID = 814640565295751451L;
 

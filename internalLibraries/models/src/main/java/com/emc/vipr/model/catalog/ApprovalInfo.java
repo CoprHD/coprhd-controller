@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -10,36 +10,36 @@ import java.util.Date;
 @Deprecated
 @XmlRootElement
 public class ApprovalInfo extends ModelInfo {
-    
+
     /**
      * Approval or rejection message
      */
-    private String message;        
-    
+    private String message;
+
     /**
      * Date approve or reject was performed
      */
-    private Date dateActioned;     
-    
+    private Date dateActioned;
+
     /**
      * Approval Status. One of PENDING, APPROVED, REJECTED
      */
-    private String status;         
-    
+    private String status;
+
     /**
      * User ID this approval is approved or rejected by
      */
-    private String approvedBy;      
-    
+    private String approvedBy;
+
     /**
      * Reference to the order this approval is related to
      */
-    private Reference order;        
-    
+    private Reference order;
+
     /**
      * Tenant for this approval request
      */
-    private String tenant;         
+    private String tenant;
 
     public String getApprovedBy() {
         return approvedBy;

@@ -1,3 +1,8 @@
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
 FROM opensuse:13.2
  
 #

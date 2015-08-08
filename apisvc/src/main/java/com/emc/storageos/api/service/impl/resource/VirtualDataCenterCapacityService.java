@@ -31,8 +31,8 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
 
 @Path("/vdc/capacities")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class VirtualDataCenterCapacityService extends ResourceService {
 
     private final Logger logger = LoggerFactory.getLogger(VirtualDataCenterCapacityService.class);

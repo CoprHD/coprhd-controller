@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.exceptions.DeviceControllerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -161,7 +162,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
      * 
      * @param vplexURI The URI of the VPLEX storage system.
      * @param cgURI The URI of the Bourne consistency group
-     * @param vplexVolumeURI The URI of the VPLEX used to determine the VPlex
+     * @param vplexVolumeURIs The URI of the VPLEX used to determine the VPlex
      *            cluster/distributed information.
      * @param stepId The workflow step id.
      * 
@@ -416,6 +417,15 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             String waitFor = null;
             StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, dbClient);
             BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cgURI, dbClient);
+
+            // Lock the CG for the duration of update CG workflow.
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(cgURI, vplexURI));
+            boolean acquiredLocks = workflowService.acquireWorkflowLocks(workflow, lockKeys, LockTimeoutValue.get(LockType.RP_VPLEX_CG));
+            if (!acquiredLocks) {
+                throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
+                        "UpdateConsistencyGroup: " + cg.getLabel());
+            }
 
             // If necessary, create a step to update the local CGs.
             if (cg.getTypes().contains(Types.LOCAL.toString())) {

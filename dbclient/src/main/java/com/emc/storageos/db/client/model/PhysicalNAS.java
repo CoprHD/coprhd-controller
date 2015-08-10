@@ -148,11 +148,7 @@ public class PhysicalNAS extends DiscoveredDataObject {
         setChanged("ipInterfaces");
     }
 
-    @Name("vNAStag")
-    public StringSet getvNAStag() {
-        return vNAStag;
-    }
-
+  
     @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
     @Name("storageDeviceURI")
     public URI getStorageDeviceURI() {
@@ -213,14 +209,5 @@ public class PhysicalNAS extends DiscoveredDataObject {
         setChanged("pNASserverName");
     }
 
-    @Name("tag")
-    public StringSet getVNASTag() {
-        return vNAStag;
-    }
-
-    public void setVNASTag(StringSet _tag) {
-        this.vNAStag = _tag;
-        setChanged("vNAStag");
-    }
 
 }

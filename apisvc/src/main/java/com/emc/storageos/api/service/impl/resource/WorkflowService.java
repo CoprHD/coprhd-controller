@@ -35,9 +35,9 @@ import com.emc.storageos.security.authorization.Role;
  * @author Watson
  */
 @Path("/vdc/workflows")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
         Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.TENANT_ADMIN })
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.TENANT_ADMIN })
 public class WorkflowService extends ResourceService {
     protected Workflow queryResource(URI id) {
         ArgValidator.checkUri(id);
@@ -148,7 +148,7 @@ public class WorkflowService extends ResourceService {
      * 
      * @param id the URN of a ViPR workflow
      * @brief Show workflow
-     * @return
+     * @return Information of specific workflow
      */
     @GET
     @Path("/{id}")
@@ -166,7 +166,7 @@ public class WorkflowService extends ResourceService {
      * 
      * @param id the URN of a ViPR workflow
      * @brief List workflow steps
-     * @return
+     * @return List of steps of a workflow
      */
     @GET
     @Path("/{id}/steps")
@@ -194,7 +194,7 @@ public class WorkflowService extends ResourceService {
      * 
      * @param stepId
      * @brief Show workflow step
-     * @return
+     * @return Single WorkflowStep
      */
     @GET
     @Path("/steps/{stepid}")

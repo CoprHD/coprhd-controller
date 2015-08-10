@@ -134,11 +134,11 @@ public class TrustStoreResource {
             List<String> notExisted = new ArrayList<>();
 
             public boolean hasAnyFailure() {
-                return ( failToParse.isEmpty() && expired.isEmpty() && notExisted.isEmpty()) ? true:false;
+                return ( failToParse.isEmpty() && expired.isEmpty() && notExisted.isEmpty() ) ? false:true;
             }
 
             public boolean hasSuccess() {
-                return ( !added.isEmpty() || !removed.isEmpty() ) ? true:false;
+                return ( added.isEmpty() && removed.isEmpty() ) ? false:true;
             }
         }
 
@@ -164,12 +164,10 @@ public class TrustStoreResource {
                             X509Certificate x509cert = (X509Certificate) cert;
                             Date now = new Date();
                             if (x509cert.getNotAfter().before(now)) {
-                                log.warn("The following certificate has expired, but will still be added to the Trust Store: "
-                                        + x509cert.toString());
+                                log.warn("The following certificate has expired: {}", x509cert.toString());
                                 result.expired.add(certString);
                             } else if (now.before(x509cert.getNotBefore())) {
-                                log.warn("The following certificate is not yet valid, but will still be added to the Trust Store: "
-                                        + x509cert.toString());
+                                log.warn("The following certificate is not yet valid: {} ", x509cert.toString());
                                 result.expired.add(certString);
                             } else { // good one
                                 keystore.setCertificateEntry(alias, cert);
@@ -230,7 +228,7 @@ public class TrustStoreResource {
         }
 
         if (result.hasAnyFailure()) {
-            throw APIException.badRequests.truststoreUpdatePartialSuccess(result.failToParse, result.expired, result.notExisted);
+            throw APIException.badRequests.trustStoreUpdatePartialSuccess(result.failToParse, result.expired, result.notExisted);
         }
 
         // All good

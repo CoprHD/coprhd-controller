@@ -237,7 +237,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                             unManagedVolume.getStorageSystemUri(), _dbClient);
             
         } catch (VPlexApiException ex) {
-            _logger.error("could not determine backend storage volumes for {}: ", ex);
+            _logger.error("could not determine backend storage volumes for {}: ", unManagedVolume.getLabel(), ex);
         }
         
         if (null != backendVolumeMap) {

@@ -108,8 +108,8 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
  * NetworkDevice resource implementation
  */
 @Path("/vdc/network-systems")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class NetworkSystemService extends TaskResourceService {
 
     // how many times to retry a procedure before returning failure to the user.

@@ -575,6 +575,8 @@ public class VirtualDataCenterService extends TaskResourceService {
                                         "bits");
                     }
 
+                    KeyCertificatePairGenerator.validateKeyAndCertPairing(rsaPrivateKey, chain);
+
                     Certificate prevCert = null;
                     try {
                         prevCert =

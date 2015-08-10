@@ -97,9 +97,9 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         XtremIOClient client = null;
         try {
             client = getXtremIOClient(storage);
+            // find the project this volume belongs to. 
             URI projectUri = volumes.get(0).getProject().getURI();
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
-            // find the project this volume belongs to. 
             // For version 1 APIs, find the volume folder corresponding to this project
             // if not found ,create new folder, else reuse this folder and add volume to it.
             
@@ -254,7 +254,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 ServiceError error = DeviceControllerErrors.xtremio.deleteVolumeFailure(errMsg);
                 completer.error(dbClient, error);
             } else {
-                cleanupVolumeFoldersIfNeeded(client, projectUri, storageSystem);
+                String volumeFolderName = getVolumeFolderName(projectUri, storageSystem);
+                XtremIOProvUtils.cleanupVolumeFoldersIfNeeded(client, clusterName, volumeFolderName, storageSystem);
                 completer.ready(dbClient);
             }
 
@@ -632,41 +633,6 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 CustomConfigConstants.XTREMIO_VOLUME_FOLDER_NAME, storage.getSystemType(), dataSource);
 
         return volumeGroupFolderName;
-    }
-
-    private void cleanupVolumeFoldersIfNeeded(XtremIOClient client, URI projectURI,
-            StorageSystem storageSystem) throws Exception {
-
-        String tempRootFolderName = getVolumeFolderName(projectURI, storageSystem);
-        String rootFolderName = XtremIOConstants.ROOT_FOLDER.concat(tempRootFolderName);
-        String volumesFolderName = rootFolderName.concat(XtremIOConstants.VOLUMES_SUBFOLDER);
-        String snapshotsFolderName = rootFolderName.concat(XtremIOConstants.SNAPSHOTS_SUBFOLDER);
-
-        // Find the # volumes in folder, if the Volume folder is empty,
-        // then delete the folder too
-        try {
-            int numberOfVolumes = client.getNumberOfVolumesInFolder(rootFolderName, null);
-            if (numberOfVolumes == 0) {
-                try {
-                    _log.info("Deleting Volumes Folder ...");
-                    client.deleteVolumeFolder(volumesFolderName, null);
-                } catch (Exception e) {
-                    _log.warn("Deleting volumes folder {} failed", volumesFolderName, e);
-                }
-
-                try {
-                    _log.info("Deleting Snapshots Folder ...");
-                    client.deleteVolumeFolder(snapshotsFolderName, null);
-                } catch (Exception e) {
-                    _log.warn("Deleting snapshots folder {} failed", snapshotsFolderName, e);
-                }
-
-                _log.info("Deleting Root Folder ...");
-                client.deleteVolumeFolder(rootFolderName, null);
-            }
-        } catch (Exception e) {
-            _log.warn("Deleting root folder {} failed", rootFolderName, e);
-        }
     }
 
 }

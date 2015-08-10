@@ -17,13 +17,13 @@ import com.emc.storageos.services.restutil.StandardRestClient;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.XtremIOAuthInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOIGFolder;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPort;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOResponse;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumeInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMS;
@@ -75,47 +75,14 @@ public abstract class XtremIOClient extends StandardRestClient {
             throws Exception;
     
     public abstract List<XtremIOVolumeInfo> getXtremIOVolumeLinks(String clusterName) throws Exception;
-
-    /**
-     * Creates a new XtremIO Volume folder
-     * 
-     * @param projectName
-     * @return
-     * @throws Exception
-     */
-    public abstract void createVolumeFolder(String projectName, String parentFolder) throws Exception;
     
-    public abstract void createTag(String tagName, XtremIOConstants.XTREMIO_TAG_ENTITY entityType, String clusterName) throws Exception;
-
-    /**
-     * Creates a new XtremIO IG Group folder
-     * 
-     * @param igFolderName
-     * @return
-     * @throws Exception
-     */
-    public abstract void createInitiatorGroupFolder(String igFolderName, String clusterName) throws Exception;
-
-    public abstract void deleteInitiatorGroupFolder(String igFolderName, String clusterName) throws Exception;
-
-    /**
-     * Deletes a new XtremIO Volume folder
-     * 
-     * @param folderName
-     * @return
-     * @throws Exception
-     */
-    public abstract void deleteVolumeFolder(String folderName, String clusterName) throws Exception;
+    public abstract void createTag(String tagName, String parentTag, String entityType, String clusterName) throws Exception;
+    
+    public abstract void deleteTag(String tagName, String tagEntityType, String clusterName) throws Exception;
 
     public abstract List<String> getVolumeFolderNames() throws Exception;
     
     public abstract List<String> getTagNames(String clusterName) throws Exception;
-
-    public abstract int getNumberOfVolumesInFolder(String folderName, String clusterName) throws Exception;
-
-    public abstract int getNumberOfInitiatorsInInitiatorGroup(String igName, String clusterName) throws Exception;
-
-    public abstract int getNumberOfVolumesInInitiatorGroup(String igName, String clusterName) throws Exception;
 
     public abstract XtremIOResponse createVolume(String volumeName, String size, String parentFolderName, String clusterName)
             throws Exception;
@@ -148,9 +115,6 @@ public abstract class XtremIOClient extends StandardRestClient {
 
     public abstract XtremIOInitiatorGroup getInitiatorGroup(String initiatorGroupName, String clusterName) throws Exception;
 
-    public abstract XtremIOIGFolder getInitiatorGroupFolder(String initiatorGroupFolderName, String clusterName)
-            throws Exception;
-
     public abstract void deleteInitiatorGroup(String igName, String clusterName) throws Exception;
 
     public abstract XtremIOVolume getVolumeDetails(String volumeName, String clusterName) throws Exception;
@@ -160,6 +124,10 @@ public abstract class XtremIOClient extends StandardRestClient {
     public abstract XtremIOConsistencyGroup getConsistencyGroupDetails(String cgName, String clusterName) throws Exception;
     
     public abstract XtremIOSystem getClusterDetails(String clusterSerialNumber) throws Exception;
+    
+    public abstract XtremIOTag getTagDetails(String tagName, String tagEntityType, String clusterName) throws Exception;
+    
+    public abstract void tagObject(String tagName, String entityType, String entityDetail, String clusterName) throws Exception;
 
     /**
      * Deletes a volume

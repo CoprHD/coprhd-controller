@@ -240,7 +240,7 @@ public class StorageSystemService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(param.getSystemType(), "system_type");
         ArgValidator.checkFieldValueFromEnum(param.getSystemType(), "system_type", EnumSet.of(
                 StorageSystem.Type.vnxfile, StorageSystem.Type.isilon, StorageSystem.Type.rp,
-                StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe, StorageSystem.Type.xtremio));
+                StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe));
         StorageSystem.Type systemType = StorageSystem.Type.valueOf(param.getSystemType());
         if (systemType.equals(StorageSystem.Type.vnxfile)) {
             validateVNXFileSMISProviderMandatoryDetails(param);
@@ -467,11 +467,11 @@ public class StorageSystemService extends TaskResourceService {
             system.setIsResourceLimitSet(true);
         }
 
-        // if system type is vmax, vnxblock, hds, openstack or scaleio, update the name or max_resources field alone.
+        // if system type is vmax, vnxblock, hds, openstack, scaleio or xtremio, update the name or max_resources field alone.
         // create Task with ready state and return it. Discovery not needed.
         if (systemType.equals(StorageSystem.Type.vmax) || systemType.equals(StorageSystem.Type.vnxblock)
                 || systemType.equals(StorageSystem.Type.hds) || systemType.equals(StorageSystem.Type.openstack)
-                || systemType.equals(StorageSystem.Type.scaleio)) {
+                || systemType.equals(StorageSystem.Type.scaleio) || systemType.equals(StorageSystem.Type.xtremio)) {
             // this check is to inform the user that he/she can not update fields other than name and max_resources.
             if (param.getIpAddress() != null || param.getPortNumber() != null || param.getUserName() != null ||
                     param.getPassword() != null || param.getSmisProviderIP() != null || param.getSmisPortNumber() != null ||

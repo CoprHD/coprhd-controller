@@ -13,8 +13,10 @@ public class XtremIOConstants {
 	public static final String AUTH_TOKEN = "X-XIO-AUTH-TOKEN";
 	public static final String AUTH_TOKEN_HEADER = "X-XIO-AUTH-TOKEN-HEADER";
 	public static final String ERROR_CODE = "error_code";
-	public static final String ROOT_FOLDER = "/";
-	public static final String V2_VOLUME_ROOT_FOLDER = "/Volumes";
+	public static final String V1_ROOT_FOLDER = "/";
+	public static final String V2_VOLUME_ROOT_FOLDER = "/Volume/";
+	public static final String V2_SNAPSHOT_ROOT_FOLDER = "/SnapshotSet/";
+	public static final String V2_INITIATOR_GROUP_ROOT_FOLDER = "/InitiatorGroup/";
 	public static final String UNDERSCORE = "_";
 	public static final String EMPTY_STRING = "";
 
@@ -85,10 +87,9 @@ public class XtremIOConstants {
     public static final String XTREMIO_READ_ONLY_TYPE="readonly";
     public static final int XTREMIO_MAX_VOL_LENGTH= 55;
     
-    public static enum XTREMIO_TAG_ENTITY {
+    public static enum XTREMIO_ENTITY_TYPE {
     	ConsistencyGroup,
     	Volume,
-    	Snapshot,
     	SnapshotSet,
     	InitiatorGroup,
     	Initiator,
@@ -119,6 +120,19 @@ public class XtremIOConstants {
 	        return getInputNameString(name);
 	    }
 		
+	}
+	
+	public static String getRootFolderForEntityType(String entityType) {
+	    String rootFolder = "";
+	    if(XTREMIO_ENTITY_TYPE.Volume.name().equals(entityType)) {
+	        return V2_VOLUME_ROOT_FOLDER;
+	    } else if(XTREMIO_ENTITY_TYPE.SnapshotSet.name().equals(entityType)) {
+            return V2_SNAPSHOT_ROOT_FOLDER;
+        } else if(XTREMIO_ENTITY_TYPE.InitiatorGroup.name().equals(entityType)) {
+            return V2_INITIATOR_GROUP_ROOT_FOLDER;
+        }
+	    
+	    return rootFolder;
 	}
 	
 	

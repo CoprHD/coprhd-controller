@@ -39,9 +39,10 @@ import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOIGFolder;
+import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
@@ -418,10 +419,9 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         // create initiator group folder and initiator group
         String igFolderName = getInitiatorGroupFolderName(clusterName, hostName, storage);
 
-        if (null == client.getInitiatorGroupFolder(XtremIOConstants.ROOT_FOLDER
-                .concat(igFolderName), xioClusterName)) {
+        if (null == client.getTagDetails(igFolderName, XTREMIO_ENTITY_TYPE.InitiatorGroup.name(), xioClusterName)) {
             _log.info("Creating IG Folder with name {}", igFolderName);
-            client.createInitiatorGroupFolder(igFolderName, xioClusterName);
+            client.createTag(igFolderName, null, XtremIOConstants.XTREMIO_ENTITY_TYPE.InitiatorGroup.name(), xioClusterName);
         }
 
         DataSource dataSource = dataSourceFactory.createXtremIOInitiatorGroupNameDataSource(
@@ -433,8 +433,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             // create a new IG
             _log.info("Creating Initiator Group with name {}", igName);
 
-            client.createInitiatorGroup(igName,
-                    XtremIOConstants.ROOT_FOLDER.concat(igFolderName), xioClusterName);
+            client.createInitiatorGroup(igName, igFolderName, xioClusterName);
             igGroup = client.getInitiatorGroup(igName, xioClusterName);
             if (null == igGroup) {
                 _log.info("Neither IG is already present nor able to create on Array {}", hostName);
@@ -617,13 +616,13 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     private void deleteInitiatorGroupFolder(XtremIOClient client, String xioClusterName, String clusterName, String hostName, 
             StorageSystem system) throws Exception {
         String tempIGFolderName = getInitiatorGroupFolderName(clusterName, hostName, system);
-        XtremIOIGFolder igFolder = client.getInitiatorGroupFolder(XtremIOConstants.ROOT_FOLDER
-                .concat(tempIGFolderName), null);
+        XtremIOTag igFolder = client.getTagDetails(tempIGFolderName, XTREMIO_ENTITY_TYPE.InitiatorGroup.name(), xioClusterName);
 
         if (null != igFolder && "0".equalsIgnoreCase(igFolder.getNumberOfIGs())) {
             try {
                 _log.info("# of IGs  {} in Folder {}", igFolder.getNumberOfIGs(), clusterName);
-                client.deleteInitiatorGroupFolder(XtremIOConstants.ROOT_FOLDER.concat(tempIGFolderName), xioClusterName);
+                client.deleteTag(XtremIOConstants.V1_ROOT_FOLDER.concat(tempIGFolderName), 
+                        XtremIOConstants.XTREMIO_ENTITY_TYPE.InitiatorGroup.name(), xioClusterName);
             } catch (Exception e) {
                 _log.warn("Deleting Initatiator Group Folder{} fails", clusterName, e);
             }
@@ -636,15 +635,18 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             String igName = entry.getKey();
             try {
                 // find # initiators for this IG
-                int numberOfVolumes = client.getNumberOfVolumesInInitiatorGroup(igName, xioClusterName);
-                _log.info("Initiator Group {} left with Volume size {}", igName, numberOfVolumes);
-                if (numberOfVolumes == 0) {
-                    // delete Initiator Group
-                    client.deleteInitiatorGroup(igName, xioClusterName);
-                    // remove export mask from export groip
-
-                } else {
-                    _log.info("Skipping IG Group {} deletion", igName);
+                XtremIOInitiatorGroup ig = client.getInitiatorGroup(igName, xioClusterName);
+                if(ig != null) {
+                    int numberOfVolumes = Integer.parseInt(ig.getNumberOfVolumes());
+                    _log.info("Initiator Group {} left with Volume size {}", igName, numberOfVolumes);
+                    if (numberOfVolumes == 0) {
+                        // delete Initiator Group
+                        client.deleteInitiatorGroup(igName, xioClusterName);
+                        // remove export mask from export groip
+    
+                    } else {
+                        _log.info("Skipping IG Group {} deletion", igName);
+                    }
                 }
             } catch (Exception e) {
                 _log.warn("Deleting Initatiator Group {} fails", igName, e);

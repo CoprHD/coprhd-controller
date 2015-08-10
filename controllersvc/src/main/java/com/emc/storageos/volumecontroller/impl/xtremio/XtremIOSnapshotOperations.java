@@ -29,6 +29,7 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
+import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 
 public class XtremIOSnapshotOperations extends XtremIOOperations implements SnapshotOperations {
@@ -108,7 +109,8 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
         String snapshotType = readOnly ? XtremIOConstants.XTREMIO_READ_ONLY_TYPE : XtremIOConstants.XTREMIO_REGULAR_TYPE;
         client.createVolumeSnapshot(parentVolume.getLabel(), snapLabel, snapTagName, snapshotType, clusterName);
         XtremIOVolume createdSnap = client.getSnapShotDetails(snapLabel, clusterName);
-
+        //tag the created the snap
+        client.tagObject(snapTagName, XTREMIO_ENTITY_TYPE.SnapshotSet.name(), snapLabel, clusterName);
         return createdSnap;
 
     }

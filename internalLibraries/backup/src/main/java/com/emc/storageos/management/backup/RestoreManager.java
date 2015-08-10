@@ -173,7 +173,7 @@ public class RestoreManager {
             String backupFileName = backupFile.getName();
             log.debug("Checking backup file: {}", backupFileName);
             if (!backupFileName.contains(nodeId)
-                    && !backupFileName.contains(BackupType.zk.name()))
+                    && !backupFileName.contains(BackupType.zk.name())) {
                 continue;
             }
             if (backupFileName.contains(BackupConstants.BACKUP_NAME_DELIMITER +

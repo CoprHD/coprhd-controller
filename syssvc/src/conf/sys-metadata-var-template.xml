@@ -2442,6 +2442,18 @@
 		<property name="value" value="5.0" />
 		<property name="controlNodeOnly" value="true" />
 	</bean>
+	<bean id="use_short_node_name" class="com.emc.storageos.model.property.PropertyMetadata">
+		<property name="label" value="Enable Short Node Name" />
+		<property name="description" value="Short node names can be used for API query parameters and SSH between nodes. A Node short name is everything before the first '.' in the node name and must be unique." />
+		<property name="type" value="boolean" />
+		<property name="tag" value="Custom Node Names" />
+		<property name="userMutable" value="true" />
+		<property name="userConfigurable" value="true" />
+		<property name="reconfigRequired" value="true" />
+		<property name="rebootRequired" value="true" />
+		<property name="value" value="false" />
+		<property name="controlNodeOnly" value="true" />
+	</bean>
 	<bean id="metadata" class="com.emc.storageos.model.property.PropertiesMetadata">
 		<property name="metadata">
 			<map>
@@ -2622,6 +2634,7 @@
 				<entry key="password_history_rule" value-ref="password_history_rule" />
 				<entry key="password_expire_days" value-ref="password_expire_days" />
 				<entry key="compute_vmware_esx_version" value-ref="compute_vmware_esx_version" />
+				<entry key="use_short_node_name" value-ref="use_short_node_name" />
 			</map>
 		</property>
 	</bean>

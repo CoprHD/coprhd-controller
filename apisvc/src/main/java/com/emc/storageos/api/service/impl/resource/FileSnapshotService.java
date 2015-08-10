@@ -100,10 +100,10 @@ import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 
 @Path("/file/snapshots")
-@DefaultPermissions(read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        read_acls = { ACL.ANY },
-        write_roles = { Role.TENANT_ADMIN },
-        write_acls = { ACL.ANY })
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
+        readAcls = { ACL.ANY },
+        writeRoles = { Role.TENANT_ADMIN },
+        writeAcls = { ACL.ANY })
 public class FileSnapshotService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(FileService.class);
@@ -336,7 +336,7 @@ public class FileSnapshotService extends TaskResourceService {
      * @Deprecated use {id}/export instead
      *             Get file share snapshots exports
      * @param id the URN of a ViPR Snapshot
-     * @brief List file snapshot exports
+     * @brief List file snapshot exports.This method is deprecated.<p> Use /file/snapshots/{id}/export instead.
      * @return List of file share snapshot exports
      */
     @Deprecated

@@ -143,7 +143,7 @@ public class StorageProviderCreateParam {
      * and is only applicable for a ScaleIO StorageProvider.
      * 
      * @valid none
-     * @return
+     * @return ScaleIO CLI
      */
     @XmlElement(required = false, name = "sio_cli")
     public String getSioCLI() {

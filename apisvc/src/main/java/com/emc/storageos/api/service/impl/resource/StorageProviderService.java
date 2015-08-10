@@ -77,8 +77,8 @@ import com.emc.storageos.vplexcontroller.VPlexController;
  * 
  */
 @Path("/vdc/storage-providers")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class StorageProviderService extends TaskResourceService {
     private static final Logger log = LoggerFactory.getLogger(StorageProviderService.class);
     private static final String EVENT_SERVICE_TYPE = "provider";

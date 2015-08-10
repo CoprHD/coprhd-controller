@@ -135,7 +135,7 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * @return tasks for monitoring the progress of the operation(s).
      */
     public Tasks<VolumeRestRep> addJournalCapacity(VolumeCreate create) {
-        return postTasks(create, getIdUrl() + "/protection/addJournalCapacity");
+        return postTasks(create, baseUrl + "/protection/addJournalCapacity");
     }
 
     /**

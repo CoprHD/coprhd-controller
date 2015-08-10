@@ -49,7 +49,7 @@ public class VirtualNAS extends VirtualArrayTaggedResource {
     private StringSet storageDomain;
 
     // place holder for the Parent NAS server the Data Mover
-    private String parentNAS;
+    private URI parentNAS;
 
     // List of Storage Ports associated with this VDM - contains reference to StoragePort object type.
     private StringSet ipInterfaces;
@@ -159,11 +159,11 @@ public class VirtualNAS extends VirtualArrayTaggedResource {
     }
 
     @Name("parentNAS")
-    public String getParentNAS() {
+    public URI getParentNAS() {
         return parentNAS;
     }
 
-    public void setParentNAS(String parentNAS) {
+    public void setParentNAS(URI parentNAS) {
         this.parentNAS = parentNAS;
         setChanged("parentNAS");
     }

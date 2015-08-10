@@ -124,16 +124,31 @@ public class TrustStoreResource {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public TrustedCertificates addOrRemoveTrustedCertificate(
             TrustedCertificateChanges changes) {
+
+        // to hold all kinds of certs in request to support add/remove in batch, and to support partial success as well
+        class UpdateResult {
+            List<String> added = new ArrayList<>();
+            List<String> removed = new ArrayList<>();
+            List<String> failToParse = new ArrayList<>();
+            List<String> expired = new ArrayList<>();
+            List<String> notExisted = new ArrayList<>();
+
+            public boolean hasAnyFailure() {
+                return ( failToParse.isEmpty() && expired.isEmpty() && notExisted.isEmpty()) ? true:false;
+            }
+
+            public boolean hasSuccess() {
+                return ( !added.isEmpty() || !removed.isEmpty() ) ? true:false;
+            }
+        }
+
         if (!coordinator.isClusterUpgradable()) {
             throw SecurityException.retryables.updatingKeystoreWhileClusterIsUnstable();
         }
 
         KeyStore keystore = getKeyStore();
+        UpdateResult result = new UpdateResult();
 
-        List<String> invalidCerts = new ArrayList<String>();
-        List<String> removeAliasDoesNotExist = new ArrayList<String>();
-        List<String> added = new ArrayList<String>();
-        List<String> removed = new ArrayList<String>();
         if (changes.getAdd() != null) {
             for (String certString : changes.getAdd()) {
                 try {
@@ -149,26 +164,26 @@ public class TrustStoreResource {
                             X509Certificate x509cert = (X509Certificate) cert;
                             Date now = new Date();
                             if (x509cert.getNotAfter().before(now)) {
-                                log.warn("The following certificate has expired, but will still be added to the truststore: "
+                                log.warn("The following certificate has expired, but will still be added to the Trust Store: "
                                         + x509cert.toString());
-                                invalidCerts.add(certString);
+                                result.expired.add(certString);
                             } else if (now.before(x509cert.getNotBefore())) {
-                                log.warn("The following certificate is not yet valid, but will still be added to the truststore: "
+                                log.warn("The following certificate is not yet valid, but will still be added to the Trust Store: "
                                         + x509cert.toString());
-                                invalidCerts.add(certString);
+                                result.expired.add(certString);
                             } else { // good one
                                 keystore.setCertificateEntry(alias, cert);
-                                added.add(certString);
+                                result.added.add(certString);
                             }
                         }
                     } else {
-                        invalidCerts.add(certString);
+                        result.failToParse.add(certString);
                     }
                 } catch (KeyStoreException e) {
                     throw new IllegalStateException("keystore is not initialized", e);
                 } catch (CertificateException e) {
                     log.debug(e.getMessage(), e);
-                    invalidCerts.add(certString);
+                    result.failToParse.add(certString);
                 }
             }
         }
@@ -183,46 +198,42 @@ public class TrustStoreResource {
                             && StringUtils.countMatches(certString,
                                     KeyCertificatePairGenerator.PEM_BEGIN_CERT) == 1) {
                         keystore.deleteEntry(DigestUtils.sha512Hex(cert.getEncoded()));
-                        removed.add(certString);
+                        result.removed.add(certString);
                     } else {
-                        invalidCerts.add(certString);
+                        result.failToParse.add(certString);
                     }
                 } catch (CertificateException e) {
                     log.warn("the following certificate could not be deleted: "
                             + certString, e);
-                    invalidCerts.add(certString);
+                    result.failToParse.add(certString);
                 } catch (KeyStoreException e) {
                     log.warn("the following certificate could not be deleted: "
                             + certString, e);
-                    removeAliasDoesNotExist.add(certString);
+                    result.notExisted.add(certString);
                 }
 
             }
         }
 
-        if (!CollectionUtils.isEmpty(added)
+        // set AcceptAll to No if any certificate is added.
+        if (!CollectionUtils.isEmpty(result.added)
                 && getTruststoreSettings().isAcceptAllCertificates()) {
             TruststoreSettingsChanges settingsChanges = new TruststoreSettingsChanges();
             settingsChanges.setAcceptAllCertificates(false);
             changeSettingInternal(settingsChanges);
         }
 
-        recordTrustChangeIfAny(added, removed);
-
-        // if something failed
-        if (!CollectionUtils.isEmpty(invalidCerts)
-                || !CollectionUtils.isEmpty(removeAliasDoesNotExist)) {
-            // if we had a partial success
-            if (!CollectionUtils.isEmpty(added) || !CollectionUtils.isEmpty(removed)) {
-                auditTruststorePatialSuccess(
-                        OperationTypeEnum.UPDATE_TRUSTED_CERTIFICATES_PARTIAL, added, removed);
-            }
-            throw APIException.badRequests.truststoreUpdatePartialSuccess(invalidCerts,
-                    removeAliasDoesNotExist);
-        } else if (!CollectionUtils.isEmpty(added) || !CollectionUtils.isEmpty(removed)) {
-            // this is a complete success and some operations actually happened
+        if (result.hasSuccess()) {
+            // To update the zk and then make service get notified on change.
+            recordTrustChangeIfAny(result.added, result.removed);
             auditTruststore(OperationTypeEnum.UPDATE_TRUSTED_CERTIFICATES, changes);
         }
+
+        if (result.hasAnyFailure()) {
+            throw APIException.badRequests.truststoreUpdatePartialSuccess(result.failToParse, result.expired, result.notExisted);
+        }
+
+        // All good
         return getTrustedCertificates();
     }
 

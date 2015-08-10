@@ -656,7 +656,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
      * {@inheritDoc}
      */
     @Override
-    public void createSnapshotSession(StorageSystem system, URI snapSessionURI, Boolean createInactive, TaskCompleter taskCompleter)
+    public void createSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
@@ -665,8 +665,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
      * {@inheritDoc}
      */
     @Override
-    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, Boolean createInactive,
-            TaskCompleter taskCompleter)
+    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }

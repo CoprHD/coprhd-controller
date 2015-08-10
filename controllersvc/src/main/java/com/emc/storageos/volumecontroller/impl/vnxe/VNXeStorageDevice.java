@@ -2339,8 +2339,8 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
-    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs,
-            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

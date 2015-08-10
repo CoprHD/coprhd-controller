@@ -35,8 +35,6 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
-
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,6 +54,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
@@ -176,7 +175,7 @@ public class SmisCommandHelper implements SmisConstants {
         _log.info(inputInfoBuffer.toString());
         long start = System.nanoTime();
         Object obj = client.invokeMethod(objectPath, methodName, inArgs, outArgs);
-        String total = String.format("%2.6f", ((double) (System.nanoTime() - start) / 1000000000.0));
+        String total = String.format("%2.6f", ((System.nanoTime() - start) / 1000000000.0));
         String str = protectedToString(obj);
         StringBuilder outputInfoBuffer = new StringBuilder();
         outputInfoBuffer.append("\nSMI-S Provider: ").append(connection.getHost()).
@@ -823,6 +822,15 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.bool(CP_EMC_SKIP_REFRESH, true),
                 _cimArgument.uint16(CP_SYNC_TYPE, SNAPSHOT_VALUE),
                 _cimArgument.reference(CP_SOURCE_ELEMENT, cgPath)
+        };
+    }
+
+    public CIMArgument[] getCreateSynchronizationAspectInput(CIMObjectPath sourcePath, String name) {
+        return new CIMArgument[] {
+                _cimArgument.string(CP_ELEMENT_NAME, name),
+                _cimArgument.uint16(CP_MODE, MODE_SYNCHRONOUS),
+                _cimArgument.uint16(CP_SYNC_TYPE, SNAPSHOT_VALUE),
+                _cimArgument.reference(CP_SOURCE_ELEMENT, sourcePath)
         };
     }
 

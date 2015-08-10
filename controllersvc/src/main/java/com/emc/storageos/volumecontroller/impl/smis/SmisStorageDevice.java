@@ -2093,15 +2093,15 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * {@inheritDoc}
      */
     @Override
-    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs,
-            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         try {
             List<BlockSnapshotSession> snapSessions = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURIs);
             if (doGroupSnapshotSessionCreation(snapSessions)) {
-                _snapshotOperations.createGroupSnapshotSession(system, snapSessionURIs, createInactive, taskCompleter);
+                _snapshotOperations.createGroupSnapshotSession(system, snapSessionURIs, taskCompleter);
             } else {
                 URI snapSessionURI = snapSessionURIs.get(0);
-                _snapshotOperations.createSnapshotSession(system, snapSessionURI, createInactive, taskCompleter);
+                _snapshotOperations.createSnapshotSession(system, snapSessionURI, taskCompleter);
             }
         } catch (Exception e) {
             _log.error(String.format("Exception trying to create snapshot session(s) on array %s", system.getSerialNumber()), e);

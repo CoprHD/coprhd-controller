@@ -3577,7 +3577,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
             completer = new CreateBlockSnapshotSessionCompleter(snapSessionURIs, stepId);
-            getDevice(system.getSystemType()).doCreateSnapshotSession(system, snapSessionURIs, createInactive, completer);
+            getDevice(system.getSystemType()).doCreateSnapshotSession(system, snapSessionURIs, completer);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);

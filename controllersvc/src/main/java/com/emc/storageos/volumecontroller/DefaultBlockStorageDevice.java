@@ -567,8 +567,8 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
-    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, Boolean createInactive,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

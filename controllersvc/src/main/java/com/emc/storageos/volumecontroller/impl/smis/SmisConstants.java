@@ -80,6 +80,7 @@ public interface SmisConstants {
     static final int STORAGE_SYNCHRONIZED_VALUE = 2;
     static final int VP_SNAP_VALUE = 32768;
     static final int CREATE_NEW_TARGET_VALUE = 2;
+    static final int MODE_SYNCHRONOUS = 2;
 
     static final String SE_REPLICATIONSETTING_DATA = "SE_ReplicationSettingData";
     static final String CP_REPLICATIONSETTING_DATA = "ReplicationSettingData";

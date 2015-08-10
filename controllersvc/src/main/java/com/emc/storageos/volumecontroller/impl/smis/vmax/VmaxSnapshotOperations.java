@@ -44,10 +44,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -71,6 +73,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateCGSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotSessionJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResumeSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
@@ -1184,11 +1187,45 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     /**
      * {@inheritDoc}
      */
+    @SuppressWarnings("rawtypes")
     @Override
-    public void createSnapshotSession(StorageSystem system, URI snapSessionURI, Boolean createInactive, TaskCompleter taskCompleter)
+    public void createSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         if (system.checkIfVmax3()) {
             // Only supported for VMAX3 storage systems.
+            try {
+                _log.info("Create snapshot session operation START");
+                BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+                URI sourceObjURI = snapSession.getParent().getURI();
+                if (URIUtil.isType(sourceObjURI, Volume.class)) {
+                    Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceObjURI);
+                    // Need to terminate an restore sessions, so that we can
+                    // restore from the same snapshot multiple times
+                    terminateAnyRestoreSessionsForVolume(system, sourceVolume, taskCompleter);
+                    TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, sourceVolume.getTenant().getURI());
+                    String tenantName = tenant.getLabel();
+                    String snapSessionLabelToUse = _nameGenerator.generate(tenantName, snapSession.getLabel(),
+                            snapSessionURI.toString(), '-', SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH);
+                    CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
+                    CIMObjectPath sourceVolumePath = _cimPath.getBlockObjectPath(system, sourceVolume);
+                    CIMArgument[] inArgs = null;
+                    CIMArgument[] outArgs = new CIMArgument[5];
+                    inArgs = _helper.getCreateSynchronizationAspectInput(sourceVolumePath, snapSessionLabelToUse);
+                    _helper.invokeMethod(system, replicationSvcPath, SmisConstants.CREATE_SYNCHRONIZATION_ASPECT, inArgs, outArgs);
+                    CIMObjectPath job = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
+                    if (job != null) {
+                        ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockCreateSnapshotSessionJob(job, system.getId(),
+                                taskCompleter)));
+                    }
+                } else {
+                    // TBD - Not currently supported when the source is a BlockSnapshot.
+                    throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+                }
+            } catch (Exception e) {
+                _log.info("Exception creating snapshot session ", e);
+                ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
+                taskCompleter.error(_dbClient, error);
+            }
         } else {
             throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
         }
@@ -1198,8 +1235,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      * {@inheritDoc}
      */
     @Override
-    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, Boolean createInactive,
-            TaskCompleter taskCompleter)
+    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         if (system.checkIfVmax3()) {
             // TBD - Need to support group operation.

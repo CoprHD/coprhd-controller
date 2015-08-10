@@ -708,8 +708,7 @@ public interface BlockStorageDevice {
      * 
      * @param system
      * @param snapSessionURIs
-     * @param createInactive
      * @param completer
      */
-    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, Boolean createInactive, TaskCompleter completer);
+    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer);
 }

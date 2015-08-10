@@ -175,11 +175,10 @@ public interface SnapshotOperations {
      * @param system Reference to the storage system.
      * @param snapSessionURI The URI of the ViPR BlockSnapshotSession instance.
      * @param taskCompleter Reference to a task completer to invoke upon completion of the operation.
-     * @param createInative Whether or not the snapshot session should be activated.
      * 
      * @throws DeviceControllerException
      */
-    public void createSnapshotSession(StorageSystem system, URI snapSessionURI, Boolean createInactive, TaskCompleter taskCompleter)
+    public void createSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter taskCompleter)
             throws DeviceControllerException;
 
     /**
@@ -189,11 +188,9 @@ public interface SnapshotOperations {
      * @param system Reference to the storage system.
      * @param snapSessionURIs The URIs of the ViPR BlockSnapshotSession instances.
      * @param taskCompleter Reference to a task completer to invoke upon completion of the operation.
-     * @param createInative Whether or not the snapshot session should be activated.
      * 
      * @throws DeviceControllerException
      */
-    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, Boolean createInactive,
-            TaskCompleter taskCompleter)
+    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter taskCompleter)
             throws DeviceControllerException;
 }

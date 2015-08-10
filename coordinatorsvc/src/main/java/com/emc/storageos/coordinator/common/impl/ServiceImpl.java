@@ -27,9 +27,9 @@ public class ServiceImpl implements Service {
     // Service id is for internal use to talk to coordinator.
     // EX: syssvc-1, syssvc-2, syssvc-10_247_100_15
     private static final String ID_KEY = "_id";
-    // Node name used for external display/query purpose.
+    // Node id used for external display/query purpose.
     // EX: vipr1, vipr2, dataservice-10_247_100_15
-    private static final String NODE_NAME_KEY = "_nodeName";
+    private static final String NODE_ID_KEY= "_nodeId";
     private static final String ENDPOINT_KEY = "_endpoint";
 
     private Properties _map = new Properties();
@@ -73,12 +73,12 @@ public class ServiceImpl implements Service {
     }
 
     @Override
-    public String getNodeName() {
-        return (String) _map.get(NODE_NAME_KEY);
+    public String getNodeId() {
+        return (String) _map.get(NODE_ID_KEY);
     }
 
-    public void setNodeName(String nodeId) {
-        _map.put(NODE_NAME_KEY, nodeId);
+    public void setNodeId(String nodeId) {
+        _map.put(NODE_ID_KEY, nodeId);
     }
 
     @Override
@@ -195,7 +195,7 @@ public class ServiceImpl implements Service {
         if (!getId().equals(service.getId())) {
             return false;
         }
-        if (!getNodeName().equals(service.getNodeName())) {
+        if (!getNodeId().equals(service.getNodeId())) {
             return false;
         }
         if (!getEndpoint().equals(service.getEndpoint())) {
@@ -211,7 +211,7 @@ public class ServiceImpl implements Service {
         hash = hash * PRIME + ((getName() == null) ? 0 : getName().hashCode());
         hash = hash * PRIME + ((getVersion() == null) ? 0 : getVersion().hashCode());
         hash = hash * PRIME + ((getId() == null) ? 0 : getId().hashCode());
-        hash = hash * PRIME + ((getNodeName() == null) ? 0 : getNodeName().hashCode());
+        hash = hash * PRIME + ((getNodeId() == null) ? 0 : getNodeId().hashCode());
         hash = hash * PRIME + ((getEndpoint() == null) ? 0 : getEndpoint().hashCode());
         return hash;
     }

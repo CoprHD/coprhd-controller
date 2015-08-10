@@ -50,7 +50,8 @@ EOF
 
 for index in ${_GENCONFIG_node_indexes}; do
     local name="_GENCONFIG_node_${index}_name"
-    if [ "${!name}" = "${!name%.*}" ]
+    local useShortNodeName = "_GENCONFIG_use_short_node_name"
+    if [ "${!useShortNodeName}" = "false" ]
     then
         echo "Host vipr${index} ${!name}"
     else

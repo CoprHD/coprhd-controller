@@ -107,8 +107,9 @@ _gen_hosts() {
     for i in ${_GENCONFIG_node_indexes} ; do
         local var="_GENCONFIG_network_${i}_ipaddr_effective"
         local id=$(_genconfig_node_id ${i})
-        local name="_GENCONFIG_node_${i}_name" 
-        if [ "${!name}" = "${!name%.*}" ]
+        local name="_GENCONFIG_node_${i}_name"
+        local useShortNodeName = "_GENCONFIG_use_short_node_name"
+        if [ "${!useShortNodeName}" = "false" ]
         then
             echo "${!var}	${!name}	${id}"
         else

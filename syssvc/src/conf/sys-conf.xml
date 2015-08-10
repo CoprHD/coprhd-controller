@@ -246,6 +246,7 @@
                 <ref bean="passwordExpireRuleHandler" />
                 <bean class="com.emc.storageos.systemservices.impl.propertyhandler.PasswordChangeIntervalRuleHandler" />
                 <bean class="com.emc.storageos.systemservices.impl.propertyhandler.UpgradeCheckFrequencyRuleHandler" />
+                <bean class="com.emc.storageos.systemservices.impl.propertyhandler.UniqueNodeNameHandler" />
             </list>
         </property>
     </bean>

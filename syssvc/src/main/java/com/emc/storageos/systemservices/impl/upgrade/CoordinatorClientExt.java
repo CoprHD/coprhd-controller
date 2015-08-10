@@ -164,7 +164,7 @@ public class CoordinatorClientExt {
 
         try {
             String attr = state.getCoordinatorClassInfo().attribute;
-            _svc.setAttribute(attr, state.encodeAsString());
+            _svc.setAttribute(attr,state.encodeAsString());
             _beacon.publish();
         } catch (Exception e) {
             _log.error("set node scope info error:", e);
@@ -403,7 +403,7 @@ public class CoordinatorClientExt {
      * @throws Exception
      */
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind) throws Exception {
-        return _coordinator.getTargetInfo(clazz, id, kind);
+        return _coordinator.getTargetInfo(clazz,id,kind);
     }
 
     /**
@@ -421,7 +421,7 @@ public class CoordinatorClientExt {
 
     public <T extends CoordinatorSerializable> T getNodeInfo(String node, Class<T> clazz) throws CoordinatorClientException {
         try {
-            T state = _coordinator.getNodeInfo(_svc, node, clazz);
+            T state = _coordinator.getNodeInfo(_svc,node,clazz);
             if (state != null) {
                 return state;
             }
@@ -515,7 +515,7 @@ public class CoordinatorClientExt {
      */
     public boolean verifyNodesPowerOffStateNotBefore(PowerOffState.State state, boolean checkNumOfControlNodes) {
         try {
-            Map<Service, PowerOffState> controlNodesPowerOffState = getAllNodeInfos(PowerOffState.class, CONTROL_NODE_SYSSVC_ID_PATTERN);
+            Map<Service, PowerOffState> controlNodesPowerOffState = getAllNodeInfos(PowerOffState.class,CONTROL_NODE_SYSSVC_ID_PATTERN);
 
             if (checkNumOfControlNodes && controlNodesPowerOffState.size() != getNodeCount()) {
                 return false;
@@ -561,14 +561,14 @@ public class CoordinatorClientExt {
      */
     public URI getNodeEndpointForSvcId(String svcId) {
         try {
-            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(), _svc.getVersion(), (String) null, null);
+            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(),_svc.getVersion(),(String)null,null);
             for (Service svc : svcs) {
                 if (svc.getId().equals(svcId)) {
                     return svc.getEndpoint();
                 }
             }
         } catch (Exception e) {
-            _log.info("Fail to get the cluster information " + e.getMessage());
+            _log.info("Fail to get the cluster information "+e.getMessage());
         }
         return null;
     }
@@ -899,12 +899,23 @@ public class CoordinatorClientExt {
      */
     public List<String> getMatchingNodeIds(List<String> nodeNames) {
         List<String> nodeIds = new ArrayList<String>();
+
+        //if use short name is enabled allow matching short name to nodeId
+        boolean useShortName = Boolean.parseBoolean(getPropertyInfo().getProperty("use_short_node_name"));
+
         try {
             List<Service> svcs = getAllServices();
             for (Service svc : svcs) {
-                if (nodeNames.contains(svc.getNodeName())){
-                    final String nodeId =svc.getNodeId();
-                    nodeIds.add(nodeId);
+                if (useShortName){
+                    if(nodeNames.contains(svc.getNodeName()) || nodeNames.contains(svc.getNodeName().split("\\.")[0])){
+                        final String nodeId=svc.getNodeId();
+                        nodeIds.add(nodeId);
+                    }
+                } else {
+                    if (nodeNames.contains(svc.getNodeName())) {
+                        final String nodeId=svc.getNodeId();
+                        nodeIds.add(nodeId);
+                    }
                 }
             }
         } catch (Exception e) {

@@ -4,14 +4,11 @@
  */
 package com.emc.storageos.usermanagement;
 
-import com.emc.storageos.model.auth.InvalidLoginsList;
 import com.emc.storageos.model.vdc.VirtualDataCenterAddParam;
 import com.emc.storageos.model.vdc.VirtualDataCenterModifyParam;
 import com.emc.storageos.usermanagement.setup.TenantMode;
 import com.emc.storageos.usermanagement.model.RoleOrAcl;
-import com.emc.vipr.client.ClientConfig;
 import com.emc.vipr.client.ViPRCoreClient;
-import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
 
 import org.junit.Assert;
@@ -91,30 +88,5 @@ public class VdcApiProxyUserTest extends TenantMode {
         newVdcParam.setSecretKey("fake-secretkey");
 
         return newVdcParam;
-    }
-
-    @Test
-    public void testBlockIPs() throws Exception {
-        ViPRSystemClient client = new ViPRSystemClient(new ClientConfig()
-                .withHost(controllerNodeEndpoint)
-                .withRequestLoggingEnabled()
-                .withMaxRetries(10)
-                .withMediaType("application/json"));
-        client.withLogin("root", "ChangeMe");
-        InvalidLoginsList list = client.config().listBlockIPs();
-
-        try {
-            new ViPRCoreClient(controllerNodeEndpoint, true)
-                    .withLogin("root", "wrong");
-        } catch (Exception e) {
-            // empty
-        }
-
-        list = client.config().listBlockIPs();
-
-        client.config().deleteBlockIP("10.238.54.131");
-
-        list = client.config().listBlockIPs();
-        return;
     }
 }

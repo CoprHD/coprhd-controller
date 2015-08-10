@@ -112,7 +112,7 @@ public class InvalidLoginManager {
 
     private boolean isClientInvalidRecordExpired(InvalidLogins invLogins) {
         if (null != invLogins &&
-                (getCurrentTimeInMins() - invLogins.getLastAccessTime()) > _maxAuthnLoginAttemtsLifeTimeInMins) {
+                (getCurrentTimeInMins() - invLogins.getLastAccessTimeInLong()) > _maxAuthnLoginAttemtsLifeTimeInMins) {
             return true;
         }
         return false;
@@ -210,7 +210,7 @@ public class InvalidLoginManager {
                     invLogins.incrementErrorLoginCount();
                 }
                 // Update the last invalid login time stamp.
-                invLogins.setLastAccessTime(getCurrentTimeInMins());
+                invLogins.setLastAccessTimeInLong(getCurrentTimeInMins());
                 _log.debug("Updating the record in the ZK for the client {}", clientIP);
                 _distDataManager.putData(zkPath, invLogins);
             } catch (Exception ex) {

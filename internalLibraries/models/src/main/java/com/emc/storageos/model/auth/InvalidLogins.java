@@ -59,11 +59,18 @@ public class InvalidLogins implements Serializable {
     public long getLoginAttempts() {
         return _errorLoginAttempts;
     }
+
+    /**
+     * @param loginAttempts
+     */
+    public void setLoginAttempts(long loginAttempts) {
+        _errorLoginAttempts = loginAttempts;
+    }
     
     /**
      * @param lastAccessTime set the last invalid access time
      */
-    public void setLastAccessTime(long lastAccessTime) {
+    public void setLastAccessTimeInLong(long lastAccessTime) {
         if (lastAccessTime > 0) {
             _lastAccessTime = lastAccessTime;
         } else {
@@ -77,13 +84,17 @@ public class InvalidLogins implements Serializable {
      */
     @XmlElement(name = "last_access_time")
     @JsonProperty("last_access_time")
-    public String getFormattedLastAccessTime() {
+    public String getLastAccessTime() {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(_lastAccessTime * 60 * 1000));
+    }
+
+    public void setLastAccessTime(String lastAccessTime) throws Exception {
+        _lastAccessTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(lastAccessTime).getTime();
     }
 
 
     @XmlTransient
-    public long getLastAccessTime() {
+    public long getLastAccessTimeInLong() {
         return _lastAccessTime;
     }
 

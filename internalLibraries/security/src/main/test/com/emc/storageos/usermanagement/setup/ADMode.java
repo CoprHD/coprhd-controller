@@ -28,7 +28,7 @@ public class ADMode extends LocalUserMode {
 
     protected static AuthnProviderRestRep authnProviderRestRep;
     protected static ADClient adClient;
-    protected static String PASSWORD = "Dangerous1";
+    protected static String PASSWORD = EnvConfig.get("sanity", "ad.manager.password");
     protected static String superUser;
     protected static String superUserPassword;
     protected static ViPRCoreClient superUserClient;

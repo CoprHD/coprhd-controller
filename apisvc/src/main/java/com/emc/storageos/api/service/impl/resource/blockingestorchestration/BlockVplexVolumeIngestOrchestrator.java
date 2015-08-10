@@ -50,6 +50,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.model.block.VolumeExportIngestParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 
 /**
@@ -219,6 +220,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     }
 
     private List<URI> getAssociatedVolumes(UnManagedVolume unManagedVolume) {
+        List<URI> associatedVolumes = new ArrayList<URI>();
         String deviceName = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.VPLEX_SUPPORTING_DEVICE_NAME.toString(),
                     unManagedVolume.getVolumeInformation());
@@ -227,25 +229,31 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 SupportedVolumeInformation.VPLEX_LOCALITY.toString(),
                     unManagedVolume.getVolumeInformation());
         
-        Map<String, String> backendVolumeMap = 
-                VPlexControllerUtils.getStorageVolumeInfoForDevice(
-                        deviceName, locality, 
-                        unManagedVolume.getStorageSystemUri(), _dbClient);
-        
-        List<URI> associatedVolumes = new ArrayList<URI>();
-        
-        for (Entry<String, String> entry : backendVolumeMap.entrySet()) {
-            _logger.info("attempting to find unmanaged backend volume {} with wwn {}", 
-                    entry.getKey(), entry.getValue());
+        Map<String, String> backendVolumeMap = null;
+        try {
+            backendVolumeMap = 
+                    VPlexControllerUtils.getStorageVolumeInfoForDevice(
+                            deviceName, locality, 
+                            unManagedVolume.getStorageSystemUri(), _dbClient);
             
-            String backendWwn = entry.getValue();
-            URIQueryResultList results = new URIQueryResultList();
-            _dbClient.queryByConstraint(AlternateIdConstraint.
-                    Factory.getUnmanagedVolumeWwnConstraint(
-                            BlockObject.normalizeWWN(backendWwn)), results);
-            if (results.iterator() != null) {
-                for (URI uri : results) {
-                    associatedVolumes.add(uri);
+        } catch (VPlexApiException ex) {
+            _logger.error("could not determine backend storage volumes for {}: ", ex);
+        }
+        
+        if (null != backendVolumeMap) {
+            for (Entry<String, String> entry : backendVolumeMap.entrySet()) {
+                _logger.info("attempting to find unmanaged backend volume {} with wwn {}", 
+                        entry.getKey(), entry.getValue());
+                
+                String backendWwn = entry.getValue();
+                URIQueryResultList results = new URIQueryResultList();
+                _dbClient.queryByConstraint(AlternateIdConstraint.
+                        Factory.getUnmanagedVolumeWwnConstraint(
+                                BlockObject.normalizeWWN(backendWwn)), results);
+                if (results.iterator() != null) {
+                    for (URI uri : results) {
+                        associatedVolumes.add(uri);
+                    }
                 }
             }
         }

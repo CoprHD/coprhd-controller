@@ -82,8 +82,10 @@ public class RecoveryManager implements Runnable {
      * Initialize recovery manager
      */
     public void init() {
-        startRecoveryLeaderSelector();
-        addRecoveryStatusListener();
+        if (!isVMwareVapp()) {
+            startRecoveryLeaderSelector();
+            addRecoveryStatusListener();
+        }
     }
 
     /**
@@ -452,10 +454,14 @@ public class RecoveryManager implements Runnable {
      * Check if platform is supported
      */
     private void validatePlatform() {
-        if (PlatformUtils.isVMwareVapp()) {
+        if (isVMwareVapp()) {
             log.warn("Platform(vApp) is unsupported for node recovery");
             throw new UnsupportedOperationException("Platform(vApp) is unsupported for node recovery");
         }
+    }
+
+    private boolean isVMwareVapp() {
+        return PlatformUtils.isVMwareVapp();
     }
 
     /**

@@ -7,12 +7,15 @@ package com.emc.storageos.systemservices.impl.propertyhandler;
 
 import com.emc.storageos.model.property.*;
 import com.emc.storageos.svcs.errorhandling.resources.*;
+import com.emc.storageos.systemservices.impl.upgrade.*;
 import org.slf4j.*;
 
 import java.util.*;
 
 public class UniqueNodeNameHandler implements UpdateHandler{
     private static final Logger _log = LoggerFactory.getLogger(UniqueNodeNameHandler.class);
+
+    private static volatile CoordinatorClientExt _coordinator;
 
     private static final String USE_SHORT_NODE_NAME= "use_short_node_name";
     private static final String NODE_COUNT = "node_count";
@@ -28,11 +31,15 @@ public class UniqueNodeNameHandler implements UpdateHandler{
      * @param newProps
      */
     public void before(PropertyInfoRestRep oldProps,PropertyInfoRestRep newProps){
-        ArrayList<String> nodeNameProperties = getNodeNameProperties(newProps);
-        ArrayList<String> changedProperties = new ArrayList<String>();
-        String uniqueShortNameValue = newProps.getProperty(USE_SHORT_NODE_NAME);
+        Map<String, String> propInfo = _coordinator.getPropertyInfo().getProperties();
 
-        //if unique short name is changed to true check all properties
+        //get all node name properties (# of these change depending on deployment)
+        ArrayList<String> nodeNameProperties = getNodeNameProperties(propInfo);
+
+        ArrayList<String> changedProperties = new ArrayList<String>();
+        String uniqueShortNameValue = getLatestValue(USE_SHORT_NODE_NAME,newProps,propInfo);
+
+        //if unique short name is changed to true check all node name properties, otherwise check only changed
         if (isProprotyChanged(oldProps,newProps,USE_SHORT_NODE_NAME) && uniqueShortNameValue.equalsIgnoreCase("true")) {
             changedProperties.addAll(nodeNameProperties);
         } else {
@@ -42,7 +49,7 @@ public class UniqueNodeNameHandler implements UpdateHandler{
                 }
             }
         }
-
+        //no changed node name properties then return
         if (changedProperties.isEmpty()){
             return;
         }
@@ -50,9 +57,9 @@ public class UniqueNodeNameHandler implements UpdateHandler{
         if (uniqueShortNameValue.equalsIgnoreCase("true")){
             //validates short names are unique (implies full hostname is unique as well)
             for(String changedProp : changedProperties){
-                String changedValue=newProps.getProperty(changedProp).split("\\.")[0];
+                String changedValue=getLatestValue(changedProp,newProps,propInfo).split("\\.")[0];
                 for(String prop : nodeNameProperties){
-                    String compareValue=newProps.getProperty(prop).split("\\.")[0];
+                    String compareValue=getLatestValue(prop,newProps,propInfo).split("\\.")[0];
 
                     if(!changedProp.equals(prop)&&changedValue.equals(compareValue)){
                         throw BadRequestException.badRequests.invalidNodeShortNamesAreNotUnique(changedValue,changedProp,prop);
@@ -62,9 +69,9 @@ public class UniqueNodeNameHandler implements UpdateHandler{
         } else {
             //validates that full hostname is unique
             for(String changedProp : changedProperties){
-                String changedValue=newProps.getProperty(changedProp);
+                String changedValue=getLatestValue(changedProp,newProps,propInfo);
                 for(String prop : nodeNameProperties){
-                    String compareValue=newProps.getProperty(prop);
+                    String compareValue=getLatestValue(prop,newProps,propInfo);
 
                     if(!changedProp.equals(prop)&&changedValue.equals(compareValue)){
                         throw BadRequestException.badRequests.invalidNodeNamesAreNotUnique(changedValue,changedProp,prop);
@@ -82,6 +89,14 @@ public class UniqueNodeNameHandler implements UpdateHandler{
      */
     public void after(PropertyInfoRestRep oldProps,PropertyInfoRestRep newProps){
 
+    }
+
+    public String getLatestValue(String property, PropertyInfoRestRep newProps, Map<String, String> propInfo) {
+        String value = newProps.getProperty(property);
+        if (value != null) {
+            return value;
+        }
+        return propInfo.get(property);
     }
 
     public boolean isProprotyChanged(PropertyInfoRestRep oldProps, PropertyInfoRestRep newProps, String property) {
@@ -104,16 +119,16 @@ public class UniqueNodeNameHandler implements UpdateHandler{
     }
 
 
-    private ArrayList<String> getNodeNameProperties(PropertyInfoRestRep newProps) {
+    private ArrayList<String> getNodeNameProperties(Map<String, String> propInfo) {
         ArrayList<String> nodeNameProperties = new ArrayList<String>();
 
         //check if standalone otherwise generate properties based on node count
-        if (newProps.getProperty(NODE_STANDALONE_NAME) != null) {
+        if (propInfo.containsKey(NODE_STANDALONE_NAME)) {
             nodeNameProperties.add(NODE_STANDALONE_NAME);
             return nodeNameProperties;
         }
 
-        int nodeCount = Integer.parseInt(newProps.getProperty(NODE_COUNT));
+        int nodeCount = Integer.parseInt(propInfo.get(NODE_COUNT));
 
         for (int i = 1; i <= nodeCount; i++) {
             nodeNameProperties.add("node_" + i + "_name");

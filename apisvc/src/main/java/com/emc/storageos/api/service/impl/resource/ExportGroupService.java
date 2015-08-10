@@ -1176,6 +1176,8 @@ public class ExportGroupService extends TaskResourceService {
         Map<URI, Map<URI, Integer>> storageMap = computeAndValidateVolumes(newVolumesMap, exportGroup, param);
         _log.info("Updated volumes belong to storage systems: {}", storageMap.keySet().toArray());
 
+        Map<URI, Integer> addedVolumesMap = getChangedVolumes(param, true);
+
         // get and validate the new clients
         Project project = queryObject(Project.class, exportGroup.getProject().getURI(), true);
         List<URI> newInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
@@ -1197,7 +1199,7 @@ public class ExportGroupService extends TaskResourceService {
         // push it to storage devices
         BlockExportController exportController = getExportController();
         _log.info("Submitting export group update request.");
-        exportController.exportGroupUpdate(exportGroup.getId(), newVolumesMap, newClusters,
+        exportController.exportGroupUpdate(exportGroup.getId(), newVolumesMap, addedVolumesMap, newClusters,
                 newHosts, newInitiators, task);
         return toTask(exportGroup, task, op);
     }

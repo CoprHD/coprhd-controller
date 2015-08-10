@@ -419,11 +419,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
 
                 if (update) {
+                    // No volumes are added
+                    Map<URI, Integer> addedVolumesMap = new HashMap<>();
                     waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
                             String.format("Updating export group %s", export.getId()), waitFor,
                             export.getId(), export.getId().toString(),
                             this.getClass(),
-                            updateExportGroupMethod(export.getId(), updatedVolumesMap,
+                            updateExportGroupMethod(export.getId(), updatedVolumesMap, addedVolumesMap,
                                     updatedClusters, updatedHosts, updatedInitiators),
                             null, null);
                 }
@@ -443,6 +445,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
+            // No volumes are added
+            Map<URI, Integer> addedVolumesMap = new HashMap<>();
+
             // Only update if the list as changed
             if (updatedInitiators.removeAll(initiatorsURI)) {
                 waitFor = workflow.createStep(
@@ -453,7 +458,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         export.getId().toString(),
                         this.getClass(),
                         updateExportGroupMethod(export.getId(), updatedInitiators.isEmpty() ? new HashMap<URI, Integer>()
-                                : updatedVolumesMap,
+                                : updatedVolumesMap, addedVolumesMap,
                                 updatedClusters, updatedHosts, updatedInitiators),
                         null, null);
             }
@@ -476,13 +481,15 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     updatedInitiators.remove(initiator.getId());
                 }
             }
+            // No volumes are added
+            Map<URI, Integer> addedVolumesMap = new HashMap<>();
 
             waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
                     String.format("Updating export group %s", export.getId()), waitFor,
                     export.getId(), export.getId().toString(),
                     this.getClass(),
                     updateExportGroupMethod(export.getId(), updatedInitiators.isEmpty() ? new HashMap<URI, Integer>() : updatedVolumesMap,
-                            updatedClusters, updatedHosts, updatedInitiators),
+                            addedVolumesMap, updatedClusters, updatedHosts, updatedInitiators),
                     null, null);
         }
         return waitFor;
@@ -514,11 +521,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
             }
 
+            // No volumes are added
+            Map<URI, Integer> addedVolumesMap = new HashMap<>();
             waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
                     String.format("Updating export group %s", eg.getId()), waitFor,
                     eg.getId(), eg.getId().toString(),
                     this.getClass(),
-                    updateExportGroupMethod(eg.getId(), updatedVolumesMap,
+                    updateExportGroupMethod(eg.getId(), updatedVolumesMap, addedVolumesMap,
                             updatedClusters, updatedHosts, updatedInitiators),
                     null, null);
         }
@@ -629,6 +638,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 updatedInitiators.remove(initiator.getId());
             }
 
+
             if ((updatedInitiators.isEmpty() && export.getType().equals(ExportGroupType.Initiator.name())) ||
                     (updatedHosts.isEmpty() && export.getType().equals(ExportGroupType.Host.name()))) {
                 waitFor = workflow.createStep(DELETE_EXPORT_GROUP_STEP,
@@ -638,6 +648,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         deleteExportGroupMethod(export.getId()),
                         null, null);
             } else {
+                // No volumes are added
+                Map<URI, Integer> addedVolumesMap = new HashMap<>();
+
                 waitFor = workflow.createStep(
                         UPDATE_EXPORT_GROUP_STEP,
                         String.format("Updating export group %s", export.getId()),
@@ -646,7 +659,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         export.getId().toString(),
                         this.getClass(),
                         updateExportGroupMethod(export.getId(), updatedInitiators.isEmpty() ? new HashMap<URI, Integer>()
-                                : updatedVolumesMap,
+                                : updatedVolumesMap, addedVolumesMap,
                                 updatedClusters, updatedHosts, updatedInitiators),
                         null, null);
             }
@@ -655,15 +668,17 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public Workflow.Method updateExportGroupMethod(URI exportGroupURI, Map<URI, Integer> newVolumesMap,
+            Map<URI, Integer> addedVolumesMap,
             Collection<URI> newClusters, Collection<URI> newHosts, Collection<URI> newInitiators) {
-        return new Workflow.Method("updateExportGroup", exportGroupURI, newVolumesMap,
+        return new Workflow.Method("updateExportGroup", exportGroupURI, newVolumesMap, addedVolumesMap,
                 newClusters, newHosts, newInitiators);
     }
 
-    public void updateExportGroup(URI exportGroup, Map<URI, Integer> newVolumesMap,
+    public void updateExportGroup(URI exportGroup, Map<URI, Integer> newVolumesMap, Map<URI, Integer> addedVolumesMap,
             List<URI> newClusters, List<URI> newHosts, List<URI> newInitiators, String stepId) {
         BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
-        blockController.exportGroupUpdate(exportGroup, newVolumesMap, newClusters,
+
+        blockController.exportGroupUpdate(exportGroup, newVolumesMap, addedVolumesMap, newClusters,
                 newHosts, newInitiators, stepId);
     }
 
@@ -768,11 +783,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         deleteExportGroupMethod(export.getId()),
                         null, null);
             } else {
+                // No volumes are added
+                Map<URI, Integer> addedVolumesMap = new HashMap<>();
+
                 waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
                         String.format("Updating export group %s", export.getId()), waitFor,
                         export.getId(), export.getId().toString(),
                         this.getClass(),
-                        updateExportGroupMethod(export.getId(), updatedVolumesMap,
+                        updateExportGroupMethod(export.getId(), updatedVolumesMap, addedVolumesMap,
                                 updatedClusters, updatedHosts, updatedInitiators),
                         null, null);
             }
@@ -964,11 +982,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             deleteExportGroupMethod(export.getId()),
                             null, null);
                 } else {
+                    // No volumes are added
+                    Map<URI, Integer> addedVolumesMap = new HashMap<>();
                     waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
                             String.format("Updating export group %s", export.getId()), waitFor,
                             export.getId(), export.getId().toString(),
                             this.getClass(),
-                            updateExportGroupMethod(export.getId(), export.getVolumesMap(),
+                            updateExportGroupMethod(export.getId(), export.getVolumesMap(), addedVolumesMap,
                                     export.getClusters(), export.getHosts(), export.getInitiators()),
                             null, null);
                 }

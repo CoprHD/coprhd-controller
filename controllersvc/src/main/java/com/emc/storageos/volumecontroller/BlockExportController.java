@@ -37,6 +37,7 @@ public interface BlockExportController extends Controller {
      * 
      * @param export the export group to be updated
      * @param updatedBlockObjectMap the updated map of block-object-to-lun
+     * @param addedVolumes added volumes
      * @param updatedClusters the updated list of clusters
      * @param updatedHosts the updated list of hosts
      * @param updatedInitiators the updates list of initiators
@@ -44,6 +45,7 @@ public interface BlockExportController extends Controller {
      * @throws ControllerException
      */
     public void exportGroupUpdate(URI export, Map<URI, Integer> updatedBlockObjectMap,
+            Map<URI, Integer> addedVolumes,
             List<URI> updatedClusters,
             List<URI> updatedHosts,
             List<URI> updatedInitiators,

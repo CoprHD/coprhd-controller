@@ -353,6 +353,7 @@ public class BlockDeviceExportController implements BlockExportController {
 
     @Override
     public void exportGroupUpdate(URI export, Map<URI, Integer> updatedBlockObjectMap,
+            Map<URI, Integer> addedVolumes,
             List<URI> updatedClusters, List<URI> updatedHosts,
             List<URI> updatedInitiators, String opId)
             throws ControllerException {
@@ -373,7 +374,7 @@ public class BlockDeviceExportController implements BlockExportController {
             StringSetUtil.removeDuplicates(updatedHosts);
             StringSetUtil.removeDuplicates(updatedInitiators);
 
-            computeDiffs(export, updatedBlockObjectMap, updatedInitiators,
+            computeDiffs(export, updatedBlockObjectMap, addedVolumes, updatedInitiators,
                     addedStorageToBlockObjects, removedStorageToBlockObjects,
                     addedInitiators, removedInitiators, addedHosts, removedHosts,
                     addedClusters, removedClusters);
@@ -458,7 +459,7 @@ public class BlockDeviceExportController implements BlockExportController {
      * @param addedClusters list of clusters to add
      * @param removedClusters list of cluster to remove
      */
-    private void computeDiffs(URI expoUri, Map<URI, Integer> newBlockObjects,
+    private void computeDiffs(URI expoUri, Map<URI, Integer> newBlockObjects, Map<URI, Integer> addedVolumesFromRequest,
             List<URI> newInitiators,
             Map<BlockObjectControllerKey, Map<URI, Integer>> addedBlockObjects,
             Map<BlockObjectControllerKey, Map<URI, Integer>> removedBlockObjects,
@@ -493,8 +494,15 @@ public class BlockDeviceExportController implements BlockExportController {
             getOrAddStorageMap(controllerKey, removedBlockObjects);
             if (exportGroup.getVolumes() == null ||
                     !exportGroup.getVolumes().keySet().contains(uri.toString())) {
-                addedBlockObjects.get(controllerKey).put(uri, newBlockObjects.get(uri));
-                _log.info("Block object {} to add to storage: {}", bo.getId(), controllerKey);
+                // Add only volumes which are in the list of added volumes in the request. A volume can be deleted from
+                // export group by concurrent remove request. We need to make sure that we do not add such volumes back.
+                if (addedVolumesFromRequest.keySet().contains(uri)) {
+                    addedBlockObjects.get(controllerKey).put(uri, newBlockObjects.get(uri));
+                    _log.info("Block object {} to add to storage: {}", bo.getId(), controllerKey);
+                } else {
+                    _log.info("Block object {} is not in the list of added volumes in the request. " +
+                            "Not added to storage: {}.", bo.getId(), controllerKey);
+                }
             } else {
                 existingMap.remove(uri);
             }

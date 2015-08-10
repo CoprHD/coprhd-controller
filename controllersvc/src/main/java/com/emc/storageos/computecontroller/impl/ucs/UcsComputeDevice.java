@@ -542,8 +542,10 @@ public class UcsComputeDevice implements ComputeDevice {
                         }
                     }
 
-                    blockExportController.exportGroupUpdate(exportGroup.getId(), updatedVolumesMap, updatedClusters,
-                            updatedHosts, updatedInitiators, task);
+                    // There are no volumes to add to the export group.
+                    Map<URI, Integer> addedVolumesMap =  new HashMap<>();
+                    blockExportController.exportGroupUpdate(exportGroup.getId(), updatedVolumesMap, addedVolumesMap,
+                            updatedClusters, updatedHosts, updatedInitiators, task);
 
                     while (true) {
                         Thread.sleep(TASK_STATUS_POLL_FREQUENCY);

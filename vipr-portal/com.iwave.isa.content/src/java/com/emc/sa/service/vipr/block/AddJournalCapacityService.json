@@ -26,7 +26,7 @@
         },
 
         consistencyGroup:{
-            type:"assetType.vipr.consistencyGroup",
+            type:"assetType.vipr.consistencyGroupByProject",
             required:false
         },
 

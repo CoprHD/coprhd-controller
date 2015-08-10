@@ -38,6 +38,12 @@ public class ConsistencyGroupProvider extends BaseAssetOptionsProvider {
         }
     }
 
+    @Asset("consistencyGroupByProject")
+    @AssetDependencies({ "project" })
+    public List<AssetOption> getConsistencyGroupsByProject(AssetOptionsContext ctx, URI projectId) {
+        return createBaseResourceOptions(api(ctx).blockConsistencyGroups().search().byProject(projectId).run());
+    }
+
     @Asset("consistencyGroupWithVirtualPoolChangeOperation")
     @AssetDependencies({ "project", "virtualPoolChangeOperation", "targetVirtualPool" })
     public List<AssetOption> getConsistencyGroupsChangeVPool(AssetOptionsContext ctx, URI projectId,

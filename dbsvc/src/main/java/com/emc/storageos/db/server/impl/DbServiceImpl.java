@@ -473,7 +473,7 @@ public class DbServiceImpl implements DbService {
         return true;
     }
 
-    private void setDbInitializedFlag() {
+    public void setDbInitializedFlag() {
         File dbInitializedFlag = new File(dbInitializedFlagFile);
         try {
             if (!dbInitializedFlag.exists()) {

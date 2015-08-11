@@ -29,6 +29,7 @@ import com.emc.storageos.security.geo.GeoDependencyChecker;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.services.util.JmxServerWrapper;
 import com.emc.storageos.services.util.LoggingUtils;
+
 import org.apache.cassandra.config.Schema;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -38,6 +39,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.beans.Introspector;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.util.*;
@@ -54,7 +56,7 @@ public class DbsvcTestBase {
     }
 
     private static final Logger _log = LoggerFactory.getLogger(DbsvcTestBase.class);
-    protected static DbServiceImpl _dbsvc;
+    protected static TestMockDbServiceImpl _dbsvc;
     protected static ServiceImpl service;
     protected static DbClientImpl _dbClient;
     protected static boolean isDbStarted = false;
@@ -237,7 +239,7 @@ public class DbsvcTestBase {
         DependencyChecker localDependencyChecker = new DependencyChecker(_dbClient, scanner);
         _geoDependencyChecker = new GeoDependencyChecker(_dbClient, _coordinator, localDependencyChecker);
 
-        _dbsvc = new DbServiceImpl();
+        _dbsvc = new TestMockDbServiceImpl();
         _dbsvc.setConfig("db-test.yaml");
         _dbsvc.setSchemaUtil(util);
         _dbsvc.setCoordinator(_coordinator);
@@ -298,6 +300,27 @@ public class DbsvcTestBase {
         @Override
         public void insertVdcVersion(final DbClient dbClient) {
             // Do nothing
+        }
+    }
+    
+    protected static class TestMockDbServiceImpl extends DbServiceImpl {
+    	@Override
+    	public void setDbInitializedFlag() {
+    		String os = System.getProperty("os.name").toLowerCase();
+    		String currentPath = System.getProperty("user.dir");
+    		_log.info("CurrentPath is {}", currentPath);
+    		File dbInitializedFlag;
+    		if( os.indexOf("windows") >= 0) {
+    			dbInitializedFlag = new File(".");
+    		}else{
+    			dbInitializedFlag = new File("/var/run/storageos/dbsvc_initialized");
+    		}
+            try {
+                if (!dbInitializedFlag.exists())
+                    new FileOutputStream(dbInitializedFlag).close();
+            }catch (Exception e) {
+                _log.error("Failed to create file {} e", dbInitializedFlag.getName(), e);
+            }
         }
     }
 }

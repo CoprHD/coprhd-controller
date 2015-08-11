@@ -278,6 +278,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
             }
             sleepBeforeRetry();
         }  // while -- not done
+        markMigrationFail(currentSchemaVersion, null);
         return false;
     }
 
@@ -295,7 +296,9 @@ public class MigrationHandlerImpl implements MigrationHandler {
         errMsg += " Please contract the EMC support team.";
 
         alertLog.error(errMsg);
-        log.error(e.getMessage(), e);
+        if (e != null) {
+            log.error(e.getMessage(), e);
+        }
     }
 
     private boolean isUnRetryableException(Exception e) {

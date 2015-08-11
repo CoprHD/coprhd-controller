@@ -14,6 +14,13 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
+import java.net.URI;
+
+import javax.cim.CIMObjectPath;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -23,18 +30,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
-import com.emc.storageos.volumecontroller.Job.JobStatus;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
-
-import org.apache.http.client.utils.URIUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMObjectPath;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
 
 public class SmisBlockRestoreSnapshotJob extends SmisJob {
     private static final Logger _log = LoggerFactory.getLogger(SmisBlockRestoreSnapshotJob.class);
@@ -44,30 +40,31 @@ public class SmisBlockRestoreSnapshotJob extends SmisJob {
             TaskCompleter taskCompleter) {
         super(cimJob, storageSystem, taskCompleter, "RestoreBlockSnapshot");
     }
-    
+
     /**
      * Called to update the job status when the restore snapshot job completes.
-     * 
+     *
      * @param jobContext The job context.
      */
+    @Override
     public void updateStatus(JobContext jobContext) throws Exception {
         _log.info("Updating status of SmisBlockRestoreSnapshotJob");
         DbClient dbClient = jobContext.getDbClient();
         JobStatus jobStatus = getJobStatus();
         URI snapshotId = getTaskCompleter().getId();
-        
+
         if (jobStatus == JobStatus.SUCCESS && snapshotId != null && URIUtil.isType(snapshotId, BlockSnapshot.class)) {
             BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotId);
-            if (!NullColumnValueGetter.isNullNamedURI(snapshot.getParent())) {
+            if (snapshot != null && !NullColumnValueGetter.isNullNamedURI(snapshot.getParent())) {
                 Volume parentVolume = dbClient.queryObject(Volume.class, snapshot.getParent());
                 StorageSystem storageSystem = dbClient.queryObject(
                         StorageSystem.class, parentVolume.getStorageController());
-                
+
                 if (parentVolume != null && parentVolume.checkForRp()
                         && !NullColumnValueGetter.isNullURI(parentVolume.getProtectionController())
                         && storageSystem.getSystemType() != null
                         && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())) {
-                    // Now re-enable the RP tag on the volume.  The tag was removed initially to perform the
+                    // Now re-enable the RP tag on the volume. The tag was removed initially to perform the
                     // restore so it must be tagged again now that the restore is complete.
                     SmisCommandHelper helper = jobContext.getSmisCommandHelper();
                     _log.info(String.format("Enabling the RecoverPoint tag on volume %s", parentVolume.getId().toString()));
@@ -75,7 +72,7 @@ public class SmisBlockRestoreSnapshotJob extends SmisJob {
                 }
             }
         }
-        
+
         super.updateStatus(jobContext);
     }
 }

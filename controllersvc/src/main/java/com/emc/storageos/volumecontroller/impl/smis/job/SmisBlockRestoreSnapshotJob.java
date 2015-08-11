@@ -57,18 +57,19 @@ public class SmisBlockRestoreSnapshotJob extends SmisJob {
             BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotId);
             if (snapshot != null && !NullColumnValueGetter.isNullNamedURI(snapshot.getParent())) {
                 Volume parentVolume = dbClient.queryObject(Volume.class, snapshot.getParent());
-                StorageSystem storageSystem = dbClient.queryObject(
-                        StorageSystem.class, parentVolume.getStorageController());
-
-                if (parentVolume != null && parentVolume.checkForRp()
-                        && !NullColumnValueGetter.isNullURI(parentVolume.getProtectionController())
-                        && storageSystem.getSystemType() != null
-                        && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())) {
-                    // Now re-enable the RP tag on the volume. The tag was removed initially to perform the
-                    // restore so it must be tagged again now that the restore is complete.
-                    SmisCommandHelper helper = jobContext.getSmisCommandHelper();
-                    _log.info(String.format("Enabling the RecoverPoint tag on volume %s", parentVolume.getId().toString()));
-                    helper.doApplyRecoverPointTag(storageSystem, parentVolume, true);
+                if (parentVolume != null) {
+                    StorageSystem storageSystem = dbClient.queryObject(
+                            StorageSystem.class, parentVolume.getStorageController());
+                    if (parentVolume.checkForRp()
+                            && !NullColumnValueGetter.isNullURI(parentVolume.getProtectionController())
+                            && storageSystem.getSystemType() != null
+                            && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())) {
+                        // Now re-enable the RP tag on the volume. The tag was removed initially to perform the
+                        // restore so it must be tagged again now that the restore is complete.
+                        SmisCommandHelper helper = jobContext.getSmisCommandHelper();
+                        _log.info(String.format("Enabling the RecoverPoint tag on volume %s", parentVolume.getId().toString()));
+                        helper.doApplyRecoverPointTag(storageSystem, parentVolume, true);
+                    }
                 }
             }
         }

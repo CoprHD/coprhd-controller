@@ -14,42 +14,43 @@ package com.emc.storageos.db.client.model;
  * 
  */
 @SuppressWarnings("serial")
+@Cf("BlockSnapshot")
 public class BlockSnapshotSession extends DataObject implements ProjectResourceSnapshot {
-    
+
     // Enum defines copy modes for array snapshot sessions.
     public enum CopyMode {
         copy,
         nocopy
     }
 
-    // The id of source Volume or BlockSnapshot for the array 
+    // The id of source Volume or BlockSnapshot for the array
     // snapshot session.
     private NamedURI _parent;
-    
+
     // The project id.
     private NamedURI _project;
-    
+
     // The ids of the BlockSnapshot instances associated with
     // the array snapshot session. The BlockSnapshot instances
     // represent the target volumes linked to the array snapshot.
     private StringSet _linkedTargets;
-    
+
     // The session label specified by the user when creating a
     // new BlockSnapshotSession instance. Maybe be different
     // from the "label" when the source is in a consistency
-    // group, in which case the BlockSnapshotSession instance 
-    // for each source in the consistency group will have the 
+    // group, in which case the BlockSnapshotSession instance
+    // for each source in the consistency group will have the
     // same session label but a different, unique label.
     private String _sessionLabel;
-    
+
     // true when the session is created in an active state, else
     // false.
     private Boolean _isSyncActive;
-    
+
     // Reference to snapshot session on the array for example an
-    // CIMObjectPath for a SynchronizationAspectForSource or 
+    // CIMObjectPath for a SynchronizationAspectForSource or
     // SynchronizationAspectForSourceGroup. It is necessary to
-    // maintain this reference because it may not be navigable 
+    // maintain this reference because it may not be navigable
     // using the API.
     private String _sessionInstance;
 
@@ -59,7 +60,7 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
     public NamedURI getParent() {
         return _parent;
     }
-    
+
     public void setParent(NamedURI parent) {
         _parent = parent;
         setChanged("parent");
@@ -75,7 +76,7 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
     public NamedURI getProject() {
         return _project;
     }
-    
+
     public void setProject(NamedURI project) {
         _project = project;
         setChanged("project");
@@ -86,12 +87,12 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
     public StringSet getLinkedTargets() {
         return _linkedTargets;
     }
-    
+
     public void setLinkedTargets(StringSet linkedTargets) {
         _linkedTargets = linkedTargets;
         setChanged("linkedTargets");
     }
-    
+
     @AlternateId("AltIdIndex")
     @Name("sessionLabel")
     public String getSessionLabel() {
@@ -102,7 +103,7 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
         _sessionLabel = sessionLabel;
         setChanged("sessionLabel");
     }
-    
+
     @Name("isSyncActive")
     public Boolean getIsSyncActive() {
         return (_isSyncActive != null) ? _isSyncActive : Boolean.FALSE;
@@ -112,7 +113,7 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
         _isSyncActive = isSyncActive;
         setChanged("isSyncActive");
     }
-    
+
     @Name("sessionInstance")
     public String getSessionInstance() {
         return _sessionInstance;

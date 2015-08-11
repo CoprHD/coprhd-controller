@@ -354,7 +354,7 @@ public class MDSDialog extends SSHDialog {
      * @return active zoneset for given vsanId
      */
     public Zoneset showActiveZoneset(Integer vsanId) throws NetworkDeviceControllerException {
-        List<Zoneset> zonesets = showZoneset(vsanId, true, null, false);
+        List<Zoneset> zonesets = showZoneset(vsanId, true, null, false, false);
         return zonesets.isEmpty() ? null : zonesets.get(0);
     }
 
@@ -365,10 +365,11 @@ public class MDSDialog extends SSHDialog {
      * @param activeZonesetOnly - only return active zoneset. Otherwise, return all zonesets
      * @param zoneName - only returns zone with given zoneName. Return all zones, if not specified.
      * @param excludeMembers - true, do not include member with zone. Include members, if not specified.
+     * @param excludeAliases - true, do not include aliases with zone. Include aliases, if not specified.
      * @return List<Zoneset> zonesets within that fabric. If zoneName is specified, and there is a match, then only one zone is returned.
      */
-    public List<Zoneset> showZoneset(Integer vsanId, boolean activeZonesetOnly, String zoneName, boolean excludeMembers)
-            throws NetworkDeviceControllerException {
+    public List<Zoneset> showZoneset(Integer vsanId, boolean activeZonesetOnly, String zoneName, boolean excludeMembers,
+    		boolean excludeAliases) throws NetworkDeviceControllerException {
         List<Zoneset> zonesets = new ArrayList<Zoneset>();
         SSHPrompt[] prompts = { SSHPrompt.POUND, SSHPrompt.GREATER_THAN };
         StringBuilder buf = new StringBuilder();
@@ -433,13 +434,15 @@ public class MDSDialog extends SSHDialog {
 
                         // matched "pwwn <wwnid> [alias]" regex, thus
                         // set alias field as well
-                        if (groups.length >= 2 && groups[1] != null) {
+                        if (!excludeAliases && groups.length >= 2 && groups[1] != null) {
                             member.setAlias(groups[1].replace("[", "").replace("]", ""));
                         }
                     } else if (index == 3) {
                         // matched "device-alias <alias>
-                        member.setAlias(groups[0]); // set alias
-                        member.setAliasType(true); // indicate member type of alias
+                    	if(!excludeAliases) {
+                            member.setAlias(groups[0]); // set alias
+                            member.setAliasType(true); // indicate member type of alias
+                    	}
                         String pwwn = getDeviceAliasPwwn(groups[0], aliasDatabase);
                         if (!StringUtils.isEmpty(pwwn)) {
                             member.setAddress(pwwn);
@@ -667,7 +670,7 @@ public class MDSDialog extends SSHDialog {
                     vsan = new Vsan(vsanId.toString(), vsanName);
                     vsans.put(vsanId, vsan);
                     if (includeZonesets) {
-                        List<Zoneset> zonesets = showZoneset(vsanId, false, null, false);
+                        List<Zoneset> zonesets = showZoneset(vsanId, false, null, false, false);
                         for (Zoneset zs : zonesets) {
                             if (zs.getActive()) {
                                 vsan.setActiveZoneset(zs);

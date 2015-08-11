@@ -767,7 +767,8 @@ public class NetworkSystemService extends TaskResourceService {
     @Path("/{id}/san-fabrics/{fabricId}/san-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     public SanZonesRestRep getSanZones(@PathParam("id") URI id, @PathParam("fabricId") String fabricId,
-            @QueryParam("zone-name") String zoneName, @QueryParam("exclude-members") boolean excludeMembers) throws InternalException {
+            @QueryParam("zone-name") String zoneName, @QueryParam("exclude-members") boolean excludeMembers,
+            @QueryParam("exclude-aliases") boolean excludeAliases) throws InternalException {
         SanZonesRestRep szones = new SanZonesRestRep();
         ArgValidator.checkFieldUriType(id, NetworkSystem.class, "id");
         NetworkSystem device = queryResource(id);
@@ -779,7 +780,7 @@ public class NetworkSystemService extends TaskResourceService {
         }
 
         NetworkController controller = getNetworkController(device.getSystemType());
-        List<Zoneset> zonesets = controller.getZonesets(device.getId(), fabricId, fabricWwn, zoneName, excludeMembers);
+        List<Zoneset> zonesets = controller.getZonesets(device.getId(), fabricId, fabricWwn, zoneName, excludeMembers, excludeAliases);
         for (Zoneset zoneset : zonesets) {
             for (Zone zone : zoneset.getZones()) {
                 SanZoneRestRep sz = new SanZoneRestRep();

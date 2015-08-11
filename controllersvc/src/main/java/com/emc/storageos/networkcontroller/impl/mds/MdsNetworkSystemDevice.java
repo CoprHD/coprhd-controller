@@ -184,13 +184,13 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
     }
 
     @Override
-    public List<Zoneset> getZonesets(NetworkSystem network, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers)
-            throws Exception {
+    public List<Zoneset> getZonesets(NetworkSystem network, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers,
+    		boolean excludeAliases) throws Exception {
         MDSDialog dialog = null;
         try {
             dialog = setUpDialog(network);
             Integer vsanId = checkVsanFabric(dialog, fabricId, fabricWwn);
-            List<Zoneset> zonesets = dialog.showZoneset(vsanId, true, zoneName, excludeMembers);
+            List<Zoneset> zonesets = dialog.showZoneset(vsanId, true, zoneName, excludeMembers, excludeAliases);
             return zonesets;
         } catch (Exception ex) {
             _log.error("Cannot get zones: " + ex.getLocalizedMessage());

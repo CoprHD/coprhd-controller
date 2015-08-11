@@ -419,7 +419,7 @@ public class ControlService {
      */
     @GET
     @Path("cluster/dbrepair-status")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN, Role.SYSTEM_MONITOR })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public DbRepairStatus getDbRepairStatus() throws Exception {
         _log.info("Received a getting db repair status request");

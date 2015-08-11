@@ -145,9 +145,9 @@ import com.sun.jersey.api.NotFoundException;
  * interfaces by authorized users.
  * 
  */
-@DefaultPermissions(read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
-        write_roles = { Role.TENANT_ADMIN },
-        read_acls = { ACL.ANY })
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
+        writeRoles = { Role.TENANT_ADMIN },
+        readAcls = { ACL.ANY })
 @Path("/compute/hosts")
 public class HostService extends TaskResourceService {
 

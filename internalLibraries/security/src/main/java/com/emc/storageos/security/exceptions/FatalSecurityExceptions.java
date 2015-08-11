@@ -133,7 +133,7 @@ public interface FatalSecurityExceptions {
     public FatalSecurityException failedToUpdateKeyCertificateEntry();
 
     @DeclareServiceCode(ServiceCode.SECURITY_ERROR)
-    public FatalSecurityException ViPRKeyCertificateEntryCannotBeDeleted();
+    public FatalSecurityException viprKeyCertificateEntryCannotBeDeleted();
 
     @DeclareServiceCode(ServiceCode.SECURITY_ERROR)
     public FatalSecurityException canOnlyUpdateViPRKeyCertificate();
@@ -185,7 +185,7 @@ public interface FatalSecurityExceptions {
     public FatalSecurityException failToDoBase64Decode(final Throwable e);
 
     @DeclareServiceCode(ServiceCode.SECURITY_ERROR)
-    FatalSecurityException NotSupportAlgorithm(String algo);
+    FatalSecurityException notSupportAlgorithm(String algo);
 
     @DeclareServiceCode(ServiceCode.SECURITY_ERROR)
     FatalSecurityException failToGenerateKeypair(String algo, final Throwable e);

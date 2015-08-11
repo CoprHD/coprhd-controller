@@ -6,12 +6,15 @@
 package com.emc.storageos.systemservices.impl.security;
 
 import java.net.URI;
+import java.security.MessageDigest;
 import java.security.cert.Certificate;
 import java.security.Key;
 import java.security.KeyStore;
 import java.util.Map;
 
 import com.emc.storageos.security.ssh.PEMUtil;
+
+import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,11 +42,14 @@ public class SecretsManager extends AbstractManager {
 
     private static final String NGINX_PUB_KEY = "nginx_pub_key";
     private static final String NGINX_PRIV_KEY = "nginx_priv_key";
+    private static final String NGINX_KEY_HASH = "nginx_key_hash";
     private static final String SSL_PROP_TAG = "ssl";
 
     private String key;
     private String cert;
     private String localKey;
+    private String keyHash;
+    private String localKeyHash;
 
     @Autowired
     private SshConfigurator sshConfig;
@@ -88,12 +94,19 @@ public class SecretsManager extends AbstractManager {
         syncTargetKeyAndCert();
         syncLocalKey();
 
-        if (escapeNewlines(key).equals(localKey)) {
+        if (escapeNewlines(key).equals(localKey) && keyHash.equals(localKeyHash)) {
             log.info("Key in coordinatorsvc and local bootfs are sync. No need to rewrite");
             return;
         }
 
         updateLocalSslProps();
+    }
+
+    private String generateKeyHash(String key) throws Exception {
+        MessageDigest md = MessageDigest.getInstance("SHA-1");
+        md.update(key.getBytes());
+        byte[] digest = md.digest();
+        return new String(Base64.encodeBase64(digest));
     }
 
     private String getAndEncodePrivateKey(KeyStore keyStore) throws Exception {
@@ -132,17 +145,23 @@ public class SecretsManager extends AbstractManager {
 
         log.info("Invoking SSL notifier");
         Notifier.getInstance(SSL_PROP_TAG).doNotify();
+
+        sslProps.addProperty(NGINX_KEY_HASH, keyHash);
+        log.info("updating local ssl key hash property");
+        localRepository.setSslPropertyInfo(sslProps);
     }
 
     private void syncTargetKeyAndCert() throws Exception {
         KeyStore viprKeystore = KeyStoreUtil.getViPRKeystore(coordinator.getCoordinatorClient());
         key = getAndEncodePrivateKey(viprKeystore);
         cert = getAndEncodeCert(viprKeystore);
+        keyHash = generateKeyHash(key);
     }
 
     private void syncLocalKey() throws Exception {
         PropertyInfoExt localSslInfo = localRepository.getSslPropertyInfo();
         localKey = localSslInfo.getProperty(NGINX_PRIV_KEY);
+        localKeyHash = localSslInfo.getProperty(NGINX_KEY_HASH);
     }
 
     /**

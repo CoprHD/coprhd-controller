@@ -12,7 +12,6 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.VplexIngestionContext;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -264,25 +263,4 @@ public class VPlexControllerUtils {
         log.info("Device name for storage volume {} is {}", volumeNativeId, deviceName);
         return deviceName;
     }
-    
-    public static VplexIngestionContext getVplexIngestionContext(URI vplexUri, DbClient dbClient) throws Exception {
-        VPlexApiClient client = null;
-
-        try {
-            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
-            client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
-        } catch (URISyntaxException e) {
-            log.error("cannot load vplex api client", e);
-            throw e;
-        }
-
-        if (null != client) {
-            VplexIngestionContext vic = new VplexIngestionContext(vplexUri, dbClient, client);
-            return vic;
-        } else {
-            // TODO real exception
-            throw new Exception("couldn't load vplex ingestion context");
-        }
-    }
-
 }

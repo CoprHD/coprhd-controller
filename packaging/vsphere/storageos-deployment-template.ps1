@@ -126,6 +126,7 @@ $Script:isMemoryGiven=$false
 $Script:isNetmaskGiven=$false
 $Script:isUsernameGiven=$false
 $Script:isPasswordGiven=$false
+$Script:isVMX=$false
 
 # Usability
 function Usage() {
@@ -238,21 +239,26 @@ function CheckUsernameAndPasswordExistence() {
 
 function CheckRequiredParams($isInteractive) {		
 	$Script:nodeId=CheckParam $Script:nodeId "Node ID" $isInteractive $false IsValidNodeId
-	$Script:ds=CheckParam $Script:ds "Datastore" $isInteractive $false IsValidNotNullParam
-	$Script:net=CheckParam $Script:net "Network name" $isInteractive $false IsValidNotNullParam
+	if ($Script:isVMX -eq $false) {
+		$Script:ds=CheckParam $Script:ds "Datastore" $isInteractive $false IsValidNotNullParam
+		$Script:net=CheckParam $Script:net "Network name" $isInteractive $false IsValidNotNullParam
 	
-	$Script:targetUri=CheckParam $Script:targetUri "Target URI" $isInteractive $false IsValidNotNullParam
-	CheckUsernameAndPasswordExistence
-    if ($Script:isUsernameGiven -eq $false) {
-        $Script:username=CheckParam $Script:username "User name" $isInteractive $false IsValidNotNullParam	
-    }
-	if ($Script:isPasswordGiven -eq $false) {
-		$Script:password=CheckParam $Script:password "Password" $isInteractive $true IsValidNotNullParam
+		$Script:targetUri=CheckParam $Script:targetUri "Target URI" $isInteractive $false IsValidNotNullParam
+		CheckUsernameAndPasswordExistence
+	    if ($Script:isUsernameGiven -eq $false) {
+	        $Script:username=CheckParam $Script:username "User name" $isInteractive $false IsValidNotNullParam	
+	    }
+		if ($Script:isPasswordGiven -eq $false) {
+			$Script:password=CheckParam $Script:password "Password" $isInteractive $true IsValidNotNullParam
+		}
 	}
 }
 
 function CheckOtherParams($isInteractive) {
-	$Script:dm=CheckParam $Script:dm "Disk provisioning" $isInteractive $false IsValidDm
+	if ($Script:isVMX -eq $false) {
+		$Script:dm=CheckParam $Script:dm "Disk provisioning" $isInteractive $false IsValidDm
+	} 
+	$Script:vmFolder=CheckParam $Script:vmFolder "Folder" $isInteractive $false IsValidNotNullParam
 	$Script:cpuCount=CheckParam $Script:cpuCount "CPU count" $isInteractive $false IsValidCPUCount
 	$Script:memory=CheckParam $Script:memory "Memory" $isInteractive $false IsValidMemory
 	
@@ -279,25 +285,29 @@ function CheckFreshInstallParams() {
 
 function CheckVMSettingsInteractively($isInteractive) {
 	$Script:nodeId=CheckParam $Script:nodeId "Node ID" $isInteractive $false IsValidNodeId
-	$Script:ds=CheckParam $Script:ds "Datastore cluster" $isInteractive $false IsValidNotNullParam
-	$Script:net=CheckParam $Script:net "Network name" $isInteractive $false IsValidNotNullParam
-	$Script:dm=CheckParam $Script:dm "Disk provisioning" $isInteractive $false IsValidDm
+	if ($Script:isVMX -eq $false) {
+		$Script:ds=CheckParam $Script:ds "Datastore cluster" $isInteractive $false IsValidNotNullParam
+		$Script:net=CheckParam $Script:net "Network name" $isInteractive $false IsValidNotNullParam
+		$Script:dm=CheckParam $Script:dm "Disk provisioning" $isInteractive $false IsValidDm
+	}
 	$Script:vmFolder=CheckParam $Script:vmFolder "Folder" $isInteractive $false IsValidNotNullParam
 	$Script:vmName=CheckParam $Script:vmName "VM name" $isInteractive $false IsValidNotNullParam	
 	$Script:cpuCount=CheckParam $Script:cpuCount "CPU" $isInteractive $false IsValidCPUCount
 	$Script:memory=CheckParam $Script:memory "Memory" $isInteractive $false IsValidMemory
-	[string]$poweronValue="no" 
-	if ($Script:powerOn -eq $true) {
-		$poweronValue="yes"
+	if ($Script:isVMX -eq $false) {
+		[string]$poweronValue="no" 
+		if ($Script:powerOn -eq $true) {
+			$poweronValue="yes"
+		}
+		$poweronValue=CheckParam $poweronValue "Power on" $isInteractive $false IsValidBooleanParam
+		$Script:powerOn=$false
+		if ($poweronValue -eq "yes") {
+			$Script:powerOn=$true
+		}	
+		$Script:targetUri=CheckParam $Script:targetUri "Target URI" $isInteractive $false IsValidNotNullParam
+		$Script:username=CheckParam $Script:username "User name" $isInteractive $false IsValidNullParam
+		$Script:password=CheckParam $Script:password "Password" $isInteractive $true IsValidNullParam
 	}
-	$poweronValue=CheckParam $poweronValue "Power on" $isInteractive $false IsValidBooleanParam
-	$Script:powerOn=$false
-	if ($poweronValue -eq "yes") {
-		$Script:powerOn=$true
-	}	
-	$Script:targetUri=CheckParam $Script:targetUri "Target URI" $isInteractive $false IsValidNotNullParam
-	$Script:username=CheckParam $Script:username "User name" $isInteractive $false IsValidNullParam
-	$Script:password=CheckParam $Script:password "Password" $isInteractive $true IsValidNullParam
 }
 
 function ReadParamsFromFile($file, $isDotSettingsFile) {
@@ -559,10 +569,11 @@ function CheckParamsIsEmpty() {
 			$Script:ipaddr6_5=""
 		}
 	}
-
-	if (([String]::IsNullOrEmpty($Script:net)) -or ([String]::IsNullOrEmpty($Script:nodeId)) -or 
-		([String]::IsNullOrEmpty($Script:ds)) -or ([String]::IsNullOrEmpty($Script:targetUri))){
-		$Script:interactive=$true
+	if ($Script:isVMX -eq $false) {	
+		if (([String]::IsNullOrEmpty($Script:net)) -or ([String]::IsNullOrEmpty($Script:nodeId)) -or 
+			([String]::IsNullOrEmpty($Script:ds)) -or ([String]::IsNullOrEmpty($Script:targetUri))){
+			$Script:interactive=$true
+		}
 	}
 	
 	if (-not [String]::IsNullOrEmpty($Script:cpuCount)) {
@@ -697,23 +708,27 @@ function DisplayNetworkProperties() {
 
 function DisplayVMSettings() {
 	Write-Host "VM Settings"
-	Write-Host "	Mode [ install | redeploy ]: $Script:mode"
+	Write-Host "	Mode [ install | redeploy | vmx ]: $Script:mode"
 	Write-Host "	Node ID: $Script:nodeId"
-	Write-Host "	Datastore: $Script:ds"
-	Write-Host "	Network name: $Script:net"
-	Write-Host "	Disk provisioning [ thin | lazyzeroedthick | zeroedthick]: $Script:dm"
+	if ($Script:isVMX -eq $false) {
+		Write-Host "	Datastore: $Script:ds"
+		Write-Host "	Network name: $Script:net"
+		Write-Host "	Disk provisioning [ thin | lazyzeroedthick | zeroedthick]: $Script:dm"
+	}
 	Write-Host "	Folder: $Script:vmFolder"
 	Write-Host "	Virtual machine name: $Script:vmName"
 
 	Write-Host "	CPUs: $Script:cpuCount"
 	Write-Host "	Memory: $Script:memory"
-	$displayValueOfPowerOn="no"
-	if ($Script:powerOn -eq $true) {
-		$displayValueOfPowerOn="yes"
+	if ($Script:isVMX -eq $false) {	
+		$displayValueOfPowerOn="no"
+		if ($Script:powerOn -eq $true) {
+			$displayValueOfPowerOn="yes"
+		}
+		Write-Host "	Power on: $displayValueOfPowerOn"
+		Write-Host "	Target URI: $Script:targetUri"
+		Write-Host "	Username: $Script:username"
 	}
-	Write-Host "	Power on: $displayValueOfPowerOn"
-	Write-Host "	Target URI: $Script:targetUri"
-	Write-Host "	Username: $Script:username"
 }
 
 function DisplaySummary() {
@@ -811,11 +826,23 @@ function CalculateChecksumForOVFTemplateAndDisk4($ovfFileName, $disk4FileName, $
 
 function GenerateOVFFileTemplateForEachNode($disk4FileName, $currentNodeId) {
     $ovfTemplate='${include="storageos-vsphere-template.xml"}'
-    
+    $vSphereOnly="</Item>
+      <Item>
+        <rasd:Address>0</rasd:Address>
+        <rasd:Description>SCSI Controller</rasd:Description>
+        <rasd:ElementName>SCSI Controller 0</rasd:ElementName>
+        <rasd:InstanceID>3</rasd:InstanceID>
+        <rasd:ResourceSubType>VirtualSCSI</rasd:ResourceSubType>
+        <rasd:ResourceType>6</rasd:ResourceType>
+      </Item>"
+	
     $ovfTemplate=$ovfTemplate.Replace('${vmdk_dir}', $scriptPath)
 	$ovfTemplate=$ovfTemplate.Replace('${cpu_count}', $Script:cpuCount)
 	$ovfTemplate=$ovfTemplate.Replace('${memory}', $Script:memory)
     $ovfContent=$ovfTemplate.Replace('${2}', $disk4FileName)
+	if ($Script:isVMX -eq $true) {
+		$ovfContent=$ovfTemplate.Replace($vSphereOnly, "</Item>")
+	}
     $outputFilePath=$scriptPath+"\${product_name}-$releaseVersion-controller-$currentNodeId.ovf"
     [io.file]::WriteAllText($outputFilePath, $ovfContent)
 }
@@ -867,13 +894,14 @@ function CreateSubfolderAndMoveFiles($currentNodeId) {
 }
 
 function DisplayLicense() {
-	try {
-		[string]$license="${include="storageos-license-ps.txt"}" | out-host -paging
-	} 
-	catch {
-		# Do nothing
-	}
-	finally {
+	if ($Script:acceptAllEulas -eq $false) {
+		try {
+			[string]$license="${include="storageos-license-ps.txt"}" | out-host -paging
+		} 
+		catch {
+			# Do nothing
+		}
+
 		while ($true) {
 			Write-Host "Would you like to accept ViPR license? (Y/y/N/n): " -NoNewline
 			$userDecision=Read-Host
@@ -1023,6 +1051,51 @@ function DeploySingleNode($currentNodeId) {
     }
 }
 
+function DeployVMX($currentNodeId) {
+	$vmname=$Script:vmName
+	$acceptAllEulasOption="--acceptAllEulas"
+		
+    $ovfFileName=$scriptPath+"\${product_name}-$releaseVersion-$currentNodeId\${product_name}-$releaseVersion-controller-$currentNodeId.ovf"
+	$vmxFileName=$scriptPath+"\${product_name}-$releaseVersion-$currentNodeId\$vmname.vmx"
+	
+	# Generate vmx file
+	ovftool $acceptAllEulasOption $ovfFileName $vmxFileName
+	
+	# Generate disk section for VMX file 
+	$diskInfos='scsi0.virtualDev = "lsilogic"
+scsi0.present = "TRUE"
+scsi0:0.fileName = "{1}"
+scsi0:0.present = "TRUE"
+scsi0:1.fileName = "{2}"
+scsi0:1.present = "TRUE"
+scsi0:2.fileName = "{3}"
+scsi0:2.present = "TRUE"
+scsi0:3.fileName = "{4}"
+scsi0:3.present = "TRUE"
+scsi0:0.redo = ""
+scsi0:1.redo = ""
+scsi0:2.redo = ""
+scsi0:3.redo = ""
+scsi0.pciSlotNumber = "16"
+scsi0.sasWWID = "50 05 05 6b 78 7a a3 00"'
+	for ($i = 1; $i -le 3; $i++) {
+		$diskPath=$scriptPath"\${product_name}-$releaseVersion-disk$i.vmdk"
+		$diskInfos=$diskInfos.Replace("{$i}",$diskPath)
+	}
+	
+	$disk4Path=$scriptPath"\${product_name}-$releaseVersion-$currentNodeId\$disk4NamePrefix$currentNodeId.vmdk"
+	$diskInfos=$diskInfos.Replace("{4}",$disk4Path)
+	
+	# Read VMX file content and append disk infos
+	$vmxFileContent=Get-Content $vmxFileName
+	$vmxFileContent=$vmxFileContent.Replace('ethernet0.connectionType = "bridged"', 'ethernet0.connectionType = "nat"')
+	$vmxFileContent=$vmxFileContent+$diskInfos
+	[io.file]::WriteAllText($vmxFileName, $vmxFileContent)
+	
+	# Deploy VMX format to Virtual Machine location
+	ovftool $vmxFileName $Script:vmFolder
+}
+
 if($help) {
     Usage
     return
@@ -1039,10 +1112,9 @@ try {
 			Write-Host "****** Checking parameters of vSphere install ******"
 			LoadParamsFromFile
 			
-			# 0. Display license to let user confirm
-			if ($Script:acceptAllEulas -eq $false) {	
-				DisplayLicense
-			}
+			# 0. Display license to let user confirm	
+			DisplayLicense
+			
 			if ($Script:acceptAllEulas -eq $false) {
 				return
 			}
@@ -1056,29 +1128,46 @@ try {
 			$Script:file=CheckParam $Script:file "Config file" $false $false IsValidNotNullParam
 			LoadParamsFromFile
 			
-			# 0. Display license to let user confirm
-			if ($Script:acceptAllEulas -eq $false) {	
-				DisplayLicense
+			# 0. Display license to let user confirm	
+			DisplayLicense
+			
+			if ($Script:acceptAllEulas -eq $false) {
+				return
 			}
+
+			CheckRedeploymentParams
+        }
+        "vmx" {
+			$Script:isVMX=$true
+			# 0. Validate necessary parameters integrity	
+			Write-Host ""
+			Write-Host "****** Checking parameters of vSphere redeploy ******"	
+			LoadParamsFromFile
+			
+			# 0. Display license to let user confirm	
+			DisplayLicense
+			
 			if ($Script:acceptAllEulas -eq $false) {
 				return
 			}
 			
-			CheckVersion
-			CheckRedeploymentParams
-        }
+			CheckFreshInstallParams
+		}
         default {
             throw "Invalid mode"
         }
     }
+	
 	# 1.0 Display summary, activate interactive mode if needed 
 	DisplaySummary
 	if ($Script:interactive) {
 		InteractiveMode
 	}
 	
-	# 2.0 Regenerate targetUri
-	RegenerateTargetUri
+	if ($Script:isVMX -eq $false) {
+		# 2.0 Regenerate targetUri
+		RegenerateTargetUri
+	}
 	
 	# 2.1 Generate ovf-env.properties content for current node
 	$currentNodeId="${product_name}$nodeId"
@@ -1103,7 +1192,11 @@ try {
 	Write-Host ""
 	Write-Host "****** Deploying $Script:vmName ******"
 	Write-Host ""
-	DeploySingleNode $currentNodeId
+	if ($Script:isVMX -eq $false) {
+		DeploySingleNode $currentNodeId
+	} else {
+		DeployVMX $currentNodeId
+	}
 	if ($Script:nodeCount -eq "1") {
 		Write-Host "WARNNING: 1+0 cluster is a evaluation variant with no production support." -ForegroundColor Yellow
 	}

@@ -841,7 +841,7 @@ function GenerateOVFFileTemplateForEachNode($disk4FileName, $currentNodeId) {
 	$ovfTemplate=$ovfTemplate.Replace('${memory}', $Script:memory)
     $ovfContent=$ovfTemplate.Replace('${2}', $disk4FileName)
 	if ($Script:isVMX -eq $true) {
-		$ovfContent=$ovfTemplate.Replace($vSphereOnly, "</Item>")
+		$ovfContent=$ovfContent.Replace($vSphereOnly, "</Item>")
 	}
     $outputFilePath=$scriptPath+"\${product_name}-$releaseVersion-controller-$currentNodeId.ovf"
     [io.file]::WriteAllText($outputFilePath, $ovfContent)
@@ -1062,38 +1062,38 @@ function DeployVMX($currentNodeId) {
 	ovftool $acceptAllEulasOption $ovfFileName $vmxFileName
 	
 	# Generate disk section for VMX file 
-	$diskInfos='scsi0.virtualDev = "lsilogic"
-scsi0.present = "TRUE"
+	$diskInfos='scsi0:0.present = "TRUE"
+scsi0:0.deviceType = "disk"
 scsi0:0.fileName = "{1}"
-scsi0:0.present = "TRUE"
-scsi0:1.fileName = "{2}"
+scsi0:0.mode = "persistent"
 scsi0:1.present = "TRUE"
-scsi0:2.fileName = "{3}"
+scsi0:1.deviceType = "disk"
+scsi0:1.fileName = "{2}"
 scsi0:2.present = "TRUE"
-scsi0:3.fileName = "{4}"
+scsi0:2.deviceType = "disk"
+scsi0:2.fileName = "{3}"
 scsi0:3.present = "TRUE"
-scsi0:0.redo = ""
-scsi0:1.redo = ""
-scsi0:2.redo = ""
-scsi0:3.redo = ""
-scsi0.pciSlotNumber = "16"
-scsi0.sasWWID = "50 05 05 6b 78 7a a3 00"'
+scsi0:3.deviceType = "disk"
+scsi0:3.fileName = "{4}"
+scsi0.virtualDev = "lsilogic"
+scsi0.present = "TRUE"
+vmci0.unrestricted = "false"'
 	for ($i = 1; $i -le 3; $i++) {
-		$diskPath=$scriptPath"\${product_name}-$releaseVersion-disk$i.vmdk"
-		$diskInfos=$diskInfos.Replace("{$i}",$diskPath)
+		$diskInfos=$diskInfos.Replace("{$i}",$scriptPath+"\vipr-$releaseVersion-disk$i.vmdk")
 	}
-	
-	$disk4Path=$scriptPath"\${product_name}-$releaseVersion-$currentNodeId\$disk4NamePrefix$currentNodeId.vmdk"
-	$diskInfos=$diskInfos.Replace("{4}",$disk4Path)
+	$diskInfos=$diskInfos.Replace("{4}",$scriptPath+"\vipr-$releaseVersion-$currentNodeId\vipr-$releaseVersion-disk4-$currentNodeId.vmdk")
 	
 	# Read VMX file content and append disk infos
-	$vmxFileContent=Get-Content $vmxFileName
-	$vmxFileContent=$vmxFileContent.Replace('ethernet0.connectionType = "bridged"', 'ethernet0.connectionType = "nat"')
-	$vmxFileContent=$vmxFileContent+$diskInfos
-	[io.file]::WriteAllText($vmxFileName, $vmxFileContent)
+	(Get-Content $vmxFileName) | foreach-object {$_ -replace 'ethernet0.connectionType = "bridged"', 'ethernet0.connectionType = "nat"'} | Set-Content $vmxFileName
+	Add-Content -path $vmxFileName -value $diskInfos
 	
-	# Deploy VMX format to Virtual Machine location
-	ovftool $vmxFileName $Script:vmFolder
+	# Deploy VMX 
+	$tmpDeployPath=$scriptPath+"\${product_name}-$releaseVersion-$currentNodeId"
+	ovftool $acceptAllEulasOption $vmxFileName $tmpDeployPath
+	
+	# Deploy modified OVF to VM location
+	$modifiedOVF=$tmpDeployPath+"\$vmname\$vmname.ovf"
+	ovftool $acceptAllEulasOption $modifiedOVF $Script:vmFolder
 }
 
 if($help) {

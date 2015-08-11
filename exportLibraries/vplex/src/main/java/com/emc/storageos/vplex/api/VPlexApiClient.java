@@ -1547,4 +1547,16 @@ public class VPlexApiClient {
         
         return storageVolumeInfo;
     }
+    
+    public String getDeviceForStorageVolume(String volumeNativeId, 
+            String wwn, String backendArraySerialNum) throws VPlexApiException {
+        
+        s_logger.info("Request to find device name for storage volume {} on VPLEX at {}",
+                volumeNativeId, _baseURI);
+        
+        String deviceName = getDiscoveryManager()
+                .getDeviceForStorageVolume(volumeNativeId, wwn, backendArraySerialNum);
+
+        return deviceName;
+    }
 }

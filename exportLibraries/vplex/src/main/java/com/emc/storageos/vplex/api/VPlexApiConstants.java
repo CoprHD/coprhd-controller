@@ -69,6 +69,7 @@ public class VPlexApiConstants {
     public static final URI URI_DISTRIBUTED_DEVICES = URI.create("/vplex/distributed-storage/distributed-devices/");
     public static final URI URI_CLAIM_VOLUME = URI.create("/vplex/storage-volume+claim");
     public static final URI URI_UNCLAIM_VOLUME = URI.create("/vplex/storage-volume+unclaim");
+    public static final URI URI_STORAGE_VOLUME_USED_BY = URI.create("/vplex/storage-volume+used-by");
     public static final URI URI_CREATE_EXTENT = URI.create("/vplex/extent+create");
     public static final URI URI_DESTROY_EXTENT = URI.create("/vplex/extent+destroy");
     public static final URI URI_CREATE_LOCAL_DEVICE = URI.create("/vplex/local-device+create");

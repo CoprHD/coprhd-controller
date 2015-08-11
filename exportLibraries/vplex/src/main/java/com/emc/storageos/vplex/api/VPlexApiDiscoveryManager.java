@@ -3307,7 +3307,8 @@ public class VPlexApiDiscoveryManager {
         }
     }
 
-    public List<VPlexStorageVolumeInfo> getStorageVolumesForDevice(String deviceName, String locality) {
+    public List<VPlexStorageVolumeInfo> getStorageVolumesForDevice(
+            String deviceName, String locality) throws VPlexApiException {
         
         long timer = new Date().getTime();
         s_logger.info("Getting backend storage volume wwn info for {} volume {} from VPLEX at " 
@@ -3372,4 +3373,94 @@ public class VPlexApiDiscoveryManager {
         return storageVolumeInfoList;
     }
 
+    private String getVolumeNamePattern(int i, String volumeNativeId, 
+            String wwn, String backendArraySerialNum) {
+        String pattern = "";
+        
+        switch(i) {
+            case 0:
+                pattern = VPlexApiConstants.WILDCARD
+                        + backendArraySerialNum 
+                        + VPlexApiConstants.WILDCARD 
+                        + volumeNativeId;
+                break;
+            case 1:
+                pattern = VPlexApiConstants.WILDCARD 
+                        + wwn
+                        + VPlexApiConstants.WILDCARD; 
+            case 2:
+                pattern = VPlexApiConstants.WILDCARD 
+                        + wwn.toLowerCase()
+                        + VPlexApiConstants.WILDCARD; 
+            case 3:
+                pattern = VPlexApiConstants.WILDCARD 
+                        + wwn.substring(5).toLowerCase()
+                        + VPlexApiConstants.WILDCARD; 
+        }
+        
+        return pattern;
+    }
+    
+    public String getDeviceForStorageVolume(String volumeNativeId, 
+            String wwn, String backendArraySerialNum) throws VPlexApiException {
+        
+        long timer = new Date().getTime();
+        s_logger.info("Getting device name for array {} volume {} (wwn: {}) from VPLEX at " 
+                    + _vplexApiClient.getBaseURI().toString(), backendArraySerialNum, volumeNativeId);
+        
+        StringBuilder contextArgBuilder = new StringBuilder();
+        // format /clusters/*/storage-elements/storage-volumes/[name]
+        contextArgBuilder.append(VPlexApiConstants.URI_CLUSTERS.toString());
+        contextArgBuilder.append(VPlexApiConstants.WILDCARD.toString());
+        contextArgBuilder.append(VPlexApiConstants.URI_STORAGE_VOLUMES.toString());
+        String contextArg = contextArgBuilder.toString();
+
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(
+                URI.create(VPlexApiConstants.URI_STORAGE_VOLUME_USED_BY.toString()));
+        s_logger.info("Find device for storage volume request URI is {}", requestURI.toString());
+        
+        // the max number of patterns possibly returned by getVolumeNamePattern
+        int numPatterns = 3;
+        boolean success = false;
+        String responseStr = "";  
+        for (int i = 0; i <= numPatterns; i++) {
+            String pattern = getVolumeNamePattern(i, volumeNativeId, wwn, backendArraySerialNum);
+            Map<String, String> argsMap = new HashMap<String, String>();
+            argsMap.put(VPlexApiConstants.ARG_DASH_D, contextArg + pattern);
+            
+            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
+            s_logger.info("Find device for storage volume POST data is {}",
+                    postDataObject.toString());
+            ClientResponse response = _vplexApiClient.post(requestURI,
+                    postDataObject.toString());
+            responseStr = response.getEntity(String.class);
+            s_logger.info("Find device for storage volume response is {}", responseStr);
+            int status = response.getStatus();
+            response.close();
+            
+            if (status != VPlexApiConstants.SUCCESS_STATUS) {
+                // try another pattern
+                continue;
+            } else {
+                success = true;
+            }
+        }
+        
+        if (!success) {
+            throw VPlexApiException.exceptions
+                .failedGettingDeviceNameForStorageVolume("no volume name patterns worked");
+        }
+
+        // Successful Response
+        String customData = VPlexApiUtils.getCustomDataFromResponse(responseStr);
+        
+        // this custom data parsing hackage is so gross...
+        s_logger.info("custom data is " + customData);
+        String[] lines = customData.split(":\n");
+        s_logger.info("device context is: " + lines[0]);
+        String[] subLines = lines[0].split("/");
+        String deviceName = subLines[subLines.length - 1];
+        s_logger.info("returning device name: " + deviceName);
+        return deviceName;
+    }
 }

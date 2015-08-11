@@ -110,6 +110,42 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             throw IngestionException.exceptions.varrayIsInvalidForVplexVolume(virtualArray.getLabel(), unManagedVolume.getLabel());
         }
 
+        
+        
+        
+        
+        // TODO how long will this nonsense take? no way to query StringSetMap values with dbClient
+        long dingleTimer = new Date().getTime();
+        URI vplexUri = unManagedVolume.getStorageSystemUri();
+        Map<String,URI> deviceToUnManagedVolumeMap = new HashMap<String,URI>();
+        List<URI> storageSystem = new ArrayList<URI>();
+        storageSystem.add(vplexUri);
+        // _dbClient.queryIterativeObjectField(UnManagedVolume.class, "storageDevice", storageSystem);
+        List<URI> ids = _dbClient.queryByType(UnManagedVolume.class, true);
+        List<String> fields = new ArrayList<String>();
+        fields.add("storageDevice");
+        fields.add("volumeInformation");
+        Collection<UnManagedVolume> allUnmanagedVolumes = _dbClient.queryObjectFields(UnManagedVolume.class, fields, ids);
+        for (UnManagedVolume vol : allUnmanagedVolumes) {
+            if (vol.getStorageSystemUri().equals(vplexUri)) {
+                String supportingDeviceName = 
+                        PropertySetterUtil.extractValueFromStringSet(
+                                SupportedVolumeInformation.VPLEX_SUPPORTING_DEVICE_NAME.toString(), 
+                                vol.getVolumeInformation());
+                if (null != supportingDeviceName) {
+                    deviceToUnManagedVolumeMap.put(supportingDeviceName, vol.getId());
+                }
+            }
+        }
+        _logger.info("creating deviceToUnManagedVolumeMap took {} ms", new Date().getTime() - dingleTimer);
+        
+        
+        
+        // TODO REMOVE ME
+        boolean doNotContinue = true;
+        
+        
+        
         // we create a subset of all these collections that are just for the current vplex virtual volume being ingested
         Map<String, UnManagedVolume> vplexBackendProcessedUnManagedVolumeMap = new HashMap<String, UnManagedVolume>();
         Map<String, BlockObject> vplexBackendCreatedObjectMap = new HashMap<String, BlockObject>();
@@ -125,12 +161,18 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
                 List<UnManagedVolume> associatedVolumes = _dbClient.queryObject(UnManagedVolume.class, associatedVolumeUris);
                 List<UnManagedVolume> snapshots = checkForSnapshots(associatedVolumes);
-                List<UnManagedVolume> clones = checkForClones(associatedVolumes);
+                Map<UnManagedVolume, UnManagedVolume> cloneMap = checkForClones(associatedVolumes, _dbClient, 
+                        unManagedVolume.getStorageSystemUri(), deviceToUnManagedVolumeMap);
 
+                if (doNotContinue) {
+                    throw new Exception("HALTING FOR TESTING!!!");
+                }
+                
                 List<UnManagedVolume> allVolumes = new ArrayList<UnManagedVolume>();
                 allVolumes.addAll(associatedVolumes);
                 allVolumes.addAll(snapshots);
-                allVolumes.addAll(clones);
+                allVolumes.addAll(cloneMap.keySet());
+                allVolumes.addAll(cloneMap.values());
 
                 ingestBackendVolumes(systemCache, poolCache, vPool,
                         virtualArray, vplexProject, tenant,
@@ -208,15 +250,49 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         return snapshotsFound;
     }
 
-    private List<UnManagedVolume> checkForClones(List<UnManagedVolume> sourceVolumes) {
-        List<UnManagedVolume> clonesFound = new ArrayList<UnManagedVolume>();
+    private Map<UnManagedVolume, UnManagedVolume> checkForClones(
+            List<UnManagedVolume> sourceVolumes, DbClient dbClient, 
+            URI vplexUri, Map<String,URI> deviceToUnManagedVolumeMap) {
+
+        Map<UnManagedVolume, UnManagedVolume> virtualVolumeToBackendCloneMap = 
+                new HashMap<UnManagedVolume, UnManagedVolume>();
         
+        List<UnManagedVolume> backendClonesFound = new ArrayList<UnManagedVolume>();
         for (UnManagedVolume sourceVolume : sourceVolumes) {
-            clonesFound.addAll(VolumeIngestionUtil.getUnManagedClones(sourceVolume, _dbClient));
+            backendClonesFound.addAll(VolumeIngestionUtil.getUnManagedClones(sourceVolume, _dbClient));
         }
         
-        _logger.info("found these associated clones: " + clonesFound);
-        return clonesFound;
+        if (backendClonesFound.isEmpty()) {
+            _logger.info("no clones found for source volumes: " + sourceVolumes);
+        } else {
+            for (UnManagedVolume backendClone : backendClonesFound) {
+                String volumeNativeId = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedVolumeInformation.NATIVE_ID.toString(),
+                        backendClone.getVolumeInformation());
+                
+                StorageSystem backendSystem = 
+                        dbClient.queryObject(StorageSystem.class, backendClone.getStorageSystemUri());
+                
+                String deviceName = VPlexControllerUtils.getDeviceForStorageVolume(
+                        volumeNativeId, backendClone.getWwn(), backendSystem.getSerialNumber(), vplexUri, dbClient);
+                
+                if (null != deviceName) {
+                    _logger.info("found device name {} for native id {}", deviceName, volumeNativeId);
+                    URI umvUri = deviceToUnManagedVolumeMap.get(deviceName);
+                    if (null != umvUri) {
+                        UnManagedVolume virtualVolumeClone = dbClient.queryObject(UnManagedVolume.class, umvUri);
+                        if (null != virtualVolumeClone) {
+                            _logger.info("adding mapping for vvol clone {} to backend clone {}", virtualVolumeClone, backendClone);
+                            virtualVolumeToBackendCloneMap.put(virtualVolumeClone, backendClone);
+                        }
+                    }
+                } else {
+                    _logger.info("could not determine supporting device name for native id " + volumeNativeId);
+                }
+            }
+        }
+        
+        return virtualVolumeToBackendCloneMap;
     }
 
     private List<URI> getAssociatedVolumes(UnManagedVolume unManagedVolume) {
@@ -600,4 +676,5 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     protected void validateAutoTierPolicy(String autoTierPolicyId, UnManagedVolume unManagedVolume, VirtualPool vPool) {
         super.validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
     }
+    
 }

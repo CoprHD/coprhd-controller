@@ -238,9 +238,6 @@ public class XtremIOV2Client extends XtremIOClient {
         snapCreate.setConsistencyGroupId(consistencyGroupName);
         snapCreate.setSnapshotSetName(snapshotSetName);
         snapCreate.setSnapshotType(snapType);
-        List<String> tags = new ArrayList<String>();
-        tags.add(folderName);
-        snapCreate.setTagList(tags);
         log.info("Calling Snapshot Create URI: {} and paramaters: {}", XtremIOConstants.XTREMIO_V2_SNAPS_URI.toString(),
                 snapCreate.toString());
         ClientResponse response = post(XtremIOConstants.XTREMIO_V2_SNAPS_URI, getJsonForEntity(snapCreate));
@@ -597,6 +594,17 @@ public class XtremIOV2Client extends XtremIOClient {
         XtremIOTags tags = getResponseObject(XtremIOTags.class, response);
         
         return tags.getContent();
+    }
+
+    @Override
+    public XtremIOConsistencyGroup getSnapshotSetDetails(String snapshotSetName, String clusterName) throws Exception {
+        String uriString = XtremIOConstants.XTREMIO_V2_SNAPSHOT_SET_STR
+                .concat(XtremIOConstants.getInputNameForClusterString(snapshotSetName, clusterName));
+        ClientResponse response = get(URI.create(uriString));
+        log.info(response.toString());
+        XtremIOCGResponse cgResponse = getResponseObject(XtremIOCGResponse.class, response);
+        
+        return cgResponse.getContent();
     }
 
 }

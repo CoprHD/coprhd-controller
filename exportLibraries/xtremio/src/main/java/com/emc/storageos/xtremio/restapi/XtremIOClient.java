@@ -127,6 +127,8 @@ public abstract class XtremIOClient extends StandardRestClient {
     
     public abstract XtremIOTag getTagDetails(String tagName, String tagEntityType, String clusterName) throws Exception;
     
+    public abstract XtremIOConsistencyGroup getSnapshotSetDetails(String snapshotSetName, String clusterName) throws Exception;
+    
     public abstract void tagObject(String tagName, String entityType, String entityDetail, String clusterName) throws Exception;
 
     /**

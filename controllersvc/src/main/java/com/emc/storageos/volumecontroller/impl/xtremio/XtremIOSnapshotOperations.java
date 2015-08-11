@@ -6,7 +6,9 @@ package com.emc.storageos.volumecontroller.impl.xtremio;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +32,7 @@ import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUti
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 
 public class XtremIOSnapshotOperations extends XtremIOOperations implements SnapshotOperations {
@@ -59,16 +62,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                 createdSnap = createV1Snapshot(client, storage, snap, generatedLabel, readOnly, taskCompleter);
             }
             if (createdSnap != null) {
-                snap.setWWN(createdSnap.getVolInfo().get(0));
-                // if created snap wwn is not empty then update the wwn
-                if (!createdSnap.getWwn().isEmpty()) {
-                    snap.setWWN(createdSnap.getWwn());
-                }
-                snap.setDeviceLabel(createdSnap.getVolInfo().get(1));
-                snap.setNativeId(createdSnap.getVolInfo().get(0));
-                String nativeGuid = NativeGUIDGenerator.getNativeGuidforSnapshot(storage, storage.getSerialNumber(), snap.getNativeId());
-                snap.setNativeGuid(nativeGuid);
-                snap.setIsSyncActive(true);
+                processSnapshot(createdSnap, snap, storage);
             }
 
             dbClient.persistObject(snap);
@@ -121,8 +115,8 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
 
         try {
             XtremIOClient client = getXtremIOClient(storage);
-            URI snapshot = snapshotList.get(0);
-            BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
+            List<BlockSnapshot> snapObjs = dbClient.queryObject(BlockSnapshot.class, snapshotList);
+            BlockSnapshot snapshotObj = snapObjs.get(0);
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
             
             URI cgId = snapshotObj.getConsistencyGroup();
@@ -131,8 +125,21 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                 String snapType = readOnly ? XtremIOConstants.XTREMIO_READ_ONLY_TYPE : XtremIOConstants.XTREMIO_REGULAR_TYPE;
                 client.createConsistencyGroupSnapshot(group.getLabel(), snapshotObj.getSnapsetLabel(), "", snapType, clusterName);
             }
-
-            // TODO - Handle updating the snapshots in db with info from created xio snaps
+            // Create mapping of volume.deviceLabel to BlockSnapshot object
+            Map<String, BlockSnapshot> volumeToSnapMap = new HashMap<String, BlockSnapshot>();
+            for (BlockSnapshot snapshot : snapObjs) {
+                Volume volume = dbClient.queryObject(Volume.class, snapshot.getParent());
+                volumeToSnapMap.put(volume.getDeviceLabel(), snapshot);
+            }
+            
+            //Get the snapset details
+            XtremIOConsistencyGroup snapset = client.getSnapshotSetDetails(snapshotObj.getSnapsetLabel(), clusterName);
+            for(List<Object> snapDetails : snapset.getVolList()) {
+                XtremIOVolume xioSnap = client.getSnapShotDetails(snapDetails.get(1).toString(), clusterName);
+                BlockSnapshot snapshot = volumeToSnapMap.get(xioSnap.getAncestoVolInfo().get(1));
+                processSnapshot(xioSnap, snapshot, storage);
+                dbClient.persistObject(snapshot);
+            }
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot creation failed", e);
@@ -140,6 +147,19 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             taskCompleter.error(dbClient, serviceError);
         }
 
+    }
+    
+    private void processSnapshot(XtremIOVolume xioSnap, BlockSnapshot snapObj, StorageSystem storage) {
+        snapObj.setWWN(xioSnap.getVolInfo().get(0));
+        // if created snap wwn is not empty then update the wwn
+        if (!xioSnap.getWwn().isEmpty()) {
+            snapObj.setWWN(xioSnap.getWwn());
+        }
+        snapObj.setDeviceLabel(xioSnap.getVolInfo().get(1));
+        snapObj.setNativeId(xioSnap.getVolInfo().get(0));
+        String nativeGuid = NativeGUIDGenerator.getNativeGuidforSnapshot(storage, storage.getSerialNumber(), snapObj.getNativeId());
+        snapObj.setNativeGuid(nativeGuid);
+        snapObj.setIsSyncActive(true);
     }
 
     @Override
@@ -162,7 +182,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
             
-            client.deleteSnapshot(snapshotObj.getLabel(), clusterName);
+            client.deleteSnapshot(snapshotObj.getDeviceLabel(), clusterName);
             snapshotObj.setIsSyncActive(false);
             snapshotObj.setInactive(true);
             dbClient.persistObject(snapshotObj);

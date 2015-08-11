@@ -522,4 +522,9 @@ public class XtremIOV1Client extends XtremIOClient {
     public void tagObject(String tagName, String entityType, String entityDetail, String clusterName) throws Exception {
         throw XtremIOApiException.exceptions.operationNotSupportedForVersion("tagObject");
     }
+
+    @Override
+    public XtremIOConsistencyGroup getSnapshotSetDetails(String snapshotSetName, String clusterName) throws Exception {
+        throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getSnapshotSetDetails");
+    }
 }

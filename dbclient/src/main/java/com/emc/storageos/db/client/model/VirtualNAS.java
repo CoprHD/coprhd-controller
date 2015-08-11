@@ -18,7 +18,7 @@ import com.emc.storageos.model.valid.EnumType;
  *
  */
 
-@Cf("VirtualNASServer")
+@Cf("VirtualNAS")
 public class VirtualNAS extends VirtualArrayTaggedResource {
 
     // vNAS Server name

@@ -21,6 +21,10 @@ public class UniqueNodeNameHandler implements UpdateHandler{
     private static final String NODE_COUNT = "node_count";
     private static final String NODE_STANDALONE_NAME = "node_standalone_name";
 
+    public static void setCoordinator(CoordinatorClientExt coordinator) {
+        _coordinator = coordinator;
+    }
+
     /**
      * Checks if node_x_name properties have unique names
      *

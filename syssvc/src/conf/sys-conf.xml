@@ -255,7 +255,7 @@
     </bean>
 
     <bean id="uniqueNodeNameHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.UniqueNodeNameHandler">
-        <property name="coordinator" ref="coordinator"/>
+        <property name="coordinator" ref="coordinatorclientext"/>
     </bean>
 
     <bean id="notificationManager" class="com.emc.storageos.security.password.NotificationManager" init-method="init">

@@ -4,12 +4,14 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.sa.engine.bind.Param;
+import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.ChangeBlockVolumeVirtualPool;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
 
+@Service("VplexDataMigration")
 public class VplexDataMigrationService extends ViPRService {
 
     @Param(ServiceParams.PROJECT)

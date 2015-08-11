@@ -1022,6 +1022,7 @@ vdcs.list.title=Virtual Data Centers
 vdcs.edit.title=Edit Virtual Data Center
 vdcs.create.title=Create Virtual Data Center
 vdcs.deleteConfirm=Are you sure you want to delete these Virtual Data Center(s)?
+vdcs.disconnectConfirm=Are you sure you want to disconnect these Virtual Data Center(s)?
 vdcs.id=ID
 vdcs.shortId=ID
 vdc.shortId=ID
@@ -2832,6 +2833,7 @@ resources.volume.lun=LUN
 resources.volume.devicelabel=Device Label
 resources.volume.nativeid=Native ID
 resources.volume.storagesystem=Storage System
+resources.volume.accessstate=Access State
 resources.volume.deleteLink=Delete Volume
 resources.volume.deleteLink.FULL=Full
 resources.volume.deleteLink.VIPR_ONLY=Inventory Only
@@ -3724,6 +3726,7 @@ systemHealth.message.parseError=Requested JSON parse failed.
 systemHealth.message.timeout=Operation timed out.
 systemHealth.message.abort=Ajax request aborted.
 systemHealth.message.uncaught=Uncaught Error. Status: %s. %s
+systemHealth.message.reboot.unavailable=%s is unavailable for reboot.
 
 fileUpload.button.browse=Browse...
 

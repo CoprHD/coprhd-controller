@@ -1024,6 +1024,44 @@ public class StorageSystemService extends TaskResourceService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/vnasservers")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public StoragePoolList getVnasServers(@PathParam("id") URI id) {
+        // Make sure storage system is registered.
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+
+        StoragePoolList poolList = new StoragePoolList();
+        URIQueryResultList storagePoolURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceStoragePoolConstraint(id),
+                storagePoolURIs);
+        Iterator<URI> storagePoolIter = storagePoolURIs.iterator();
+        while (storagePoolIter.hasNext()) {
+            URI storagePoolURI = storagePoolIter.next();
+            StoragePool storagePool = _dbClient.queryObject(StoragePool.class,
+                    storagePoolURI);
+            if (storagePool != null && !storagePool.getInactive()) {
+                poolList.getPools().add(toNamedRelatedResource(storagePool, storagePool.getNativeGuid()));
+            }
+        }
+        return poolList;
+    }
+    
+    
+    /**
+     * Gets all storage pools for the registered storage system with the passed
+     * id.
+     * 
+     * @param id the URN of a ViPR storage system.
+     * 
+     * @brief List storage system storage pools
+     * @return A reference to a StoragePooList specifying the id and self link
+     *         for each storage pool.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/storage-pools")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public StoragePoolList getAllStoragePools(@PathParam("id") URI id) {
@@ -1048,6 +1086,8 @@ public class StorageSystemService extends TaskResourceService {
         }
         return poolList;
     }
+    
+    
 
     /**
      * Gets all AutoTier policies associated with registered storage system with the passed

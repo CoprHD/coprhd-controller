@@ -107,7 +107,7 @@ public class VirtualNAS extends VirtualArrayTaggedResource {
     }
 
 
-
+    @EnumType(vNasState.class)
     @Name("vNasState")
     public String getvNasState() {
         return vNasState;
@@ -185,7 +185,7 @@ public class VirtualNAS extends VirtualArrayTaggedResource {
 
     public void setvNAStag(StringSet vNAStag) {
         this.vNAStag = vNAStag;
-        setChanged("vNASServerName");
+        setChanged("vNAStag");
     }
 
     @RelationIndex(cf = "RelationIndex", type = StoragePort.class)
@@ -215,28 +215,6 @@ public class VirtualNAS extends VirtualArrayTaggedResource {
         setChanged("storageDeviceURI");
     }
 
-
-
-    @Name("vNASServerName")
-    public String getName() {
-        return vNASServerName;
-    }
-
-    public void setName(String haDomainName) {
-        vNASServerName = haDomainName;
-        setChanged("haDomainName");
-    }
-
-    @EnumType(vNasState.class)
-    @Name("vNasState")
-    public String getNasState() {
-        return vNasState;
-    }
-
-    public void setNasState(String _nasState) {
-        this.vNasState = _nasState;
-        setChanged("vNasState");
-    }
 
     @Name("vNASserverName")
     public String getVNASServerName() {

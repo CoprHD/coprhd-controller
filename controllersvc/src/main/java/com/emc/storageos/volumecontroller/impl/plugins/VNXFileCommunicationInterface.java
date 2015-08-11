@@ -477,7 +477,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         VirtualNAS vNas = new VirtualNAS();
         
         vNas.setIsVirtual(true);
-        vNas.setName(vdm.getName());
+        vNas.setvNASServerName(vdm.getName());
         vNas.setStorageDeviceURI(vdm.getStorageDeviceURI());
         vNas.setParentNAS(vdm.getParentHADomainURI());
         StringSet tempSet= new StringSet();

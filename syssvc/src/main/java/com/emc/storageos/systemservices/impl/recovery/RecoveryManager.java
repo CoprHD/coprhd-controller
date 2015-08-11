@@ -238,7 +238,7 @@ public class RecoveryManager implements Runnable {
             log.info("Node recovery is done successful");
         } catch (Exception ex) {
             markRecoveryFailed(RecoveryStatus.ErrorCode.INTERNAL_ERROR);
-            log.error("Node recovery failed:", ex.getMessage());
+            log.error("Node recovery failed:", ex);
             throw ex;
         } finally {
             releaseLock(lock);
@@ -755,7 +755,7 @@ public class RecoveryManager implements Runnable {
 
         @Override
         protected void stopLeadership() {
-            log.info("Give up leader, stop recovery manager");
+            log.info("Give up leader, try to stop recovery manager");
             isLeader.set(false);
             stop();
         }
@@ -767,8 +767,14 @@ public class RecoveryManager implements Runnable {
     }
 
     private void stop() {
-        recoveryExecutor.shutdown();
-        wakeupRecoveryThread();
+        recoveryExecutor.shutdownNow();
+        try {
+            while (!recoveryExecutor.awaitTermination(30, TimeUnit.SECONDS)) {
+                log.warn("Waiting recovery thread pool to shutdown for another 30s");
+            }
+        } catch (InterruptedException e) {
+            log.error("Interrupted while waiting to shutdown recovery thread pool", e);
+        }
     }
 
     private boolean isNodeRecoveryDbRepairInProgress() {

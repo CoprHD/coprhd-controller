@@ -158,7 +158,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         Map<String, UnManagedVolume> vplexBackendProcessedUnManagedVolumeMap = new HashMap<String, UnManagedVolume>();
         Map<String, BlockObject> vplexBackendCreatedObjectMap = new HashMap<String, BlockObject>();
         Map<String, List<DataObject>> vplexBackendUpdatedObjectMap = new HashMap<String, List<DataObject>>();
-        
+        List<String> associatedVolumeGuids = new ArrayList<String>();
         try {
             List<URI> associatedVolumeUris = getAssociatedVolumes(unManagedVolume);
             
@@ -168,10 +168,16 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 validateAssociatedVolumes(vPool, vplexProject, tenant, associatedVolumeUris);
 
                 List<UnManagedVolume> associatedVolumes = _dbClient.queryObject(UnManagedVolume.class, associatedVolumeUris);
+                for (UnManagedVolume vol : associatedVolumes) {
+                    associatedVolumeGuids.add(vol.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
+                            VolumeIngestionUtil.VOLUME));
+                }
+                
                 List<UnManagedVolume> snapshots = checkForSnapshots(associatedVolumes);
                 // map of front-end clone virtual volume to backend volume clone
                 Map<UnManagedVolume, UnManagedVolume> cloneMap = checkForClones(associatedVolumes, _dbClient, 
                         unManagedVolume.getStorageSystemUri(), deviceToUnManagedVolumeMap);
+                // TODO: add a "checkForPlainClones" method - this above will check for ones with vvols only
                 
                 List<UnManagedVolume> allVolumes = new ArrayList<UnManagedVolume>();
                 allVolumes.addAll(associatedVolumes);
@@ -236,9 +242,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             Collection<BlockObject> associatedVols = vplexBackendCreatedObjectMap.values();
             StringSet vols = new StringSet();
             for (BlockObject vol : associatedVols) {
-                vols.add(vol.getId().toString());
+                if (associatedVolumeGuids.contains(vol.getNativeGuid())) {
+                    vols.add(vol.getId().toString());
+                }
             }
             ((Volume) virtualVolume).setAssociatedVolumes(vols);
+            // TODO: set associated vol on clone
         }
         
         return virtualVolume;

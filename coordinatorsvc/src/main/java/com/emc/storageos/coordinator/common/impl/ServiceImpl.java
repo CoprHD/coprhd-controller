@@ -29,7 +29,7 @@ public class ServiceImpl implements Service {
     private static final String ID_KEY = "_id";
     // Node id used for external display/query purpose.
     // EX: vipr1, vipr2, dataservice-10_247_100_15
-    private static final String NODE_ID_KEY= "_nodeId";
+    private static final String NODE_ID_KEY= "_nodeName";
     private static final String ENDPOINT_KEY = "_endpoint";
 
     private Properties _map = new Properties();

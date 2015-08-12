@@ -19,7 +19,7 @@ public class PropertyConstants {
     public static final String EMAILLIST                       = "emaillist";
     public static final String LICENSE                         = "license";
     public static final String HOSTNAME                        = "hostname";
-    public static final String STRICTHOSTNAME                        = "stricthostname";
+    public static final String STRICTHOSTNAME                  = "stricthostname";
     public static final String IPLIST                          = "iplist";
     public static final String ENCRYPTEDSTRING                 = "encryptedstring";
     // text is for multi-line, whereas string is for single line 

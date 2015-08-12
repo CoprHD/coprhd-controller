@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.auth.impl;
 
+import com.emc.storageos.auth.SystemPropertyUtil;
 import com.emc.storageos.auth.ldap.*;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
@@ -44,7 +45,6 @@ public class ImmutableAuthenticationProviders {
     private static final String OBJECT_VERSION = "objectVersion";
     private static final int LDAP_VERSION_LEVEL = 3;
     private static final int SEARCH_CTL_COUNT_LIMIT = 1;
-    private static final int SEARCH_CTL_TIME_LIMIT = 1000;
     private static final int DEFAULT_SEARCH_CTL_SCOPE = SearchControls.ONELEVEL_SCOPE;
     private static final HashMap<String, Integer> SEARCH_CTL_SCOPES = new HashMap<String, Integer>();
     private static final String LDAPS_PROTOCOL = "ldaps";
@@ -60,7 +60,6 @@ public class ImmutableAuthenticationProviders {
         SEARCH_CTL_SCOPES.put(AuthnProvider.SearchScope.SUBTREE.toString(), SearchControls.SUBTREE_SCOPE);
     }
 
-    private static final int LDAP_CONNECTION_TIME_OUT_IN_SECS = 10;
 
     private final List<AuthenticationProvider> _authenticationProviders;
     private static Logger _log = LoggerFactory.getLogger(ImmutableAuthenticationProviders.class);
@@ -156,7 +155,8 @@ public class ImmutableAuthenticationProviders {
             final AuthnProvider authenticationConfiguration, final DbClient dbclient) {
         LdapContextSource contextSource =
                 createConfiguredLDAPContextSource(coordinator,
-                        authenticationConfiguration, LDAP_CONNECTION_TIME_OUT_IN_SECS);
+                        authenticationConfiguration,
+                        SystemPropertyUtil.getLdapConnectionTimeout(coordinator));
 
         StorageOSLdapAuthenticationHandler authHandler = createLdapAuthenticationHandler(
                 authenticationConfiguration, contextSource);
@@ -164,7 +164,7 @@ public class ImmutableAuthenticationProviders {
         String[] returningAttributes = new String[] { StorageOSLdapPersonAttributeDao.COMMON_NAME,
                 StorageOSLdapPersonAttributeDao.LDAP_DISTINGUISHED_NAME };
         StorageOSLdapPersonAttributeDao attributeRepository = createLDAPAttributeRepository(
-                dbclient, authenticationConfiguration, contextSource,
+                dbclient, coordinator, authenticationConfiguration, contextSource,
                 returningAttributes);
 
         attributeRepository.setProviderType(ProvidersType.ldap);
@@ -192,7 +192,8 @@ public class ImmutableAuthenticationProviders {
 
         LdapContextSource contextSource =
                 createConfiguredLDAPContextSource(coordinator,
-                        authenticationConfiguration, LDAP_CONNECTION_TIME_OUT_IN_SECS);
+                        authenticationConfiguration,
+                        SystemPropertyUtil.getLdapConnectionTimeout(coordinator));
 
         StorageOSLdapAuthenticationHandler authHandler = createLdapAuthenticationHandler(
                 authenticationConfiguration, contextSource);
@@ -200,7 +201,7 @@ public class ImmutableAuthenticationProviders {
         String[] returningAttributes = new String[] { StorageOSLdapPersonAttributeDao.COMMON_NAME,
                 StorageOSLdapPersonAttributeDao.AD_DISTINGUISHED_NAME };
         StorageOSLdapPersonAttributeDao attributeRepository = createLDAPAttributeRepository(dbclient,
-                authenticationConfiguration, contextSource, returningAttributes);
+                coordinator, authenticationConfiguration, contextSource, returningAttributes);
 
         attributeRepository.setProviderType(ProvidersType.ad);
         _log.debug("Adding AD mode auth handler to map");
@@ -218,6 +219,7 @@ public class ImmutableAuthenticationProviders {
      * @throws Exception
      */
     private static StorageOSLdapPersonAttributeDao createLDAPAttributeRepository(DbClient dbclient,
+            CoordinatorClient coordinator,
             final AuthnProvider authenticationConfiguration,
             LdapContextSource contextSource,
             String[] returningAttributes) {
@@ -231,7 +233,7 @@ public class ImmutableAuthenticationProviders {
         }
         SearchControls searchControls = new SearchControls();
         searchControls.setCountLimit(SEARCH_CTL_COUNT_LIMIT);
-        searchControls.setTimeLimit(SEARCH_CTL_TIME_LIMIT);
+        searchControls.setTimeLimit(SystemPropertyUtil.getLdapConnectionTimeout(coordinator));
         searchControls.setSearchScope(convertSearchScope(authenticationConfiguration
                 .getSearchScope()));
         searchControls.setReturningAttributes(returningAttributes);

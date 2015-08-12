@@ -505,6 +505,8 @@ cluster.discovered=Discovered
 cluster.hosts=Hosts
 hostCluster.id=ID
 hostCluster.name=Name
+hostCluster.autoExportEnabled=Auto-Exports
+hostCluster.autoUnexportEnabled=Auto-Unexports
 
 HostClusters.list.title=Clusters
 HostClusters.edit.title=Edit Cluster

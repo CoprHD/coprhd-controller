@@ -120,7 +120,7 @@ public class HostClusters extends Controller {
             Common.handleError();
         }
 
-        String id = hostCluster.save();
+        String id = hostCluster.save(hostCluster);
         flash.success(MessagesUtils.get(SAVED, hostCluster.name));
         list();
     }
@@ -215,6 +215,8 @@ public class HostClusters extends Controller {
     public static class HostClusterForm {
         public String id;
         public String tenantId;
+        public Boolean autoExportEnabled;
+        public Boolean autoUnexportEnabled;
 
         @Required
         @MaxSize(128)
@@ -233,6 +235,8 @@ public class HostClusters extends Controller {
             this.id = clusterResponse.getId().toString();
             this.tenantId = clusterResponse.getTenant().getId().toString();
             this.name = clusterResponse.getName();
+            this.autoExportEnabled = clusterResponse.getAutoExportEnabled();
+            this.autoUnexportEnabled = clusterResponse.getAutoUnexportEnabled();
         }
 
         protected void doWriteTo(ClusterUpdateParam clusterUpdateParam) {
@@ -277,6 +281,18 @@ public class HostClusters extends Controller {
             return hostId;
         }
 
+        public String save(HostClusterForm hostCluster) {
+            String hostId = null;
+            if (isNew()) {
+                hostId = createCluster();
+            }
+            else {
+                hostId = updateCluster(hostCluster);
+            }
+
+            return hostId;
+        }
+
         protected String createCluster() {
             ClusterCreateParam clusterCreateParam = new ClusterCreateParam(name);
             return ClusterUtils.createCluster(tenantId, clusterCreateParam).toString();
@@ -284,6 +300,15 @@ public class HostClusters extends Controller {
 
         protected String updateCluster() {
             ClusterUpdateParam hostUpdateParam = new ClusterUpdateParam();
+            doWriteTo(hostUpdateParam);
+            return ClusterUtils.updateHost(uri(this.id), hostUpdateParam).toString();
+        }
+
+        protected String updateCluster(HostClusterForm hostCluster) {
+            ClusterUpdateParam hostUpdateParam = new ClusterUpdateParam();
+            hostUpdateParam.setAutoExportEnabled(hostCluster.autoExportEnabled);
+            hostUpdateParam.setAutoUnexportEnabled(hostCluster.autoUnexportEnabled);
+
             doWriteTo(hostUpdateParam);
             return ClusterUtils.updateHost(uri(this.id), hostUpdateParam).toString();
         }

@@ -3410,7 +3410,7 @@ public class VPlexApiDiscoveryManager {
         
         StringBuilder contextArgBuilder = new StringBuilder();
         // format /clusters/*/storage-elements/storage-volumes/[name]
-        contextArgBuilder.append(VPlexApiConstants.URI_CLUSTERS.toString());
+        contextArgBuilder.append(VPlexApiConstants.URI_CLUSTERS_RELATIVE.toString());
         contextArgBuilder.append(VPlexApiConstants.WILDCARD.toString());
         contextArgBuilder.append(VPlexApiConstants.URI_STORAGE_VOLUMES.toString());
         String contextArg = contextArgBuilder.toString();
@@ -3428,7 +3428,7 @@ public class VPlexApiDiscoveryManager {
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_D, contextArg + pattern);
             
-            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
+            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
             s_logger.info("Find device for storage volume POST data is {}",
                     postDataObject.toString());
             ClientResponse response = _vplexApiClient.post(requestURI,
@@ -3443,6 +3443,7 @@ public class VPlexApiDiscoveryManager {
                 continue;
             } else {
                 success = true;
+                break;
             }
         }
         

@@ -102,40 +102,55 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             cacheLastRefreshed = timeRightNow;
         }
 
+        _logger.info("isValidVarrayForUnmanagedVolume");
         if (!VolumeIngestionUtil.isValidVarrayForUnmanagedVolume(unManagedVolume, virtualArray.getId(),
                 clusterIdToNameMap, varrayToClusterIdMap, _dbClient)) {
             _logger.warn("UnManaged Volume {} cannot be ingested into the requested varray. Skipping Ingestion.",
                     unManagedVolume.getLabel());
-
+            _logger.info("isValidVarrayForUnmanagedVolume done about to throw varrayIsInvalidForVplexVolume");
             throw IngestionException.exceptions.varrayIsInvalidForVplexVolume(virtualArray.getLabel(), unManagedVolume.getLabel());
         }
-
+        _logger.info("isValidVarrayForUnmanagedVolume done");
         
         
         
         
-        // TODO how long will this nonsense take? no way to query StringSetMap values with dbClient
-        long dingleTimer = new Date().getTime();
         URI vplexUri = unManagedVolume.getStorageSystemUri();
+        Iterator<UnManagedVolume> allUnmanagedVolumes = null;
+        _logger.info("about to start dingle timer");
+        long dingleTimer = new Date().getTime();
         Map<String,URI> deviceToUnManagedVolumeMap = new HashMap<String,URI>();
         List<URI> storageSystem = new ArrayList<URI>();
         storageSystem.add(vplexUri);
-        // _dbClient.queryIterativeObjectField(UnManagedVolume.class, "storageDevice", storageSystem);
-        List<URI> ids = _dbClient.queryByType(UnManagedVolume.class, true);
-        List<String> fields = new ArrayList<String>();
-        fields.add("storageDevice");
-        fields.add("volumeInformation");
-        Collection<UnManagedVolume> allUnmanagedVolumes = _dbClient.queryObjectFields(UnManagedVolume.class, fields, ids);
-        for (UnManagedVolume vol : allUnmanagedVolumes) {
-            if (vol.getStorageSystemUri().equals(vplexUri)) {
-                String supportingDeviceName = 
-                        PropertySetterUtil.extractValueFromStringSet(
-                                SupportedVolumeInformation.VPLEX_SUPPORTING_DEVICE_NAME.toString(), 
-                                vol.getVolumeInformation());
-                if (null != supportingDeviceName) {
-                    deviceToUnManagedVolumeMap.put(supportingDeviceName, vol.getId());
+        try {
+            // TODO how long will this nonsense take? no way to query StringSetMap values with dbClient
+            _logger.info("about to query for ids");
+            List<URI> ids = _dbClient.queryByType(UnManagedVolume.class, true);
+            List<String> fields = new ArrayList<String>();
+            fields.add("storageDevice");
+            fields.add("volumeInformation");
+            allUnmanagedVolumes = _dbClient.queryIterativeObjectFields(UnManagedVolume.class, fields, ids);
+        } catch (Throwable t) {
+            // TODO: remove this, but having trouble with dbclient not logging in testing
+            _logger.error("Throwable caught!!!!!!!!!!!!!! ");
+            _logger.error("Throwable caught: " + t.toString());
+        }
+        if (null != allUnmanagedVolumes) {
+            while (allUnmanagedVolumes.hasNext()) {
+                UnManagedVolume vol = allUnmanagedVolumes.next();
+                if (vol.getStorageSystemUri().equals(vplexUri)) {
+                    String supportingDeviceName = 
+                            PropertySetterUtil.extractValueFromStringSet(
+                                    SupportedVolumeInformation.VPLEX_SUPPORTING_DEVICE_NAME.toString(), 
+                                    vol.getVolumeInformation());
+                    if (null != supportingDeviceName) {
+                        deviceToUnManagedVolumeMap.put(supportingDeviceName, vol.getId());
+                    }
                 }
             }
+        } else {
+            // :(
+            throw IngestionException.exceptions.generalException("could not load deviceToUnManagedVolumeMap");
         }
         _logger.info("creating deviceToUnManagedVolumeMap took {} ms", new Date().getTime() - dingleTimer);
         

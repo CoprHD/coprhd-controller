@@ -419,10 +419,10 @@ public class UnManagedVolumeService extends TaskResourceService {
                 createdObjectMap.put(blockObject.getNativeGuid(), blockObject);
                 processedUnManagedVolumeMap.put(unManagedVolume.getNativeGuid(), unManagedVolume);
             } catch (APIException ex) {
-                _logger.warn(ex.getLocalizedMessage(), ex);
+                _logger.warn("error: " + ex.getLocalizedMessage(), ex);
                 _dbClient.error(UnManagedVolume.class, unManagedVolumeUri, taskId, ex);
             } catch (Exception ex) {
-                _logger.warn(ex.getLocalizedMessage(), ex);
+                _logger.warn("error: " + ex.getLocalizedMessage(), ex);
                 _dbClient.error(UnManagedVolume.class, unManagedVolumeUri,
                         taskId, IngestionException.exceptions.generalVolumeException(
                                 unManagedVolume.getLabel(), ex.getLocalizedMessage()));

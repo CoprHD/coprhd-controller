@@ -154,13 +154,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         }
         _logger.info("creating deviceToUnManagedVolumeMap took {} ms", new Date().getTime() - dingleTimer);
         
-        
-        
-        // TODO REMOVE ME
-        boolean doNotContinue = true;
-        
-        
-        
         // we create a subset of all these collections that are just for the current vplex virtual volume being ingested
         Map<String, UnManagedVolume> vplexBackendProcessedUnManagedVolumeMap = new HashMap<String, UnManagedVolume>();
         Map<String, BlockObject> vplexBackendCreatedObjectMap = new HashMap<String, BlockObject>();
@@ -176,12 +169,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
                 List<UnManagedVolume> associatedVolumes = _dbClient.queryObject(UnManagedVolume.class, associatedVolumeUris);
                 List<UnManagedVolume> snapshots = checkForSnapshots(associatedVolumes);
+                // map of front-end clone virtual volume to backend volume clone
                 Map<UnManagedVolume, UnManagedVolume> cloneMap = checkForClones(associatedVolumes, _dbClient, 
                         unManagedVolume.getStorageSystemUri(), deviceToUnManagedVolumeMap);
-
-                if (doNotContinue) {
-                    throw new Exception("HALTING FOR TESTING!!!");
-                }
                 
                 List<UnManagedVolume> allVolumes = new ArrayList<UnManagedVolume>();
                 allVolumes.addAll(associatedVolumes);

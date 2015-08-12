@@ -306,9 +306,10 @@ public class IngestStrategyFactory {
             volumeType = VolumeType.SNAPSHOT.name();
         } else if (VolumeIngestionUtil.isMirror(unManagedVolume)) {
             volumeType = VolumeType.MIRROR.name();
-        } else if (VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume)) {
-            volumeType = VolumeType.BACKEND.name();
         }
+//        else if (VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume)) {
+//            volumeType = VolumeType.BACKEND.name();
+//        }
 
         String strategyKey = replicationStrategy + "_" + volumeType;
         _logger.info("strategy key is " + strategyKey);

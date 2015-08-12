@@ -769,7 +769,7 @@ public class RecoveryManager implements Runnable {
     private void stop() {
         recoveryExecutor.shutdownNow();
         try {
-            while (!recoveryExecutor.awaitTermination(30, TimeUnit.SECONDS)) {
+            while (!recoveryExecutor.awaitTermination(RecoveryConstants.THREAD_CHECK_INTERVAL, TimeUnit.SECONDS)) {
                 log.warn("Waiting recovery thread pool to shutdown for another 30s");
             }
         } catch (InterruptedException e) {

@@ -238,14 +238,18 @@ public class VPlexControllerUtils {
     	List<String> itlList = new ArrayList<>();
     	
     	StringMap extensions = volume.getExtensions();
-    	Set<String> keys = extensions.keySet();
-    	for(String key : keys)
+    	if(null!=extensions)
     	{
-    		if(key.startsWith(CinderConstants.PREFIX_ITL))
-    		{
-    			itlList.add(extensions.get(key));
-    		}
+    		Set<String> keys = extensions.keySet();
+        	for(String key : keys)
+        	{
+        		if(key.startsWith(CinderConstants.PREFIX_ITL))
+        		{
+        			itlList.add(extensions.get(key));
+        		}
+        	}
     	}
+    	
     	
     	return itlList;
     }

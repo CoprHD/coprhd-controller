@@ -275,16 +275,22 @@ public class HostService extends TaskResourceService {
         String taskId = UUID.randomUUID().toString();
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
 
+        Cluster oldCluster = NullColumnValueGetter.isNullURI(oldClusterURI) ? null : _dbClient.queryObject(Cluster.class, oldClusterURI);
+        Cluster newCluster = NullColumnValueGetter.isNullURI(host.getCluster()) ? null : _dbClient.queryObject(Cluster.class,
+                host.getCluster());
+
         // We only want to update the export group if we're changing the cluster during a host update
         if (updateParam.getCluster() != null) {
             if (!NullColumnValueGetter.isNullURI(oldClusterURI)
                     && NullColumnValueGetter.isNullURI(host.getCluster())
-                    && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
+                    && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
+                    && (oldCluster != null && !oldCluster.getAutoUnexportEnabled())) {
                 // Remove host from shared export
                 controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, taskId);
             } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
-                    && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
+                    && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())
+                    && (newCluster != null && newCluster.getAutoExportEnabled())) {
                 // Non-clustered host being added to a cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
             } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
@@ -293,7 +299,12 @@ public class HostService extends TaskResourceService {
                     && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
                     || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
                 // Clustered host being moved to another cluster
-                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
+                if (oldCluster != null && !oldCluster.getAutoUnexportEnabled()) {
+                    // Don't unexport from the old cluster
+                    controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, null);
+                } else {
+                    controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
+                }
             } else {
                 ComputeSystemHelper.updateInitiatorClusterName(_dbClient, host.getCluster(), host.getId());
             }

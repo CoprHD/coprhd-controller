@@ -16,6 +16,7 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.varray.VirtualArrayResourceRestRep;
 
 @XmlRootElement(name = "virtual_nas_server")
@@ -27,7 +28,7 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
     
     
     // storageSystem, which it belongs
-    private NamedRelatedResourceRep storageDeviceURI;
+    private RelatedResourceRep storageDeviceURI;
     private String maxFSID;
     private String maxExports;
     private String maxProvisionedCapacity;
@@ -37,14 +38,14 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
     private Set<String> cifsServers;
     
     // List of Storage Ports associated with this Nas Server
-    private Set<NamedRelatedResourceRep> storagePorts;
+    private Set<String> storagePorts;
     
     // State of the NAS server
     private String nasState;
     
     
     // Place holder for hosting storageDomain's information
-    private Set<NamedRelatedResourceRep> storageDomain;
+    private Set<RelatedResourceRep> storageDomain;
     
     private String registrationStatus ;
     private String compatibilityStatus; 
@@ -55,7 +56,7 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
     
     
     // Project name which this VNAS belongs to
-    private NamedRelatedResourceRep project;
+    private RelatedResourceRep project;
 
     private String vNasType;
 
@@ -63,8 +64,11 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
     private String baseDirPath;
 
     // place holder for the Parent NAS server the Data Mover
-    private NamedRelatedResourceRep parentNASURI;
+    private URI parentNASURI;
 
+    private Long staticLoad;
+    
+    private Long avgPercentageBusy;
 
     public VirtualNASRestRep() {
     }
@@ -82,12 +86,12 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
 
 
     @XmlElement(name="storage_device")
-    public NamedRelatedResourceRep getStorageDeviceURI() {
+    public RelatedResourceRep getStorageDeviceURI() {
         return storageDeviceURI;
     }
 
 
-    public void setStorageDeviceURI(NamedRelatedResourceRep storageDeviceURI) {
+    public void setStorageDeviceURI(RelatedResourceRep storageDeviceURI) {
         this.storageDeviceURI = storageDeviceURI;
     }
 
@@ -150,12 +154,12 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
 
     @XmlElementWrapper(name = "storage_ports")
     @XmlElement(name="storage_port")
-    public Set<NamedRelatedResourceRep> getStoragePorts() {
+    public Set<String> getStoragePorts() {
         return storagePorts;
     }
 
 
-    public void setStoragePorts(Set<NamedRelatedResourceRep> storagePorts) {
+    public void setStoragePorts(Set<String> storagePorts) {
         this.storagePorts = storagePorts;
     }
 
@@ -173,12 +177,12 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
 
     @XmlElementWrapper(name = "storage_domains")
     @XmlElement(name="storage_domain")
-    public Set<NamedRelatedResourceRep> getStorageDomain() {
+    public Set<RelatedResourceRep> getStorageDomain() {
         return storageDomain;
     }
 
 
-    public void setStorageDomain(Set<NamedRelatedResourceRep> storageDomain) {
+    public void setStorageDomain(Set<RelatedResourceRep> storageDomain) {
         this.storageDomain = storageDomain;
     }
 
@@ -228,12 +232,12 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
 
 
     @XmlElement(name="project")
-    public NamedRelatedResourceRep getProject() {
+    public RelatedResourceRep getProject() {
         return project;
     }
 
 
-    public void setProject(NamedRelatedResourceRep project) {
+    public void setProject(RelatedResourceRep project) {
         this.project = project;
     }
 
@@ -261,13 +265,36 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
 
 
     @XmlElement(name="parent_nas")
-    public NamedRelatedResourceRep getParentNASURI() {
+    public URI getParentNASURI() {
         return parentNASURI;
     }
 
 
-    public void setParentNASURI(NamedRelatedResourceRep parentNASURI) {
+    public void setParentNASURI(URI parentNASURI) {
         this.parentNASURI = parentNASURI;
+    }
+    
+    /**
+     * The number of NFS and CIFS exports on the virtual Nas
+     * 
+     * @valid none
+     */
+    @XmlElement(name = "static_load")
+    public Long getStaticLoad() {
+        return staticLoad;
+    }
+
+    public void setStaticLoad(Long staticLoad) {
+        this.staticLoad = staticLoad;
+    }
+    
+    @XmlElement(name = "avg_percentage_busy")
+    public Long getAvgPercentageBusy() {
+        return avgPercentageBusy;
+    }
+
+    public void setAvgPercentageBusy(Long avgPercentageBusy) {
+        this.avgPercentageBusy = avgPercentageBusy;
     }
     
 }

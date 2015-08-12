@@ -26,21 +26,20 @@ public class VirtualNASList {
         this.vnasservers = vnasservers;
     }
 
-    /**o
-     * List of Storage ports. A Storage port represents a
-     * port of a storage device.
+    /**
+     * List of virtual NAS servers. A virtaul NAS is container for storage object.
      * 
      * @valid none
      */
     @XmlElement(name = "vnas_server")
-    public List<NamedRelatedResourceRep> getPorts() {
+    public List<NamedRelatedResourceRep> getNasServers() {
         if (vnasservers == null) {
             vnasservers = new ArrayList<NamedRelatedResourceRep>();
         }
         return vnasservers;
     }
 
-    public void setPorts(List<NamedRelatedResourceRep> vnasservers) {
+    public void setNasServers(List<NamedRelatedResourceRep> vnasservers) {
         this.vnasservers = vnasservers;
     }
 }

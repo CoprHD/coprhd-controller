@@ -68,7 +68,9 @@ public enum ResourceTypeEnum {
     CUSTOM_CONFIG("controller_config", "/config/controller"),
     CONFIG_TYPE("config_type", "/config/controller/types"),
     SYS_EVENT("sysevent", ""),
+    VIRTUAL_NAS("virtual_nas", "/vdc/vnas-servers"),
     USER_GROUP("user_group", "/vdc/admin/user-groups");
+    
 
     private final String type;
     private final String service;

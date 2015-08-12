@@ -24,25 +24,19 @@ import com.emc.storageos.model.valid.EnumType;
 public class NASServer extends VirtualArrayTaggedResource implements Comparable <NASServer>  {
 
     // NAS Server name
-    private String nasName;
+    private String name;
     
+    // State of the NAS server
+    private String state;
     
     // storageSystem, which it belongs
     private URI storageDeviceURI;
-    private String maxFSID;
-    private String maxExports;
-    private String maxProvisionedCapacity;
-    private StringSet protocols;
     
     // Set of Authentication providers for the VNasServer - set values will of type AunthnProvider
     private StringSet cifsServers;
     
     // List of Storage Ports associated with this Nas Server
     private StringSet storagePorts;
-    
-    // State of the NAS server
-    private String nasState;
-    
     
     // Place holder for hosting storageDomain's information
     private StringSet storageDomain;
@@ -54,6 +48,19 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
     // Place holder for Tag
     private StringSet nasTag;
     
+    // Max limits
+    private String maxFSID;
+    private String maxExports;
+    private String maxProvisionedCapacity;
+    private StringSet protocols;
+    
+    
+    // static load (number of exports) on the  NAS server.
+    private Long staticLoad;
+    
+    // average percentage busy the NAS server
+    private Long avgPercentageBusy;
+    
     private StringMap metrics;
 
     @Override
@@ -62,14 +69,14 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
         return 0;
     }
 
-    @Name("nasName")
+    @Name("name")
     public String getNasName() {
-        return nasName;
+        return name;
     }
 
     public void setNasName(String nasName) {
-        this.nasName = nasName;
-        setChanged("nasName");
+        this.name = nasName;
+        setChanged("name");
     }
 
     @Name("storageDeviceURI")
@@ -142,13 +149,13 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
         setChanged("storagePorts");
     }
 
-    public String getNasState() {
-        return nasState;
+    public String getState() {
+        return state;
     }
 
     public void setNasState(String nasState) {
-        this.nasState = nasState;
-        setChanged("nasState");
+        this.state = nasState;
+        setChanged("state");
     }
 
     @Name("storageDomain")
@@ -214,7 +221,7 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
     }
 
     @Name("nasTag")
-    public StringSet getNAStag() {
+    public StringSet getNasTag() {
         return nasTag;
     }
 
@@ -222,7 +229,27 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
         this.nasTag = vNAStag;
         setChanged("nasTag");
     }
+    
+    @Name("staticLoad")
+    public Long getStaticLoad() {
+        return staticLoad;
+    }
 
+    public void setStaticLoad(Long staticLoad) {
+        this.staticLoad = staticLoad;
+        setChanged("staticLoad");
+    }
+
+    
+    @Name("avgPercentageBusy")
+    public Long getAvgPercentageBusy() {
+        return avgPercentageBusy;
+    }
+
+    public void setAvgPercentageBusy(Long avgPercentageBusy) {
+        this.avgPercentageBusy = avgPercentageBusy;
+        setChanged("avgPercentageBusy");
+    }
     
 }
 

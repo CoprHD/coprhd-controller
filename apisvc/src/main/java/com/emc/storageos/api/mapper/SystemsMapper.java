@@ -11,7 +11,9 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
@@ -21,6 +23,8 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.adapters.StringMapAdapter;
@@ -30,6 +34,7 @@ import com.emc.storageos.model.smis.SMISProviderRestRep;
 import com.emc.storageos.model.smis.StorageProviderRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.DecommissionedResourceRep;
+import com.emc.storageos.model.vnas.VirtualNASRestRep;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher;
@@ -260,6 +265,32 @@ public class SystemsMapper {
         to.setNativeGuid(from.getNativeGuid());
         to.setType(from.getType());
         to.setUser(from.getUser());
+        return to;
+    }
+    
+    public static VirtualNASRestRep map(VirtualNAS from) {
+        if (from == null) {
+            return null;
+        }
+        VirtualNASRestRep to = new VirtualNASRestRep();
+        mapDiscoveredDataObjectFields(from, to);
+        to.setName(from.getNasName());
+        to.setStorageDeviceURI(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageDeviceURI()));
+        to.setvNasType(from.getvNasType());
+        to.setStaticLoad(from.getStaticLoad());
+        to.setRegistrationStatus(from.getRegistrationStatus());
+        to.setCompatibilityStatus(from.getCompatibilityStatus());
+        to.setAssignedVirtualArrays(from.getAssignedVirtualArrays());
+        to.setConnectedVirtualArrays(from.getConnectedVirtualArrays());
+        to.setTaggedVirtualArrays(from.getTaggedVirtualArrays());
+        to.setDiscoveryStatus(from.getDiscoveryStatus());
+        to.setParentNASURI(from.getParentPhysicalNAS());
+        to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject()));       
+        to.setStoragePorts(from.getStoragePorts());
+        
+        // Metrics
+        to.setAvgPercentageBusy(from.getAvgPercentageBusy());
+
         return to;
     }
 }

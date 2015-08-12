@@ -113,7 +113,7 @@ _gen_hosts() {
         then
             echo "${!var}	${!name}	${id}"
         else
-            echo "${!var}	${!name}	${!name%.*}	${id}"
+            echo "${!var}	${!name}	${!name/.*/}	${id}"
         fi
     done
 }

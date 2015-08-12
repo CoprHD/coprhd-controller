@@ -55,7 +55,7 @@ for index in ${_GENCONFIG_node_indexes}; do
     then
         echo "Host vipr${index} ${!name}"
     else
-        echo "Host vipr${index} ${!name} ${!name%.*}"
+        echo "Host vipr${index} ${!name} ${!name/.*/}"
     fi
     local var="_GENCONFIG_network_${index}_ipaddr_effective"
     echo -e "    Hostname\t${!var}"

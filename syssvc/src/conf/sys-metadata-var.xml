@@ -9,7 +9,7 @@
 	<bean id="node_standalone_name" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Node standalone Name" />
 		<property name="description" value="Name of ViPR node standalone." />
-		<property name="type" value="strictHostName" />
+		<property name="type" value="stricthostname" />
 		<property name="maxLen" value="253" />
 		<property name="tag" value="Custom Node Names" />
 		<property name="userMutable" value="true" />
@@ -2439,7 +2439,8 @@
 	<bean id="use_short_node_name" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Enable Short Node Name" />
 		<property name="description" value="Short node names can be used for API query parameters and SSH between nodes. A Node short name is everything before the first '.' in the node name and must be unique." />
-		<property name="type" value="boolean" />
+		<property name="type" value="string" />
+		<property name="allowedValues" value="true,false" />
 		<property name="tag" value="Custom Node Names" />
 		<property name="userMutable" value="true" />
 		<property name="userConfigurable" value="true" />

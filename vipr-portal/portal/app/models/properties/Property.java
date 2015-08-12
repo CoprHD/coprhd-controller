@@ -188,7 +188,7 @@ public class Property {
         }
         else if (STRICTHOSTNAME.equals(type)) {
             if (!VALIDATOR.validateStrictHostName(value)) {
-                Validation.addError(fieldName, "configProperties.error.stricthostname");
+                Validation.addError(fieldName, "configProperties.error.hostname");
             }
         }
         else if (IPADDR.equals(type)) {

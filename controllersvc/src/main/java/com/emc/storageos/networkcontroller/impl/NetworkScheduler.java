@@ -908,7 +908,7 @@ public class NetworkScheduler {
                             varrayUri,
                             initiator.getProtocol(),
                             formatWWN(initiator.getInitiatorPort()),
-                            sp, initiator.getHostName(), zonesMap.get(initiator));
+                            sp, initiator.getHostName(), zonesMap.get(initiator.getInitiatorPort()));
                     if (fabricInfo != null) {
                         for (String volId : exportMask.getVolumes().keySet()) {
                             NetworkFCZoneInfo volFabricInfo = fabricInfo.clone();

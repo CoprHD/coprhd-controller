@@ -54,6 +54,8 @@ import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
+import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
+import com.emc.storageos.networkcontroller.impl.mds.Zone;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
@@ -61,6 +63,7 @@ import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 
@@ -137,17 +140,26 @@ public class BlockStorageScheduler {
             List<Initiator> initiators,
             ExportPathParams pathParams,
             StringSetMap existingZoningMap,
-            Collection<URI> volumeURIs) throws DeviceControllerException {
+            Collection<URI> volumeURIs,
+            NetworkDeviceController networkDeviceController) throws DeviceControllerException {
         Map<URI, List<URI>> assignmentMap = null;
-        try {
-            assignmentMap = internalAssignStoragePorts(storage, virtualArray,
-                    initiators, volumeURIs, pathParams, existingZoningMap);
-        } catch (PlacementException e) {
-            _log.error("Unable to assign storage Ports", e);
-            throw DeviceControllerException.exceptions.exceptionAssigningStoragePorts(e.getMessage(), e);
-        } catch (Exception e) {
-            _log.error("Unable to assign Storage Ports", e);
-            throw DeviceControllerException.exceptions.unexpectedExceptionAssigningPorts(e);
+        if (NetworkScheduler.isZoningRequired(_dbClient, virtualArray) || networkDeviceController == null ||
+                networkDeviceController.portAllocationIgnoreExistingZones()) {
+            try {
+                assignmentMap = internalAssignStoragePorts(storage, virtualArray,
+                        initiators, volumeURIs, pathParams, existingZoningMap);
+            } catch (PlacementException e) {
+                _log.error("Unable to assign storage Ports", e);
+                throw DeviceControllerException.exceptions.exceptionAssigningStoragePorts(e.getMessage(), e);
+            } catch (Exception e) {
+                _log.error("Unable to assign Storage Ports", e);
+                throw DeviceControllerException.exceptions.unexpectedExceptionAssigningPorts(e);
+            }
+        } else {
+            // assignment should be made solely based on pre-zoned ports
+            _log.info("Manual zoning is specified for this virtual array and the system configuration is to use "
+                    + "existing zones. Assign port storage will not add any additional ports.");
+            assignmentMap = new HashMap<URI, List<URI>>();
         }
         return assignmentMap;
     }
@@ -179,8 +191,6 @@ public class BlockStorageScheduler {
         // Get the existing assignments in object form.
         Map<Initiator, List<StoragePort>> existingAssignments =
                 generateInitiatorsToStoragePortsMap(existingZoningMap, varray);
-        // Get a map of Network URIs to Initiators for the existing Initiators.
-        Map<URI, Set<Initiator>> existingInitiatorsMap = generateNetworkToInitiatorsMap(existingAssignments, _dbClient);
         // Group the new initiators by their networks - filter out those not in a network or already in the existingZoningMap
         Map<NetworkLite, List<Initiator>> initiatorsByNetwork = getInitiatorsByNetwork(newInitiators, existingZoningMap, _dbClient);
         // Get the storage ports in the storage system that can be used in the initiators networks
@@ -202,6 +212,29 @@ public class BlockStorageScheduler {
         }
 
         // Validate that minPaths was met across all assignments (existing and new).
+        validateMinPaths(system, pathParams, existingAssignments, assignments, newInitiators);
+        return convertAssignmentsToURIs(assignments);
+    }
+
+    /**
+     * This function performs checks to ensure the minimum path requirement is met for the export.
+     * If this call is for adding additional paths, the validation is across existing and new assignments.
+     * 
+     * @param system the storage system of the export
+     * @param pathParams the aggregate pathParam for all the export volumes
+     * @param existingAssignments the existing initiator-port assignments. This can be empty for new assignments.
+     * @param assignments the assignments made by this call to assign ports
+     * @param existingInitiatorsMap the existing host-initiators map. This can be empty for new assignments.
+     * @param newInitiators the list of initiators that received assignments
+     * @throws PlacementException if minimum paths not met
+     */
+    private void validateMinPaths(StorageSystem system, ExportPathParams pathParams,
+            Map<Initiator, List<StoragePort>> existingAssignments,
+            Map<Initiator, List<StoragePort>> assignments,
+            List<Initiator> newInitiators) {
+        // Validate that minPaths was met across all assignments (existing and new).
+        // Get a map of Network URIs to Initiators for the existing Initiators.
+        Map<URI, Set<Initiator>> existingInitiatorsMap = generateNetworkToInitiatorsMap(existingAssignments, _dbClient);
         Map<Initiator, List<StoragePort>> allAssignments = new HashMap<Initiator, List<StoragePort>>();
         allAssignments.putAll(existingAssignments);
         allAssignments.putAll(assignments);
@@ -215,7 +248,6 @@ public class BlockStorageScheduler {
         if (needToValidateHA(system)) {
             validateHACapabilities(pathParams, allAssignments);
         }
-        return convertAssignmentsToURIs(assignments);
     }
 
     /**
@@ -624,6 +656,29 @@ public class BlockStorageScheduler {
             }
         }
         return assignmentMap;
+    }
+
+    /**
+     * Add new assignments to the zoning map.
+     * 
+     * @param assignments Map<Initiator, List<StoragePort> the new assignments
+     * @param newZoningMap the new zoning map being generated.
+     * @return Map<URI, List<URI>> Map of Initiator URI to a list of StoragePort URIs
+     */
+    private void addAssignmentsToZoningMap(Map<Initiator, List<StoragePort>> assignments, StringSetMap newZoningMap) {
+        for (Initiator initiator : assignments.keySet()) {
+            URI key = initiator.getId();
+            if (assignments.get(initiator) != null && !assignments.get(initiator).isEmpty()) {
+                if (newZoningMap.get(key) == null) {
+                    newZoningMap.put(key.toString(), new StringSet());
+                }
+                if (assignments.get(initiator) != null) {
+                    for (StoragePort port : assignments.get(initiator)) {
+                        newZoningMap.get(key.toString()).add(port.getId().toString());
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -1522,8 +1577,9 @@ public class BlockStorageScheduler {
      */
     public static StringSetMap getZoneMapFromAssignments(Map<URI, List<URI>> assignments, StringSetMap existingZones) {
         StringSetMap zoneMap = new StringSetMap();
-        if (existingZones != null)
+        if (existingZones != null) {
             zoneMap.putAll(existingZones);
+        }
         for (URI initiatorURI : assignments.keySet()) {
             StringSet portIds = new StringSet();
             List<URI> portURIs = assignments.get(initiatorURI);
@@ -1804,7 +1860,7 @@ public class BlockStorageScheduler {
      * <p>
      * If zones were found on the network systems for the initiators and ports, there can be 3 possible scenarios
      * <ol>
-     * <li>the number of existing paths is equal hat what is requested in the vpool, in this case the port allocation/assignment code would
+     * <li>the number of existing paths is equal that what is requested in the vpool, in this case the port allocation/assignment code would
      * still be invoked but it will return no additional assignments</li>
      * <li>the number of existing paths is less that what is requested in the vpool, additional assignments will be made by the port
      * allocation/assignment code</li>
@@ -1822,21 +1878,25 @@ public class BlockStorageScheduler {
      * @param pathParams the export group aggregated path parameter
      * @param volumeURIs the volumes in the export mask
      * @param virtualArrayUri TODO
+     * @param token TODO
      * @return a map of existing zones paths between the storage system ports and the
      *         mask initiators.
      */
-    public StringSetMap discoverExistingZonesMap(StorageSystem storage, ExportGroup exportGroup,
+    public StringSetMap assignPrezonedStoragePorts(StorageSystem storage, ExportGroup exportGroup,
             List<Initiator> initiators, StringSetMap existingZoningMap,
             ExportPathParams pathParams, Collection<URI> volumeURIs,
-            NetworkDeviceController networkDeviceController, URI virtualArrayUri) {
+            NetworkDeviceController networkDeviceController, URI virtualArrayUri, String token) {
         // Prime the new zoning map with existing ones
         StringSetMap newZoningMap = new StringSetMap();
         if (existingZoningMap != null) {
             newZoningMap.putAll(existingZoningMap);
         }
+        // Adjust the paths param based on whether at the end of this call the ports selected should meet the paths requirement
+        ExportPathParams prezoningPathParams = getPrezoningPathParam(networkDeviceController, virtualArrayUri, pathParams);
         try {
-            if (networkDeviceController == null)
+            if (networkDeviceController == null) {
                 return newZoningMap;
+            }
             if (!NetworkUtil.areNetworkSystemDiscovered(_dbClient)) {
                 _log.info("Cannot discover existing zones. There are no network systems discovered.");
                 return newZoningMap;
@@ -1855,81 +1915,124 @@ public class BlockStorageScheduler {
 
             _log.info("Checking for existing zoned ports for export {} before invoking port allocation.",
                     exportGroup.getGeneratedName());
-            pathParams = new ExportPathParams(pathParams.getMaxPaths(), 0, pathParams.getPathsPerInitiator(),
-                    pathParams.getExportGroupType());
-            pathParams.setAllowFewerPorts(true);
             List<Initiator> newInitiators = new ArrayList<Initiator>();
             for (Initiator initiator : initiators) {
                 if (!newZoningMap.containsKey(initiator.getId().toString())) {
                     newInitiators.add(initiator);
                 }
             }
-            if (newInitiators.isEmpty())
-                return newZoningMap;
 
-            // discover existing zones that are for the storage system and varray
-            // At this time we are not discovering routed zones but we will take care of this
-            Collection<StoragePort> ports = ExportUtils.getStorageSystemAssignablePorts(
-                    _dbClient, storage.getId(), virtualArrayUri);
-            Map<NetworkLite, List<Initiator>> initiatorsByNetwork = NetworkUtil.getInitiatorsByNetwork(newInitiators, _dbClient);
-            Map<NetworkLite, List<StoragePort>> portByNetwork = ExportUtils.mapStoragePortsToNetworks(ports,
-                    initiatorsByNetwork.keySet(), _dbClient);
-            Map<NetworkLite, List<StoragePort>> preZonedPortsByNetwork = new HashMap<NetworkLite, List<StoragePort>>();
-            Map<NetworkLite, StringSetMap> zonesByNetwork = new HashMap<NetworkLite, StringSetMap>();
+            Map<Initiator, List<StoragePort>> assignments = new HashMap<Initiator, List<StoragePort>>();
+            Map<Initiator, List<StoragePort>> existingAssignments =
+                    generateInitiatorsToStoragePortsMap(existingZoningMap, virtualArrayUri);
+            if (!newInitiators.isEmpty()) {
+                // discover existing zones that are for the storage system and varray
+                // At this time we are not discovering routed zones but we will take care of this
+                Collection<StoragePort> ports = ExportUtils.getStorageSystemAssignablePorts(
+                        _dbClient, storage.getId(), virtualArrayUri);
+                Map<NetworkLite, List<Initiator>> initiatorsByNetwork = NetworkUtil.getInitiatorsByNetwork(newInitiators, _dbClient);
+                Map<NetworkLite, List<StoragePort>> portByNetwork = ExportUtils.mapStoragePortsToNetworks(ports,
+                        initiatorsByNetwork.keySet(), _dbClient);
+                Map<NetworkLite, List<StoragePort>> preZonedPortsByNetwork = new HashMap<NetworkLite, List<StoragePort>>();
+                Map<NetworkLite, StringSetMap> zonesByNetwork = new HashMap<NetworkLite, StringSetMap>();
 
-            // so now we have a a collection of initiators and ports, let's get the zones
-            StringSetMap zonesInNetwork = null;
-            for (NetworkLite network : portByNetwork.keySet()) {
-                if (!Transport.FC.toString().equals(network.getTransportType()))
-                    continue;
-                List<Initiator> networkInitiators = initiatorsByNetwork.get(network);
-                if (networkInitiators == null || networkInitiators.isEmpty())
-                    continue;
-                Map<String, StoragePort> portByWwn = DataObjectUtils.mapByProperty(portByNetwork.get(network), "portNetworkId");
-                zonesInNetwork = networkDeviceController.getZoningMap(network, networkInitiators,
-                        portByWwn);
-                _log.info("Existing zones in network {} are {}", network.getNativeGuid(), zonesInNetwork);
-                zonesByNetwork.put(network, zonesInNetwork);
-                for (String iniId : zonesInNetwork.keySet()) {
-                    for (String portId : zonesInNetwork.get(iniId)) {
-                        StringMapUtil.addToListMap(preZonedPortsByNetwork,
-                                network, DataObjectUtils.findInCollection(portByNetwork.get(network), URI.create(portId)));
-                    }
-                }
-            }
-
-            if (preZonedPortsByNetwork.isEmpty())
-                return newZoningMap;
-            // trim the intiators to the pre-zoned ports
-            StringMapUtil.retainAll(initiatorsByNetwork, preZonedPortsByNetwork);
-            Map<NetworkLite, List<StoragePort>> allocatedPortsByNetwork = allocatePorts(
-                    storage, virtualArrayUri, initiatorsByNetwork,
-                    preZonedPortsByNetwork, volumeURIs, pathParams, existingZoningMap);
-
-            for (NetworkLite portsNetwork : allocatedPortsByNetwork.keySet()) {
-                List<StoragePort> allocatedPorts = allocatedPortsByNetwork.get(portsNetwork);
-                List<Initiator> networkInitiators = initiatorsByNetwork.get(portsNetwork);
-                StringSetMap zoneMap = zonesByNetwork.get(portsNetwork);
-                for (String iniId : zoneMap.keySet()) {
-                    Initiator zoneInit = DataObjectUtils.findInCollection(networkInitiators, URI.create(iniId));
-                    if (zoneInit == null)
+                // so now we have a a collection of initiators and ports, let's get the zones
+                StringSetMap zonesInNetwork = null;
+                Map<String, List<Zone>> initiatorWwnToZonesMap = new HashMap<String, List<Zone>>();
+                for (NetworkLite network : portByNetwork.keySet()) {
+                    if (!Transport.FC.toString().equals(network.getTransportType())) {
                         continue;
-                    for (String portId : zoneMap.get(iniId)) {
-                        StoragePort zonePort = DataObjectUtils.findInCollection(allocatedPorts, URI.create(portId));
-                        if (zonePort != null) {
-                            if (newZoningMap.get(iniId) == null) {
-                                newZoningMap.put(iniId, new StringSet());
-                            }
-                            newZoningMap.put(iniId, portId);
+                    }
+                    List<Initiator> networkInitiators = initiatorsByNetwork.get(network);
+                    if (networkInitiators == null || networkInitiators.isEmpty()) {
+                        continue;
+                    }
+                    Map<String, StoragePort> portByWwn = DataObjectUtils.mapByProperty(portByNetwork.get(network), "portNetworkId");
+                    zonesInNetwork = networkDeviceController.getZoningMap(network, networkInitiators,
+                            portByWwn, initiatorWwnToZonesMap);
+                    _log.info("Existing zones in network {} are {}", network.getNativeGuid(), zonesInNetwork);
+                    zonesByNetwork.put(network, zonesInNetwork);
+                    for (String iniId : zonesInNetwork.keySet()) {
+                        for (String portId : zonesInNetwork.get(iniId)) {
+                            StringMapUtil.addToListMap(preZonedPortsByNetwork,
+                                    network, DataObjectUtils.findInCollection(portByNetwork.get(network), URI.create(portId)));
                         }
                     }
                 }
+                WorkflowService.getInstance().storeWorkflowData(token, "zonemap", initiatorWwnToZonesMap);
+
+                if (!preZonedPortsByNetwork.isEmpty()) {
+                    // trim the initiators to the pre-zoned ports
+                    StringMapUtil.retainAll(initiatorsByNetwork, preZonedPortsByNetwork);
+                    Map<NetworkLite, List<StoragePort>> allocatedPortsByNetwork = allocatePorts(
+                            storage, virtualArrayUri, initiatorsByNetwork,
+                            preZonedPortsByNetwork, volumeURIs, prezoningPathParams, existingZoningMap);
+                    // Compute the number of Ports needed for each Network
+                    StoragePortsAssigner assigner = StoragePortsAssignerFactory
+                            .getAssignerForZones(storage.getSystemType(), zonesByNetwork);
+
+                    for (NetworkLite network : allocatedPortsByNetwork.keySet()) {
+                        // Assign the Storage Ports.
+                        assigner.assign(assignments, initiatorsByNetwork.get(network),
+                                allocatedPortsByNetwork.get(network), prezoningPathParams,
+                                existingAssignments, network);
+                    }
+                    addAssignmentsToZoningMap(assignments, newZoningMap);
+                }
+                // if manual zoning is on, then make sure the paths discovered meet the path requirement
+                if (allocateFromPrezonedPortsOnly(networkDeviceController, virtualArrayUri)) {
+                    validateMinPaths(storage, prezoningPathParams, existingAssignments, assignments,
+                            newInitiators);
+                }
+                _log.info("The following pre-zoned paths and ports will be used: ", newZoningMap);
             }
-            _log.info("The following pre-zoned paths and ports will be used: ", newZoningMap);
+        } catch (PlacementException pex) {
+            _log.error("There are fewer pre-zoned paths than required by the virtual pool."
+                    + " Please either add the needed paths or enable automatic SAN zoning in the virtual array "
+                    + "so that the additional paths can be added by the application.", pex);
+            throw pex;
         } catch (Exception ex) {
             _log.error("Failed to process existing zones for re-use in port allocation. Resuming workflow.", ex);
         }
         return newZoningMap;
+    }
+
+    /**
+     * This function changes the exportPaths parameter to be used when allocating from pre-zoned ports. When additional
+     * paths can be added to the pre-zoned ones, the pre-zoned ports allocation need not verify paths requirements.
+     * When additional paths cannot be added, then pre-zoned ports allocation need not verify paths requirements.
+     * This function ensures the proper paths parameters are passed to pre-zoned ports allocation.
+     * 
+     * @param networkDeviceController -- the network controller
+     * @param virtualArrayUri -- the export virtual array
+     * @param exportPathParams -- the required paths
+     * @return the paths parameter for allocating pre-zoned ports.
+     */
+    private ExportPathParams getPrezoningPathParam(NetworkDeviceController networkDeviceController,
+            URI virtualArrayUri, ExportPathParams exportPathParams) {
+        ExportPathParams prezoningPathParams = new ExportPathParams(exportPathParams.getMaxPaths(),
+                exportPathParams.getMinPaths(), exportPathParams.getPathsPerInitiator(), exportPathParams.getExportGroupType());
+        if (!allocateFromPrezonedPortsOnly(networkDeviceController, virtualArrayUri)) {
+            // If the application is expected to supply missing paths, then the export path needs to be
+            // changed to avoid failure on minPath check when prezoned paths do not meet the requirements
+            prezoningPathParams.setMinPaths(0);
+            prezoningPathParams.setAllowFewerPorts(true);
+        }
+        return prezoningPathParams;
+    }
+
+    /**
+     * When the configuration is for pre-zoned ports to be use and, at the same time, auto-zoning is off, additional
+     * paths will not be added. In this case we need to ensure the pre-zoned paths meet the required paths. This
+     * check indicates if additional paths will or will not be added.
+     * 
+     * @param networkDeviceController -- the network controller
+     * @param virtualArrayUri -- the export virtual array
+     * @return true if additional paths can be added to pre-zoned ones
+     */
+    private boolean allocateFromPrezonedPortsOnly(NetworkDeviceController networkDeviceController, URI virtualArrayUri) {
+        return !networkDeviceController.portAllocationIgnoreExistingZones()
+                && !NetworkScheduler.isZoningRequired(_dbClient, virtualArrayUri);
     }
 
     /**

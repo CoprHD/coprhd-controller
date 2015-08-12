@@ -621,7 +621,6 @@ public class ExportUtils {
      * @param exportMask The reference to exportMask
      * @param assignments New assignments Map of initiator to storagePorts that will be updated in the zoning map
      * @param exportMasksToUpdateOnDeviceWithStoragePorts OUT param -- Map of ExportMask to new Storage ports
-     * 
      * @return returns an updated exportMask
      */
     public static ExportMask updateZoningMap(DbClient dbClient, ExportMask exportMask, Map<URI, List<URI>> assignments,

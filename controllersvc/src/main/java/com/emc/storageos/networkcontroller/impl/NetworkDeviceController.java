@@ -1064,10 +1064,19 @@ public class NetworkDeviceController implements NetworkController {
                 return true;
             }
 
+            // get existing zones from the switch, first check if the zones were retrieved by previous steps and cached in the workflow
+            Map<String, List<Zone>> zonesMap = (Map<String, List<Zone>>) WorkflowService.getInstance().loadWorkflowData(token, "zonemap");
+
+            // if the existing zones were not already retrieved and cached by other steps, retrieve them now
+            if (zonesMap == null) {
+                _log.info("Getting existing zones from network system");
+                List<Initiator> exportInitiators = ExportUtils.getExportMasksInitiators(exportMaskURIs, _dbClient);
+                zonesMap = getInitiatorsZones(exportInitiators);
+            } else {
+                _log.info("Existing zones were already retrieved and stored in the workflow");
+            }
+
             // Compute the zones for the ExportGroup
-            // [hala] make sure we do not rollback existing zones
-            List<Initiator> exportInitiators = ExportUtils.getExportMasksInitiators(exportMaskURIs, _dbClient);
-            Map<String, List<Zone>> zonesMap = getInitiatorsZones(exportInitiators);
             List<NetworkFCZoneInfo> zones = _networkScheduler.
                     getZoningTargetsForExportMasks(exportGroup, exportMaskURIs, volumeURIs, zonesMap, _dbClient);
 
@@ -1184,8 +1193,18 @@ public class NetworkDeviceController implements NetworkController {
                 return true;
             }
 
+            // get existing zones from the switch, first check if the zones were retrieved by previous steps and cached in the workflow
+            Map<String, List<Zone>> zonesMap = (Map<String, List<Zone>>) WorkflowService.getInstance().loadWorkflowData(token, "zonemap");
+
+            // if the existing zones were not already retrieved and cached by other steps, retrieve them now
+            if (zonesMap == null) {
+                _log.info("Getting existing zones from network system");
+                zonesMap = getInitiatorsZones(getInitiatorsFromMapExportMasksToInitiators(exportMasksToInitiators));
+            } else {
+                _log.info("Existing zones were already retrieved and stored in the workflow");
+            }
+
             // Compute zones that are required.
-            Map<String, List<Zone>> zonesMap = getInitiatorsZones(getInitiatorsFromMapExportMasksToInitiators(exportMasksToInitiators));
             List<NetworkFCZoneInfo> zoneInfos =
                     _networkScheduler.getZoningTargetsForInitiators(exportGroup, exportMasksToInitiators, zonesMap, _dbClient);
             context.getZoneInfos().addAll(zoneInfos);
@@ -2112,11 +2131,13 @@ public class NetworkDeviceController implements NetworkController {
      * @return a zoning map of zones that exists on the network systems
      */
     public StringSetMap getZoningMap(NetworkLite network, List<Initiator> initiators,
-            Map<String, StoragePort> portsMap) {
+            Map<String, StoragePort> portsMap, Map<String, List<Zone>> initiatorWwnToZonesMap) {
         StringSetMap map = new StringSetMap();
 
         // find all the zones for the initiators as a map of initiator WWN to zones
-        Map<String, List<Zone>> initiatorWwnToZonesMap = new HashMap<String, List<Zone>>();
+        if (initiatorWwnToZonesMap == null) {
+            initiatorWwnToZonesMap = new HashMap<String, List<Zone>>();
+        }
         // of the zones retrieved from the network system, select the once
         fetchInitiatorsZones(network, initiators, initiatorWwnToZonesMap);
         initiatorWwnToZonesMap = selectZonesForInitiatorsAndPorts(network, initiatorWwnToZonesMap, portsMap);
@@ -2171,7 +2192,7 @@ public class NetworkDeviceController implements NetworkController {
                     }
                     Map<String, StoragePort> initiatorPortsMap = NetworkUtil.getPortsInNetworkMap(network, storagePorts);
                     if (!initiatorPortsMap.isEmpty()) {
-                        zoningMap.putAll(getZoningMap(network, initiatorsByNetworkMap.get(network), initiatorPortsMap));
+                        zoningMap.putAll(getZoningMap(network, initiatorsByNetworkMap.get(network), initiatorPortsMap, null));
                     }
                 }
                 exportMask.setZoningMap(zoningMap);

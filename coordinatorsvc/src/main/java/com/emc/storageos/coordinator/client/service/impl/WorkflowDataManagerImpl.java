@@ -65,9 +65,21 @@ public class WorkflowDataManagerImpl implements DistributedDataManager {
         if (stat != null) {
             List<String> children = getChildren(path);
             for (String child : children) {
-                _zkClient.delete().guaranteed().forPath(path + "/" + child);
+                _zkClient.delete().deletingChildrenIfNeeded().forPath(path + "/" + child);
             }
             _zkClient.delete().guaranteed().forPath(path);
+        }
+    }
+
+    @Override
+    public void removeNode(String path, boolean recursive) throws Exception {
+        if (recursive) {
+            Stat stat = checkExists(path);
+            if (stat != null) {
+                _zkClient.delete().deletingChildrenIfNeeded().forPath(path);
+            }
+        } else {
+            removeNode(path);
         }
     }
 

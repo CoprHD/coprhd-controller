@@ -687,17 +687,17 @@ abstract public class AbstractDefaultMaskingOrchestrator implements MaskingOrche
             pathParams.setAllowFewerPorts(true);
         }
 
-        StringSetMap existingZoningMap = _blockScheduler.discoverExistingZonesMap(storage, exportGroup,
-                initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, exportGroup.getVirtualArray());
+        StringSetMap existingAndPrezonedZoningMap = _blockScheduler.assignPrezonedStoragePorts(storage, exportGroup,
+                initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, exportGroup.getVirtualArray(), token);
         Map<URI, List<URI>> assignments =
                 _blockScheduler.assignStoragePorts(storage, exportGroup.getVirtualArray(), initiators,
-                        pathParams, existingZoningMap, volumeMap.keySet());
-        List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, existingZoningMap);
+                        pathParams, existingAndPrezonedZoningMap, volumeMap.keySet(), _networkDeviceController);
+        List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, existingAndPrezonedZoningMap);
 
         String maskName = useComputedMaskName() ? getComputedExportMaskName(storage, exportGroup, initiators) : null;
 
         ExportMask exportMask = ExportMaskUtils.initializeExportMask(storage, exportGroup,
-                initiators, volumeMap, targets, assignments, existingZoningMap, maskName, _dbClient);
+                initiators, volumeMap, targets, assignments, existingAndPrezonedZoningMap, maskName, _dbClient);
         List<BlockObject> vols = new ArrayList<BlockObject>();
         for (URI boURI : volumeMap.keySet()) {
             BlockObject bo = BlockObject.fetch(_dbClient, boURI);
@@ -891,13 +891,13 @@ abstract public class AbstractDefaultMaskingOrchestrator implements MaskingOrche
         if (exportGroup.getType() != null) {
             pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
         }
-        StringSetMap existingZoningMap = _blockScheduler.discoverExistingZonesMap(storage, exportGroup, initiators,
-                exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray());
+        StringSetMap preZonedZoningMap = _blockScheduler.assignPrezonedStoragePorts(storage, exportGroup, initiators,
+                exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray(), token);
         Map<URI, List<URI>> assignments =
                 _blockScheduler.assignStoragePorts(storage, exportGroup.getVirtualArray(), initiators,
-                        pathParams, exportMask.getZoningMap(), newVolumeURIs);
-        newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, existingZoningMap);
-        exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments, existingZoningMap));
+                        pathParams, preZonedZoningMap, newVolumeURIs, _networkDeviceController);
+        newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, preZonedZoningMap);
+        exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments, preZonedZoningMap));
         _dbClient.persistObject(exportMask);
 
         String maskingStep = workflow.createStepId();

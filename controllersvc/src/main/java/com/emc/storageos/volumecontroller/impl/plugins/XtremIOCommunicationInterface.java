@@ -78,13 +78,14 @@ public class XtremIOCommunicationInterface extends
     public void scan(AccessProfile accessProfile)
             throws BaseCollectionException {
         _logger.info("Scanning started for provider: {}", accessProfile.getSystemId());
+        StorageProvider.ConnectionStatus cxnStatus = StorageProvider.ConnectionStatus.CONNECTED;
         StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
                 accessProfile.getSystemId());
         try {
             XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
                     URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
                     accessProfile.getUserName(), accessProfile.getPassword(), true);
-            String xmsVersion = xtremIOClient.getXtremIOXMSInfo().getVersion();
+            String xmsVersion = xtremIOClient.getXtremIOXMSVersion();
             String minimumSupportedVersion = VersionChecker
                     .getMinimumSupportedVersion(StorageSystem.Type.xtremio).replace("-", ".");
             String compatibility = (VersionChecker.verifyVersionDetails(minimumSupportedVersion, xmsVersion) < 0) ?
@@ -108,13 +109,18 @@ public class XtremIOCommunicationInterface extends
                 viewObject.addprovider(accessProfile.getSystemId().toString());
                 viewObject.setProperty(StorageSystemViewObject.SERIAL_NUMBER, system.getSerialNumber());
                 viewObject.setProperty(StorageSystemViewObject.VERSION, system.getVersion());
-                viewObject.setProperty(StorageSystemViewObject.STORAGE_NAME, system.getName());
+                viewObject.setProperty(StorageSystemViewObject.STORAGE_NAME, arrayNativeGUID);
                 storageSystemsCache.put(arrayNativeGUID, viewObject);
             }
         } catch (Exception ex) {
             _logger.error("Error scanning XMS", ex);
+            cxnStatus = StorageProvider.ConnectionStatus.NOTCONNECTED;
             // throw exception only if system discovery failed.
             throw XtremIOApiException.exceptions.discoveryFailed(provider.toString());
+        } finally {
+            provider.setConnectionStatus(cxnStatus.name());
+            _dbClient.persistObject(provider);
+            _logger.info("Completed scan of XtremIO StorageProvider. IP={}", accessProfile.getIpAddress());
         }
     }
 

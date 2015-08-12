@@ -44,7 +44,6 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumeInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumes;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumesInfo;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMS;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMSResponse;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMSsInfo;
 import com.sun.jersey.api.client.Client;
@@ -477,16 +476,24 @@ public class XtremIOV1Client extends XtremIOClient {
     }
 
     @Override
-    public XtremIOXMS getXtremIOXMSInfo() throws Exception {
-        ClientResponse response = get(XtremIOConstants.XTREMIO_XMS_URI);
-        XtremIOXMSsInfo xmssInfo = getResponseObject(XtremIOXMSsInfo.class, response);
-        for(XtremIOObjectInfo xmsInfo : xmssInfo.getXmssInfo()) {
-            URI xmsURI = URI.create(xmsInfo.getHref());
-            response = get(xmsURI);
-            XtremIOXMSResponse xmsResponse = getResponseObject(XtremIOXMSResponse.class, response);
-            return xmsResponse.getContent();
+    public String getXtremIOXMSVersion() throws Exception {
+        log.info("no XMS object in version 1. So get the cluster and send back its version info");
+        String version = "";
+        ClientResponse response = get(XtremIOConstants.XTREMIO_BASE_CLUSTERS_URI);
+        log.info(response.toString());
+        XtremIOClusters xioClusters = getResponseObject(XtremIOClusters.class, response);
+        log.info("Returned Clusters : {}", xioClusters.getClusters().length);
+        for (XtremIOCluster cluster : xioClusters.getClusters()) {
+            URI clusterURI = URI.create(cluster.getHref());
+            response = get(clusterURI);
+            XtremIOClusterInfo xioSystem = getResponseObject(XtremIOClusterInfo.class, response);
+            log.info("System {}", xioSystem.getContent().getName() + "-"
+                    + xioSystem.getContent().getSerialNumber() + "-"
+                    + xioSystem.getContent().getVersion());
+            return xioSystem.getContent().getVersion();
         }
-        return null;
+        
+        return version;
     }
 
     @Override

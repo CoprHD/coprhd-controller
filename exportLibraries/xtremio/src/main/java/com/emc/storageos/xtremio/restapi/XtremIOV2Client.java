@@ -46,7 +46,6 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumeInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumes;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumesInfo;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMS;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMSResponse;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMSsInfo;
 import com.sun.jersey.api.client.Client;
@@ -538,14 +537,14 @@ public class XtremIOV2Client extends XtremIOClient {
     }
     
     @Override
-    public XtremIOXMS getXtremIOXMSInfo() throws Exception {
+    public String getXtremIOXMSVersion() throws Exception {
         ClientResponse response = get(XtremIOConstants.XTREMIO_V2_XMS_URI);
         XtremIOXMSsInfo xmssInfo = getResponseObject(XtremIOXMSsInfo.class, response);
         for(XtremIOObjectInfo xmsInfo : xmssInfo.getXmssInfo()) {
             URI xmsURI = URI.create(xmsInfo.getHref());
             response = get(xmsURI);
             XtremIOXMSResponse xmsResponse = getResponseObject(XtremIOXMSResponse.class, response);
-            return xmsResponse.getContent();
+            return xmsResponse.getContent().getVersion();
         }
         return null;
     }

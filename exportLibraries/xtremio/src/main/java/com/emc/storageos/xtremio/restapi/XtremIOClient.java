@@ -26,7 +26,6 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumeInfo;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMS;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMSsInfo;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
@@ -63,7 +62,7 @@ public abstract class XtremIOClient extends StandardRestClient {
      */
     public abstract List<XtremIOSystem> getXtremIOSystemInfo() throws Exception;
     
-    public abstract XtremIOXMS getXtremIOXMSInfo() throws Exception;
+    public abstract String getXtremIOXMSVersion() throws Exception;
 
     public abstract List<XtremIOPort> getXtremIOPortInfo(String clusterName) throws Exception;
     

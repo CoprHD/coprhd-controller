@@ -24,6 +24,10 @@ public class RepeatingCharacterRule implements Rule {
 
     @Override
     public void validate(Password password) {
+        if (numCharacters == 0) {
+            return;
+        }
+
         String text = password.getPassword();
 
         int repeating = 1;

@@ -5,6 +5,8 @@
 package com.emc.storageos.db.common;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +62,7 @@ public class DbSchemaInterceptorImpl extends DbSchemaScannerInterceptor {
             put("Stat", statFields);
         }
     };
+    
 
     private List<String> cfClsAntnList = new ArrayList<String>() {
         {
@@ -68,6 +71,11 @@ public class DbSchemaInterceptorImpl extends DbSchemaScannerInterceptor {
         }
     };
 
+    private static final List<String> ignoreCfList = Arrays.asList(new String[] {"ObjectBaseUrl", "ObjectMeteringInfo", 
+    																			 "ObjectNetwork", "ObjectStore",
+    																			 "NodeObj", "NamespaceInfo",
+    																			 "NamespaceZone", "NsTenantZoneMap",
+    																			 "KeyPoolFileAccessExpiration", "KeyPoolInfo"});
     @Override
     public boolean isFieldIgnored(String cfName, String fieldName) {
         if (this.cfFieldsIgnoreMap == null) {
@@ -90,5 +98,14 @@ public class DbSchemaInterceptorImpl extends DbSchemaScannerInterceptor {
         }
 
         return this.cfClsAntnList.contains(annotationName);
+    }
+    
+    @Override
+    public boolean isClassIgnored(String cfName) {
+        return ignoreCfList.contains(cfName);
+    }
+    
+    public static List<String> getIgnoreCfList() {
+    	return Collections.unmodifiableList(ignoreCfList);
     }
 }

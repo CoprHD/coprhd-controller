@@ -6,7 +6,6 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 
-import com.emc.storageos.db.client.model.StorageHADomain.HADomainType;
 import com.emc.storageos.model.valid.EnumType;
 
 /**
@@ -19,125 +18,30 @@ import com.emc.storageos.model.valid.EnumType;
  */
 
 @Cf("VirtualNAS")
-public class VirtualNAS extends VirtualArrayTaggedResource {
-
-    // vNAS Server name
-    private String vNASServerName;
-
-    // Virtual or Physical
-    private Boolean isVirtual;
+public class VirtualNAS extends NASServer {
 
     // Project name which this VNAS belongs to
-    private String project;
+    private URI project;
+
+    private String vNasType;
 
     // Base directory Path for the VNAS applicable in AccessZones & vFiler device types
     private String baseDirPath;
 
-    // Place holder for Tag
-    private StringSet vNAStag;
-
-    // State of the vNAS server
-    private String vNasState;
-
-    // storageSystem, which it belongs
-    private URI storageDeviceURI;
-
-    // Set of Authentication providers for the VNasServer - set values will of type AunthnProvider
-    private StringSet cifsServers;
-
-    // Place holder for hosting storageDomain's information
-    private StringSet storageDomain;
-
     // place holder for the Parent NAS server the Data Mover
-    private URI parentNAS;
+    private URI parentNASURI;
 
-    // List of Storage Ports associated with this VDM - contains reference to StoragePort object type.
-    private StringSet ipInterfaces;
-
-    // List of supported protocols in Virutal NAS
-    private StringSet protocols;
-
-    // the Vritual NAS server's type either Local or Domain
-    private String vNasType;
-
-
-    // -- Max Qualification Limits for the Virtual NAS
-    
-    // Number of FSID for this Virtual NAS
-    private String maxFSIDs;
-
-    // Number of exports/shares for this Virtual NAS
-    private String maxExports;
-
-    // Provisioning Capacity of this Virtual NAS
-    private String maxProvisionedCapacity;
-
-    // Placeholder for storing list of Virtual NAS servers
-    private StringSet containedVirtualNASservers;
-
-
-    @Name("maxFSIDs")
-    public String getMaxFSIDs() {
-        return maxFSIDs;
+    @Name("project")
+    public URI getProject() {
+        return project;
     }
 
-    public void setMaxFSIDs(String maxFSIDs) {
-        this.maxFSIDs = maxFSIDs;
-        setChanged("maxFSIDs");
+    public void setProject(URI project) {
+        this.project = project;
+        setChanged("project");
     }
 
-    @Name("maxExports")
-    public String getTotalExports() {
-        return maxExports;
-    }
-
-    public void setMaxExports(String maxExports) {
-        this.maxExports = maxExports;
-        setChanged("totalExports");
-    }
-
-    @Name("maxProvisionedCapacity")
-    public String getMaxProvisionedCapacity() {
-        return maxProvisionedCapacity;
-    }
-
-    public void setMaxProvisionedCapacity(String provisionedCapacity) {
-        this.maxProvisionedCapacity = provisionedCapacity;
-        setChanged("maxProvisionedCapacity");
-    }
-
-
-    @EnumType(vNasState.class)
-    @Name("vNasState")
-    public String getvNasState() {
-        return vNasState;
-    }
-
-    public void setvNasState(String vNasState) {
-        this.vNasState = vNasState;
-        setChanged("vNasState");
-    }
-
-    @Name("storageDomain")
-    public StringSet getStorageDomain() {
-        return storageDomain;
-    }
-
-    public void setStorageDomain(StringSet storageDomain) {
-        this.storageDomain = storageDomain;
-        setChanged("storageDomain");
-    }
-
-    @Name("protocols")
-    public StringSet getProtocols() {
-        return protocols;
-    }
-
-    public void setProtocols(StringSet protocols) {
-        this.protocols = protocols;
-        setChanged("protocols");
-    }
-
+    @EnumType(vNasType.class)
     @Name("vNasType")
     public String getvNasType() {
         return vNasType;
@@ -148,115 +52,38 @@ public class VirtualNAS extends VirtualArrayTaggedResource {
         setChanged("vNasType");
     }
 
-    @Name("cifsServers")
-    public StringSet getCifsServers() {
-        return cifsServers;
-    }
-
-    public void setCifsServers(StringSet cifsServers) {
-        this.cifsServers = cifsServers;
-        setChanged("cifsServers");
-    }
-
-    @Name("parentNAS")
-    public URI getParentNAS() {
-        return parentNAS;
-    }
-
-    public void setParentNAS(URI parentNAS) {
-        this.parentNAS = parentNAS;
-        setChanged("parentNAS");
-    }
-
-    @Name("isVirtual")
-    public Boolean getIsVirtual() {
-        return isVirtual;
-    }
-
-    public void setIsVirtual(Boolean isVirtual) {
-        this.isVirtual = isVirtual;
-        setChanged("isVirtual");
-    }
-
-    @Name("vNASServerName")
-    public String getvNASServerName() {
-        return vNASServerName;
-    }
-
-    public void setvNAStag(StringSet vNAStag) {
-        this.vNAStag = vNAStag;
-        setChanged("vNAStag");
-    }
-
-    @RelationIndex(cf = "RelationIndex", type = StoragePort.class)
-    @Name("ipInterfaces")
-    public StringSet getIpInterfaces() {
-        return ipInterfaces;
-    }
-
-    public void setIpInterfaces(StringSet ipInterfaces) {
-        this.ipInterfaces = ipInterfaces;
-        setChanged("ipInterfaces");
-    }
-
-    @Name("vNAStag")
-    public StringSet getvNAStag() {
-        return vNAStag;
-    }
-
-    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
-    @Name("storageDeviceURI")
-    public URI getStorageDeviceURI() {
-        return storageDeviceURI;
-    }
-
-    public void setStorageDeviceURI(URI storageDeviceURI) {
-        this.storageDeviceURI = storageDeviceURI;
-        setChanged("storageDeviceURI");
-    }
-
-
-    @Name("vNASserverName")
-    public String getVNASServerName() {
-        return vNASServerName;
-    }
-
-    public void setvNASServerName(String _vNASServerName) {
-        this.vNASServerName = _vNASServerName;
-        setChanged("vNASserverName");
-    }
-
-    @RelationIndex(cf = "RelationIndex", type = Project.class)
-    @Name("project")
-    public String getProject() {
-        return project;
-    }
-
-    public void setProject(String _project) {
-        this.project = _project;
-        setChanged("project");
-    }
-
-    @Name("baseDirPath")
+    @Name("String")
     public String getBaseDirPath() {
         return baseDirPath;
     }
 
-    public void setBaseDirPath(String _baseDirPath) {
-        this.baseDirPath = _baseDirPath;
+    public void setBaseDirPath(String baseDirPath) {
+        this.baseDirPath = baseDirPath;
         setChanged("baseDirPath");
     }
 
-    @Name("tag")
-    public StringSet getVNASTag() {
-        return vNAStag;
+
+    @Name("parentNASURI")
+    public URI getParentPhysicalNAS() {
+        return parentNASURI;
     }
 
-    public void setVNASTag(StringSet _tag) {
-        this.vNAStag = _tag;
-        setChanged("vNAStag");
+    public void setParentNAS(URI parentPhysicalNAS) {
+        this.parentNASURI = parentPhysicalNAS;
+        setChanged("parentNASURI");
     }
-    
+
+    @Name("vNasState")
+    @EnumType(vNasState.class)
+    public String getVNasState() {
+        return this.getNasState();
+    }
+
+    public void setNasState(String nasState) {
+        this.setNasState(nasState);
+        setChanged("vNasState");
+    }
+
     // Defines different States of the NAS server.
     public static enum vNasState {
         Loaded("Loded"),

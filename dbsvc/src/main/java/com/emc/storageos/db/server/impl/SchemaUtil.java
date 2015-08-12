@@ -1137,7 +1137,7 @@ public class SchemaUtil {
     public void insertVdcVersion(final DbClient dbClient) {
 
         String dbFullVersion = this._service.getVersion();
-        String[] parts = StringUtils.split(dbFullVersion, VdcUtil.VERSION_PART_SEPERATOR);
+        String[] parts = StringUtils.split(dbFullVersion, DbConfigConstants.VERSION_PART_SEPERATOR);
         String version = parts[0] + "." + parts[1];
         URI vdcId = VdcUtil.getLocalVdc().getId();
 

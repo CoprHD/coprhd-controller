@@ -827,7 +827,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     public CIMArgument[] getCreateSynchronizationAspectInput(CIMObjectPath sourcePath, String name) {
         return new CIMArgument[] {
-                _cimArgument.string(CP_ELEMENT_NAME, name),
+                _cimArgument.string(CP_NAME, name),
                 _cimArgument.uint16(CP_MODE, MODE_SYNCHRONOUS),
                 _cimArgument.uint16(CP_SYNC_TYPE, SNAPSHOT_VALUE),
                 _cimArgument.reference(CP_SOURCE_ELEMENT, sourcePath)

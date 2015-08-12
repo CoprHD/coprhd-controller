@@ -256,6 +256,8 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 }
                 snapSession.setLinkedTargets(linkedTargetIds);
                 snapSessionSnapshotMap.put(snapSession.getId(), snapshotURIs);
+            } else {
+                snapSessionSnapshotMap.put(snapSession.getId(), new ArrayList<URI>());
             }
 
             // Update the snap sessions and URIs lists.

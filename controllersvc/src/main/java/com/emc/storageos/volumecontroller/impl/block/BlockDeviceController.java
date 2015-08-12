@@ -161,10 +161,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String FRACTURE_CLONE_METHOD = "fractureClone";
     private static final String CREATE_SAPSHOT_SESSION_WF_NAME = "createSnapshotSessionWf";
     private static final String CREATE_SNAPSHOT_SESSION_STEP_GROUP = "createSnapshotSession";
-    private static final String CREATE_SNAPSHOT_SESSION_METHOD = "createSnapshotSession";
+    private static final String CREATE_SNAPSHOT_SESSION_METHOD = "createBlockSnapshotSession";
     private static final String LINK_SNAPSHOT_SESSION_TARGETS_STEP_GROUP = "LinkSnapshotSessionTarget";
-    private static final String LINK_SNAPSHOT_SESSION_TARGETS_METHOD = "linkSnapshotSessionTargets";
-    private static final String RB_LINK_SNAPSHOT_SESSION_TARGETS_METHOD = "rollbackLinkSnapshotSessionTargets";
+    private static final String LINK_SNAPSHOT_SESSION_TARGETS_METHOD = "linkBlockSnapshotSessionTargets";
+    private static final String RB_LINK_SNAPSHOT_SESSION_TARGETS_METHOD = "rollbackLinkBlockSnapshotSessionTargets";
 
     public static final String BLOCK_VOLUME_EXPAND_GROUP = "BlockDeviceExpandVolume";
 
@@ -3528,19 +3528,20 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             // Create a step to create the session.
             String waitFor = workflow.createStep(CREATE_SNAPSHOT_SESSION_STEP_GROUP, String.format("Creating block snapshot session"),
-                    null,
-                    systemURI, getDeviceType(systemURI), getClass(),
-                    createBlockSnapshotSessionMethod(systemURI, snapSessionURIs, createInactive), null, null);
+                    null, systemURI, getDeviceType(systemURI), getClass(), createBlockSnapshotSessionMethod(systemURI, snapSessionURIs),
+                    null, null);
 
             // If necessary add a step for each session to create the new targets and link them to the session.
-            if (!sessionSnapshotURIMap.isEmpty()) {
+            if ((sessionSnapshotURIMap != null) && (!sessionSnapshotURIMap.isEmpty())) {
                 for (URI snapSessionURI : snapSessionURIs) {
-                    List<URI> sessionSnapshotURIs = sessionSnapshotURIMap.get(snapSessionURI);
-                    workflow.createStep(LINK_SNAPSHOT_SESSION_TARGETS_STEP_GROUP,
-                            String.format("Linking targets for snapshot session %s", snapSessionURI), waitFor, systemURI,
-                            getDeviceType(systemURI), getClass(),
-                            linkBlockSnapshotSessionTargetsMethod(systemURI, snapSessionURI, sessionSnapshotURIs, copyMode),
-                            rollbackLinkBlockSnapshotSessionTargetsMethod(systemURI, snapSessionURI, sessionSnapshotURIs), null);
+                    List<URI> snapshotURIs = sessionSnapshotURIMap.get(snapSessionURI);
+                    if ((snapshotURIs != null) && (!snapshotURIs.isEmpty())) {
+                        workflow.createStep(LINK_SNAPSHOT_SESSION_TARGETS_STEP_GROUP,
+                                String.format("Linking targets for snapshot session %s", snapSessionURI),
+                                waitFor, systemURI, getDeviceType(systemURI), getClass(),
+                                linkBlockSnapshotSessionTargetsMethod(systemURI, snapSessionURI, snapshotURIs, createInactive, copyMode),
+                                rollbackLinkBlockSnapshotSessionTargetsMethod(systemURI, snapSessionURI, snapshotURIs), null);
+                    }
                 }
             }
             workflow.executePlan(completer, "Create block snapshot session successful");
@@ -3557,22 +3558,20 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * 
      * @param systemURI The URI of the storage system on which the snapshot sessions are created.
      * @param snapSessionURIs The URIs of the sessions in ViPR
-     * @param createInactive Whether or not the session should be created inactive.
      * 
      * @return A reference to a Workflow.Method
      */
-    public static Workflow.Method createBlockSnapshotSessionMethod(URI systemURI, List<URI> snapSessionURIs, Boolean createInactive) {
-        return new Workflow.Method(CREATE_SNAPSHOT_SESSION_METHOD, systemURI, snapSessionURIs, createInactive);
+    public static Workflow.Method createBlockSnapshotSessionMethod(URI systemURI, List<URI> snapSessionURIs) {
+        return new Workflow.Method(CREATE_SNAPSHOT_SESSION_METHOD, systemURI, snapSessionURIs);
     }
 
     /**
      * 
      * @param systemURI
      * @param snapSessionURIs
-     * @param createInactive
      * @param stepId
      */
-    public void createSnapshotSession(URI systemURI, List<URI> snapSessionURIs, Boolean createInactive, String stepId) {
+    public void createBlockSnapshotSession(URI systemURI, List<URI> snapSessionURIs, String stepId) {
         TaskCompleter completer = null;
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
@@ -3593,13 +3592,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param systemURI
      * @param snapSessionURI
      * @param snapshotURIs
+     * @param createInactive
      * @param copyMode
      * 
      * @return
      */
     public static Workflow.Method linkBlockSnapshotSessionTargetsMethod(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs,
-            String copyMode) {
-        return new Workflow.Method(LINK_SNAPSHOT_SESSION_TARGETS_METHOD, systemURI, snapSessionURI, snapshotURIs, copyMode);
+            Boolean createInactive, String copyMode) {
+        return new Workflow.Method(LINK_SNAPSHOT_SESSION_TARGETS_METHOD, systemURI, snapSessionURI, snapshotURIs, createInactive, copyMode);
     }
 
     /**
@@ -3607,11 +3607,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param systemURI
      * @param snapSessionURI
      * @param snapshotURIs
+     * @param createInactive
      * @param copyMode
      * @param stepId
      */
-    public void linkSnapshotSessionTargets(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs, String copyMode, String stepId) {
-
+    public void linkBlockSnapshotSessionTargets(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs, Boolean createInactive,
+            String copyMode, String stepId) {
     }
 
     /**
@@ -3633,7 +3634,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param snapshotURIs
      * @param stepId
      */
-    public void rollbaclLinkSnapshotSessionTargets(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs, String stepId) {
-
+    public void rollbackLinkBlockSnapshotSessionTargets(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs, String stepId) {
     }
 }

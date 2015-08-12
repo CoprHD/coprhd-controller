@@ -20,6 +20,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
@@ -29,7 +30,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
  * 
  */
 @SuppressWarnings("serial")
-public class BlockSnapshotSessionCreateWorkflowCompleter extends TaskLockingCompleter {
+public class BlockSnapshotSessionCreateWorkflowCompleter extends TaskCompleter {
 
     // Message constants.
     public static final String SNAPSHOT_SESSION_CREATE_SUCCESS_MSG = "Block Snapshot Session %s created for source %s";

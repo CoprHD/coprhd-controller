@@ -2195,6 +2195,7 @@ configProperties.error.uint32=Not a valid 32-bit unsigned integer.
 configProperties.error.uint64=Not a valid 64-bit unsigned integer.
 configProperties.error.percent=Not a valid percentage.
 configProperties.error.hostname=Not valid hostname.
+configProperties.error.stricthostname=Not valid hostname.
 configProperties.error.iplist=Not a valid list of IP addresses.
 configProperties.error.pem=Not a valid certificate.
 configProperties.error.minLen=Can not be less than the minimum length of %s.

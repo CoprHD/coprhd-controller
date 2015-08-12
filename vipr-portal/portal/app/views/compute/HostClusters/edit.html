@@ -34,7 +34,12 @@
     }%
     #{Form.inputTextControlGroup field:field /}
   #{/field}
-
+  #{field 'hostCluster.autoExportEnabled'}
+     #{Form.booleanCheckBoxControlGroup field:field /}
+  #{/field}
+  #{field 'hostCluster.autoUnexportEnabled'}
+     #{Form.booleanCheckBoxControlGroup field:field /}
+  #{/field}
   #{Form.saveCancelButtonBar size:'large'}
     #{if hostCluster?.id}
       #{Form.button 'HostClusters.editHosts.shortTitle', icon:'edit', size:'large', href:@editHosts(hostCluster.id)/} 

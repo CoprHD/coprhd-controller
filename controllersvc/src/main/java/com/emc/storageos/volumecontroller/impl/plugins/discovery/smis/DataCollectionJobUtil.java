@@ -102,6 +102,10 @@ public class DataCollectionJobUtil {
                         ((StorageProvider) taskObject).getInterfaceType())) {
             populateSMISAccessProfile(profile, (StorageProvider) taskObject);
             profile.setnamespace(Constants.IBM_NAMESPACE);
+        } else if (clazz == StorageProvider.class &&
+                StorageProvider.InterfaceType.xtremio.name().equalsIgnoreCase(
+                        ((StorageProvider) taskObject).getInterfaceType())) {
+            populateXtremIOAccessProfile(profile, (StorageProvider) taskObject);
         } else if (clazz == StorageSystem.class) {
             populateAccessProfile(profile, (StorageSystem) taskObject, nameSpace);
         } else if (clazz == ProtectionSystem.class) {
@@ -320,6 +324,23 @@ public class DataCollectionJobUtil {
         accessProfile.setUserName(providerInfo.getUserName());
         accessProfile.setPassword(providerInfo.getPassword());
         accessProfile.setSystemType("cinder");
+        accessProfile.setPortNumber(providerInfo.getPortNumber());
+        accessProfile.setSslEnable(String.valueOf(providerInfo.getUseSSL()));
+    }
+    
+    /**
+     * inject details needed for Scanning
+     * 
+     * @param accessProfile
+     * @param providerInfo
+     */
+    private void populateXtremIOAccessProfile(AccessProfile accessProfile, StorageProvider providerInfo) {
+        accessProfile.setSystemId(providerInfo.getId());
+        accessProfile.setSystemClazz(providerInfo.getClass());
+        accessProfile.setIpAddress(providerInfo.getIPAddress());
+        accessProfile.setUserName(providerInfo.getUserName());
+        accessProfile.setPassword(providerInfo.getPassword());
+        accessProfile.setSystemType(DiscoveredDataObject.Type.xtremio.name());
         accessProfile.setPortNumber(providerInfo.getPortNumber());
         accessProfile.setSslEnable(String.valueOf(providerInfo.getUseSSL()));
     }

@@ -30,7 +30,7 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
     private String state;
     
     // storageSystem, which it belongs
-    private URI storageDeviceURI;
+    private URI storageDevice;
     
     // Set of Authentication providers for the VNasServer - set values will of type AunthnProvider
     private StringSet cifsServers;
@@ -79,14 +79,14 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
         setChanged("name");
     }
 
-    @Name("storageDeviceURI")
+    @Name("storageDevice")
     public URI getStorageDeviceURI() {
-        return storageDeviceURI;
+        return storageDevice;
     }
 
     public void setStorageDeviceURI(URI stroageDeviceURi) {
-        this.storageDeviceURI = stroageDeviceURi;
-        setChanged("stroageDeviceURI");
+        this.storageDevice = stroageDeviceURi;
+        setChanged("stroageDevice");
     }
 
     @Name("maxFSID")

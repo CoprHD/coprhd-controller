@@ -58,7 +58,7 @@ class StorageSystem(object):
         'vplex',
         'hds',
         'openstack',
-        'scaleio',
+        'scaleioapi',
         'xtremio',
         'ddmc',
         'ibmxiv',
@@ -71,7 +71,7 @@ class StorageSystem(object):
         'vmax',
         'vplex',
         'hds',
-        'scaleio',
+        'scaleioapi',
         'xtremio',
         'ibmxiv',
         'vnxe']

@@ -83,6 +83,7 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
     }
 
     @RelationIndex(cf = "LinkedTargetsIndex", type = BlockSnapshot.class)
+    @IndexByKey
     @Name("linkedTargets")
     public StringSet getLinkedTargets() {
         return _linkedTargets;

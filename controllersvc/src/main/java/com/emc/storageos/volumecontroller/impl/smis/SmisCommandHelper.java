@@ -54,6 +54,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -831,6 +832,24 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.uint16(CP_MODE, MODE_SYNCHRONOUS),
                 _cimArgument.uint16(CP_SYNC_TYPE, SNAPSHOT_VALUE),
                 _cimArgument.reference(CP_SOURCE_ELEMENT, sourcePath)
+        };
+    }
+
+    /**
+     * 
+     * @param settingsStatePath
+     * @param targetDevicePath
+     * @param createInactive
+     * @param copyMode
+     * @return
+     */
+    public CIMArgument[] getModifySettingsDefinedStateForLinkTargets(CIMObjectPath settingsStatePath,
+            CIMObjectPath targetDevicePath, Boolean createInactive, String copyMode) {
+        int operation = (copyMode.equals(BlockSnapshotSession.CopyMode.copy.name()) ? 5 : 8);
+        return new CIMArgument[] {
+                _cimArgument.uint16(CP_OPERATION, operation),
+                _cimArgument.reference(CP_TARGET_ELEMENT, targetDevicePath),
+                _cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath)
         };
     }
 

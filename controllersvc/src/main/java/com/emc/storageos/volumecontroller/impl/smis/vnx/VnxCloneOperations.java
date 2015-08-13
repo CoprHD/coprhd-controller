@@ -5,12 +5,14 @@
 package com.emc.storageos.volumecontroller.impl.smis.vnx;
 
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_LIST_REPLICA;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.JOB;
 import static java.text.MessageFormat.format;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
@@ -34,8 +36,6 @@ import com.emc.storageos.volumecontroller.impl.smis.AbstractCloneOperations;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisVnxCreateCGCloneJob;
-
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_LIST_REPLICA;
 
 /**
  * For VNX, clone would be smi-s mirror (Snapview clone)
@@ -93,10 +93,11 @@ public class VnxCloneOperations extends AbstractCloneOperations {
                 final URI poolId = clone.getPool();
                 Volume source = _dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
                 // Create target devices
-                final List<String> newDeviceIds = ReplicationUtils.createTargetDevices(storage, sourceGroupName, clone.getLabel(),
+                final Map<String, String> newDeviceMap = ReplicationUtils.createTargetDevices(storage, sourceGroupName, clone.getLabel(),
                         createInactive,
                         1, poolId, clone.getCapacity(), source.getThinlyProvisioned(), null, taskCompleter, _dbClient, _helper, _cimPath);
 
+                List<String> newDeviceIds = new ArrayList<String>(newDeviceMap.values());
                 targetDeviceIds.addAll(newDeviceIds);
             }
 

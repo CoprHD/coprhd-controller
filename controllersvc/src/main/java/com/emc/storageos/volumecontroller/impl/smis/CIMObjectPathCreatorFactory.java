@@ -466,6 +466,17 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
     }
 
     @Override
+    public CIMObjectPath objectPath(String instanceId) {
+        CIMObjectPath path;
+        try {
+            path = CimObjectPathCreator.createInstance(instanceId);
+        } catch (Exception e) {
+            throw new IllegalStateException("Problem getting input arguments: ");
+        }
+        return path;
+    }
+
+    @Override
     public CIMObjectPath getStorageHardwareIDManagementService(StorageSystem storage) {
         String creationClassName = prefixWithParamName(STORAGE_HARDWARE_ID_MGMT_SVC);
         CIMProperty[] properties = {
@@ -509,6 +520,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
                         instanceIdProp.getValue().toString()) });
     }
 
+    @Override
     public CIMObjectPath getMaskingGroupPath(StorageSystem storageDevice, String groupName, MASKING_GROUP_TYPE groupType) throws Exception {
         CIMProperty[] groupKeys = {
                 cimPropertyFactory.string(

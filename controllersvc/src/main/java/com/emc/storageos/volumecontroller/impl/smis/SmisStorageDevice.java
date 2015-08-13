@@ -2093,21 +2093,39 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * {@inheritDoc}
      */
     @Override
-    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter taskCompleter)
+    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
             throws DeviceControllerException {
         try {
             List<BlockSnapshotSession> snapSessions = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURIs);
             if (doGroupSnapshotSessionCreation(snapSessions)) {
-                _snapshotOperations.createGroupSnapshotSession(system, snapSessionURIs, taskCompleter);
+                _snapshotOperations.createGroupSnapshotSession(system, snapSessionURIs, completer);
             } else {
                 URI snapSessionURI = snapSessionURIs.get(0);
-                _snapshotOperations.createSnapshotSession(system, snapSessionURI, taskCompleter);
+                _snapshotOperations.createSnapshotSession(system, snapSessionURI, completer);
             }
         } catch (Exception e) {
             _log.error(String.format("Exception trying to create snapshot session(s) on array %s", system.getSerialNumber()), e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed("doCreateSnapshotSession", e.getMessage());
-            taskCompleter.error(_dbClient, error);
+            completer.error(_dbClient, error);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void doLinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI, Boolean createInactive,
+            String copyMode, TaskCompleter completer) throws DeviceControllerException {
+
+        try {
+            _snapshotOperations.linkBlockSnapshotSessionTarget(system, snapSessionURI, snapshotURI, createInactive, copyMode, completer);
+        } catch (Exception e) {
+            _log.error(String.format("Exception trying to link new targets to block snapshot session %s on array %s",
+                    snapSessionURI, system.getSerialNumber()), e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doLinkBlockSnapshotSessionTargets", e.getMessage());
+            completer.error(_dbClient, error);
+        }
+
     }
 
     /**

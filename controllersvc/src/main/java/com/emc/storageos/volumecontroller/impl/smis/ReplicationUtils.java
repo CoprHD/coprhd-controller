@@ -4,6 +4,39 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_REPLICATION_GROUP;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_GROUP;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_NEW_TARGET_VALUE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DEFAULT_INSTANCE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DELETE_GROUP;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DESIRED_COPY_METHODOLOGY;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.EMC_RETURN_TO_STORAGE_POOL;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.GET_DEFAULT_REPLICATION_SETTING_DATA;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.RETURN_ELEMENTS_TO_STORAGE_POOL;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.TARGET_ELEMENT_SUPPLIER;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.VP_SNAP_VALUE;
+import static java.text.MessageFormat.format;
+import static javax.cim.CIMDataType.UINT16_T;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.cim.CIMArgument;
+import javax.cim.CIMDataType;
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+import javax.cim.CIMProperty;
+import javax.cim.UnsignedInteger16;
+import javax.wbem.WBEMException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -13,29 +46,10 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
-import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.*;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
 import com.google.common.base.Joiner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMArgument;
-import javax.cim.CIMDataType;
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import javax.cim.CIMProperty;
-import javax.cim.UnsignedInteger16;
-import javax.wbem.WBEMException;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.*;
-import static java.text.MessageFormat.format;
-import static javax.cim.CIMDataType.UINT16_T;
 
 /**
  * Class to contain common utilities for Replication related operations
@@ -44,11 +58,11 @@ public class ReplicationUtils {
     private static final Logger _log = LoggerFactory.getLogger(ReplicationUtils.class);
 
     public static class ReplicationSettingBuilder {
-        private StorageSystem storage;
-        private SmisCommandHelper helper;
-        private CIMObjectPathFactory cimPath;
+        private final StorageSystem storage;
+        private final SmisCommandHelper helper;
+        private final CIMObjectPathFactory cimPath;
 
-        private Set<CIMProperty> properties = new HashSet<>();
+        private final Set<CIMProperty> properties = new HashSet<>();
 
         public ReplicationSettingBuilder(StorageSystem storage, SmisCommandHelper helper, CIMObjectPathFactory cimPath) {
             this.storage = storage;
@@ -307,7 +321,7 @@ public class ReplicationUtils {
      * 
      * @returns - List of native Ids
      */
-    public static List<String> createTargetDevices(StorageSystem storageSystem, String sourceGroupName,
+    public static Map<String, String> createTargetDevices(StorageSystem storageSystem, String sourceGroupName,
             String label, Boolean createInactive, int count,
             URI storagePoolUri, long capacity, boolean isThinlyProvisioned,
             Volume sourceVolume, TaskCompleter taskCompleter,
@@ -337,7 +351,7 @@ public class ReplicationUtils {
 
             helper.invokeMethodSynchronously(storageSystem, configSvcPath, CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, inArgs, outArgs, job);
 
-            return job.getTargetDeviceIds();
+            return job.getTargetDeviceMap();
         } catch (Exception e) {
             final String errMsg = format("An error occurred when creating target devices VMAX system {0}", storageSystem.getId());
             _log.error(errMsg, e);

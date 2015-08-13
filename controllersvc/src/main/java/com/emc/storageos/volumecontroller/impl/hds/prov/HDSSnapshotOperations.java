@@ -409,7 +409,7 @@ public class HDSSnapshotOperations implements SnapshotOperations {
      * {@inheritDoc}
      */
     @Override
-    public void createSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter taskCompleter)
+    public void createSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
@@ -418,9 +418,18 @@ public class HDSSnapshotOperations implements SnapshotOperations {
      * {@inheritDoc}
      */
     @Override
-    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter taskCompleter)
+    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void linkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI, Boolean createInactive,
+            String copyMode, TaskCompleter completer)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

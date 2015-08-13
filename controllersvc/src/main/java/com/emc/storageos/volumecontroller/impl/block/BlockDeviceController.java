@@ -104,6 +104,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneFracture
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CreateBlockSnapshotSessionCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.LinkBlockSnapshotSessionTargetCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MultiVolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SimpleTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateCompleter;
@@ -3536,11 +3537,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 for (URI snapSessionURI : snapSessionURIs) {
                     List<URI> snapshotURIs = sessionSnapshotURIMap.get(snapSessionURI);
                     if ((snapshotURIs != null) && (!snapshotURIs.isEmpty())) {
-                        workflow.createStep(LINK_SNAPSHOT_SESSION_TARGETS_STEP_GROUP,
-                                String.format("Linking targets for snapshot session %s", snapSessionURI),
-                                waitFor, systemURI, getDeviceType(systemURI), getClass(),
-                                linkBlockSnapshotSessionTargetsMethod(systemURI, snapSessionURI, snapshotURIs, createInactive, copyMode),
-                                rollbackLinkBlockSnapshotSessionTargetsMethod(systemURI, snapSessionURI, snapshotURIs), null);
+                        for (URI snapshotURI : snapshotURIs) {
+                            workflow.createStep(
+                                    LINK_SNAPSHOT_SESSION_TARGETS_STEP_GROUP,
+                                    String.format("Linking targets for snapshot session %s", snapSessionURI),
+                                    waitFor, systemURI, getDeviceType(systemURI), getClass(),
+                                    linkBlockSnapshotSessionTargetsMethod(systemURI, snapSessionURI, snapshotURI,
+                                            createInactive, copyMode),
+                                    rollbackLinkBlockSnapshotSessionTargetsMethod(systemURI, snapSessionURI, snapshotURIs), null);
+                        }
                     }
                 }
             }
@@ -3591,28 +3596,42 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * 
      * @param systemURI
      * @param snapSessionURI
-     * @param snapshotURIs
+     * @param snapshotURI
      * @param createInactive
      * @param copyMode
      * 
      * @return
      */
-    public static Workflow.Method linkBlockSnapshotSessionTargetsMethod(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs,
+    public static Workflow.Method linkBlockSnapshotSessionTargetsMethod(URI systemURI, URI snapSessionURI, URI snapshotURI,
             Boolean createInactive, String copyMode) {
-        return new Workflow.Method(LINK_SNAPSHOT_SESSION_TARGETS_METHOD, systemURI, snapSessionURI, snapshotURIs, createInactive, copyMode);
+        return new Workflow.Method(LINK_SNAPSHOT_SESSION_TARGETS_METHOD, systemURI, snapSessionURI, snapshotURI, createInactive, copyMode);
     }
 
     /**
      * 
      * @param systemURI
      * @param snapSessionURI
-     * @param snapshotURIs
+     * @param snapshotURI
      * @param createInactive
      * @param copyMode
      * @param stepId
      */
-    public void linkBlockSnapshotSessionTargets(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs, Boolean createInactive,
+    public void linkBlockSnapshotSessionTargets(URI systemURI, URI snapSessionURI, URI snapshotURI, Boolean createInactive,
             String copyMode, String stepId) {
+        TaskCompleter completer = null;
+        try {
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+            completer = new LinkBlockSnapshotSessionTargetCompleter(snapSessionURI, snapshotURI, stepId);
+            getDevice(system.getSystemType()).doLinkBlockSnapshotSessionTarget(system, snapSessionURI, snapshotURI, createInactive,
+                    copyMode, completer);
+        } catch (Exception e) {
+            if (completer != null) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+                completer.error(_dbClient, serviceError);
+            } else {
+                throw DeviceControllerException.exceptions.linkBlockSnapshotSessionTargetsFailed(e);
+            }
+        }
     }
 
     /**

@@ -709,6 +709,23 @@ public interface BlockStorageDevice {
      * @param system
      * @param snapSessionURIs
      * @param completer
+     * 
+     * @throws DeviceControllerException
      */
-    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer);
+    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
+            throws DeviceControllerException;
+
+    /**
+     * 
+     * @param system
+     * @param snapSessionURI
+     * @param snapshotURI
+     * @param createInactive
+     * @param copyMode
+     * @param completer
+     * 
+     * @throws DeviceControllerException
+     */
+    public void doLinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI, Boolean createInactive,
+            String copyMode, TaskCompleter completer) throws DeviceControllerException;
 }

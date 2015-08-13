@@ -12,8 +12,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.cim.CIMArgument;
 import javax.cim.CIMObjectPath;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,10 +94,12 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
                     final URI poolId = clone.getPool();
                     Volume source = _dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
                     // Create target devices
-                    final List<String> newDeviceIds = ReplicationUtils.createTargetDevices(storage, sourceGroupName, clone.getLabel(),
+                    final Map<String, String> newDeviceMap = ReplicationUtils.createTargetDevices(storage, sourceGroupName,
+                            clone.getLabel(),
                             createInactive,
                             1, poolId, clone.getCapacity(), source.getThinlyProvisioned(), source, taskCompleter, _dbClient, _helper,
                             _cimPath);
+                    final List<String> newDeviceIds = new ArrayList<String>(newDeviceMap.values());
 
                     targetDeviceIds.addAll(newDeviceIds);
                 }

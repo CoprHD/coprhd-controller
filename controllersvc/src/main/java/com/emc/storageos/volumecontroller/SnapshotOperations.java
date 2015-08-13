@@ -174,11 +174,11 @@ public interface SnapshotOperations {
      * 
      * @param system Reference to the storage system.
      * @param snapSessionURI The URI of the ViPR BlockSnapshotSession instance.
-     * @param taskCompleter Reference to a task completer to invoke upon completion of the operation.
+     * @param completer Reference to a task completer to invoke upon completion of the operation.
      * 
      * @throws DeviceControllerException
      */
-    public void createSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter taskCompleter)
+    public void createSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
             throws DeviceControllerException;
 
     /**
@@ -187,10 +187,25 @@ public interface SnapshotOperations {
      * 
      * @param system Reference to the storage system.
      * @param snapSessionURIs The URIs of the ViPR BlockSnapshotSession instances.
-     * @param taskCompleter Reference to a task completer to invoke upon completion of the operation.
+     * @param completer Reference to a task completer to invoke upon completion of the operation.
      * 
      * @throws DeviceControllerException
      */
-    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter taskCompleter)
+    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
+            throws DeviceControllerException;
+
+    /**
+     * 
+     * @param system
+     * @param snapSessionURI
+     * @param snapshotURI
+     * @param createInactive
+     * @param copyMode
+     * @param completer
+     * 
+     * @throws DeviceControllerException
+     */
+    public void linkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI, Boolean createInactive,
+            String copyMode, TaskCompleter completer)
             throws DeviceControllerException;
 }

@@ -249,6 +249,7 @@ public interface SmisConstants {
     static final String CP_SOURCE_ELEMENT = "SourceElement";
     static final String CP_SOURCE_ELEMENTS = "SourceElements";
     static final String CP_TARGET_ELEMENTS = "TargetElements";
+    static final String CP_TARGET_ELEMENT_COUNT = "TargetElementCount";
     static final String CP_INSTANCE_ID = "InstanceID";
     static final String CP_ELEMENT_TYPE = "ElementType";
     static final String CP_IN_POOL = "InPool";

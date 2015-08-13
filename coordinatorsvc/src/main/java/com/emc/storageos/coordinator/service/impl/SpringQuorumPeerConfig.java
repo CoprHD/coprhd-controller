@@ -84,31 +84,23 @@ public class SpringQuorumPeerConfig extends QuorumPeerConfig {
         long sid = Long.parseLong(key.substring(dot + 1));
         String parts[] = value.split(",");
         if ((parts.length != 2) && (parts.length != 3) && (parts.length != 4)) {
-            log.error(value
-                    + " does not have the form host,port or host,port,port " +
-                    " or host,port,port,type");
+            log.error(value + " does not have the form host,port or host,port,port " + " or host,port,port,type");
         }
-        InetSocketAddress addr = new InetSocketAddress(parts[0],
-                Integer.parseInt(parts[1]));
+        InetSocketAddress addr = new InetSocketAddress(parts[0], Integer.parseInt(parts[1]));
         if (parts.length == 2) {
             servers.put(Long.valueOf(sid), new QuorumServer(sid, addr));
         } else if (parts.length == 3) {
-            InetSocketAddress electionAddr = new InetSocketAddress(
-                    parts[0], Integer.parseInt(parts[2]));
-            servers.put(Long.valueOf(sid), new QuorumServer(sid, addr,
-                    electionAddr));
+            InetSocketAddress electionAddr = new InetSocketAddress(parts[0], Integer.parseInt(parts[2]));
+            servers.put(Long.valueOf(sid), new QuorumServer(sid, addr, electionAddr));
         } else if (parts.length == 4) {
-            InetSocketAddress electionAddr = new InetSocketAddress(
-                    parts[0], Integer.parseInt(parts[2]));
+            InetSocketAddress electionAddr = new InetSocketAddress(parts[0], Integer.parseInt(parts[2]));
             LearnerType type = LearnerType.PARTICIPANT;
             if (parts[3].toLowerCase().equals("observer")) {
                 type = LearnerType.OBSERVER;
-                observers.put(Long.valueOf(sid), new QuorumServer(sid, addr,
-                        electionAddr, type));
+                observers.put(Long.valueOf(sid), new QuorumServer(sid, addr, electionAddr, type));
             } else if (parts[3].toLowerCase().equals("participant")) {
                 type = LearnerType.PARTICIPANT;
-                servers.put(Long.valueOf(sid), new QuorumServer(sid, addr,
-                        electionAddr, type));
+                servers.put(Long.valueOf(sid), new QuorumServer(sid, addr, electionAddr, type));
             } else {
                 throw new ConfigException("Unrecognised peertype: " + value);
             }

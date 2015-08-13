@@ -381,7 +381,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         try {
             if (null != initiator.getLabel()) {
                 // Get initiator by Name and find IG Group
-                XtremIOInitiator initiatorObj = client.getInitiator(initiator.getLabel(), null);
+                XtremIOInitiator initiatorObj = client.getInitiator(initiator.getLabel(), xioClusterName);
                 if (null != initiatorObj) {
                     igName = initiatorObj.getInitiatorGroup().get(1);
                 }

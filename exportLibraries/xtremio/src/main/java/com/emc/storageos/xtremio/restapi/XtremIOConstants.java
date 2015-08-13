@@ -52,11 +52,11 @@ public class XtremIOConstants {
 	public static final String XTREMIO_V2_BASE_STR = "/api/json/v2/types";
 	public static final String XTREMIO_V2_VOLUMES_STR = XTREMIO_V2_BASE_STR.concat("/volumes");
     public static final String XTREMIO_V2_SNAPS_STR = XTREMIO_V2_BASE_STR.concat("/snapshots");
-    public static final String XTREMIO_V2_BASE_CLUSTERS_STR = XTREMIO_BASE_STR.concat("/clusters");
-    public static final String XTREMIO_V2_TARGETS_STR = XTREMIO_BASE_STR.concat("/targets");
-    public static final String XTREMIO_V2_INITIATORS_STR = XTREMIO_BASE_STR.concat("/initiators");
-    public static final String XTREMIO_V2_INITIATOR_GROUPS_STR = XTREMIO_BASE_STR.concat("/initiator-groups");
-    public static final String XTREMIO_V2_LUNMAPS_STR = XTREMIO_BASE_STR.concat("/lun-maps");
+    public static final String XTREMIO_V2_BASE_CLUSTERS_STR = XTREMIO_V2_BASE_STR.concat("/clusters");
+    public static final String XTREMIO_V2_TARGETS_STR = XTREMIO_V2_BASE_STR.concat("/targets");
+    public static final String XTREMIO_V2_INITIATORS_STR = XTREMIO_V2_BASE_STR.concat("/initiators");
+    public static final String XTREMIO_V2_INITIATOR_GROUPS_STR = XTREMIO_V2_BASE_STR.concat("/initiator-groups");
+    public static final String XTREMIO_V2_LUNMAPS_STR = XTREMIO_V2_BASE_STR.concat("/lun-maps");
     public static final String XTREMIO_V2_CONSISTENCY_GROUPS_STR = XTREMIO_V2_BASE_STR.concat("/consistency-groups");
     public static final String XTREMIO_V2_CONSISTENCY_GROUP_VOLUMES_STR = XTREMIO_V2_BASE_STR.concat("/consistency-group-volumes");
     public static final String XTREMIO_V2_TAGS_STR = XTREMIO_V2_BASE_STR.concat("/tags");

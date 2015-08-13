@@ -280,7 +280,8 @@ public class XtremIOCommunicationInterface extends
     private Map<String, List<StoragePort>> discoverPorts(XtremIOClient restClient, StorageSystem system) {
         Map<String, List<StoragePort>> portMap = new HashMap<String, List<StoragePort>>();
         try {
-            List<XtremIOPort> targetPorts = restClient.getXtremIOPortInfo(null);
+            String clusterName = restClient.getClusterDetails(system.getSerialNumber()).getName();
+            List<XtremIOPort> targetPorts = restClient.getXtremIOPortInfo(clusterName);
             // Default HA Domain for all ports
             String haDomainNativeGUID = NativeGUIDGenerator.generateNativeGuid(system,
                     system.getSerialNumber(), NativeGUIDGenerator.ADAPTER);
@@ -371,7 +372,9 @@ public class XtremIOCommunicationInterface extends
 
     private void discoverInitiators(XtremIOClient restClient, StorageSystem system) {
         try {
-            List<XtremIOInitiator> initiators = restClient.getXtremIOInitiatorsInfo(null);
+            String clusterName = restClient.getClusterDetails(system.getSerialNumber()).getName();
+            
+            List<XtremIOInitiator> initiators = restClient.getXtremIOInitiatorsInfo(clusterName);
             for (XtremIOInitiator initiator : initiators) {
                 @SuppressWarnings("deprecation")
                 List<URI> initiatorUris = _dbClient

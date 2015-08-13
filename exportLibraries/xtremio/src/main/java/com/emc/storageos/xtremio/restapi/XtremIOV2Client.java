@@ -553,6 +553,7 @@ public class XtremIOV2Client extends XtremIOClient {
     public XtremIOSystem getClusterDetails(String clusterSerialNumber) throws Exception {
         String filterString = String.format(XtremIOConstants.XTREMIO_CLUSTER_FILTER_STR, clusterSerialNumber);
         String uriString = XtremIOConstants.XTREMIO_V2_BASE_CLUSTERS_STR.concat(filterString);
+        log.info("Calling get cluster details with: {}", uriString);
         ClientResponse response = get(URI.create(uriString));
         log.info(response.toString());
         XtremIOClusters xioClusters = getResponseObject(XtremIOClusters.class, response);
@@ -584,15 +585,24 @@ public class XtremIOV2Client extends XtremIOClient {
 
     @Override
     public XtremIOTag getTagDetails(String tagName, String tagEntityType, String clusterName) throws Exception {
-        String rootFolder = XtremIOConstants.getRootFolderForEntityType(tagEntityType);
-        String xioTagName = rootFolder.concat(tagName);
-        String uriString = XtremIOConstants.XTREMIO_V2_TAGS_STR
-                .concat(XtremIOConstants.getInputNameForClusterString(xioTagName, clusterName)); 
-        ClientResponse response = get(URI.create(uriString));
-        log.info(response.toString());
-        XtremIOTags tags = getResponseObject(XtremIOTags.class, response);
+        try {
+            String rootFolder = XtremIOConstants.getRootFolderForEntityType(tagEntityType);
+            String xioTagName = rootFolder.concat(tagName);
+            String uriString = XtremIOConstants.XTREMIO_V2_TAGS_STR
+                    .concat(XtremIOConstants.getInputNameForClusterString(xioTagName, clusterName)); 
+            log.info("Calling get tag details with: {}", uriString);
+            ClientResponse response = get(URI.create(uriString));
+            log.info(response.toString());
+            XtremIOTags tags = getResponseObject(XtremIOTags.class, response);
+            
+            return tags.getContent();
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+        log.info("Tag not available on Array with name : {}",
+                tagName);
         
-        return tags.getContent();
+        return null;
     }
 
     @Override

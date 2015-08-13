@@ -4,14 +4,12 @@
  */
 package com.emc.storageos.model.project;
 
-import java.util.Set;
+import java.net.URI;
+import java.util.List;
 
-import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import org.codehaus.jackson.annotate.JsonProperty;
-
-@XmlRootElement(name = "assign_vnas_servers")
+@XmlRootElement(name = "assign_vnas")
 public class AssignVNASParam {
 
     /**
@@ -19,13 +17,13 @@ public class AssignVNASParam {
      * 
      * @valid none
      */
-    private Set<String> vnasServers;
+    private List<URI> vnasIds;
 
     public AssignVNASParam() {
     }
 
-    public AssignVNASParam(Set<String> vnasServers) {
-        this.vnasServers = vnasServers;
+    public AssignVNASParam(List<URI> vnasIds) {
+        this.vnasIds = vnasIds;
     }
 
     /**
@@ -34,17 +32,15 @@ public class AssignVNASParam {
      * 
      * @valid none
      */
-    @XmlElement(name = "vnas_servers")
-    @JsonProperty("vnas_servers")
-    public Set<String> getVnasServers() {
-        return vnasServers;
+    public List<URI> getVnasIds() {
+        return vnasIds;
     }
 
     /**
-     * @param vnasServers the vnasServers to set
+     * @param vnasIds the vnasIds to set
      */
-    public void setVnasServers(Set<String> vnasServers) {
-        this.vnasServers = vnasServers;
+    public void setVnasIds(List<URI> vnasIds) {
+        this.vnasIds = vnasIds;
     }
 
 }

@@ -10,7 +10,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -38,7 +37,6 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.common.VdcUtil;
@@ -76,10 +74,10 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
  * Project resource implementation
  */
 @Path("/projects")
-@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        readAcls = { ACL.OWN, ACL.ALL },
-        writeRoles = { Role.TENANT_ADMIN },
-        writeAcls = { ACL.OWN, ACL.ALL })
+@DefaultPermissions(read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
+        read_acls = { ACL.OWN, ACL.ALL },
+        write_roles = { Role.TENANT_ADMIN },
+        write_acls = { ACL.OWN, ACL.ALL })
 public class ProjectService extends TaggedResource {
     private static final Logger _log = LoggerFactory.getLogger(ProjectService.class);
     // Constants for Events
@@ -524,7 +522,7 @@ public class ProjectService extends TaggedResource {
     @PUT
     @Path("/{id}/acl")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN }, acls = { ACL.OWN }, blockProxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN }, acls = { ACL.OWN }, block_proxies = true)
     public ACLAssignments updateRoleAssignments(@PathParam("id") URI id,
             ACLAssignmentChanges changes) {
         Project project = getProjectById(id, true);
@@ -787,7 +785,7 @@ public class ProjectService extends TaggedResource {
      * Assign VNASServer to a project
      * 
      * @param id the URN of a ViPR Project
-     * @param vnasParam Assign virtual NAS server parameters
+     * @param vNASParam Assign virtual NAS server parameters
      * @prereq none
      * @brief Assign VNASServer to a project
      * @return No data returned in response body
@@ -795,15 +793,15 @@ public class ProjectService extends TaggedResource {
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/assign-vnas-servers")
+    @Path("/{id}/assign-vnasserver")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ALL, ACL.OWN })
-    public Response assignVNASServerToProject(@PathParam("id") URI id, AssignVNASParam vnasParam) {
+    public Response assignVNASServerToProject(@PathParam("id") URI id, AssignVNASParam vNASParam) {
         Project project = getProjectById(id, true);
-        StringSet validVNASServers = validateVNASServers(project, vnasParam);
-        if (vnasParam.getVnasServers() != null && !vnasParam.getVnasServers().isEmpty()) {
+        List<URI> validVNASServers = validateVNASServers(project, vNASParam);
+        if (vNASParam.getVnasIds() != null && !vNASParam.getVnasIds().isEmpty()) {
             if (validVNASServers != null && !validVNASServers.isEmpty()) {
-                project.getAssignedVNasServers().addAll(validVNASServers);
-                project.setAssignedVNasServers(validVNASServers);
+                vNASParam.setVnasIds(validVNASServers);
+                project.setAssignedVNAS(vNASParam);
                 _dbClient.persistObject(project);
                 _log.info("Successfully assigned the virtual NAS Servers to the project ", project.getLabel());
             } else {
@@ -815,22 +813,18 @@ public class ProjectService extends TaggedResource {
         return Response.ok().build();
     }
 
-    public StringSet validateVNASServers(Project project, AssignVNASParam param) {
+    public List<URI> validateVNASServers(Project project, AssignVNASParam param) {
         boolean isValid = false;
-        Set<String> vNasId = param.getVnasServers();
-        StringSet validNas = new StringSet();
-        if (vNasId != null && !vNasId.isEmpty()) {
-            for (String id : vNasId) {
-                URI vnasURI = URI.create(id);
-                // VirtualNAS vNAS = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
+        List<URI> vNASId = param.getVnasIds();
+        List<URI> validNAS = new ArrayList<URI>();
+        if (vNASId != null && !vNASId.isEmpty()) {
+            for (URI id : vNASId) {
+                VirtualNAS vNAS = _permissionsHelper.getObjectById(id, VirtualNAS.class);
                 // Check list of vNAS servers are not tagged with any project
                 // Check list of vNAS servers are in loaded state
-                /*
-                 * if (vNAS.project() == null && vNAS.vNasState() == "loaded") {
-                 * validNAS.add(id);
-                 * }
-                 */
-                validNas.add(id);
+                if (vNAS.project() == null && vNAS.vNasState() == "loaded") {
+                    validNAS.add(id);
+                }
             }
         }
 
@@ -844,7 +838,7 @@ public class ProjectService extends TaggedResource {
         if (domain != null) {
             isValid = true;
         }
-        return validNas;
+        return validNAS;
     }
 
 }

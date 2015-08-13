@@ -15,8 +15,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -853,7 +856,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
     /**
      * Routine contains logic to create an export mask on the array
-     * 
+     *
      * @param workflow - Workflow object to create steps against
      * @param previousStep - [optional] Identifier of workflow step to wait for
      * @param device - BlockStorageDevice implementation
@@ -910,9 +913,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Map<URI, ExportMaskPolicy> policyCache = new HashMap<>();
             _log.info(String.format("Mask(s) found w/ initiators {%s}. "
                     + "MatchingExportMaskURIs {%s}, portNameToInitiators {%s}", Joiner.on(",")
-                            .join(initiatorHelper.getPortNames()),
-                    Joiner.on(",").join(initiatorToExportMaskPlacementMap.keySet()), Joiner
-                            .on(",").join(initiatorHelper.getPortNameToInitiatorURI().entrySet())));
+                    .join(initiatorHelper.getPortNames()), Joiner.on(",").join(initiatorToExportMaskPlacementMap.keySet()), Joiner
+                    .on(",").join(initiatorHelper.getPortNameToInitiatorURI().entrySet())));
             // There are some initiators that already exist. We need to create a
             // workflow that create new masking containers or updates masking
             // containers as necessary.
@@ -944,7 +946,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             // In the case of brownfield cluster, some of these port to ExportMask may be missing because the array doesn't
             // have them yet. Find this condition and add the additional ports to the map.
             if (exportGroup.forCluster() || exportGroup.forHost()) {
-                updatePlacementMapForCluster(exportGroup, initiatorHelper.getResourceToInitiators(), initiatorToExportMaskPlacementMap);
+            	updatePlacementMapForCluster(exportGroup, initiatorHelper.getResourceToInitiators(), initiatorToExportMaskPlacementMap);
             }
 
             // This loop processes all initiators that were found in the existing export masks.
@@ -952,11 +954,11 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             // In the case where initiators are missing and not represented by other masks, we need
             // to mark that these initiators need to be added to the existing masks.
             for (Map.Entry<String, Set<URI>> entry : initiatorToExportMaskPlacementMap.entrySet()) {
-                URI initiatorURI = initiatorHelper.getPortNameToInitiatorURI().get(entry.getKey());
-                Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
-                // Keep track of those initiators that have been found to exist already
-                // in some export mask on the array
-                initiatorURIsCopy.remove(initiatorURI);
+            	URI initiatorURI = initiatorHelper.getPortNameToInitiatorURI().get(entry.getKey());
+            	Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
+            	// Keep track of those initiators that have been found to exist already
+            	// in some export mask on the array
+            	initiatorURIsCopy.remove(initiatorURI);
 
                 List<URI> exportMaskURIs = new ArrayList<URI>();
                 exportMaskURIs.addAll(entry.getValue());
@@ -977,7 +979,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 mask.getMaskName(), ExportUtils.NO_VIPR));
                         continue;
                     }
-                    // TODO Find ways to avoid getting this export detais info twice.
                     ExportMaskPolicy exportMaskDetails = getExportMaskPolicy(policyCache, device, storage, mask);
 
                     // Check if the ExportMask applies to more than one host. Since
@@ -1042,118 +1043,18 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 }
             }
 
-            // For adding volumes to existing masks, we want to do it by compute resource.
-            // This loop will normalize the port, mask map to a compute resource -> list of masks map.
-            Map<String, Set<URI>> resourceMaskMap = createResourceMaskMap(initiatorHelper.getPortNameToInitiatorURI(),
-                    initiatorHelper.getResourceToInitiators(), initiatorToExportMaskPlacementMap);
-
-            // Map of export masks found along with their mask policies
-            Map<ExportMask, ExportMaskPolicy> masterMaskMap = new HashMap<>();
-
-            // Volumes with no mask: A map of initiators to volumes that need to be on those ports.
-            Map<URI, Map<URI, Integer>> volumesWithNoMask = new HashMap<>();
-
-            // Each volume needs to be seen by all initiators in the compute resource.
-            // This loop will find a mask (or create one) for each compute resource for the volumes desired.
-            for (Entry<String, Set<URI>> resourceMaskEntry : resourceMaskMap.entrySet()) {
-                // Get a list of the ExportMasks that were matched to the initiator
-                // This list will be full of volumes, but as we find existing masks for volumes, we remove from this list.
-                // Whatever isn't removed at the end needs to become a new mask.
-                volumesWithNoMask.clear();
-                List<URI> initiatorsForResource = initiatorHelper.getResourceToInitiators().get(resourceMaskEntry.getKey());
-                for (URI initiatorId : initiatorsForResource) {
-                    if (volumesWithNoMask.get(initiatorId) == null) {
-                        volumesWithNoMask.put(initiatorId, new HashMap<URI, Integer>());
-                    }
-                    volumesWithNoMask.get(initiatorId).putAll(volumeMap);
-                }
-
-                // Gather policies of the export masks, if they're not in the map yet.
-                // Store them in a map so we don't have to keep asking for them.
-                Map<ExportMask, ExportMaskPolicy> masksMap = new HashMap<ExportMask, ExportMaskPolicy>();
-                List<ExportMask> exportMasks = _dbClient.queryObject(ExportMask.class, resourceMaskEntry.getValue());
-                for (ExportMask mask : exportMasks) {
-                    // Check for NO_VIPR. If found, avoid this mask.
-                    if (mask.getMaskName() != null && mask.getMaskName().toUpperCase().contains(ExportUtils.NO_VIPR)) {
-                        _log.info(String.format(
-                                "ExportMask %s disqualified because the name contains %s (in upper or lower case) to exclude it",
-                                mask.getMaskName(), ExportUtils.NO_VIPR));
-                        continue;
-                    }
-
-                    // We keep a master mask map to reduce churn on the array/provider
-                    if (masterMaskMap.get(mask) == null) {
-                        ExportMaskPolicy policy = getExportMaskPolicy(policyCache, device, storage, mask);
-                        masterMaskMap.put(mask, policy);
-                        _log.info("Export mask policy: " + policy);
-                    }
-                    // This map is all we need for the upcoming commands.
-                    masksMap.put(mask, masterMaskMap.get(mask));
-                }
-
-                // Apply rules engine to the list of export masks.
-                // This method will analyze the masks for each resource and will determine the best mask or masks
-                // for the volumes that still need masks for this resource and will update the maps accordingly.
-                if (!applyVolumesToMasksUsingRules(storage, exportGroup,
-                        existingMasksToUpdateWithNewVolumes,
-                        volumesWithNoMask, masksMap, existingMasksToUpdateWithNewInitiators, partialMasks, token)) {
-                    // Fatal error occurred. The caller already set the task object and service code,
-                    // so we just need to return that we failed.
-                    return false;
-                }
-
-                // This is the case where we couldn't find a mask that was appropriate to add the volumes,
-                // even though several masks matched the export mask criteria at first.
-                if (volumesWithNoMask.size() > 0) {
-                    List<URI> leftoverInitiatorsForNewExport = new ArrayList<URI>();
-                    // Figure out the initiators we "missed" for the volumes in this loop
-                    for (URI initiatorId : volumesWithNoMask.keySet()) {
-                        Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
-                        if (initiator != null) {
-                            leftoverInitiatorsForNewExport.add(initiator.getId());
-                            initiatorsForNewExport.remove(initiator.getId());
-                        }
-                    }
-                    Map<String, List<URI>> computeResourceToInitiators =
-                            mapInitiatorsToComputeResource(exportGroup,
-                                    leftoverInitiatorsForNewExport);
-                    for (Map.Entry<String, List<URI>> resourceEntry : computeResourceToInitiators.entrySet()) {
-                        String computeKey = resourceEntry.getKey();
-                        List<URI> computeInitiatorURIs = resourceEntry.getValue();
-                        Initiator initiator = _dbClient.queryObject(Initiator.class, computeInitiatorURIs.get(0));
-                        _log.info(String.format("Residual mask needed: New export masks for %s", computeKey));
-                        GenExportMaskCreateWorkflowResult result = generateExportMaskCreateWorkflow(workflow, previousStep, storage,
-                                exportGroup, computeInitiatorURIs,
-                                volumesWithNoMask.get(initiator.getId()),
-                                token);
-                        flowCreated = true;
-                        previousStep = result.getStepId();
-                        // Add zoning
-                        if (zoningStepNeeded) {
-                            String zoningStep = workflow.createStepId();
-                            List<URI> masks = new ArrayList<URI>();
-                            masks.add(result.getMaskURI());
-                            previousStep = generateZoningCreateWorkflow(workflow, previousStep, exportGroup, masks,
-                                    volumeMap, zoningStep);
-                        }
-
-                    }
-                }
-
-                // Now if our efforts to find homes for the volumes in existing masking views yielded success,
-                // this is the time to trim down the list of initiators that will be used to create NEW masking
-                // views. Go through the initiators for the resource we originally used to populate the "volumesWithNoMask"
-                // map and see if any volumes still exist. If not, remove those "new" initiators.
-                for (URI initiatorId : initiatorsForResource) {
-                    if (volumesWithNoMask.get(initiatorId) == null) {
-                        if (initiatorURIsCopy.remove(initiatorId)) {
-                            _log.info("Determined that we do not need to create a new mask for initiator [1]: " + initiatorId);
-                        }
-                        if (initiatorsForNewExport.remove(initiatorId)) {
-                            _log.info("Determined that we do not need to create a new mask for initiator [2]: " + initiatorId);
-                        }
-                    }
-                }
+            VmaxVolumeToExportMaskApplicatorContext context = createVmaxNativeApplicatorContext(workflow, exportGroup, storage, policyCache,
+                    zoningStepNeeded, token, initiatorHelper, initiatorToExportMaskPlacementMap, initiatorURIsCopy, partialMasks, volumeMap,
+                    initiatorsForNewExport, existingMasksToUpdateWithNewVolumes, existingMasksToUpdateWithNewInitiators, previousStep);
+            NativeVolumeToExportMaskRuleApplicator ruleApplicator = new NativeVolumeToExportMaskRuleApplicator(_dbClient, context);
+            ruleApplicator.run();
+            if (context.resultSuccess) {
+                // Set the flags that should have been filled in by NativeVolumeToExportMaskRuleApplicator running
+                previousStep = context.previousStep;
+                flowCreated = context.flowCreated;
+            } else {
+                _log.info("Failure in volume to ExportMask rules");
+                return false;
             }
 
             _log.info(String.format("existingMasksToUpdateWithNewVolumes.size = %d", existingMasksToUpdateWithNewVolumes.size()));
@@ -1296,47 +1197,17 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     }
 
     /**
-     * Creates a map of compute resource to export masks associated with that resource.
-     * 
-     * @param portNameToInitiatorURI port name -> initiator URI simple map
-     * @param resourceToInitiators compute resource -> initiator ports
-     * @param initiatorToExportMaskPlacementMap initiator port -> masks
-     * @return map of compute resource -> export masks that qualify for analysis
-     */
-    private Map<String, Set<URI>> createResourceMaskMap(Map<String, URI> portNameToInitiatorURI,
-            Map<String, List<URI>> resourceToInitiators,
-            Map<String, Set<URI>> initiatorToExportMaskPlacementMap) {
-        Map<String, Set<URI>> resourceMaskMap = new HashMap<String, Set<URI>>();
-        for (Entry<String, List<URI>> resourceToInitiatorEntry : resourceToInitiators.entrySet()) {
-            // For each resource, we have a list of Initiator URIs
-            for (Map.Entry<String, Set<URI>> entry : initiatorToExportMaskPlacementMap.entrySet()) {
-                // The initiator to exportmask map only has ports; find that port and its corresponding initiator URI
-                URI portNameURI = portNameToInitiatorURI.get(entry.getKey());
-                if (portNameURI != null) {
-                    if (resourceToInitiatorEntry.getValue().contains(portNameURI)) {
-                        if (resourceMaskMap.get(resourceToInitiatorEntry.getKey()) == null) {
-                            resourceMaskMap.put(resourceToInitiatorEntry.getKey(), new HashSet<URI>());
-                        }
-                        resourceMaskMap.get(resourceToInitiatorEntry.getKey()).addAll(entry.getValue());
-                    }
-                }
-            }
-        }
-        return resourceMaskMap;
-    }
-
-    /**
      * Special case for VMAX with a cluster compute resource:
-     * 
+     *
      * In the case where a mask may contain a subset of nodes of a cluster, we wish to leverage it.
-     * 
+     *
      * Logic is as follows: Attempt to discover which ports have not been placed in the map yet (specific to VMAX),
      * and add those ports to the map in the circumstance where we are doing cluster and the
      * existing mask is already handling multiple hosts.
-     * 
+     *
      * In the case of brownfield cluster, some of these port to ExportMask may be missing because the array doesn't
      * have them yet. Find this condition and add the additional ports to the map.
-     * 
+     *
      * @param exportGroup export group
      * @param resourceToInitiators resource -> initiator list
      * @param initiatorToExportMaskPlacementMap placement mask map from the default orchestrator
@@ -1391,12 +1262,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * This method will call the method to apply a set of business rules to the volumes
      * required to be added to masking views. See the "applyVolumesToMasksUsingRule" method
      * documentation for exact rule logic.
-     * 
+     *
      * @param exportGroup export group
      * @param existingMasksToUpdateWithNewVolumes masks to update with new volumes if criteria is met
      * @param volumesWithNoMask a list that empties as we find homes for volumes
      * @param maskToInitiatorsMap map of export masks to the initiators they need to cover
-     * @param partialMasks TODO
+     * @param partialMasks masks that match only a subset of the initiators that are requested
      * @param token task id
      * @param masks masks associated with the initiator
      * @param rule rule number from above
@@ -1439,13 +1310,13 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
     /**
      * Apply business rules to "add" volumes to specific export masks.
-     * 
+     *
      * Currently implemented rules:
      * Rule 1. If you find an exact match of your volume with a mask's policy, use it.
      * Rule 2. If you find a mask with multiple policies using cascaded storage groups, use it.
      * Rule 3. If you find a mask with non-cascading storage group and a non-fast SG, use it.
      * (phantom will be searched/created in this case)
-     * 
+     *
      * @param exportGroup export group
      * @param token task id
      * @param existingMasksToUpdateWithNewVolumes masks to update with new volumes if criteria is met
@@ -1748,7 +1619,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
     /**
      * Determines if the mask has the same SG as the other masks that are partial masks.
-     * 
+     *
      * @param partialMasks list of export masks that are partial masks
      * @param masks
      * @param mask export mask
@@ -1780,17 +1651,17 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     /**
      * This method will search the array for existing exports that match the set of
      * compute to initiator port names map.
-     * 
+     *
      * For those cases where exportGroup.Type = Cluster or Host,
      * this will attempt make sure that existing exports with exactly those initiators
      * a compute are considered hits.
-     * 
+     *
      * @param device [in] - BlockStorageDevice interface for accessing find
      *            function for VMAX
-     * 
+     *
      * @param storage [in] - StorageSystem object representing the physical
      *            array that we are going to search
-     * 
+     *
      * @param exportGroup [in] - ExportGroup object representing the ViPR level export
      * @param computeToPorts [in] - Multi list (basically,
      *            a map of String to Collection of Strings),
@@ -1868,10 +1739,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     /**
      * This function processes the initiatorURIs and return a mapping of String
      * host or cluster resource reference to a list Initiator URIs.
-     * 
+     *
      * This is the default implementation and it will group the
      * initiator's host reference
-     * 
+     *
      * @param exportGroup [in] - ExportGroup object to examine
      * @param initiatorURIs [in] - Initiator URIs
      * @return Map of String:computeResourceName to List of Initiator URIs
@@ -1964,13 +1835,85 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // So, it's up to this implementation to determine where to best place the volumes based
         // on volume and ExportMask characteristics. To that end, we will hint that the placement
         // will be separating the volumes per ExportMask
-        descriptor.setPlacementHint(ExportMaskPlacementDescriptor.PlacementHint.VOLUMES_TO_SINGLE_MASK); // TODO: Change type
+        descriptor.setPlacementHint(ExportMaskPlacementDescriptor.PlacementHint.VOLUMES_TO_SEPARATE_MASKS);
+
         // Find all the ExportMasks on the array that have the initiators (or a subset of them)
         Map<URI, ExportMask> matchingMasks = readExistingExportMasks(storage, device, initiators);
         descriptor.setMasks(matchingMasks);
-        // TODO: Volume placement
-        for (URI exportMaskURI : matchingMasks.keySet()) {
-            descriptor.placeVolumes(exportMaskURI, descriptor.getVolumesToPlace());
+
+        // Dummy/non-essential data
+        ExportGroup dummyExportGroup = new ExportGroup();
+        dummyExportGroup.setType(ExportGroupType.Initiator.name());
+
+        // InitiatorHelper for processing the initiators
+        InitiatorHelper initiatorHelper = new InitiatorHelper(initiators).process(dummyExportGroup);
+
+        // Create and fill in:
+        // -- Mapping of initiators to ExportMask URIs
+        // -- Set of ExportMasks that match partially to the initiator set
+        // -- Mapping of ExportMask URI to ExportMaskPolicy
+        Set<URI> partialMasks = new HashSet<>();
+        Map<String, Set<URI>> initiatorToExportMaskMap = new HashMap<>();
+        Map<URI, ExportMaskPolicy> policyCache = new HashMap<>();
+        Collection<String> portNames = Collections2.transform(initiators, CommonTransformerFunctions.fctnInitiatorToPortName());
+        for (Map.Entry<URI, ExportMask> entry : matchingMasks.entrySet()) {
+            URI exportMaskURI = entry.getKey();
+            ExportMask exportMask = entry.getValue();
+            // Get the ExportMaskPolicy, thereby saving it to the policyCache
+            getExportMaskPolicy(policyCache, device, storage, entry.getValue());
+            // Populate the mapping of Initiator portname (WWN/IQN) to the ExportMask URI
+            for (String portName : portNames) {
+                Set<URI> masks = initiatorToExportMaskMap.get(portName);
+                if (masks == null) {
+                    masks = new HashSet<>();
+                    initiatorToExportMaskMap.put(portName, masks);
+                }
+                masks.add(exportMaskURI);
+            }
+            // If the mask does not contain the exact set of initiators that we're trying to
+            // export to, then we need to put it in the set of masks that have a partial match
+            if (!exportMask.hasExactlyTheseInitiators(portNames)) {
+                partialMasks.add(exportMaskURI);
+            }
+        }
+
+        // Populate the Volume URI to Volume HLU mapping. We will let the array decide the HLUs (i.e., set it to -1)
+        Map<URI, Integer> volumeMap = new HashMap<>();
+        for (URI volumeURI : descriptor.getVolumesToPlace().keySet()) {
+            volumeMap.put(volumeURI, -1);
+        }
+
+        // Mapping of ExportMask URI to Volume-HLU: the basic output that we're expecting to be filled in my the rules applicator
+        Map<URI, Map<URI, Integer>> maskToUpdateWithNewVolumes = new HashMap<>();
+
+        // All data structures should have been filled in at this point; call the rules applicator
+        VmaxVolumeToExportMaskApplicatorContext context = createVPlexBackendApplicatorContext(dummyExportGroup, storage, policyCache,
+                initiatorHelper, initiatorToExportMaskMap, partialMasks, volumeMap, maskToUpdateWithNewVolumes);
+        VplexBackendVolumeToExportMaskRuleApplicator rulesApplicator =
+                new VplexBackendVolumeToExportMaskRuleApplicator(_dbClient, context);
+        try {
+            rulesApplicator.run();
+            if (context.resultSuccess) {
+                // Use a local cache in case the same volumes are selected
+                // to be placed into different ExportMasks
+                ObjectLocalCache cache = new ObjectLocalCache(_dbClient);
+
+                // Rules were run without errors, now process the results:
+                // Process each entry in the mapping of ExportMask to Volumes ...
+                for (Map.Entry<URI, Map<URI, Integer>> entry : maskToUpdateWithNewVolumes.entrySet()) {
+                    // Translate the Volume URI to Volume HLU map to a Volume URI to Volume object map:
+                    Map<URI, Volume> volumes = new HashMap<>();
+                    List<Volume> queriedVols = cache.queryObject(Volume.class, entry.getValue().keySet());
+                    for (Volume volume : queriedVols) {
+                        volumes.put(volume.getId(), volume);
+                    }
+
+                    // Fill in the descriptor to be used for VPlex backend placement
+                    descriptor.placeVolumes(entry.getKey(), volumes);
+                }
+            }
+        } catch (Exception e) {
+            _log.error("Exception while trying to get suggestions for ExportMasks to used for volumes", e);
         }
     }
 
@@ -1979,7 +1922,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * the cluster to host relationship is altered prior to the export operation. Hence, the initiator.clusterName
      * may be null or empty. So, we need to account for this case. We can determine the cluster name by
      * other means only when the ExportGroup contains a single cluster.
-     * 
+     *
      * @param singleCluster [in] - Cluster object. Can be null if ExportGroup does not have a single cluster in it
      * @param initiator [in] - Initiator object.
      * @return Cluster name that the initiator belongs (or belonged to)
@@ -1993,5 +1936,177 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             initiatorClusterName = singleCluster.getLabel();
         }
         return initiatorClusterName;
+    }
+
+    private VmaxVolumeToExportMaskApplicatorContext createVmaxNativeApplicatorContext(Workflow workflow, ExportGroup exportGroup,
+            StorageSystem storage, Map<URI, ExportMaskPolicy> policyCache, boolean zoningStepNeeded, String token,
+            InitiatorHelper initiatorHelper, Map<String, Set<URI>> initiatorToExportMaskPlacementMap, List<URI> initiatorURIsCopy,
+            Set<URI> partialMasks, Map<URI, Integer> volumeMap, Set<URI> initiatorsForNewExport,
+            Map<URI, Map<URI, Integer>> masksToUpdateWithVolumes, Map<URI, Set<Initiator>> masksToUpdateWithInitiators,
+            String previousStep) {
+        VmaxVolumeToExportMaskApplicatorContext context = new VmaxVolumeToExportMaskApplicatorContext();
+        context.exportGroup = exportGroup;
+        context.storage = storage;
+        context.workflow = workflow;
+        context.zoningStepNeeded = zoningStepNeeded;
+        context.initiatorURIsCopy = initiatorURIsCopy;
+        context.initiatorsForNewExport = initiatorsForNewExport;
+        context.partialMasks = partialMasks;
+        context.token = token;
+        context.exportMaskURIToPolicy = policyCache;
+        context.masksToUpdateWithVolumes = masksToUpdateWithVolumes;
+        context.masksToUpdateWithInitiators = masksToUpdateWithInitiators;
+        context.initiatorHelper = initiatorHelper;
+        context.volumeMap = volumeMap;
+        context.initiatorToExportMaskPlacementMap = initiatorToExportMaskPlacementMap;
+        context.previousStep = previousStep;
+        return context;
+    }
+
+    private VmaxVolumeToExportMaskApplicatorContext createVPlexBackendApplicatorContext(ExportGroup exportGroup, StorageSystem storage,
+            Map<URI, ExportMaskPolicy> policyCache, InitiatorHelper initiatorHelper,
+            Map<String, Set<URI>> initiatorToExportMaskPlacementMap, Set<URI> partialMasks, Map<URI, Integer> volumeMap,
+            Map<URI, Map<URI, Integer>> masksToUpdateWithVolumes) {
+        VmaxVolumeToExportMaskApplicatorContext context = new VmaxVolumeToExportMaskApplicatorContext();
+        context.storage = storage;
+        context.partialMasks = partialMasks;
+        context.exportMaskURIToPolicy = policyCache;
+        context.masksToUpdateWithVolumes = masksToUpdateWithVolumes;
+        context.initiatorHelper = initiatorHelper;
+        context.volumeMap = volumeMap;
+        context.initiatorToExportMaskPlacementMap = initiatorToExportMaskPlacementMap;
+        // Not needed for VPlex
+        context.exportGroup = exportGroup;
+        context.initiatorURIsCopy = new ArrayList<>();
+        context.initiatorsForNewExport = new HashSet<>();
+        context.masksToUpdateWithInitiators = new HashMap<>();
+        context.token = UUID.randomUUID().toString();
+        return context;
+    }
+
+    /**
+     * Native VMAX rules application. This should run the volume to ExportMask matching rules, then do
+     * post processing work such that the proper workflow steps are added for new ExportMasks (if any)
+     */
+    class NativeVolumeToExportMaskRuleApplicator extends VmaxVolumeToExportMaskRuleApplicator {
+
+        public NativeVolumeToExportMaskRuleApplicator(DbClient dbClient,
+                VmaxVolumeToExportMaskApplicatorContext context) {
+            super(dbClient, context);
+        }
+
+        /**
+         * After the rules have been applied, the VMAX native implementation requires that we set up
+         * workflow steps for any of those volumes that could not be placed. There are additional
+         * contextual information that needs to be updated (like the list of initiators that were
+         * placed and initiators that need to be added to existing ExportMasks)
+         *
+         * @param initiatorsForResource [IN] - Initiators that are applicable to a resource
+         * @param initiatorsToVolumes [IN] - Mapping of initiators to Volumes
+         * @throws Exception
+         */
+        @Override
+        public void postApply(List<URI> initiatorsForResource, Map<URI, Map<URI, Integer>> initiatorsToVolumes) throws Exception {
+            String token = context.token;
+            ExportGroup exportGroup = context.exportGroup;
+            Set<URI> initiatorsForNewExport = context.initiatorsForNewExport;
+            List<URI> initiatorURIsCopy = context.initiatorURIsCopy;
+
+            // This is the case where we couldn't find a mask that was appropriate to add the volumes,
+            // even though several masks matched the export mask criteria at first.
+            if (initiatorsToVolumes.size() > 0) {
+                List<URI> leftoverInitiatorsForNewExport = new ArrayList<URI>();
+                // Figure out the initiators we "missed" for the volumes in this loop
+                for (URI initiatorId : initiatorsToVolumes.keySet()) {
+                    Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
+                    if (initiator != null) {
+                        leftoverInitiatorsForNewExport.add(initiator.getId());
+                        initiatorsForNewExport.remove(initiator.getId());
+                    }
+                }
+                Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(exportGroup,
+                        leftoverInitiatorsForNewExport);
+                for (Entry<String, List<URI>> resourceEntry : computeResourceToInitiators.entrySet()) {
+                    String computeKey = resourceEntry.getKey();
+                    List<URI> computeInitiatorURIs = resourceEntry.getValue();
+                    Initiator initiator = _dbClient.queryObject(Initiator.class, computeInitiatorURIs.get(0));
+                    _log.info(String.format("Residual mask needed: New export masks for %s", computeKey));
+                    GenExportMaskCreateWorkflowResult result = generateExportMaskCreateWorkflow(context.workflow, context.previousStep,
+                            context.storage, exportGroup, computeInitiatorURIs, initiatorsToVolumes.get(initiator.getId()), token);
+                    context.flowCreated = true;
+                    context.previousStep = result.getStepId();
+                    // Add zoning
+                    if (context.zoningStepNeeded) {
+                        String zoningStep = context.workflow.createStepId();
+                        List<URI> masks = new ArrayList<URI>();
+                        masks.add(result.getMaskURI());
+                        context.previousStep = generateZoningCreateWorkflow(context.workflow, context.previousStep, exportGroup, masks,
+                                context.volumeMap,
+                                zoningStep);
+                    }
+                }
+            }
+
+            // Now if our efforts to find homes for the volumes in existing masking views yielded success,
+            // this is the time to trim down the list of initiators that will be used to create NEW masking
+            // views. Go through the initiators for the resource we originally used to populate the "volumesWithNoMask"
+            // map and see if any volumes still exist. If not, remove those "new" initiators.
+            for (URI initiatorId : initiatorsForResource) {
+                if (initiatorsToVolumes.get(initiatorId) == null) {
+                    if (initiatorURIsCopy.remove(initiatorId)) {
+                        _log.info("Determined that we do not need to create a new mask for initiator [1]: " + initiatorId);
+                    }
+                    if (initiatorsForNewExport.remove(initiatorId)) {
+                        _log.info("Determined that we do not need to create a new mask for initiator [2]: " + initiatorId);
+                    }
+                }
+            }
+        }
+
+        /**
+         * This is central to the VmaxVolumeToExportMaskRuleApplicator class. We are essentially try to have a wrapper around this
+         * method because it needs to be called in different contexts. One context is when this is a native VMAX export operation.
+         * This context requires workflow steps, so this what the postApply() is for. The second context is when we are suggesting
+         * ExportMasks to use for a set of initiators for the VPlex backend. The VPlex backend workflow bypasses these
+         * MaskingOrchestrator implementation and creates steps that reference the ExportMaskOperations. So, there's no need to
+         * have extra workflow steps done after applyRules. We are trying to get only the rules to run so that we have a set of
+         * ExportMasks that we can suggest for the VPlex backend workflow.
+         *
+         * @param initiatorsToVolumes [IN] - Initiators that are applicable to a resource
+         *
+         * @return true if the operation was successful. In this case, the contextual data would be populated.
+         */
+        @Override
+        public boolean applyRules(Map<URI, Map<URI, Integer>> initiatorsToVolumes) {
+            // TODO: We need to determine if all the parameters for applyVolumesToMasksUsingRules are necessary, like ExportGroup & token
+            return applyVolumesToMasksUsingRules(context.storage, context.exportGroup, context.masksToUpdateWithVolumes,
+                    initiatorsToVolumes, context.exportMaskToPolicy, context.masksToUpdateWithInitiators, context.partialMasks,
+                    context.token);
+        }
+    }
+
+    /**
+     * VPlexBackend ExportMask rule selection is the NativeVolume rule selection minus the post processing.
+     * It should just run the rules and the results will be used for ExportMask selection interface implementation:
+     * VmaxMaskingOrchestrator#suggestExportMasksForPlacement
+     */
+    class VplexBackendVolumeToExportMaskRuleApplicator extends NativeVolumeToExportMaskRuleApplicator {
+
+        public VplexBackendVolumeToExportMaskRuleApplicator(DbClient dbClient, VmaxVolumeToExportMaskApplicatorContext context) {
+            super(dbClient, context);
+        }
+
+        /**
+         * This is on overridden with no implementation on purpose. We do not need to do the same
+         * post processing that the native VMAX does. Effectively, we need to call applyRules() only.
+         *
+         * @param initiatorsForResource [IN] - Initiators that are applicable to a resource
+         * @param initiatorsToVolumes [IN] - Mapping of initiators to Volumes
+         * @throws Exception
+         */
+        @Override
+        public void postApply(List<URI> initiatorsForResource, Map<URI, Map<URI, Integer>> initiatorsToVolumes)
+                throws Exception {
+        }
     }
 }

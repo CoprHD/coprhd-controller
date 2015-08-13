@@ -733,7 +733,7 @@ public class ExportMask extends DataObject {
         return maskInitiators.containsAll(normalizedPorts);
     }
 
-    public boolean hasExactlyTheseInitiators(List<String> ports) {
+    public boolean hasExactlyTheseInitiators(Collection<String> ports) {
         Collection<String> normalizedPorts = new HashSet<String>();
         for (String port : ports) {
             normalizedPorts.add(Initiator.normalizePort(port));

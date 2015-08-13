@@ -257,7 +257,7 @@ public class VPlexBackendManager {
             // placement data structures, such that decisions on how to reuse the ExportMasks can be done here.
             vplexBackendOrchestrator.suggestExportMasksForPlacement(array, storageDevice, _initiators, placementDescriptor);
 
-            // Check if any export masks renamed
+            // Check if any export mask got renamed, if they did, change the name in the ViPR DB
             checkForRenamedExportMasks(placementDescriptor.getMasks());
 
             // Apply the filters that will remove any ExportMasks that do not fit the expected VPlex masking paradigm
@@ -272,7 +272,7 @@ public class VPlexBackendManager {
             // At this point, we have:
             //
             // a). Requested that the backend StorageArray provide us with a list of ExportMasks that can support the initiators + volumes.
-            // b). Process the suggest ExportMasks in case they had their names changed
+            // b). Process the suggested ExportMasks in case they had their names changed
             // c). Filtered out any ExportMasks that do not fit the VPlex masking paradigm
             // OR
             // d). Created a new ExportMask to support the initiators + volumes

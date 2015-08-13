@@ -314,6 +314,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                         physicalNas.add(createPhysicalNas(newDm));
                     }
                 }
+                _dbClient.createObject(virtualNas);
+                _dbClient.createObject(physicalNas);
             }
 
             if (!groups.get(EXISTING).isEmpty()) {

@@ -64,6 +64,7 @@ import com.emc.storageos.db.client.model.StoragePort.OperationalStatus;
 import com.emc.storageos.db.client.model.StoragePort.PortType;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -86,6 +87,7 @@ import com.emc.storageos.model.systems.StorageSystemList;
 import com.emc.storageos.model.systems.StorageSystemRequestParam;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.systems.StorageSystemUpdateRequestParam;
+import com.emc.storageos.model.vnas.VirtualNASList;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -1013,12 +1015,12 @@ public class StorageSystemService extends TaskResourceService {
     }
 
     /**
-     * Gets all storage pools for the registered storage system with the passed
+     * Gets all virtual NAS for the registered storage system with the passed
      * id.
      * 
      * @param id the URN of a ViPR storage system.
      * 
-     * @brief List storage system storage pools
+     * @brief List storage system virtual nas servers
      * @return A reference to a StoragePooList specifying the id and self link
      *         for each storage pool.
      */
@@ -1026,27 +1028,27 @@ public class StorageSystemService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/vnasservers")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public StoragePoolList getVnasServers(@PathParam("id") URI id) {
+    public VirtualNASList getVnasServers(@PathParam("id") URI id) {
         // Make sure storage system is registered.
         ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
         StorageSystem system = queryResource(id);
         ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
 
-        StoragePoolList poolList = new StoragePoolList();
-        URIQueryResultList storagePoolURIs = new URIQueryResultList();
+        VirtualNASList vNasList = new VirtualNASList();
+        URIQueryResultList vNasURIs = new URIQueryResultList();
         _dbClient.queryByConstraint(
-                ContainmentConstraint.Factory.getStorageDeviceStoragePoolConstraint(id),
-                storagePoolURIs);
-        Iterator<URI> storagePoolIter = storagePoolURIs.iterator();
-        while (storagePoolIter.hasNext()) {
-            URI storagePoolURI = storagePoolIter.next();
-            StoragePool storagePool = _dbClient.queryObject(StoragePool.class,
-                    storagePoolURI);
-            if (storagePool != null && !storagePool.getInactive()) {
-                poolList.getPools().add(toNamedRelatedResource(storagePool, storagePool.getNativeGuid()));
+                ContainmentConstraint.Factory.getStorageDeviceVirtualNasConstraint(id),
+                vNasURIs);
+        Iterator<URI> vNasIter = vNasURIs.iterator();
+        while (vNasIter.hasNext()) {
+            URI vNasURI = vNasIter.next();
+            VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class,
+            		vNasURI);
+            if (vNas != null && !vNas.getInactive()) {
+            	vNasList.getNasServers().add(toNamedRelatedResource(vNas, vNas.getNativeGuid()));
             }
         }
-        return poolList;
+        return vNasList;
     }
     
     

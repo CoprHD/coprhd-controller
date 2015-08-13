@@ -202,16 +202,6 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
         setChanged("metrics");
     }
 
-    
-    @Name("storageDeviceURI")
-    public URI getStroageDeviceURI() {
-        return storageDeviceURI;
-    }
-
-    public void setStroageDeviceURI(URI stroageDeviceURI) {
-        this.storageDeviceURI = stroageDeviceURI;
-        setChanged("stroageDeviceURI");
-    }
 
     @Name("nasTag")
     public StringSet getNAStag() {

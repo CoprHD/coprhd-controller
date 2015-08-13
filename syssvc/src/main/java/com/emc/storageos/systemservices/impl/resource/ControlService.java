@@ -190,6 +190,11 @@ public class ControlService {
             //get nodeIds for node names
             nodeId = _coordinator.getMatchingNodeId(nodeName);
             _log.info("Found node id {} for node name {}",nodeId,nodeName);
+
+            //verify nodeId found
+            if (nodeId == null) {
+                throw APIException.badRequests.parameterIsNotValid("node name");
+            }
         }
 
         List<String> controlNodeServiceNames = ServicesMetadata.getControlNodeServiceNames();
@@ -274,6 +279,11 @@ public class ControlService {
             //get nodeIds for node names
             nodeId = _coordinator.getMatchingNodeId(nodeName);
             _log.info("Found node id {} for node name {}",nodeId,nodeName);
+
+            //verify nodeId found
+            if (nodeId == null) {
+                throw APIException.badRequests.parameterIsNotValid("node name");
+            }
         }
 
         _log.info("Reboot node: "+nodeId);

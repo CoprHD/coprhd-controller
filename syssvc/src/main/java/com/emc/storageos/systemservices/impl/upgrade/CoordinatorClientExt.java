@@ -907,7 +907,8 @@ public class CoordinatorClientExt {
             List<Service> svcs = getAllServices();
             for (Service svc : svcs) {
                 if (useShortName){
-                    if(nodeNames.contains(svc.getNodeName()) || nodeNames.contains(svc.getNodeName().split("\\.")[0])){
+                    if(nodeNames.contains(svc.getNodeName()) ||
+                            nodeNames.contains(svc.getNodeName().split("\\.")[0])) {
                         final String nodeId=svc.getNodeId();
                         nodeIds.add(nodeId);
                     }
@@ -935,12 +936,22 @@ public class CoordinatorClientExt {
      */
     public String getMatchingNodeId(String nodeName) {
         String nodeId = null;
+
+        //if use short name is enabled allow matching short name to nodeId
+        boolean useShortName = Boolean.parseBoolean(getPropertyInfo().getProperty("use_short_node_name"));
+
         try {
             List<Service> svcs = getAllServices();
             for (Service svc : svcs) {
-                if (nodeName.equals(svc.getNodeName())){
-                    nodeId =svc.getNodeId();
-                    break;
+                if (useShortName){
+                    if(nodeName.equals(svc.getNodeName()) ||
+                            nodeName.equals(svc.getNodeName().split("\\.")[0])) {
+                        nodeId =svc.getNodeId();
+                    }
+                } else {
+                    if (nodeName.equals(svc.getNodeName())) {
+                        nodeId =svc.getNodeId();
+                    }
                 }
             }
         } catch (Exception e) {

@@ -171,7 +171,7 @@ public class VirtualNasService extends TaggedResource {
         for (URI id : ids) {
         	VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class, id);
             if ((vNas != null)) {
-            	vNasList.getNasServers().add(
+            	vNasList.getVNASServers().add(
                         toNamedRelatedResource(vNas, vNas.getNativeGuid()));
             }
         }

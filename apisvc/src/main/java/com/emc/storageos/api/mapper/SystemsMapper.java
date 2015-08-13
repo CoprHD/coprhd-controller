@@ -133,7 +133,7 @@ public class SystemsMapper {
         to.setNasState(from.getNasState());
         to.setNasTag(from.getNAStag());
         
-        to.setParentNASURI(toRelatedResource(ResourceTypeEnum.VNASSERVER,from.getParentPhysicalNAS()));
+        to.setParentNASURI(toRelatedResource(ResourceTypeEnum.VIRTUAL_NAS,from.getParentPhysicalNAS()));
         
         to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT,from.getProject()));
        

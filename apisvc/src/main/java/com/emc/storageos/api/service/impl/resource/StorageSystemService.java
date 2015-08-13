@@ -1045,7 +1045,8 @@ public class StorageSystemService extends TaskResourceService {
             VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class,
             		vNasURI);
             if (vNas != null && !vNas.getInactive()) {
-            	vNasList.getNasServers().add(toNamedRelatedResource(vNas, vNas.getNativeGuid()));
+            	vNasList.getVNASServers().add(toNamedRelatedResource(vNas, vNas.getNativeGuid()));
+            	
             }
         }
         return vNasList;

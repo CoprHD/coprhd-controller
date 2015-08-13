@@ -445,9 +445,9 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
             _authToken = response.getEntity(String.class).replace("\"", "");
             _client.removeAllFilters();
             _client.addFilter(new HTTPBasicAuthFilter(_username, _authToken));
-            //if (log.isDebugEnabled()) {
+            if (log.isDebugEnabled()) {
                 _client.addFilter(new LoggingFilter(System.out));
-            //}
+            }
         } catch (Exception e) {
             ScaleIOException.exceptions.authenticationFailure(_base.toString());
         }

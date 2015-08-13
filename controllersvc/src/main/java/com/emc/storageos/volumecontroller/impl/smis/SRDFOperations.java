@@ -1668,11 +1668,11 @@ public class SRDFOperations implements SmisConstants {
             StorageSystem targetSystem, Volume target) throws WBEMException {
         List<URI> srcVolumeUris = dbClient.queryByConstraint(getVolumesByConsistencyGroup(source.getConsistencyGroup()));
         List<Volume> cgSrcVolumes = dbClient.queryObject(Volume.class, srcVolumeUris);
-        Collection<String> srcDevIds = transform(cgSrcVolumes, fctnBlockObjectToNativeID());
+        Collection<String> srcDevIds = transform(filter(cgSrcVolumes, hasNativeID()), fctnBlockObjectToNativeID());
 
         List<URI> tgtVolumeUris = dbClient.queryByConstraint(getVolumesByConsistencyGroup(target.getConsistencyGroup()));
         List<Volume> cgTgtVolumes = dbClient.queryObject(Volume.class, tgtVolumeUris);
-        Collection<String> tgtDevIds = transform(cgTgtVolumes, fctnBlockObjectToNativeID());
+        Collection<String> tgtDevIds = transform(filter(cgTgtVolumes, hasNativeID()), fctnBlockObjectToNativeID());
 
         // Get the storagesync instances for remote sync/async mirrors
         List<CIMObjectPath> repPaths = helper.getReplicationRelationships(sourceSystem,
@@ -1701,6 +1701,15 @@ public class SRDFOperations implements SmisConstants {
                         replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
 
                 return elSysName.equalsIgnoreCase(systemNativeGuid) && nativeIds.contains(elDevId);
+            }
+        };
+    }
+
+    private Predicate<Volume> hasNativeID() {
+        return new Predicate<Volume>() {
+            @Override
+            public boolean apply(Volume input) {
+                return input.getNativeId() != null;
             }
         };
     }

@@ -2745,6 +2745,7 @@ resources.tasks.message=Message
 resources.tasks.start=Start
 resources.tasks.end=End
 resources.tasks.state=State
+resources.tasks.queued=Queued
 resources.tasks.pending=Pending
 resources.tasks.ready=Complete
 resources.tasks.error=Error

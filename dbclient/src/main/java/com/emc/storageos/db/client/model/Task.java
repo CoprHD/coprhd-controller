@@ -43,7 +43,7 @@ public class Task extends DataObject {
 
     // enumeration of status value
     public enum Status {
-        pending, ready, error;
+        queued, pending, ready, error;
 
         public static Status toStatus(String status) {
             try {
@@ -259,6 +259,11 @@ public class Task extends DataObject {
     public void ready(String message) {
         setMessage(message);
         setStatus(Status.ready.name());
+    }
+
+    public boolean isQueued() {
+        String status = getStatus();
+        return Status.queued.name().equals(status);
     }
 
     public boolean isPending() {

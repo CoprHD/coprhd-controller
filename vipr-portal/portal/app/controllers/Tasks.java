@@ -122,7 +122,8 @@ public class Tasks extends Controller {
         if (taskResourceReps != null) {
             for (TaskResourceRep taskResourceRep : taskResourceReps) {
                 TasksDataTable.Task task = new TasksDataTable.Task(taskResourceRep);
-                if (Objects.equals(task.state, "pending")) {
+                if (Objects.equals(task.state, "pending") ||
+                        Objects.equals(task.state, "queued")) {
                     task.progress = Math.max(task.progress, MINIMUM_TASK_PROGRESS);
                 }
 
@@ -401,7 +402,7 @@ public class Tasks extends Controller {
             resourceType = task.getResource() == null ? "" : URIUtil.getTypeName(task.getResource().getId());
             resourceName = task.getResource().getName();
             resourceId = task.getResource().getId().toString();
-            isComplete = !task.getState().equals("pending");
+            isComplete = !task.getState().equals("pending") || !task.getState().equals("queued");
 
             if (endDate == 0) {
                 elapsedTime = new Date().getTime() - startDate;

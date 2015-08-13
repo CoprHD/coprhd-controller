@@ -159,11 +159,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         Map<URI, Map<URI, Integer>> zoneNewMasksToVolumeMap = new HashMap<URI, Map<URI, Integer>>();
         Map<URI, ExportMask> refreshedMasks = new HashMap<URI, ExportMask>();
 
-        Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
-        List<String> portNames = new ArrayList<String>();
-        // Populate data structures to track initiators
-        processInitiators(exportGroup, initiatorURIs, portNames, portNameToInitiatorURI);
-
         // Populate a map of volumes on the storage device
         List<BlockObject> blockObjects = new ArrayList<BlockObject>();
         Map<URI, Integer> volumeMap = new HashMap<URI, Integer>();
@@ -179,14 +174,14 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         }
 
-        // Determine initial mapping of compute resources to list of initiators
-        Map<String, List<URI>> resourceToInitiators = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
+        InitiatorHelper initiatorHelper = new InitiatorHelper(initiatorURIs).process(exportGroup);
 
         boolean anyOperationsToDo = false;
         Set<URI> partialMasks = new HashSet<>();
         Map<String, Set<URI>> initiatorToExportMaskPlacementMap =
                 determineInitiatorToExportMaskPlacements(exportGroup, storageURI,
-                        resourceToInitiators, device.findExportMasks(storage, portNames, false), portNameToInitiatorURI, partialMasks);
+                initiatorHelper.getResourceToInitiators(), device.findExportMasks(storage, initiatorHelper.getPortNames(), false),
+                initiatorHelper.getPortNameToInitiatorURI(), partialMasks);
 
         if (!initiatorToExportMaskPlacementMap.isEmpty()) {
             Map<URI, ExportMaskPolicy> policyCache = new HashMap<>();
@@ -211,7 +206,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Map<URI, Map<URI, Integer>> existingMasksToUpdateWithNewVolumes = new HashMap<URI, Map<URI, Integer>>();
             Map<URI, Set<Initiator>> existingMasksToUpdateWithNewInitiators = new HashMap<URI, Set<Initiator>>();
             for (Map.Entry<String, Set<URI>> entry : initiatorToExportMaskPlacementMap.entrySet()) {
-                URI initiatorURI = portNameToInitiatorURI.get(entry.getKey());
+                URI initiatorURI = initiatorHelper.getPortNameToInitiatorURI().get(entry.getKey());
                 if (initiatorURI == null || exportGroup == null) {
                     // This initiator does not exist or it is not one of the initiators passed to the function
                     continue;
@@ -423,7 +418,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             // This step is for zoning. It is not specific to a single NetworkSystem,
             // as it will look at all the initiators and targets and compute the
             // zones required (which might be on multiple NetworkSystems.)
-            for (Map.Entry<String, List<URI>> resourceEntry : resourceToInitiators.entrySet()) {
+            for (Map.Entry<String, List<URI>> resourceEntry : initiatorHelper.getResourceToInitiators().entrySet()) {
                 String computeKey = resourceEntry.getKey();
                 List<URI> computeInitiatorURIs = resourceEntry.getValue();
                 _log.info(String.format("New export masks for %s", computeKey));
@@ -469,10 +464,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveInitiators", true,
                 token);
 
-        Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
-        List<String> portNames = new ArrayList<String>();
-        // Populate data structures to track initiators
-        processInitiators(exportGroup, initiatorURIs, portNames, portNameToInitiatorURI);
+        InitiatorHelper initiatorHelper = new InitiatorHelper(initiatorURIs).process(exportGroup);
 
         // Populate a map of volumes on the storage device associated with this ExportGroup
         List<BlockObject> blockObjects = new ArrayList<BlockObject>();
@@ -502,7 +494,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Map<URI, List<URI>> existingMasksToRemoveVolumes = new HashMap<URI, List<URI>>();
             Map<URI, List<URI>> existingMasksToCoexistInitiators = new HashMap<URI, List<URI>>();
             for (Map.Entry<String, Set<URI>> entry : matchingExportMaskURIs.entrySet()) {
-                URI initiatorURI = portNameToInitiatorURI.get(entry.getKey());
+                URI initiatorURI = initiatorHelper.getPortNameToInitiatorURI().get(entry.getKey());
                 if (initiatorURI == null) {
                     // Entry key points to an initiator that was not passed in the remove request
                     continue;
@@ -880,25 +872,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // hanging)
         boolean flowCreated = false;
 
-        // Pre-load the initiators that are expected as part of this creation request.
-        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
-
-        // A map of compute resources to their ports. ListMultimap is used for shorthand of a single
-        // compute resource to a collection of ports.
-        ListMultimap<String, String> computeResourceToPortNames = ArrayListMultimap.create();
-
-        // A mapping of port name (11:22:33:44:55:66:77:88) to initiator URI
-        Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
-
-        // The port names that are part of this request.
-        List<String> portNames = new ArrayList<String>();
-
-        // Populate data structures to track initiators
-        processInitiators(exportGroup, initiators, portNames, portNameToInitiatorURI,
-                computeResourceToPortNames);
-
-        // A map of compute resources to initiators
-        Map<String, List<URI>> resourceToInitiators = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
+        InitiatorHelper initiatorHelper = new InitiatorHelper(initiatorURIs).process(exportGroup);
 
         // Find the qualifying export masks that are associated with any or all the ports in
         // portNames. We will have to do processing differently based on whether
@@ -907,9 +881,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // In the case of clusters, we try to find the export mask that contains a subset of initiators
         // of the cluster, so we can build onto it.
         Set<URI> partialMasks = new HashSet<>();
-        Map<String, Set<URI>> initiatorToExportMaskPlacementMap =
-                determineInitiatorToExportMaskPlacements(exportGroup, storage.getId(),
-                        resourceToInitiators, device.findExportMasks(storage, portNames, false), portNameToInitiatorURI, partialMasks);
+        Map<String, Set<URI>> initiatorToExportMaskPlacementMap = determineInitiatorToExportMaskPlacements(exportGroup, storage.getId(),
+                initiatorHelper.getResourceToInitiators(), device.findExportMasks(storage, initiatorHelper.getPortNames(), false),
+                initiatorHelper.getPortNameToInitiatorURI(), partialMasks);
 
         // If we didn't find any export masks for any compute resources, then it's a total loss, and we need to
         // create new masks for each compute resource.
@@ -918,7 +892,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // as well. Certainly not as clearly as this will, but regardless.
         if (initiatorToExportMaskPlacementMap.isEmpty()) {
             _log.info(String.format("No existing mask found w/ initiators { %s }", Joiner.on(",")
-                    .join(portNames)));
+                    .join(initiatorHelper.getPortNames())));
             if (!initiatorURIs.isEmpty()) {
                 Map<String, List<URI>> computeResourceToInitiators =
                         mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
@@ -936,8 +910,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Map<URI, ExportMaskPolicy> policyCache = new HashMap<>();
             _log.info(String.format("Mask(s) found w/ initiators {%s}. "
                     + "MatchingExportMaskURIs {%s}, portNameToInitiators {%s}", Joiner.on(",")
-                    .join(portNames), Joiner.on(",").join(initiatorToExportMaskPlacementMap.keySet()), Joiner
-                    .on(",").join(portNameToInitiatorURI.entrySet())));
+                            .join(initiatorHelper.getPortNames()),
+                    Joiner.on(",").join(initiatorToExportMaskPlacementMap.keySet()), Joiner
+                            .on(",").join(initiatorHelper.getPortNameToInitiatorURI().entrySet())));
             // There are some initiators that already exist. We need to create a
             // workflow that create new masking containers or updates masking
             // containers as necessary.
@@ -951,12 +926,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Map<URI, Map<URI, Integer>> existingMasksToUpdateWithNewVolumes = new HashMap<URI, Map<URI, Integer>>();
             Map<URI, Set<Initiator>> existingMasksToUpdateWithNewInitiators = new HashMap<URI, Set<Initiator>>();
             Set<URI> initiatorsForNewExport = new HashSet<>();
-
-            // Volumes with no mask: A map of initiators to volumes that need to be on those ports.
-            Map<URI, Map<URI, Integer>> volumesWithNoMask = new HashMap<URI, Map<URI, Integer>>();
-
-            // Map of export masks found along with their mask policies
-            Map<ExportMask, ExportMaskPolicy> masterMaskMap = new HashMap<ExportMask, ExportMaskPolicy>();
 
             // Special case for VMAX with a cluster compute resource:
             //
@@ -975,7 +944,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             // In the case of brownfield cluster, some of these port to ExportMask may be missing because the array doesn't
             // have them yet. Find this condition and add the additional ports to the map.
             if (exportGroup.forCluster() || exportGroup.forHost()) {
-                updatePlacementMapForCluster(exportGroup, resourceToInitiators, initiatorToExportMaskPlacementMap);
+                updatePlacementMapForCluster(exportGroup, initiatorHelper.getResourceToInitiators(), initiatorToExportMaskPlacementMap);
             }
 
             // This loop processes all initiators that were found in the existing export masks.
@@ -983,7 +952,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             // In the case where initiators are missing and not represented by other masks, we need
             // to mark that these initiators need to be added to the existing masks.
             for (Map.Entry<String, Set<URI>> entry : initiatorToExportMaskPlacementMap.entrySet()) {
-                URI initiatorURI = portNameToInitiatorURI.get(entry.getKey());
+                URI initiatorURI = initiatorHelper.getPortNameToInitiatorURI().get(entry.getKey());
                 Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
                 // Keep track of those initiators that have been found to exist already
                 // in some export mask on the array
@@ -1075,8 +1044,14 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             // For adding volumes to existing masks, we want to do it by compute resource.
             // This loop will normalize the port, mask map to a compute resource -> list of masks map.
-            Map<String, Set<URI>> resourceMaskMap = createResourceMaskMap(portNameToInitiatorURI, resourceToInitiators,
-                    initiatorToExportMaskPlacementMap);
+            Map<String, Set<URI>> resourceMaskMap = createResourceMaskMap(initiatorHelper.getPortNameToInitiatorURI(),
+                    initiatorHelper.getResourceToInitiators(), initiatorToExportMaskPlacementMap);
+
+            // Map of export masks found along with their mask policies
+            Map<ExportMask, ExportMaskPolicy> masterMaskMap = new HashMap<>();
+
+            // Volumes with no mask: A map of initiators to volumes that need to be on those ports.
+            Map<URI, Map<URI, Integer>> volumesWithNoMask = new HashMap<>();
 
             // Each volume needs to be seen by all initiators in the compute resource.
             // This loop will find a mask (or create one) for each compute resource for the volumes desired.
@@ -1085,7 +1060,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // This list will be full of volumes, but as we find existing masks for volumes, we remove from this list.
                 // Whatever isn't removed at the end needs to become a new mask.
                 volumesWithNoMask.clear();
-                List<URI> initiatorsForResource = resourceToInitiators.get(resourceMaskEntry.getKey());
+                List<URI> initiatorsForResource = initiatorHelper.getResourceToInitiators().get(resourceMaskEntry.getKey());
                 for (URI initiatorId : initiatorsForResource) {
                     if (volumesWithNoMask.get(initiatorId) == null) {
                         volumesWithNoMask.put(initiatorId, new HashMap<URI, Integer>());
@@ -1890,14 +1865,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         return matchingExportMaskURIs;
     }
 
-    @Override
-    public String checkForSnapshotsToCopyToTarget(Workflow workflow,
-            StorageSystem storage, String previousStep, Map<URI, Integer> volumeMap,
-            Collection<Map<URI, Integer>> values) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
     /**
      * This function processes the initiatorURIs and return a mapping of String
      * host or cluster resource reference to a list Initiator URIs.
@@ -1988,6 +1955,23 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         BlockStorageDevice device = getDevice();
         device.updatePolicyAndLimits(storage, null, volumeURIs, newVpool,
                 rollback, taskCompleter);
+    }
+
+    @Override
+    protected void suggestExportMasksForPlacement(StorageSystem storage, BlockStorageDevice device, List<Initiator> initiators,
+            ExportMaskPlacementDescriptor descriptor) {
+        // VMAX can have multiple ExportMasks (MaskingViews) that have the same set of initiators.
+        // So, it's up to this implementation to determine where to best place the volumes based
+        // on volume and ExportMask characteristics. To that end, we will hint that the placement
+        // will be separating the volumes per ExportMask
+        descriptor.setPlacementHint(ExportMaskPlacementDescriptor.PlacementHint.VOLUMES_TO_SINGLE_MASK); // TODO: Change type
+        // Find all the ExportMasks on the array that have the initiators (or a subset of them)
+        Map<URI, ExportMask> matchingMasks = readExistingExportMasks(storage, device, initiators);
+        descriptor.setMasks(matchingMasks);
+        // TODO: Volume placement
+        for (URI exportMaskURI : matchingMasks.keySet()) {
+            descriptor.placeVolumes(exportMaskURI, descriptor.getVolumesToPlace());
+        }
     }
 
     /**

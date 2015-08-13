@@ -97,7 +97,7 @@ public class LogFileStream implements LogStream {
                 try {
                     reader = new LogReader(filePath, request, status, basename);
                 } catch (Exception e) {
-                    // TODO: generate a dynamic error log message
+                    status.append(String.format("Fail to generate log reader for %s due to %s", filePath, e.getMessage()));
                     logger.error("Fail to generate log reader for {}", filePath);
                     return null;
                 }

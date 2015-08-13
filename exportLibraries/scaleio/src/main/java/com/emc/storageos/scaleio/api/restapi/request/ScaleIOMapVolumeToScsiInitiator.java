@@ -13,7 +13,7 @@ package com.emc.storageos.scaleio.api.restapi.request;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 /**
- * This class has the parameters to map a volume to a scsi initiator through ScaleIO API
+ * Parameters to map a volume to a scsi initiator
  * 
  */
 @JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)

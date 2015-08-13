@@ -30,7 +30,6 @@ import com.emc.storageos.scaleio.api.ScaleIOHandle;
 import com.emc.storageos.scaleio.api.ScaleIOMapVolumeToSCSIInitiatorResult;
 import com.emc.storageos.scaleio.api.ScaleIOMapVolumeToSDCResult;
 import com.emc.storageos.scaleio.api.ScaleIOModifyVolumeCapacityResult;
-import com.emc.storageos.scaleio.api.ScaleIOQueryAllCommand;
 import com.emc.storageos.scaleio.api.ScaleIOQueryAllResult;
 import com.emc.storageos.scaleio.api.ScaleIOQueryAllSCSIInitiatorsResult;
 import com.emc.storageos.scaleio.api.ScaleIOQueryAllSDCResult;
@@ -127,9 +126,9 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
 
         List<ScaleIOProtectionDomain> domains = getProtectionDomains();
         ScaleIOQueryAllResult result = new ScaleIOQueryAllResult();
-        result.setProperty(ScaleIOQueryAllCommand.SCALEIO_INSTALLATION_ID, system.getInstallId());
-        result.setProperty(ScaleIOQueryAllCommand.SCALEIO_VERSION, system.getVersion());
-        result.setProperty(ScaleIOQueryAllCommand.SCALEIO_CUSTOMER_ID, system.getId());
+        result.setProperty(ScaleIOContants.SCALEIO_INSTALLATION_ID, system.getInstallId());
+        result.setProperty(ScaleIOContants.SCALEIO_VERSION, system.getVersion());
+        result.setProperty(ScaleIOContants.SCALEIO_CUSTOMER_ID, system.getId());
         for (ScaleIOProtectionDomain domain : domains) {
             String domainName = domain.getName();
             result.addProtectionDomain(domainName, domain.getId());
@@ -139,11 +138,11 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
                 String id = pool.getId();
                 ScaleIOStoragePool poolResult = getStoragePoolStats(id);
                 result.addProtectionDomainStoragePool(domainName, id);
-                result.addStoragePoolProperty(domainName, id, ScaleIOQueryAllCommand.POOL_AVAILABLE_CAPACITY,
+                result.addStoragePoolProperty(domainName, id, ScaleIOContants.POOL_AVAILABLE_CAPACITY,
                         poolResult.getCapacityAvailableForVolumeAllocationInKb());
-                result.addStoragePoolProperty(domainName, id, ScaleIOQueryAllCommand.SCALEIO_TOTAL_CAPACITY,
+                result.addStoragePoolProperty(domainName, id, ScaleIOContants.SCALEIO_TOTAL_CAPACITY,
                         poolResult.getMaxCapacityInKb());
-                result.addStoragePoolProperty(domainName, id, ScaleIOQueryAllCommand.POOL_ALLOCATED_VOLUME_COUNT,
+                result.addStoragePoolProperty(domainName, id, ScaleIOContants.POOL_ALLOCATED_VOLUME_COUNT,
                         poolResult.getNumOfVolumes());
                 result.addStoragePoolProperty(domainName, id, ScaleIOContants.NAME, poolName);
             }
@@ -316,15 +315,10 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
     }
 
     @Override
-    public ScaleIOQueryAllVolumesResult queryAllVolumes() throws Exception {
-
-        return null;
-    }
-
-    @Override
     public ScaleIOMapVolumeToSDCResult mapVolumeToSDC(String volumeId,
             String sdcId) throws Exception {
         ScaleIOMapVolumeToSDCResult result = new ScaleIOMapVolumeToSDCResult();
+        log.info("mapping to sdc");
         try {
             String uri = ScaleIOContants.getMapVolumeToSDCURI(volumeId);
             ScaleIOMapVolumeToSDC mapParm = new ScaleIOMapVolumeToSDC();
@@ -384,6 +378,7 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
     public ScaleIOMapVolumeToSCSIInitiatorResult mapVolumeToSCSIInitiator(
             String volumeId, String initiatorId) throws Exception {
         ScaleIOMapVolumeToSCSIInitiatorResult result = new ScaleIOMapVolumeToSCSIInitiatorResult();
+        log.info("mapping to scsi");
         try {
             String uri = ScaleIOContants.getMapVolumeToScsiInitiatorURI(volumeId);
             ScaleIOMapVolumeToScsiInitiator mapParm = new ScaleIOMapVolumeToScsiInitiator();
@@ -450,9 +445,9 @@ public class ScaleIORestClient extends StandardRestClient implements ScaleIOHand
             _authToken = response.getEntity(String.class).replace("\"", "");
             _client.removeAllFilters();
             _client.addFilter(new HTTPBasicAuthFilter(_username, _authToken));
-            if (log.isDebugEnabled()) {
+            //if (log.isDebugEnabled()) {
                 _client.addFilter(new LoggingFilter(System.out));
-            }
+            //}
         } catch (Exception e) {
             ScaleIOException.exceptions.authenticationFailure(_base.toString());
         }

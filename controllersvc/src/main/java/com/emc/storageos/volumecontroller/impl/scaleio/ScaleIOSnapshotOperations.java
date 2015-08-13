@@ -45,7 +45,7 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
     public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
-            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(dbClient).getCLI(storage);
+            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
             BlockSnapshot blockSnapshot = dbClient.queryObject(BlockSnapshot.class, snapshot);
 
             Volume parent = dbClient.queryObject(Volume.class, blockSnapshot.getParent().getURI());
@@ -54,9 +54,9 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
                     blockSnapshot.getLabel(), systemId);
 
             if (result.isSuccess()) {
-                ScaleIOCLIHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, blockSnapshot, systemId, result);
+                ScaleIOHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, blockSnapshot, systemId, result);
                 dbClient.persistObject(blockSnapshot);
-                ScaleIOCLIHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, blockSnapshot);
+                ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, blockSnapshot);
                 taskCompleter.ready(dbClient);
             } else {
                 blockSnapshot.setInactive(true);
@@ -78,7 +78,7 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
     public void createGroupSnapshots(StorageSystem storage, List<URI> snapshotList, Boolean createInactive,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
-            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(dbClient).getCLI(storage);
+            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
             List<BlockSnapshot> blockSnapshots = dbClient.queryObject(BlockSnapshot.class, snapshotList);
             Map<String, String> parent2snap = new HashMap<>();
             Set<URI> poolsToUpdate = new HashSet<>();
@@ -92,21 +92,12 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
             ScaleIOSnapshotMultiVolumeResult result = scaleIOHandle.snapshotMultiVolume(parent2snap, systemId);
 
             if (result.isSuccess()) {
-                ScaleIOCLIHelper.updateSnapshotsWithSnapshotMultiVolumeResult(dbClient, blockSnapshots, systemId, result);
-                // Fix for multi-snapshot output bug (CTRL-4516)
-                if (scaleIOHandle instanceof ScaleIOCLI) {
-                    ScaleIOQueryAllVolumesResult allVolumesResult = scaleIOHandle.queryAllVolumes();
-                    for (BlockSnapshot snapshot : blockSnapshots) {
-                        String id = allVolumesResult.getVolumeIdFromName(snapshot.getLabel());
-                        snapshot.setNativeId(id);
-                        snapshot.setWWN(ScaleIOCLIHelper.generateWWN(systemId, id));
-                    }
-                }
+                ScaleIOHelper.updateSnapshotsWithSnapshotMultiVolumeResult(dbClient, blockSnapshots, systemId, result);
                 dbClient.persistObject(blockSnapshots);
 
                 List<StoragePool> pools = dbClient.queryObject(StoragePool.class, Lists.newArrayList(poolsToUpdate));
                 for (StoragePool pool : pools) {
-                    ScaleIOCLIHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, pool, storage);
+                    ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, pool, storage);
                 }
 
                 taskCompleter.ready(dbClient);
@@ -145,7 +136,7 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
     public void deleteSingleVolumeSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         try {
-            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(dbClient).getCLI(storage);
+            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
             BlockSnapshot blockSnapshot = dbClient.queryObject(BlockSnapshot.class, snapshot);
             boolean anyFailures = false;
             String errorMessage = null;
@@ -168,7 +159,7 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
                 if (blockSnapshot != null) {
                     blockSnapshot.setInactive(true);
                     dbClient.persistObject(blockSnapshot);
-                    ScaleIOCLIHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, blockSnapshot);
+                    ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, blockSnapshot);
                 }
                 taskCompleter.ready(dbClient);
             } else {
@@ -189,7 +180,7 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
     public void deleteGroupSnapshots(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         try {
-            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(dbClient).getCLI(storage);
+            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
             BlockSnapshot blockSnapshot = dbClient.queryObject(BlockSnapshot.class, snapshot);
             Set<URI> poolsToUpdate = new HashSet<>();
 
@@ -207,7 +198,7 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
 
                 List<StoragePool> pools = dbClient.queryObject(StoragePool.class, Lists.newArrayList(poolsToUpdate));
                 for (StoragePool pool : pools) {
-                    ScaleIOCLIHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, pool, storage);
+                    ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, pool, storage);
                 }
 
                 taskCompleter.ready(dbClient);

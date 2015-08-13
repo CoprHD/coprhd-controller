@@ -13,7 +13,6 @@ package com.emc.storageos.scaleio.api;
 
 import java.util.Map;
 
-import com.emc.storageos.scaleio.ScaleIOException;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 
 /**
@@ -46,8 +45,6 @@ public interface ScaleIOHandle {
     ScaleIOSnapshotVolumeResult snapshotVolume(String id, String snapshot, String systemId) throws Exception;
 
     ScaleIOSnapshotMultiVolumeResult snapshotMultiVolume(Map<String, String> id2snapshot, String systemId) throws Exception;
-
-    ScaleIOQueryAllVolumesResult queryAllVolumes() throws Exception;
 
     ScaleIOMapVolumeToSDCResult mapVolumeToSDC(String volumeId, String sdcId) throws Exception;
 

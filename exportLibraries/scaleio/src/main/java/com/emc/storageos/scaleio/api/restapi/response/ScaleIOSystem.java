@@ -15,7 +15,7 @@ import java.util.List;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 import com.emc.storageos.scaleio.api.ParsePattern;
-import com.emc.storageos.scaleio.api.ScaleIOQueryAllCommand;
+import com.emc.storageos.scaleio.api.ScaleIOContants;
 import com.emc.storageos.scaleio.api.ScaleIOQueryClusterResult;
 
 /**
@@ -99,7 +99,7 @@ public class ScaleIOSystem {
 
     public String getVersion() {
         String result = null;
-        ParsePattern parse = new ParsePattern("EMC ScaleIO Version:\\s+[a-zA-Z](.*?)", ScaleIOQueryAllCommand.SCALEIO_VERSION);
+        ParsePattern parse = new ParsePattern("EMC ScaleIO Version:\\s+[a-zA-Z](.*?)", ScaleIOContants.SCALEIO_VERSION);
         List<String> versions = parse.isMatch(systemVersionName);
         if (versions != null && versions.size() > 0) {
             result = versions.get(0);

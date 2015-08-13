@@ -176,8 +176,7 @@ public class XtremIOV2Client extends XtremIOClient {
     @Override
     public List<String> getTagNames(String clusterName) throws Exception {
         List<String> tagNames = new ArrayList<String>();
-        String uriString = XtremIOConstants.XTREMIO_V2_TAGS_STR.concat(XtremIOConstants.getInputClusterString(clusterName));
-        ClientResponse response = get(URI.create(uriString));
+        ClientResponse response = get(XtremIOConstants.XTREMIO_V2_TAGS_URI);
         XtremIOTagsInfo responseObjs = getResponseObject(XtremIOTagsInfo.class, response);
         for (XtremIOObjectInfo objectInfo : responseObjs.getTagsInfo()) {
             tagNames.add(objectInfo.getName());
@@ -218,15 +217,18 @@ public class XtremIOV2Client extends XtremIOClient {
     
     @Override
     public void tagObject(String tagName, String entityType, String entity, String clusterName) throws Exception {
-        String rootFolder = XtremIOConstants.getRootFolderForEntityType(entityType);
-        String xioTagName = rootFolder.concat(tagName);
-        String uriString = XtremIOConstants.XTREMIO_V2_TAGS_STR.concat(XtremIOConstants.getInputNameString(xioTagName));
-        XtremIOTagRequest tagRequest = new XtremIOTagRequest();
-        tagRequest.setEntity(entityType);
-        tagRequest.setEntityDetails(entity);
-        tagRequest.setClusterId(clusterName);
-        log.info("Calling tag object with: {}", tagRequest.toString());
-        ClientResponse response = put(URI.create(uriString), getJsonForEntity(tagRequest));
+        //No need to throw exception if we are not able to tag objects. 
+        try {
+            String uriString = XtremIOConstants.XTREMIO_V2_TAGS_STR.concat(XtremIOConstants.getInputNameString(tagName));
+            XtremIOTagRequest tagRequest = new XtremIOTagRequest();
+            tagRequest.setEntity(entityType);
+            tagRequest.setEntityDetails(entity);
+            tagRequest.setClusterId(clusterName);
+            log.info("Calling tag object with URI: {} and parameters: {}", uriString, tagRequest.toString());
+            ClientResponse response = put(URI.create(uriString), getJsonForEntity(tagRequest));
+        } catch (Exception ex) {
+            log.error("Error tagging object.", ex);
+        }
     }
 
     @Override
@@ -423,13 +425,10 @@ public class XtremIOV2Client extends XtremIOClient {
 
     @Override
     public void removeConsistencyGroup(String cgName, String clusterName) throws Exception {
-        XtremIOConsistencyGroupRequest cgRequest = new XtremIOConsistencyGroupRequest();
-        cgRequest.setCgName(cgName);
-        cgRequest.setClusterName(clusterName);
-      
-        log.info("Calling Consistency Group Delete with: {}", cgRequest.toString());
-        delete(XtremIOConstants.XTREMIO_V2_CONSISTENCY_GROUPS_URI, 
-                getJsonForEntity(cgRequest));
+        String uriString = XtremIOConstants.XTREMIO_V2_CONSISTENCY_GROUPS_STR
+                .concat(XtremIOConstants.getInputNameForClusterString(cgName, clusterName));
+        log.info("Calling Consistency Group Delete with: {}", uriString);
+        delete(URI.create(uriString));
     }
 
     @Override
@@ -453,9 +452,10 @@ public class XtremIOV2Client extends XtremIOClient {
         cgVolumeRequest.setVolName(volName);
         cgVolumeRequest.setClusterName(clusterName);
         
-        log.info("Calling Remove Volume from Consistency Group with: {}", cgVolumeRequest.toString());
-        delete(XtremIOConstants.XTREMIO_V2_CONSISTENCY_GROUP_VOLUMES_URI, 
-                getJsonForEntity(cgVolumeRequest));
+        String uriString = XtremIOConstants.XTREMIO_V2_CONSISTENCY_GROUP_VOLUMES_STR
+                .concat(XtremIOConstants.getInputNameString(cgName));
+        log.info("Calling Remove Volume from Consistency Group with: {} and parameters {}", uriString, cgVolumeRequest.toString());
+        delete(URI.create(uriString), getJsonForEntity(cgVolumeRequest));
     }
 
     @Override

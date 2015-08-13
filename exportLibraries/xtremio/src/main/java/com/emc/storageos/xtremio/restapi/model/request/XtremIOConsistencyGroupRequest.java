@@ -11,8 +11,8 @@ import com.google.gson.annotations.SerializedName;
 
 @JsonRootName(value = "xtremio_cg_request")
 public class XtremIOConsistencyGroupRequest {
-    @SerializedName("consistency-groupname")
-    @JsonProperty(value = "consistency-groupname")
+    @SerializedName("consistency-group-name")
+    @JsonProperty(value = "consistency-group-name")
     private String cgName;
 
     @SerializedName("cluster-id")

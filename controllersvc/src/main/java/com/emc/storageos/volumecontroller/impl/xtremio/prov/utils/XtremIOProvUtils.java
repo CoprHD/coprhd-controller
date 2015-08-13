@@ -82,6 +82,17 @@ public class XtremIOProvUtils {
     	return cg;
     }
     
+    public static XtremIOConsistencyGroup isSnapsetAvailableInArray(XtremIOClient client, String label, String clusterName) {
+        XtremIOConsistencyGroup cg = null;
+        try {
+            cg = client.getSnapshotSetDetails(label, clusterName);
+        } catch (Exception e) {
+            _log.info("Snapshot Set {} not available in Array.", label);
+        }
+        
+        return cg;
+    }
+    
     public static Map<String, String> createFoldersForVolumeAndSnaps(XtremIOClient client, String rootVolumeFolderName)
             throws Exception {
         
@@ -128,14 +139,14 @@ public class XtremIOProvUtils {
         tagNamesMap.put(XtremIOConstants.VOLUME_KEY, volumesTagName);
         tagNamesMap.put(XtremIOConstants.SNAPSHOT_KEY, snapshotsTagName);
         
-        if (!tagNames.contains(XtremIOConstants.V2_VOLUME_ROOT_FOLDER.concat(volumesTagName))) {
+        if (!tagNames.contains(volumesTagName)) {
             _log.info("Sending create volume tag request {}", volumesTagName);
             client.createTag(volumesTagName, null, XtremIOConstants.XTREMIO_ENTITY_TYPE.Volume.name(), clusterName);
         } else {
             _log.info("Found {} tag on the Array.", volumesTagName);
         }
         
-        if (!tagNames.contains(XtremIOConstants.V2_SNAPSHOT_ROOT_FOLDER.concat(snapshotsTagName))) {
+        if (!tagNames.contains(snapshotsTagName)) {
             _log.info("Sending create snapshot tag request {}", snapshotsTagName);
             client.createTag(snapshotsTagName, null, XtremIOConstants.XTREMIO_ENTITY_TYPE.SnapshotSet.name(), clusterName);
         } else {

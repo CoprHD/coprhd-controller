@@ -5,7 +5,7 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="xtremio_tag_create")
+@JsonRootName(value="xtremio_tag_request")
 public class XtremIOTagRequest {
     
     @SerializedName("cluster-id")
@@ -55,4 +55,10 @@ public class XtremIOTagRequest {
 	public void setTagName(String tagName) {
 		this.tagName = tagName;
 	}
+
+    @Override
+    public String toString() {
+        return "XtremIOTagRequest [clusterId=" + clusterId + ", entity=" + entity + ", entityDetails=" + entityDetails + ", tagName="
+                + tagName + "]";
+    }
 }

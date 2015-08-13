@@ -97,6 +97,13 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         XtremIOClient client = null;
         try {
             client = getXtremIOClient(storage);
+            BlockConsistencyGroup cgObj = null;
+            boolean isCG = false;
+            Volume vol = volumes.get(0);
+            if (vol.getConsistencyGroup() != null) {
+                cgObj = dbClient.queryObject(BlockConsistencyGroup.class, vol.getConsistencyGroup());
+                isCG = true;
+            }
             // find the project this volume belongs to. 
             URI projectUri = volumes.get(0).getProject().getURI();
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
@@ -144,6 +151,9 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                     createdVolume = client.getVolumeDetails(volume.getLabel(), clusterName);
                     _log.info("Created volume details {}", createdVolume.toString());
 
+                    if(isCG) {
+                        client.addVolumeToConsistencyGroup(volume.getLabel(), cgObj.getLabel(), clusterName);
+                    }
                     volume.setNativeId(createdVolume.getVolInfo().get(0));
                     volume.setWWN(createdVolume.getVolInfo().get(0));
                     volume.setDeviceLabel(volume.getLabel());
@@ -461,16 +471,9 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             XtremIOClient client = getXtremIOClient(storage);
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
             
-            XtremIOConsistencyGroup cg = client.getConsistencyGroupDetails(consistencyGroup.getLabel(), clusterName);
-            if(cg == null) {
-            	_log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
-                taskCompleter.error(dbClient, DeviceControllerException.exceptions
-                        .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                                consistencyGroup.fetchArrayCgName(storage.getId())));
-                return;
-            }
-            //TODO populate cluster name once we implement multicluster feature
-            client.removeConsistencyGroup(consistencyGroup.getLabel(), clusterName);
+            if(null != XtremIOProvUtils.isCGAvailableInArray(client, consistencyGroup.getLabel(), clusterName)) {
+                client.removeConsistencyGroup(consistencyGroup.getLabel(), clusterName);
+            } 
             // Set the consistency group to inactive
             URI systemURI = storage.getId();
             consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(),
@@ -524,7 +527,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         	XtremIOClient client = getXtremIOClient(storage);
         	String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
             
-            XtremIOConsistencyGroup cg = client.getConsistencyGroupDetails(consistencyGroup.getLabel(), clusterName);
+            XtremIOConsistencyGroup cg = XtremIOProvUtils.isCGAvailableInArray(client, consistencyGroup.getLabel(), clusterName);
             if(cg == null) {
             	_log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
@@ -573,7 +576,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         	XtremIOClient client = getXtremIOClient(storage);
         	String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
             
-            XtremIOConsistencyGroup cg = client.getConsistencyGroupDetails(consistencyGroup.getLabel(), clusterName);
+            XtremIOConsistencyGroup cg = XtremIOProvUtils.isCGAvailableInArray(client, consistencyGroup.getLabel(), clusterName);
             if(cg == null) {
             	_log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions

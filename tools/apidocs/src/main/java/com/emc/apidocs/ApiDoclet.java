@@ -236,8 +236,8 @@ public class ApiDoclet {
     		FileInputStream fileInput = new FileInputStream(rootDirectory+"gradle.properties");
     		prop.load(fileInput);
     	}
-    	catch (Exception e) {
-        	e.printStackTrace();
+    	catch (IOException e) {
+        	throw new RuntimeException("Unable to load Gradle properties file", e);
         }
     	String docsMetaVersion = prop.getProperty("apidocsComparisionVersion");
         List<ApiService> oldServices = MetaData.load(KnownPaths.getMetaDataFile("MetaData-"+docsMetaVersion+".json"));

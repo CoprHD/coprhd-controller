@@ -24,6 +24,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -1671,8 +1672,9 @@ public class RecoverPointClient {
             ConsistencyGroupUID cgUID = new ConsistencyGroupUID();
             cgUID.setId(volumeInfo.getRpVolumeGroupID());
             if (volumeInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE
-                    || (volumeInfo.isMetroPoint() && volumeInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_TARGET)) {
-                // Disable the whole CG
+                    || volumeInfo.isMetroPoint()) {
+                // Disable the whole CG for MetroPoint cases or when a source volume is specified. MetroPoint is very
+                // picky with respect to disabling individual copies so we just want to disable the whole CG.
                 functionalAPI.disableConsistencyGroup(cgUID);
                 String cgName = functionalAPI.getGroupName(cgUID);
                 logger.info("Protection disabled on CG: " + cgName);
@@ -1721,8 +1723,10 @@ public class RecoverPointClient {
             String cgCopyName = functionalAPI.getGroupCopyName(cgCopyUID);
             String cgName = functionalAPI.getGroupName(cgUID);
             if (volumeInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE
-                    || (volumeInfo.isMetroPoint() && volumeInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_TARGET)) {
-                // Enable the whole CG
+                    || volumeInfo.isMetroPoint()) {
+                // Enable the whole CG for MetroPoint cases or when a source volume is specified. MetroPoint is very
+                // picky with respect to disabling copies so the whole CG has to be disabled. Therefore, we need to
+                // enable the whole CG for MetroPoint cases.
                 logger.info("Enabling consistency group " + cgName);
                 functionalAPI.enableConsistencyGroup(cgUID, true);
             } else {
@@ -2538,47 +2542,76 @@ public class RecoverPointClient {
         }
     }
 
-    /**
-     * Delete the Replication Set associated with the volume sent in. This is useful when volumes are resized.
-     * It is step one of a multi-step process.
-     *
-     * @param RecoverPointVolumeProtectionInfo volume - Volume info for the CG to remove the replication set from
-     * @return void
-     *
-     * @throws RecoverPointException
-     **/
-    public void deleteReplicationSet(RecoverPointVolumeProtectionInfo volume) throws RecoverPointException {
-        ReplicationSetSettings rsetSettings = null;
+    public void deleteReplicationSets(List<RecoverPointVolumeProtectionInfo> volumes) throws RecoverPointException {
+        // Used to capture the volume WWNs associated with each replication set to remove.
+        List<String> volumeWWNs = new ArrayList<String>();
+        List<String> rsetNames = new ArrayList<String>();
 
         try {
             ConsistencyGroupUID cgID = new ConsistencyGroupUID();
-            cgID.setId(volume.getRpVolumeGroupID());
-            ReplicationSetUID repSetUID = new ReplicationSetUID();
-            repSetUID.setId(volume.getRpVolumeRSetID());
-            rsetSettings = getReplicationSetSettings(functionalAPI, rsetSettings, cgID, repSetUID);
+            cgID.setId(volumes.get(0).getRpVolumeGroupID());
 
-            if (rsetSettings == null) {
-                throw RecoverPointException.exceptions.cannotFindReplicationSet(volume
-                        .getRpVolumeWWN());
-            }
+            ConsistencyGroupSettingsChangesParam cgSettingsParam = new ConsistencyGroupSettingsChangesParam();
+            cgSettingsParam.setGroupUID(cgID);
 
             ConsistencyGroupSettings groupSettings = functionalAPI.getGroupSettings(cgID);
-            List<ReplicationSetSettings> rSetSettings = groupSettings.getReplicationSetsSettings();
+            List<ReplicationSetSettings> replicationSetSettings = groupSettings.getReplicationSetsSettings();
 
-            if (rSetSettings.size() == 1) {
-                // The CG only contains the replication set we want to remove. In order to remove the replication
-                // set, we must first disable the CG.
-                disableProtection(volume);
+            for (RecoverPointVolumeProtectionInfo volume : volumes) {
+                boolean found = false;
+                // Validate that the requested replication sets to delete actually exist.
+                for (ReplicationSetSettings replicationSet : replicationSetSettings) {
+                    if (replicationSet.getReplicationSetUID().getId() == volume.getRpVolumeRSetID()) {
+                        rsetNames.add(replicationSet.getReplicationSetName());
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found) {
+                    throw RecoverPointException.exceptions.cannotFindReplicationSet(volume
+                            .getRpVolumeWWN());
+                }
+
+                ReplicationSetUID repSetUID = new ReplicationSetUID();
+                repSetUID.setId(volume.getRpVolumeRSetID());
+                repSetUID.setGroupUID(cgID);
+
+                cgSettingsParam.getRemovedReplicationSets().add(repSetUID);
+                volumeWWNs.add(volume.getRpVolumeWWN());
             }
 
-            functionalAPI.removeReplicationSet(cgID, rsetSettings.getReplicationSetUID());
-            logger.info("Request to delete replication set" + rsetSettings.getReplicationSetName() + " from consistency group " + cgID);
+            // Only execute the remove replication sets operation if there are replication sets
+            // to remove.
+            if (cgSettingsParam.getRemovedReplicationSets() != null &&
+                    cgSettingsParam.getRemovedReplicationSets().size() > 0) {
+                if (replicationSetSettings.size() == cgSettingsParam.getRemovedReplicationSets().size()) {
+                    if (replicationSetSettings.size() == 1) {
+                        // There is only 1 replication set in the CG and we are removing it. We need
+                        // to either disable the CG or the CG copy, based on the volume.
+                        disableProtection(volumes.get(0));
+                    } else {
+                        // We are removing all CG replication sets but since the count is greater
+                        // than 1, we need to disable the whole CG. We do this through the
+                        // ActivationSettingsChangesParams object.
+                        ActivationSettingsChangesParams cgActivationSettings = new ActivationSettingsChangesParams();
+                        // Disable the whole CG
+                        cgActivationSettings.setEnable(false);
+                        cgSettingsParam.setActivationParams(cgActivationSettings);
+                    }
+                }
+
+                // Remove the replication sets
+                functionalAPI.setConsistencyGroupSettings(cgSettingsParam);
+                logger.info("Request to delete replication sets " + rsetNames.toString() + " from consistency group "
+                        + cgID);
+            }
         } catch (FunctionalAPIActionFailedException_Exception e) {
-            throw RecoverPointException.exceptions.failedToRecreateReplicationSet(
-                    volume.getRpVolumeWWN(), e);
+            throw RecoverPointException.exceptions.failedToDeleteReplicationSet(
+                    volumeWWNs.toString(), e);
         } catch (FunctionalAPIInternalError_Exception e) {
-            throw RecoverPointException.exceptions.failedToRecreateReplicationSet(
-                    volume.getRpVolumeWWN(), e);
+            throw RecoverPointException.exceptions.failedToDeleteReplicationSet(
+                    volumeWWNs.toString(), e);
         }
     }
 
@@ -2589,47 +2622,57 @@ public class RecoverPointClient {
      * @param rsetSettings replication set information used to create replication set
      * @throws RecoverPointException
      */
-    public void recreateReplicationSet(String wwn, RecreateReplicationSetRequestParams rsetParams) throws RecoverPointException {
+    public void recreateReplicationSets(Map<String, RecreateReplicationSetRequestParams> rsetParams) throws RecoverPointException {
+        if (rsetParams != null && !rsetParams.isEmpty()) {
+            // Used to capture the volume WWNs associated with each replication set to recreate.
+            List<String> volumeWWNs = new ArrayList<String>();
 
-        try {
-            ConsistencyGroupUID cgID = rsetParams.getConsistencyGroupUID();
+            try {
+                // Get the CG ID from the first element in the list. All elements will share
+                // the same CG ID.
+                RecreateReplicationSetRequestParams param = rsetParams.values().iterator().next();
+                ConsistencyGroupUID cgID = param.getConsistencyGroupUID();
 
-            // Rescan the SAN
-            functionalAPI.rescanSANVolumesInAllClusters(true);
+                // Rescan the SAN
+                functionalAPI.rescanSANVolumesInAllClusters(true);
 
-            // Create replication set
-            logger.info("Adding replication set: " + rsetParams.getName());
+                ConsistencyGroupSettingsChangesParam cgSettingsParam = new ConsistencyGroupSettingsChangesParam();
+                ActivationSettingsChangesParams cgActivationSettings = new ActivationSettingsChangesParams();
+                cgActivationSettings.setEnable(true);
+                cgActivationSettings.setStartTransfer(true);
+                cgSettingsParam.setActivationParams(cgActivationSettings);
+                cgSettingsParam.setGroupUID(cgID);
 
-            ConsistencyGroupSettingsChangesParam cgSettingsParam = new ConsistencyGroupSettingsChangesParam();
-            ActivationSettingsChangesParams cgActivationSettings = new ActivationSettingsChangesParams();
-            cgActivationSettings.setEnable(true);
-            cgActivationSettings.setStartTransfer(true);
-            cgSettingsParam.setActivationParams(cgActivationSettings);
-            cgSettingsParam.setGroupUID(cgID);
+                for (Entry<String, RecreateReplicationSetRequestParams> entry : rsetParams.entrySet()) {
+                    RecreateReplicationSetRequestParams rsetParam = entry.getValue();
+                    // Create replication set
+                    logger.info("Adding replication set: " + rsetParam.getName());
+                    ReplicationSetSettingsChangesParam repSetSettings = new ReplicationSetSettingsChangesParam();
+                    repSetSettings.setName(rsetParam.getName());
+                    repSetSettings.setShouldAttachAsClean(false);
 
-            ReplicationSetSettingsChangesParam repSetSettings = new ReplicationSetSettingsChangesParam();
-            repSetSettings.setName(rsetParams.getName());
-            repSetSettings.setShouldAttachAsClean(false);
+                    for (CreateRSetVolumeParams volume : rsetParam.getVolumes()) {
+                        UserVolumeSettingsChangesParam volSettings = new UserVolumeSettingsChangesParam();
+                        volSettings.setNewVolumeID(volume.getDeviceUID());
+                        volSettings.setCopyUID(volume.getConsistencyGroupCopyUID());
+                        volSettings.getCopyUID().setGroupUID(cgID);
 
-            for (CreateRSetVolumeParams volume : rsetParams.getVolumes()) {
-                UserVolumeSettingsChangesParam volSettings = new UserVolumeSettingsChangesParam();
-                volSettings.setNewVolumeID(volume.getDeviceUID());
-                volSettings.setCopyUID(volume.getConsistencyGroupCopyUID());
-                volSettings.getCopyUID().setGroupUID(cgID);
+                        repSetSettings.getVolumesChanges().add(volSettings);
+                    }
+                    cgSettingsParam.getReplicationSetsChanges().add(repSetSettings);
+                    volumeWWNs.add(entry.getKey());
+                }
 
-                repSetSettings.getVolumesChanges().add(volSettings);
+                // Add the replication set
+                functionalAPI.setConsistencyGroupSettings(cgSettingsParam);
+
+                logger.info("Checking for volumes unattached to splitters");
+                RecoverPointUtils.verifyCGVolumesAttachedToSplitter(functionalAPI, cgID);
+            } catch (FunctionalAPIActionFailedException_Exception e) {
+                throw RecoverPointException.exceptions.failedToRecreateReplicationSet(volumeWWNs.toString(), e);
+            } catch (FunctionalAPIInternalError_Exception e) {
+                throw RecoverPointException.exceptions.failedToRecreateReplicationSet(volumeWWNs.toString(), e);
             }
-            cgSettingsParam.getReplicationSetsChanges().add(repSetSettings);
-
-            // Add the replication set
-            functionalAPI.setConsistencyGroupSettings(cgSettingsParam);
-
-            logger.info("Checking for volumes unattached to splitters");
-            RecoverPointUtils.verifyCGVolumesAttachedToSplitter(functionalAPI, cgID);
-        } catch (FunctionalAPIActionFailedException_Exception e) {
-            throw RecoverPointException.exceptions.failedToRecreateReplicationSet(wwn, e);
-        } catch (FunctionalAPIInternalError_Exception e) {
-            throw RecoverPointException.exceptions.failedToRecreateReplicationSet(wwn, e);
         }
     }
 

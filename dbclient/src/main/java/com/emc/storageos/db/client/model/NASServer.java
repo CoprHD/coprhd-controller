@@ -29,9 +29,9 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
     
     // storageSystem, which it belongs
     private URI storageDeviceURI;
-    private String maxFSID;
-    private String maxExports;
-    private String maxProvisionedCapacity;
+    private String maxFSID="0";
+    private String maxExports="0";
+    private String maxProvisionedCapacity="0";
     private StringSet protocols;
     
     // Set of Authentication providers for the VNasServer - set values will of type AunthnProvider

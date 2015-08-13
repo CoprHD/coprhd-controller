@@ -472,6 +472,19 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     
     
     
+    private void addDummyVirtualNAS(){
+        
+        VirtualNAS tempVNas= new VirtualNAS();
+        
+        tempVNas.setNasName("vNasD1");
+        _dbClient.persistObject(tempVNas);
+        
+        List<VirtualNAS> tempVnasList= _dbClient.queryObject(VirtualNAS.class);
+        VirtualNAS tempVNas2= tempVnasList.get(0);
+        
+        
+    }
+    
     private VirtualNAS createVirtualNas(StorageHADomain vdm)throws VNXFileCollectionException{
         
         VirtualNAS vNas = new VirtualNAS();
@@ -486,11 +499,13 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
     
     private PhysicalNAS createPhysicalNas(StorageHADomain dm)throws VNXFileCollectionException{
+        
         PhysicalNAS pNas = new PhysicalNAS();
         pNas.setStorageDeviceURI(dm.getStorageDeviceURI());
         pNas.setNasName(dm.getName());
         pNas.setStorageDeviceURI(dm.getStorageDeviceURI());
         return pNas;
+        
     }
     
 

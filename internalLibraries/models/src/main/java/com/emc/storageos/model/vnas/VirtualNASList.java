@@ -33,7 +33,7 @@ public class VirtualNASList {
      * @valid none
      */
     @XmlElement(name = "vnas_server")
-    public List<NamedRelatedResourceRep> getPorts() {
+    public List<NamedRelatedResourceRep> getVNASServers() {
         if (vnasservers == null) {
             vnasservers = new ArrayList<NamedRelatedResourceRep>();
         }

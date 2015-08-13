@@ -780,6 +780,10 @@ angular.module("portalApp").controller("storageProviderCtrl", function($scope) {
     $scope.isMDMDefaultType = function() {
         return containsOption($scope.smisProvider.interfaceType, $scope.mdmDefaultStorageProviderList);
     }
+    
+    $scope.isMDMOnlyType = function() {
+    	return containsOption($scope.smisProvider.interfaceType, $scope.mdmonlyProviderList);
+    }
 
     $scope.isElementManagerType = function() {
         return containsOption($scope.smisProvider.interfaceType, $scope.elementManagerStorageProviderList);

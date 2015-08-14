@@ -33,6 +33,7 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateCGSnapsho
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResumeSnapshotJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResyncSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
 import com.google.common.base.Predicate;
@@ -1160,6 +1161,81 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     terminateAnyRestoreSessions(storage, volume, snapshot.getId(), taskCompleter);
                 }
             }
+        }
+    }
+    
+    /**
+     * Implementation for a single volume snapshot resynchronization. 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param volume [required] - Volume URI for the volume to be restored
+     * @param snapshot [required] - BlockSnapshot URI representing the previously created
+     *            snap for the volume
+     * @param taskCompleter - TaskCompleter object used for the updating operation status.
+     */
+    @Override
+    public void resyncSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        try {
+            if(storage.checkIfVmax3()) {
+                throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+            }
+            callEMCRefreshIfRequired(_dbClient, _helper, storage, Arrays.asList(snapshot));
+            BlockSnapshot from = _dbClient.queryObject(BlockSnapshot.class, snapshot);
+            CIMObjectPath syncObjectPath = _cimPath.getSyncObject(storage, from);    
+            CIMObjectPath cimJob = _helper.callModifyReplica(storage, _helper.getResyncSnapshotWithWaitInputArguments(syncObjectPath));
+            ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockResyncSnapshotJob(cimJob, storage.getId(), taskCompleter)));
+        } catch (WBEMException e) {
+            String message = String.format("Error encountered when trying to resync snapshot %s on array %s",
+                    snapshot.toString(), storage.getSerialNumber());
+            _log.error(message, e);
+            ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
+            taskCompleter.error(_dbClient, error);
+        } catch (Exception e) {
+            String message = String.format("Generic exception when trying to resync snapshot %s on array %s",
+                    snapshot.toString(), storage.getSerialNumber());
+            _log.error(message, e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("resyncSingleVolumeSnapshot", e.getMessage());
+            taskCompleter.error(_dbClient, error);
+        }
+    }
+    
+    @Override
+    public void resyncGroupSnapshots(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+        try {
+            callEMCRefreshIfRequired(_dbClient, _helper, storage, Arrays.asList(snapshot));
+            if(storage.checkIfVmax3()) {
+                throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+            }
+            BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
+            // Check if the consistency group exists
+            String consistencyGroupName = _helper.getConsistencyGroupName(snapshotObj, storage);
+            storage = findProviderFactory.withGroup(storage, consistencyGroupName).find();
+
+            if (storage == null) {
+                ServiceError error = DeviceControllerErrors.smis.noConsistencyGroupWithGivenName();
+                taskCompleter.error(_dbClient, error);
+                return;
+            }
+            String snapshotGroupName = snapshotObj.getReplicationGroupInstance();
+            CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
+            if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
+                CIMObjectPath cimJob = null;
+                
+                CIMArgument[] restoreCGSnapInput = _helper.getResyncSnapshotWithWaitInputArguments(groupSynchronized);
+                cimJob = _helper.callModifyReplica(storage, restoreCGSnapInput);
+                
+                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockRestoreSnapshotJob(cimJob, storage.getId(), taskCompleter)));
+            } else {
+                ServiceError error = DeviceControllerErrors.smis.unableToFindSynchPath(consistencyGroupName);
+                taskCompleter.error(_dbClient, error);
+            }
+        } catch (Exception e) {
+            String message =
+                    String.format("Generic exception when trying to restoring snapshots from consistency group on array %s",
+                            storage.getSerialNumber());
+            _log.error(message, e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("restoreGroupSnapshots", e.getMessage());
+            taskCompleter.error(_dbClient, error);
         }
     }
 }

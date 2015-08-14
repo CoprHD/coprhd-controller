@@ -386,6 +386,14 @@ public interface BlockServiceApi {
      * @param volume
      */
     public void validateRestoreSnapshot(BlockSnapshot snapshot, Volume volume);
+    
+    /**
+     * Validates a resynchronize snapshot request.
+     * 
+     * @param snapshot The snapshot to resynchronize.
+     * @param volume
+     */
+    public void validateResynchronizeSnapshot(BlockSnapshot snapshot, Volume volume);
 
     /**
      * Restore the passed parent volume from the passed snapshot of that parent volume.
@@ -395,6 +403,15 @@ public interface BlockServiceApi {
      * @param taskId The unique task identifier.
      */
     public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId);
+    
+    /**
+     * Resynchronize the passed snapshot.
+     * 
+     * @param snapshot The snapshot to be resynchronized
+     * @param parentVolume The volume to resynchronize from.
+     * @param taskId The unique task identifier.
+     */
+    public void resynchronizeSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId);
 
     /**
      * Returns the maximum number of volumes that are allowed in the passed consistency group.

@@ -1228,6 +1228,19 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     }
 
     /**
+     * Validates a resynchronized snapshot request.
+     * 
+     * @param snapshot The snapshot to be resynchronized.
+     * @param parent The parent of the snapshot
+     */
+    public void validateResynchronizeSnapshot(BlockSnapshot snapshot, Volume parent) {
+        if (!snapshot.getIsSyncActive()) {
+            throw APIException.badRequests.snapshotNotActivated(snapshot.getLabel());
+        }
+
+    }
+    
+    /**
      * Restore the passed parent volume from the passed snapshot of that parent volume.
      * 
      * @param snapshot The snapshot to restore
@@ -1240,6 +1253,20 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
         controller.restoreVolume(storageSystem.getId(), parentVolume.getPool(),
                 parentVolume.getId(), snapshot.getId(), Boolean.TRUE, taskId);
+    }
+    
+    /**
+     * Resynchronize the passed snapshot from its parent volume.
+     * 
+     * @param snapshot The snapshot to be resynchronized
+     * @param parentVolume The volume to be resynchronized from.
+     * @param taskId The unique task identifier.
+     */
+    @Override
+    public void resynchronizeSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapshot.getStorageController());
+        BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
+        controller.resyncSnapshot(storageSystem.getId(), parentVolume.getId(), snapshot.getId(), Boolean.TRUE, taskId);
     }
 
     /**

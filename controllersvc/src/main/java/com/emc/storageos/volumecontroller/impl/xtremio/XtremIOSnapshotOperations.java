@@ -62,10 +62,8 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             } else {
                 createdSnap = createV1Snapshot(client, storage, snap, generatedLabel, readOnly, taskCompleter);
             }
-            Volume parentVolume = dbClient.queryObject(Volume.class, snap.getParent());
             
             if (createdSnap != null) {
-                
                 processSnapshot(createdSnap, snap, storage);
             }
 

@@ -10,6 +10,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -22,7 +23,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.db.common.VdcUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +38,11 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -48,6 +52,7 @@ import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLAssignments;
 import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.auth.PrincipalsToValidate;
+import com.emc.storageos.model.project.AssignVNASParam;
 import com.emc.storageos.model.project.ProjectBulkRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.project.ProjectUpdateParam;
@@ -778,4 +783,68 @@ public class ProjectService extends TaggedResource {
     {
         return new ProjectResRepFilter(user, permissionsHelper);
     }
+
+    /**
+     * Assign VNASServer to a project
+     * 
+     * @param id the URN of a ViPR Project
+     * @param vnasParam Assign virtual NAS server parameters
+     * @prereq none
+     * @brief Assign VNASServer to a project
+     * @return No data returned in response body
+     */
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/assign-vnas-servers")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ALL, ACL.OWN })
+    public Response assignVNASServerToProject(@PathParam("id") URI id, AssignVNASParam vnasParam) {
+        Project project = getProjectById(id, true);
+        StringSet validVNASServers = validateVNASServers(project, vnasParam);
+        if (vnasParam.getVnasServers() != null && !vnasParam.getVnasServers().isEmpty()) {
+            if (validVNASServers != null && !validVNASServers.isEmpty()) {
+                project.getAssignedVNasServers().addAll(validVNASServers);
+                project.setAssignedVNasServers(validVNASServers);
+                _dbClient.persistObject(project);
+                _log.info("Successfully assigned the virtual NAS Servers to the project ", project.getLabel());
+            } else {
+                _log.info("vNASServer {} is already assigned to the project {}", project.getLabel());
+            }
+        } else {
+            _log.info("No vnas server is selected to assign to the project ", project.getLabel());
+        }
+        return Response.ok().build();
+    }
+
+    public StringSet validateVNASServers(Project project, AssignVNASParam param) {
+        boolean isValid = false;
+        Set<String> vNasId = param.getVnasServers();
+        StringSet validNas = new StringSet();
+        if (vNasId != null && !vNasId.isEmpty()) {
+            for (String id : vNasId) {
+                URI vnasURI = URI.create(id);
+                VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
+                // Check list of vNAS servers are not tagged with any project
+                // Check list of vNAS servers are in loaded state
+                if (vnas.getProject() == null && vnas.getVNasState() == "loaded") {
+                    validNas.add(id);
+                }
+            }
+        }
+
+        // 3. Check list of vnas servers are part of varray
+        // 4. Check list of vnas servers and project are in same domain
+        // 5. Check No FS is created through any project while assigning VDM (Upgrade case)
+        NamedURI tenantUri = project.getTenantOrg();
+        TenantOrg tenant = _permissionsHelper.getObjectById(tenantUri, TenantOrg.class);
+        StringSetMap users = tenant.getUserMappings();
+        /*
+         * String domain = users.get("domain").toString();
+         * if (domain != null) {
+         * isValid = true;
+         * }
+         */
+        return validNas;
+    }
+
 }

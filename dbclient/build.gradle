@@ -21,7 +21,8 @@ test {
 ext {
     schemaLock = "ALL"
 }
-def schemaLockOption = project.ext.has('schemaLock')? project.ext.get('schemaLock') : "NONE"
+//def schemaLockOption = project.ext.has('schemaLock')? project.ext.get('schemaLock') : "NONE"
+def schemaLockOption = "geo"
 
 task checkSchema(type: JavaExec, dependsOn: compileTestJava) {
     main = 'com.emc.storageos.db.common.DbSchemaChecker'

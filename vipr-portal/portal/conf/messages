@@ -635,7 +635,6 @@ CustomConfigs.category.HDS=HDS
 CustomConfigs.category.VPlex=VPLEX
 CustomConfigs.category.Other=Other
 CustomConfigs.configType.SanZoneName=Zoning
-CustomConfigs.configType.SanZoneAddVolumeCheckZoning=Enable Zoning Add Volume
 CustomConfigs.configType.PortAllocationInitiatorCeiling=Initiator Ceiling
 CustomConfigs.configType.PortAllocationVolumeCeiling=Volume Ceiling
 CustomConfigs.configType.PortAllocationPortUtilizationCeiling=Port Utilization Ceiling

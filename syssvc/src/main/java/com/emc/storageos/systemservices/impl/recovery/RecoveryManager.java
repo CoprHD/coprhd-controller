@@ -85,7 +85,9 @@ public class RecoveryManager implements Runnable {
         if (!isVMwareVapp()) {
             startRecoveryLeaderSelector();
             addRecoveryStatusListener();
-        }
+        } else {
+            log.info("No need to init for node recovery in VMware vApp environment");
+        } 
     }
 
     /**

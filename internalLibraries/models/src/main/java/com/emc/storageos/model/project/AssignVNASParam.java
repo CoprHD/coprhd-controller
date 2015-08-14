@@ -35,7 +35,7 @@ public class AssignVNASParam {
      * @valid none
      */
     @XmlElement(name = "vnas_servers")
-    @JsonProperty("vnas_servers")
+    @JsonProperty("vnas_server")
     public Set<String> getVnasServers() {
         return vnasServers;
     }

@@ -41,6 +41,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -822,15 +823,12 @@ public class ProjectService extends TaggedResource {
         if (vNasId != null && !vNasId.isEmpty()) {
             for (String id : vNasId) {
                 URI vnasURI = URI.create(id);
-                // VirtualNAS vNAS = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
+                VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
                 // Check list of vNAS servers are not tagged with any project
                 // Check list of vNAS servers are in loaded state
-                /*
-                 * if (vNAS.project() == null && vNAS.vNasState() == "loaded") {
-                 * validNAS.add(id);
-                 * }
-                 */
-                validNas.add(id);
+                if (vnas.getProject() == null && vnas.getVNasState() == "loaded") {
+                    validNas.add(id);
+                }
             }
         }
 
@@ -840,10 +838,12 @@ public class ProjectService extends TaggedResource {
         NamedURI tenantUri = project.getTenantOrg();
         TenantOrg tenant = _permissionsHelper.getObjectById(tenantUri, TenantOrg.class);
         StringSetMap users = tenant.getUserMappings();
-        String domain = users.get("domain").toString();
-        if (domain != null) {
-            isValid = true;
-        }
+        /*
+         * String domain = users.get("domain").toString();
+         * if (domain != null) {
+         * isValid = true;
+         * }
+         */
         return validNas;
     }
 

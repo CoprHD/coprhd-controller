@@ -225,6 +225,7 @@ public class SchedulerConfig {
         params.put("errorMessage", errMsg);
 
         String subject = getEmailSubject("Failed to Upload Backups: ", tags);
+        log.info("Error message: {}", subject);
         sendEmailToRoot(subject, "UploadFailedEmail.html", params);
     }
 
@@ -251,9 +252,12 @@ public class SchedulerConfig {
             if (to == null) {
                 log.warn("Cannot find email configuration for user root, no alert email can be sent.");
                 return;
+            } else {
+                log.info("The mail address of user root is: {}", to);
             }
 
             this.mailHelper.sendMailMessage(to, subject, html);
+            log.info("Send email to root user done");
         } catch (Exception e) {
             log.error("Failed to send email to root", e);
         }

@@ -2593,19 +2593,9 @@ public class RecoverPointClient {
             if (cgSettingsParam.getRemovedReplicationSets() != null &&
                     cgSettingsParam.getRemovedReplicationSets().size() > 0) {
                 if (replicationSetSettings.size() == cgSettingsParam.getRemovedReplicationSets().size()) {
-                    if (replicationSetSettings.size() == 1) {
-                        // There is only 1 replication set in the CG and we are removing it. We need
-                        // to disable the entire CG.
-                        disableConsistencyGroup(cgID);
-                    } else {
-                        // We are removing all CG replication sets but since the count is greater
-                        // than 1, we need to disable the whole CG. We do this through the
-                        // ActivationSettingsChangesParams object.
-                        ActivationSettingsChangesParams cgActivationSettings = new ActivationSettingsChangesParams();
-                        // Disable the whole CG
-                        cgActivationSettings.setEnable(false);
-                        cgSettingsParam.setActivationParams(cgActivationSettings);
-                    }
+                    // We are removing all the replication sets in the CG so we need to disable
+                    // the entire CG.
+                    disableConsistencyGroup(cgID);
                 }
 
                 // Remove the replication sets

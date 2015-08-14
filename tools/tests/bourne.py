@@ -128,6 +128,12 @@ URI_CONTROL                     = URI_SERVICES_BASE + '/control'
 URI_RECOVERY                    = URI_CONTROL + '/cluster/recovery'
 URI_DB_REPAIR                   = URI_CONTROL + '/cluster/dbrepair-status'
 
+URI_BACKUP                      = URI_SERVICES_BASE + '/backupset'
+URI_BACKUP_CREATE               = URI_BACKUP + '/backup'
+URI_BACKUP_DELETE               = URI_BACKUP + '/backup'
+URI_BACKUP_LIST                 = URI_BACKUP
+URI_BACKUP_DOWNLOAD             = URI_BACKUP + '/download'
+
 URI_VOLUME_LIST                 = URI_SERVICES_BASE  + '/block/volumes'
 URI_VOLUME_BULKGET              = URI_VOLUME_LIST  + '/bulk'
 URI_VOLUME                      = URI_VOLUME_LIST    + '/{0}'
@@ -3353,6 +3359,18 @@ class Bourne:
 
     def get_recovery_status(self):
         return self.api('GET', URI_RECOVERY)
+    
+    def create_backup(self,name):
+        return self.api('POST',URI_BACKUP_CREATE+"?tag="+name)
+
+    def delete_backup(self,name):
+        return self.api('DELETE',URI_BACKUP_DELETE+"?tag="+name)      
+
+    def list_backup(self):
+        return self.api('GET',URI_BACKUP_LIST)
+   
+    def download_backup(self,name):
+        return self.api('GET',URI_BACKUP_DOWNLOAD+"?tag="+name, None, None, content_type=CONTENT_TYPE_OCTET)
 
     def get_db_repair_status(self):
         return self.api('GET', URI_DB_REPAIR)

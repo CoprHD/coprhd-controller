@@ -1009,6 +1009,6 @@ try:
 
 except Exception, e:
     print e
-    test_fail(test_name)
+    test_fail('test_name')
     sys.exit(1)
 

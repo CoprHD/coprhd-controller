@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.adapters.StringMapAdapter;
@@ -30,6 +31,7 @@ import com.emc.storageos.model.smis.SMISProviderRestRep;
 import com.emc.storageos.model.smis.StorageProviderRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.DecommissionedResourceRep;
+import com.emc.storageos.model.vnas.VirtualNASRestRep;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher;
@@ -104,6 +106,43 @@ public class SystemsMapper {
         to.setRegistrationStatus(from.getRegistrationStatus());
         to.setSecondaryUsername(from.getSecondaryUsername());
         to.setElementManagerURL(from.getElementManagerURL());
+        return to;
+    }
+    
+    
+    
+    public static VirtualNASRestRep map(VirtualNAS from){
+        if(from == null){
+            return null;
+        }
+        
+        VirtualNASRestRep to= new VirtualNASRestRep();
+        mapDiscoveredDataObjectFields(from, to);
+        to.setAssignedVirtualArrays(from.getAssignedVirtualArrays());
+        to.setBaseDirPath(from.getBaseDirPath());
+        to.setCifsServers(from.getCifsServers());
+        to.setCompatibilityStatus(from.getCompatibilityStatus());
+        to.setConnectedVirtualArrays(from.getConnectedVirtualArrays());
+        to.setDiscoveryStatus(from.getDiscoveryStatus());
+
+        to.setMaxExports(from.getMaxExports());
+        to.setMaxFSID(from.getMaxExports());
+        to.setMaxProvisionedCapacity(from.getMaxProvisionedCapacity());
+        
+        to.setNasName(from.getNasName());
+        to.setNasState(from.getNasState());
+        to.setNasTag(from.getNAStag());
+        
+        to.setParentNASURI(toRelatedResource(ResourceTypeEnum.VIRTUAL_NAS,from.getParentPhysicalNAS()));
+        
+        to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT,from.getProject()));
+       
+        to.setProtocols(from.getProtocols());
+        to.setRegistrationStatus(from.getRegistrationStatus());
+        
+        to.setStorageDeviceURI(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM,from.getStorageDeviceURI()));
+        to.setvNasType(from.getvNasType());
+                
         return to;
     }
 

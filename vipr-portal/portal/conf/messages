@@ -3726,6 +3726,7 @@ systemHealth.message.parseError=Requested JSON parse failed.
 systemHealth.message.timeout=Operation timed out.
 systemHealth.message.abort=Ajax request aborted.
 systemHealth.message.uncaught=Uncaught Error. Status: %s. %s
+systemHealth.message.reboot.unavailable=%s is unavailable for reboot.
 
 fileUpload.button.browse=Browse...
 

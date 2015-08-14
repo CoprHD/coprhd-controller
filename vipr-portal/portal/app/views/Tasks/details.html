@@ -49,11 +49,11 @@
       <dd ng-show="task.message">{{task.message}}&nbsp;</dd>
 
       <dt>&{'tasks.start'}:</dt>
-      <dd>{{task.startDate | date : 'MMM dd yyyy, H:mm:ss a'}}&nbsp;</dd>
+      <dd id="start">{{getLocalDateTime($('#start'),task.startDate)}}&nbsp;</dd>
 
       <span ng-show="task.endDate">
       <dt>&{'tasks.end'}:</dt>
-      <dd>{{task.endDate | date : 'MMM dd yyyy, H:mm:ss a'}}&nbsp;</dd>
+      <dd id="end">{{getLocalDateTime($('#end'),task.endDate)}}&nbsp;</dd>
       </span>
 
       <dt>&{'tasks.elapsed'}:</dt>
@@ -140,7 +140,7 @@
 function renderTime(o, val) {
   var time_ms = o.aData.timeMillis;
   if (time_ms) {
-      return moment(time_ms).format('YYYY-MM-DD HH:mm')
+	  return render.localDate(o,time_ms)
   }
   return "";
 }

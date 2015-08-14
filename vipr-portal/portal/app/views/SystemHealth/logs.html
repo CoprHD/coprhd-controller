@@ -54,7 +54,7 @@
         <td class="expandable" ng-class="{'expanded': log.expanded}">
           <span class="expand-indicator"></span>
         </td>
-        <td class="time" bind-once>{{log.time_ms | date : 'yyyy-MM-dd HH:mm:ss.sss'}}</td>
+        <td class="time" bind-once>{{getLocalDateTime($('#start'),log.time_ms)}}</td>
         <td class="severity" bind-once>
           <span  class="label" ng-class="{
             'label-danger': log.severity == 'ERROR',

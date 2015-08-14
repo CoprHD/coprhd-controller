@@ -12,7 +12,12 @@ import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class IdentifierManager {
+    private static final Logger log = LoggerFactory.getLogger(IdentifierManager.class);
+
     private static final String PRODUCT_IDENT_PATH = "/opt/storageos/etc/product";
     private static final String PRODUCT_BASE_PATH = "/opt/storageos/etc/productbase";
     private static final String GIT_REVISION_PATH = "/opt/storageos/etc/gitrevision";
@@ -33,9 +38,13 @@ public class IdentifierManager {
 
     public static IdentifierManager getInstance() {
         if (instance == null) {
-            instance = new IdentifierManager();
+            initInstance();
         }
         return instance;
+    }
+
+    private synchronized static void initInstance() {
+    	instance = (instance == null) ? new IdentifierManager() : instance;
     }
 
     private IdentifierManager() {
@@ -80,12 +89,14 @@ public class IdentifierManager {
             br = new BufferedReader(new FileReader(path));
             content = br.readLine();
         } catch (Exception e) {
+            log.warn("Ignoring failure during reading the file({})", path, e);
         } finally {
             try {
                 if (br != null) {
                     br.close();
                 }
             } catch (IOException ex) {
+                log.debug("Ignoring failure during closing the buffer reader", ex);
             }
         }
 

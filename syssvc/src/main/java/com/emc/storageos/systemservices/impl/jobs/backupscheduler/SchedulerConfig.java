@@ -370,7 +370,8 @@ public class SchedulerConfig {
             break;
         }
         
-        if (targetInfo == null)
+        if (targetInfo == null) {
             throw new Exception("Can't get version information from coordinator client");
+        }
     }
 }

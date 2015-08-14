@@ -965,14 +965,14 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
      */
     public List<ZoneMember> getZoneMembers(WBEMClient client,
             CIMObjectPath path, boolean includeAliases) throws WBEMException {
-    	List<ZoneMember> aliasMembers = null;
+        List<ZoneMember> aliasMembers = null;
         List<ZoneMember> wwnMembers = getZoneOrAliasMembers(client, path, false);
-    	if(includeAliases) {
-    		aliasMembers = getZoneAliases(client, path);
+        if (includeAliases) {
+            aliasMembers = getZoneAliases(client, path);
     	} else {
-    		_log.info("Excluding aliases while getting zone members");
-    		aliasMembers = wwnMembers;
-    		return aliasMembers;
+            _log.info("Excluding aliases while getting zone members");
+            aliasMembers = wwnMembers;
+            return aliasMembers;
     	}
         boolean found = false;
         for (ZoneMember wwnMember : wwnMembers) {

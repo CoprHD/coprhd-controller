@@ -439,7 +439,7 @@ public class MDSDialog extends SSHDialog {
                         }
                     } else if (index == 3) {
                         // matched "device-alias <alias>
-                    	if(!excludeAliases) {
+                        if (!excludeAliases) {
                             member.setAlias(groups[0]); // set alias
                             member.setAliasType(true); // indicate member type of alias
                     	}

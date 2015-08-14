@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 #
 # Copyright (c) 2015 EMC Corporation
 # All Rights Reserved
@@ -5717,8 +5717,8 @@ backuprestore_tests()
     backupname='sanity'
     filepath='/tmp/sanity.zip'
 
-    backup_tests $backupname $filepath
-    restore_tests $filepath
+    backup_tests "${backupname}" "${filepath}"
+    restore_tests "${filepath}"
 }
 
 backup_tests()

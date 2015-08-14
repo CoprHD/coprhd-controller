@@ -58,7 +58,7 @@ public class SmisCreateVmaxCGTargetVolumesJob extends SmisJob {
                     if (nativeID == null || nativeID.isEmpty()) {
                         throw new IllegalStateException("Could not determine volume native ID from the SMI-S provider");
                     }
-                    String instanceID = volumePath.getKey(SmisConstants.CP_INSTANCE_ID).getValue().toString();
+                    String instanceID = volumePath.toString();
                     _deviceMap.put(instanceID, nativeID);
                 }
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {

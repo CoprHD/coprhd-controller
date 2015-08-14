@@ -1297,13 +1297,13 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     CIMArgument[] outArgs = new CIMArgument[5];
                     inArgs = _helper.getModifySettingsDefinedStateForLinkTargets(settingsStatePath,
                             targetDevicePath, createInactive, copyMode);
-                    _helper.invokeMethod(system, replicationSvcPath, SmisConstants.CREATE_SYNCHRONIZATION_ASPECT, inArgs, outArgs);
+                    _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
                     CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
                     if (jobPath != null) {
                         _log.info("Link snapshot session target being completed in job {}", jobPath.getKey(SmisConstants.CP_INSTANCE_ID)
                                 .getValue());
                         ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockLinkSnapshotSessionTargetJob(jobPath, system.getId(),
-                                completer)));
+                                !createInactive, copyMode, completer)));
                     } else {
                         // TBD - Need to verify this code path. Testing always returned job, which
                         // is likely the case.

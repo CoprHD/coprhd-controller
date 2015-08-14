@@ -37,7 +37,7 @@ public class ApiField implements Comparable<ApiField> {
     }
 
     public boolean isOptional() {
-        return !required && min == 0 & max == 1;
+        return !required && min == 0 && max == 1;
     }
 
     /** Indicates if this Field has a type that has child elements, really only useful for XML generation */

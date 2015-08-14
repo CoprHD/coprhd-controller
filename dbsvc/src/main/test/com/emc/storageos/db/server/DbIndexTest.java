@@ -202,7 +202,7 @@ class SingleFieldIndexVerifier implements IndexVerifier {
         } else if (index instanceof ScopedLabelDbIndex) {
             verifyScopedLabelDbIndex(obj, field, val, indexByKey, client);
         } else {
-            System.out.printf("Unsupported index type %s\n", index.getClass().getSimpleName());
+            System.out.printf("Unsupported index type %s%n", index.getClass().getSimpleName());
         }
     }
 

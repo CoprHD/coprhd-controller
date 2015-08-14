@@ -17,11 +17,11 @@ public abstract class UpdateParam {
     public abstract Set<URI> getRemove();
 
     public boolean hasAdded() {
-        return getAdd() != null && getAdd().size() > 0;
+        return (getAdd() != null && !getAdd().isEmpty());
     }
 
     public boolean hasRemoved() {
-        return getRemove() != null && getRemove().size() > 0;
+        return (getRemove() != null && !getRemove().isEmpty());
     }
 
     public boolean hasUpdates() {

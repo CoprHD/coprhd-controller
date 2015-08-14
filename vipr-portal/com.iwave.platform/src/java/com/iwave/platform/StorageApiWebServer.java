@@ -7,6 +7,7 @@ package com.iwave.platform;
 import com.emc.sa.util.SystemProperties;
 import com.emc.storageos.coordinator.common.Service;
 import com.google.common.collect.Lists;
+
 import org.apache.log4j.Logger;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ssl.SslSelectChannelConnector;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.annotation.Required;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.net.ssl.SSLContext;
+
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
@@ -72,8 +74,9 @@ public class StorageApiWebServer {
     }
 
     @Required
+    @SuppressWarnings("pmd:ArrayIsStoredDirectly")
     public void setCiphers(String[] ciphers) {
-        this.ciphers = ciphers;
+        this.ciphers = ciphers; //NOSONAR ("Suppressing sonar violation on user-supplied array is stored directly")
     }
 
     @Required

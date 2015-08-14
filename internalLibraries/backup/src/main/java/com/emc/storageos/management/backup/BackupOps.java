@@ -419,11 +419,9 @@ public class BackupOps {
 
     private void createBackupFromNode(String backupTag, String host, int port)
             throws IOException {
-        JMXConnector conn = initJMXConnector(host, port);
+        JMXConnector conn = connect(host, port);
         try {
-            BackupManagerMBean backupMBean =
-                    JMX.newMBeanProxy(getMBeanServerConnection(conn),
-                            initObjectName(), BackupManagerMBean.class);
+            BackupManagerMBean backupMBean = getBackupManagerMBean(conn);
             backupMBean.create(backupTag);
             log.info(String.format("Node(%s:%d) - Create backup(name=%s) success",
                     host, port, backupTag));
@@ -579,11 +577,9 @@ public class BackupOps {
     }
 
     private void deleteBackupFromNode(String backupTag, String host, int port) {
-        JMXConnector conn = initJMXConnector(host, port);
+        JMXConnector conn = connect(host, port);
         try {
-            BackupManagerMBean backupMBean =
-                    JMX.newMBeanProxy(getMBeanServerConnection(conn),
-                            initObjectName(), BackupManagerMBean.class);
+            BackupManagerMBean backupMBean = getBackupManagerMBean(conn);
             backupMBean.delete(backupTag);
             log.info(String.format(
                     "Node(%s:%d) - Delete backup(name=%s) success", host, port, backupTag));
@@ -730,11 +726,9 @@ public class BackupOps {
     }
 
     private List<BackupSetInfo> listBackupFromNode(String host, int port) {
-        JMXConnector conn = initJMXConnector(host, port);
+        JMXConnector conn = connect(host, port);
         try {
-            BackupManagerMBean backupMBean =
-                    JMX.newMBeanProxy(getMBeanServerConnection(conn),
-                            initObjectName(), BackupManagerMBean.class);
+            BackupManagerMBean backupMBean = getBackupManagerMBean(conn);
             List<BackupSetInfo> backupFileList = backupMBean.list();
             if (backupFileList == null) {
                 throw new IllegalStateException("Get backup list is null");
@@ -814,11 +808,9 @@ public class BackupOps {
      */
     public int getQuotaGb() {
         int quotaGb;
-        JMXConnector conn = initJMXConnector(getLocalHost(), ports.get(0));
+        JMXConnector conn = connect(getLocalHost(), ports.get(0));
         try {
-            BackupManagerMBean backupMBean =
-                    JMX.newMBeanProxy(getMBeanServerConnection(conn),
-                            initObjectName(), BackupManagerMBean.class);
+            BackupManagerMBean backupMBean = getBackupManagerMBean(conn);
             quotaGb = backupMBean.getQuotaGb();
             log.info("Get backup quota(size={} GB) success", quotaGb);
         } catch (Exception e) {
@@ -837,56 +829,51 @@ public class BackupOps {
         return inetAddress.hasInet4() ? inetAddress.getInet4() : inetAddress.getInet6();
     }
 
-    private static ObjectName initObjectName() {
+    /**
+     * Create a connection to the JMX agent
+     */
+    private JMXConnector connect(String host, int port) {
         try {
-            return new ObjectName(BackupManager.MBEAN_NAME);
-        } catch (MalformedObjectNameException e) {
-            throw new IllegalStateException("Invalid object name", e);
-        }
-    }
-
-    private JMXConnector initJMXConnector(String host, int port) {
-        log.debug("Connecting to JMX Server {}:{}", host, port);
-        try {
-            return JMXConnectorFactory.connect(getJMXServerURL(host, port));
-        } catch (IOException e) {
-            throw new IllegalStateException("IOException when getting the JMXConnector "
-                    + "connection:", e);
-        }
-    }
-
-    private JMXServiceURL getJMXServerURL(String host, int port) {
-        try {
+            log.debug("Connecting to JMX Server {}:{}", host, port);
             String connectorAddress = String.format(serviceUrl, host, port);
             JMXServiceURL jmxUrl = new JMXServiceURL(connectorAddress);
-            return jmxUrl;
+            return JMXConnectorFactory.connect(jmxUrl);
         } catch (MalformedURLException e) {
-            throw new IllegalStateException("Invalid jmx url", e);
-        }
-    }
-
-    private MBeanServerConnection getMBeanServerConnection(JMXConnector conn) {
-        if (conn == null) {
-            throw new IllegalStateException("null JMXConnector");
-        }
-
-        try {
-            MBeanServerConnection mbsc = conn.getMBeanServerConnection();
-            if (mbsc == null) {
-                throw new IllegalStateException("null MBeanServerConnection");
-            }
-            return mbsc;
+            log.error(String.format("Failed to construct jmx url for %s:%d", host, port), e);
+            throw new IllegalStateException("Failed to construct jmx url");
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to get MBeanServerConnection:", e);
+            log.error(String.format("Failed to connect %s:%d", host, port), e);
+            throw new IllegalStateException("Failed to connect " + host);
         }
     }
 
+    /**
+     * Setup the MBean proxies
+     */
+    private BackupManagerMBean getBackupManagerMBean(JMXConnector conn) {
+        Preconditions.checkNotNull(conn, "Invalid jmx connector");
+        try {
+            ObjectName objectName = new ObjectName(BackupManager.MBEAN_NAME);
+            MBeanServerConnection mbsc = conn.getMBeanServerConnection();
+            return JMX.newMBeanProxy(mbsc, objectName, BackupManagerMBean.class);
+        } catch (MalformedObjectNameException e) {
+            log.error("Failed to construct object name for mbean({})", BackupManager.MBEAN_NAME, e);
+            throw new IllegalStateException("Failed to construct object name");
+        } catch (IOException e) {
+            log.error("Failed to create backup manager MBean proxy", e);
+            throw new IllegalStateException("Failed to create backup manager MBean proxy");
+        }
+    }
+
+    /**
+     * Close the connection to JMX agent
+     */
     private void close(JMXConnector conn) {
         if (conn != null) {
             try {
                 conn.close();
             } catch (IOException e) {
-                log.error("IOException when closing JMX connector:", e);
+                log.error("Failed to close JMX connector", e);
             }
         }
     }

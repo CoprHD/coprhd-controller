@@ -264,7 +264,7 @@ StorageSystemType.vplex=EMC VPLEX
 StorageSystemType.hds=Hitachi
 StorageSystemType.ibmxiv=IBM XIV
 StorageSystemType.openstack=Third-party block
-StorageSystemType.scaleio=Block Storage Powered by ScaleIO
+StorageSystemType.scaleio=ScaleIO CLI
 StorageSystemType.scaleioapi=ScaleIO Gateway
 StorageSystemType.xtremio=EMC XtremIO
 StorageSystemType.vnxe=EMC VNXe
@@ -274,7 +274,7 @@ StorageSystemType.STORAGE_PROVIDER.scaleioapi=ScaleIO Gateway
 StorageSystemType.STORAGE_PROVIDER.hds=Storage Provider for Hitachi storage systems
 StorageSystemType.STORAGE_PROVIDER.vplex=Storage Provider for EMC VPLEX
 StorageSystemType.STORAGE_PROVIDER.cinder=Storage Provider for Third-party block storage systems
-StorageSystemType.STORAGE_PROVIDER.scaleio=ScaleIO CLI
+StorageSystemType.STORAGE_PROVIDER.scaleio=Block Storage Powered by ScaleIO
 StorageSystemType.STORAGE_PROVIDER.ddmc=Storage Provider for Data Domain Management Center
 StorageSystemType.STORAGE_PROVIDER.ibmxiv=Storage Provider for IBM XIV
 

@@ -755,6 +755,7 @@ public class NetworkSystemService extends TaskResourceService {
      * @param fabricId The name of the VSAN or fabric as returned by
      * @param zoneName - only returns zone with zone name matched the given name. Return all zones, if not specified.
      * @param excludeMembers - true, do not include members with zone. Include members, if not specified.
+     * @param excludeAliases - true, do not include aliases with zone. Include aliases, if not specified.
      * @prereq none
      * @brief List active zones in a network system fabric or VSAN
      * @return A list of the active zones and their members. If zone name is specified, and there is a match, then only one zone is

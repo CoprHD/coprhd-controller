@@ -73,6 +73,5 @@ public class ScaleIOStoragePool {
     public void setNumOfVolumes(String numOfVolumes) {
         this.numOfVolumes = numOfVolumes;
     }
-    
-}
 
+}

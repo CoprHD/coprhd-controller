@@ -46,7 +46,6 @@ import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.server.DbClientTest.DbClientImplUnitTester;
 import com.emc.storageos.db.server.DbsvcTestBase;
 import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
-import com.emc.storageos.volumecontroller.VPlexProtectionRecommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -836,7 +835,7 @@ public class PlacementTests extends DbsvcTestBase {
             assertTrue(recommendations.size() > 0);
             assertNotNull(recommendations.get(0));
             RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
-            assertNotNull(rec.getSourceInternalSiteName());
+            assertNotNull(rec.getInternalSiteName());
             assertNotNull(rec.getSourceDevice());
             assertNotNull(rec.getSourcePool());
             assertNotNull(rec.getSourceJournalStoragePool());
@@ -847,7 +846,7 @@ public class PlacementTests extends DbsvcTestBase {
             assertNotNull(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetStorageSystem());
             assertNotNull(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetJournalDevice());
             assertNotNull(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetInternalSiteName());
-            assertTrue("site1".equals(rec.getSourceInternalSiteName()));
+            assertTrue("site1".equals(rec.getInternalSiteName()));
             assertTrue("vmax1".equals(rec.getSourceDevice().toString()));
             assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
             assertTrue("IDENTIFIED_SOLUTION_FOR_ALL_TARGETS".equals(rec.getPlacementStepsCompleted().name()));
@@ -1124,7 +1123,7 @@ public class PlacementTests extends DbsvcTestBase {
             assertTrue(recommendations.size() > 0);
             assertNotNull(recommendations.get(0));
             RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
-            assertNotNull(rec.getSourceInternalSiteName());
+            assertNotNull(rec.getInternalSiteName());
             assertNotNull(rec.getSourceDevice());
             assertNotNull(rec.getSourcePool());
             assertNotNull(rec.getSourceJournalStoragePool());
@@ -1135,7 +1134,7 @@ public class PlacementTests extends DbsvcTestBase {
             assertNotNull(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetStorageSystem());
             assertNotNull(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetJournalDevice());
             assertNotNull(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetInternalSiteName());
-            assertTrue("site1".equals(rec.getSourceInternalSiteName()));
+            assertTrue("site1".equals(rec.getInternalSiteName()));
             assertTrue(("xtremio2".equals(rec.getSourceDevice().toString())) || ("xtremio1".equals(rec.getSourceDevice().toString())));
             assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
             assertTrue("IDENTIFIED_SOLUTION_FOR_ALL_TARGETS".equals(rec.getPlacementStepsCompleted().name()));
@@ -1460,7 +1459,7 @@ public class PlacementTests extends DbsvcTestBase {
             RPProtectionRecommendation recVplexProt = (RPProtectionRecommendation) recommendations.get(0);
             VPlexRecommendation recVplex = (RPProtectionRecommendation) ( (RPProtectionRecommendation)recommendations.get(0)).getSourceVPlexHaRecommendations().get(0);
 
-            assertNotNull(rec.getSourceInternalSiteName());
+            assertNotNull(rec.getInternalSiteName());
             assertNotNull(rec.getSourceDevice());
             assertNotNull(rec.getSourcePool());
             assertNotNull(rec.getSourceJournalStoragePool());
@@ -1488,7 +1487,7 @@ public class PlacementTests extends DbsvcTestBase {
             assertNotNull(recVplex.getSourceDevice());
             assertNotNull(recVplex.getSourcePool());
 
-            assertTrue("site1".equals(rec.getSourceInternalSiteName()));
+            assertTrue("site1".equals(rec.getInternalSiteName()));
             assertTrue("vmax2".equals(rec.getSourceDevice().toString()));
             assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
             assertTrue(("pool5".equals(rec.getSourcePool().toString())) || ("pool4".equals(rec.getSourcePool().toString())));
@@ -1827,7 +1826,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        RPProtectionRecommendation recVplexProt = (RPProtectionRecommendation) recommendations.get(0);
 	        VPlexRecommendation recVplex = (RPProtectionRecommendation) ((RPProtectionRecommendation) recommendations.get(0)).getSourceVPlexHaRecommendations().get(0);
 	
-	        assertNotNull(rec.getSourceInternalSiteName());
+	        assertNotNull(rec.getInternalSiteName());
 	        assertNotNull(rec.getSourceDevice());
 	        assertNotNull(rec.getSourcePool());
 	        assertNotNull(rec.getSourceJournalStoragePool());
@@ -1855,7 +1854,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        assertNotNull(recVplex.getSourceDevice());
 	        assertNotNull(recVplex.getSourcePool());
 	
-	        assertTrue("site2".equals(rec.getSourceInternalSiteName()));
+	        assertTrue("site2".equals(rec.getInternalSiteName()));
 	        assertTrue("vmax2".equals(rec.getSourceDevice().toString()));
 	        assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
 	        assertTrue(("pool5".equals(rec.getSourcePool().toString())) || ("pool4".equals(rec.getSourcePool().toString())));
@@ -2194,7 +2193,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        RPProtectionRecommendation recVplexProt = (RPProtectionRecommendation) recommendations.get(0);
 	        VPlexRecommendation recVplex = (RPProtectionRecommendation) ((RPProtectionRecommendation) recommendations.get(0)).getSourceVPlexHaRecommendations().get(0);
 	
-	        assertNotNull(rec.getSourceInternalSiteName());
+	        assertNotNull(rec.getInternalSiteName());
 	        assertNotNull(rec.getSourceDevice());
 	        assertNotNull(rec.getSourcePool());
 	        assertNotNull(rec.getSourceJournalStoragePool());
@@ -2222,7 +2221,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        assertNotNull(recVplex.getSourceDevice());
 	        assertNotNull(recVplex.getSourcePool());
 	
-	        assertTrue("site1".equals(rec.getSourceInternalSiteName()));
+	        assertTrue("site1".equals(rec.getInternalSiteName()));
 	        assertTrue("vmax2".equals(rec.getSourceDevice().toString()));
 	        assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
 	        assertTrue(("pool5".equals(rec.getSourcePool().toString())) || ("pool4".equals(rec.getSourcePool().toString())));

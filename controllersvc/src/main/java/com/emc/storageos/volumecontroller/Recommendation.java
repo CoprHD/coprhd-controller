@@ -7,15 +7,39 @@ package com.emc.storageos.volumecontroller;
 import java.io.Serializable;
 import java.net.URI;
 
+import com.emc.storageos.db.client.model.VirtualPool;
+
 /**
  * Recommendation for a placement is a storage pool and its storage device.
  */
 @SuppressWarnings("serial")
 public class Recommendation implements Serializable {
+	
+	// The virtual array for the recommendation.
+    private URI virtualArray;
+    // The vpool used to get the recommendation
+    private VirtualPool virtualPool;
+    
     private URI sourceStorageSystem;
     private URI sourceStoragePool;
     private String deviceType;
     private int resourceCount;
+    
+    public URI getVirtualArray() {
+		return virtualArray;
+	}
+
+	public void setVirtualArray(URI virtualArray) {
+		this.virtualArray = virtualArray;
+	}
+
+	public VirtualPool getVirtualPool() {
+		return virtualPool;
+	}
+
+	public void setVirtualPool(VirtualPool virtualPool) {
+		this.virtualPool = virtualPool;
+	}
     
     public int getResourceCount() {
         return resourceCount;

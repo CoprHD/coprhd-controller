@@ -17,8 +17,12 @@ package com.emc.storageos.volumecontroller;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 
 @SuppressWarnings("serial")
@@ -27,68 +31,23 @@ public class Protection implements Serializable {
 	// The target virtual array for the recommendation.
     private URI targetVarray;
     // The target vpool for the recommendation
-    private VirtualPool targetVpool;
-    private URI targetStorageSystem;
-    private URI targetVplexStorageSystem; //if target is a VPLEX virtual device
-    private URI targetStoragePool;   
+    private VirtualPool targetVpool;   
     private String targetInternalSiteName;
     // This is the Storage System that was chosen by placement for connectivity/visibility to the RP Cluster
     private URI targetInternalSiteStorageSystem;
-    private URI targetJournalStorageSystem;   
-    private URI targetJournalVplexStorageSystem;
-    private URI targetJournalStoragePool;
-    private URI targetJournalVarray;
-    private URI targetJournalVpool;
+    private RPRecommendation targetJournalRecommendation;
     private ProtectionType protectionType;
-   
-       
+    //Map of storage pool to storage system for target protection
+    private Map<URI, URI> protectionPoolStorageMap;
+    
+          
     private List<Recommendation> targetVPlexHaRecommendations;
     
     public static enum ProtectionType {
     	LOCAL,
     	REMOTE
     }
-    
-    public URI getTargetStorageSystem() {
-        return targetStorageSystem;
-    }
-    
-    public void setTargetStorageSystem(URI targetStorageSystem) {
-    	this.targetStorageSystem = targetStorageSystem;
-    }
-
-    public URI getTargetStoragePool() {
-        return targetStoragePool;
-    }
-    
-	public void setTargetStoragePool(URI targetStoragePool) {
-        this.targetStoragePool = targetStoragePool;
-    }
-
-    public URI getTargetJournalStoragePool() {
-        return targetJournalStoragePool;
-    }
-    
-	public void setTargetJournalStoragePool(URI targetJournalStoragePool) {
-		this.targetJournalStoragePool = targetJournalStoragePool;
-    }
-		
-	public URI getTargetJournalVarray() {
-		return targetJournalVarray;
-	}
-
-	public void setTargetJournalVarray(URI targetJournalVarray) {
-		this.targetJournalVarray = targetJournalVarray;
-	}
-
-	public URI getTargetJournalVpool() {
-		return targetJournalVpool;
-	}
-
-	public void setTargetJournalVpool(URI targetJournalVpool) {
-		this.targetJournalVpool = targetJournalVpool;
-	}	
-
+        
     public String getTargetInternalSiteName() {
         return targetInternalSiteName;
     }
@@ -96,14 +55,6 @@ public class Protection implements Serializable {
     public void setTargetInternalSiteName(String targetInternalSiteName) {
     	this.targetInternalSiteName = targetInternalSiteName;
     }
-
-	public URI getTargetJournalDevice() {
-		return targetJournalStorageSystem;
-	}
-
-	public void setTargetJournalDevice(URI _targetJournalStorageSystem) {
-		this.targetJournalStorageSystem = _targetJournalStorageSystem;
-	}
 
 	public ProtectionType getProtectionType() {
 		return protectionType;
@@ -146,36 +97,41 @@ public class Protection implements Serializable {
 			List<Recommendation> targetVPlexHaRecommendations) {
 		this.targetVPlexHaRecommendations = targetVPlexHaRecommendations;
 	}
-
-	public URI getTargetVplexStorageSystem() {
-		return targetVplexStorageSystem;
-	}
-
-	public void setTargetVplexStorageSystem(URI targetVplexStorageSystem) {
-		this.targetVplexStorageSystem = targetVplexStorageSystem;
-	}
 	
-	public URI getTargetJournalVplexStorageSystem() {
-		return targetJournalVplexStorageSystem;
+	public Map<URI, URI> getProtectionPoolStorageMap() {
+		return protectionPoolStorageMap;
 	}
 
-	public void setTargetJournalVplexStorageSystem(
-			URI targetJournalVplexStorageSystem) {
-		this.targetJournalVplexStorageSystem = targetJournalVplexStorageSystem;
-	}	
-	
-    @Override
-	public String toString() {
-		return "Protection [_targetStorageSystem =" + targetStorageSystem
-				+ ", _targetPool =" + targetStoragePool
-				+ ", _targetJournalPool =" + targetJournalStoragePool
-				+ ", _targetInternalSiteName =" + targetInternalSiteName
-				+ ", _targetInternalSiteStorageSystem =" + targetInternalSiteStorageSystem
-				+ ", _tagetJournalStorageSystem =" + targetJournalStorageSystem
-				+ "]";
+	public void setProtectionPoolStorageMap(Map<URI, URI> protectionPoolStorageMap) {
+		this.protectionPoolStorageMap = protectionPoolStorageMap;
 	}
 
-    public String toString(DbClient _dbClient) {
-    	return "NIY";
-    }
+	public RPRecommendation getTargetJournalRecommendation() {
+		return targetJournalRecommendation;
+	}
+
+	public void setTargetJournalRecommendation(
+			RPRecommendation targetJournalRecommendation) {
+		this.targetJournalRecommendation = targetJournalRecommendation;
+	}
+	 
+	public String toString(DbClient dbClient) {
+    	StringBuffer buff = new StringBuffer();
+    	StoragePool journalPool = dbClient.queryObject(StoragePool.class, getTargetJournalRecommendation().getSourcePool());
+    	StorageSystem journalStorage = dbClient.queryObject(StorageSystem.class, getTargetJournalRecommendation().getSourceDevice());
+    	buff.append("\tProtecting to Site : " + targetInternalSiteName + "\n");
+    	buff.append("\tTarget Virtual Array :" + dbClient.queryObject(VirtualArray.class, this.getTargetVarray()).getLabel() + "\n");
+    	buff.append("\tTarget VirtualPool : " + this.getTargetVpool().getLabel() + "\n");
+    	buff.append("\tTarget Journal Storage Pool : " + journalPool.getLabel() + "\n");
+    	buff.append("\tTarget Journal Storage System: " +journalStorage.getLabel()+ "\n");    	
+    	buff.append("\tTarget Internal Storage System : " + targetInternalSiteStorageSystem + "\n");
+    	buff.append("\tTarget Journal Virtual Array : " + dbClient.queryObject(VirtualArray.class, getTargetJournalRecommendation().getVirtualArray()).getLabel() + "\n");
+    	buff.append("\tTarget Journal Virtual Pool : " + getTargetJournalRecommendation().getVirtualPool().getLabel());
+    	buff.append("\tProtection Storage :\n");
+    	for (Map.Entry<URI, URI> poolStorageMap : getProtectionPoolStorageMap().entrySet()) {
+    		buff.append("\tTarget Storage System :" + poolStorageMap.getValue() + "\n");
+    		buff.append("\tTarget Storage Pool : " + poolStorageMap.getKey() + "\n");    		
+    	}    	    	    	
+    	return buff.toString();
+	}
 }

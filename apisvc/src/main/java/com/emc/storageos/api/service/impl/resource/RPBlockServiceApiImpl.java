@@ -21,7 +21,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,12 +49,10 @@ import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.Constraint;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
@@ -74,8 +71,8 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
@@ -96,13 +93,12 @@ import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
-import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Protection;
 import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
 import com.emc.storageos.volumecontroller.Recommendation;
-import com.emc.storageos.volumecontroller.VPlexProtectionRecommendation;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -274,7 +270,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 if (recommendation.getVpoolChangeVolume() == null) {
                     srcVolume = prepareVolume(project, varray, vpool, param.getSize(), recommendation,
                             newVolumeLabel, consistencyGroup, task, false, recommendation.getProtectionDevice(),
-                            Volume.PersonalityTypes.SOURCE, rsetName, recommendation.getSourceInternalSiteName(), srcCopyName, null, null);
+                            Volume.PersonalityTypes.SOURCE, rsetName, "dummy", srcCopyName, null, null);
                     volumeURIs.add(srcVolume.getId());
 					taskList.getTaskList().add(toTask(srcVolume, task));
                 } else {
@@ -286,7 +282,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     // and the protection never got set up.
                     srcVolume.setRSetName(rsetName);
                     srcVolume.setRpCopyName(srcCopyName);
-                    srcVolume.setInternalSiteName(recommendation.getSourceInternalSiteName());
+                    srcVolume.setInternalSiteName("dummy");
                     srcVolume.setPersonality(Volume.PersonalityTypes.SOURCE.toString());
                     _dbClient.persistObject(srcVolume);
                     volumeURIs.add(srcVolume.getId());
@@ -306,10 +302,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 	                	journalVpool = _dbClient.queryObject(VirtualPool.class,URI.create(vpool.getJournalVpool()));
 	                }
 	                sourceJournal = prepareJournalVolume(project, journalVarray, journalVpool, size, recommendation,
-	                        recommendation.getSourceJournalStoragePool(), new StringBuilder(newVolumeLabel).append("-journal-prod").toString(),
+	                        null, new StringBuilder(newVolumeLabel).append("-journal-prod").toString(),
 	                        consistencyGroup, task, false,
 	                        recommendation.getProtectionDevice(), Volume.PersonalityTypes.METADATA,
-	                        null, recommendation.getSourceInternalSiteName(), srcCopyName, null);
+	                        null, "dummy", srcCopyName, null);
 	                volumeURIs.add(sourceJournal.getId());
                 } 
 
@@ -320,9 +316,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 for (VirtualArray protectionVirtualArray : RecoverPointScheduler.getProtectionVirtualArraysForVirtualPool(project, vpool, _dbClient,
                                                                                                    _permissionsHelper)) {
                     VpoolProtectionVarraySettings settings = _rpHelper.getProtectionSettings(vpool, protectionVirtualArray);  
-                    List<Protection> protectionList = recommendation.getVirtualArrayProtectionMap().get(protectionVirtualArray.getId());
+                    Protection protection = new Protection();//recommendation.getVarrayProtectionMap().get(protectionVirtualArray.getId());
                     
-                    String targetInternalSiteName = protectionList.get(0).getTargetInternalSiteName();;
+                    String targetInternalSiteName = protection.getTargetInternalSiteName();;
                     // whether additional journals are required computation needs to happen only once per copy, irrespective of number of volumes requested
                     if (volumeCount == 0 && (cgSourceVolumes.isEmpty() || _rpHelper.isAdditionalJournalRequiredForCG(settings.getJournalSize(), 
                     							consistencyGroup, param.getSize(), numberOfVolumesInRequest, Volume.PersonalityTypes.TARGET.toString(), targetInternalSiteName))) {
@@ -790,6 +786,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 			            VpoolProtectionVarraySettings protectionSettings) {
         StoragePool pool = null;
         Volume volume = new Volume();
+        /*
         volume.setId(URIUtil.createId(Volume.class));
 
         if (personality.equals(Volume.PersonalityTypes.METADATA)) {
@@ -841,7 +838,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 		        	Protection protectionInfo = getProtectionInfo(varray, recommendation);	  
 		    		if (personality.equals(Volume.PersonalityTypes.METADATA)) {
 		    			//remote copy journal
-		    			storagePoolUri = protectionInfo.getTargetJournalStoragePool() ;    
+		    			storagePoolUri = protectionInfo.ge    
 		        		virtualArrayUri = protectionInfo.getTargetJournalVarray();    
 		    		} else {
 		    			//remote copy
@@ -890,6 +887,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         	srcVolume.getRpTargets().add(volume.getId().toString());
         	_dbClient.persistObject(srcVolume);
         }
+        */
                
         return volume;
     }
@@ -925,11 +923,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @return
      */
     private Protection getProtectionInfo(VirtualArray varray, Recommendation recommendation) {
+    	/*
     	//Find the protection info for this varray, first check if the target is non-vplex by checking the varray protection map, then vplex protection map
     	List<Protection> protectionInfo =  ((RPProtectionRecommendation)recommendation).getVirtualArrayProtectionMap().get(varray.getId());
     	if (protectionInfo == null) {
     		protectionInfo = ((RPProtectionRecommendation) recommendation).getVirtualArrayProtectionMap().get(varray.getId());
     	}
+    	*/
     	return null;
     }
         

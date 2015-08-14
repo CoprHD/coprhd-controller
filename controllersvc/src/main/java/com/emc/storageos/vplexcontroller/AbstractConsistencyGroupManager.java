@@ -517,6 +517,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
                 // Update workflow step state to success.
                 WorkflowStepCompleter.stepSucceded(stepId);
                 log.info("Updated workflow step state to success for remove volumes from consistency group.");
+                return;
             }
 
             // Get the API client.

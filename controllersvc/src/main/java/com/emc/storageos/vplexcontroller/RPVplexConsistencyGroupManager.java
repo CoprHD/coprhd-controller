@@ -112,8 +112,8 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
      * 
      * @param vplexURI The URI of the VPLEX storage system.
      * @param cgURI The URI of the Bourne consistency group
-     * @param vplexVolumeURI The URI of the VPLEX used to determine the VPlex
-     *                       cluster/distributed information.
+     * @param vplexVolumeURIs The list of URIs of the VPLEX volumes being 
+     *                  added to the vplex CG
      * @param stepId The workflow step id.
      * 
      * @throws WorkflowException When an error occurs updating the workflow step
@@ -126,11 +126,12 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
             WorkflowStepCompleter.stepExecuting(stepId);
             log.info("Updated step state for consistency group creation to execute.");
             
-            if (vplexVolumeURIs.isEmpty()) {
+            if (vplexVolumeURIs == null || vplexVolumeURIs.isEmpty()) {
                 log.info("empty volume list; no CG will be created");
                 // Update workflow step state to success.
                 WorkflowStepCompleter.stepSucceded(stepId);
                 log.info("Updated workflow step for consistency group creation to success.");
+                return;
             }
 
             // Get the API client.
@@ -143,7 +144,8 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
             //2. In a MetroPoint setup, the user can choose the HA side as the Active side.
 
             Volume firstVplexVolume = getDataObject(Volume.class, vplexVolumeURIs.iterator().next(), dbClient);
-            if (firstVplexVolume.getPersonality().equals(PersonalityTypes.SOURCE.toString())) { 
+            if (firstVplexVolume != null && NullColumnValueGetter.isNotNullValue(firstVplexVolume.getPersonality()) &&
+            		firstVplexVolume.getPersonality().equals(PersonalityTypes.SOURCE.toString())) { 
                 VirtualPool vpool = getDataObject(VirtualPool.class, firstVplexVolume.getVirtualPool(), dbClient);
                 boolean haIsWinningCluster = VirtualPool.isRPVPlexProtectHASide(vpool) 
                         || (vpool.getMetroPoint() && NullColumnValueGetter.isNotNullValue(vpool.getHaVarrayConnectedToRp()));

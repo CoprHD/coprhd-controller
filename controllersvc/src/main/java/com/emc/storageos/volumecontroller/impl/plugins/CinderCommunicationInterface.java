@@ -204,6 +204,22 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
                                         CinderConstants.KEY_CINDER_REST_URI_BASE, value);
                                 _logger.info("REST uri = {}", value);
                             }
+                            else if (parameter.equalsIgnoreCase("username")){
+                                 updateKeyInProvider(providerKeys,
+                                         CinderConstants.KEY_CINDER_REST_USER, value);
+                                _logger.debug("REST user name = {}", value);
+                            }
+                            else if (parameter.equalsIgnoreCase("password")){
+                                 updateKeyInProvider(providerKeys,
+                                         CinderConstants.KEY_CINDER_REST_PASS_WORD, value);
+                                 _logger.debug("REST password = {}", value);
+                            }
+                            else if (parameter.equalsIgnoreCase("project_name")){
+                                 updateKeyInProvider(providerKeys,
+                                         CinderConstants.KEY_CINDER_TENANT_NAME, value);
+                                 _logger.debug("Tenant name = {}", value);
+                            }
+
                         }
                         else {
                             // this is a storage section

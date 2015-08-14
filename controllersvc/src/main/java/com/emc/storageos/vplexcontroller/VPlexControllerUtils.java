@@ -8,6 +8,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -223,9 +224,9 @@ public class VPlexControllerUtils {
         return clusterName;
     }
 
-    public static Map<String, String> getStorageVolumeInfoForDevice(String deviceName, String locality, URI vplexUri, DbClient dbClient) {
+    public static Set<String> getStorageVolumeInfoForDevice(String deviceName, String locality, URI vplexUri, DbClient dbClient) {
 
-        Map<String, String> storageVolumeInfo = null;
+        Set<String> storageVolumeInfo = null;
         VPlexApiClient client = null;
 
         try {

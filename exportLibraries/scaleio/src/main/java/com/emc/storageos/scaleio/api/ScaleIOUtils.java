@@ -24,7 +24,7 @@ public class ScaleIOUtils {
      */
     static String convertToBytes(String capacityString) {
         String result = "0";
-        ScaleIOContants.PoolCapacityMultiplier converter = ScaleIOContants.PoolCapacityMultiplier.matches(capacityString);
+        ScaleIOConstants.PoolCapacityMultiplier converter = ScaleIOConstants.PoolCapacityMultiplier.matches(capacityString);
         if (converter != null) {
             String patternString = "(\\d+) " + converter.getPostFix();
             Matcher match = Pattern.compile(patternString).matcher(capacityString);

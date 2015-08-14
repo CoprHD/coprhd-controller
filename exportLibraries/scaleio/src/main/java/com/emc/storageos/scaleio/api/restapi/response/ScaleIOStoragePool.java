@@ -12,8 +12,6 @@ package com.emc.storageos.scaleio.api.restapi.response;
 
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
-import com.emc.storageos.scaleio.api.ScaleIOQueryStoragePoolResult;
-
 /**
  * Storage pool attributes
  * 
@@ -75,14 +73,6 @@ public class ScaleIOStoragePool {
     public void setNumOfVolumes(String numOfVolumes) {
         this.numOfVolumes = numOfVolumes;
     }
-
-    public ScaleIOQueryStoragePoolResult toQueryStoragePoolResult() {
-        ScaleIOQueryStoragePoolResult result = new ScaleIOQueryStoragePoolResult();
-        result.setAvailableCapacity(capacityAvailableForVolumeAllocationInKb);
-        result.setName(name);
-        result.setTotalCapacity(maxCapacityInKb);
-        result.setVolumeCount(numOfVolumes);
-        return result;
-
-    }
+    
 }
+

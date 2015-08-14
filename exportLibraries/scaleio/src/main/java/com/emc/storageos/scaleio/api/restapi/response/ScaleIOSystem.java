@@ -15,8 +15,7 @@ import java.util.List;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 import com.emc.storageos.scaleio.api.ParsePattern;
-import com.emc.storageos.scaleio.api.ScaleIOQueryAllCommand;
-import com.emc.storageos.scaleio.api.ScaleIOQueryClusterResult;
+import com.emc.storageos.scaleio.api.ScaleIOConstants;
 
 /**
  * System attributes
@@ -99,21 +98,12 @@ public class ScaleIOSystem {
 
     public String getVersion() {
         String result = null;
-        ParsePattern parse = new ParsePattern("EMC ScaleIO Version:\\s+[a-zA-Z](.*?)", ScaleIOQueryAllCommand.SCALEIO_VERSION);
+        ParsePattern parse = new ParsePattern("EMC ScaleIO Version:\\s+[a-zA-Z](.*?)", ScaleIOConstants.SCALEIO_VERSION);
         List<String> versions = parse.isMatch(systemVersionName);
         if (versions != null && versions.size() > 0) {
             result = versions.get(0);
         }
         return result;
-    }
-
-    public ScaleIOQueryClusterResult toQueryClusterResult() {
-        ScaleIOQueryClusterResult result = new ScaleIOQueryClusterResult();
-        result.setClusterMode(mdmMode);
-        result.setClusterState(mdmClusterState);
-        result.setIPs(primaryMdmActorIpList[0], secondaryMdmActorIpList[0], tiebreakerMdmIpList[0]);
-        return result;
-
     }
 
 }

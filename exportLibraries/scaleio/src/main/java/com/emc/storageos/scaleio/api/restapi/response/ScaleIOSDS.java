@@ -12,16 +12,9 @@ package com.emc.storageos.scaleio.api.restapi.response;
 
 import java.util.List;
 
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-
-/**
- * SDS attributes
- *
- */
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class ScaleIOSds {
+public class ScaleIOSDS {
     private String id;
-    private List<Ip> ipList;
+    private List<IP> ipList;
     private String protectionDomainId;
     private String name;
     private String sdsState;
@@ -33,10 +26,10 @@ public class ScaleIOSds {
     public void setId(String id) {
         this.id = id;
     }
-    public List<Ip> getIpList() {
+    public List<IP> getIpList() {
         return ipList;
     }
-    public void setIpList(List<Ip> ipList) {
+    public void setIpList(List<IP> ipList) {
         this.ipList = ipList;
     }
     public String getProtectionDomainId() {
@@ -64,7 +57,7 @@ public class ScaleIOSds {
         this.port = port;
     }
     
-    public class Ip {
+    public class IP {
         private String role;
         private String ip;
         public String getRole() {

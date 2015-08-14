@@ -10,14 +10,7 @@
  */
 package com.emc.storageos.scaleio.api.restapi.response;
 
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-
-/**
- * SDC attributes
- *
- */
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class ScaleIOSdc {
+public class ScaleIOSDC {
     private String id;
     private String sdcIp;
     private String sdcGuid;

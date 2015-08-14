@@ -7,7 +7,7 @@ package com.emc.storageos.scaleio.api;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-public class ScaleIOContants {
+public class ScaleIOConstants {
     static final String REGEX_CAPACITY = "\\s+\\d+(?:\\.\\d+)?\\s+\\w{2}\\s+\\((.*?)\\)";
     static final String REGEX_CAPACITY_NO_SPACE_IN_FRONT = "\\d+(?:\\.\\d+)?\\s+\\w{2}\\s+\\((.*?)\\)";
     static final String REGEX_BYTES_CAPACITY = "\\s+(\\d+)\\s+Bytes\\s+";
@@ -26,6 +26,20 @@ public class ScaleIOContants {
     public static final String THIN_PROVISIONED = "ThinProvisioned";
     public static final String THICK_PROVISIONED = "ThickProvisioned";
 
+    public static final String SCALEIO_VERSION = "Version";
+    public static final String SCALEIO_CUSTOMER_ID = "CustomerID";
+    public static final String SCALEIO_INSTALLATION_ID = "InstallationID";
+    public static final String SCALEIO_TOTAL_CAPACITY = "TotalCapacity";
+    public static final String SCALEIO_FREE_CAPACITY = "FreeCapacity";
+    public static final String SCALEIO_IN_USE_CAPACITY = "InUseCapacity";
+    public static final String SCALEIO_PROTECTED_CAPACITY = "ProtectedCapacity";
+    public static final String SCALEIO_SNAPSHOT_CAPACITY = "SnapshotCapacity";
+/*
+    public static final String PROTECTION_DOMAIN = "ProtectionDomain";
+    public static final String STORAGE_POOL = "StoragePool";
+    public static final String POOL_AVAILABLE_CAPACITY = "AvailableCapacity";
+    public static final String POOL_ALLOCATED_VOLUME_COUNT = "AllocatedVolumeCount"; */
+    
     enum PoolCapacityMultiplier {
 
         BYTES("Bytes", 1),

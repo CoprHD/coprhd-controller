@@ -65,14 +65,14 @@ public class PhysicalNAS extends NASServer {
     };
 
     @EnumType(NasState.class)
-    @Name("nasState")
+    @Name("pNasState")
     public String getPNasState() {
         return this.getNasState();
     }
 
     public void setPNasState(String _nasState) {
         this.setNasState(_nasState);
-        setChanged("nasState");
+        setChanged("pNasState");
     }
 
 }

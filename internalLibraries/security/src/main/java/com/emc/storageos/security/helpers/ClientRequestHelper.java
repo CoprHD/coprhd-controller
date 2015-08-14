@@ -325,9 +325,5 @@ public class ClientRequestHelper {
         @Override
         public void checkServerTrusted(X509Certificate[] certs, String authType) {
         }
-<<<<<<< HEAD
     } };       
-=======
-    } };
->>>>>>> 7b1adad7ff368d5be79b62607e7a37f173bc9145
 }

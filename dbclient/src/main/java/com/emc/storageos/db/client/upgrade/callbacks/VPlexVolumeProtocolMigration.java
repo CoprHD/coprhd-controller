@@ -1,5 +1,3 @@
-package com.emc.storageos.db.client.upgrade.callbacks;
-
 /*
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved

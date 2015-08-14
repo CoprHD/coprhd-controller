@@ -17,7 +17,7 @@ import org.codehaus.jackson.annotate.JsonIgnoreProperties;
  *
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ScaleIOSdc {
+public class ScaleIOSDC {
     private String id;
     private String sdcIp;
     private String sdcGuid;

@@ -12,7 +12,7 @@ package com.emc.storageos.scaleio.api.restapi.response;
 
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
-import com.emc.storageos.scaleio.api.ScaleIOContants;
+import com.emc.storageos.scaleio.api.ScaleIOConstants;
 
 /**
  * Volume attributes
@@ -77,7 +77,7 @@ public class ScaleIOVolume {
 
     public boolean isThinProvisioned() {
         boolean result = false;
-        if (volumeType != null && volumeType.equals(ScaleIOContants.THIN_PROVISIONED)) {
+        if (volumeType != null && volumeType.equals(ScaleIOConstants.THIN_PROVISIONED)) {
             result = true;
         }
         return result;

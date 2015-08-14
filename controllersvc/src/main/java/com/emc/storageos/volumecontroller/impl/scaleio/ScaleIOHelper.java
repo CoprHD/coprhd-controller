@@ -11,19 +11,17 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.scaleio.api.ScaleIOAddVolumeResult;
-import com.emc.storageos.scaleio.api.ScaleIOHandle;
-import com.emc.storageos.scaleio.api.ScaleIOQueryStoragePoolResult;
-import com.emc.storageos.scaleio.api.ScaleIOSnapshotMultiVolumeResult;
-import com.emc.storageos.scaleio.api.ScaleIOSnapshotVolumeResult;
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOStoragePool;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 public class ScaleIOHelper {
 
@@ -33,21 +31,21 @@ public class ScaleIOHelper {
 
     public static void updateVolumeWithAddVolumeInfo(DbClient dbClient, Volume volume, String systemId,
             Long requestedCapacity,
-            ScaleIOAddVolumeResult addVolumeResult) throws IOException {
+            ScaleIOVolume addVolumeResult) throws IOException {
         volume.setNativeId(addVolumeResult.getId());
         volume.setWWN(generateWWN(systemId, addVolumeResult.getId()));
-        volume.setAllocatedCapacity(Long.parseLong(addVolumeResult.getActualSize()) * BYTES_IN_GB);
+        volume.setAllocatedCapacity(Long.parseLong(addVolumeResult.getSizeInKb()) * 1024L);
         volume.setProvisionedCapacity(volume.getAllocatedCapacity());
         volume.setCapacity(requestedCapacity * BYTES_IN_GB);
         volume.setDeviceLabel(addVolumeResult.getName());
         volume.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, volume));
-        volume.setThinlyProvisioned(addVolumeResult.isThinlyProvisioned());
+        volume.setThinlyProvisioned(addVolumeResult.isThinProvisioned());
     }
 
     public static void updateSnapshotWithSnapshotVolumeResult(DbClient dbClient, BlockObject snapshot, String systemId,
-            ScaleIOSnapshotVolumeResult result) throws IOException {
-        snapshot.setNativeId(result.getId());
-        snapshot.setWWN(generateWWN(systemId, result.getId()));
+            String nativeId) throws IOException {
+        snapshot.setNativeId(nativeId);
+        snapshot.setWWN(generateWWN(systemId, nativeId));
         snapshot.setDeviceLabel(snapshot.getLabel());
         if (snapshot instanceof BlockSnapshot) {
             ((BlockSnapshot) snapshot).setIsSyncActive(true);
@@ -62,26 +60,26 @@ public class ScaleIOHelper {
 
     public static void updateSnapshotsWithSnapshotMultiVolumeResult(DbClient dbClient,
             List<BlockSnapshot> blockSnapshots, String systemId,
-            ScaleIOSnapshotMultiVolumeResult multiResult) throws IOException {
+            Map<String, String> snapNameIdMap, String groupId) throws IOException {
         for (BlockSnapshot snapshot : blockSnapshots) {
-            ScaleIOSnapshotVolumeResult result = multiResult.findResult(snapshot.getLabel());
-            updateSnapshotWithSnapshotVolumeResult(dbClient, snapshot, systemId, result);
-            snapshot.setSnapsetLabel(multiResult.getConsistencyGroupId());
+            String nativeId = snapNameIdMap.get(snapshot.getLabel());
+            updateSnapshotWithSnapshotVolumeResult(dbClient, snapshot, systemId, nativeId);
+            snapshot.setSnapsetLabel(groupId);
         }
     }
 
-    public static void updateStoragePoolCapacity(DbClient dbClient, ScaleIOHandle scaleIOCLI, BlockSnapshot snapshot) {
+    public static void updateStoragePoolCapacity(DbClient dbClient, ScaleIORestClient scaleIOCLI, BlockSnapshot snapshot) {
         Volume parent = dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
         updateStoragePoolCapacity(dbClient, scaleIOCLI, parent);
     }
 
-    public static void updateStoragePoolCapacity(DbClient dbClient, ScaleIOHandle scaleIOCLI, Volume volume) {
+    public static void updateStoragePoolCapacity(DbClient dbClient, ScaleIORestClient scaleIOHandle, Volume volume) {
         StorageSystem system = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         StoragePool pool = dbClient.queryObject(StoragePool.class, volume.getPool());
-        updateStoragePoolCapacity(dbClient, scaleIOCLI, pool, system);
+        updateStoragePoolCapacity(dbClient, scaleIOHandle, pool, system);
     }
 
-    public static void updateStoragePoolCapacity(DbClient dbClient, ScaleIOHandle scaleIOHandle, StoragePool storagePool,
+    public static void updateStoragePoolCapacity(DbClient dbClient, ScaleIORestClient scaleIOHandle, StoragePool storagePool,
             StorageSystem storage) {
         try {
             log.info(String.format("Old storage pool capacity data for %n  pool %s/%s --- %n  free capacity: %s; subscribed capacity: %s",
@@ -89,20 +87,12 @@ public class ScaleIOHelper {
                     storagePool.calculateFreeCapacityWithoutReservations(),
                     storagePool.getSubscribedCapacity()));
 
-            ScaleIOQueryStoragePoolResult storagePoolResult = null;
-            if (scaleIOHandle instanceof ScaleIORestClient) {
-                storagePoolResult = scaleIOHandle.queryStoragePool(storage.getSerialNumber(), storagePool.getNativeId());
-                storagePool.setFreeCapacity(Long.parseLong(storagePoolResult.getAvailableCapacity()));
-                storagePool.setTotalCapacity(Long.parseLong(storagePoolResult.getTotalCapacity()));
-            } else {
-                storagePoolResult = scaleIOHandle.queryStoragePool(storage.getSerialNumber(), storagePool.getPoolName());
-                String freeCapacityString = storagePoolResult.getAvailableCapacity();
-                Long freeCapacityKBytes = ControllerUtils.convertBytesToKBytes(freeCapacityString);
-                storagePool.setFreeCapacity(freeCapacityKBytes);
-                String totalCapacityString = storagePoolResult.getTotalCapacity();
-                Long totalCapacityKBytes = ControllerUtils.convertBytesToKBytes(totalCapacityString);
-                storagePool.setTotalCapacity(totalCapacityKBytes);
-            }
+            ScaleIOStoragePool storagePoolResult = null;
+
+            storagePoolResult = scaleIOHandle.queryStoragePool(storagePool.getNativeId());
+            storagePool.setFreeCapacity(Long.parseLong(storagePoolResult.getCapacityAvailableForVolumeAllocationInKb()));
+            storagePool.setTotalCapacity(Long.parseLong(storagePoolResult.getMaxCapacityInKb()));
+           
             log.info(String.format("New storage pool capacity data for pool %n  %s/%s --- %n  free capacity: %s; subscribed capacity: %s",
                     storage.getId(), storagePool.getId(),
                     storagePool.getFreeCapacity(),
@@ -121,11 +111,4 @@ public class ScaleIOHelper {
         return String.format("%s%s", systemId, nativeId);
     }
 
-    public static boolean usingAPI(ScaleIOHandle handle) {
-        boolean usingAPI = false;
-        if (handle instanceof ScaleIORestClient) {
-            usingAPI = true;
-        }
-        return usingAPI;
-    }
 }

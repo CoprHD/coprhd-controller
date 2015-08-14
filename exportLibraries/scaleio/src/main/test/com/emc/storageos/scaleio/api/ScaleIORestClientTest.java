@@ -23,6 +23,9 @@ import org.junit.Test;
 
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClientFactory;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDS;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOScsiInitiator;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSnapshotVolumeResponse;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import com.emc.storageos.services.util.EnvConfig;
 
@@ -43,23 +46,11 @@ public class ScaleIORestClientTest {
         factory.setSocketConnectionTimeoutMs(3600000);
         factory.setConnectionTimeoutMs(3600000);
         factory.init();
-        String endpoint = ScaleIOContants.getAPIBaseURI(HOST, PORT);
+        String endpoint = ScaleIOConstants.getAPIBaseURI(HOST, PORT);
         restClient = (ScaleIORestClient) factory.getRESTClient(URI.create(endpoint), USER, PASSWORD, true);
 
     }
 
-    // @Test
-    public void testQueryCluster() {
-        ScaleIOQueryClusterResult result = null;
-        try {
-            result = restClient.queryClusterCommand();
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-        System.out.printf("SIO primary IP %s", result.getPrimaryIP());
-    }
 
     // @Test
     public void testGetVersion() {
@@ -74,51 +65,18 @@ public class ScaleIORestClientTest {
         System.out.printf("version %s", result);
     }
 
-    @Test
-    public void testQueryStoragePool() {
-        ScaleIOQueryStoragePoolResult result = null;
-        try {
-            result = restClient.queryStoragePool(null, "d924dfbf00000002");
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-        System.out.printf("pool available capacity %s", result.getAvailableCapacity());
-    }
-
-    // @Test
-    public void testQueryAll() {
-        ScaleIOQueryAllResult result = null;
-        try {
-            result = restClient.queryAll();
-            for (String domainName : result.getProtectionDomainNames()) {
-                System.out.printf("domain: %s \n", domainName);
-                for (String poolId : result.getStoragePoolsForProtectionDomain(domainName)) {
-                    String availSize = result.getStoragePoolProperty(domainName, poolId, ScaleIOContants.POOL_AVAILABLE_CAPACITY);
-                    String name = result.getStoragePoolProperty(domainName, poolId, ScaleIOContants.NAME);
-                    System.out.printf("pool id: %s pool name : %s available size : %s \n", poolId, name, availSize);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
     // @Test
     public void testQuerySDS() {
-        ScaleIOQueryAllSDSResult result = null;
+        List<ScaleIOSDS> result = null;
         try {
             result = restClient.queryAllSDS();
-            Collection<String> domainIds = result.getProtectionDomainIds();
-            for (String domainId : domainIds) {
-                System.out.printf("domain: %s \n", domainId);
-                for (ScaleIOAttributes sdsAtts : result.getSDSForProtectionDomain(domainId)) {
-                    String sdsId = sdsAtts.get(ScaleIOQueryAllSDSResult.SDS_ID);
-                    String sdsPort = sdsAtts.get(ScaleIOQueryAllSDSResult.SDS_PORT);
-                    String sdsIp = sdsAtts.get(ScaleIOQueryAllSDSResult.SDS_IP);
-                    System.out.printf("Sds id : %s  port : %s  IP: %s \n", sdsId, sdsPort, sdsIp);
-                }
+            for (ScaleIOSDS sds : result) {
+                String sdsId = sds.getId();
+                String sdsPort = sds.getPort();
+                String sdsIp = sds.getIpList().get(0).getIp();
+                System.out.printf("Sds id : %s  port : %s  IP: %s \n", sdsId, sdsPort, sdsIp);
+             
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -129,12 +87,11 @@ public class ScaleIORestClientTest {
     public void testQueryAllScsiInitiators() {
 
         try {
-            ScaleIOQueryAllSCSIInitiatorsResult result = restClient.queryAllSCSIInitiators();
-            if (result != null && !result.getAllInitiatorIds().isEmpty()) {
+            List<ScaleIOScsiInitiator> result = restClient.queryAllSCSIInitiators();
+            if (result != null && !result.isEmpty()) {
                 System.out.println("Has initiators");
-                Set<String> ids = result.getAllInitiatorIds();
-                for (String id : ids) {
-                    System.out.println(id);
+                for (ScaleIOScsiInitiator init : result) {
+                    System.out.println(init.getIqn());
                 }
             } else {
                 System.out.println("no initiators");
@@ -148,7 +105,7 @@ public class ScaleIORestClientTest {
     // @Test
     public void testAddVolume() {
         try {
-            ScaleIOAddVolumeResult result = restClient.addVolume("a", "d924dfbf00000002", "volTest3", "1073741824", true);
+            ScaleIOVolume result = restClient.addVolume("a", "d924dfbf00000002", "volTest3", "1073741824", true);
             System.out.printf("created volume id: %s", result.getId());
         } catch (Exception e) {
             e.printStackTrace();
@@ -223,10 +180,7 @@ public class ScaleIORestClientTest {
             Map<String, String> map = new HashMap<String, String>();
             map.put("537b42d80000002f", "test123snap");
             map.put("537b69d70000003c", "volTest2Snap");
-            ScaleIOSnapshotMultiVolumeResult result = restClient.snapshotMultiVolume(map, restClient.getSystemId());
-            ScaleIOSnapshotVolumeResult snapResult = result.findResult("volTest2Snap");
-
-            System.out.println("name : " + snapResult.getName() + " id: " + snapResult.getId());
+            restClient.snapshotMultiVolume(map, restClient.getSystemId());
 
         } catch (Exception e) {
             e.printStackTrace();

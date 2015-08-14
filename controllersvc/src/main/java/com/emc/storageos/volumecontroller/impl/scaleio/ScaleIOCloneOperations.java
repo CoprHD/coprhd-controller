@@ -12,8 +12,8 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
-import com.emc.storageos.scaleio.api.ScaleIOHandle;
-import com.emc.storageos.scaleio.api.ScaleIOSnapshotVolumeResult;
+import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSnapshotVolumeResponse;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.CloneOperations;
@@ -44,27 +44,21 @@ public class ScaleIOCloneOperations implements CloneOperations {
     public void createSingleClone(StorageSystem storageSystem, URI sourceVolume, URI cloneVolume, Boolean createInactive,
             TaskCompleter taskCompleter) {
         try {
-            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storageSystem);
+            ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storageSystem);
 
             Volume cloneObj = dbClient.queryObject(Volume.class, cloneVolume);
             BlockObject parent = BlockObject.fetch(dbClient, sourceVolume);
 
             String systemId = scaleIOHandle.getSystemId();
             // Note: ScaleIO snapshots can be treated as full copies, hence re-use of #snapshotVolume here.
-            ScaleIOSnapshotVolumeResult result = scaleIOHandle.snapshotVolume(parent.getNativeId(), cloneObj.getLabel(), systemId);
-
-            if (result.isSuccess()) {
-                ScaleIOHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, cloneObj, systemId, result);
+            ScaleIOSnapshotVolumeResponse result = scaleIOHandle.snapshotVolume(parent.getNativeId(), cloneObj.getLabel(), systemId);
+            String nativeId = result.getVolumeIdList().get(0);
+            ScaleIOHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, cloneObj, systemId, nativeId);
                 // Snapshots result does not provide capacity info, so we need to perform a --query_all_volumes
-                updateCloneFromQueryAllVolumes(scaleIOHandle, cloneObj);
-                dbClient.persistObject(cloneObj);
-                ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, cloneObj);
-                taskCompleter.ready(dbClient);
-            } else {
-                ServiceCoded code = DeviceControllerErrors.scaleio.createFullCopyError(parent.getLabel(),
-                        cloneObj.getLabel(), result.getErrorString());
-                taskCompleter.error(dbClient, code);
-            }
+            updateCloneFromQueryAllVolumes(scaleIOHandle, cloneObj);
+            dbClient.persistObject(cloneObj);
+            ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, cloneObj);
+            taskCompleter.ready(dbClient);
         } catch (Exception e) {
             Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
             if (clone != null) {
@@ -95,7 +89,7 @@ public class ScaleIOCloneOperations implements CloneOperations {
         // Not supported
     }
 
-    private void updateCloneFromQueryAllVolumes(ScaleIOHandle scaleIOHandle, Volume cloneObj) throws Exception {
+    private void updateCloneFromQueryAllVolumes(ScaleIORestClient scaleIOHandle, Volume cloneObj) throws Exception {
 
         try {
             ScaleIOVolume vol = scaleIOHandle.queryVolume(cloneObj.getNativeId());

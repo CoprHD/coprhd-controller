@@ -6,7 +6,6 @@
 package com.emc.storageos.volumecontroller.impl.plugins;
 
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -15,14 +14,14 @@ import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.scaleio.ScaleIOException;
-import com.emc.storageos.scaleio.api.ScaleIOAttributes;
-import com.emc.storageos.scaleio.api.ScaleIOContants;
-import com.emc.storageos.scaleio.api.ScaleIOHandle;
-import com.emc.storageos.scaleio.api.ScaleIOQueryAllResult;
-import com.emc.storageos.scaleio.api.ScaleIOQueryAllSCSIInitiatorsResult;
-import com.emc.storageos.scaleio.api.ScaleIOQueryAllSDCResult;
-import com.emc.storageos.scaleio.api.ScaleIOQueryAllSDSResult;
-import com.emc.storageos.scaleio.api.ScaleIOQueryClusterResult;
+import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOProtectionDomain;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDC;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDS;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDS.IP;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOScsiInitiator;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOStoragePool;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSystem;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
@@ -79,28 +78,28 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
         StorageProvider provider = _dbClient.queryObject(StorageProvider.class, accessProfile.getSystemId());
         _locker.acquireLock(accessProfile.getIpAddress(), LOCK_WAIT_SECONDS);
         try {
-            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(_dbClient).getClientHandle(provider);
+            ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(_dbClient).getClientHandle(provider);
             if (scaleIOHandle != null) {
                 Map<String, StorageSystemViewObject> storageSystemsCache = accessProfile.getCache();
-
-                ScaleIOQueryClusterResult clusterResult = scaleIOHandle.queryClusterCommand();
+                ScaleIOSystem sioSystem = scaleIOHandle.getSystem();
+                
                 StringSet secondaryIps = new StringSet();
-                secondaryIps.add(clusterResult.getSecondaryIP());
+                secondaryIps.add(sioSystem.getSecondaryMdmActorIpList()[0]);
                 provider.setSecondaryIps(secondaryIps);
 
-                ScaleIOQueryAllResult queryAllResult = scaleIOHandle.queryAll();
                 String scaleIOType = StorageSystem.Type.scaleio.name();
-                String installationId = queryAllResult.getProperty(ScaleIOContants.SCALEIO_INSTALLATION_ID);
-                String version = queryAllResult.getProperty(ScaleIOContants.SCALEIO_VERSION).replaceAll("_", ".");
+                String installationId = sioSystem.getInstallId();
+                String version = sioSystem.getVersion().replaceAll("_", ".");
                 String minimumSupported = VersionChecker.getMinimumSupportedVersion(StorageSystem.Type.scaleio);
                 String compatibility = (VersionChecker.verifyVersionDetails(minimumSupported, version) < 0) ?
                         StorageSystem.CompatibilityStatus.INCOMPATIBLE.name() :
                         StorageSystem.CompatibilityStatus.COMPATIBLE.name();
                 provider.setCompatibilityStatus(compatibility);
                 provider.setVersionString(version);
-                for (String protectionDomain : queryAllResult.getProtectionDomainNames()) {
-                    log.info("For ScaleIO instance {}, found ProtectionDomain {}", installationId, protectionDomain);
-                    String id = String.format("%s+%s", installationId, protectionDomain);
+                List<ScaleIOProtectionDomain> protectionDomains = scaleIOHandle.getProtectionDomains();
+                for (ScaleIOProtectionDomain protectionDomain : protectionDomains) {
+                    log.info("For ScaleIO instance {}, found ProtectionDomain {}", installationId, protectionDomain.getName());
+                    String id = String.format("%s+%s", installationId, protectionDomain.getName());
                     String nativeGuid = generateNativeGuid(scaleIOType, id);
                     StorageSystemViewObject viewObject = storageSystemsCache.get(nativeGuid);
                     if (viewObject == null) {
@@ -134,20 +133,21 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
         log.info("Starting discovery of ScaleIO StorageProvider. IP={} StorageSystem {}",
                 accessProfile.getIpAddress(), storageSystem.getNativeGuid());
         try {
-            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(_dbClient).getClientHandle(storageSystem);
+            ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(_dbClient).getClientHandle(storageSystem);
             if (scaleIOHandle != null) {
-                ScaleIOQueryAllResult queryAllResult = scaleIOHandle.queryAll();
-                ScaleIOQueryAllSDCResult queryAllSDCResult = scaleIOHandle.queryAllSDC();
-                ScaleIOQueryAllSDSResult queryAllSDSResult = scaleIOHandle.queryAllSDS();
-                ScaleIOQueryAllSCSIInitiatorsResult queryAllSCSIInitiatorsResult = scaleIOHandle.queryAllSCSIInitiators();
+                ScaleIOSystem sioSystem = scaleIOHandle.getSystem();
+                List<ScaleIOProtectionDomain> protectionDomains = scaleIOHandle.getProtectionDomains();
+                List<ScaleIOSDC> allSDCs = scaleIOHandle.queryAllSDC();
+                List<ScaleIOSDS> allSDSs = scaleIOHandle.queryAllSDS();
+                List<ScaleIOScsiInitiator> allSCSIInitiators = scaleIOHandle.queryAllSCSIInitiators();
 
                 List<StoragePort> ports = new ArrayList<>();
                 List<StoragePool> newPools = new ArrayList<StoragePool>();
                 List<StoragePool> updatePools = new ArrayList<StoragePool>();
                 List<StoragePool> allPools = new ArrayList<StoragePool>();
                 String scaleIOType = StorageSystem.Type.scaleio.name();
-                String installationId = queryAllResult.getProperty(ScaleIOContants.SCALEIO_INSTALLATION_ID);
-                String version = queryAllResult.getProperty(ScaleIOContants.SCALEIO_VERSION).replaceAll("_", ".");
+                String installationId = sioSystem.getInstallId();
+                String version = sioSystem.getVersion().replaceAll("_", ".");
                 String minimumSupported = VersionChecker.getMinimumSupportedVersion(StorageSystem.Type.scaleio);
                 String compatibility = (VersionChecker.verifyVersionDetails(minimumSupported, version) < 0) ?
                         StorageSystem.CompatibilityStatus.INCOMPATIBLE.name() :
@@ -157,42 +157,49 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                 storageSystem.setReachableStatus(true);
                 storageSystem.setLabel(storageSystem.getNativeGuid());
 
-                boolean isSIO1_3x = version.matches("1\\.3[\\.\\d+]+");
-
-                for (String protectionDomain : queryAllResult.getProtectionDomainNames()) {
-                    String id = String.format("%s+%s", installationId, protectionDomain);
+                for (ScaleIOProtectionDomain protectionDomain : protectionDomains) {
+                    String domainName = protectionDomain.getName();
+                    String id = String.format("%s+%s", installationId, domainName);
                     String storageSystemNativeGUID = generateNativeGuid(scaleIOType, id);
                     if (!storageSystemNativeGUID.equals(storageSystem.getNativeGuid())) {
                         // This is not the ProtectionDomain that we're looking for
                         continue;
                     }
                    
-                    String protectionDomainId = queryAllResult.getProtectionDomainId(protectionDomain);
+                    String protectionDomainId = protectionDomain.getId();
                     storageSystem.setSerialNumber(protectionDomainId);
                    
                     Network network = createNetwork(installationId);
+                    List<ScaleIOSDS> sdsList = new ArrayList<ScaleIOSDS>();
+                    for (ScaleIOSDS sds : allSDSs) {
+                        String pdId = sds.getProtectionDomainId();
+                        if (pdId.equals(protectionDomainId)) {
+                            sdsList.add(sds);
+                        }
+                    }
                     List<StoragePort> thesePorts =
-                            createStoragePorts(storageSystem, compatibility, network, queryAllSDSResult, protectionDomain);
+                            createStoragePorts(storageSystem, compatibility, network, sdsList, domainName);
                     ports.addAll(thesePorts);
-                    createHost(network, queryAllSDCResult);
+                    createHost(network, allSDCs);
                     boolean hasSCSIInitiators =
-                            createSCSIInitiatorsAndStoragePorts(storageSystem, protectionDomain, compatibilityStatus,
-                                    installationId, queryAllSCSIInitiatorsResult, queryAllSDCResult, ports);
+                            createSCSIInitiatorsAndStoragePorts(storageSystem, domainName, compatibilityStatus,
+                                    installationId, allSCSIInitiators, allSDCs, ports);
                     List<StoragePort> notVisiblePorts = DiscoveryUtils.checkStoragePortsNotVisible(ports, _dbClient,
                             storageSystem.getId());
                     if (notVisiblePorts != null && !notVisiblePorts.isEmpty()) {
                         ports.addAll(notVisiblePorts);
                     }
                     Set<String> supportedProtocols = (hasSCSIInitiators) ? SCALEIO_AND_ISCSI : SCALEIO_ONLY;
-                    for (String storagePool : queryAllResult.getStoragePoolsForProtectionDomain(protectionDomain)) {
-                        String poolName = queryAllResult.getStoragePoolProperty(protectionDomain, storagePool, ScaleIOContants.NAME);
+                    List<ScaleIOStoragePool> storagePools = scaleIOHandle.getProtectionDomainStoragePools(protectionDomainId);
+                    for (ScaleIOStoragePool storagePool : storagePools) {
+                        String poolName = storagePool.getName();
                         String nativeGuid = String.format("%s-%s-%s", installationId, protectionDomain, poolName);
-                        log.info("Attempting to discover pool {} for ProtectionDomain {}", storagePool, protectionDomain);
+                        log.info("Attempting to discover pool {} for ProtectionDomain {}", poolName, domainName);
                         List<StoragePool> pools =
                                 queryActiveResourcesByAltId(_dbClient, StoragePool.class, "nativeGuid", nativeGuid);
                         StoragePool pool = null;
                         if (pools.isEmpty()) {
-                            log.info("Pool {} is new", storagePool);
+                            log.info("Pool {} is new", poolName);
                             pool = new StoragePool();
                             pool.setId(URIUtil.createId(StoragePool.class));
                             pool.setStorageDevice(accessProfile.getSystemId());
@@ -218,23 +225,17 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                             continue;
                         }
                         pool.setPoolName(poolName);
-                        pool.setNativeId(storagePool);
+                        pool.setNativeId(storagePool.getId());
                         pool.setNativeGuid(nativeGuid);
-                        String availableCapacityString = queryAllResult.getStoragePoolProperty(protectionDomain, storagePool,
-                                ScaleIOContants.POOL_AVAILABLE_CAPACITY);
+                        String availableCapacityString = storagePool.getCapacityAvailableForVolumeAllocationInKb();
                         pool.setFreeCapacity(Long.parseLong(availableCapacityString));
-                        String totalCapacityString = queryAllResult.getStoragePoolProperty(protectionDomain, storagePool,
-                                ScaleIOContants.SCALEIO_TOTAL_CAPACITY);
+                        String totalCapacityString = storagePool.getMaxCapacityInKb();
                         pool.setTotalCapacity(Long.parseLong(totalCapacityString));
                         pool.addProtocols(supportedProtocols);
-                        // In case there is an upgrade from SIO 1.2x to SIO 1.30, this will update
-                        // the pool values to the appropriate values
-                        String supportedResourceType = (isSIO1_3x) ?
-                                StoragePool.SupportedResourceTypes.THIN_AND_THICK.name() :
-                                StoragePool.SupportedResourceTypes.THICK_ONLY.name();
-                        pool.setSupportedResourceTypes(supportedResourceType);
-                        Long maxThinSize = (isSIO1_3x) ? 1048576L : 0L;
-                        Long minThinSize = (isSIO1_3x) ? 1L : 0L;
+
+                        pool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THIN_AND_THICK.name());
+                        Long maxThinSize = 1048576L;
+                        Long minThinSize = 1L;
                         pool.setMaximumThinVolumeSize(maxThinSize);
                         pool.setMinimumThinVolumeSize(minThinSize);
                         pool.setInactive(false);
@@ -276,7 +277,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
      * @param network [in] Network object to associated the hosts' initiator ports
      * @param queryAllSDCResult [in] - SDC query result
      */
-    private void createHost(Network network, ScaleIOQueryAllSDCResult queryAllSDCResult) {
+    private void createHost(Network network, List<ScaleIOSDC> allSDCs) {
         // Find the root tenant and associate any SDC hosts with it
         List<URI> tenantOrgList = _dbClient.queryByType(TenantOrg.class, true);
         Iterator<TenantOrg> it = _dbClient.queryIterativeObjects(TenantOrg.class, tenantOrgList);
@@ -289,10 +290,9 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                 break;
             }
         }
-        for (String id : queryAllSDCResult.getSDCIds()) {
-            ScaleIOAttributes attributes = queryAllSDCResult.getClientInfoById(id);
-            String ip = attributes.get(ScaleIOQueryAllSDCResult.SDC_IP);
-            String guid = attributes.get(ScaleIOQueryAllSDCResult.SDC_GUID);
+        for (ScaleIOSDC sdc : allSDCs) {
+            String ip = sdc.getSdcIp();
+            String guid = sdc.getSdcGuid();
 
             // First we search by nativeGuid
             Host host = findByNativeGuid(guid);
@@ -305,7 +305,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
             // Create an single initiator for this SDC. If the initiator has already been
             // created, the existing Initiator will be returned. Associate the initiator
             // with the network
-            Initiator initiator = createInitiator(host, ip, id);
+            Initiator initiator = createInitiator(host, ip, sdc.getId());
             if (!network.hasEndpoint(initiator.getInitiatorPort())) {
                 initiatorsToAddToNetwork.add(initiator.getInitiatorPort());
             }
@@ -435,16 +435,17 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
     private boolean createSCSIInitiatorsAndStoragePorts(StorageSystem storageSystem, String protectionDomainName,
             DiscoveredDataObject.CompatibilityStatus compatibilityStatus,
             String installationId,
-            ScaleIOQueryAllSCSIInitiatorsResult queryAllSCSIInitiatorsResult,
-            ScaleIOQueryAllSDCResult queryAllSDCResult, List<StoragePort> ports) throws IOException {
+            List<ScaleIOScsiInitiator> allSCSIInitiators,
+            List<ScaleIOSDC> allSDCs, List<StoragePort> ports) throws IOException {
         boolean hasSCSIInitiators = false;
-        if (queryAllSCSIInitiatorsResult != null && !queryAllSCSIInitiatorsResult.getAllInitiatorIds().isEmpty()) {
+        if (allSDCs != null && allSCSIInitiators != null && !allSCSIInitiators.isEmpty()) {
             List<String> initiatorsToAddToNetwork = new ArrayList<>();
             String networkId = String.format("%s-IP", installationId);
             Network networkForSCSIInitiators = createIPNetworkForSCSIInitiators(networkId);
 
-            for (String iqn : queryAllSCSIInitiatorsResult.getAllInitiatorIds()) {
-                String id = queryAllSCSIInitiatorsResult.getInitiator(iqn).get(queryAllSCSIInitiatorsResult.INITIATOR_ID);
+            for (ScaleIOScsiInitiator scsiInit : allSCSIInitiators) {
+                String id = scsiInit.getId();
+                String iqn = scsiInit.getIqn();
                 Initiator initiator = createSCSIInitiator(iqn, id);
                 if (!networkForSCSIInitiators.hasEndpoint(initiator.getInitiatorPort())) {
                     initiatorsToAddToNetwork.add(initiator.getInitiatorPort());
@@ -459,7 +460,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
 
             List<StoragePort> iSCSIPorts =
                     createSCSIStoragePorts(storageSystem, protectionDomainName, compatibilityStatus,
-                            networkForSCSIInitiators, queryAllSDCResult);
+                            networkForSCSIInitiators, allSDCs);
             ports.addAll(iSCSIPorts);
         }
         return hasSCSIInitiators;
@@ -555,14 +556,18 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
      * @param protectionDomainName [in] - Protection Domain name
      */
     private List<StoragePort> createStoragePorts(StorageSystem storageSystem, String compatibilityStatus, Network network,
-            ScaleIOQueryAllSDSResult queryAllSDSResult,
-            String protectionDomainName) throws IOException {
+            List<ScaleIOSDS> allSDSs, String protectionDomainName) throws IOException {
         List<StoragePort> ports = new ArrayList<>();
         List<String> endpoints = new ArrayList<>();
-        String id = queryAllSDSResult.getProtectionDomainId(protectionDomainName);
-        for (ScaleIOAttributes attributes : queryAllSDSResult.getSDSForProtectionDomain(id)) {
-            String sdsId = attributes.get(ScaleIOQueryAllSDSResult.SDS_ID);
-            String sdsIP = attributes.get(ScaleIOQueryAllSDSResult.SDS_IP);
+        //String id = protectionDomain.getId();
+        for (ScaleIOSDS sds : allSDSs) {
+            String sdsId = sds.getId();
+            List<IP> ips = sds.getIpList();
+            String sdsIP = null;
+            if (ips != null && ips.size() > 0) {
+                sdsIP = ips.get(0).getIp();
+            }
+            
             StoragePort port;
             List<StoragePort> results = CustomQueryUtility.
                     queryActiveResourcesByAltId(_dbClient, StoragePort.class, "portNetworkId", sdsId);
@@ -629,15 +634,14 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
      */
     private List<StoragePort> createSCSIStoragePorts(StorageSystem storageSystem, String protectionDomainName,
             DiscoveredDataObject.CompatibilityStatus compatibilityStatus,
-            Network network, ScaleIOQueryAllSDCResult queryAllSDCResult)
+            Network network, List<ScaleIOSDC> allSDCs)
             throws IOException {
         List<StoragePort> ports = new ArrayList<>();
         List<String> endpoints = new ArrayList<>();
         String fixedProtectionDomainName = protectionDomainName.replaceAll("\\s+", "").toLowerCase();
-        for (String sdcId : queryAllSDCResult.getSDCIds()) {
-            ScaleIOAttributes attributes = queryAllSDCResult.getClientInfoById(sdcId);
-            String sdcGUID = attributes.get(ScaleIOQueryAllSDCResult.SDC_GUID);
-            String sdcIP = attributes.get(ScaleIOQueryAllSDCResult.SDC_IP);
+        for (ScaleIOSDC sdc : allSDCs) {
+            String sdcGUID = sdc.getSdcGuid();
+            String sdcIP = sdc.getSdcIp();
             String generatedTargetName = String.format("iqn.2010-12.com.ecs.%s:%s", fixedProtectionDomainName,
                     sdcGUID.toLowerCase());
             StoragePort port;

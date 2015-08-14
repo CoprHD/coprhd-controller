@@ -21,9 +21,10 @@ import java.util.Set;
 
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.scaleio.api.*;
+import com.emc.storageos.scaleio.ScaleIOException;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import org.slf4j.Logger;
@@ -64,7 +65,6 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDevice.class);
     private static final String VOLUME_NOT_MAPPED_TO_SDC = "Volume not mapped to SDC";
     private static final String VOLUME_NOT_MAPPED_TO_SCSI = "Volume not mapped to SCSI Initiator";
-    private static final String VOLUME_NOT_FOUND = "Volume not found";
     private static final String ALREADY_MAPPED_TO = "already mapped to";
 
     private static volatile ScaleIOStorageDevice instance;
@@ -125,8 +125,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
                 String nextIp = null;
                 do {
                     try {
-                        ScaleIOHandle handle = scaleIOHandleFactory.using(dbClient).getClientHandle(provider);
-                        handle.queryClusterCommand();  // Ignore the result on success, otherwise catch the exception
+                        ScaleIORestClient handle = scaleIOHandleFactory.using(dbClient).getClientHandle(provider);
+                        handle.getSystem();  // Ignore the result on success, otherwise catch the exception
                         log.info("Successfully connected to ScaleIO MDM {}: {}", provider.getIPAddress(), provider.getId());
                         success = true;
                         break;
@@ -180,13 +180,10 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             TaskCompleter taskCompleter) throws DeviceControllerException {
         int index = 1;
         try {
-            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
-            String errorMessage = null;
-            boolean anyFailures = false;
+            ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
             String protectionDomainName = storage.getSerialNumber();
             Long volumeSize = capabilities.getSize() / ScaleIOHelper.BYTES_IN_GB;
             int count = volumes.size();
-            String failedVolumeName = null;
             Set<URI> poolsToUpdate = new HashSet<>();
             boolean thinlyProvisioned = capabilities.getThinProvisioning();
             Set<URI> consistencyGroups = new HashSet<>();
@@ -196,22 +193,16 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
                 Volume volume = volumes.get(index - 1);
                 Long size = capabilities.getSize();
                 String poolId = storagePool.getNativeId();
-                ScaleIOAddVolumeResult result = scaleIOHandle.addVolume(protectionDomainName, poolId, volume.getLabel(),
+                ScaleIOVolume result = scaleIOHandle.addVolume(protectionDomainName, poolId, volume.getLabel(),
                         size.toString(), thinlyProvisioned);
                 
-                if (result.isSuccess()) {
-                    ScaleIOHelper.updateVolumeWithAddVolumeInfo(dbClient, volume, systemId, volumeSize, result);
-                    poolsToUpdate.add(volume.getPool());
-                    if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
-                        consistencyGroups.add(volume.getConsistencyGroup());
-                    }
-                    poolToVolumesMap.put(volume.getPool(), volume.getId().toString());
-                } else {
-                    anyFailures = true;
-                    failedVolumeName = volume.getLabel();
-                    errorMessage = result.errorString();
-                    break;
+                ScaleIOHelper.updateVolumeWithAddVolumeInfo(dbClient, volume, systemId, volumeSize, result);
+                poolsToUpdate.add(volume.getPool());
+                if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                    consistencyGroups.add(volume.getConsistencyGroup());
                 }
+                poolToVolumesMap.put(volume.getPool(), volume.getId().toString());
+                
             }
 
             updateConsistencyGroupsWithStorageSystem(consistencyGroups, storage);
@@ -222,20 +213,9 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
                 ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, pool, storage);
             }
 
-            if (anyFailures) {
-                // There are failures, so for any remaining volumes for which
-                // addVolume was not attempted, set their inActive status to true.
-                for (int cleanup = index; cleanup <= count; cleanup++) {
-                    volumes.get(cleanup - 1).setInactive(true);
-                }
-            }
             dbClient.persistObject(volumes);
-            if (!anyFailures) {
-                taskCompleter.ready(dbClient);
-            } else {
-                ServiceCoded code = DeviceControllerErrors.scaleio.createVolumeError(failedVolumeName, errorMessage);
-                taskCompleter.error(dbClient, code);
-            }
+            taskCompleter.ready(dbClient);
+            
         } catch (Exception e) {
             log.error("Encountered an exception", e);
             for (int cleanup = index; cleanup <= volumes.size(); cleanup++) {
@@ -269,23 +249,17 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             throws DeviceControllerException {
         Long volumeSize = size / ScaleIOHelper.BYTES_IN_GB;
         try {
-            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
-            ScaleIOModifyVolumeCapacityResult result = scaleIOHandle.modifyVolumeCapacity(volume.getNativeId(), volumeSize.toString());
-            if (result.isSuccess()) {
-                long newSize = Long.parseLong(result.getNewCapacity());
-                volume.setProvisionedCapacity(size);
-                volume.setAllocatedCapacity(newSize);
-                volume.setCapacity(size);
-
-                dbClient.persistObject(volume);
-                ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, pool, storage);
-                pool.removeReservedCapacityForVolumes(Arrays.asList(volume.getId().toString()));
-                taskCompleter.ready(dbClient);
-            } else {
-                ServiceCoded code =
-                        DeviceControllerErrors.scaleio.modifyCapacityFailed(volume.getNativeId(), result.getErrorString());
-                taskCompleter.error(dbClient, code);
-            }
+            ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
+            ScaleIOVolume result = scaleIOHandle.modifyVolumeCapacity(volume.getNativeId(), volumeSize.toString());
+            long newSize = Long.parseLong(result.getSizeInKb()) * 1024L;
+            volume.setProvisionedCapacity(newSize);
+            volume.setAllocatedCapacity(newSize);
+            volume.setCapacity(size);  
+            dbClient.persistObject(volume);
+            ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, pool, storage);
+            pool.removeReservedCapacityForVolumes(Arrays.asList(volume.getId().toString()));
+            taskCompleter.ready(dbClient);
+            
         } catch (Exception e) {
             log.error("Encountered an exception", e);
             ServiceCoded code =
@@ -306,24 +280,15 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     public void doDeleteVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes, TaskCompleter completer)
             throws DeviceControllerException {
         try {
-            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storageSystem);
-            boolean anyFailures = false;
-            String failedVolumeName = null;
-            String errorMessage = null;
+            ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storageSystem);
             Set<URI> poolsToUpdate = new HashSet<>();
 
             for (Volume volume : volumes) {
-                ScaleIORemoveVolumeResult result = scaleIOHandle.removeVolume(volume.getNativeId());
-                if (result.isSuccess() || result.errorString().contains(VOLUME_NOT_FOUND)) {
-                    volume.setInactive(true);
-                    poolsToUpdate.add(volume.getPool());
-                    if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
-                        volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                    }
-                } else {
-                    anyFailures = true;
-                    failedVolumeName = volume.getLabel();
-                    errorMessage = result.errorString();
+                scaleIOHandle.removeVolume(volume.getNativeId());
+                volume.setInactive(true);
+                poolsToUpdate.add(volume.getPool());
+                if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                    volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                 }
             }
             dbClient.persistObject(volumes);
@@ -332,13 +297,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             for (StoragePool pool : pools) {
                 ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, pool, storageSystem);
             }
-
-            if (!anyFailures) {
-                completer.ready(dbClient);
-            } else {
-                ServiceCoded code = DeviceControllerErrors.scaleio.deleteVolumeError(failedVolumeName, errorMessage);
-                completer.error(dbClient, code);
-            }
+            completer.ready(dbClient);
+            
         } catch (Exception e) {
             log.error("Encountered an exception", e);
             ServiceCoded code =
@@ -664,7 +624,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     private void mapVolumes(StorageSystem storage, Map<URI, Integer> volumeMap, Collection<Initiator> initiators,
             TaskCompleter completer) {
         try {
-            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
+            ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
             for (Map.Entry<URI, Integer> volMapEntry : volumeMap.entrySet()) {
                 BlockObject blockObject = BlockObject.fetch(dbClient, volMapEntry.getKey());
                 String nativeId = blockObject.getNativeId();
@@ -697,36 +657,37 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
-    private boolean mapToSDC(ScaleIOHandle scaleIOHandle, String volumeId, String sdcId, TaskCompleter completer) throws Exception {
-        ScaleIOMapVolumeToSDCResult mapVolumeToSDCResult = scaleIOHandle.mapVolumeToSDC(volumeId, sdcId);
-        if (!mapVolumeToSDCResult.isSuccess() &&
-                !mapVolumeToSDCResult.getErrorString().contains(ALREADY_MAPPED_TO)) {
-            String errorString = mapVolumeToSDCResult.getErrorString();
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.mapVolumeToClientFailed(volumeId, sdcId, errorString);
-            completer.error(dbClient, code);
-            return false;
+    private boolean mapToSDC(ScaleIORestClient scaleIOHandle, String volumeId, String sdcId, TaskCompleter completer) throws Exception {
+        try {
+            scaleIOHandle.mapVolumeToSDC(volumeId, sdcId);
+        } catch (ScaleIOException e) {
+            String error = e.getMessage();
+            log.info(error);
+            if (!error.contains(ALREADY_MAPPED_TO)) {
+                ServiceCoded code =
+                        DeviceControllerErrors.scaleio.mapVolumeToClientFailed(volumeId, sdcId, error);
+                completer.error(dbClient, code);
+                return false;
+            }
         }
-
+        
         return true;
     }
 
-    private boolean mapToSCSI(ScaleIOHandle scaleIOHandle, String volumeId, String iqn, String scsiId, TaskCompleter completer)
+    private boolean mapToSCSI(ScaleIORestClient scaleIOHandle, String volumeId, String iqn, String scsiId, TaskCompleter completer)
             throws Exception {
-        ScaleIOMapVolumeToSCSIInitiatorResult mapVolumeToScsiResult = null;
-        if (scaleIOHandle instanceof ScaleIORestClient) {
-            mapVolumeToScsiResult = scaleIOHandle.mapVolumeToSCSIInitiator(volumeId, scsiId);
-        } else {
-            mapVolumeToScsiResult = scaleIOHandle.mapVolumeToSCSIInitiator(volumeId, iqn);
+        try {
+            scaleIOHandle.mapVolumeToSCSIInitiator(volumeId, scsiId);
+        } catch (Exception e) {
+            String error = e.getMessage();
+            if (!error.contains(ALREADY_MAPPED_TO)) {
+                ServiceCoded code =
+                        DeviceControllerErrors.scaleio.mapVolumeToClientFailed(volumeId, iqn, error);
+                completer.error(dbClient, code);
+                return false;
+            }
         }
-        if (!mapVolumeToScsiResult.isSuccess() &&
-                !mapVolumeToScsiResult.getErrorString().contains(ALREADY_MAPPED_TO)) {
-            String errorString = mapVolumeToScsiResult.getErrorString();
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.mapVolumeToClientFailed(volumeId, iqn, errorString);
-            completer.error(dbClient, code);
-            return false;
-        }
+        
         return true;
     }
 
@@ -742,7 +703,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     private void unmapVolumes(StorageSystem storage, Collection<URI> volumeURIs, Collection<Initiator> initiators,
             TaskCompleter completer) {
         try {
-            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
+            ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
             for (URI volumeURI : volumeURIs) {
                 BlockObject blockObject = BlockObject.fetch(dbClient, volumeURI);
                 if (blockObject == null || blockObject.getInactive()) {
@@ -780,35 +741,32 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
-    private boolean unmapFromSDC(ScaleIOHandle scaleIOHandle, String volumeId, String sdcId, TaskCompleter completer) throws Exception {
-        ScaleIOUnMapVolumeToSDCResult unMapVolumeToSDCResult = scaleIOHandle.unMapVolumeToSDC(volumeId, sdcId);
-        if (!unMapVolumeToSDCResult.isSuccess() &&
-                !unMapVolumeToSDCResult.getErrorString().contains(VOLUME_NOT_MAPPED_TO_SDC)) {
-            String errorString = unMapVolumeToSDCResult.getErrorString();
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.unmapVolumeToClientFailed(volumeId, sdcId, errorString);
-            completer.error(dbClient, code);
-            return false;
+    private boolean unmapFromSDC(ScaleIORestClient scaleIOHandle, String volumeId, String sdcId, TaskCompleter completer) {
+        try {
+            scaleIOHandle.unMapVolumeToSDC(volumeId, sdcId);
+        } catch (Exception e) {
+            String error = e.getMessage();
+            if (!error.contains(VOLUME_NOT_MAPPED_TO_SDC)) {
+                ServiceCoded code =
+                        DeviceControllerErrors.scaleio.unmapVolumeToClientFailed(volumeId, sdcId, error);
+                completer.error(dbClient, code);
+                return false;
+            }
         }
-
         return true;
     }
 
-    private boolean unmapFromSCSI(ScaleIOHandle scaleIOHandle, String volumeId, String iqn, String scsiId, TaskCompleter completer)
-            throws Exception {
-        ScaleIOUnMapVolumeFromSCSIInitiatorResult unMapVolumeToScsiResult = null;
-        if (scaleIOHandle instanceof ScaleIORestClient) {
-            unMapVolumeToScsiResult = scaleIOHandle.unMapVolumeFromSCSIInitiator(volumeId, scsiId);
-        } else {
-            unMapVolumeToScsiResult = scaleIOHandle.unMapVolumeFromSCSIInitiator(volumeId, iqn);
-        }
-        if (!unMapVolumeToScsiResult.isSuccess() &&
-                !unMapVolumeToScsiResult.getErrorString().contains(VOLUME_NOT_MAPPED_TO_SCSI)) {
-            String errorString = unMapVolumeToScsiResult.getErrorString();
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.unmapVolumeToClientFailed(volumeId, iqn, errorString);
-            completer.error(dbClient, code);
-            return false;
+    private boolean unmapFromSCSI(ScaleIORestClient scaleIOHandle, String volumeId, String iqn, String scsiId, TaskCompleter completer) {
+        try {
+            scaleIOHandle.unMapVolumeFromSCSIInitiator(volumeId, scsiId);
+        } catch (Exception e) {
+            String error = e.getMessage();
+            if (!error.contains(VOLUME_NOT_MAPPED_TO_SCSI)) {
+                ServiceCoded code =
+                        DeviceControllerErrors.scaleio.unmapVolumeToClientFailed(volumeId, iqn, error);
+                completer.error(dbClient, code);
+                return false;
+            }
         }
         return true;
     }

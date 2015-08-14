@@ -10,10 +10,13 @@
  */
 package com.emc.storageos.scaleio.api.restapi.request;
 
+import org.codehaus.jackson.map.annotate.JsonSerialize;
+
 /**
  * Parameters to map a volume to SDC
  * 
  */
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class ScaleIOMapVolumeToSDC {
     private String sdcId;
     private String allowMultipleMappings;

@@ -82,11 +82,12 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
             if (scaleIOHandle != null) {
                 Map<String, StorageSystemViewObject> storageSystemsCache = accessProfile.getCache();
                 ScaleIOSystem sioSystem = scaleIOHandle.getSystem();
-                
-                StringSet secondaryIps = new StringSet();
-                secondaryIps.add(sioSystem.getSecondaryMdmActorIpList()[0]);
-                provider.setSecondaryIps(secondaryIps);
-
+                String[] ipList = sioSystem.getSecondaryMdmActorIpList();
+                if (ipList != null && ipList.length >0) {
+                    StringSet secondaryIps = new StringSet();
+                    secondaryIps.add(ipList[0]);
+                    provider.setSecondaryIps(secondaryIps);
+                }
                 String scaleIOType = StorageSystem.Type.scaleio.name();
                 String installationId = sioSystem.getInstallId();
                 String version = sioSystem.getVersion().replaceAll("_", ".");
@@ -564,7 +565,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
             String sdsId = sds.getId();
             List<IP> ips = sds.getIpList();
             String sdsIP = null;
-            if (ips != null && ips.size() > 0) {
+            if (ips != null && !ips.isEmpty()) {
                 sdsIP = ips.get(0).getIp();
             }
             

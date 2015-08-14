@@ -67,13 +67,11 @@ public class ScaleIORestClient extends StandardRestClient {
 
     /**
      * Constructor
-     * 
-     * @param client
-     *            A reference to a Jersey Apache HTTP client.
-     * @param username
-     *            The user to be authenticated.
-     * @param password
-     *            The user password for authentication.
+     * @param factory A reference to the ScaleIORestClientFactory
+     * @param baseURI the base URI to connect to ScaleIO Gateway
+     * @param client A reference to a Jersey Apache HTTP client.
+     * @param username The MDM usernam.
+     * @param password The MDM user password.
      */
     public ScaleIORestClient(ScaleIORestClientFactory factory, URI baseURI, String username, String password, Client client) {
         _client = client;
@@ -94,10 +92,6 @@ public class ScaleIORestClient extends StandardRestClient {
 
     public String init() throws Exception {
         String version = getVersion();
-        List<ScaleIOProtectionDomain> domains = getProtectionDomains();
-        for (ScaleIOProtectionDomain domain : domains) {
-            protectionDomainMap.put(domain.getId(), domain.getName());
-        }
         return version;
     }
 
@@ -192,7 +186,6 @@ public class ScaleIORestClient extends StandardRestClient {
         ClientResponse response = post(URI.create(ScaleIOConstants.VOLUMES_URI), getJsonForEntity(volume));
         ScaleIOVolume createdVol = getResponseObject(ScaleIOVolume.class, response);
         return queryVolume(createdVol.getId());
-
     }
 
     /**
@@ -272,7 +265,6 @@ public class ScaleIORestClient extends StandardRestClient {
         mapParm.setSdcId(sdcId);
         mapParm.setAllowMultipleMappings("TRUE");
         post(URI.create(uri), getJsonForEntity(mapParm));
-
     }
 
     /**
@@ -288,7 +280,6 @@ public class ScaleIORestClient extends StandardRestClient {
         unmapParm.setSdcId(sdcId);
         unmapParm.setIgnoreScsiInitiators("TRUE");
         post(URI.create(uri), getJsonForEntity(unmapParm));
-
     }
 
     /**

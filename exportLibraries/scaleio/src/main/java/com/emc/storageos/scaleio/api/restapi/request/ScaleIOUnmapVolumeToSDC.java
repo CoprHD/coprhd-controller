@@ -10,10 +10,13 @@
  */
 package com.emc.storageos.scaleio.api.restapi.request;
 
+import org.codehaus.jackson.map.annotate.JsonSerialize;
+
 /**
  * Parameters to unmap volume
  * 
  */
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class ScaleIOUnmapVolumeToSDC {
     private String sdcId;
     private String ignoreScsiInitiators;

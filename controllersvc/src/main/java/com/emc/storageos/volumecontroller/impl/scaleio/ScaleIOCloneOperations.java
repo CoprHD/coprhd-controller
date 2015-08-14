@@ -44,17 +44,15 @@ public class ScaleIOCloneOperations implements CloneOperations {
             TaskCompleter taskCompleter) {
         try {
             ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storageSystem);
-
             Volume cloneObj = dbClient.queryObject(Volume.class, cloneVolume);
             BlockObject parent = BlockObject.fetch(dbClient, sourceVolume);
-
             String systemId = scaleIOHandle.getSystemId();
             // Note: ScaleIO snapshots can be treated as full copies, hence re-use of #snapshotVolume here.
             ScaleIOSnapshotVolumeResponse result = scaleIOHandle.snapshotVolume(parent.getNativeId(), cloneObj.getLabel(), systemId);
             String nativeId = result.getVolumeIdList().get(0);
             ScaleIOHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, cloneObj, systemId, nativeId);
-            // Snapshots result does not provide capacity info, so we need to perform a --query_all_volumes
-            updateCloneFromQueryAllVolumes(scaleIOHandle, cloneObj);
+            // Snapshots result does not provide capacity info, so we need to perform a queryVolume
+            updateCloneFromQueryVolume(scaleIOHandle, cloneObj);
             dbClient.persistObject(cloneObj);
             ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, cloneObj);
             taskCompleter.ready(dbClient);
@@ -88,7 +86,7 @@ public class ScaleIOCloneOperations implements CloneOperations {
         // Not supported
     }
 
-    private void updateCloneFromQueryAllVolumes(ScaleIORestClient scaleIOHandle, Volume cloneObj) throws Exception {
+    private void updateCloneFromQueryVolume(ScaleIORestClient scaleIOHandle, Volume cloneObj) throws Exception {
 
         try {
             ScaleIOVolume vol = scaleIOHandle.queryVolume(cloneObj.getNativeId());

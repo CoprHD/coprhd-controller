@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 
@@ -22,8 +22,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ScaleIOHandleFactory {
     private static final Logger log = LoggerFactory.getLogger(ScaleIOHandleFactory.class);
     private final Map<String, ScaleIORestClient> ScaleIORestClientMap = new ConcurrentHashMap<String, ScaleIORestClient>();
-    private final Map<ScaleIORestClient, String> ScaleIORestClientVersionMap =
-            new ConcurrentHashMap<>();
     private final Object syncObject = new Object();
 
     private DbClient dbClient;
@@ -71,9 +69,7 @@ public class ScaleIOHandleFactory {
                 handle = (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI, provider.getUserName(),
                         provider.getPassword(), true);
                 ScaleIORestClient client = (ScaleIORestClient) handle;
-                String version = client.init();
                 ScaleIORestClientMap.put(provider.getProviderID(), client);
-                ScaleIORestClientVersionMap.put(client, version);
             }
             ScaleIORestClient client = (ScaleIORestClient) handle;
             if (!Strings.isNullOrEmpty(provider.getUserName())) {

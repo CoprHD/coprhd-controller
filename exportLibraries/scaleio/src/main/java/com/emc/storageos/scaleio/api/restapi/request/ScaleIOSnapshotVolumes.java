@@ -19,6 +19,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
  * Parameters to create volume snapshot
  * 
  */
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class ScaleIOSnapshotVolumes {
     private List<ScaleIOSnapshotDef> snapshotDefs = new ArrayList<ScaleIOSnapshotDef>();
 

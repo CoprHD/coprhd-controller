@@ -702,6 +702,17 @@ public class VolumeIngestionUtil {
         return TRUE.equals(status);
     }
 
+    public static boolean isSyncActive(UnManagedVolume volume) {
+        if (null == volume.getVolumeInformation()) {
+            return false;
+        }
+
+        String status = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.IS_SYNC_ACTIVE.toString(), 
+                volume.getVolumeInformation());
+        return TRUE.equals(status);
+    }
+
     /**
      * Determines if the varray specified in the ingestion request is valid for
      * the volume being ingested. Principally applies to VPLEX volumes, which

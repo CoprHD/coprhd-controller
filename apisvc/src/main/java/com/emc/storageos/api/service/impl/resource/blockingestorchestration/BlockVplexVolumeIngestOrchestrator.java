@@ -13,6 +13,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -173,11 +174,33 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                             VolumeIngestionUtil.VOLUME));
                 }
                 
+                // check for snaps and clones
                 List<UnManagedVolume> snapshots = checkForSnapshots(associatedVolumes);
                 // map of front-end clone virtual volume to backend volume clone
-                Map<UnManagedVolume, UnManagedVolume> cloneMap = checkForClones(associatedVolumes, _dbClient, 
+                Map<UnManagedVolume, UnManagedVolume> cloneMap = checkForVvolClones(associatedVolumes, _dbClient, 
                         unManagedVolume.getStorageSystemUri(), deviceToUnManagedVolumeMap);
-                // TODO: add a "checkForPlainClones" method - this above will check for ones with vvols only
+                // TODO: add a "checkForSimpleClones" method - this above will check for ones with vvols only
+                
+                // check for mirrors
+                List<UnManagedVolume> mirrors = new ArrayList<UnManagedVolume>();
+                boolean isSyncActive = false;
+                Iterator<UnManagedVolume> it = associatedVolumes.iterator();
+                while (it.hasNext() && !isSyncActive) {
+                    if (VolumeIngestionUtil.isSyncActive(it.next())){
+                        isSyncActive = true;
+                    }
+                }
+                if (isSyncActive) {
+                    Map<UnManagedVolume, UnManagedVolume> mirrorsMap = 
+                            checkForMirrors(unManagedVolume, associatedVolumes);
+                    if (null != mirrorsMap && !mirrorsMap.isEmpty()) {
+                        for (Entry<UnManagedVolume, UnManagedVolume> entry : mirrorsMap.entrySet()) {
+                            UnManagedVolume mirrorVolume = entry.getValue();
+                            associatedVolumes.remove(mirrorVolume);
+                            mirrors.add(mirrorVolume);
+                        }
+                    }
+                }
                 
                 List<UnManagedVolume> allVolumes = new ArrayList<UnManagedVolume>();
                 allVolumes.addAll(associatedVolumes);
@@ -264,7 +287,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         return snapshotsFound;
     }
 
-    private Map<UnManagedVolume, UnManagedVolume> checkForClones(
+    private Map<UnManagedVolume, UnManagedVolume> checkForVvolClones(
             List<UnManagedVolume> sourceVolumes, DbClient dbClient, 
             URI vplexUri, Map<String,URI> deviceToUnManagedVolumeMap) {
 
@@ -309,6 +332,45 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         return virtualVolumeToBackendCloneMap;
     }
 
+    private Map<UnManagedVolume, UnManagedVolume> checkForMirrors(UnManagedVolume unManagedVolume, 
+            List<UnManagedVolume> associatedVolumes) {
+        Map<UnManagedVolume, UnManagedVolume> mirrorMap = new HashMap<UnManagedVolume, UnManagedVolume>();
+        
+        Map<String, String> associatedVolumesInfo = new HashMap<String, String>();
+        for (UnManagedVolume vol : associatedVolumes) {
+            associatedVolumesInfo.put(vol.getNativeGuid(), vol.getWwn());
+        }
+        
+        String deviceName = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.VPLEX_SUPPORTING_DEVICE_NAME.toString(),
+                    unManagedVolume.getVolumeInformation());
+        
+        String locality = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.VPLEX_LOCALITY.toString(),
+                    unManagedVolume.getVolumeInformation());
+
+//        Map<String, String> topLevelDeviceMap = VPlexControllerUtils.getTopLevelDeviceMap(deviceName, locality);
+//        
+//        if (null != topLevelDeviceMap && !topLevelDeviceMap.isEmpty()) {
+//            Map<String, UnManagedVolume> wwnToVolMap = new HashMap<String, UnManagedVolume>();
+//            for (UnManagedVolume vol : associatedVolumes) {
+//                wwnToVolMap.put(vol.getWwn(), vol);
+//            }
+//            
+//            UnManagedVolume slot0Vol= null;
+//            for (Entry<String, String> entry : topLevelDeviceMap.entrySet()) {
+//                if (null == slot0Vol) {
+//                    slot0Vol = wwnToVolMap.get(BlockObject.normalizeWWN(entry.getValue()));
+//                } else {
+//                    mirrorMap.put(slot0Vol, 
+//                        wwnToVolMap.get(BlockObject.normalizeWWN(entry.getValue())));
+//                }
+//            }
+//        }
+        
+        return mirrorMap;
+    }
+    
     private List<URI> getAssociatedVolumes(UnManagedVolume unManagedVolume) {
         List<URI> associatedVolumes = new ArrayList<URI>();
         String deviceName = PropertySetterUtil.extractValueFromStringSet(
@@ -319,9 +381,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 SupportedVolumeInformation.VPLEX_LOCALITY.toString(),
                     unManagedVolume.getVolumeInformation());
         
-        Map<String, String> backendVolumeMap = null;
+        Set<String> backendVolumeWwns = null;
         try {
-            backendVolumeMap = 
+            backendVolumeWwns = 
                     VPlexControllerUtils.getStorageVolumeInfoForDevice(
                             deviceName, locality, 
                             unManagedVolume.getStorageSystemUri(), _dbClient);
@@ -330,12 +392,11 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             _logger.error("could not determine backend storage volumes for {}: ", unManagedVolume.getLabel(), ex);
         }
         
-        if (null != backendVolumeMap) {
-            for (Entry<String, String> entry : backendVolumeMap.entrySet()) {
-                _logger.info("attempting to find unmanaged backend volume {} with wwn {}", 
-                        entry.getKey(), entry.getValue());
+        if (null != backendVolumeWwns) {
+            for (String backendWwn : backendVolumeWwns) {
+                _logger.info("attempting to find unmanaged backend volume by wwn {}", 
+                        backendWwn);
                 
-                String backendWwn = entry.getValue();
                 URIQueryResultList results = new URIQueryResultList();
                 _dbClient.queryByConstraint(AlternateIdConstraint.
                         Factory.getUnmanagedVolumeWwnConstraint(

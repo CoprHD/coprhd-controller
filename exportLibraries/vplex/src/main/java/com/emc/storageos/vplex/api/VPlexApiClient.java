@@ -8,9 +8,11 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.NewCookie;
@@ -1528,7 +1530,7 @@ public class VPlexApiClient {
         }
     }
 
-    public Map<String, String> getStorageVolumeInfoForDevice(String deviceName, String locality) throws VPlexApiException {
+    public Set<String> getStorageVolumeInfoForDevice(String deviceName, String locality) throws VPlexApiException {
         if (null == deviceName || null == locality) {
             String reason = "deviceName was " + deviceName + " and locality was " + locality;
             throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(reason);
@@ -1540,12 +1542,12 @@ public class VPlexApiClient {
         List<VPlexStorageVolumeInfo> storageVolumes = getDiscoveryManager()
                 .getStorageVolumesForDevice(deviceName, locality);
         
-        Map<String, String> storageVolumeInfo = new HashMap<String, String>();
+        Set<String> storageVolumeWwns = new HashSet<String>();
         for (VPlexStorageVolumeInfo info : storageVolumes) {
-            storageVolumeInfo.put(info.getName(), info.getWwn());
+            storageVolumeWwns.add(info.getWwn());
         }
         
-        return storageVolumeInfo;
+        return storageVolumeWwns;
     }
     
     public String getDeviceForStorageVolume(String volumeNativeId, 

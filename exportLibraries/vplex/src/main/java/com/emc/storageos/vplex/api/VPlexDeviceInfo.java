@@ -22,6 +22,9 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
     // The cluster id.
     private String clusterId = null;
 
+    // The device geometry (RAID level).
+    private String geometry = null;
+
     /**
      * Getter for the extent info for the device.
      * 
@@ -77,6 +80,24 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
     }
 
     /**
+     * Getter for the device geometry (RAID level).
+     * 
+     * @return The device geometry.
+     */
+    public String getGeometry() {
+        return geometry;
+    }
+
+    /**
+     * Setter for the device geometry (RAID level).
+     * 
+     * @param id The device geometry.
+     */
+    public void setGeometry(String geometry) {
+        this.geometry = geometry;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -85,6 +106,7 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
         str.append("DeviceInfo ( ");
         str.append(super.toString());
         str.append(", clusterId: " + clusterId);
+        str.append(", geometry: " + geometry);
         for (VPlexExtentInfo extentInfo : extentInfoList) {
             str.append(", ");
             str.append(extentInfo.toString());

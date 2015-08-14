@@ -5,7 +5,6 @@
 package com.emc.storageos.volumecontroller.impl.xtremio;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -235,7 +234,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             Volume sourceVol = dbClient.queryObject(Volume.class, snapshotObj.getParent());
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
             
-            client.restoreVolumeFromSnapshot(clusterName, sourceVol.getLabel(), snapshotObj.getLabel());
+            client.restoreVolumeFromSnapshot(clusterName, sourceVol.getLabel(), snapshotObj.getDeviceLabel());
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot restore failed", e);
@@ -261,6 +260,46 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(dbClient, serviceError);
         }
+    }
+    
+
+
+    @Override
+    public void resyncSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        try {
+            XtremIOClient client = getXtremIOClient(storage);
+            BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
+            Volume sourceVol = dbClient.queryObject(Volume.class, snapshotObj.getParent());
+            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+            
+            client.refreshSnapshotFromVolume(clusterName, sourceVol.getLabel(), snapshotObj.getDeviceLabel());
+            taskCompleter.ready(dbClient);
+        } catch (Exception e) {
+            _log.error("Snapshot resync failed", e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            taskCompleter.error(dbClient, serviceError);
+        }
+        
+    }
+
+    @Override
+    public void resyncGroupSnapshots(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        try {
+            XtremIOClient client = getXtremIOClient(storage);
+            BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
+            BlockConsistencyGroup group = dbClient.queryObject(BlockConsistencyGroup.class, snapshotObj.getConsistencyGroup());
+            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+            
+            client.refreshSnapshotFromCG(clusterName, group.getLabel(), snapshotObj.getSnapsetLabel());
+            taskCompleter.ready(dbClient);
+        } catch (Exception e) {
+            _log.error("Snapshot resync failed", e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            taskCompleter.error(dbClient, serviceError);
+        }
+        
     }
 
     @Override

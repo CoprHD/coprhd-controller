@@ -17,15 +17,15 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 public class DefaultSnapshotOperations implements SnapshotOperations{
 
     @Override
-    public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+    public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, Boolean readOnly, 
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.operationNotSupported();
         
     }
 
     @Override
-    public void createGroupSnapshots(StorageSystem storage, List<URI> snapshotList, Boolean createInactive, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+    public void createGroupSnapshots(StorageSystem storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, 
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         // TODO Auto-generated method stub
         
     }

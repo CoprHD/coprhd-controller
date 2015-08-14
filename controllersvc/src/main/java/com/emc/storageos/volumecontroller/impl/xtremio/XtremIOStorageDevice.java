@@ -460,6 +460,19 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         }
         _log.info("SnapShot Restore..... End");
     }
+    
+    @Override
+    public void doResyncSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        _log.info("SnapShot Restore..... Started");
+        List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
+        if (ControllerUtils.inReplicationGroup(snapshots, dbClient)) {
+            snapshotOperations.resyncGroupSnapshots(storage, volume, snapshot, taskCompleter);
+        } else {
+            snapshotOperations.resyncSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);
+        }
+        _log.info("SnapShot Restore..... End");
+    }
 
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,

@@ -962,7 +962,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class,
                     Arrays.asList(snapshot));
-            if (inReplicationGroup(snapshots)) {
+            if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
                 _snapshotOperations.resyncGroupSnapshots(storage, volume, snapshot, taskCompleter);
             } else {
                 _snapshotOperations.resyncSingleVolumeSnapshot(storage, volume, snapshot,

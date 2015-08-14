@@ -626,11 +626,11 @@ public class NativeGUIDGenerator {
     }
     
     public static String generateNativeGuidForVirtualNAS(String systemNativeGuid, String vNasName) {
-        return String.format("%s"+VIRTUAL_NAS+ "+%s", vNasName);
+        return String.format("%s"+VIRTUAL_NAS+ "+%s", systemNativeGuid,vNasName);
     }
     
     public static String generateNativeGuidForPhysicalNAS(String systemNativeGuid, String pNasName) {
-        return String.format("%s"+PHYSICAL_NAS+ "+%s", pNasName);
+        return String.format("%s"+PHYSICAL_NAS+ "+%s",systemNativeGuid,pNasName);
     }
 
     /**

@@ -476,10 +476,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         vNas.setStorageDeviceURI(vdm.getStorageDeviceURI());
         vNas.setParentNAS(vdm.getParentHADomainURI());
 
-        String storageSystemNativeGuid = _dbClient.queryObject(StorageSystem.class, vdm.getStorageDeviceURI()).getNativeGuid();
-        String vNasNativeGuid = NativeGUIDGenerator.generateNativeGuidForVirtualNAS(storageSystemNativeGuid, vdm.getName());
-
-        vNas.setNativeGuid(vNasNativeGuid);
+//        String storageSystemNativeGuid = _dbClient.queryObject(StorageSystem.class, vdm.getStorageDeviceURI()).getNativeGuid();
+//        String vNasNativeGuid = NativeGUIDGenerator.generateNativeGuidForVirtualNAS(storageSystemNativeGuid, vdm.getName());
+//
+//        vNas.setNativeGuid(vNasNativeGuid);
 
         StringSet tempSet = new StringSet();
         tempSet.add(vdm.getProtocol());
@@ -496,9 +496,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         pNas.setNasName(dm.getName());
         pNas.setStorageDeviceURI(dm.getStorageDeviceURI());
         pNas.setId(URIUtil.createId(PhysicalNAS.class));
-        String storageSystemNativeGuid = _dbClient.queryObject(StorageSystem.class, dm.getStorageDeviceURI()).getNativeGuid();
-        String pNasNativeGuid = NativeGUIDGenerator.generateNativeGuidForPhysicalNAS(storageSystemNativeGuid, dm.getName());
-        pNas.setNativeGuid(pNasNativeGuid);
+//        String storageSystemNativeGuid = _dbClient.queryObject(StorageSystem.class, dm.getStorageDeviceURI()).getNativeGuid();
+//        String pNasNativeGuid = NativeGUIDGenerator.generateNativeGuidForPhysicalNAS(storageSystemNativeGuid, dm.getName());
+////        pNas.setNativeGuid(pNasNativeGuid);
 
         return pNas;
 
@@ -1066,6 +1066,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         _logger.info("Number VDM mover interfaces found: {}", vdmIntfs.size());
 
         for (VNXVdm vdm : vdms) {
+            
+           // VirtualNAS virtualNas = _dbClient.queryIterativeObjectField(clazz, fieldName, ids);
 
             // Create the list of storage ports.
             for (String vdmIF : vdm.getInterfaces()) {

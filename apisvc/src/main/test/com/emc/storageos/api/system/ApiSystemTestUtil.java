@@ -1,4 +1,4 @@
-package com.emc.storageos.api.system.vplex;
+package com.emc.storageos.api.system;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -14,10 +14,13 @@ import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.api.service.impl.resource.TaskService;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.joiner.Joiner;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupCreate;
+import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
@@ -32,15 +35,28 @@ import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.rsa.crypto.ncm.key.t;
 
-public class VPlexTestUtil {
+public class ApiSystemTestUtil {
 	DbClient dbClient = null; 
 	Logger log = null;
 	ViPRCoreClient client = null;
 	
-	public VPlexTestUtil(ViPRCoreClient client, 	DbClient dbClient, Logger log) {
+	public ApiSystemTestUtil(ViPRCoreClient client, 	DbClient dbClient, Logger log) {
 		this.client = client;
 		this.dbClient = dbClient;
 		this.log = log;
+	}
+	
+	public URI createConsistencyGroup(String cgName, URI project) {
+		BlockConsistencyGroupCreate input = new BlockConsistencyGroupCreate();
+		input.setName(cgName);
+		input.setProject(project);
+		try {
+			BlockConsistencyGroupRestRep rep = client.blockConsistencyGroups().create(input);
+			return rep.getId();
+		} catch (ServiceErrorException ex) {
+			log.error("Exception creating consistency group: " + cgName, ex);
+			throw ex;
+		}
 	}
 	
 	public List<URI> createVolume(String name, String size, Integer count, 
@@ -99,7 +115,8 @@ public class VPlexTestUtil {
 		}
 	}
 	
-	public void ingestUnManagedVolume(List<URI> volumes, URI project, URI varray, URI vpool) {
+	public List<String> ingestUnManagedVolume(List<URI> volumes, URI project, URI varray, URI vpool) {
+		List<String> nativeGuids = new ArrayList<String>();
 		try {
 			VolumeIngest input = new VolumeIngest();
 			input.setProject(project);;
@@ -109,7 +126,9 @@ public class VPlexTestUtil {
 			Tasks<UnManagedVolumeRestRep> rep = client.unmanagedVolumes().ingest(input);
 			for (UnManagedVolumeRestRep uvol : rep.get()) {
 				log.info(String.format("Unmanaged volume %s ", uvol.getNativeGuid()));
+				nativeGuids.add(uvol.getNativeGuid());
 			}
+			return nativeGuids;
 		} catch (ServiceErrorException ex) {
 			log.error("Exception discovering storage system " + ex.getMessage(), ex);
 			throw ex;
@@ -134,6 +153,14 @@ public class VPlexTestUtil {
 		}
 		T object = dbClient.queryObject(clazz, uri);
 		return object;
+	}
+	
+	public List<Volume> findVolumesByNativeGuid(URI storageSystemURI, List<String> nativeGuids) {
+		Joiner joiner = new Joiner(dbClient);
+		List<Volume> volumes = joiner.join(Volume.class, "vol")
+				.match("storageDevice", storageSystemURI)
+				.match("nativeGuid", nativeGuids).go().list("vol");
+		return volumes;
 	}
 	
 

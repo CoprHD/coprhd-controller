@@ -59,21 +59,19 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 	// This starts the apisvc. We assume all other required services are running except the apisvc.
 	// Note the apisvc is only started once for the entire test run.
 	public void setup() {
-		if (firstTime) {
-			firstTime = false;
-			try {
-				FileInputStream configFile = new FileInputStream(CONFIG_FILE);
-				properties.load(configFile);
-				configFile.close();
-				printLog(properties.toString());
+		firstTime = false;
+		try {
+			FileInputStream configFile = new FileInputStream(CONFIG_FILE);
+			properties.load(configFile);
+			configFile.close();
+			printLog(properties.toString());
 
-			} catch (FileNotFoundException ex) {
-				Assert.assertTrue("Cannot find configuration file: " +  CONFIG_FILE, false);
-			} catch (IOException ex) {
-				Assert.assertTrue("IO exception configuration file: " +  CONFIG_FILE, false);
-			}
+		} catch (FileNotFoundException ex) {
+			Assert.assertTrue("Cannot find configuration file: " +  CONFIG_FILE, false);
+		} catch (IOException ex) {
+			Assert.assertTrue("IO exception configuration file: " +  CONFIG_FILE, false);
 		}
-		
+
 		startApisvc();
 
 		client = getViprClient(properties.getProperty(VIPR_IP), 

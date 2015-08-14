@@ -1671,19 +1671,11 @@ public class RecoverPointClient {
         try {
             ConsistencyGroupUID cgUID = new ConsistencyGroupUID();
             cgUID.setId(volumeInfo.getRpVolumeGroupID());
-            if (volumeInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE
-                    || volumeInfo.isMetroPoint()) {
-                // Disable the whole CG for MetroPoint cases or when a source volume is specified. MetroPoint is very
-                // picky with respect to disabling individual copies so we just want to disable the whole CG.
-                functionalAPI.disableConsistencyGroup(cgUID);
-                String cgName = functionalAPI.getGroupName(cgUID);
-                logger.info("Protection disabled on CG: " + cgName);
-
-                // Weakness: When disabling the entire CG, we are not waiting for the link to be in a stopped (UNKNOWN) state.
-                RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-                imageManager.waitForCGLinkState(functionalAPI, cgUID, null, PipeState.UNKNOWN);
+            if (volumeInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE) {
+                // Disable the whole CG.
+                disableConsistencyGroup(cgUID);
             } else {
-                // Disable the CG copy associated with the target
+                // Disable the CG copy associated with the target.
                 ConsistencyGroupCopyUID cgCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(volumeInfo);
                 functionalAPI.disableConsistencyGroupCopy(cgCopyUID);
                 String cgCopyName = functionalAPI.getGroupCopyName(cgCopyUID);
@@ -1705,6 +1697,24 @@ public class RecoverPointClient {
     }
 
     /**
+     * Disables the whole consistency group.
+     *
+     * @param cgUID the consistency group UID.
+     * @throws FunctionalAPIActionFailedException_Exception
+     * @throws FunctionalAPIInternalError_Exception
+     */
+    private void disableConsistencyGroup(ConsistencyGroupUID cgUID) throws FunctionalAPIActionFailedException_Exception,
+            FunctionalAPIInternalError_Exception {
+        functionalAPI.disableConsistencyGroup(cgUID);
+        String cgName = functionalAPI.getGroupName(cgUID);
+        logger.info("Protection disabled on CG: " + cgName);
+
+        // Make sure the CG is stopped
+        RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
+        imageManager.waitForCGLinkState(functionalAPI, cgUID, null, PipeState.UNKNOWN);
+    }
+
+    /**
      * Enable (start) the consistency group protection specified by the input volume info
      * Requires a full sweep.
      *
@@ -1722,11 +1732,8 @@ public class RecoverPointClient {
             cgCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(volumeInfo);
             String cgCopyName = functionalAPI.getGroupCopyName(cgCopyUID);
             String cgName = functionalAPI.getGroupName(cgUID);
-            if (volumeInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE
-                    || volumeInfo.isMetroPoint()) {
-                // Enable the whole CG for MetroPoint cases or when a source volume is specified. MetroPoint is very
-                // picky with respect to disabling copies so the whole CG has to be disabled. Therefore, we need to
-                // enable the whole CG for MetroPoint cases.
+            if (volumeInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE) {
+                // Enable the whole CG.
                 logger.info("Enabling consistency group " + cgName);
                 functionalAPI.enableConsistencyGroup(cgUID, true);
             } else {
@@ -2588,8 +2595,8 @@ public class RecoverPointClient {
                 if (replicationSetSettings.size() == cgSettingsParam.getRemovedReplicationSets().size()) {
                     if (replicationSetSettings.size() == 1) {
                         // There is only 1 replication set in the CG and we are removing it. We need
-                        // to either disable the CG or the CG copy, based on the volume.
-                        disableProtection(volumes.get(0));
+                        // to disable the entire CG.
+                        disableConsistencyGroup(cgID);
                     } else {
                         // We are removing all CG replication sets but since the count is greater
                         // than 1, we need to disable the whole CG. We do this through the

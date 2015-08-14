@@ -17,6 +17,9 @@ public class Project extends DataObjectWithACLs {
     private String _owner;
     private Long _quotaGB;
     private Boolean _quotaEnabled;
+    private StringSet assignedVNasServers;
+
+    // private List<URI> assignedVNAS;
 
     @NamedRelationIndex(cf = "NamedRelation", type = TenantOrg.class)
     @Name("tenantOrg")
@@ -57,6 +60,24 @@ public class Project extends DataObjectWithACLs {
     public void setQuotaEnabled(Boolean enable) {
         _quotaEnabled = enable;
         setChanged("quotaEnabled");
+    }
+
+    /**
+     * @return the assignedVNasServers
+     */
+    @Name("vnasServers")
+    public StringSet getAssignedVNasServers() {
+        if (assignedVNasServers == null) {
+            assignedVNasServers = new StringSet();
+        }
+        return assignedVNasServers;
+    }
+
+    /**
+     * @param assignedVNasServers the assignedVNasServers to set
+     */
+    public void setAssignedVNasServers(StringSet assignedVNasServers) {
+        this.assignedVNasServers = assignedVNasServers;
     }
 
 }

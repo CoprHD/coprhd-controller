@@ -5,7 +5,12 @@
 
 package com.emc.storageos.model.project;
 
-import javax.xml.bind.annotation.*;
+import java.util.Set;
+
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -15,6 +20,7 @@ import com.emc.storageos.model.RelatedResourceRep;
 public class ProjectRestRep extends DataObjectRestRep {
     private RelatedResourceRep tenant;
     private String owner;
+    private Set<String> assignedVNasServers;
 
     public ProjectRestRep() {
     }
@@ -55,4 +61,23 @@ public class ProjectRestRep extends DataObjectRestRep {
     public void setTenant(RelatedResourceRep tenant) {
         this.tenant = tenant;
     }
+
+    /**
+     * 
+     * List of VNAS Servers associated with this project.
+     * 
+     * @valid none
+     */
+    @XmlElement(name = "assignedVNAS")
+    public Set<String> getAssignedVNasServers() {
+        return assignedVNasServers;
+    }
+
+    /**
+     * @param assignedVNasServers the assignedVNasServers to set
+     */
+    public void setAssignedVNasServers(Set<String> assignedVNasServers) {
+        this.assignedVNasServers = assignedVNasServers;
+    }
+
 }

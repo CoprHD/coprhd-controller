@@ -7,18 +7,13 @@ package com.emc.storageos.networkcontroller.impl;
 import java.io.IOException;
 import java.net.URI;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
 
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.DataSourceFactory;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
+import com.emc.storageos.db.client.model.*;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,24 +26,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.FCEndpoint;
-import com.emc.storageos.db.client.model.FCZoneReference;
-import com.emc.storageos.db.client.model.HostInterface;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.Network;
-import com.emc.storageos.db.client.model.NetworkSystem;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.ZoneInfo;
-import com.emc.storageos.db.client.model.ZoneInfoMap;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.StringMapUtil;
@@ -99,6 +77,10 @@ public class NetworkDeviceController implements NetworkController {
     private static final String EVENT_SERVICE_TYPE = "network";
     private static final String EVENT_SERVICE_SOURCE = "NetworkDeviceController";
 
+    @Autowired
+    private DataSourceFactory dataSourceFactory;
+    @Autowired
+    private CustomConfigHandler customConfigHandler;
     @Autowired
     private AuditLogManager _auditMgr;
     @Autowired
@@ -1138,7 +1120,106 @@ public class NetworkDeviceController implements NetworkController {
         _log.info(String.format
                 ("Entering zoneExportAddVolumes for ExportGroup: %s (%s) Volumes: %s",
                         exportGroup.getLabel(), exportGroup.getId(), volumeURIs.toString()));
-        return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token);
+        //Check if Zoning needs to be checked from system config
+        //if zoning not needed clone existing zoning info andSet workflow step succeeded
+        //   and return true
+        //else call the doZoneExportMasksCreate to check/create/remove zones
+        StringMap scope = new StringMap();
+        scope.put(CustomConfigConstants.GLOBAL_KEY, CustomConfigConstants.GLOBAL_KEY);
+        String addZoneWhileAddingVolume =  customConfigHandler.getCustomConfigValue(
+                CustomConfigConstants.ZONE_ADD_VOLUME, scope);
+        Boolean addZoneOperation = false;
+        if(addZoneWhileAddingVolume != null) {
+            addZoneOperation = Boolean.getBoolean(addZoneWhileAddingVolume);
+        }
+
+        _log.info("zoneExportAddVolumes checking for custome config value to skip zoning checks", addZoneOperation);
+
+        if(addZoneOperation) {
+            _log.info("zoneExportAddVolumes continue with zoning checks", addZoneOperation);
+            //Do all zoning checking and operations
+            return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token);
+        } else {
+            _log.info("zoneExportAddVolumes continue without zoning checks", addZoneOperation);
+            return cloneCZoneReferencesFromExistingZone(exportGroup, exportMaskURIs, volumeURIs, token);
+        }
+    }
+
+    public boolean cloneCZoneReferencesFromExistingZone(ExportGroup exportGroup, List<URI> exportMaskURIs,
+                                                        Collection<URI> volumeURIs, String token) {
+        _log.info(String.format
+                ("Entering cloneCZoneReferencesFromExistingZone for ExportGroup: %s (%s) Volumes: %s",
+                        exportGroup.getLabel(), exportGroup.getId(), volumeURIs.toString()));
+        boolean success = true;
+        //Find all Zone for the export mask
+        //Figure out from the database which zones are used for the specific masks and volume from the export group
+        //Create FCZoneReference and associate with the Volume
+        //Persist the info to database
+
+        //Get EndPoints from ExportMask both Initiators and Storage Ports
+        //FCZoneReference.makeEndpointsKey(List<String> endpoints)
+        //Look up FCZoneReferences based on the key
+        //If FCZoneReferences Exists
+        //   Iterate thru the FCZoneReferences and make sure the ExportGroup is the same
+        //
+        //     Iterate thru the Volumes
+        //       For each FCReference , clone and set the volume URI
+        //
+        //Else FCZoneRerences doest Exist
+        //      We need to create Zoning operation (Just go with the current flow)
+
+        for (URI exportMaskURI : exportMaskURIs) {
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, Transport.FC);
+            Set<StoragePort> storagePorts = ExportMaskUtils.getPortsForExportMask(_dbClient, exportMask, Transport.FC);
+            Iterator<Initiator> initIt = initiators.iterator();
+            ArrayList<FCZoneReference> newfcZoneRefs = new ArrayList<>();
+            while (initIt.hasNext()) {
+                Initiator initiator = initIt.next();
+                Iterator<StoragePort> storageIt = storagePorts.iterator();
+                while (storageIt.hasNext()) {
+                    StoragePort port = storageIt.next();
+                    String inti = initiator.getInitiatorNode();
+                    String portName = port.getPortNetworkId();
+                    for (URI volURI : volumeURIs) {
+                        //Find FCZoneReferences for the given Initiator and Storage Port
+                        String fcKey = FCZoneReference.makeEndpointsKey(Arrays.asList(new String[]{inti, portName}));
+                        Joiner joiner = dbModelClient.join(FCZoneReference.class, "refs", "pwwnKey", fcKey).go();
+                        List<FCZoneReference> list = joiner.list("refs");
+                        Iterator<FCZoneReference> fcZoneReferenceIterator = list.iterator();
+                        while (fcZoneReferenceIterator.hasNext()) {
+                            FCZoneReference fcZoneReference = fcZoneReferenceIterator.next();
+                            if (fcZoneReference != null && fcZoneReference.getVolumeUri() != null &&
+                                    fcZoneReference.getVolumeUri() != volURI) {
+                                FCZoneReference ref = new FCZoneReference();
+                                ref.setPwwnKey(fcKey);
+                                ref.setFabricId(fcZoneReference.getFabricId());
+                                ref.setNetworkSystemUri(fcZoneReference.getNetworkSystemUri());
+                                ref.setVolumeUri(volURI);
+                                ref.setGroupUri(exportGroup.getId());
+                                ref.setZoneName(fcZoneReference.getZoneName());
+                                ref.setId(URIUtil.createId(FCZoneReference.class));
+                                ref.setLabel(fcKey);
+                                ref.setExistingZone(true);
+                                newfcZoneRefs.add(ref);
+                            }
+                        }
+                    }
+                }
+            }
+            if (!newfcZoneRefs.isEmpty()) {
+                _log.info("cloneCZoneReferencesFromExistingZone found {} FCZoneReferences and cloned them",
+                        newfcZoneRefs.size());
+                _dbClient.updateAndReindexObject(newfcZoneRefs);
+                WorkflowStepCompleter.stepSucceded(token);
+            } else {
+                _log.info("cloneCZoneReferencesFromExistingZone found {} FCZoneReferences, continue with zoning checks",
+                        newfcZoneRefs.size());
+                //Follow the old path because we didnt find any existing FCZoneReferences
+                return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token);
+            }
+        }
+        return success;
     }
 
     /**

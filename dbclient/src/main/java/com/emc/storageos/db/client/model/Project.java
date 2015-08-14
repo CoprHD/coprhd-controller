@@ -6,7 +6,6 @@
 package com.emc.storageos.db.client.model;
 
 import com.emc.storageos.db.client.model.DbKeyspace.Keyspaces;
-import com.emc.storageos.model.project.AssignVNASParam;
 
 /**
  * Project data object
@@ -18,7 +17,9 @@ public class Project extends DataObjectWithACLs {
     private String _owner;
     private Long _quotaGB;
     private Boolean _quotaEnabled;
-    private AssignVNASParam assignedVNAS;
+    private StringSet assignedVNasServers;
+
+    // private List<URI> assignedVNAS;
 
     @NamedRelationIndex(cf = "NamedRelation", type = TenantOrg.class)
     @Name("tenantOrg")
@@ -62,18 +63,21 @@ public class Project extends DataObjectWithACLs {
     }
 
     /**
-     * @return the assignedVNAS
+     * @return the assignedVNasServers
      */
     @Name("vnasServers")
-    public AssignVNASParam getAssignedVNAS() {
-        return assignedVNAS;
+    public StringSet getAssignedVNasServers() {
+        if (assignedVNasServers == null) {
+            assignedVNasServers = new StringSet();
+        }
+        return assignedVNasServers;
     }
 
     /**
-     * @param assignedVNAS the assignedVNAS to set
+     * @param assignedVNasServers the assignedVNasServers to set
      */
-    public void setAssignedVNAS(AssignVNASParam assignedVNAS) {
-        this.assignedVNAS = assignedVNAS;
+    public void setAssignedVNasServers(StringSet assignedVNasServers) {
+        this.assignedVNasServers = assignedVNasServers;
     }
 
 }

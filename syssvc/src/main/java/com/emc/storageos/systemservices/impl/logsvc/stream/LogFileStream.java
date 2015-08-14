@@ -97,8 +97,8 @@ public class LogFileStream implements LogStream {
                 try {
                     reader = new LogReader(filePath, request, status, basename);
                 } catch (Exception e) {
-                    status.append(String.format("Fail to read log file %s due to %s", filePath, e.getMessage()));
-                    logger.error(String.format("Fail to generate log reader for %s", filePath), e);
+                    status.append(String.format("Failed to open log file %s", e.getMessage()));
+                    logger.error("Failed to generate log reader for {}", e.getMessage());
                     return null;
                 }
                 logger.debug("Reading file - " + filePath);

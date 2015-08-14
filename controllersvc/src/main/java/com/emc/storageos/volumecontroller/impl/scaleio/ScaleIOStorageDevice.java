@@ -195,14 +195,14 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
                 String poolId = storagePool.getNativeId();
                 ScaleIOVolume result = scaleIOHandle.addVolume(protectionDomainName, poolId, volume.getLabel(),
                         size.toString(), thinlyProvisioned);
-                
+
                 ScaleIOHelper.updateVolumeWithAddVolumeInfo(dbClient, volume, systemId, volumeSize, result);
                 poolsToUpdate.add(volume.getPool());
                 if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
                     consistencyGroups.add(volume.getConsistencyGroup());
                 }
                 poolToVolumesMap.put(volume.getPool(), volume.getId().toString());
-                
+
             }
 
             updateConsistencyGroupsWithStorageSystem(consistencyGroups, storage);
@@ -215,7 +215,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
 
             dbClient.persistObject(volumes);
             taskCompleter.ready(dbClient);
-            
+
         } catch (Exception e) {
             log.error("Encountered an exception", e);
             for (int cleanup = index; cleanup <= volumes.size(); cleanup++) {
@@ -254,12 +254,12 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             long newSize = Long.parseLong(result.getSizeInKb()) * 1024L;
             volume.setProvisionedCapacity(newSize);
             volume.setAllocatedCapacity(newSize);
-            volume.setCapacity(size);  
+            volume.setCapacity(size);
             dbClient.persistObject(volume);
             ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, pool, storage);
             pool.removeReservedCapacityForVolumes(Arrays.asList(volume.getId().toString()));
             taskCompleter.ready(dbClient);
-            
+
         } catch (Exception e) {
             log.error("Encountered an exception", e);
             ServiceCoded code =
@@ -298,7 +298,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
                 ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, pool, storageSystem);
             }
             completer.ready(dbClient);
-            
+
         } catch (Exception e) {
             log.error("Encountered an exception", e);
             ServiceCoded code =
@@ -670,7 +670,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
                 return false;
             }
         }
-        
+
         return true;
     }
 
@@ -687,7 +687,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
                 return false;
             }
         }
-        
+
         return true;
     }
 

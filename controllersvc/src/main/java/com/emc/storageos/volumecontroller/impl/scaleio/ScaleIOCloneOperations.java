@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.util.List;
 
-
 public class ScaleIOCloneOperations implements CloneOperations {
 
     private static Logger log = LoggerFactory.getLogger(ScaleIOCloneOperations.class);
@@ -54,7 +53,7 @@ public class ScaleIOCloneOperations implements CloneOperations {
             ScaleIOSnapshotVolumeResponse result = scaleIOHandle.snapshotVolume(parent.getNativeId(), cloneObj.getLabel(), systemId);
             String nativeId = result.getVolumeIdList().get(0);
             ScaleIOHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, cloneObj, systemId, nativeId);
-                // Snapshots result does not provide capacity info, so we need to perform a --query_all_volumes
+            // Snapshots result does not provide capacity info, so we need to perform a --query_all_volumes
             updateCloneFromQueryAllVolumes(scaleIOHandle, cloneObj);
             dbClient.persistObject(cloneObj);
             ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, cloneObj);

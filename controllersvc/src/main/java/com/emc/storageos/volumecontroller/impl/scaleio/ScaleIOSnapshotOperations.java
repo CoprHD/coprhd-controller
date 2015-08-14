@@ -12,14 +12,12 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.scaleio.api.*;
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSnapshotVolumeResponse;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
-import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
@@ -59,7 +57,7 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
             dbClient.persistObject(blockSnapshot);
             ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, blockSnapshot);
             taskCompleter.ready(dbClient);
-            
+
         } catch (Exception e) {
             log.error("Encountered an exception", e);
             ServiceCoded code =
@@ -87,8 +85,9 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
             ScaleIOSnapshotVolumeResponse result = scaleIOHandle.snapshotMultiVolume(parent2snap, systemId);
 
             List<String> nativeIds = result.getVolumeIdList();
-            Map<String, String> snapNameIdMap = scaleIOHandle.getVolumes(nativeIds); 
-            ScaleIOHelper.updateSnapshotsWithSnapshotMultiVolumeResult(dbClient, blockSnapshots, systemId, snapNameIdMap, result.getSnapshotGroupId());
+            Map<String, String> snapNameIdMap = scaleIOHandle.getVolumes(nativeIds);
+            ScaleIOHelper.updateSnapshotsWithSnapshotMultiVolumeResult(dbClient, blockSnapshots, systemId, snapNameIdMap,
+                    result.getSnapshotGroupId());
             dbClient.persistObject(blockSnapshots);
 
             List<StoragePool> pools = dbClient.queryObject(StoragePool.class, Lists.newArrayList(poolsToUpdate));
@@ -97,7 +96,7 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
             }
 
             taskCompleter.ready(dbClient);
-           
+
         } catch (Exception e) {
             log.error("Encountered an exception", e);
             ServiceCoded code =
@@ -135,14 +134,13 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
                 scaleIOHandle.removeVolume(blockSnapshot.getNativeId());
             }
 
-
             if (blockSnapshot != null) {
                 blockSnapshot.setInactive(true);
                 dbClient.persistObject(blockSnapshot);
                 ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, blockSnapshot);
             }
             taskCompleter.ready(dbClient);
-           
+
         } catch (Exception e) {
             log.error("Encountered an exception", e);
             ServiceCoded code =

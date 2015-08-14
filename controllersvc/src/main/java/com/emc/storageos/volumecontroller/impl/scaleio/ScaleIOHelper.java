@@ -92,7 +92,7 @@ public class ScaleIOHelper {
             storagePoolResult = scaleIOHandle.queryStoragePool(storagePool.getNativeId());
             storagePool.setFreeCapacity(Long.parseLong(storagePoolResult.getCapacityAvailableForVolumeAllocationInKb()));
             storagePool.setTotalCapacity(Long.parseLong(storagePoolResult.getMaxCapacityInKb()));
-           
+
             log.info(String.format("New storage pool capacity data for pool %n  %s/%s --- %n  free capacity: %s; subscribed capacity: %s",
                     storage.getId(), storagePool.getId(),
                     storagePool.getFreeCapacity(),

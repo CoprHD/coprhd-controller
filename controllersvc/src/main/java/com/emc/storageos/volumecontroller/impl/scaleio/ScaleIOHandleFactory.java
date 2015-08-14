@@ -84,7 +84,7 @@ public class ScaleIOHandleFactory {
             }
         } else {
             log.info("The storage provider interface type is not supported: %s ", provider.getInterfaceType());
-            //not supported
+            // not supported
             handle = null;
         }
         return handle;
@@ -95,5 +95,4 @@ public class ScaleIOHandleFactory {
         return this;
     }
 
-   
 }

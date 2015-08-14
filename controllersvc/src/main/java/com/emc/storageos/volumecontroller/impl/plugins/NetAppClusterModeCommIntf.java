@@ -270,7 +270,7 @@ public class NetAppClusterModeCommIntf extends
 
                 // Ignore export for root volume and don't pull it into ViPR db.
                 if (isNodeRootVolume || isSVMRootVolume) {
-                    _logger.info("Ignore and not discover root filesystem on NTP array");
+                    _logger.info("Ignore and not discover root" + filesystem +"on NTP array");
                     continue;
                 }
 
@@ -1211,11 +1211,11 @@ public class NetAppClusterModeCommIntf extends
 
                     //get a fileSystem name from the path
                     int index = fileSystem.indexOf('/', 1);
-                    if ( -1 !=  index) {
+                    if (-1 != index) {
                         fileSystem = fileSystem.substring(0, index);
                         _logger.info("Unmanaged FileSystem Name {}", fileSystem);
-                    } 
-
+                    }
+                    //build native id
                     String fsUnManagedFsNativeGuid = NativeGUIDGenerator
                             .generateNativeGuidForPreExistingFileSystem(
                                     storageSystem.getSystemType(), storageSystem

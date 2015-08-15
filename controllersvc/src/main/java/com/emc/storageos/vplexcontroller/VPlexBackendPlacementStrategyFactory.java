@@ -20,7 +20,7 @@ public class VPlexBackendPlacementStrategyFactory {
     private static final Logger log = LoggerFactory.getLogger(VPlexBackendPlacementStrategy.class);
 
     static VPlexBackendPlacementStrategy create(DbClient dbClient, ExportMaskPlacementDescriptor descriptor) {
-        VPlexBackendPlacementStrategy strategy = null;
+        VPlexBackendPlacementStrategy strategy;
         switch (descriptor.getPlacementHint()) {
             case VOLUMES_TO_SINGLE_MASK:
                 strategy = new VplexBackendLowestVolumeCountStrategy(dbClient, descriptor);

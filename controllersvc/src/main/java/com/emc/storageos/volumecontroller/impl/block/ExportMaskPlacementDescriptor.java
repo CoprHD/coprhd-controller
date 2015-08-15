@@ -40,22 +40,6 @@ public class ExportMaskPlacementDescriptor {
     // This is used to indicate how placement should be done
     private PlacementHint placementHint;
 
-    // OUTPUT: getter is read/write
-    // ExportMask URI to ExportMask object mapping.
-    // These are the ExportMasks that we have to work with for placement
-    private Map<URI, ExportMask> masks;
-
-    // OUTPUT: getter is ead-only
-    // ExportMask URI to Volume mapping
-    // This is the resultant mapping. Each ExportMask URI key has a Map<URI, Volume> value that
-    // indicates that the volumes that are supposed placed.
-    private Map<URI, Map<URI, Volume>> maskToVolumes;
-
-    // OUTPUT: getter is read-only
-    // Volume URI to Volume object mapping.
-    // These are volumes that could not be placed in an ExportMask.
-    private Map<URI, Volume> unplacedVolumes;
-
     // INPUT: Initiators that are applicable to this placement
     private Collection<Initiator> initiators;
 
@@ -73,6 +57,22 @@ public class ExportMaskPlacementDescriptor {
 
     // INPUT: Project to which the object, such as the volumes, belong
     private URI project;
+
+    // OUTPUT: getter is read/write
+    // ExportMask URI to ExportMask object mapping.
+    // These are the ExportMasks that we have to work with for placement
+    private Map<URI, ExportMask> masks;
+
+    // OUTPUT: getter is ead-only
+    // ExportMask URI to Volume mapping
+    // This is the resultant mapping. Each ExportMask URI key has a Map<URI, Volume> value that
+    // indicates that the volumes that are supposed placed.
+    private Map<URI, Map<URI, Volume>> maskToVolumes;
+
+    // OUTPUT: getter is read-only
+    // Volume URI to Volume object mapping.
+    // These are volumes that could not be placed in an ExportMask.
+    private Map<URI, Volume> unplacedVolumes;
 
     public enum PlacementHint {
         VOLUMES_TO_SINGLE_MASK, VOLUMES_TO_SEPARATE_MASKS
@@ -362,6 +362,24 @@ public class ExportMaskPlacementDescriptor {
      */
     public boolean hasMasks() {
         return (masks != null && !masks.isEmpty());
+    }
+
+    /**
+     * Indicates if there are any unplaced volumes
+     *
+     * @return true, IFF there are unplaced volumes list is not empty
+     */
+    public boolean hasUnPlacedVolumes() {
+        return unplacedVolumes != null && unplacedVolumes.isEmpty();
+    }
+
+    /**
+     * Returns a copy of the unplaced volumes;
+     *
+     * @return Map of Volume URI to Volume object
+     */
+    public Map<URI, Volume> getUnplacedVolumes() {
+        return new HashMap<>(unplacedVolumes);
     }
 
     @Override

@@ -2014,7 +2014,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             // This is the case where we couldn't find a mask that was appropriate to add the volumes,
             // even though several masks matched the export mask criteria at first.
-            if (initiatorsToVolumes.size() > 0) {
+            if (!initiatorsToVolumes.isEmpty()) {
                 List<URI> leftoverInitiatorsForNewExport = new ArrayList<URI>();
                 // Figure out the initiators we "missed" for the volumes in this loop
                 for (URI initiatorId : initiatorsToVolumes.keySet()) {

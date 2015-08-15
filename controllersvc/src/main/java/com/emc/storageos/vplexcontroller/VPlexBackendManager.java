@@ -266,16 +266,26 @@ public class VPlexBackendManager {
             // Check to see if there are any available ExportMasks that can be used.
             // If not, we will attempt to generate some.
             if (!placementDescriptor.hasMasks()) {
-                createVPlexBackendExportMasks(vplex, array, varrayURI, placementDescriptor, invalidMasks);
+                // When the system has to create the ExportMask, we should try to place the volumes all within a single mask
+                placementDescriptor.setPlacementHint(ExportMaskPlacementDescriptor.PlacementHint.VOLUMES_TO_SINGLE_MASK);
+                Map<URI, Volume> volumesToPlace = placementDescriptor.getVolumesToPlace();
+                createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, volumesToPlace);
+            } else if (placementDescriptor.hasUnPlacedVolumes()) {
+                // There were some matching ExportMasks found on the backend array, but we also have some unplaced
+                // volumes. We need to create new ExportMasks to hold these unplaced volumes.
+
+                // We will leave the placement hint to whatever was determined by the suggestExportMasksForPlacement call
+                Map<URI, Volume> unplacedVolumes = placementDescriptor.getUnplacedVolumes();
+                createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, unplacedVolumes);
             }
 
             // At this point, we have:
             //
             // a). Requested that the backend StorageArray provide us with a list of ExportMasks that can support the initiators + volumes.
-            // b). Process the suggested ExportMasks in case they had their names changed
+            // b). Processed the suggested ExportMasks in case they had their names changed
             // c). Filtered out any ExportMasks that do not fit the VPlex masking paradigm
             // OR
-            // d). Created a new ExportMask to support the initiators + volumes
+            // d). Created a set of new ExportMasks to support the initiators + volumes
             //
             // We will now run the final placement based on a strategy determined by looking at the placementDescriptor
             VPlexBackendPlacementStrategyFactory.create(_dbClient, placementDescriptor).execute();
@@ -1271,22 +1281,20 @@ public class VPlexBackendManager {
     }
 
     /**
-     * Generate an ExportMask for the VPlex-to-Backend array to hold the volumes.
-     * TODO: Need to make sure that we properly place volumes in a new ExportMask for those that did not match any ExportMasks
-     * 
-     * @param vplex
-     * @param array
-     * @param varrayURI
-     * @param placementDescriptor
-     * @param invalidMasks
+     * Generate an ExportMasks for the VPlex-to-Backend array to hold the volumes that were not placed by
+     * the 'suggestExportMasksForPlacement' call.
+     *
+     * @param vplex [IN] - VPlex array
+     * @param array [IN] - StorageSystem representing the VPlex backend array
+     * @param varrayURI [IN] - VirtualArray
+     * @param placementDescriptor [IN/OUT] - The output of calling VPlexBackendMaskingOrchestrator.suggestExportMasksForPlacement
+     * @param invalidMasks [IN] - List of Masks that match the initiator list, but do not meet VPlex reuse criteria
+     * @param volumes [IN] - List of volumes to map to the new ExportMasks
      * @throws VPlexApiException
      */
-    private void createVPlexBackendExportMasks(StorageSystem vplex, StorageSystem array, URI varrayURI,
-            ExportMaskPlacementDescriptor placementDescriptor, Set<URI> invalidMasks) throws VPlexApiException {
-        // When the system has to create the ExportMask, we should try to place the volumes all within a single mask
-        placementDescriptor.setPlacementHint(ExportMaskPlacementDescriptor.PlacementHint.VOLUMES_TO_SINGLE_MASK);
+    private void createVPlexBackendExportMasksForVolumes(StorageSystem vplex, StorageSystem array, URI varrayURI,
+            ExportMaskPlacementDescriptor placementDescriptor, Set<URI> invalidMasks, Map<URI, Volume> volumes) throws VPlexApiException {
         Map<URI, ExportMask> maskSet = placementDescriptor.getMasks();
-        Map<URI, Volume> volumeMap = placementDescriptor.getVolumesToPlace();
 
         if (!invalidMasks.isEmpty()) {
             _log.info(String.format("Found %d existing export masks, but all failed validation",
@@ -1309,7 +1317,7 @@ public class VPlexBackendManager {
                 maskSet.put(mask.getId(), mask);
                 // This is a generated ExportMask. The default Volume placement for something that ViPR
                 // creates will be to place everything in a single ExportMask (VOLUMES_TO_SINGLE_MASK).
-                placementDescriptor.placeVolumes(mask.getId(), volumeMap);
+                placementDescriptor.placeVolumes(mask.getId(), volumes);
             }
         }
 

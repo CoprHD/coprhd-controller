@@ -1938,6 +1938,26 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         return initiatorClusterName;
     }
 
+    /**
+     * Create the context for native VmaxVolumeToExportMaskRuleApplicator
+     *
+     * @param workflow [IN] - Workflow to use for postApply() steps
+     * @param exportGroup [IN] - ExportGroup
+     * @param storage [IN] - StorageSystem
+     * @param policyCache [IN] - ExportMask URI to ExportMaskPolicy
+     * @param zoningStepNeeded [IN] - Indicates if zoning needs to be done in postApply() or not
+     * @param token [IN] - Token representing the workflow step
+     * @param initiatorHelper [IN] - Initiator helper object that has data related to initiators
+     * @param initiatorToExportMaskPlacementMap [IN] - Mapping of port name (WWN/IQN) to set of ExportMask URIs that contain the port name
+     * @param initiatorURIsCopy [IN]
+     * @param partialMasks [IN] - Set of ExportMask URIs that have a subset of the initiators that are being exported to
+     * @param volumeMap [IN] - Mapping of Volume URI to Integer HLU representing the volumes to export
+     * @param initiatorsForNewExport [IN] - Initiators that will be added to the new ExportMask(s)
+     * @param masksToUpdateWithVolumes [IN] - Mapping of ExportMask URI to Volumes to export
+     * @param masksToUpdateWithInitiators [IN] - Mapping of ExportMask URI to set of Initiators to add to them
+     * @param previousStep [IN] - Previous workflow steps to be used for postApply()
+     * @return new VmaxVolumeToExportMaskApplicatorContext
+     */
     private VmaxVolumeToExportMaskApplicatorContext createVmaxNativeApplicatorContext(Workflow workflow, ExportGroup exportGroup,
             StorageSystem storage, Map<URI, ExportMaskPolicy> policyCache, boolean zoningStepNeeded, String token,
             InitiatorHelper initiatorHelper, Map<String, Set<URI>> initiatorToExportMaskPlacementMap, List<URI> initiatorURIsCopy,
@@ -1963,6 +1983,19 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         return context;
     }
 
+    /**
+     * Create the context for VPlex backend VmaxVolumeToExportMaskRuleApplicator
+     *
+     * @param exportGroup [IN] - ExportGroup
+     * @param storage [IN] - StorageSystem
+     * @param policyCache [IN] - ExportMask URI to ExportMaskPolicy
+     * @param initiatorHelper [IN] - Initiator helper object that has data related to initiators
+     * @param initiatorToExportMaskPlacementMap [IN] - Mapping of port name (WWN/IQN) to set of ExportMask URIs that contain the port name
+     * @param partialMasks [IN] - Set of ExportMask URIs that have a subset of the initiators that are being exported to
+     * @param volumeMap [IN] - Mapping of Volume URI to Integer HLU representing the volumes to export
+     * @param masksToUpdateWithVolumes [IN] - Mapping of ExportMask URI to Volumes to export
+     * @return new VmaxVolumeToExportMaskApplicatorContext
+     */
     private VmaxVolumeToExportMaskApplicatorContext createVPlexBackendApplicatorContext(ExportGroup exportGroup, StorageSystem storage,
             Map<URI, ExportMaskPolicy> policyCache, InitiatorHelper initiatorHelper,
             Map<String, Set<URI>> initiatorToExportMaskPlacementMap, Set<URI> partialMasks, Map<URI, Integer> volumeMap,
@@ -2064,7 +2097,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         }
 
         /**
-         * This is central to the VmaxVolumeToExportMaskRuleApplicator class. We are essentially try to have a wrapper around this
+         * This is central to the VmaxVolumeToExportMaskRuleApplicator class. We are essentially trying to have a wrapper around this
          * method because it needs to be called in different contexts. One context is when this is a native VMAX export operation.
          * This context requires workflow steps, so this what the postApply() is for. The second context is when we are suggesting
          * ExportMasks to use for a set of initiators for the VPlex backend. The VPlex backend workflow bypasses these
@@ -2078,7 +2111,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
          */
         @Override
         public boolean applyRules(Map<URI, Map<URI, Integer>> initiatorsToVolumes) {
-            // TODO: We need to determine if all the parameters for applyVolumesToMasksUsingRules are necessary, like ExportGroup & token
             return applyVolumesToMasksUsingRules(context.storage, context.exportGroup, context.masksToUpdateWithVolumes,
                     initiatorsToVolumes, context.exportMaskToPolicy, context.masksToUpdateWithInitiators, context.partialMasks,
                     context.token);

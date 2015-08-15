@@ -300,16 +300,15 @@ public class VPlexBackendManager {
     /**
      * Validates that an ExportMask can be used.
      * There are comments for each rule that is validated below.
-     * 
-     * @param vplex
-     * @param array
-     * @param map of Network to Vplex StoragePort list.
-     * @param mask
-     * @param invalidMaskscontains
-     * @param returns true if passed validation
+     *
+     * @param varrayURI [IN] - VirtualArray URI
+     * @param initiatorPortMap [IN] - Map of Initiator (URI) to StoragePort objects
+     * @param mask [IN] - ExportMask to validate
+     * @param invalidMasks [IN] - Set of ExportMask URIs that are not valid for reuse
+     * @return true, IFF the 'mask' passes the VPlex backend ExportMask reuse rules
      */
-    private boolean validateExportMask(StorageSystem vplex, StorageSystem array, URI varrayURI,
-            Map<URI, List<StoragePort>> initiatorPortMap, ExportMask mask, Set<URI> invalidMasks) {
+    private boolean validateExportMask(URI varrayURI, Map<URI, List<StoragePort>> initiatorPortMap, ExportMask mask,
+            Set<URI> invalidMasks) {
 
         boolean passed = true;
 
@@ -1245,7 +1244,7 @@ public class VPlexBackendManager {
         for (ExportMask mask : maskSet.values()) {
             _log.info(String.format("Validating ExportMask %s (%s) %s", mask.getMaskName(), mask.getId(),
                     (mask.getCreatedBySystem() ? "ViPR created" : "Externally created")));
-            if (validateExportMask(vplex, array, varrayURI, _initiatorPortMap, mask, invalidMasks)) {
+            if (validateExportMask(varrayURI, _initiatorPortMap, mask, invalidMasks)) {
                 if (mask.getCreatedBySystem()) {
                     viprCreatedMasks = true;
                 } else {
@@ -1267,7 +1266,7 @@ public class VPlexBackendManager {
             for (ExportMask mask : uninitializedMasks.keySet()) {
                 _log.info(String.format("Validating uninitialized ViPR ExportMask %s (%s)",
                         mask.getMaskName(), mask.getId()));
-                if (validateExportMask(vplex, array, varrayURI, _initiatorPortMap, mask, invalidMasks)) {
+                if (validateExportMask(varrayURI, _initiatorPortMap, mask, invalidMasks)) {
                     maskSet.put(mask.getId(), mask);
                     placementDescriptor.placeVolumes(mask.getId(), volumeMap);
                 }
@@ -1310,7 +1309,7 @@ public class VPlexBackendManager {
         for (ExportMask mask : generatedMasks.keySet()) {
             _log.info(String.format("Validating generated ViPR Export Mask %s (%s)",
                     mask.getMaskName(), mask.getId()));
-            if (validateExportMask(vplex, array, varrayURI, _initiatorPortMap, mask, invalidMasks)) {
+            if (validateExportMask(varrayURI, _initiatorPortMap, mask, invalidMasks)) {
                 maskSet.put(mask.getId(), mask);
                 // This is a generated ExportMask. The default Volume placement for something that ViPR
                 // creates will be to place everything in a single ExportMask (VOLUMES_TO_SINGLE_MASK).

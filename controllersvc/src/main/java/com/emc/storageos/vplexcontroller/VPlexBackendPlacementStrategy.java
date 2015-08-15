@@ -6,7 +6,8 @@
 package com.emc.storageos.vplexcontroller;
 
 /**
- * Strategy interface for VPlexBackendPlacementStrategy
+ * Strategy interface for implementing different ways to select
+ * matched ExportMasks for backend arrays of a VPlex system.
  */
 interface VPlexBackendPlacementStrategy {
             void execute();

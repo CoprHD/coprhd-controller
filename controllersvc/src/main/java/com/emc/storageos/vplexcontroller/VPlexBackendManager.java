@@ -213,14 +213,10 @@ public class VPlexBackendManager {
      * which to place the volume to be exported to the VPlex. Otherwise ExportMask(s)
      * will be generated and one will be chosen from the generated set.
      * 
-     * @param vplex
-     *            [IN] - VPlex storage system
-     * @param array
-     *            [IN] - Storage Array storage system
-     * @param varrayURI
-     *            [IN] - Virtual array
-     * @param volumeMap
-     *            [IN] - Map of URI to their corresponding Volume object
+     * @param vplex [IN] - VPlex storage system
+     * @param array [IN] - Storage Array storage system
+     * @param varrayURI [IN] - Virtual array
+     * @param volumeMap [IN] - Map of URI to their corresponding Volume object
      * @return ExportMaskPlacementDescriptor - data structure that will indicate the mapping of ExportMasks to
      *         ExportGroups and ExportMasks to Volumes.
      * @throws ControllerException
@@ -1220,7 +1216,8 @@ public class VPlexBackendManager {
     }
 
     /**
-     * Routine will examine the placement descriptor to filter out any of the suggested ExportMasks that do not meet the VPlex requirements.
+     * Routine will examine the placement descriptor to filter out any of the suggested ExportMasks that do not meet
+     * the VPlex requirements.
      *
      * @param vplex [IN] - VPlex StorageSystem
      * @param array [IN] - Backend StorageSystem

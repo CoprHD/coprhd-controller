@@ -525,7 +525,7 @@ public class SystemHealth extends Controller {
             flash.success(Messages.get("adminDashboard.nodeRebooting", nodeId));
             Maintenance.maintenance(Common.reverseRoute(SystemHealth.class, "systemHealth"));
         }else{
-            flash.error("systemHealth.message.reboot.unavailable", nodeId);
+            flash.error(Messages.get("systemHealth.message.reboot.unavailable", nodeId));
             systemHealth();
         }
     }

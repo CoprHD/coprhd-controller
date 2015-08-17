@@ -389,6 +389,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
     private Map<UnManagedVolume, UnManagedVolume> checkForMirrors(UnManagedVolume unManagedVolume, 
             List<UnManagedVolume> associatedVolumes) {
+        
+        // TODO: just skipping all the mirror stuff for a test build
+        if (unManagedVolume.getId() != null) {
+            return new HashMap<UnManagedVolume, UnManagedVolume>();
+        }
+        
         _logger.info("checking for mirrors on volume " + unManagedVolume.getNativeGuid());
         Map<UnManagedVolume, UnManagedVolume> mirrorMap = new HashMap<UnManagedVolume, UnManagedVolume>();
         

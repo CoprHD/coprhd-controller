@@ -201,8 +201,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
             if (null != args.getFsShares() && !args.getFsShares().isEmpty()) {
                 if (!netAppDeleteCIFSExports(storage, args.getFsShares(), portGroup)) {
                     _log.info("NetAppFileStorageDevice doDeletFS:netAppDeleteCIFSExports {} - failed", args.getFsName());
-                }
-                else {
+                } else {
                     _log.info("NetAppFileStorageDevice doDeletFS:netAppDeleteCIFSExports {} - succeeded", args.getFsName());
                 }
             }
@@ -235,6 +234,30 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
             result = BiosCommandResult.createErrorResult(serviceError);
         }
         return result;
+    }
+
+    /**
+     * Checking a file system: - Check if the FS exists on Array or not
+     * 
+     * @param StorageSystem storage
+     * @param args FileDeviceInputOutput
+     * @return boolean true if exists else false
+     * @throws ControllerException
+     */
+
+    @Override
+    public boolean doCheckFSExists(StorageSystem storage,
+            FileDeviceInputOutput args) throws ControllerException {
+        _log.info("checking file system existence on array: ", args.getFsName());
+        String portGroup = findVfilerName(args.getFs());
+        NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
+                storage.getPortNumber(), storage.getUsername(),
+                storage.getPassword()).https(true).vFiler(portGroup).build();
+        List<String> fs = nApi.listFileSystems();
+        if (!fs.isEmpty() && fs.contains(args.getFsName())) {
+            return true;
+        } else
+            return false;
     }
 
     private Boolean netAppDeleteNFSExports(StorageSystem storage,
@@ -283,8 +306,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
                     storage.getPassword()).https(true).vFiler(portGroup).build();
             if (!nApi.deleteShare(smbFileShare.getName())) {
                 failedCount++;
-            }
-            else {
+            } else {
                 removedShareKeys.add(key);
             }
         }
@@ -303,7 +325,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-            throws ControllerException {
+                    throws ControllerException {
         _log.info("NetAppFileStorageDevice doExport - start");
         // Verify inputs.
         validateExportArgs(exportList);
@@ -504,7 +526,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doUnexport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-            throws ControllerException {
+                    throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppFileStorageDevice doUnexport: {} - start", args.getFileObjId());
@@ -604,7 +626,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-            throws ControllerException {
+                    throws ControllerException {
         // To be in-sync with isilon implementation, currently forceGroup is
         // set to null which will set the group name as "everyone" by default.
         String forceGroup = null;
@@ -617,8 +639,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
             Boolean modOrCreateShareSuccess;
             if (existingShare != null) {
                 modOrCreateShareSuccess = modifyNtpShare(storage, args, smbFileShare, forceGroup, existingShare);
-            }
-            else {
+            } else {
                 modOrCreateShareSuccess = createNtpShare(storage, args, smbFileShare, forceGroup);
             }
             if (modOrCreateShareSuccess.booleanValue() == true) {
@@ -665,7 +686,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-            throws ControllerException {
+                    throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppFileStorageDevice doDeleteShare - start");
@@ -1490,10 +1511,8 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
                 exportsToprocess.add(rule);
             }
 
-        } else
-        {
-            if (exportsToprocess == null)
-            {
+        } else {
+            if (exportsToprocess == null) {
                 exportsToprocess = new ArrayList<>();
             }
             exportsToprocess.addAll(exportAdd);
@@ -1606,8 +1625,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
             CifsAcl cif_new = new CifsAcl();
             String domain = newAcl.getDomain();
 
-            String userOrGroup = newAcl.getGroup() == null ?
-                    newAcl.getUser() : newAcl.getGroup();
+            String userOrGroup = newAcl.getGroup() == null ? newAcl.getUser() : newAcl.getGroup();
 
             if (domain != null && !domain.isEmpty()) {
                 userOrGroup = domain + "\\" + userOrGroup;
@@ -1656,8 +1674,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
 
             CifsAcl cif_new = new CifsAcl();
             String domain = newAcl.getDomain();
-            String userOrGroup = newAcl.getGroup() == null ?
-                    newAcl.getUser() : newAcl.getGroup();
+            String userOrGroup = newAcl.getGroup() == null ? newAcl.getUser() : newAcl.getGroup();
 
             if (domain != null && !domain.isEmpty()) {
                 userOrGroup = domain + "\\" + userOrGroup;
@@ -1717,8 +1734,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
 
             CifsAcl cif_new = new CifsAcl();
             String domain = newAcl.getDomain();
-            String userOrGroup = newAcl.getGroup() == null ?
-                    newAcl.getUser() : newAcl.getGroup();
+            String userOrGroup = newAcl.getGroup() == null ? newAcl.getUser() : newAcl.getGroup();
 
             if (domain != null && !domain.isEmpty()) {
                 userOrGroup = domain + "\\" + userOrGroup;
@@ -1755,8 +1771,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
             CifsAcl cif_new = new CifsAcl();
             String domain = newAcl.getDomain();
 
-            String userOrGroup = newAcl.getGroup() == null ?
-                    newAcl.getUser() : newAcl.getGroup();
+            String userOrGroup = newAcl.getGroup() == null ? newAcl.getUser() : newAcl.getGroup();
 
             if (domain != null && !domain.isEmpty()) {
                 userOrGroup = domain + "\\" + userOrGroup;

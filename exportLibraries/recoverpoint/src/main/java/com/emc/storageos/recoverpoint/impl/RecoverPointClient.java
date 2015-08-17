@@ -2549,6 +2549,12 @@ public class RecoverPointClient {
         }
     }
 
+    /**
+     * Deletes one-to-many replication sets based on the volume information passed in.
+     *
+     * @param volumes the volume information that relates to one or more replication sets.
+     * @throws RecoverPointException
+     */
     public void deleteReplicationSets(List<RecoverPointVolumeProtectionInfo> volumes) throws RecoverPointException {
         // Used to capture the volume WWNs associated with each replication set to remove.
         List<String> volumeWWNs = new ArrayList<String>();

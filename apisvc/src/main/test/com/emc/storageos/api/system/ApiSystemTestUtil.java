@@ -21,6 +21,8 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupCreate;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
+import com.emc.storageos.model.block.CopiesParam;
+import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
@@ -80,6 +82,27 @@ public class ApiSystemTestUtil {
 			return volumes;
 		} catch (ServiceErrorException ex) {
 			log.error("Exception creating virtual volumes " + ex.getMessage(), ex);
+			throw ex;
+		}
+	}
+	
+	public List<URI> attachContinuousCopy(URI volumeURI, String copyName) {
+		try {
+			List<URI> mirrors = new ArrayList<URI>();
+			Copy copy = new Copy("native", Copy.SyncDirection.SOURCE_TO_TARGET.name(),  
+					null, copyName, 1);
+			CopiesParam input = new CopiesParam();
+			List<Copy> copies = input.getCopies();
+			copies.add(copy);
+			input.setCopies((copies));;
+			Tasks<VolumeRestRep> tasks = client.blockVolumes().startContinuousCopies(volumeURI, input);
+			for (VolumeRestRep volumeRestRep : tasks.get()) {
+				log.info(String.format("Mirror %s (%s)", volumeRestRep.getName(), volumeRestRep.getNativeId()));
+				mirrors.add(volumeRestRep.getId());
+			}
+			return mirrors;
+		} catch (ServiceErrorException ex) {
+			log.info(String.format("Could not attach mirror %s to volume %s", copyName, volumeURI));
 			throw ex;
 		}
 	}

@@ -14,6 +14,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.internal.MethodSorter;
 import org.junit.runners.MethodSorters;
@@ -43,6 +44,8 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 	private static final String LOCAL_VARRAY = "localVarray";
 	private static final String DIST_VPOOL = "distributedVpool";
 	private static final String DIST_VARRAY = "distributedVarray";
+	private static final String MIRROR_VPOOL = "mirrorVpool";
+	private static final String MIRROR_VARRAY = "mirrorVarray";
 	private static final String CONSISTENCY_GROUP = "consistencyGroup";
 	private static final String VIPR_IP = "viprIP";
 	private static final String USER_NAME = "userName";
@@ -86,6 +89,7 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 		}
 	}
 	
+	@Ignore
 	@Test
 	// Test1 creates a vplex locl volume, inventory deletes it, 
 	// discovers unmanaged resources, and ingests volume.
@@ -117,6 +121,7 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 		
 	}
 	
+	@Ignore
 	@Test
 	// Test2 creates a vplex distributed volume, inventory deletes it, 
 	// discovers unmanaged resources, and ingests volume.
@@ -149,6 +154,43 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 	}
 	
 	@Test
+	// Test3 creates a vplex locl volume with mirror option, inventory deletes it, 
+	// discovers unmanaged resources, and ingests volume, checking for mirror.
+	// test3a creates unmanaged  vplex local volume create. Ingestion handled in test1b.
+	public void prepare3() {
+		// Create the volume to be ingested
+		start();
+		String timeInt = getTimeInt();
+		String volumeName = "vpingest" + timeInt;
+		printLog("Creating virtual volume: " + volumeName);
+		URI vpool = util.getURIFromLabel(VirtualPool.class, properties.getProperty(MIRROR_VPOOL));
+		URI varray = util.getURIFromLabel(VirtualArray.class, properties.getProperty(MIRROR_VARRAY));
+		URI project = util.getURIFromLabel(Project.class, properties.getProperty(PROJECT));
+		String cgName =  properties.getProperty(CONSISTENCY_GROUP) + timeInt;
+		URI cg = null;
+		if (cgName != null) {
+			cg = util.createConsistencyGroup(cgName, project);
+		}
+		List<URI> volumeURIs = util.createVolume(volumeName, "1GB", 1,  vpool, varray, project, null);
+		// Look up the volume
+		VolumeRestRep volume = client.blockVolumes().get(volumeURIs.get(0));
+		String nativeId = volume.getNativeId();
+		args.put("test3NativeId", nativeId);
+		printLog("Virtual volume: " + nativeId);
+		stop("Test 3 virtual volume creation: " + volumeName);
+		
+		// Attach the mirror
+		List<URI> mirrorURIs = util.attachContinuousCopy(volumeURIs.get(0), volumeName + "-mirror");
+		printLog("Mirror volume: " + mirrorURIs.get(0).toString());
+		
+		// Inventory only delete it.
+		// N.B. There is currently a problem... the VplexMirror object is not currently being deleted
+		// by inventory delete.
+		util.deleteVolumes(volumeURIs, true);
+		
+	}
+	
+	@Test
 	public void prepare999() {
 		// Do discovery of unmanaged volumes / exports
 				URI storageSystemURI;
@@ -174,6 +216,7 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 		
 	}
 	
+	@Ignore
 	@Test
 	public void test1() {
 		printLog("test1");
@@ -213,6 +256,7 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 		}
 	}
 	
+	@Ignore
 	@Test
 	public void test2() {
 		printLog("test2");
@@ -248,6 +292,45 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 				Volume bvol = dbClient.queryObject(Volume.class, URI.create(assocVolume));
 				printLog(String.format("  Backend Volume %s %s %s", bvol.getLabel(), bvol.getNativeGuid(), bvol.getId()));
 			}
+		}
+	}
+	
+	@Test
+	public void test3() {
+		printLog("test3");
+		URI vpool = util.getURIFromLabel(VirtualPool.class, properties.getProperty(MIRROR_VPOOL));
+		URI varray = util.getURIFromLabel(VirtualArray.class, properties.getProperty(MIRROR_VARRAY));
+		URI project = util.getURIFromLabel(Project.class, properties.getProperty(PROJECT));
+		URI cg = util.getURIFromLabel(BlockConsistencyGroup.class, properties.getProperty(CONSISTENCY_GROUP));
+		URI vplexURI = util.getURIFromLabel(StorageSystem.class, properties.getProperty(VPLEX_GUID));
+
+		// Look up the unmanaged volume by nativeId.
+		List<UnManagedVolumeRestRep> uvols = client.unmanagedVolumes().getByStorageSystem(vplexURI);
+		List<URI> uvolId = new ArrayList<URI>();
+		for (UnManagedVolumeRestRep uvol : uvols) {
+			if (uvol.getNativeGuid().equals(args.get("test3NativeId"))) {
+				printLog("UnManagedVolume: " + uvol.getNativeGuid());
+				uvolId.add(uvol.getId());
+			}
+		}
+		Assert.assertFalse("Unmanaged volume id null", uvolId.isEmpty());
+
+		// Do ingestion of virtual volume.
+		start();
+		List<String> nativeGuids = util.ingestUnManagedVolume(uvolId, project, varray, vpool);
+		stop("Test3 ingestion of volume: " + uvolId);
+
+		// Lookup the volumes in the database.
+		List<Volume> volumes = util.findVolumesByNativeGuid(vplexURI, nativeGuids);
+		for (Volume vvol : volumes) {
+			printLog(String.format("Volume %s %s %s", vvol.getLabel(), vvol.getNativeGuid(), vvol.getId()));
+			Assert.assertNotNull("No associated volumes", vvol.getAssociatedVolumes());
+			Assert.assertFalse("Associated volumes empty", vvol.getAssociatedVolumes().isEmpty());
+			for (String assocVolume : vvol.getAssociatedVolumes()) {
+				Volume bvol = dbClient.queryObject(Volume.class, URI.create(assocVolume));
+				printLog(String.format("  Backend Volume %s %s %s", bvol.getLabel(), bvol.getNativeGuid(), bvol.getId()));
+			}
+
 		}
 	}
 	

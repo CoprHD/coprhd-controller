@@ -33,7 +33,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceErrorFactory;
 public class ServiceErrorTest {
 
     @Test
-    public void testXML_unauthorized() throws JAXBException {
+    public void testXMLUnauthorized() throws JAXBException {
         final ServiceCode code = ServiceCode.SECURITY_UNAUTHORIZED_OPERATION;
         final String message = "No credentials were specified";
         final String xml = xml(error(code, message, null));
@@ -47,7 +47,7 @@ public class ServiceErrorTest {
     }
 
     @Test
-    public void testJSON_unauthorized() throws Exception {
+    public void testJSONUnauthorized() throws Exception {
         final ServiceCode code = ServiceCode.SECURITY_UNAUTHORIZED_OPERATION;
         final String message = "No credentials were specified";
         final String json = json(error(code, message, null));

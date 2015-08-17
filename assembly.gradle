@@ -131,6 +131,7 @@ task assemblePortal(type: Copy, dependsOn: ":portal:assemble") {
         exclude "documentation/"
         exclude "samples-and-tests/"
         exclude "support/"
+		exclude "python/"
         exclude "**/junit-*.jar"
     }
     into("conf") {

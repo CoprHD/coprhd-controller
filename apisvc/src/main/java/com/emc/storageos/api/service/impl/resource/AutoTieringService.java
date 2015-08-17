@@ -35,7 +35,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 
 @Path("/vdc/auto-tier-policies")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, write_roles = { Role.SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = { Role.SYSTEM_ADMIN })
 public class AutoTieringService extends TaggedResource {
 
     /**

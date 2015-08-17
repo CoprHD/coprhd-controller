@@ -46,10 +46,10 @@ import static com.emc.storageos.api.mapper.FileMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 @Path("/file/quotadirectories")
-@DefaultPermissions(read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        read_acls = { ACL.OWN, ACL.ALL },
-        write_roles = { Role.TENANT_ADMIN },
-        write_acls = { ACL.OWN, ACL.ALL })
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
+        readAcls = { ACL.OWN, ACL.ALL },
+        writeRoles = { Role.TENANT_ADMIN },
+        writeAcls = { ACL.OWN, ACL.ALL })
 public class FileQuotaDirectoryService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(FileQuotaDirectoryService.class);

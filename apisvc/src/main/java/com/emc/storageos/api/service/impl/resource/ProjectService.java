@@ -72,10 +72,10 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
  * Project resource implementation
  */
 @Path("/projects")
-@DefaultPermissions(read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        read_acls = { ACL.OWN, ACL.ALL },
-        write_roles = { Role.TENANT_ADMIN },
-        write_acls = { ACL.OWN, ACL.ALL })
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
+        readAcls = { ACL.OWN, ACL.ALL },
+        writeRoles = { Role.TENANT_ADMIN },
+        writeAcls = { ACL.OWN, ACL.ALL })
 public class ProjectService extends TaggedResource {
     private static final Logger _log = LoggerFactory.getLogger(ProjectService.class);
     // Constants for Events
@@ -520,7 +520,7 @@ public class ProjectService extends TaggedResource {
     @PUT
     @Path("/{id}/acl")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN }, acls = { ACL.OWN }, block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN }, acls = { ACL.OWN }, blockProxies = true)
     public ACLAssignments updateRoleAssignments(@PathParam("id") URI id,
             ACLAssignmentChanges changes) {
         Project project = getProjectById(id, true);

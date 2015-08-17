@@ -58,9 +58,9 @@ import com.google.common.base.Function;
  * Compute image service handles create, update, and remove of compute images.
  */
 @Path("/compute/images")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        read_acls = { ACL.USE },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        readAcls = { ACL.USE },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class ComputeImageService extends TaskResourceService {
 
     private static final Logger log = LoggerFactory.getLogger(ComputeImageService.class);

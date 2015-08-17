@@ -173,7 +173,7 @@ public interface CallHomeService {
      * 
      * @brief Show virtual machine information required for ESRS setup
      * @prereq none
-     * @return
+     * @return Node data information for ESRS
      */
     @GET
     @Path("esrs-device/")

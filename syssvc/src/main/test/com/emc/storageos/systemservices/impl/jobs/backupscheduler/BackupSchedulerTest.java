@@ -37,11 +37,11 @@ import java.util.TimeZone;
 public class BackupSchedulerTest {
     private static final String[] aliveBackupsAt20141231 = new String[] {
             // DAY: 1
-            "vipr-2.2-1-20141231011000",
-            "vipr-2.2-1-20141230011000",
-            "vipr-2.2-1-20141229011000",
-            "vipr-2.2-1-20141228011000",
-            "vipr-2.2-1-20141227011000",
+            "vipr-2.2.0.0.123-1-20141231011000",
+            "vipr-2.2.0.0.123-1-20141230011000",
+            "vipr-2.2.0.0.123-1-20141229011000",
+            "vipr-2.2.0.0.123-1-20141228011000",
+            "vipr-2.2.0.0.123-1-20141227011000",
     };
 
     @Test
@@ -49,7 +49,7 @@ public class BackupSchedulerTest {
         new TestProductName();
 
         FakeConfiguration cfg = new FakeConfiguration();
-        cfg.dbSchemaVersion = "2.2";
+        cfg.setSoftwareVersion("vipr-2.2.0.0.123");
         cfg.nodeCount = 1;
         cfg.copiesToKeep = 5;
         cfg.startOffsetMinutes = 60;
@@ -87,7 +87,7 @@ public class BackupSchedulerTest {
         new TestProductName();
 
         FakeConfiguration cfg = new FakeConfiguration();
-        cfg.dbSchemaVersion = "2.2";
+        cfg.setSoftwareVersion("vipr-2.2.0.0.123");
         cfg.nodeCount = 1;
         cfg.copiesToKeep = 5;
         cfg.startOffsetMinutes = 60;
@@ -143,7 +143,7 @@ public class BackupSchedulerTest {
         new TestProductName();
 
         FakeConfiguration cfg = new FakeConfiguration();
-        cfg.dbSchemaVersion = "2.2";
+        cfg.setSoftwareVersion("vipr-2.2.0.0.123");
         cfg.nodeCount = 1;
         cfg.copiesToKeep = 5;
         cfg.startOffsetMinutes = 60;

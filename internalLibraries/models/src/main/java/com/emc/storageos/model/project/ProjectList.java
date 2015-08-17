@@ -26,7 +26,7 @@ public class ProjectList {
      * List of projects
      * 
      * @valid none
-     * @return
+     * @return List of projects
      */
     @XmlElement(name = "project")
     public List<NamedRelatedResourceRep> getProjects() {

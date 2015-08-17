@@ -93,5 +93,10 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.RecoverPointBlockSnapshotMigration"/>
             </list>
         </entry>
+        <entry key="2.3">
+            <list>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.XtremioStorageSystemToStorageProviderMigration"/>
+            </list>
+        </entry>
     </util:map>
 </beans>

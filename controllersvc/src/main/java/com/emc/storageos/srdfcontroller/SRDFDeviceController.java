@@ -206,7 +206,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
          * doesn't make sense. Moreover, SMI-S has done rigorous testing of
          * Pause,resume,fail over,fail back on StorageSynchronized rather than on Groups.
          */
-        boolean volumePartOfCG = isVolumePartOfCG(targetDescriptors, uriVolumeMap);
+        boolean volumePartOfCG = isVolumePartOfCG(sourceDescriptors, uriVolumeMap);
 
         if (!volumePartOfCG) {
             createNonCGSRDFVolumes(workflow, waitFor, sourceDescriptors, uriVolumeMap);
@@ -527,8 +527,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     }
 
     private boolean isVolumePartOfCG(List<VolumeDescriptor> sourceDescriptors, Map<URI, Volume> uriVolumeMap) {
-        Volume firstTarget = getFirstTarget(sourceDescriptors, uriVolumeMap);
-        return (firstTarget.getConsistencyGroup() != null);
+        Volume source = uriVolumeMap.get(sourceDescriptors.get(0).getVolumeURI());
+        return (source != null && source.getConsistencyGroup() != null);
     }
 
     private Volume getFirstTarget(List<VolumeDescriptor> descriptors, Map<URI, Volume> uriVolumeMap) {

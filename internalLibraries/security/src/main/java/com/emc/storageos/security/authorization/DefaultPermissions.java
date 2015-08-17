@@ -16,14 +16,14 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DefaultPermissions {
     // Roles allowed for read access
-    Role[] read_roles();
+    Role[] readRoles();
 
     // ACLs allowed for read access
-    ACL[] read_acls() default {};
+    ACL[] readAcls() default {};
 
     // Roles allowed for write access
-    Role[] write_roles();
+    Role[] writeRoles();
 
     // ACLs allowed for read access
-    ACL[] write_acls() default {};
+    ACL[] writeAcls() default {};
 }

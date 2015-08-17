@@ -83,10 +83,10 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
  * 
  */
 @Path("/block/snapshots")
-@DefaultPermissions(read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        read_acls = { ACL.ANY },
-        write_roles = { Role.TENANT_ADMIN },
-        write_acls = { ACL.ANY })
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
+        readAcls = { ACL.ANY },
+        writeRoles = { Role.TENANT_ADMIN },
+        writeAcls = { ACL.ANY })
 public class BlockSnapshotService extends TaskResourceService {
     private static final String EVENT_SERVICE_TYPE = "BlockSnapshot";
 

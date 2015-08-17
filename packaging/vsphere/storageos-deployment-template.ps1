@@ -130,10 +130,11 @@ $Script:isVMX=$false
 
 # Usability
 function Usage() {
-    Write-Host "Usage: $scriptName -help | -mode [ install | redeploy ] [options]"
+    Write-Host "Usage: $scriptName -help | -mode [ install | redeploy | vmx] [options]"
     Write-Host "-mode: "
     Write-Host "         install      Install a new cluster"
     Write-Host "         redeploy     Redeploy a VM in a cluster"
+	Write-Host "         vmx          Install a VM at VMware workstation"
     Write-Host "	"
     Write-Host "Install mode options: "
     Write-Host "    -vip:               Public virtual IPv4 address"
@@ -193,10 +194,25 @@ function Usage() {
 	Write-Host ""
 	Write-Host "    example: .\$scriptName -mode redeploy -file your_setting_file_path -nodeid 1 -targeturi vi://username:password@vsphere_host_url -ds datastore_name -net network_name -vmprefix vmprefix- -vmfolder vm_folder -dm zeroedthick -cpucount 2 -memory 8192 -poweron"
 	Write-Host ""
+	Write-Host "VMX mode options: "
+    Write-Host "    -nodecount          Node counts of the cluster (valid value is 1 or 3 or 5), please note 1+0 cluster is a evaluation variant with no production support"
+    Write-Host "    -nodeid:            Specific node to be deployed, for VMX, nodeid is only support 1 node"
+	Write-Host "    -vmfolder:          Virtual Machine location"
+    Write-Host "    -net:               Network mode, bridged | nat"
+    Write-Host "    -vmprefix:          (Optional) Prefix of virtual machine name"
+	Write-Host "    -vmname             (Optional) Virtual machine name"
+	Write-Host "    -interactive        (Optional) Interactive way to deploy"
+	Write-Host ""
+	Write-Host "    example: .\$scriptName -mode vmx vip 1.2.3.0 -ipaddr_1 1.2.3.1 -gateway 1.1.1.1 -netmask 255.255.255.0 -vmprefix vmprefix- -vmfolder vm_location -net network_mode -nodecount 1 -nodeid 1"
+	Write-Host ""
 }
 
 function CleanUp() {
 	Get-ChildItem -path $scriptPath | Where{$_.Name.Contains("disk4")} | Remove-Item
+	if ($Script:isVMX -eq $true) {
+		Remove-Item $scriptName"\vipr-$releaseVersion-$currentNodeId\$vmname.vmx" -recurse
+		Remove-Item $scriptName"\vipr-$releaseVersion-$currentNodeId\$vmname\*" -recurse
+	}
 }
 
 function CheckPrerequisetes() {
@@ -251,6 +267,8 @@ function CheckRequiredParams($isInteractive) {
 		if ($Script:isPasswordGiven -eq $false) {
 			$Script:password=CheckParam $Script:password "Password" $isInteractive $true IsValidNotNullParam
 		}
+	} else {
+		$Script:net=CheckParam $Script:net "Network mode [bridged | nat]" $isInteractive $false IsValidNet
 	}
 }
 
@@ -289,6 +307,8 @@ function CheckVMSettingsInteractively($isInteractive) {
 		$Script:ds=CheckParam $Script:ds "Datastore cluster" $isInteractive $false IsValidNotNullParam
 		$Script:net=CheckParam $Script:net "Network name" $isInteractive $false IsValidNotNullParam
 		$Script:dm=CheckParam $Script:dm "Disk provisioning" $isInteractive $false IsValidDm
+	} else {
+		$Script:net=CheckParam $Script:net "Network mode [bridged | nat]" $isInteractive $false IsValidNet
 	}
 	$Script:vmFolder=CheckParam $Script:vmFolder "Folder" $isInteractive $false IsValidNotNullParam
 	$Script:vmName=CheckParam $Script:vmName "VM name" $isInteractive $false IsValidNotNullParam	
@@ -574,6 +594,10 @@ function CheckParamsIsEmpty() {
 			([String]::IsNullOrEmpty($Script:ds)) -or ([String]::IsNullOrEmpty($Script:targetUri))){
 			$Script:interactive=$true
 		}
+	} else {
+		if (([String]::IsNullOrEmpty($Script:net)) -or ([String]::IsNullOrEmpty($Script:vmFolder))){
+			$Script:interactive=$true
+		}
 	}
 	
 	if (-not [String]::IsNullOrEmpty($Script:cpuCount)) {
@@ -714,6 +738,8 @@ function DisplayVMSettings() {
 		Write-Host "	Datastore: $Script:ds"
 		Write-Host "	Network name: $Script:net"
 		Write-Host "	Disk provisioning [ thin | lazyzeroedthick | zeroedthick]: $Script:dm"
+	} else {
+		Write-Host "	Network mode [bridged | nat]: $Script:net"
 	}
 	Write-Host "	Folder: $Script:vmFolder"
 	Write-Host "	Virtual machine name: $Script:vmName"
@@ -1084,7 +1110,9 @@ vmci0.unrestricted = "false"'
 	$diskInfos=$diskInfos.Replace("{4}",$scriptPath+"\vipr-$releaseVersion-$currentNodeId\vipr-$releaseVersion-disk4-$currentNodeId.vmdk")
 	
 	# Read VMX file content and append disk infos
-	(Get-Content $vmxFileName) | foreach-object {$_ -replace 'ethernet0.connectionType = "bridged"', 'ethernet0.connectionType = "nat"'} | Set-Content $vmxFileName
+	if ($Script:net.ToLower() -eq "nat") {
+		(Get-Content $vmxFileName) | foreach-object {$_ -replace 'ethernet0.connectionType = "bridged"', 'ethernet0.connectionType = "nat"'} | Set-Content $vmxFileName
+	}
 	Add-Content -path $vmxFileName -value $diskInfos
 	
 	# Deploy VMX 

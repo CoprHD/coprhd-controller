@@ -127,6 +127,14 @@ public class SystemHealth extends Controller {
     public static void nodeRecovery() {
         ViPRSystemClient client = BourneUtil.getSysClient();
         RecoveryStatus recoveryStatus = client.control().getRecoveryStatus();
+        if (recoveryStatus.getStartTime()!= null ) {
+        	DateTime startTime = new DateTime(recoveryStatus.getStartTime().getTime());
+        	renderArgs.put("startTime", startTime);
+        }
+        if (recoveryStatus.getEndTime() != null) {
+        	DateTime endTime = new DateTime(recoveryStatus.getEndTime().getTime());
+        	renderArgs.put("endTime", endTime);
+        }
         ClusterInfo clusterInfo = AdminDashboardUtils.getClusterInfo();
 
         render(recoveryStatus, clusterInfo);
@@ -517,7 +525,7 @@ public class SystemHealth extends Controller {
             flash.success(Messages.get("adminDashboard.nodeRebooting", nodeId));
             Maintenance.maintenance(Common.reverseRoute(SystemHealth.class, "systemHealth"));
         }else{
-            flash.error("systemHealth.message.reboot.unavailable", nodeId);
+            flash.error(Messages.get("systemHealth.message.reboot.unavailable", nodeId));
             systemHealth();
         }
     }

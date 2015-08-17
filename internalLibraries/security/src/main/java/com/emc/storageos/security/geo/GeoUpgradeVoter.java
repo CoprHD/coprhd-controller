@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.impl.GlobalLockImpl;
 import com.emc.storageos.db.client.model.GlobalLock;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.security.upgradevoter.UpgradeVoter;
 
@@ -137,7 +138,7 @@ public class GeoUpgradeVoter implements UpgradeVoter {
                 log.info(
                         "Can not get db schema version on {}, will use default version instead",
                         vdcId);
-                allSchemaVersions.add(VdcUtil.DEFAULT_VDC_DB_VERSION);
+                allSchemaVersions.add(DbConfigConstants.DEFAULT_VDC_DB_VERSION);
             }
         }
 

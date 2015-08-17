@@ -13,6 +13,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.NewCookie;
@@ -1540,7 +1541,7 @@ public class VPlexApiClient {
                 deviceName, _baseURI);
         
         List<VPlexStorageVolumeInfo> storageVolumes = getDiscoveryManager()
-                .getStorageVolumesForDevice(deviceName, locality);
+                .getStorageVolumesForDevice(deviceName, locality, false);
         
         Set<String> storageVolumeWwns = new HashSet<String>();
         for (VPlexStorageVolumeInfo info : storageVolumes) {
@@ -1560,5 +1561,28 @@ public class VPlexApiClient {
                 .getDeviceForStorageVolume(volumeNativeId, wwn, backendArraySerialNum);
 
         return deviceName;
+    }
+    
+    public Map<String, String> getTopLevelDeviceMap(String deviceName, String locality) {
+        Map<String, String> topLevelDeviceMap = new TreeMap<String, String>();
+        
+        s_logger.info("Request to find top level device components for {} on VPLEX at {}",
+                deviceName, _baseURI);
+        
+        VPlexDeviceInfo deviceInfo = null;
+        if (VPlexApiConstants.LOCAL_VIRTUAL_VOLUME.equals(locality)) {
+            deviceInfo = getDiscoveryManager().findLocalDevice(deviceName);
+            getDiscoveryManager().setSupportingComponentsForLocalDevice(deviceInfo);
+        }
+        
+        if (null != deviceInfo) {
+            if (!deviceInfo.getChildDeviceInfo().isEmpty()) {
+                for (VPlexDeviceInfo childDevice : deviceInfo.getChildDeviceInfo()) {
+                    topLevelDeviceMap.put(childDevice.getGeometry(), childDevice.getName());
+                }
+            }
+        }
+        
+        return topLevelDeviceMap;
     }
 }

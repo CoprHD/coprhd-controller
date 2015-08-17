@@ -3308,7 +3308,7 @@ public class VPlexApiDiscoveryManager {
     }
 
     public List<VPlexStorageVolumeInfo> getStorageVolumesForDevice(
-            String deviceName, String locality) throws VPlexApiException {
+            String deviceName, String locality, boolean goDeeper) throws VPlexApiException {
         
         long timer = new Date().getTime();
         s_logger.info("Getting backend storage volume wwn info for {} volume {} from VPLEX at " 
@@ -3326,6 +3326,11 @@ public class VPlexApiDiscoveryManager {
             uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
             uriBuilder.append(VPlexApiConstants.URI_COMPONENTS.toString());
             uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+            // TODO: this is a wee bit too hacky
+            if (goDeeper) {
+                uriBuilder.append(VPlexApiConstants.URI_COMPONENTS.toString());
+                uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+            }
         } else if (VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME.equals(locality)) {
             // format /vplex/distributed-storage/distributed-devices
             //        /DEVICE_NAME/distributed-device-components/*/components/*/components/*
@@ -3337,6 +3342,11 @@ public class VPlexApiDiscoveryManager {
             uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
             uriBuilder.append(VPlexApiConstants.URI_COMPONENTS.toString());
             uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+            // TODO: this is a wee bit too hacky
+            if (goDeeper) {
+                uriBuilder.append(VPlexApiConstants.URI_COMPONENTS.toString());
+                uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+            }
         } else {
             String reason = "invalid VPLEX locality for device " + deviceName + ": " + locality;
             s_logger.error(reason);
@@ -3360,6 +3370,14 @@ public class VPlexApiDiscoveryManager {
         try {
             storageVolumeInfoList = VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
                 responseStr, VPlexStorageVolumeInfo.class);
+        } catch (VPlexApiException e) {
+            // TODO: this is a weeeeee bit too hacky
+            s_logger.warn("failed to get storage volumes at " + uriBuilder.toString());
+            if (!goDeeper) {
+                storageVolumeInfoList = getStorageVolumesForDevice(deviceName, locality, true);
+            } else {
+                throw e;
+            }
         } catch (Exception e) {
             throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(e.getLocalizedMessage());
         }

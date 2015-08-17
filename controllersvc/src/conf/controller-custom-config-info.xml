@@ -22,7 +22,6 @@
     	<property name="customConfigTypes">
             <list>
                 <ref bean="sanZoneName"/>
-                <ref bean="sanZoneAddVolumeCheckZoning"/>
                 <ref bean="vnxHostStorageGroupName"/>
                 <ref bean="vmaxHostMaskingViewName"/>
                 <ref bean="vmaxClusterMaskingViewName"/>
@@ -94,22 +93,6 @@
                 <ref bean="nsMaxLengthConstraint"/>
                 <ref bean="illegalFirstCharConstraint"/>
             </list>
-        </property>
-    </bean>
-
-    <bean id="sanZoneAddVolumeCheckZoning" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-        <property name="name" value="SanZoneAddVolumeCheckZoning"/>
-        <property name="configType" value="SimpleValue"/>
-        <property name="type" value="Boolean"/>
-        <property name="scope">
-            <map>
-                <entry key="global" value="default"/>
-            </map>
-        </property>
-        <property name="defaultValues">
-            <map>
-                <entry key="default" value="false"/>
-            </map>
         </property>
     </bean>
     

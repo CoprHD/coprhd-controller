@@ -73,6 +73,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
@@ -918,14 +919,19 @@ public class BlockService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Task.class, taskObj.getId(),
                 task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
         taskObj.setStatus(Status.pending.toString());
-        TaskResourceRep taskRep = toTask(taskObj, task, op);
+        NamedURI resourceURI = new NamedURI();
+        resourceURI.setName(ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME.name());
+        resourceURI.setURI(taskObj.getId());
+        taskObj.setResource(resourceURI);
+        taskObj.setTenant(tenant.getId());
+        TaskResourceRep taskRep = toTask(taskObj);
         _dbClient.persistObject(taskObj);
         taskList.getTaskList().add(taskRep);
 
         // call thread that does the work.
         CreateVolumeSchedulingThread cvst = new CreateVolumeSchedulingThread(varray, project, vpool, capabilities, taskObj, task, 
                 consistencyGroup, requestedTypes, param, volumeCount, actualId, blockServiceImpl);
-        cvst.run();
+        new Thread(cvst).start();
         
         _log.info("Kicked off thread to perform placement and scheduling.  Returning task: " + taskObj.getId());
         return taskList;
@@ -963,6 +969,7 @@ public class BlockService extends TaskResourceService {
             this.requestedTypes = requestedTypes;
             this.param = param;
             this.volumeCount = volumeCount;
+            this.actualId = actualId;
             this.blockServiceImpl = blockServiceImpl;
         }
         

@@ -6,22 +6,14 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
-import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -31,60 +23,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.storageos.api.mapper.functions.MapStoragePort;
 import com.emc.storageos.api.mapper.functions.MapVirtualNas;
-import com.emc.storageos.api.service.impl.resource.utils.PurgeRunnable;
 import com.emc.storageos.api.service.impl.response.BulkList;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.Network;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.db.client.model.StoragePort.TransportType;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.EndpointUtility;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.WWNUtility;
-import com.emc.storageos.db.client.util.iSCSIUtility;
 import com.emc.storageos.model.BulkIdParam;
-import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.pools.VirtualArrayAssignmentChanges;
-import com.emc.storageos.model.pools.VirtualArrayAssignments;
-import com.emc.storageos.model.ports.StoragePortBulkRep;
-import com.emc.storageos.model.ports.StoragePortList;
-import com.emc.storageos.model.ports.StoragePortRestRep;
-import com.emc.storageos.model.ports.StoragePortUpdate;
-import com.emc.storageos.model.valid.Endpoint.EndpointType;
-import com.emc.storageos.model.varray.NetworkEndpointParam;
+import com.emc.storageos.model.vnas.VirtualNASBulkRep;
 import com.emc.storageos.model.vnas.VirtualNASList;
 import com.emc.storageos.model.vnas.VirtualNASRestRep;
-import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
-import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.util.ConnectivityUtil;
-import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
-import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
-import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
-import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 /**
  * StoragePort resource implementation
@@ -106,6 +58,7 @@ public class VirtualNasService extends TaggedResource {
 
     private static final String EVENT_SERVICE_TYPE = "virtualNAS";
 
+    @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
     }
@@ -138,9 +91,9 @@ public class VirtualNasService extends TaggedResource {
         ArgValidator.checkEntity(vNas, id, isIdEmbeddedInURL(id));
 
         if (!RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
-        		vNas.getRegistrationStatus())) {
+                vNas.getRegistrationStatus())) {
             throw APIException.badRequests.resourceNotRegistered(
-            		VirtualNAS.class.getSimpleName(), id);
+                    VirtualNAS.class.getSimpleName(), id);
         }
 
         return vNas;
@@ -166,12 +119,12 @@ public class VirtualNasService extends TaggedResource {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public VirtualNASList getVirtualNasServers() {
 
-    	VirtualNASList vNasList = new VirtualNASList();
+        VirtualNASList vNasList = new VirtualNASList();
         List<URI> ids = _dbClient.queryByType(VirtualNAS.class, true);
         for (URI id : ids) {
-        	VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class, id);
+            VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class, id);
             if ((vNas != null)) {
-            	vNasList.getVNASServers().add(
+                vNasList.getVNASServers().add(
                         toNamedRelatedResource(vNas, vNas.getNativeGuid()));
             }
         }
@@ -201,6 +154,42 @@ public class VirtualNasService extends TaggedResource {
     @Override
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.VIRTUAL_NAS;
+    }
+
+    /**
+     * Retrieve resource representations based on input ids.
+     * 
+     * @param param POST data containing the id list.
+     * @brief List data of virtual NAS resources
+     * @return list of representations.
+     */
+    @POST
+    @Path("/bulk")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Override
+    public VirtualNASBulkRep getBulkResources(BulkIdParam param) {
+        return (VirtualNASBulkRep) super.getBulkResources(param);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Class<VirtualNAS> getResourceClass() {
+        return VirtualNAS.class;
+    }
+
+    @Override
+    public VirtualNASBulkRep queryBulkResourceReps(List<URI> ids) {
+        Iterator<VirtualNAS> _dbIterator = _dbClient.queryIterativeObjects(
+                getResourceClass(), ids);
+        return new VirtualNASBulkRep(BulkList.wrapping(_dbIterator,
+                MapVirtualNas.getInstance(_dbClient)));
+    }
+
+    @Override
+    public VirtualNASBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
+        verifySystemAdmin();
+        return queryBulkResourceReps(ids);
     }
 
 }

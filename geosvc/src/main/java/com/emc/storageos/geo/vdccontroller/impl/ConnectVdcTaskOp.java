@@ -27,6 +27,7 @@ import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.geomodel.VdcNatCheckParam;
 import com.emc.storageos.geomodel.VdcNatCheckResponse;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
+import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.security.geo.GeoServiceHelper;
@@ -641,7 +642,7 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
                 log.info(
                         "Can not get vdc version on {}, will use default version instead",
                         vdcId);
-                allVersions.add(VdcUtil.DEFAULT_VDC_DB_VERSION);
+                allVersions.add(DbConfigConstants.DEFAULT_VDC_DB_VERSION);
             }
         }
 

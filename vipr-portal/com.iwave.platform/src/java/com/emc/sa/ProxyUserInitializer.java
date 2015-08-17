@@ -27,7 +27,7 @@ import com.emc.storageos.model.property.PropertyInfo;
  * @author jonnymiller
  */
 public class ProxyUserInitializer {
-    private static final String PROXY_USER_PASSWORD_PROPERTY = "system_proxyuser_encpassword";
+    private static final String PROXY_USER_PASSWORD_PROPERTY = "system_proxyuser_encpassword"; //NOSONAR Suppressing password hard code sonar violation
 
     private String password;
     @Autowired

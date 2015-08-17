@@ -1990,7 +1990,7 @@ public class DbClientTest extends DbsvcTestBase {
         _logger.info("Aggregation byCF : " + oldTime + "msec; by AggregatedIdx : " + newTime +
                 "msec.");
 
-        Assert.assertTrue((long) aggregatedValue.getValue() == agg.getAggregate("allocatedCapacity"));
+        Assert.assertTrue((long) aggregatedValue.getValue() == (long) agg.getAggregate("allocatedCapacity"));
     }
 
     private void checkAggregatedValues(String groupBy, String groupByValue,

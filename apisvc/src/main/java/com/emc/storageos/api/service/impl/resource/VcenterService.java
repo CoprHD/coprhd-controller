@@ -78,8 +78,8 @@ import com.emc.storageos.volumecontroller.ControllerException;
  * data centers.
  * 
  */
-@DefaultPermissions(read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
-        write_roles = { Role.TENANT_ADMIN })
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
+        writeRoles = { Role.TENANT_ADMIN })
 @Path("/compute/vcenters")
 public class VcenterService extends TaskResourceService {
 

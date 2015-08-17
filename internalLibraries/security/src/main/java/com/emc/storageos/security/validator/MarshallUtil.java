@@ -37,7 +37,7 @@ public class MarshallUtil {
      * @return
      * @throws Exception
      */
-    public static String ConvertTenantUserMappingToString(TenantOrg tenant) throws Exception {
+    public static String convertTenantUserMappingToString(TenantOrg tenant) throws Exception {
         TenantOrgRestRep response = new TenantOrgRestRep();
 
         if (tenant.getUserMappings() != null) {

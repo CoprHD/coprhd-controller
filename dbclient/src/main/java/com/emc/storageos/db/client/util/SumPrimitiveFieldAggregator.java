@@ -34,7 +34,7 @@ public class SumPrimitiveFieldAggregator implements DbAggregatorItf {
         return _valueMap.get(field).value;
     }
 
-    public long get_NRecords() {
+    public long getRecordNum() {
         return n_records;
     }
 

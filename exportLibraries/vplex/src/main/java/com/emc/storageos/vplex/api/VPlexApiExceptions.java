@@ -141,6 +141,9 @@ public interface VPlexApiExceptions {
     public VPlexApiException cantFindRequestedVolume(final String volumeName);
 
     @DeclareServiceCode(ServiceCode.VPLEX_CANT_FIND_REQUESTED_VOLUME)
+    public VPlexApiException cantFindAllRequestedVolume();
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_CANT_FIND_REQUESTED_VOLUME)
     public VPlexApiException cantFindRequestedVolumeNull();
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)

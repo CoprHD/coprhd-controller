@@ -31,7 +31,7 @@ public class TemplateEngine {
             Template template = getTemplate(templateFile);
             Writable finishedTemplate = template.make(parameters);
             return finishedTemplate.toString();
-        } catch (Throwable e) {
+        } catch (Exception e) {
             DocReporter.printError("Error whilst generating page from template " + templateFile);
             DocReporter.printError(e.getMessage());
             throw new RuntimeException(e);
@@ -50,7 +50,7 @@ public class TemplateEngine {
             } catch (Exception e) {
                 throw new RuntimeException("Error writing to file " + outputFile, e);
             }
-        } catch (Throwable e) {
+        } catch (Exception e) {
             DocReporter.printError("Error whilst generating page from file " + outputFile + " from template " + templateFile);
             DocReporter.printError(e.getMessage());
             throw new RuntimeException("Unable to process template" + templateFile, e);

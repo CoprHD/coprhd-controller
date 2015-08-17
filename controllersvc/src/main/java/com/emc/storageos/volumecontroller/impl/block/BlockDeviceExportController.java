@@ -707,6 +707,26 @@ public class BlockDeviceExportController implements BlockExportController {
             // Locate all the ExportMasks containing the given volume, and their Export Group.
             Map<ExportMask, ExportGroup> maskToGroupMap =
                     ExportUtils.getExportMasks(volume, _dbClient);
+
+            // Acquire all necessary locks for the workflow:
+            // For each export group lock initiator's hosts and storage array keys.
+            List<URI> initiatorURIs = new ArrayList<URI>();
+            for (ExportGroup exportGroup : maskToGroupMap.values()) {
+                initiatorURIs.addAll(StringSetUtil.stringSetToUriList(exportGroup.getInitiators()));
+                List<String> lockKeys = ControllerLockingUtil
+                        .getHostStorageLockKeys(_dbClient,
+                                ExportGroup.ExportGroupType.valueOf(exportGroup.getType()),
+                                initiatorURIs, volume.getStorageController());
+                initiatorURIs.clear();
+                boolean acquiredLocks = _wfUtils.getWorkflowService().acquireWorkflowLocks(
+                        workflow, lockKeys, LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
+                if (!acquiredLocks) {
+                    throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
+                            "UpdateVolumePathParams: " + volume.getLabel());
+                }
+
+            }
+
             // These steps are serialized, which is required in case an ExportMask appears
             // in multiple Export Groups.
             String stepId = null;

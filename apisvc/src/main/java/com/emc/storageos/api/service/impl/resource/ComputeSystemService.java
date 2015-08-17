@@ -116,8 +116,8 @@ import com.google.common.base.Function;
  * 
  */
 @Path("/vdc/compute-systems")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class ComputeSystemService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(ComputeSystemService.class);

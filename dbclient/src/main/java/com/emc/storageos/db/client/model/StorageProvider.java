@@ -143,8 +143,8 @@ public class StorageProvider extends DataObject {
         ddmc,
         vplex,
         cinder,
-        scaleio,
         ibmxiv,
+        scaleioapi,
         xtremio;
 
         /**
@@ -161,13 +161,13 @@ public class StorageProvider extends DataObject {
                 systemTypes.add(Type.vplex.name());
             } else if (cinder.equals(interfaceType)) {
                 systemTypes.add(Type.openstack.name());
-            } else if (scaleio.equals(interfaceType)) {
-                systemTypes.add(Type.scaleio.name());
             } else if (ibmxiv.equals(interfaceType)) {
                 systemTypes.add(Type.ibmxiv.name());
             } else if (ddmc.equals(interfaceType)) {
                 systemTypes.add(Type.datadomain.name());
-            } else if(xtremio.equals(interfaceType)) {
+            } else if (scaleioapi.equals(interfaceType)) {
+                systemTypes.add(Type.scaleio.name());
+            } else if (xtremio.equals(interfaceType)) {
                 systemTypes.add(Type.xtremio.name());
             }
             return systemTypes;

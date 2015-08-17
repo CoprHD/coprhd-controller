@@ -90,7 +90,7 @@ public class DataCollectionJobUtil {
                         .equalsIgnoreCase(((StorageSystem) taskObject).getSystemType()))) {
             populateVPLEXAccessProfile(profile, taskObject, nameSpace);
         } else if (clazz == StorageProvider.class &&
-                StorageProvider.InterfaceType.scaleio.name().equalsIgnoreCase(
+                StorageProvider.InterfaceType.scaleioapi.name().equalsIgnoreCase(
                         ((StorageProvider) taskObject).getInterfaceType())) {
             populateScaleIOAccessProfile(profile, (StorageProvider) taskObject);
         } else if (clazz == StorageProvider.class &&

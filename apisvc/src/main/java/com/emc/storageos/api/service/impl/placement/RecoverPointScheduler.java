@@ -1,7 +1,3 @@
-/*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
 /**
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
@@ -107,7 +103,6 @@ public class RecoverPointScheduler implements Scheduler {
     public void setMatcherFramework(AttributeMatcherFramework matcherFramework) {
         _matcherFramework = matcherFramework;
     }
-
     
     private PlacementStatus placementStatus;
     private PlacementStatus secondaryPlacementStatus;
@@ -317,8 +312,7 @@ public class RecoverPointScheduler implements Scheduler {
 	        }
         }
          
-       logRecommendations(recommendations);
-        
+       logRecommendations(recommendations);        
         if (true)
         	throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(URI.create(null), URI.create(null));   
         //TODO Bharath - Remove intentional exception after testing
@@ -350,17 +344,7 @@ public class RecoverPointScheduler implements Scheduler {
         // If this is the first volume in a new CG proceed as normal.
         if (vpoolChangeVolume != null) {     
         	recommendations = buildCgRecommendations(capabilities, vpool, protectionVarrays, vpoolChangeVolume);
-        	  _log.info("Produced {} recommendations for placement.", recommendations.size());
-              // We've let the RPScheduler do it's job and find recommendations with passing in the gathered 
-              // VPlex info.
-              // Now let's expand upon the recommendations and add the missing VPlex info required to fulfill 
-              // the RP+VPlex placement request.
-              for (Recommendation rec : recommendations) {
-                  //RPProtectionRecommendation pRec = this.convertRPProtectionRecommendation((RPProtectionRecommendation) rec, varray, vpool, null);          
-              	// RPRecommendation rpRec = 
-                //            	  rpRec.setSourceVPlexHaRecommendations(srcVPlexHaRecommendations);	       
-            	  //recommendations.add(pRec);                
-              }   
+        	  _log.info("Produced {} recommendations for placement.", recommendations.size());         
               return recommendations;
         }                      
                 
@@ -1479,8 +1463,7 @@ public class RecoverPointScheduler implements Scheduler {
                                                                volume);            
        }
        
-       logRecommendations(recommendations);
-       
+       logRecommendations(recommendations);       
        return recommendations;
    }
 		
@@ -1526,15 +1509,7 @@ public class RecoverPointScheduler implements Scheduler {
     	} 
 		return false;
 	}
-	
-	/** Returns the journal volume associated with the passed in volume
-	 * @param volume - volume to determine the journal volume for 
-	 * @return URI of the associated journal volume
-	 */
-	private URI getJournalStoragePool(Volume volume) {
-		return dbClient.queryObject(Volume.class, volume.getRpJournalVolume()).getPool();		
-	}
-	
+
 	/** Determine if the protection storage pools used in an existing volume's 
 	 *  creation request are available to the current request
 	 * @param srcVolume - existing source volume to examine storage pools for 
@@ -1548,9 +1523,9 @@ public class RecoverPointScheduler implements Scheduler {
     		_log.warn("Unable to fully align placement with existing volumes in RecoverPoint consistency group {}.  " +
                     "The storage pool {} used by an existing source volume cannot be used.", cgName, srcVolume.getPool());
     		return false;
-    	} else if (!verifyStoragePoolAvailability(vpool, getJournalStoragePool(srcVolume))) {
+    	} else if (!verifyStoragePoolAvailability(vpool, dbClient.queryObject(Volume.class, srcVolume.getRpJournalVolume()).getPool())) {
     		_log.warn("Unable to fully align placement with existing volumes in RecoverPoint consistency group {}.  " +
-                    "The storage pool {} used by an existing source journal volume cannot be used.", cgName, getJournalStoragePool(srcVolume));
+                    "The storage pool {} used by an existing source journal volume cannot be used.", cgName,dbClient.queryObject(Volume.class, srcVolume.getRpJournalVolume()).getPool());
     		return false;
     	}
 		
@@ -1567,7 +1542,7 @@ public class RecoverPointScheduler implements Scheduler {
     		Volume targetJournal = dbClient.queryObject(Volume.class, targetVolume.getRpJournalVolume());
     		if (!verifyTargetStoragePoolAvailability(targetJournal, vpool)) {
     			_log.warn("Unable to fully align placement with existing volumes in RecoverPoint consistency group {}.  " +
-                        "The storage pool {} used by an existing target journal volume cannot be used.", cgName, getJournalStoragePool(targetVolume));
+                        "The storage pool {} used by an existing target journal volume cannot be used.", cgName, dbClient.queryObject(Volume.class, targetVolume.getRpJournalVolume()).getPool());
         		return false;
     		}
     	}
@@ -1615,12 +1590,8 @@ public class RecoverPointScheduler implements Scheduler {
         if (!createRecommendations) {
             return recommendations;
         }
-        
-       
-        
-        RPProtectionRecommendation recommendation = new RPProtectionRecommendation();        
-         
-        
+               
+        RPProtectionRecommendation recommendation = new RPProtectionRecommendation();                         
         Volume sourceJournal = dbClient.queryObject(Volume.class, sourceVolume.getRpJournalVolume());        
         RPRecommendation sourceJournalRecommendation = new RPRecommendation();        
         sourceJournalRecommendation.setSourceDevice(sourceJournal.getStorageController());
@@ -1663,8 +1634,7 @@ public class RecoverPointScheduler implements Scheduler {
             if (rpRecommendation.getTargetRecommendations() == null) {
             	rpRecommendation.setTargetRecommendations(new ArrayList<RPRecommendation>());
             }
-            rpRecommendation.getTargetRecommendations().add(targetRecommendation);
-            
+            rpRecommendation.getTargetRecommendations().add(targetRecommendation);            
             recommendation.getSourceRecommendations().add(rpRecommendation);
         }
     
@@ -1672,11 +1642,17 @@ public class RecoverPointScheduler implements Scheduler {
                 "RecoverPoint consistency group %s: \n %s", sourceVolume.getLabel(), cg.getLabel(), 
                 recommendation.toString(dbClient)));
         
-        recommendations.add(recommendation);
-        
+        recommendations.add(recommendation);        
         return recommendations;
 	}
 	
+	/**
+	 * @param sourceVolume
+	 * @param capabilities
+	 * @param vpool
+	 * @param protectionVarrays
+	 * @return
+	 */
 	private boolean cgPoolsHaveAvailableCapacity(Volume sourceVolume, VirtualPoolCapabilityValuesWrapper capabilities, 
 	        VirtualPool vpool, List<VirtualArray> protectionVarrays) {
 	    boolean cgPoolsHaveAvailableCapacity = true;
@@ -1781,7 +1757,6 @@ public class RecoverPointScheduler implements Scheduler {
             storagePoolRequiredCapacity.put(storagePoolUri, updatedRequiredCapacity);
         }
 	}
-
 
     /**
      * Creates primary (active) and secondary (standby) cluster recommendations for MetroPoint.  
@@ -1906,9 +1881,8 @@ public class RecoverPointScheduler implements Scheduler {
     	Map<URI, Set<ProtectionSystem>> standbyStoragePoolsToProtectionSystems = new HashMap<URI, Set<ProtectionSystem>>();
     	List<Recommendation> recommendedPools = getRecommendedPools(candidateActiveSourcePools, capabilities.getSize());
     	if (recommendedPools == null || recommendedPools.isEmpty()) {
-    		//TODO: fail here
+    		//TODO Bharath: fail here
     	}
-
     	
     	RPProtectionRecommendation rpProtectionRecommendation = new RPProtectionRecommendation();        
 		rpProtectionRecommendation.setVpoolChangeVolume(vpoolChangeVolume != null ? vpoolChangeVolume.getId() : null);
@@ -2002,8 +1976,7 @@ public class RecoverPointScheduler implements Scheduler {
          			    									sortedActiveSourceJournalPools, capabilities, requestedResourceCount, vpoolChangeVolume, false);
         					rpProtectionRecommendation.setSourceJournalRecommendation(activeJournalRecommendation);
         				}
-    					    				    				
-    					
+    					    				    				    					
     					rpProtectionRecommendation.getSourceRecommendations().add(primaryRpRecommendation);    					
     					
     					_log.info("An RP source placement solution has been identified for the MetroPoint primary (active) cluster.");
@@ -2171,8 +2144,7 @@ public class RecoverPointScheduler implements Scheduler {
     									+ "Need to find a new primary recommendation.");
     							// Exhausted all the secondary pool URIs.  Need to find another primary solution.
     							break;
-    						}
-    						    				
+    						}    						    			
     						return rpProtectionRecommendation;
     					} else {
     						// Not sure there's anything to do here.  Just go to the next candidate protection system or Protection System
@@ -2225,8 +2197,7 @@ public class RecoverPointScheduler implements Scheduler {
 						continue;
 					}
 					
-					_log.info(String.format("Associated storage systems for pool [%s] : [%s]", journalStoragePool.getLabel(), Joiner.on("-").join(associatedStorageSystems)));
-    				    	
+					_log.info(String.format("Associated storage systems for pool [%s] : [%s]", journalStoragePool.getLabel(), Joiner.on("-").join(associatedStorageSystems)));    				    
 				
 					for (String associatedStorageSystem : associatedStorageSystems) {
 						 URI storageSystemURI = ConnectivityUtil.findStorageSystemBySerialNumber(
@@ -2285,12 +2256,10 @@ public class RecoverPointScheduler implements Scheduler {
 		}            	
 		
 		URI storageSystemUri =  ConnectivityUtil.findStorageSystemBySerialNumber(ProtectionSystem.getAssociatedStorageSystemSerialNumber(associatedStorageSystem), 
-				dbClient, StorageSystemType.BLOCK);
-		
+				dbClient, StorageSystemType.BLOCK);		
 		StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemUri);
 		String type = storageSystem.getSystemType();		
-		
-		
+				
 		RPRecommendation rpRecommendation = new RPRecommendation();		
 		rpRecommendation.setRpSiteAssociateStorageSystem(associatedStorageSystem);		
 		rpRecommendation.setSourcePool(sourcePool.getId());
@@ -2342,7 +2311,7 @@ public class RecoverPointScheduler implements Scheduler {
 			return null;
 		}        				
 			
-		// Primary source journal remains what it was before the change Vpool operation.  
+		//Primary source journal remains what it was before the change Vpool operation.  
 		URI sourceJournalPoolURI;
 		if (vpoolChangeVolume != null 
 		        && !NullColumnValueGetter.isNullURI(vpoolChangeVolume.getRpJournalVolume()) 
@@ -2381,8 +2350,7 @@ public class RecoverPointScheduler implements Scheduler {
     	if (secondaryPlacementStatus != null) {
 	    	placementStatusBuf.append("\nSecondary Cluster");
 	    	placementStatusBuf.append(secondaryPlacementStatus.toString(dbClient));
-    	}
-    	
+    	}    	
     	return placementStatusBuf.toString();
     }
     
@@ -2466,8 +2434,7 @@ public class RecoverPointScheduler implements Scheduler {
   
         		}
         	}
-        }
-        
+        }       
         return protectionSystem;
     }
     

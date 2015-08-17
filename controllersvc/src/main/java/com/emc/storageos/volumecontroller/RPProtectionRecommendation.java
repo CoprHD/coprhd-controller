@@ -1,9 +1,5 @@
-/*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
 /**
- * Copyright (c) 2013 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  *
  * This software contains the intellectual property of EMC Corporation
@@ -20,9 +16,6 @@ import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ProtectionSystem;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.MetroPointType;
 import com.emc.storageos.volumecontroller.Protection.ProtectionType;
@@ -206,7 +199,6 @@ public class RPProtectionRecommendation extends Recommendation {
      */
     public String toString(DbClient dbClient) {
     	StringBuffer buff = new StringBuffer("\nPlacement Results : \n\n"); 
-    	final String SPACE = " ";    	
     	RPRecommendation rpRecommendation = this.getSourceRecommendations().get(0);
     	String protectionType = "Regular RP recommendation";
     	if (VirtualPool.vPoolSpecifiesMetroPoint(rpRecommendation.getVirtualPool())) {
@@ -246,8 +238,7 @@ public class RPProtectionRecommendation extends Recommendation {
     	if (this.getTargetJournalRecommendations() != null) {
     		buff.append("Journals : " + "\n");
     		for (RPRecommendation targetJournalRecommendation : getTargetJournalRecommendations()) {
-    	    	buff.append(targetJournalRecommendation.toString(dbClient, ps) + "\n");
-    	    	buff.append("---------------------------------\n");
+    	    	buff.append(targetJournalRecommendation.toString(dbClient, ps) + "\n");    	    	
     		}
     	}
     	
@@ -290,8 +281,7 @@ public class RPProtectionRecommendation extends Recommendation {
     		}
 	    }    	
     	    
-    	RPRecommendation secondaryRecommendation = null;;
-    	
+    	RPRecommendation secondaryRecommendation = null;;    	
     	if (getSourceRecommendations().get(0).getHaRecommendation() != null) {
     		// There will only ever be 1 secondary recommendation in a MetroPoint case.
         	secondaryRecommendation = getSourceRecommendations().get(0).getHaRecommendation();
@@ -299,8 +289,7 @@ public class RPProtectionRecommendation extends Recommendation {
         	// There must be a secondary recommendation to satisfy a valid MetroPoint
         	// configuration.
         	return MetroPointType.INVALID;
-        }
-    	
+        }    	
     	
         // Return invalid configuration if there is no secondary protection specified.
         if (secondaryRecommendation.getTargetRecommendations() == null || secondaryRecommendation.getTargetRecommendations().isEmpty()) {

@@ -11,7 +11,6 @@ import static com.emc.storageos.api.mapper.ProtectionMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getBlockSnapshotByConsistencyGroup;
 import static com.emc.storageos.model.block.Copy.SyncDirection.SOURCE_TO_TARGET;
-import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.parseBoolean;
 
 import java.net.URI;
@@ -84,6 +83,8 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.model.Task.Status;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -707,7 +708,7 @@ public class BlockService extends TaskResourceService {
         BlockServiceApi blockServiceImpl = getBlockServiceImpl(vpool, _dbClient);
 
         BlockConsistencyGroup consistencyGroup = null;
-        final Boolean isMultiVolumeConsistencyOn = vpool.getMultivolumeConsistency() == null ? FALSE
+        final Boolean isMultiVolumeConsistencyOn = vpool.getMultivolumeConsistency() == null ? Boolean.FALSE
                 : vpool.getMultivolumeConsistency();
 
         /*
@@ -901,33 +902,110 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkEntity(tenant, project.getTenantOrg().getURI(), false);
         CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, size, "volume");
 
-        // Call out placementManager to get the recommendation for placement.
-        List recommendations = _placementManager.getRecommendationsForVolumeCreateRequest(
-                varray, project, vpool, capabilities);
-
-        if (recommendations.isEmpty()) {
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
-        }
-
-        // At this point we are commited to initiaing the request.
-        if (consistencyGroup != null) {
-            consistencyGroup.addRequestedTypes(requestedTypes);
-            _dbClient.updateAndReindexObject(consistencyGroup);
-        }
-
-        // Create a unique task id if one is not passed in the request.
+        // COP-14028
+        // Changing the return of a TaskList to return immediately while the underlying tasks are
+        // being built up.  Steps:
+        // 1. Create a task object ahead of time and persist it.  It will just be a hook to start that can be queried on
+        // 2. Fire off a thread that does the placement and preparation of the volumes, which will add to the task object
+        //    by creating more "subtasks" such as volume creations.  The expectation is the the caller will be able to 
+        //    gather those new subtasks.  Otherwise we'll need a way to pre-create the subtasks without having gone through
+        //    placement, which may require some thought.
+        // 3. Return to the caller the new Task object (in a Task list) that is in the pending state.
+        TaskList taskList = new TaskList();
+        Task taskObj = new Task();
+        taskObj.setId(URIUtil.createId(Task.class));
         String task = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Task.class, taskObj.getId(),
+                task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+        taskObj.setStatus(Status.pending.toString());
+        TaskResourceRep taskRep = toTask(taskObj, task, op);
+        _dbClient.persistObject(taskObj);
+        taskList.getTaskList().add(taskRep);
 
-        auditOp(OperationTypeEnum.CREATE_BLOCK_VOLUME, true, AuditLogManager.AUDITOP_BEGIN,
-                param.getName(), volumeCount, varray.getId().toString(), actualId.toString());
-
-        // Call out to the respective block service implementation to prepare
-        // and create the volumes based on the recommendations.
-
-        return blockServiceImpl.createVolumes(param, project, varray, vpool, recommendations, task,
-                capabilities);
+        // call thread that does the work.
+        CreateVolumeSchedulingThread cvst = new CreateVolumeSchedulingThread(varray, project, vpool, capabilities, taskObj, task, 
+                consistencyGroup, requestedTypes, param, volumeCount, actualId, blockServiceImpl);
+        cvst.run();
+        
+        _log.info("Kicked off thread to perform placement and scheduling.  Returning task: " + taskObj.getId());
+        return taskList;
     }
 
+    /**
+     * Background thread that runs the placement, scheduling, and controller dispatching of a create volume
+     * request.  This allows the API to return a Task object quickly.  This is a work in progress.
+     */
+    private class CreateVolumeSchedulingThread implements Runnable {
+
+        private VirtualArray varray;
+        private Project project;
+        private VirtualPool vpool;
+        private VirtualPoolCapabilityValuesWrapper capabilities;
+        private Task taskObj;
+        private String task;
+        private BlockConsistencyGroup consistencyGroup;
+        private ArrayList<String> requestedTypes;
+        private VolumeCreate param;
+        private Integer volumeCount;
+        private URI actualId;
+        private BlockServiceApi blockServiceImpl;
+        
+        public CreateVolumeSchedulingThread(VirtualArray varray, Project project, VirtualPool vpool, VirtualPoolCapabilityValuesWrapper capabilities,
+                Task taskObj, String task, BlockConsistencyGroup consistencyGroup, ArrayList<String> requestedTypes, VolumeCreate param, 
+                Integer volumeCount, URI actualId, BlockServiceApi blockServiceImpl) {
+            this.varray = varray;
+            this.project = project;
+            this.vpool = vpool;
+            this.capabilities = capabilities;
+            this.taskObj = taskObj;
+            this.task = task;
+            this.consistencyGroup = consistencyGroup;
+            this.requestedTypes = requestedTypes;
+            this.param = param;
+            this.volumeCount = volumeCount;
+            this.blockServiceImpl = blockServiceImpl;
+        }
+        
+        @Override
+        public void run() {
+            _log.info("Starting scheduling/placement thread...");
+            // Call out placementManager to get the recommendation for placement.
+            List recommendations = _placementManager.getRecommendationsForVolumeCreateRequest(
+                    varray, project, vpool, capabilities);
+
+            if (recommendations.isEmpty()) {
+                taskObj.setStatus(Status.error.toString());
+                APIException ex = APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
+                taskObj.setMessage(ex.getMessage());
+                _dbClient.persistObject(taskObj);
+                _log.error(ex.getMessage(), ex);
+            }
+
+            // At this point we are committed to initiating the request.
+            if (consistencyGroup != null) {
+                consistencyGroup.addRequestedTypes(requestedTypes);
+                _dbClient.updateAndReindexObject(consistencyGroup);
+            }
+
+            auditOp(OperationTypeEnum.CREATE_BLOCK_VOLUME, true, AuditLogManager.AUDITOP_BEGIN,
+                    param.getName(), volumeCount, varray.getId().toString(), actualId.toString());
+
+            try {
+                // Call out to the respective block service implementation to prepare
+                // and create the volumes based on the recommendations.
+                blockServiceImpl.createVolumes(param, project, varray, vpool, recommendations, task, capabilities);
+                taskObj.ready();
+                _dbClient.persistObject(taskObj);
+            } catch (Exception ex) {
+                taskObj.setStatus(Status.error.toString());
+                APIException ex1 = APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
+                taskObj.setMessage(ex1.getMessage());
+                _dbClient.persistObject(taskObj);
+                _log.error(ex.getMessage(), ex);
+            }
+        }
+    }
+            
     private boolean isAlphaNumeric(String consistencyGroupName) {
         String pattern = "^[a-zA-Z0-9]*$";
         if (consistencyGroupName.matches(pattern)) {

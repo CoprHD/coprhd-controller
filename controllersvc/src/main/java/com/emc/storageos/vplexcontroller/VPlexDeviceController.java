@@ -857,7 +857,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#deleteVolumes(java.net.URI, java.util.List, java.lang.String)
      * <p>
      * NOTE: The VolumeDescriptor list will not include the underlying Volumes. These have to be
@@ -1358,7 +1358,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportGroupCreate(java.net.URI, java.net.URI, java.util.Map,
      * java.util.List, java.lang.String)
      */
@@ -2309,7 +2309,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportGroupDelete(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
@@ -2546,7 +2546,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportAddVolume(java.net.URI, java.net.URI, java.net.URI,
      * java.lang.Integer, java.lang.String)
      */
@@ -2757,7 +2757,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportRemoveVolume(java.net.URI, java.net.URI, java.net.URI,
      * java.lang.String)
      */
@@ -3037,7 +3037,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportAddInitiator(java.net.URI, java.net.URI, java.net.URI,
      * java.lang.String)
      */
@@ -3627,7 +3627,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportRemoveInitiator(java.net.URI, java.net.URI, java.net.URI,
      * java.lang.String)
      */
@@ -7520,9 +7520,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         BlockSnapshot snapshot = getDataObject(BlockSnapshot.class, snapshotURI, _dbClient);
 
         URI parentVolumeURI = snapshot.getParent().getURI();
-        Volume parentVolume = _dbClient.queryObject(Volume.class, parentVolumeURI);
-        Volume associatedVPlexVolume =
-                Volume.fetchVplexVolume(_dbClient, parentVolume);
+        Volume associatedVPlexVolume = null;
+        Volume parentVolume = null;
+
+        if (!NullColumnValueGetter.isNullURI(parentVolumeURI)) {
+            parentVolume = _dbClient.queryObject(Volume.class, parentVolumeURI);
+        }
+
+        if (parentVolume != null) {
+            associatedVPlexVolume = Volume.fetchVplexVolume(_dbClient, parentVolume);
+        }
 
         // Do nothing if this is not a native snapshot or the snapshot's parent is not
         // a VPlex associated volume.
@@ -7531,7 +7538,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 associatedVPlexVolume == null) {
             _log.info(String
                     .format("Skipping restore volume steps. Snapshot %s is not an array snap or its parent volume is not a VPlex associated volume.",
-                            parentVolumeURI.toString()));
+                            parentVolumeURI));
             return waitFor;
         }
 

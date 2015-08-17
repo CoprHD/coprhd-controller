@@ -192,14 +192,29 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     }
                 }
                 if (isSyncActive) {
+                    _logger.info("sync is active on backend volumes, generating mirror map...");
                     Map<UnManagedVolume, UnManagedVolume> mirrorsMap = 
                             checkForMirrors(unManagedVolume, associatedVolumes);
                     if (null != mirrorsMap && !mirrorsMap.isEmpty()) {
                         for (Entry<UnManagedVolume, UnManagedVolume> entry : mirrorsMap.entrySet()) {
                             UnManagedVolume mirrorVolume = entry.getValue();
+                            _logger.info("removing mirror volume {} from associated "
+                                    + "vols and adding to mirrors", mirrorVolume.getLabel());
                             associatedVolumes.remove(mirrorVolume);
                             mirrors.add(mirrorVolume);
                         }
+                    }
+                }
+                
+                // TODO need to account for mirrors on both sides of distributed
+                if (!mirrors.isEmpty()) {
+                    StringSet set = new StringSet();
+                    for (UnManagedVolume mirror : mirrors) {
+                        set.add(mirror.getNativeGuid());
+                    }
+                    _logger.info("mirror set is " + set);
+                    for (UnManagedVolume vol : associatedVolumes) {
+                        vol.getVolumeInformation().put(SupportedVolumeInformation.MIRRORS.toString(), set);
                     }
                 }
                 
@@ -208,6 +223,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 allVolumes.addAll(snapshots);
                 allVolumes.addAll(cloneMap.keySet());
                 allVolumes.addAll(cloneMap.values());
+                allVolumes.addAll(mirrors);
 
                 ingestBackendVolumes(systemCache, poolCache, vPool,
                         virtualArray, vplexProject, tenant,

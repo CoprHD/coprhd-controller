@@ -3370,13 +3370,16 @@ public class VPlexApiDiscoveryManager {
         try {
             storageVolumeInfoList = VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
                 responseStr, VPlexStorageVolumeInfo.class);
-        } catch (VPlexApiException e) {
-            // TODO: this is a weeeeee bit too hacky
-            s_logger.warn("failed to get storage volumes at " + uriBuilder.toString());
-            if (!goDeeper) {
-                storageVolumeInfoList = getStorageVolumesForDevice(deviceName, locality, true);
-            } else {
-                throw e;
+            for (VPlexStorageVolumeInfo info : storageVolumeInfoList) {
+                s_logger.warn("info.getWwn is " + info.getWwn());
+                if (null == info.getWwn() || "null".equals(info.getWwn())) {
+                    // TODO: this is a weeeeee bit too hacky
+                    s_logger.warn("failed to get storage volumes at " + uriBuilder.toString());
+                    if (!goDeeper) { // first time only
+                        storageVolumeInfoList = getStorageVolumesForDevice(deviceName, locality, true);
+                        return storageVolumeInfoList;
+                    }
+                }
             }
         } catch (Exception e) {
             throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(e.getLocalizedMessage());

@@ -1576,9 +1576,11 @@ public class VPlexApiClient {
         }
         
         if (null != deviceInfo) {
+            s_logger.info(deviceInfo.toString());
             if (!deviceInfo.getChildDeviceInfo().isEmpty()) {
                 for (VPlexDeviceInfo childDevice : deviceInfo.getChildDeviceInfo()) {
-                    topLevelDeviceMap.put(childDevice.getGeometry(), childDevice.getName());
+                    s_logger.info(childDevice.toString());
+                    topLevelDeviceMap.put(childDevice.getSlotNumber(), childDevice.getName());
                 }
             }
         }

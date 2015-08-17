@@ -27,6 +27,7 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
+import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 
 public class VPlexControllerUtils {
@@ -263,5 +264,26 @@ public class VPlexControllerUtils {
         
         log.info("Device name for storage volume {} is {}", volumeNativeId, deviceName);
         return deviceName;
+    }
+    
+    public static Map<String, String> getTopLevelDeviceMap(String deviceName, String locality, 
+            URI vplexUri, DbClient dbClient) {
+        
+        Map <String, String> topLevelDeviceMap = null;
+        VPlexApiClient client = null;
+
+        try {
+            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
+            client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
+        } catch (URISyntaxException e) {
+            log.error("cannot load vplex api client", e);
+        }
+
+        if (null != client) {
+            topLevelDeviceMap = client.getTopLevelDeviceMap(deviceName, locality);
+        }
+        
+        log.info("Device map for device {} is {}", deviceName, topLevelDeviceMap);
+        return topLevelDeviceMap;
     }
 }

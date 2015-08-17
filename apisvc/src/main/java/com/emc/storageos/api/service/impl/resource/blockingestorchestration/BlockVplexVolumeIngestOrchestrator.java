@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
@@ -160,6 +161,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         Map<String, BlockObject> vplexBackendCreatedObjectMap = new HashMap<String, BlockObject>();
         Map<String, List<DataObject>> vplexBackendUpdatedObjectMap = new HashMap<String, List<DataObject>>();
         List<String> associatedVolumeGuids = new ArrayList<String>();
+        List<UnManagedVolume> mirrors = new ArrayList<UnManagedVolume>();
         try {
             List<URI> associatedVolumeUris = getAssociatedVolumes(unManagedVolume);
             
@@ -182,7 +184,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 // TODO: add a "checkForSimpleClones" method - this above will check for ones with vvols only
                 
                 // check for mirrors
-                List<UnManagedVolume> mirrors = new ArrayList<UnManagedVolume>();
                 boolean isSyncActive = false;
                 Iterator<UnManagedVolume> it = associatedVolumes.iterator();
                 while (it.hasNext() && !isSyncActive) {
@@ -191,14 +192,29 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     }
                 }
                 if (isSyncActive) {
+                    _logger.info("sync is active on backend volumes, generating mirror map...");
                     Map<UnManagedVolume, UnManagedVolume> mirrorsMap = 
                             checkForMirrors(unManagedVolume, associatedVolumes);
                     if (null != mirrorsMap && !mirrorsMap.isEmpty()) {
                         for (Entry<UnManagedVolume, UnManagedVolume> entry : mirrorsMap.entrySet()) {
                             UnManagedVolume mirrorVolume = entry.getValue();
+                            _logger.info("removing mirror volume {} from associated "
+                                    + "vols and adding to mirrors", mirrorVolume.getLabel());
                             associatedVolumes.remove(mirrorVolume);
                             mirrors.add(mirrorVolume);
                         }
+                    }
+                }
+                
+                // TODO need to account for mirrors on both sides of distributed
+                if (!mirrors.isEmpty()) {
+                    StringSet set = new StringSet();
+                    for (UnManagedVolume mirror : mirrors) {
+                        set.add(mirror.getNativeGuid());
+                    }
+                    _logger.info("mirror set is " + set);
+                    for (UnManagedVolume vol : associatedVolumes) {
+                        vol.getVolumeInformation().put(SupportedVolumeInformation.MIRRORS.toString(), set);
                     }
                 }
                 
@@ -207,6 +223,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 allVolumes.addAll(snapshots);
                 allVolumes.addAll(cloneMap.keySet());
                 allVolumes.addAll(cloneMap.values());
+                allVolumes.addAll(mirrors);
 
                 ingestBackendVolumes(systemCache, poolCache, vPool,
                         virtualArray, vplexProject, tenant,
@@ -273,6 +290,44 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             // TODO: set associated vol on clone
         }
         
+        if (null != mirrors && !mirrors.isEmpty()) {
+            _logger.info("creating VplexMirror object");
+            for (UnManagedVolume umv : mirrors) {
+                // find mirror and create a VplexMirror object
+                BlockObject mirror = createdObjectMap.get(umv.getNativeGuid()
+                    .replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
+                        VolumeIngestionUtil.VOLUME));
+                if (null != mirror) {
+                    if (mirror instanceof Volume) {
+                        Volume mirrorVolume = (Volume) mirror;
+                        VplexMirror vplexMirror = new VplexMirror();
+                        StringSet associatedVolumes = new StringSet();
+                        associatedVolumes.add(mirrorVolume.getId().toString());
+                        vplexMirror.setAssociatedVolumes(associatedVolumes);
+                        String deviceName = PropertySetterUtil.extractValueFromStringSet(
+                                SupportedVolumeInformation.VPLEX_SUPPORTING_DEVICE_NAME.toString(),
+                                    unManagedVolume.getVolumeInformation());
+                        vplexMirror.setDeviceLabel(deviceName);
+                        vplexMirror.setCapacity(mirrorVolume.getCapacity());
+                        vplexMirror.setLabel(mirrorVolume.getLabel());
+                        vplexMirror.setNativeId(umv.getNativeGuid());
+                        vplexMirror.setProject(mirrorVolume.getProject());
+                        vplexMirror.setProvisionedCapacity(mirrorVolume.getProvisionedCapacity());
+                        // TODO figure out source
+                        // vplexMirror.setSource(virtualVolume.getId());
+                        vplexMirror.setStorageController(mirrorVolume.getStorageController());
+                        vplexMirror.setTenant(mirrorVolume.getTenant());
+                        vplexMirror.setThinPreAllocationSize(mirrorVolume.getThinVolumePreAllocationSize());
+                        vplexMirror.setThinlyProvisioned(vplexMirror.getThinlyProvisioned());
+                        vplexMirror.setVirtualArray(vplexMirror.getVirtualArray());
+                        vplexMirror.setVirtualPool(vplexMirror.getVirtualPool());
+                        
+                        _dbClient.createObject(vplexMirror);
+                    }
+                }
+            }
+        }
+        
         return virtualVolume;
     }
 
@@ -334,6 +389,13 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
     private Map<UnManagedVolume, UnManagedVolume> checkForMirrors(UnManagedVolume unManagedVolume, 
             List<UnManagedVolume> associatedVolumes) {
+        
+        // TODO: just skipping all the mirror stuff for a test build
+        if (unManagedVolume.getId() != null) {
+            return new HashMap<UnManagedVolume, UnManagedVolume>();
+        }
+        
+        _logger.info("checking for mirrors on volume " + unManagedVolume.getNativeGuid());
         Map<UnManagedVolume, UnManagedVolume> mirrorMap = new HashMap<UnManagedVolume, UnManagedVolume>();
         
         Map<String, String> associatedVolumesInfo = new HashMap<String, String>();
@@ -349,25 +411,29 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 SupportedVolumeInformation.VPLEX_LOCALITY.toString(),
                     unManagedVolume.getVolumeInformation());
 
-//        Map<String, String> topLevelDeviceMap = VPlexControllerUtils.getTopLevelDeviceMap(deviceName, locality);
-//        
-//        if (null != topLevelDeviceMap && !topLevelDeviceMap.isEmpty()) {
-//            Map<String, UnManagedVolume> wwnToVolMap = new HashMap<String, UnManagedVolume>();
-//            for (UnManagedVolume vol : associatedVolumes) {
-//                wwnToVolMap.put(vol.getWwn(), vol);
-//            }
-//            
-//            UnManagedVolume slot0Vol= null;
-//            for (Entry<String, String> entry : topLevelDeviceMap.entrySet()) {
-//                if (null == slot0Vol) {
-//                    slot0Vol = wwnToVolMap.get(BlockObject.normalizeWWN(entry.getValue()));
-//                } else {
-//                    mirrorMap.put(slot0Vol, 
-//                        wwnToVolMap.get(BlockObject.normalizeWWN(entry.getValue())));
-//                }
-//            }
-//        }
+        // map of the components of a top level device: device slot-# to device wwn
+        // the assumption is that the source device will be in slot-0 and any mirrors above that
+        Map<String, String> topLevelDeviceMap = VPlexControllerUtils.getTopLevelDeviceMap(deviceName, locality, 
+                unManagedVolume.getStorageSystemUri(), _dbClient);
         
+        if (null != topLevelDeviceMap && !topLevelDeviceMap.isEmpty()) {
+            Map<String, UnManagedVolume> wwnToVolMap = new HashMap<String, UnManagedVolume>();
+            for (UnManagedVolume vol : associatedVolumes) {
+                wwnToVolMap.put(vol.getWwn(), vol);
+            }
+            
+            UnManagedVolume slot0Vol= null;
+            for (Entry<String, String> entry : topLevelDeviceMap.entrySet()) {
+                if (null == slot0Vol) {
+                    slot0Vol = wwnToVolMap.get(BlockObject.normalizeWWN(entry.getValue()));
+                } else {
+                    mirrorMap.put(slot0Vol, 
+                        wwnToVolMap.get(BlockObject.normalizeWWN(entry.getValue())));
+                }
+            }
+        }
+        
+        _logger.info("generated mirror map: " + mirrorMap);
         return mirrorMap;
     }
     

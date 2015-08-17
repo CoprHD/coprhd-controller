@@ -1272,7 +1272,7 @@
 		<property name="userConfigurable" value="false" />
 		<property name="reconfigRequired" value="false" />
 		<property name="rebootRequired" value="false" />
-		<property name="value" value="1.30.0.0" />
+		<property name="value" value="1.32.0.0" />
 		<property name="controlNodeOnly" value="true" />
 	</bean>
 	<bean id="controller_xtremio_firmware_version" class="com.emc.storageos.model.property.PropertyMetadata">

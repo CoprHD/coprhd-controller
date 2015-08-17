@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -14,17 +14,16 @@ import java.util.List;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.RelatedResourceRep;
-import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
 /**
- * Base class for all resources types that support bulk operations. This overrides the
- * {@link #getByIds(Collection, ResourceFilter)} method to query through the bulk API for improved performance.
+ * Base class for all resources types that support bulk operations. This overrides the {@link #getByIds(Collection, ResourceFilter)} method
+ * to query through the bulk API for improved performance.
  * 
  * @param <T>
- *        the type of resource.
+ *            the type of resource.
  */
 public abstract class AbstractBulkResources<T extends DataObjectRestRep> extends AbstractResources<T> implements
         BulkResources<T> {
@@ -79,13 +78,13 @@ public abstract class AbstractBulkResources<T extends DataObjectRestRep> extends
      * cleared.
      * 
      * @param id
-     *        the ID to add.
+     *            the ID to add.
      * @param input
-     *        the bulk input.
+     *            the bulk input.
      * @param filter
-     *        the filter to apply (may be null, for no filtering).
+     *            the filter to apply (may be null, for no filtering).
      * @param results
-     *        the result list to add to if a chunk is fetched.
+     *            the result list to add to if a chunk is fetched.
      */
     private void addId(URI id, BulkIdParam input, ResourceFilter<T> filter, List<T> results) {
         if ((filter == null) || filter.acceptId(id)) {
@@ -101,11 +100,11 @@ public abstract class AbstractBulkResources<T extends DataObjectRestRep> extends
      * Fetches a chunk and filters (if required).
      * 
      * @param input
-     *        the bulk input.
+     *            the bulk input.
      * @param filter
-     *        the filter to apply (may be null, for no filtering).
+     *            the filter to apply (may be null, for no filtering).
      * @param results
-     *        the result list to add to.
+     *            the result list to add to.
      */
     private void fetchChunk(BulkIdParam input, ResourceFilter<T> filter, List<T> results) {
         List<T> items = getBulkResources(input);
@@ -120,7 +119,7 @@ public abstract class AbstractBulkResources<T extends DataObjectRestRep> extends
      * Performs a bulk fetch of the IDs in the input.
      * 
      * @param input
-     *        the bulk input.
+     *            the bulk input.
      * @return the results.
      */
     protected abstract List<T> getBulkResources(BulkIdParam input);

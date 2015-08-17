@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.modelclient.model;
@@ -25,10 +15,10 @@ import com.emc.storageos.db.client.model.VirtualArray;
 
 /**
  * @author cgarber
- *
+ * 
  */
 public abstract class BlockObject extends DataObject {
-    
+
     // virtual array where this volume exists
     private URI _virtualArray;
     private VirtualArray _virtualArrayObj;
@@ -45,7 +35,7 @@ public abstract class BlockObject extends DataObject {
     }
 
     @Name("varrayObj")
-    @Relation(mappedBy="varray")
+    @Relation(mappedBy = "varray")
     public VirtualArray getVirtualArrayObj() {
         return _virtualArrayObj;
     }

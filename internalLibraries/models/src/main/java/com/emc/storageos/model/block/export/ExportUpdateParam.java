@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block.export;
@@ -15,19 +15,20 @@ import java.net.URI;
 @XmlRootElement(name = "block_export_update")
 public class ExportUpdateParam {
 
-//    /**
-//     * User assigned name for block export.
-//     */
-//    @XmlElement()
-//    public String name;
+    // /**
+    // * User assigned name for block export.
+    // */
+    // @XmlElement()
+    // public String name;
 
     private VolumeUpdateParam volumes;
     private InitiatorsUpdateParam initiators;
     private HostsUpdateParam hosts;
     private ClustersUpdateParam clusters;
 
-    public ExportUpdateParam() {}
-    
+    public ExportUpdateParam() {
+    }
+
     public ExportUpdateParam(VolumeUpdateParam volumes,
             InitiatorsUpdateParam initiators, HostsUpdateParam hosts,
             ClustersUpdateParam clusters) {
@@ -40,6 +41,7 @@ public class ExportUpdateParam {
     /**
      * Add or remove a list of clusters
      * from the export
+     * 
      * @valid none
      */
     @XmlElement(name = "cluster_changes")
@@ -54,6 +56,7 @@ public class ExportUpdateParam {
     /**
      * Add or remove a list of hosts
      * from the export
+     * 
      * @valid none
      */
     @XmlElement(name = "host_changes")
@@ -68,6 +71,7 @@ public class ExportUpdateParam {
     /**
      * Add or remove a list of initiators
      * from the export
+     * 
      * @valid none
      */
     @XmlElement(name = "initiator_changes")
@@ -80,11 +84,12 @@ public class ExportUpdateParam {
     }
 
     /**
-     * Add or remove a list of volume or 
+     * Add or remove a list of volume or
      * volume snapshots from the export
+     * 
      * @valid none
      */
-    @XmlElement(name="volume_changes")
+    @XmlElement(name = "volume_changes")
     public VolumeUpdateParam getVolumes() {
         if (volumes == null) {
             volumes = new VolumeUpdateParam();

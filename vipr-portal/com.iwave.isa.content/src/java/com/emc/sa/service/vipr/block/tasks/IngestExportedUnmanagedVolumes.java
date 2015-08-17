@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block.tasks;
@@ -19,7 +19,7 @@ import com.emc.vipr.client.Tasks;
 public class IngestExportedUnmanagedVolumes extends WaitForTasks<UnManagedVolumeRestRep> {
 
     public static final int INGEST_CHUNK_SIZE = 1000;
-    
+
     public static final int MAX_ERROR_DISPLAY = 10;
 
     private URI vpoolId;
@@ -45,39 +45,39 @@ public class IngestExportedUnmanagedVolumes extends WaitForTasks<UnManagedVolume
         return getClient().unmanagedVolumes().ingestExported(ingest);
     }
 
-	@Override
-	protected Tasks<UnManagedVolumeRestRep> doExecute() throws Exception {
-		VolumeExportIngestParam ingest = new VolumeExportIngestParam();
+    @Override
+    protected Tasks<UnManagedVolumeRestRep> doExecute() throws Exception {
+        VolumeExportIngestParam ingest = new VolumeExportIngestParam();
         ingest.setVpool(vpoolId);
         ingest.setProject(projectId);
         ingest.setVarray(varrayId);
         ingest.setCluster(clusterId);
         ingest.setHost(hostId);
-        
+
         return executeChunks(ingest);
-	}
-	
-	private Tasks<UnManagedVolumeRestRep> executeChunks(VolumeExportIngestParam ingest){
-		
-		Tasks<UnManagedVolumeRestRep> results = null;
-				
-		int i = 0;
-		for (Iterator<URI> ids = unmanagedVolumeIds.iterator(); ids.hasNext(); ) {
-			i++;
+    }
+
+    private Tasks<UnManagedVolumeRestRep> executeChunks(VolumeExportIngestParam ingest) {
+
+        Tasks<UnManagedVolumeRestRep> results = null;
+
+        int i = 0;
+        for (Iterator<URI> ids = unmanagedVolumeIds.iterator(); ids.hasNext();) {
+            i++;
             URI id = ids.next();
             ingest.getUnManagedVolumes().add(id);
             if (i == INGEST_CHUNK_SIZE || !ids.hasNext()) {
-            	Tasks<UnManagedVolumeRestRep> currentChunk = ingestVolumes(ingest);
-            	if(results == null){
-            		results = currentChunk;
-            	}else{
-            		results.getTasks().addAll( currentChunk.getTasks() );
-            	}
+                Tasks<UnManagedVolumeRestRep> currentChunk = ingestVolumes(ingest);
+                if (results == null) {
+                    results = currentChunk;
+                } else {
+                    results.getTasks().addAll(currentChunk.getTasks());
+                }
                 ingest.getUnManagedVolumes().clear();
                 i = 0;
             }
         }
-        
+
         return results;
-	}
+    }
 }

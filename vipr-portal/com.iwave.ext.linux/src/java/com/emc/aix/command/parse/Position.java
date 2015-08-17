@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.aix.command.parse;
@@ -13,5 +13,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.FIELD)
 public @interface Position {
     int value();
+
     Class<? extends FieldFormatter> formatter() default NullFormatter.class;
 }

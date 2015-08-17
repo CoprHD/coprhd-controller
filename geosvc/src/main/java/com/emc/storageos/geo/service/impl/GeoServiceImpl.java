@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.geo.service.impl;
 
@@ -39,7 +29,7 @@ public class GeoServiceImpl extends AbstractSecuredWebServer implements GeoServi
 
     @Autowired
     private ServiceBeacon _svcBeacon;
-    
+
     @Autowired
     private GeoBackgroundTasks _tasks;
 
@@ -56,7 +46,7 @@ public class GeoServiceImpl extends AbstractSecuredWebServer implements GeoServi
         _tasks.start();
         _log.info("Starting geo service done");
     }
-    
+
     private void initValidator() {
         Validator.setCoordinator(_coordinator);
     }

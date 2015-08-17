@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
@@ -35,10 +25,10 @@ import com.google.gson.GsonBuilder;
  * Provides utility methods.
  */
 public class VPlexApiUtils {
-    
+
     // Logger reference.
     private static Logger s_logger = LoggerFactory.getLogger(VPlexApiUtils.class);
-    
+
     /**
      * Transforms the raw WWN format returned by the VPlex CLI.
      * 
@@ -52,10 +42,10 @@ public class VPlexApiUtils {
         if (rawWWN != null) {
             return rawWWN.substring(2).toUpperCase();
         }
-        
+
         return rawWWN;
     }
-    
+
     /**
      * Extracts the attribute data from the passed JSON response and returns
      * the attribute data as a Map of name/value pairs.
@@ -67,25 +57,25 @@ public class VPlexApiUtils {
      * @throws VPlexApiException When an error occurs parsing the response.
      */
     static Map<String, Object> getAttributesFromResponse(String response)
-        throws VPlexApiException {
+            throws VPlexApiException {
         Map<String, Object> attributeMap = new HashMap<String, Object>();
 
         try {
             JSONObject jsonObj = new JSONObject(response);
             JSONObject respObj = jsonObj
-                .getJSONObject(VPlexApiConstants.RESPONSE_JSON_KEY);
+                    .getJSONObject(VPlexApiConstants.RESPONSE_JSON_KEY);
             JSONArray contextArray = respObj
-                .getJSONArray(VPlexApiConstants.CONTEXT_JSON_KEY);
+                    .getJSONArray(VPlexApiConstants.CONTEXT_JSON_KEY);
             for (int i = 0; i < contextArray.length(); i++) {
                 JSONObject contextObj = contextArray.getJSONObject(i);
                 JSONArray attributesArray = contextObj
-                    .getJSONArray(VPlexApiConstants.ATTRIBUTES_JSON_KEY);
+                        .getJSONArray(VPlexApiConstants.ATTRIBUTES_JSON_KEY);
                 for (int j = 0; j < attributesArray.length(); j++) {
                     JSONObject attObj = attributesArray.getJSONObject(j);
                     String attName = attObj
-                        .getString(VPlexApiConstants.ATTRIBUTE_NAME_JSON_KEY);
+                            .getString(VPlexApiConstants.ATTRIBUTE_NAME_JSON_KEY);
                     Object attValue = attObj
-                        .get(VPlexApiConstants.ATTRIBUTE_VALUE_JSON_KEY);
+                            .get(VPlexApiConstants.ATTRIBUTE_VALUE_JSON_KEY);
                     attributeMap.put(attName, attValue);
                 }
             }
@@ -95,7 +85,7 @@ public class VPlexApiUtils {
 
         return attributeMap;
     }
-    
+
     /**
      * Extracts all children from the context objects in the passed request
      * response.
@@ -107,24 +97,24 @@ public class VPlexApiUtils {
      * @throws VPlexApiException When an error occurs processing the response.
      */
     static <T extends VPlexResourceInfo> List<T> getChildrenFromResponse(
-        String baseResourcePath, String response, Class<T> clazz)
-        throws VPlexApiException {
+            String baseResourcePath, String response, Class<T> clazz)
+            throws VPlexApiException {
         List<T> children = new ArrayList<T>();
         try {
             JSONObject jsonObj = new JSONObject(response);
             JSONObject respObj = jsonObj
-                .getJSONObject(VPlexApiConstants.RESPONSE_JSON_KEY);
+                    .getJSONObject(VPlexApiConstants.RESPONSE_JSON_KEY);
             JSONArray contextArray = respObj
-                .getJSONArray(VPlexApiConstants.CONTEXT_JSON_KEY);
+                    .getJSONArray(VPlexApiConstants.CONTEXT_JSON_KEY);
             for (int i = 0; i < contextArray.length(); i++) {
                 JSONObject contextObj = contextArray.getJSONObject(i);
                 JSONArray childArray = contextObj
-                    .getJSONArray(VPlexApiConstants.CHILDREN_JSON_KEY);
+                        .getJSONArray(VPlexApiConstants.CHILDREN_JSON_KEY);
                 for (int j = 0; j < childArray.length(); j++) {
                     JSONObject childObj = childArray.getJSONObject(j);
                     T child = new Gson().fromJson(childObj.toString(), clazz);
                     child.setPath(baseResourcePath.substring(VPlexApiConstants.VPLEX_PATH
-                        .length()) + child.getName());
+                            .length()) + child.getName());
                     children.add(child);
                 }
             }
@@ -134,9 +124,9 @@ public class VPlexApiUtils {
 
         return children;
     }
-    
+
     /**
-     * Extracts VPlexResourceInfo resource objects from a list of JSON 
+     * Extracts VPlexResourceInfo resource objects from a list of JSON
      * context objects returned by the VPLEX API.
      * 
      * @param baseResourcePath the REST API Path to the resource
@@ -148,18 +138,18 @@ public class VPlexApiUtils {
      */
     static <T extends VPlexResourceInfo> List<T> getResourcesFromResponseContext(
             String baseResourcePath, String response, Class<T> clazz)
-                    throws VPlexApiException {
-        
+            throws VPlexApiException {
+
         List<T> resources = new ArrayList<T>();
         try {
             JSONObject jsonObj = new JSONObject(response);
             JSONObject respObj = jsonObj
-                .getJSONObject(VPlexApiConstants.RESPONSE_JSON_KEY);
+                    .getJSONObject(VPlexApiConstants.RESPONSE_JSON_KEY);
             JSONArray contextArray = respObj
-                .getJSONArray(VPlexApiConstants.CONTEXT_JSON_KEY);
+                    .getJSONArray(VPlexApiConstants.CONTEXT_JSON_KEY);
             for (int i = 0; i < contextArray.length(); i++) {
                 JSONObject contextObj = contextArray.getJSONObject(i);
-                
+
                 s_logger.info("Parsing {}: {}", clazz.getName(), contextObj.toString());
                 Gson gson = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_DASHES).create();
                 T resource = gson.fromJson(contextObj.toString(), clazz);
@@ -169,10 +159,10 @@ public class VPlexApiUtils {
         } catch (Exception e) {
             throw VPlexApiException.exceptions.failedToDeserializeJsonResponse(e.getLocalizedMessage());
         }
-        
+
         return resources;
     }
-    
+
     /**
      * Sets the value of the attributes for the passed resource by extracting
      * the values from the passed resource request response.
@@ -181,11 +171,11 @@ public class VPlexApiUtils {
      * @param resourceInfo The resource whose attribute value is set.
      * 
      * @throws VPlexApiException If an error occurs setting the attribute
-     *         values.
+     *             values.
      */
     @SuppressWarnings("rawtypes")
     static void setAttributeValues(String responseStr, VPlexResourceInfo resourceInfo)
-        throws VPlexApiException {
+            throws VPlexApiException {
         try {
             Map<String, Object> resourceAtts = getAttributesFromResponse(responseStr);
             List<String> attributeFilters = resourceInfo.getAttributeFilters();
@@ -195,7 +185,7 @@ public class VPlexApiUtils {
 
                 // Skip attributes we are not interested in.
                 if ((attributeFilters != null) && (!attributeFilters.isEmpty())
-                    && (!attributeFilters.contains(entry.getKey()))) {
+                        && (!attributeFilters.contains(entry.getKey()))) {
                     continue;
                 }
                 Class[] parameterTypes;
@@ -221,7 +211,7 @@ public class VPlexApiUtils {
             throw VPlexApiException.exceptions.failedSettingAttributesForResource(resourceInfo.getName(), e);
         }
     }
-    
+
     /**
      * Creates JSON formatted post data for passed arguments.
      * 
@@ -233,7 +223,7 @@ public class VPlexApiUtils {
      * @throws VPlexApiException When an error occurs forming the post data.
      */
     static <T extends VPlexResourceInfo> JSONObject createPostData(
-        Map<String, String> argsMap, boolean includeForce) throws VPlexApiException {
+            Map<String, String> argsMap, boolean includeForce) throws VPlexApiException {
         try {
             StringBuilder argsBuilder = new StringBuilder();
             if (argsMap != null) {
@@ -255,13 +245,13 @@ public class VPlexApiUtils {
             }
 
             JSONObject postDataObject = new JSONObject();
-            postDataObject.put(VPlexApiConstants.POST_DATA_ARG_KEY,  argsBuilder.toString());
+            postDataObject.put(VPlexApiConstants.POST_DATA_ARG_KEY, argsBuilder.toString());
             return postDataObject;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.failedCreatingPostDataForRequest(e);
         }
     }
-    
+
     /**
      * Extracts the "custom-data" from the passed JSON response.
      * 
@@ -276,7 +266,7 @@ public class VPlexApiUtils {
         try {
             JSONObject jsonObj = new JSONObject(response);
             JSONObject respObj = jsonObj
-                .getJSONObject(VPlexApiConstants.RESPONSE_JSON_KEY);
+                    .getJSONObject(VPlexApiConstants.RESPONSE_JSON_KEY);
             customData = respObj.get(VPlexApiConstants.CUSTOM_DATA_JSON_KEY).toString();
         } catch (Exception e) {
             throw VPlexApiException.exceptions.failedGettingCustomDataFromResponse(response, e);
@@ -284,7 +274,7 @@ public class VPlexApiUtils {
 
         return customData;
     }
-    
+
     /**
      * Extracts the "exception" message from the passed JSON response.
      * 
@@ -299,7 +289,7 @@ public class VPlexApiUtils {
         try {
             JSONObject jsonObj = new JSONObject(response);
             JSONObject respObj = jsonObj
-                .getJSONObject(VPlexApiConstants.RESPONSE_JSON_KEY);
+                    .getJSONObject(VPlexApiConstants.RESPONSE_JSON_KEY);
             exceptionMessage = respObj.get(VPlexApiConstants.EXCEPTION_MSG_JSON_KEY).toString();
         } catch (Exception e) {
             throw VPlexApiException.exceptions.failedGettingExceptionMsgFromResponse(response, e);
@@ -307,7 +297,7 @@ public class VPlexApiUtils {
 
         return exceptionMessage;
     }
-    
+
     /**
      * Extracts the cause returned in a failure response by the VPLEX.
      * 
@@ -316,19 +306,19 @@ public class VPlexApiUtils {
      * @return The cause of the failure.
      */
     static String getCauseOfFailureFromResponse(String response) {
-        
-        // There is often multiple "cause:" in the response, and the last 
+
+        // There is often multiple "cause:" in the response, and the last
         // is the one that supplies the specific details that are most useful.
         // For example, the first cause might be "Command Failed". The next
-        // cause might be "Failed to supply a value for parameter --foo". 
-        // Then the last cause might be "Foo cannot begin with a numerical 
+        // cause might be "Failed to supply a value for parameter --foo".
+        // Then the last cause might be "Foo cannot begin with a numerical
         // value", so the parameter is supplied. It just has an invalid value.
         StringBuilder result = new StringBuilder();
         String exceptionMessage = getExceptionMessageFromResponse(response);
         if (exceptionMessage != null) {
             String[] causes = exceptionMessage.split(VPlexApiConstants.CAUSE_DELIM);
             if (causes != null && causes.length > 0) {
-                String cause = causes[causes.length-1];
+                String cause = causes[causes.length - 1];
                 String[] lines = cause.split("\n");
                 for (int i = 0; i < lines.length; i++) {
                     String line = lines[i].trim();
@@ -341,7 +331,7 @@ public class VPlexApiUtils {
         }
         return result.toString();
     }
-    
+
     /**
      * Simple puts the thread to sleep for the passed duration.
      * 

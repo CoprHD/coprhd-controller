@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2013 EMC Corporation 
- * All Rights Reserved 
- *
- * This software contains the intellectual property of EMC Corporation 
- * or is licensed to EMC Corporation from third parties.  Use of this 
- * software and the intellectual property contained therein is expressly 
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.apidiff;
@@ -70,8 +60,9 @@ public class ServiceCatalogDiff {
         for (Map.Entry<String, String> entry : newServiceCatalog.getElementMap().entrySet()) {
             Pair<String, String> diff =
                     compareXml(oldServiceCatalog.getElementMap().get(entry.getKey()), entry.getValue());
-            if (diff != null)
+            if (diff != null) {
                 elementChangedMap.put(entry.getKey(), diff);
+            }
         }
 
         Iterator<Map.Entry<ApiIdentifier, ApiDescriptor>> newApiMapIterator =
@@ -79,8 +70,9 @@ public class ServiceCatalogDiff {
         while (newApiMapIterator.hasNext()) {
             Map.Entry<ApiIdentifier, ApiDescriptor> entry = newApiMapIterator.next();
             ApiDescriptor oldApiResource = oldServiceCatalog.getApiMap().get(entry.getKey());
-            if ( oldApiResource == null)
+            if (oldApiResource == null) {
                 continue;
+            }
 
             Pair<String, String> paramDiff = compareParameter(oldApiResource.getParameters(),
                     entry.getValue().getParameters());
@@ -89,9 +81,10 @@ public class ServiceCatalogDiff {
             Pair<String, String> responseDiff =
                     elementChangedMap.get(entry.getValue().getResponseElement());
 
-            if (paramDiff != null || requestDiff != null || responseDiff != null)
+            if (paramDiff != null || requestDiff != null || responseDiff != null) {
                 apiChangedMap.put(entry.getKey(),
                         new ApiDescriptorDiff(paramDiff, requestDiff, responseDiff));
+            }
 
             newApiMapIterator.remove();
             oldServiceCatalog.getApiMap().remove(entry.getKey());
@@ -104,10 +97,11 @@ public class ServiceCatalogDiff {
 
     /**
      * Compares two parameter list in old resource and new resource
+     * 
      * @param oldParameters
-     *          The list of old parameters
+     *            The list of old parameters
      * @param newParameters
-     *          The list of new parameters
+     *            The list of new parameters
      * @return pair of different parameter string if they are different, else null
      */
     public Pair<String, String> compareParameter(List<String> oldParameters, List<String> newParameters) {
@@ -121,30 +115,35 @@ public class ServiceCatalogDiff {
             }
         }
 
-        if (oldParameters.size() != 0 || newParameters.size() != 0)
+        if (!oldParameters.isEmpty() || !newParameters.isEmpty()) {
             return new Pair<String, String>(
                     Arrays.toString(oldParameters.toArray(new String[oldParameters.size()])),
                     Arrays.toString(newParameters.toArray(new String[newParameters.size()])));
+        }
 
         return null;
     }
 
     /**
      * Compares two string which are well formed XML
+     * 
      * @param oldXml
-     *          The old xml string
+     *            The old xml string
      * @param newXml
-     *          The new xml string
+     *            The new xml string
      * @return pair of different xml string if they are different, else null
      */
     public Pair<String, String> compareXml(String oldXml, String newXml) {
 
-        if (oldXml == null && newXml == null)
+        if (oldXml == null && newXml == null) {
             return null;
-        if (oldXml == null)
+        }
+        if (oldXml == null) {
             return new Pair<String, String>(null, newXml);
-        if (newXml == null)
+        }
+        if (newXml == null) {
             return new Pair<String, String>(oldXml, null);
+        }
 
         SAXBuilder saxBuilder = new SAXBuilder();
         saxBuilder.setReuseParser(true);
@@ -154,11 +153,11 @@ public class ServiceCatalogDiff {
             newDocument = saxBuilder.build(new StringReader(newXml));
         } catch (Exception ex) {
             System.err.println("Invalid XML content:\n " + oldXml + "\n and: \n" + newXml);
-            ex.printStackTrace();
         }
 
-        if (oldDocument == null || newDocument == null)
+        if (oldDocument == null || newDocument == null) {
             return null;
+        }
 
         return XmlDiff.compareXml(oldDocument, newDocument);
 

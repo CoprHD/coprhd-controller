@@ -11,7 +11,6 @@
 
 package com.emc.storageos.security.validator;
 
-
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
@@ -33,17 +32,17 @@ public class MarshallUtil {
 
     /**
      * leveraging TenantOrgRestRep's JAXB representation, converts given tenant's user-mapping to a string.
-     *
+     * 
      * @param tenant
      * @return
      * @throws Exception
      */
-    public static String ConvertTenantUserMappingToString(TenantOrg tenant) throws Exception {
+    public static String convertTenantUserMappingToString(TenantOrg tenant) throws Exception {
         TenantOrgRestRep response = new TenantOrgRestRep();
 
-        if(tenant.getUserMappings() != null) {
-            for(AbstractChangeTrackingSet<String> userMappingSet: tenant.getUserMappings().values()) {
-                for(String existingMapping : userMappingSet ) {
+        if (tenant.getUserMappings() != null) {
+            for (AbstractChangeTrackingSet<String> userMappingSet : tenant.getUserMappings().values()) {
+                for (String existingMapping : userMappingSet) {
                     response.getUserMappings().add(BasePermissionsHelper.UserMapping.toParam(
                             BasePermissionsHelper.UserMapping.fromString(existingMapping)));
                 }
@@ -57,10 +56,9 @@ public class MarshallUtil {
         return writer.toString();
     }
 
-
     /**
      * leveraging TenantOrgRestRep's JAXB representation, converting its string to List of UserMapping object.
-     *
+     * 
      * @param strUserMappings
      * @return
      */
@@ -76,6 +74,6 @@ public class MarshallUtil {
             log.error("An error occurred when converting string {} to list. Cause: {}", strUserMappings, e);
         }
 
-        return  userMappingList;
+        return userMappingList;
     }
 }

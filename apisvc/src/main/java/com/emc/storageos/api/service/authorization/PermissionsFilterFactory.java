@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.authorization;
 
@@ -21,7 +11,6 @@ import java.util.Set;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.sun.jersey.spi.container.ContainerRequest;
 
 import org.slf4j.Logger;
@@ -56,7 +45,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
      */
     private class ApisvcPermissionFilter extends AbstractPermissionFilter {
         ApisvcPermissionFilter(Role[] roles, ACL[] acls, boolean blockProxies,
-                               Class resourceClazz, PermissionsHelper helper) {
+                Class resourceClazz, PermissionsHelper helper) {
             super(roles, acls, blockProxies, resourceClazz, helper);
         }
 
@@ -67,6 +56,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
 
         /**
          * Get tenant id from the uri
+         * 
          * @return
          */
         @Override
@@ -85,7 +75,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                     return _permissionsHelper.getTenantResourceTenantId(tenantResourceUriStr);
                 }
             } else if (_resourceClazz.isAssignableFrom(InitiatorService.class) ||
-                    _resourceClazz.isAssignableFrom(IpInterfaceService.class) ) {
+                    _resourceClazz.isAssignableFrom(IpInterfaceService.class)) {
                 String tenantResourceUriStr = uriInfo.getPathParameters().getFirst("id");
                 if (tenantResourceUriStr != null && !tenantResourceUriStr.isEmpty()) {
                     return _permissionsHelper.getTenantResourceTenantId(tenantResourceUriStr);
@@ -108,6 +98,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
 
         /**
          * Retrieve project id from the resource id
+         * 
          * @param uri
          * @param clazz
          * @return
@@ -127,6 +118,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
 
         /**
          * Retrieve project id from the snapshot resource id
+         * 
          * @param uri
          * @param clazz
          * @return
@@ -142,9 +134,9 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                     obj.parentClass());
         }
 
-
         /**
          * Retrieve project id from the block snapshot id
+         * 
          * @param uri
          * @param clazz
          * @return
@@ -161,6 +153,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
 
         /**
          * Retrieve project id from the snapshot resource id
+         * 
          * @param uri
          * @return
          */
@@ -172,7 +165,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
             } else if (URIUtil.isType(id, Cluster.class)) {
                 Cluster cluster = _permissionsHelper.getObjectById(id, Cluster.class);
                 return cluster.getProject();
-            } else if (URIUtil.isType(id, Initiator.class)){
+            } else if (URIUtil.isType(id, Initiator.class)) {
                 Initiator ini = _permissionsHelper.getObjectById(id, Initiator.class);
                 if (ini.getHost() != null) {
                     Host host = _permissionsHelper.getObjectById(ini.getHost(), Host.class);
@@ -180,7 +173,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                 } else {
                     return null;
                 }
-            } else if (URIUtil.isType(id, IpInterface.class)){
+            } else if (URIUtil.isType(id, IpInterface.class)) {
                 IpInterface hostIf = _permissionsHelper.getObjectById(id, IpInterface.class);
                 if (hostIf.getHost() != null) {
                     Host host = _permissionsHelper.getObjectById(hostIf.getHost(), Host.class);
@@ -194,6 +187,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
 
         /**
          * Get project id from the uri
+         * 
          * @return
          */
         @Override
@@ -209,7 +203,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                 if (projectUriStr != null && !projectUriStr.isEmpty()) {
                     return URI.create(projectUriStr);
                 } else if (uriStr != null && !uriStr.isEmpty()) {
-                    if (_resourceClazz.isAssignableFrom(FileService.class)){
+                    if (_resourceClazz.isAssignableFrom(FileService.class)) {
                         return getProjectIdFromResourceId(uriStr, FileShare.class);
                     } else if (_resourceClazz.isAssignableFrom(ExportGroupService.class)) {
                         return getProjectIdFromResourceId(uriStr, ExportGroup.class);
@@ -217,7 +211,8 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                         return getProjectIdFromResourceId(uriStr, Volume.class);
                     } else if (_resourceClazz.isAssignableFrom(BlockConsistencyGroupService.class)) {
                         return getProjectIdFromResourceId(uriStr, BlockConsistencyGroup.class);
-                    } if (_resourceClazz.isAssignableFrom(BlockSnapshotService.class)) {
+                    }
+                    if (_resourceClazz.isAssignableFrom(BlockSnapshotService.class)) {
                         return getProjectIdFromResourceBlockSnapshotId(uriStr, BlockSnapshot.class);
                     } else if (_resourceClazz.isAssignableFrom(FileSnapshotService.class)) {
                         return getProjectIdFromResourceSnapshotId(uriStr, Snapshot.class);
@@ -262,9 +257,9 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                             acls.add(ACL.USE.toString());
                         } else {
                             acls = obj.getAclSet(new PermissionsKey(PermissionsKey.Type.TENANT,
-                                    tenantId.toString(),obj.getSystemType()).toString());
+                                    tenantId.toString(), obj.getSystemType()).toString());
                         }
-                    
+
                     } else if (_resourceClazz.isAssignableFrom(VirtualArrayService.class)) {
                         VirtualArray obj = _permissionsHelper
                                 .getObjectById(uri, VirtualArray.class);
@@ -277,9 +272,9 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                                     tenantId).toString());
                         }
                     } else if (_resourceClazz.isAssignableFrom(HostService.class) ||
-                            _resourceClazz.isAssignableFrom(VcenterService.class)||
-                            _resourceClazz.isAssignableFrom(VcenterDataCenterService.class)||
-                            _resourceClazz.isAssignableFrom(InitiatorService.class)||
+                            _resourceClazz.isAssignableFrom(VcenterService.class) ||
+                            _resourceClazz.isAssignableFrom(VcenterDataCenterService.class) ||
+                            _resourceClazz.isAssignableFrom(InitiatorService.class) ||
                             _resourceClazz.isAssignableFrom(IpInterfaceService.class) ||
                             _resourceClazz.isAssignableFrom(ClusterService.class)) {
                         // do nothing, if there is no project association, there are no ACLs
@@ -308,6 +303,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
 
     /**
      * Setter for permissions helper object
+     * 
      * @param permissionsHelper
      */
     public void setPermissionsHelper(PermissionsHelper permissionsHelper) {
@@ -316,6 +312,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
 
     /**
      * Setter for disabling license check
+     * 
      * @param disableLicenseCheck
      */
     public void setDisableLicenseCheck(boolean disableLicenseCheck) {
@@ -344,7 +341,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
 
     @Override
     protected AbstractPermissionFilter getPermissionsFilter(Role[] roles, ACL[] acls,
-                                                            boolean blockProxies, Class resourceClazz) {
+            boolean blockProxies, Class resourceClazz) {
         return new ApisvcPermissionFilter(roles, acls, blockProxies, resourceClazz, _permissionsHelper);
     }
 

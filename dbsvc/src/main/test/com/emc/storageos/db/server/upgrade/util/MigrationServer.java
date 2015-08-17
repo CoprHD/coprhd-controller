@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.server.upgrade.util;
 
@@ -38,7 +28,7 @@ public class MigrationServer extends DbStepSkipUpgradeTestBase {
         changer.insertCodes(methodName, getInsertCodes(), InjectModeEnum.valueOf(injectMode));
     }
 
-    public void startMigration(String className, String methodName, String injectMode){
+    public void startMigration(String className, String methodName, String injectMode) {
         try {
             setup();
 
@@ -54,14 +44,14 @@ public class MigrationServer extends DbStepSkipUpgradeTestBase {
 
             verifyAll();
             stop();
-        }catch (IllegalStateException e){
+        } catch (IllegalStateException e) {
             log.info("Catch the negative test exception:", e);
-        }catch (Exception e) {
+        } catch (Exception e) {
             log.info("Catch the negative test exception:", e);
         }
     }
 
-    public void startMigration(){
+    public void startMigration() {
         try {
             setup();
 
@@ -71,9 +61,9 @@ public class MigrationServer extends DbStepSkipUpgradeTestBase {
 
             verifyAll();
             stop();
-        }catch (IllegalStateException e){
+        } catch (IllegalStateException e) {
             log.info("Catch the negative test exception:", e);
-        }catch (Exception e) {
+        } catch (Exception e) {
             log.info("Catch the negative test exception:", e);
         }
     }
@@ -88,6 +78,6 @@ public class MigrationServer extends DbStepSkipUpgradeTestBase {
         } else {
             log.error("the count of parameters is invalid.");
         }
-        System.exit(0); 
+        System.exit(0);
     }
 }

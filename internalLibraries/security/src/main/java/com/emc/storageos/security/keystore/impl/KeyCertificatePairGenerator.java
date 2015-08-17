@@ -1,20 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2013-2014 EMC Corporation All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation or is licensed to
- * EMC Corporation from third parties. Use of this software and the intellectual property
- * contained therein is expressly limited to the terms and conditions of the License
- * Agreement under which it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.keystore.impl;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
@@ -22,13 +12,11 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
-import java.security.Key;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.Provider;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Signature;
@@ -39,17 +27,12 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.DSAParams;
-import java.security.interfaces.DSAPublicKey;
-import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 
-import com.emc.storageos.security.helpers.SecurityService;
 import com.emc.storageos.security.helpers.SecurityUtil;
-import com.emc.storageos.security.ssh.PEMUtil;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -111,7 +94,7 @@ public class KeyCertificatePairGenerator {
 
     /**
      * Create a self-signed X.509 Certificate
-     *
+     * 
      * @param pair the KeyPair
      */
     private X509Certificate generateCertificate(KeyPair pair)
@@ -140,7 +123,7 @@ public class KeyCertificatePairGenerator {
         info.set(X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3));
         AlgorithmId keyAlgo =
                 AlgorithmId
-                .get(KeyCertificateAlgorithmValuesHolder.DEFAULT_KEY_ALGORITHM);
+                        .get(KeyCertificateAlgorithmValuesHolder.DEFAULT_KEY_ALGORITHM);
         info.set(X509CertInfo.ALGORITHM_ID, new CertificateAlgorithmId(keyAlgo));
         AlgorithmId signingAlgo = AlgorithmId.get(valuesHolder.getSigningAlgorithm());
         info.set(CertificateAlgorithmId.NAME + "." + CertificateAlgorithmId.ALGORITHM,
@@ -186,6 +169,7 @@ public class KeyCertificatePairGenerator {
 
     /**
      * Set Not Before to a few days in past just in case system runs into problem due to bad system clock.
+     * 
      * @return
      */
     private Date getNotBefore() {
@@ -201,7 +185,7 @@ public class KeyCertificatePairGenerator {
         KeyCertificateEntry returnedEntry;
         try {
             Certificate cert = generateCertificate(keyPair);
-            Certificate[] chain = {cert};
+            Certificate[] chain = { cert };
             returnedEntry = new KeyCertificateEntry(keyPair.getPrivate(), chain);
         } catch (GeneralSecurityException e) {
             throw SecurityException.fatals.failedToCreateCertificate(e);
@@ -223,7 +207,7 @@ public class KeyCertificatePairGenerator {
         try {
             KeyFactory keyFactory =
                     KeyFactory
-                    .getInstance(KeyCertificateAlgorithmValuesHolder.DEFAULT_KEY_ALGORITHM);
+                            .getInstance(KeyCertificateAlgorithmValuesHolder.DEFAULT_KEY_ALGORITHM);
             return keyFactory.generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
         } catch (InvalidKeySpecException e) {
             throw SecurityException.fatals.failedToLoadPrivateKey(e);
@@ -244,10 +228,10 @@ public class KeyCertificatePairGenerator {
 
     /**
      * verifies that the specified key matches the specified certificate
-     *
+     * 
      * @param entryToVerify
      * @throws SecurityException if the certificate specified is not x509 certificate, or if validation
-     *                           fails
+     *             fails
      */
     public static void verifyKeyCertificateEntry(KeyCertificateEntry entryToVerify)
             throws SecurityException {
@@ -290,10 +274,10 @@ public class KeyCertificatePairGenerator {
 
     /**
      * @param certificateChainString the certificate chain in PEM format or crt format. other formats, such
-     *                               as DER, p7b and p7c are not supported from BouncyCastle docs: At the
-     *                               moment this will deal with "-----BEGIN CERTIFICATE-----" to
-     *                               "-----END CERTIFICATE-----" base 64 encoded certs, as well as the BER
-     *                               binaries of certificates and some classes of PKCS#7 objects.
+     *            as DER, p7b and p7c are not supported from BouncyCastle docs: At the
+     *            moment this will deal with "-----BEGIN CERTIFICATE-----" to
+     *            "-----END CERTIFICATE-----" base 64 encoded certs, as well as the BER
+     *            binaries of certificates and some classes of PKCS#7 objects.
      * @return the certificate chain as Certificate[]
      * @throws CertificateException if parsing of the certificate chain has failed
      */
@@ -312,10 +296,10 @@ public class KeyCertificatePairGenerator {
 
     /**
      * @param certificateStr the certificate chain in PEM format or crt format. other formats, such
-     *                               as DER, p7b and p7c are not supported from BouncyCastle docs: At the
-     *                               moment this will deal with "-----BEGIN CERTIFICATE-----" to
-     *                               "-----END CERTIFICATE-----" base 64 encoded certs, as well as the BER
-     *                               binaries of certificates and some classes of PKCS#7 objects.
+     *            as DER, p7b and p7c are not supported from BouncyCastle docs: At the
+     *            moment this will deal with "-----BEGIN CERTIFICATE-----" to
+     *            "-----END CERTIFICATE-----" base 64 encoded certs, as well as the BER
+     *            binaries of certificates and some classes of PKCS#7 objects.
      * @return the certificate chain as Certificate[]
      * @throws CertificateException if parsing of the certificate chain has failed
      */
@@ -359,13 +343,13 @@ public class KeyCertificatePairGenerator {
      */
     public static String getCertificateAsString(Certificate cert)
             throws CertificateEncodingException {
-        Certificate[] chain = {cert};
+        Certificate[] chain = { cert };
         return getCertificateChainAsString(chain);
     }
 
     /**
      * Checks if the specified certificate's IPs match the cluste's IPs
-     *
+     * 
      * @param cert
      * @throws IllegalArgumentException when the certificate was not created by this generator
      */
@@ -396,49 +380,49 @@ public class KeyCertificatePairGenerator {
 
     /**
      * gets the specified key as it's pem representation
-     *
+     * 
      * @param keyToParse
      * @return
      */
 
     /*
-    public static String getPrivateKeyAsPEMString(Key keyToParse)
-            throws IOException, JSAFE_UnimplementedException,
-            JSAFE_InvalidParameterException, JSAFE_InvalidKeyException {
-
-        JSAFE_PrivateKey privKey = null;
-
-        try {
-            privKey = JSAFE_PrivateKey.getInstance(
-                    KeyCertificateAlgorithmValuesHolder.DEFAULT_KEY_ALGORITHM,
-                    RSA_JAVA_DEVICE_NAME);
-            privKey.setKeyData(PRIVATE_RSA_KEY_BER_FORMAT_NAME,
-                    new byte[][]{keyToParse.getEncoded()});
-
-            byte[][] pemData = privKey.getKeyData(PRIVATE_RSA_KEY_PEM_FORMAT_NAME);
-
-            // this new string and the following substring operations cause key copied in memory and I don't now how to clear.
-            String pemStr = new String(pemData[0]);
-            int index = pemStr.indexOf('\n');
-            index++;
-            index += PEM_OUTPUT_LINE_SIZE;
-            int endIndex = pemStr.indexOf("-----END");
-            StringBuilder builder = new StringBuilder();
-            builder.append(pemStr.substring(0, index));
-            while (index < endIndex) {
-                builder.append(System.lineSeparator());
-                builder.append(pemStr.substring(index, index + PEM_OUTPUT_LINE_SIZE));
-                index += PEM_OUTPUT_LINE_SIZE;
-            }
-            builder.append(pemStr.substring(index));
-            return builder.toString();
-        } finally {
-            if (privKey != null) {
-                privKey.clearSensitiveData();
-            }
-        }
-    }
-    */
+     * public static String getPrivateKeyAsPEMString(Key keyToParse)
+     * throws IOException, JSAFE_UnimplementedException,
+     * JSAFE_InvalidParameterException, JSAFE_InvalidKeyException {
+     * 
+     * JSAFE_PrivateKey privKey = null;
+     * 
+     * try {
+     * privKey = JSAFE_PrivateKey.getInstance(
+     * KeyCertificateAlgorithmValuesHolder.DEFAULT_KEY_ALGORITHM,
+     * RSA_JAVA_DEVICE_NAME);
+     * privKey.setKeyData(PRIVATE_RSA_KEY_BER_FORMAT_NAME,
+     * new byte[][]{keyToParse.getEncoded()});
+     * 
+     * byte[][] pemData = privKey.getKeyData(PRIVATE_RSA_KEY_PEM_FORMAT_NAME);
+     * 
+     * // this new string and the following substring operations cause key copied in memory and I don't now how to clear.
+     * String pemStr = new String(pemData[0]);
+     * int index = pemStr.indexOf('\n');
+     * index++;
+     * index += PEM_OUTPUT_LINE_SIZE;
+     * int endIndex = pemStr.indexOf("-----END");
+     * StringBuilder builder = new StringBuilder();
+     * builder.append(pemStr.substring(0, index));
+     * while (index < endIndex) {
+     * builder.append(System.lineSeparator());
+     * builder.append(pemStr.substring(index, index + PEM_OUTPUT_LINE_SIZE));
+     * index += PEM_OUTPUT_LINE_SIZE;
+     * }
+     * builder.append(pemStr.substring(index));
+     * return builder.toString();
+     * } finally {
+     * if (privKey != null) {
+     * privKey.clearSensitiveData();
+     * }
+     * }
+     * }
+     */
 
     /**
      * Loads up the certificate that was set in v1 system property
@@ -452,10 +436,11 @@ public class KeyCertificatePairGenerator {
             int pemKeyStart = pemCertAndKey.indexOf(PEM_BEGIN_RSA_PRIVATE_KEY);
             int pemKeyEnd =
                     pemCertAndKey.indexOf(PEM_END_RSA_PRIVATE_KEY)
-                    + PEM_END_RSA_PRIVATE_KEY.length();
+                            + PEM_END_RSA_PRIVATE_KEY.length();
             int pemCertStart = pemCertAndKey.indexOf(PEM_BEGIN_CERT);
             int pemCertEnd = pemCertAndKey.lastIndexOf(PEM_END_CERT) + PEM_END_CERT.length();
-            log.info("pemKeyStart = " + pemKeyStart + ", pemKeyEnd = " + pemKeyEnd + ", pemCertStart = " + pemCertStart + ", pemCertEnd = " + pemCertEnd);
+            log.info("pemKeyStart = " + pemKeyStart + ", pemKeyEnd = " + pemKeyEnd + ", pemCertStart = " + pemCertStart + ", pemCertEnd = "
+                    + pemCertEnd);
             if (pemKeyStart != -1 && pemKeyEnd != -1 && pemCertStart != -1
                     && pemCertEnd != -1) {
                 String pemKey = pemCertAndKey.substring(pemKeyStart, pemKeyEnd);

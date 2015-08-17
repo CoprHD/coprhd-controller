@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block.tasks;
@@ -33,7 +33,7 @@ public class CreateBlockVolumeByName extends ViPRExecutionTask<Task<VolumeRestRe
         this.consistencyGroupId = consistencyGroupId;
         this.volumeName = volumeName;
         provideDetailArgs(projectId, varrayId, vpoolId, size, volumeName);
-        
+
     }
 
     @Override
@@ -45,13 +45,13 @@ public class CreateBlockVolumeByName extends ViPRExecutionTask<Task<VolumeRestRe
         create.setSize(size);
         create.setConsistencyGroup(consistencyGroupId);
         create.setCount(1);
-    	create.setName(volumeName);
-        
-    	Tasks<VolumeRestRep> tasksForVolume = getClient().blockVolumes().create(create);
-    	if (tasksForVolume.getTasks().size() != 1) {
-    		throw new IllegalStateException("Invalid number of tasks returned from API: " + tasksForVolume.getTasks().size());
-    	}
-    	addOrderIdTag(tasksForVolume.firstTask().getTaskResource().getId());
-        return tasksForVolume.firstTask(); 
+        create.setName(volumeName);
+
+        Tasks<VolumeRestRep> tasksForVolume = getClient().blockVolumes().create(create);
+        if (tasksForVolume.getTasks().size() != 1) {
+            throw new IllegalStateException("Invalid number of tasks returned from API: " + tasksForVolume.getTasks().size());
+        }
+        addOrderIdTag(tasksForVolume.firstTask().getTaskResource().getId());
+        return tasksForVolume.firstTask();
     }
 }

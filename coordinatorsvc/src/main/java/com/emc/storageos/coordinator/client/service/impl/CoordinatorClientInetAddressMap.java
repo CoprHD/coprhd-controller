@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.coordinator.client.service.impl;
 
@@ -146,7 +136,8 @@ public class CoordinatorClientInetAddressMap {
      *            - the DualInetAddress that has v4 and/or v6 ip
      */
     public void put(String nodeId, DualInetAddress value) {
-        _logger.info("Adding external node: "+ nodeId +" and DualInetAddress: " + dualInetAddress.toString() + " to CoordinatorClientInetAddressMap.");
+        _logger.info("Adding external node: " + nodeId + " and DualInetAddress: " + dualInetAddress.toString()
+                + " to CoordinatorClientInetAddressMap.");
         getExternalInetAddressLookupMap().put(nodeId, value);
     }
 
@@ -223,9 +214,10 @@ public class CoordinatorClientInetAddressMap {
                 if (address == null) {
                     address = ((CoordinatorClientImpl) coordinatorClient)
                             .loadInetAddressFromCoordinator(nodeId);
-                    if (address == null)
+                    if (address == null) {
                         throw CoordinatorException.fatals
                                 .notConnectableError("Node lookup failed: " + nodeId);
+                    }
                 }
             }
         }
@@ -243,6 +235,7 @@ public class CoordinatorClientInetAddressMap {
 
     /**
      * Check if specific node is a controller node.
+     * 
      * @return true if controller node map has it
      */
     public boolean isControllerNode() {
@@ -297,7 +290,7 @@ public class CoordinatorClientInetAddressMap {
      * Local node is used as a server to determine the coonnectable
      * address pair.
      * 
-     * @param client  the external client that is requesting a connection
+     * @param client the external client that is requesting a connection
      * @return the connectable ip address for external client.
      * @throws UnknownHostException
      */

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc.stream;
 
@@ -34,25 +24,25 @@ import com.emc.vipr.model.sys.logging.LogRequest;
 public class LogFileStream implements LogStream {
     // Logger reference.
     private static final Logger logger = LoggerFactory.getLogger(LogFileStream.class);
-    
+
     private final String basename;
     private final List<String> logPaths;
     private LogReader reader;
     private LogRequest request;
     private LogStatusInfo status;
-    
+
     // number of logs get from LogReader
     private AtomicLong logCounter = new AtomicLong(0);
     // finished files number
-    private AtomicInteger fileCounter = new AtomicInteger(0); 
+    private AtomicInteger fileCounter = new AtomicInteger(0);
     // file size counter, sum up all read files
     private AtomicLong sizeCounter = new AtomicLong(0); // file size counter, sum up all read files
     private List<LogMessage> logs = new LinkedList<>(); // all logMessages which has the same timeStamp
-    private LogMessage currentLog; //defaults to null
-    private long prevLogTime; //defaults to 0
+    private LogMessage currentLog; // defaults to null
+    private long prevLogTime; // defaults to 0
 
     public LogFileStream(String basename, List<File> logFiles, LogRequest req,
-                         LogStatusInfo status) {
+            LogStatusInfo status) {
         logger.trace("LogFileStream()");
         this.request = req;
         this.basename = basename;
@@ -60,7 +50,7 @@ public class LogFileStream implements LogStream {
         reader = null;
         this.status = status;
     }
-    
+
     /**
      * Set log files related to a service, sorted by last modification time.
      * 
@@ -107,8 +97,8 @@ public class LogFileStream implements LogStream {
                 try {
                     reader = new LogReader(filePath, request, status, basename);
                 } catch (Exception e) {
-                    //TODO: generate a dynamic error log message
-                    logger.error("Fail to generate log reader for {}", filePath);
+                    status.append(String.format("Failed to open log file %s", e.getMessage()));
+                    logger.error("Failed to generate log reader for {}", e.getMessage());
                     return null;
                 }
                 logger.debug("Reading file - " + filePath);
@@ -116,8 +106,9 @@ public class LogFileStream implements LogStream {
                 sizeCounter.addAndGet(f.length());
             }
 
-            if (currentLog != null)
+            if (currentLog != null) {
                 prevLogTime = currentLog.getTime();
+            }
 
             currentLog = reader.readNextLogMessage();
             if (currentLog != null) {
@@ -125,8 +116,9 @@ public class LogFileStream implements LogStream {
                 currentLog.setService(LogUtil.serviceToBytes(basename));
                 // we cannot determine until the current log message has been read out
                 if (!LogUtil.permitCurrentLog(request.getMaxCount(), logCounter.get(),
-                        currentLog.getTime(), prevLogTime))
+                        currentLog.getTime(), prevLogTime)) {
                     break;
+                }
 
                 return currentLog;
             } else {

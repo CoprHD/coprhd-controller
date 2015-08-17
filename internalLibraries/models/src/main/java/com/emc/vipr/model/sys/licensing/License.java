@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.vipr.model.sys.licensing;
@@ -32,7 +22,8 @@ public class License implements Serializable {
     private List<LicenseFeature> licenseFeatures;
     private String licenseText;
 
-    public License() {}
+    public License() {
+    }
 
     public License(List<LicenseFeature> licenseFeatures, String licenseText) {
         this.licenseFeatures = licenseFeatures;
@@ -49,8 +40,8 @@ public class License implements Serializable {
             licenseFeatures = new ArrayList<LicenseFeature>();
         }
         return licenseFeatures;
-    }    
-    
+    }
+
     public void setLicenseFeatures(List<LicenseFeature> licenseFeatures) {
         this.licenseFeatures = licenseFeatures;
     }
@@ -63,7 +54,7 @@ public class License implements Serializable {
     public String getLicenseText() {
         return licenseText;
     }
-    
+
     /**
      * 
      * @param licenseText
@@ -71,7 +62,7 @@ public class License implements Serializable {
     public void setLicenseText(String licenseText) {
         this.licenseText = licenseText;
     }
-    
+
     /**
      * Add a FeatureList to the collection.
      * 

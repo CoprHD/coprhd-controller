@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.util;
@@ -13,14 +13,14 @@ public class ExportGroupNameGenerator extends ResourceOnlyNameGenerator {
 
     @Override
     public String generate(String ignore, String resource, String ignore2,
-                           char ignore3, int maxLength) {
-       
+            char ignore3, int maxLength) {
+
         return removeSpecialCharsForName(resource, maxLength);
     }
 
-    public static String removeSpecialCharsForName(String resource, int maxLength){
+    public static String removeSpecialCharsForName(String resource, int maxLength) {
         String result = null;
-        if(resource!=null){
+        if (resource != null) {
             // TODO: FIX ME - it's possible for the user to pass in all whitespace
             // causing the result to be an empty string.
             // Also \\s+ is redundant in the regex

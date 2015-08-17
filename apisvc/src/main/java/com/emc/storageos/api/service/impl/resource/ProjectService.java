@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -82,10 +72,10 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
  * Project resource implementation
  */
 @Path("/projects")
-@DefaultPermissions( read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-read_acls = {ACL.OWN, ACL.ALL},
-write_roles = { Role.TENANT_ADMIN },
-write_acls = {ACL.OWN, ACL.ALL})
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
+        readAcls = { ACL.OWN, ACL.ALL },
+        writeRoles = { Role.TENANT_ADMIN },
+        writeAcls = { ACL.OWN, ACL.ALL })
 public class ProjectService extends TaggedResource {
     private static final Logger _log = LoggerFactory.getLogger(ProjectService.class);
     // Constants for Events
@@ -100,9 +90,9 @@ public class ProjectService extends TaggedResource {
     @Autowired
     private RecordableEventManager _evtMgr;
 
-
-    /**     
+    /**
      * Get info for project including owner, parent project, and child projects
+     * 
      * @param id the URN of a ViPR Project
      * @prereq none
      * @brief Show project
@@ -111,7 +101,7 @@ public class ProjectService extends TaggedResource {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission( roles = {Role.SYSTEM_MONITOR, Role.TENANT_ADMIN}, acls = {ACL.ANY})
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public ProjectRestRep getProject(@PathParam("id") URI id) {
         Project project = queryResource(id);
         return map(project);
@@ -129,8 +119,9 @@ public class ProjectService extends TaggedResource {
         return project.getTenantOrg().getURI();
     }
 
-    /**     
+    /**
      * Update info for project including project name and owner
+     * 
      * @param projectUpdate Project update parameters
      * @param id the URN of a ViPR Project
      * @prereq none
@@ -141,7 +132,7 @@ public class ProjectService extends TaggedResource {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public Response updateProject(@PathParam("id") URI id, ProjectUpdateParam projectUpdate) {
         Project project = getProjectById(id, true);
 
@@ -150,7 +141,7 @@ public class ProjectService extends TaggedResource {
             checkForDuplicateName(projectUpdate.getName(), Project.class, project.getTenantOrg()
                     .getURI(), "tenantOrg", _dbClient);
             project.setLabel(projectUpdate.getName());
-            NamedURI tenant  = project.getTenantOrg();
+            NamedURI tenant = project.getTenantOrg();
             if (tenant != null) {
                 tenant.setName(projectUpdate.getName());
                 project.setTenantOrg(tenant);
@@ -161,7 +152,7 @@ public class ProjectService extends TaggedResource {
                 && !projectUpdate.getOwner().isEmpty()
                 && !projectUpdate.getOwner().equalsIgnoreCase(project.getOwner())) {
             StringBuilder error = new StringBuilder();
-            if(!Validator.isValidPrincipal(new StorageOSPrincipal(projectUpdate.getOwner(),
+            if (!Validator.isValidPrincipal(new StorageOSPrincipal(projectUpdate.getOwner(),
                     StorageOSPrincipal.Type.User), project.getTenantOrg().getURI(), error)) {
                 throw APIException.forbidden
                         .specifiedOwnerIsNotValidForProjectTenant(error.toString());
@@ -169,12 +160,12 @@ public class ProjectService extends TaggedResource {
 
             // in GEO scenario, root can't be assigned as project owner
             boolean isRootInGeo = (projectUpdate.getOwner().equalsIgnoreCase("root")
-                && !VdcUtil.isLocalVdcSingleSite());
+                    && !VdcUtil.isLocalVdcSingleSite());
 
             if (isRootInGeo) {
                 throw APIException.forbidden.specifiedOwnerIsNotValidForProjectTenant(
                         "in GEO scenario, root can't be assigned as project owner"
-                );
+                        );
             }
 
             // set owner acl
@@ -193,8 +184,9 @@ public class ProjectService extends TaggedResource {
         return Response.ok().build();
     }
 
-    /**     
+    /**
      * List resources in project
+     * 
      * @param id the URN of a ViPR Project
      * @prereq none
      * @brief List project resources
@@ -204,7 +196,7 @@ public class ProjectService extends TaggedResource {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/resources")
-    @CheckPermission( roles = {Role.SYSTEM_MONITOR, Role.TENANT_ADMIN}, acls = {ACL.ANY})
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public ResourceList getResourceList(@PathParam("id") URI id) {
         Project project = getProjectById(id, false);
 
@@ -228,7 +220,7 @@ public class ProjectService extends TaggedResource {
 
             @Override
             public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
-               return  createQueryHit(uri);
+                return createQueryHit(uri);
             }
 
         };
@@ -253,7 +245,7 @@ public class ProjectService extends TaggedResource {
 
             @Override
             public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
-                return  createQueryHit(uri);
+                return createQueryHit(uri);
             }
         };
 
@@ -277,7 +269,7 @@ public class ProjectService extends TaggedResource {
 
             @Override
             public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
-                return  createQueryHit(uri);
+                return createQueryHit(uri);
             }
 
         };
@@ -302,7 +294,7 @@ public class ProjectService extends TaggedResource {
 
             @Override
             public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
-                return  createQueryHit(uri);
+                return createQueryHit(uri);
             }
         };
 
@@ -326,7 +318,7 @@ public class ProjectService extends TaggedResource {
 
             @Override
             public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
-                return  createQueryHit(uri);
+                return createQueryHit(uri);
             }
         };
 
@@ -350,7 +342,7 @@ public class ProjectService extends TaggedResource {
 
             @Override
             public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
-                return  createQueryHit(uri);
+                return createQueryHit(uri);
             }
         };
 
@@ -374,7 +366,7 @@ public class ProjectService extends TaggedResource {
 
             @Override
             public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
-                return  createQueryHit(uri);
+                return createQueryHit(uri);
             }
         };
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
@@ -402,12 +394,13 @@ public class ProjectService extends TaggedResource {
         return list;
     }
 
-    /**     
+    /**
      * Deactivates the project.
-     * When a project is deleted it will move to a "marked for deletion" state.  Once in this state,
+     * When a project is deleted it will move to a "marked for deletion" state. Once in this state,
      * new resources or child projects may no longer be created in the project.
      * The project will be permanently deleted once all its references of type
      * ExportGroup, FileSystem, KeyPool, KeyPoolInfo, Volume are deleted.
+     * 
      * @prereq none
      * @param id the URN of a ViPR Project
      * @brief Deactivate project
@@ -416,7 +409,7 @@ public class ProjectService extends TaggedResource {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
-    @CheckPermission( roles = {Role.TENANT_ADMIN}, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public Response deactivateProject(@PathParam("id") URI id) {
         Project project = getProjectById(id, true);
         ArgValidator.checkReference(Project.class, id, checkForDelete(project));
@@ -445,11 +438,11 @@ public class ProjectService extends TaggedResource {
             StorageOSPrincipal principal = new StorageOSPrincipal();
             if (entry.getGroup() != null) {
                 String group = entry.getGroup();
-                key = new PermissionsKey (PermissionsKey.Type.GROUP, group, _tenant.getId());
+                key = new PermissionsKey(PermissionsKey.Type.GROUP, group, _tenant.getId());
                 principal.setName(group);
                 principal.setType(StorageOSPrincipal.Type.Group);
             } else if (entry.getSubjectId() != null) {
-                key = new PermissionsKey (PermissionsKey.Type.SID, entry.getSubjectId(), _tenant.getId());
+                key = new PermissionsKey(PermissionsKey.Type.SID, entry.getSubjectId(), _tenant.getId());
                 principal.setName(entry.getSubjectId());
                 principal.setType(StorageOSPrincipal.Type.User);
             } else {
@@ -461,8 +454,7 @@ public class ProjectService extends TaggedResource {
 
         @Override
         public boolean isValidACL(String ace) {
-            return (_permissionsHelper.isProjectACL(ace) &&
-                    !ace.equalsIgnoreCase(ACL.OWN.toString()));
+            return (_permissionsHelper.isProjectACL(ace) && !ace.equalsIgnoreCase(ACL.OWN.toString()));
         }
 
         @Override
@@ -497,11 +489,12 @@ public class ProjectService extends TaggedResource {
             _groups = new ArrayList<String>();
             _users = new ArrayList<String>();
         }
-    
+
     }
 
-    /**     
+    /**
      * Get project ACL
+     * 
      * @param id the URN of a ViPR Project
      * @prereq none
      * @brief Show project ACL
@@ -510,13 +503,14 @@ public class ProjectService extends TaggedResource {
     @GET
     @Path("/{id}/acl")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.TENANT_ADMIN}, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public ACLAssignments getRoleAssignments(@PathParam("id") URI id) {
         return getRoleAssignmentsResponse(id);
     }
 
-    /**     
+    /**
      * Add or remove individual ACL entry(s)
+     * 
      * @param changes ACL assignment changes. Request body must include at least one add or remove operation
      * @param id the URN of a ViPR Project
      * @prereq none
@@ -526,7 +520,7 @@ public class ProjectService extends TaggedResource {
     @PUT
     @Path("/{id}/acl")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.TENANT_ADMIN}, acls = {ACL.OWN} , block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN }, acls = { ACL.OWN }, blockProxies = true)
     public ACLAssignments updateRoleAssignments(@PathParam("id") URI id,
             ACLAssignmentChanges changes) {
         Project project = getProjectById(id, true);
@@ -548,25 +542,27 @@ public class ProjectService extends TaggedResource {
         return response;
     }
 
-    /**     
+    /**
      * Retrieve resource representations based on input ids.
+     * 
      * @prereq none
      * @param param POST data containing the id list.
      * @brief List data of project resources
-     * @return list of representations.     
+     * @return list of representations.
      * @throws DatabaseException When an error occurs querying the database.
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public ProjectBulkRep getBulkResources(BulkIdParam param) {
         return (ProjectBulkRep) super.getBulkResources(param);
     }
 
     /**
-     * Show quota and available capacity before quota is exhausted     
+     * Show quota and available capacity before quota is exhausted
+     * 
      * @prereq none
      * @param id the URN of a ViPR project.
      * @brief Show quota and available capacity
@@ -579,13 +575,14 @@ public class ProjectService extends TaggedResource {
     @Path("/{id}/quota")
     public QuotaInfo getQuota(@PathParam("id") URI id) throws DatabaseException {
         Project project = getProjectById(id, true);
-        return  getQuota(project);
+        return getQuota(project);
     }
 
     /**
-     * Updates quota and available capacity before quota is exhausted     
+     * Updates quota and available capacity before quota is exhausted
+     * 
      * @param id the URN of a ViPR Project.
-     * @param param   new values for the quota
+     * @param param new values for the quota
      * @prereq none
      * @brief Updates quota and available capacity
      * @return QuotaInfo Quota metrics.
@@ -601,17 +598,17 @@ public class ProjectService extends TaggedResource {
         Project project = getProjectById(id, true);
 
         project.setQuotaEnabled(param.getEnable());
-        if( param.getEnable())  {
+        if (param.getEnable()) {
             long quota_gb = (param.getQuotaInGb() != null) ? param.getQuotaInGb() : project.getQuota();
-            ArgValidator.checkFieldMinimum(quota_gb, 0, "quota_gb","GB");
+            ArgValidator.checkFieldMinimum(quota_gb, 0, "quota_gb", "GB");
 
             // Verify that the quota of this project does not exit quota for its tenant;
-            TenantOrg  tenant = _dbClient.queryObject(TenantOrg.class,project.getTenantOrg().getURI());
-            if(tenant.getQuotaEnabled()){
-                long totalProjects =  CapacityUtils.totalProjectQuota(_dbClient,tenant.getId()) -
+            TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+            if (tenant.getQuotaEnabled()) {
+                long totalProjects = CapacityUtils.totalProjectQuota(_dbClient, tenant.getId()) -
                         project.getQuota() +
                         quota_gb;
-                if(totalProjects > tenant.getQuota()) {
+                if (totalProjects > tenant.getQuota()) {
                     throw APIException.badRequests.invalidParameterProjectQuotaInvalidatesTenantQuota(tenant.getQuota());
                 }
             }
@@ -620,21 +617,22 @@ public class ProjectService extends TaggedResource {
         }
         _dbClient.persistObject(project);
 
-        return  getQuota(project);
+        return getQuota(project);
     }
 
     private QuotaInfo getQuota(Project project) {
-        QuotaInfo quotaInfo = new  QuotaInfo();
-        double capacity = CapacityUtils.getProjectCapacity(_dbClient,project.getId());
+        QuotaInfo quotaInfo = new QuotaInfo();
+        double capacity = CapacityUtils.getProjectCapacity(_dbClient, project.getId());
         quotaInfo.setQuotaInGb(project.getQuota());
         quotaInfo.setEnabled(project.getQuotaEnabled());
         quotaInfo.setCurrentCapacityInGb((long) Math.ceil(capacity / CapacityUtils.GB));
-        quotaInfo.setLimitedResource( DbObjectMapper.toNamedRelatedResource(project) );
+        quotaInfo.setLimitedResource(DbObjectMapper.toNamedRelatedResource(project));
         return quotaInfo;
     }
 
     /**
      * Get project object from id
+     * 
      * @param id the URN of a ViPR Project
      * @return
      */
@@ -651,6 +649,7 @@ public class ProjectService extends TaggedResource {
 
     /**
      * Create an event based on the project
+     * 
      * @param project for which the event is about
      * @param opType Type of event such as ProjectCreated, ProjectDeleted
      * @param opStatus
@@ -671,7 +670,7 @@ public class ProjectService extends TaggedResource {
                 project.getId(),
                 description,
                 System.currentTimeMillis(),
-                "" , // extensions
+                "", // extensions
                 "",
                 RecordType.Event.name(),
                 EVENT_SERVICE_SOURCE,
@@ -680,11 +679,10 @@ public class ProjectService extends TaggedResource {
                 );
         try {
             _evtMgr.recordEvents(event);
-        } catch(Exception ex ) {
-            _log.error("Failed to record event. Event description: {}. Error: {}.",  description, ex);
+        } catch (Exception ex) {
+            _log.error("Failed to record event. Event description: {}. Error: {}.", description, ex);
         }
     }
-
 
     public void recordOperation(OperationTypeEnum opType, boolean opStatus,
             Project project) {
@@ -714,7 +712,6 @@ public class ProjectService extends TaggedResource {
         return Project.class;
     }
 
-
     @Override
     public ProjectBulkRep queryBulkResourceReps(List<URI> ids) {
 
@@ -742,12 +739,12 @@ public class ProjectService extends TaggedResource {
     }
 
     @Override
-    protected ResourceTypeEnum getResourceType(){
+    protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.PROJECT;
     }
 
     public static class ProjectResRepFilter<E extends RelatedResourceRep>
-    extends ResRepFilter<E> {
+            extends ResRepFilter<E> {
         public ProjectResRepFilter(StorageOSUser user,
                 PermissionsHelper permissionsHelper) {
             super(user, permissionsHelper);

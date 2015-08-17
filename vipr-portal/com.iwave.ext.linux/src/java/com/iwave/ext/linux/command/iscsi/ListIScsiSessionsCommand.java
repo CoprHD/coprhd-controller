@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.linux.command.iscsi;
@@ -33,7 +33,7 @@ public class ListIScsiSessionsCommand extends LinuxResultsCommand<List<IScsiSess
             results = Lists.newArrayList();
         }
     }
-    
+
     @Override
     protected void processError() throws CommandException {
         String stderr = getOutput().getStderr();

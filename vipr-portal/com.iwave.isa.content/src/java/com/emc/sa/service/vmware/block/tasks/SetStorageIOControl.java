@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vmware.block.tasks;
@@ -39,8 +39,7 @@ public class SetStorageIOControl extends VMwareTask<Void> {
         Task task = manager.configureDatastoreIORM_Task(datastore, spec);
         try {
             waitForTask(task);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             cancelTask(task);
             throw e;
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vmware.block.tasks;
@@ -32,8 +32,8 @@ public class VerifyConsistentLun extends ExecutionTask<Void> {
                 lun = hlu;
             }
             else if (lun != hlu) {
-            	throw new IllegalArgumentException(getMessage("VerifyConsistentLun.failure.inconsistendLunId",
-            			disk.getDisplayName(), host.getName(), lun, hlu));
+                throw new IllegalArgumentException(getMessage("VerifyConsistentLun.failure.inconsistendLunId",
+                        disk.getDisplayName(), host.getName(), lun, hlu));
             }
         }
     }
@@ -45,7 +45,7 @@ public class VerifyConsistentLun extends ExecutionTask<Void> {
                 return lun.getLun();
             }
         }
-        throw new IllegalArgumentException(getMessage("VerifyConsistentLun.failure.undetermineLunId", 
-        		disk.getDisplayName(), host.getName()));
+        throw new IllegalArgumentException(getMessage("VerifyConsistentLun.failure.undetermineLunId",
+                disk.getDisplayName(), host.getName()));
     }
 }

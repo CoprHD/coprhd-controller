@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.dao;
@@ -25,7 +25,7 @@ public class ModelFinder<T extends DataObject> extends BaseModelFinder<T> {
     public List<URI> findByLabel(String prefix) {
         return toURIs(client.findByPrefix(clazz, "label", prefix));
     }
-    
+
     public List<URI> findAllIds(boolean activeOnly) throws DataAccessException {
         return client.findAllIds(clazz, activeOnly);
     }

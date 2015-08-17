@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.properties;
@@ -30,7 +30,7 @@ public class SupportPropertyPage extends CustomPropertyPage {
         smtpEmcTo = addCustomProperty(properties, "system_connectemc_smtp_emcto");
         smtpTo = addCustomProperty(properties, "system_connectemc_smtp_to");
     }
-    
+
     @Override
     protected void validate(List<Property> props, Map<String, String> values) {
         super.validate(props, values);
@@ -65,7 +65,7 @@ public class SupportPropertyPage extends CustomPropertyPage {
         return smtpTo;
     }
 
-    public static Set<String> getAllProperties () {
+    public static Set<String> getAllProperties() {
         Set<String> properties = new HashSet<String>();
         properties.add("system_connectemc_encrypt");
         properties.add("system_connectemc_transport");

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.aix.command;
@@ -17,33 +17,33 @@ public class ListIPInterfacesCommand extends AixResultsCommand<List<IPInterface>
     private static final Pattern BLOCK_PATTERN = Pattern.compile("^|[.]*\n\n");
     private static final Pattern INTERFACE_NAME = Pattern.compile("^([^ ]+):[ ]");
     private static final Pattern ADDRESS_PATTERN = Pattern.compile("inet ([^ ]+)");
-    private static final Pattern MASK_PATTERN = Pattern.compile("netmask ([^ ]+)");   
+    private static final Pattern MASK_PATTERN = Pattern.compile("netmask ([^ ]+)");
     private static final Pattern IP6_ADDRESS = Pattern.compile("inet6 ([^ ]+)\n");
     private static final Pattern BROADCAST_ADDRESS_PATTERN = Pattern.compile("broadcast ([^ ]+)\n");
-    
+
     public ListIPInterfacesCommand() {
         setCommand("for host in `ifconfig -l`; do ifconfig $host; echo '\n'; done;");
         setRunAsRoot(true);
     }
-    
+
     @Override
     public void parseOutput() {
         results = Lists.newArrayList();
-        
+
         if (getOutput() != null && getOutput().getStdout() != null) {
             String stdout = getOutput().getStdout();
-            TextParser parser = new TextParser();           
+            TextParser parser = new TextParser();
             parser.setRepeatPattern(BLOCK_PATTERN);
 
             for (String textBlock : parser.parseTextBlocks(StringUtils.trim(stdout))) {
                 IPInterface ipInfo = new IPInterface();
-                
+
                 String interfaceName = parser.findMatch(INTERFACE_NAME, textBlock);
                 ipInfo.setInterfaceName(StringUtils.trim(interfaceName));
-                
+
                 String ipAddress = parser.findMatch(ADDRESS_PATTERN, textBlock);
                 ipInfo.setIpAddress(StringUtils.trim(ipAddress));
-                
+
                 String netMask = parser.findMatch(MASK_PATTERN, textBlock);
                 ipInfo.setNetMask(StringUtils.trim(netMask));
 

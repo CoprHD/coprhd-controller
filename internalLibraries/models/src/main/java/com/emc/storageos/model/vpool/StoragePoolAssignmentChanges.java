@@ -1,34 +1,23 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.vpool;
 
 import javax.xml.bind.annotation.XmlElement;
-
-import org.codehaus.jackson.annotate.JsonProperty;
 
 /**
  * Class captures lists of URIs for storage pools to be assigned/unassigned
  * to/from the storage pool.
  */
 public class StoragePoolAssignmentChanges {
-    
+
     private StoragePoolAssignments add;
     private StoragePoolAssignments remove;
 
-    public StoragePoolAssignmentChanges() {}
-    
+    public StoragePoolAssignmentChanges() {
+    }
+
     public StoragePoolAssignmentChanges(StoragePoolAssignments add,
             StoragePoolAssignments remove) {
         this.add = add;
@@ -62,5 +51,5 @@ public class StoragePoolAssignmentChanges {
     public void setRemove(StoragePoolAssignments remove) {
         this.remove = remove;
     }
-    
+
 }

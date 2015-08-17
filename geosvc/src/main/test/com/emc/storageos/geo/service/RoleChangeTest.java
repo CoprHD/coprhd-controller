@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.geo.service;
@@ -19,12 +19,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.ws.rs.core.MultivaluedMap;
-import java.net.URI;
 import java.util.*;
 
-
-public class RoleChangeTest extends ApiTestBase{
+public class RoleChangeTest extends ApiTestBase {
 
     private String remoteVDCVIP;
     private BalancedWebResource rootUser;
@@ -33,22 +30,23 @@ public class RoleChangeTest extends ApiTestBase{
     private String superSanityToken;
 
     @Before
-    public void setup() throws Exception{
+    public void setup() throws Exception {
         initLoadBalancer(true);
         String remoteVDCVIPvar = System.getenv("REMOTE_VDC_VIP");
-        if (remoteVDCVIPvar == null || remoteVDCVIPvar.equals(""))
+        if (remoteVDCVIPvar == null || remoteVDCVIPvar.equals("")) {
             Assert.fail("Missing remove VDC vip");
+        }
         String remoteVDCTemplate = "https://%1$s:4443";
         remoteVDCVIP = String.format(remoteVDCTemplate, remoteVDCVIPvar);
         rootUser = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, baseUrls);
         superSanity = createHttpsClient(SUPERUSER, AD_PASS_WORD, baseUrls);
 
         TenantResponse tenantResp = superSanity.path("/tenant").get(TenantResponse.class);
-        superSanityToken = (String)_savedTokens.get(SUPERUSER);
+        superSanityToken = (String) _savedTokens.get(SUPERUSER);
         rootTenantId = tenantResp.getTenant();
 
         rootUser.path("/tenant").get(TenantResponse.class);
-        rootToken = (String)_savedTokens.get("root");
+        rootToken = (String) _savedTokens.get("root");
     }
 
     @After
@@ -63,7 +61,6 @@ public class RoleChangeTest extends ApiTestBase{
             superSanity = null;
         }
     }
-
 
     @Test
     public void accessAuthnApis() throws Exception {
@@ -93,7 +90,6 @@ public class RoleChangeTest extends ApiTestBase{
                 .get(ClientResponse.class);
         Assert.assertEquals(403, resp.getStatus());
 
-
     }
 
     @Test
@@ -108,9 +104,8 @@ public class RoleChangeTest extends ApiTestBase{
 
         // check the root user's default vdc roles.
         List<String> roles = new ArrayList<String>(
-                Arrays.asList("RESTRICTED_SECURITY_ADMIN", "RESTRICTED_SYSTEM_ADMIN","SYSTEM_MONITOR", "SYSTEM_AUDITOR"));
+                Arrays.asList("RESTRICTED_SECURITY_ADMIN", "RESTRICTED_SYSTEM_ADMIN", "SYSTEM_MONITOR", "SYSTEM_AUDITOR"));
         Assert.assertTrue(info.getVdcRoles().containsAll(roles));
-
 
         // superSanity whoami
         info = superSanity.path("/user/whoami").get(UserInfo.class);
@@ -121,18 +116,17 @@ public class RoleChangeTest extends ApiTestBase{
     }
 
     @Test
-    public void accessVarray() throws Exception{
+    public void accessVarray() throws Exception {
         VirtualArrayCreateParam virtualArrayCreateParam = new VirtualArrayCreateParam();
         virtualArrayCreateParam.setLabel("array_created_by_root" + new Random().nextInt());
 
-        ClientResponse resp = rootUser.path("/vdc/varrays").header(AUTH_TOKEN_HEADER, rootToken).post(ClientResponse.class, virtualArrayCreateParam);
+        ClientResponse resp = rootUser.path("/vdc/varrays").header(AUTH_TOKEN_HEADER, rootToken)
+                .post(ClientResponse.class, virtualArrayCreateParam);
         Assert.assertEquals(200, resp.getStatus());
     }
 
-
-
     /**
-     *  verify TenantAdmin can do something: list RoleAssignment, whoami, create project
+     * verify TenantAdmin can do something: list RoleAssignment, whoami, create project
      */
     @Test
     public void tenantAdmin() throws Exception {
@@ -155,7 +149,7 @@ public class RoleChangeTest extends ApiTestBase{
         resp = tenantAdmin.path("/tenants/" + rootTenantId + "/role-assignments")
                 .get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
-        String tenantAdminToken = (String)_savedTokens.get(TENANTADMIN);
+        String tenantAdminToken = (String) _savedTokens.get(TENANTADMIN);
 
         // tenantadmin whoami
         UserInfo info = tenantAdmin.path("/user/whoami").get(UserInfo.class);
@@ -174,9 +168,8 @@ public class RoleChangeTest extends ApiTestBase{
         Assert.assertEquals(200, resp.getStatus());
     }
 
-
     /**
-     *  verify root has permission on vdc role assignment APIs of local vdc
+     * verify root has permission on vdc role assignment APIs of local vdc
      */
     @Test
     public void rootUpdateVdcRoleAssignment() {

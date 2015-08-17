@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.file.tasks;
@@ -29,7 +29,7 @@ public class CreateFileSystemQuotaDirectory extends WaitForTask<QuotaDirectoryRe
         this.oplock = oplock;
         this.securityStyle = securityStyle;
         this.size = size;
-        
+
         provideDetailArgs(fileSystemId, name, oplock, securityStyle, size);
     }
 
@@ -39,7 +39,7 @@ public class CreateFileSystemQuotaDirectory extends WaitForTask<QuotaDirectoryRe
         quotaDir.setQuotaDirName(name);
         quotaDir.setOpLock(oplock);
         quotaDir.setSecurityStyle(securityStyle);
-        if( size == null || size.isEmpty()) {
+        if (size == null || size.isEmpty()) {
             size = "0";
         }
         quotaDir.setSize(String.valueOf(DiskSizeConversionUtils.gbToBytes(new Long(size))));

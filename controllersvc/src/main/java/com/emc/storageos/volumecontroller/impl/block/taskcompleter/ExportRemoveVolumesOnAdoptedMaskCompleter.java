@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
@@ -35,14 +25,14 @@ public class ExportRemoveVolumesOnAdoptedMaskCompleter extends ExportTaskComplet
     private final List<URI> _volumes;
 
     public ExportRemoveVolumesOnAdoptedMaskCompleter(URI egUri, URI emUri, List<URI> volumes,
-                                                     String task) {
+            String task) {
         super(ExportGroup.class, egUri, emUri, task);
         _volumes = new ArrayList<URI>();
         _volumes.addAll(volumes);
     }
 
-	private void updateExportMask(DbClient dbClient, Operation.Status status)
-	throws DeviceControllerException {
+    private void updateExportMask(DbClient dbClient, Operation.Status status)
+            throws DeviceControllerException {
         URI exportMaskUri = getMask();
         ExportMask exportMask = (exportMaskUri != null) ?
                 dbClient.queryObject(ExportMask.class, getMask()) : null;
@@ -69,11 +59,11 @@ public class ExportRemoveVolumesOnAdoptedMaskCompleter extends ExportTaskComplet
         _log.info(String.format(
                 "Done ExportMaskRemoveVolume - Id: %s, OpId: %s, status: %s",
                 getId().toString(), getOpId(), status.name()));
-	}
+    }
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status,
-                         ServiceCoded coded) throws DeviceControllerException {
+            ServiceCoded coded) throws DeviceControllerException {
         try {
             URI exportMaskUri = getMask();
             ExportMask exportMask = (exportMaskUri != null) ?

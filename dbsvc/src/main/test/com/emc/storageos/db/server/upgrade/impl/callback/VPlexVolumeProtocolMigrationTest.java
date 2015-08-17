@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.server.upgrade.impl.callback;
 
@@ -42,9 +32,9 @@ import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
  * the protocols field for VPLEX volumes is set to FC.
  */
 public class VPlexVolumeProtocolMigrationTest extends DbSimpleMigrationTestBase {
-    
+
     private static final Logger s_logger = LoggerFactory.getLogger(VPlexVolumeProtocolMigrationTest.class);
-    
+
     private static final String DUMMY_PROTOCOL = "dummy";
     private static final String VPLEX_SYSTEM_LABEL = "VPlexSystem";
     private static final String VMAX_SYSTEM_LABEL = "VMAXSystem";
@@ -52,16 +42,17 @@ public class VPlexVolumeProtocolMigrationTest extends DbSimpleMigrationTestBase 
     private static final String VOLUME_WITH_PROTOCOLS_LABEL = "VPlexVolumeWithProtocols";
     private static final String VOLUME_WITH_NO_SYSTEM_LABEL = "VPlexVolumeWithNoSystem";
     private static final String VOLUME_WITH_NON_VPLEX_SYSTEM_LABEL = "VPlexVolumeWithNonVPlexSystem";
-    
+
     @BeforeClass
     public static void setup() throws IOException {
-        
+
         customMigrationCallbacks.put("1.1", new ArrayList<BaseCustomMigrationCallback>() {
             private static final long serialVersionUID = 1L;
-        {
-            // Add your implementation of migration callback below.
-            add(new VPlexVolumeProtocolMigration());
-        }});
+            {
+                // Add your implementation of migration callback below.
+                add(new VPlexVolumeProtocolMigration());
+            }
+        });
 
         DbsvcTestBase.setup();
     }
@@ -79,7 +70,7 @@ public class VPlexVolumeProtocolMigrationTest extends DbSimpleMigrationTestBase 
     @Override
     protected void prepareData() throws Exception {
         s_logger.info("Preparing data for VPLEX volume protocol migration test.");
-        
+
         // Prepare a VPLEX storage system.
         StorageSystem storageSystem = new StorageSystem();
         URI vplexSystemURI = URIUtil.createId(StorageSystem.class);
@@ -88,7 +79,7 @@ public class VPlexVolumeProtocolMigrationTest extends DbSimpleMigrationTestBase 
         storageSystem.setLabel(VPLEX_SYSTEM_LABEL);
         _dbClient.createObject(storageSystem);
         s_logger.info("Created VPLEX storage system {}", vplexSystemURI);
-        
+
         // Prepare a non-VPLEX storage system.
         storageSystem = new StorageSystem();
         URI nonVplexSystemURI = URIUtil.createId(StorageSystem.class);
@@ -97,7 +88,7 @@ public class VPlexVolumeProtocolMigrationTest extends DbSimpleMigrationTestBase 
         storageSystem.setLabel(VMAX_SYSTEM_LABEL);
         _dbClient.createObject(storageSystem);
         s_logger.info("Created non-VPLEX storage system {}", nonVplexSystemURI);
-        
+
         // Prepare a VPLEX volume with no protocols set.
         Volume volume = new Volume();
         volume.setId(URIUtil.createId(Volume.class));
@@ -105,7 +96,7 @@ public class VPlexVolumeProtocolMigrationTest extends DbSimpleMigrationTestBase 
         volume.setStorageController(vplexSystemURI);
         _dbClient.createObject(volume);
         s_logger.info("Created VPLEX volume {} with no protocols set", volume.getId());
-        
+
         // Prepare a VPLEX volume with protocols set.
         volume = new Volume();
         volume.setId(URIUtil.createId(Volume.class));
@@ -116,7 +107,7 @@ public class VPlexVolumeProtocolMigrationTest extends DbSimpleMigrationTestBase 
         volume.setProtocol(protocols);
         _dbClient.createObject(volume);
         s_logger.info("Created VPLEX volume {} with protocols set", volume.getId());
-        
+
         // Prepare a volume with no storage system.
         volume = new Volume();
         volume.setId(URIUtil.createId(Volume.class));
@@ -126,7 +117,7 @@ public class VPlexVolumeProtocolMigrationTest extends DbSimpleMigrationTestBase 
         volume.setProtocol(protocols);
         _dbClient.createObject(volume);
         s_logger.info("Created VPLEX volume {} with no system set", volume.getId());
-        
+
         // Prepare a volume with a non-vplex storage system.
         volume = new Volume();
         volume.setId(URIUtil.createId(Volume.class));
@@ -142,7 +133,7 @@ public class VPlexVolumeProtocolMigrationTest extends DbSimpleMigrationTestBase 
     @Override
     protected void verifyResults() throws Exception {
         s_logger.info("Verifying results for VPLEX volume protocol migration test.");
-        
+
         List<URI> volumeURIs = _dbClient.queryByType(Volume.class, true);
         Iterator<Volume> volumes = _dbClient.queryIterativeObjects(Volume.class, volumeURIs, true);
         while (volumes.hasNext()) {
@@ -155,7 +146,7 @@ public class VPlexVolumeProtocolMigrationTest extends DbSimpleMigrationTestBase 
             } else {
                 Assert.assertNotNull("Protocols should not be null.", protocols);
                 Assert.assertEquals("The should be a single protocol.", protocols.size(), 1);
-                Assert.assertEquals("The protocol should be the dummy test protocol", protocols.iterator().next(), DUMMY_PROTOCOL);                
+                Assert.assertEquals("The protocol should be the dummy test protocol", protocols.iterator().next(), DUMMY_PROTOCOL);
             }
         }
     }

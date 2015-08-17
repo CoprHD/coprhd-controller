@@ -1,16 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2013 EMC Corporation All Rights Reserved This software contains
- * the intellectual property of EMC Corporation or is licensed to EMC
- * Corporation from third parties. Use of this software and the intellectual
- * property contained therein is expressly limited to the terms and conditions
- * of the License Agreement under which it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.model.vpool;
+
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -22,7 +16,7 @@ import org.codehaus.jackson.annotate.JsonIgnore;
  */
 @XmlRootElement(name = "block_vpool_update")
 public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
-    
+
     private Integer maxPaths;
     private Integer minPaths;
     private Integer pathsPerInitiator;
@@ -35,13 +29,14 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     private Boolean fastExpansion;
     private BlockVirtualPoolProtectionUpdateParam protection;
     private VirtualPoolHighAvailabilityParam highAvailability;
-    private Boolean uniquePolicyNames ;
-    
+    private Boolean uniquePolicyNames;
+
     // VMAX Host IO Limits attributes
-    private Integer hostIOLimitBandwidth; // Host Front End limit bandwidth.  If not specified or 0, indicated unlimited
-    private Integer hostIOLimitIOPs; // Host Front End limit I/O.  If not specified or 0, indicated unlimited    
-    
-    public BlockVirtualPoolUpdateParam() {}
+    private Integer hostIOLimitBandwidth; // Host Front End limit bandwidth. If not specified or 0, indicated unlimited
+    private Integer hostIOLimitIOPs; // Host Front End limit I/O. If not specified or 0, indicated unlimited
+
+    public BlockVirtualPoolUpdateParam() {
+    }
 
     /**
      * The new maximum number of paths to a given storage system for the virtual
@@ -50,7 +45,7 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
      * @valid none
      */
     @XmlElement(name = "max_paths")
-    @Range(min=1,max=65535)
+    @Range(min = 1, max = 65535)
     public Integer getMaxPaths() {
         return maxPaths;
     }
@@ -58,13 +53,13 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     public void setMaxPaths(Integer maxPaths) {
         this.maxPaths = maxPaths;
     }
-    
+
     @XmlElement(name = "min_paths")
-    @Range(min=1,max=65535)
+    @Range(min = 1, max = 65535)
     public Integer getMinPaths() {
         return minPaths;
     }
-    
+
     public void setMinPaths(Integer minPaths) {
         this.minPaths = minPaths;
     }
@@ -72,19 +67,19 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     /**
      * @deprecated use getMaxPaths instead of getNumPaths
      * @See getMaxPaths()
-     * TODO: Remove deprecated API calls in next major release
+     *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated
     @XmlElement(name = "num_paths")
-    @Range(min=1,max=65535)
+    @Range(min = 1, max = 65535)
     public Integer getNumPaths() {
         return maxPaths;
     }
 
     /**
      * @deprecated use setMaxPaths instead of setNumPaths
-     * @See setMaxPaths() 
-     * TODO: Remove deprecated API calls in next major release
+     * @See setMaxPaths()
+     *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated
     public void setNumPaths(Integer numPaths) {
@@ -95,7 +90,7 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
      * The maximum number of paths to a given storage system for the initiator.
      */
     @XmlElement(name = "paths_per_initiator")
-    @Range(min=1,max=65535)
+    @Range(min = 1, max = 65535)
     public Integer getPathsPerInitiator() {
         return pathsPerInitiator;
     }
@@ -108,7 +103,7 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
      * The changes to the supported RAID levels for the virtual pool.
      * 
      * @valid none
-     */ 
+     */
     @XmlElement(name = "raid_level_changes")
     public RaidLevelChanges getRaidLevelChanges() {
         return raidLevelChanges;
@@ -154,7 +149,7 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
      * @valid SSD = Solid State Drive
      * @valid FC = Fibre Channel
      * @valid SAS = Serial Attached SCSI
-     * @valid SATA = Serial Advanced Technology Attachment 
+     * @valid SATA = Serial Advanced Technology Attachment
      */
     @XmlElement(name = "drive_type")
     public String getDriveType() {
@@ -196,9 +191,11 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     public void setExpandable(Boolean expandable) {
         this.expandable = expandable;
     }
+
     /**
      * Indicates that virtual pool volumes should use concatenated meta volumes,
      * not striped.
+     * 
      * @valid true
      * @valid false
      */
@@ -263,10 +260,10 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
      */
     public boolean specifiesHighAvailability() {
         return (highAvailability != null && ((HighAvailabilityType.vplex_local
-            .name().equals(highAvailability.getType())) || (HighAvailabilityType.vplex_distributed
-            .name().equals(highAvailability.getType()))));
+                .name().equals(highAvailability.getType())) || (HighAvailabilityType.vplex_distributed
+                .name().equals(highAvailability.getType()))));
     }
-    
+
     /**
      * Convenience method that determines if expansion is set.
      * 
@@ -275,7 +272,7 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     public boolean allowsExpansion() {
         return (expandable != null && expandable);
     }
-    
+
     @XmlElement(name = "host_io_limit_bandwidth", required = false)
     public Integer getHostIOLimitBandwidth() {
         return hostIOLimitBandwidth;

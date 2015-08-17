@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -94,7 +94,7 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
      * <tt>getByRefs(list(), filter)</tt>.
      * 
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of all storage systems.
      */
     @Override
@@ -109,7 +109,7 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
      * API Call: <tt>POST /vdc/storage-systems</tt>
      * 
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<StorageSystemRestRep> create(StorageSystemRequestParam input) {
@@ -122,9 +122,9 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
      * API Call: <tt>PUT /vdc/storage-systems/{id}</tt>
      * 
      * @param id
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<StorageSystemRestRep> update(URI id, StorageSystemUpdateRequestParam input) {
@@ -137,7 +137,7 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
      * API Call: <tt>POST /vdc/storage-systems/{id}/deactivate</tt>
      * 
      * @param id
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<StorageSystemRestRep> deactivate(URI id) {
@@ -150,7 +150,7 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
      * API Call: <tt>POST /vdc/storage-providers/storage-systems</tt>
      * 
      * @param input
-     *        the SMI-S storage system configuration.
+     *            the SMI-S storage system configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<StorageSystemRestRep> add(StorageSystemSMISCreateParam input) {
@@ -172,9 +172,9 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
      * Begins discovery on the given storage system.
      * <p>
      * API Call: <tt>POST /vdc/storage-systems/{id}/discover</tt>
-     *
+     * 
      * @param id
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<StorageSystemRestRep> discover(URI id) {
@@ -187,9 +187,9 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
      * API Call: <tt>POST /vdc/storage-systems/{id}/discover</tt>
      * 
      * @param id
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @param type
-     *        the type of discovery to perform.
+     *            the type of discovery to perform.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<StorageSystemRestRep> discover(URI id, String type) {
@@ -206,7 +206,7 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
      * API Call: <tt>POST /vdc/storage-systems/{id}/register</tt>
      * 
      * @param id
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @return the updated storage system.
      */
     public StorageSystemRestRep register(URI id) {
@@ -219,7 +219,7 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
      * API Call: <tt>POST /vdc/storage-systems/{id}/deregister</tt>
      * 
      * @param id
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @return the updated storage system.
      */
     public StorageSystemRestRep deregister(URI id) {
@@ -232,7 +232,7 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
      * API Call: <tt>GET /vdc/storage-systems/{id}/connectivity</tt>
      * 
      * @param id
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @return the list of storage system connectivity.
      */
     public List<StorageSystemConnectivityRestRep> getConnectivity(URI id) {
@@ -247,7 +247,7 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
      * API Call: <tt>GET /vdc/storage-providers/{smisProviderId}/storage-systems</tt>
      * 
      * @param smisProviderId
-     *        the ID of the SMI-S provider.
+     *            the ID of the SMI-S provider.
      * @return the list of storage system references.
      */
     public List<NamedRelatedResourceRep> listBySmisProvider(URI smisProviderId) {
@@ -261,7 +261,7 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
      * <tt>getByRefs(listBySmisProvider(smisProviderId))</tt>
      * 
      * @param smisProviderId
-     *        the ID of the SMI-S provider.
+     *            the ID of the SMI-S provider.
      * @return the list of storage systems.
      * 
      * @see #getByRefs(java.util.Collection)

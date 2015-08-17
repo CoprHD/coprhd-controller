@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.exceptions;
@@ -37,24 +27,20 @@ import com.emc.storageos.vplex.api.VPlexErrors;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOErrors;
 
 /**
- * This interface holds all the methods and interfaces used to create
- * {@link ServiceError}s related to Device Controllers
+ * This interface holds all the methods and interfaces used to create {@link ServiceError}s related to Device Controllers
  * <p/>
- * Remember to add the English message associated to the method in
- * DeviceControllerMessages.properties and use the annotation
- * {@link DeclareServiceCode} to set the service code associated to this error
- * condition. You may need to create a new service code if there is no an
- * existing one suitable for your error condition.
+ * Remember to add the English message associated to the method in DeviceControllerMessages.properties and use the annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
+ * is no an existing one suitable for your error condition.
  * <p/>
- * For more information or to see an example, check the Developers Guide section
- * in the Error Handling Wiki page:
+ * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
  * http://confluence.lab.voyence.com/display/OS/Error+Handling+Framework+and+Exceptions+in+ViPR
  */
 @MessageBundle
 public interface DeviceControllerErrors {
     /** Holds the methods used to create Isilon related error conditions */
     public static final IsilonErrors isilon = ExceptionMessagesProxy.create(IsilonErrors.class);
-    
+
     /** Holds the methods used to create DataDomain related error conditions */
     public static final DataDomainApiErrors datadomain = ExceptionMessagesProxy.create(DataDomainApiErrors.class);
 
@@ -63,10 +49,10 @@ public interface DeviceControllerErrors {
 
     /** Holds the methods used to create SMIS related error conditions */
     public static final SmisErrors smis = ExceptionMessagesProxy.create(SmisErrors.class);
-    
+
     /** Holds the methods used to create NetApp related error conditions */
     public static final NetAppErrors netapp = ExceptionMessagesProxy.create(NetAppErrors.class);
-    
+
     /** Holds the methods used to create NetApp Cluster Mode related error conditions */
     public static final NetAppCErrors netappc = ExceptionMessagesProxy.create(NetAppCErrors.class);
 
@@ -81,10 +67,10 @@ public interface DeviceControllerErrors {
 
     /** Holds the methods used to create VNX related error conditions */
     public static final VNXErrors vnx = ExceptionMessagesProxy.create(VNXErrors.class);
-	
-	/** Holds the methods used to create HDS related error conditions */
+
+    /** Holds the methods used to create HDS related error conditions */
     public static final HDSErrors hds = ExceptionMessagesProxy.create(HDSErrors.class);
-    
+
     /** Holds the methods used to create Cinder related error conditions */
     public static final CinderErrors cinder = ExceptionMessagesProxy.create(CinderErrors.class);
 
@@ -93,17 +79,17 @@ public interface DeviceControllerErrors {
     /** Holds the methods used to create VNXe related error conditions */
     public static final VNXeErrors vnxe = ExceptionMessagesProxy.create(VNXeErrors.class);
 
-    public static final DeviceDataCollectionErrors dataCollectionErrors =  ExceptionMessagesProxy.create(DeviceDataCollectionErrors.class);
+    public static final DeviceDataCollectionErrors dataCollectionErrors = ExceptionMessagesProxy.create(DeviceDataCollectionErrors.class);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError jobFailedOp(final String operationName);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError jobFailedOpMsg(final String operationName, final String message);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError jobFailed(final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError jobFailedMsg(final String errorMessage, final Throwable cause);
 
@@ -144,7 +130,7 @@ public interface DeviceControllerErrors {
     public ServiceError unableToExecuteJob(String jobType);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
-	public ServiceError exportGroupOpInitInOtherMaskError(String initiatorPort, String mask);
+    public ServiceError exportGroupOpInitInOtherMaskError(String initiatorPort, String mask);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError exportHasExistingVolumeWithRequestedHLU(String blockObjectId, String hlu);
@@ -156,11 +142,11 @@ public interface DeviceControllerErrors {
     public ServiceError failedToAcquireScanningLock();
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
-	public ServiceError unforeseen();
-    
+    public ServiceError unforeseen();
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError unsupportedOperationOnDevType(String op, String devType);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError changeVirtualPoolFailed(final String volUris, final String operationName, final Throwable cause);
 
@@ -172,7 +158,7 @@ public interface DeviceControllerErrors {
 
     @DeclareServiceCode(ServiceCode
             .CONTROLLER_NON_CLUSTER_EXPORT_WITH_INITIATORS_IN_DIFFERENT_IGS)
-    public ServiceError nonClusterExportWithInitiatorsInDifferentExistingIGs();
+            public ServiceError nonClusterExportWithInitiatorsInDifferentExistingIGs();
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_EXISTING_IG_HAS_DIFFERENT_PORTS)
     public ServiceError existingInitiatorGroupHasDifferentPorts(String name);
@@ -182,13 +168,13 @@ public interface DeviceControllerErrors {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VMAX_STORAGE_GROUP_NOT_FOUND)
     public ServiceError vmaxStorageGroupNameNotFound(String name);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_VMAX_FAST_EXPORT_STORAGE_GROUP_ALREADY_IN_MASKINGVIEW)
     public ServiceError vmaxFASTStorageGroupAlreadyPartOfExistingMaskingView(String name);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_VMAX_EXPORT_GROUP_CREATE_ERROR)
     public ServiceError vmaxExportGroupCreateError(String message);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_VMAX_CONCURRENT_REMOVE_FROM_SG_CAUSES_EMPTY_SG)
     public ServiceError concurrentRemoveFromSGCausesEmptySG(Throwable cause);
 
@@ -197,8 +183,8 @@ public interface DeviceControllerErrors {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VMAX_MASK_SUPPORTS_SINGLE_HOST_ERROR)
     public ServiceError vmaxMaskSupportsSingleHostError(String igName);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError changeVirtualArrayFailed(final String volUris,
-        final String operationName, final Throwable cause);
+            final String operationName, final Throwable cause);
 }

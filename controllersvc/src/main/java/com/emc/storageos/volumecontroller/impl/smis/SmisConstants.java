@@ -1,12 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) 2012. EMC Corporation All Rights Reserved This software contains the intellectual
- * property of EMC Corporation or is licensed to EMC Corporation from third parties. Use of this
- * software and the intellectual property contained therein is expressly limited to the terms and
- * conditions of the License Agreement under which it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
@@ -87,8 +81,7 @@ public interface SmisConstants {
     static final int VP_SNAP_VALUE = 32768;
     static final int CREATE_NEW_TARGET_VALUE = 2;
 
-
-    static final String SE_REPLICATIONSETTING_DATA ="SE_ReplicationSettingData";
+    static final String SE_REPLICATIONSETTING_DATA = "SE_ReplicationSettingData";
     static final String CP_REPLICATIONSETTING_DATA = "ReplicationSettingData";
 
     static final int DISSOLVE_VALUE = 9;
@@ -128,11 +121,11 @@ public interface SmisConstants {
     static final String JOB = "Job";
     static final String CREATE_GROUP = "CreateGroup";
     static final String SE_REPLICATION_GROUP = "SE_ReplicationGroup";
-	static final String SE_MEMBER_OF_COLLECTION_DMG_DMG = "SE_MemberOfCollection_DMG_DMG";
-	static final String SE_MEMBER_OF_COLLECTION_IMG_IMG = "SE_MemberOfCollection_IMG_IMG";
-	static final String MEMBER = "Member";
-	static final String CREATE_GROUP_REPLICA = "CreateGroupReplica";
-	static final String CREATE_LIST_REPLICA = "CreateListReplica";
+    static final String SE_MEMBER_OF_COLLECTION_DMG_DMG = "SE_MemberOfCollection_DMG_DMG";
+    static final String SE_MEMBER_OF_COLLECTION_IMG_IMG = "SE_MemberOfCollection_IMG_IMG";
+    static final String MEMBER = "Member";
+    static final String CREATE_GROUP_REPLICA = "CreateGroupReplica";
+    static final String CREATE_LIST_REPLICA = "CreateListReplica";
     static final String CLAR_SETTINGS_DEFINE_STATE_SV_SAFS = "Clar_SettingsDefineState_SV_SAFS";
     static final String SYMM_SETTINGS_DEFINE_STATE_SV_SAFS = "Symm_SettingsDefineState_SV_SAFS";
     static final String CLAR_SYNCHRONIZATION_ASPECT_FOR_SOURCE = "Clar_SynchronizationAspectForSource";
@@ -168,7 +161,7 @@ public interface SmisConstants {
     static final String EMC_REPLICATION_SERVICE = "EMCReplicationService";
     static final String EMC_PROTECTION_SERVICE = "StorageProtectionService";
     static final String EMC_CONTROLLER_CONFIGURATION_SERVICE = "EMCControllerConfigurationService";
-    static final String EMC_STORAGE_CONFIGURATION_SERVICE = "EMCStorageConfigurationService";  
+    static final String EMC_STORAGE_CONFIGURATION_SERVICE = "EMCStorageConfigurationService";
     static final String EMC_TIER_POLICY_SERVICE = "EMC_TierPolicyService";
     static final String EMC_REFRESH_SYSTEM = "EMCRefreshSystem";
     static final String EMC_ADD_SYSTEM = "EMCAddSystem";
@@ -223,7 +216,7 @@ public interface SmisConstants {
     static final String COPY_STATE_RESTORED_INT_VALUE = "18";
     static final String COPY_STATE_MIXED_INT_VALUE = "14";
     static final String STORAGE_VOLUME_CLASS = "CIM_StorageVolume";
-	static final String NOT_READY = "NOT_READY";
+    static final String NOT_READY = "NOT_READY";
     static final String EMC_GET_TARGET_ENDPOINTS = "EMCGetTargetEndpoints";
     static final String EMC_STORAGE_TIER_METHODOLOGY = "EMCStorageTierMethodology";
     static final String CP_CLAR_PRIVILEGE_MGMT_SVC = "Clar_PrivilegeManagementService";
@@ -270,7 +263,7 @@ public interface SmisConstants {
     static final String CP_ASSOCIATED_TO_VIEW = "EMCAssociatedToView";
     static final String CP_FAST_SETTING = "EMCFastSetting";
     static final String CP_DISK_DRIVE_TYPE = "EMCDiskDriveType";
-    static final String CP_ELEMENT_NAMES = "ElementNames";  
+    static final String CP_ELEMENT_NAMES = "ElementNames";
     static final String CP_DEVICE_MASKING_GROUP = "DeviceMaskingGroup";
     static final String CP_SOURCE_MASKING_GROUP = "SourceMaskingGroup";
     static final String CP_TARGET_MASKING_GROUP = "TargetMaskingGroup";
@@ -296,7 +289,7 @@ public interface SmisConstants {
     static final String CP_ERROR_DESCRIPTION = "ErrorDescription";
     static final String CP_SYNCHRONIZATION = "Synchronization";
     static final String CP_ELEMENT = "Element";
-    static final String CP_ELEMENTTYPE ="ElementType";
+    static final String CP_ELEMENTTYPE = "ElementType";
     static final String CP_ACCESS = "Access";
     static final String CP_SOURCE_GROUP = "SourceGroup";
     static final String CP_SOURCE_VOLUME = "SourceElement";
@@ -318,10 +311,10 @@ public interface SmisConstants {
     static final String CP_EMC_SKIP_REFRESH = "EMCSkipRefresh";
     static final String CP_COPY_STATE = "CopyState";
     static final String CP_TARGET_ELEMENT = "TargetElement";
-    static final String CP_SPACE_CONSUMED  = "SpaceConsumed";
-    static final String CP_CONSUMABLE_BLOCKS  = "ConsumableBlocks";
-    static final String CP_BLOCK_SIZE  = "BlockSize";
-    static final String CP_DEPENDENT  = "Dependent";
+    static final String CP_SPACE_CONSUMED = "SpaceConsumed";
+    static final String CP_CONSUMABLE_BLOCKS = "ConsumableBlocks";
+    static final String CP_BLOCK_SIZE = "BlockSize";
+    static final String CP_DEPENDENT = "Dependent";
     static final String CP_SYMMETRIX = "SYMMETRIX";
     static final String CP_HARDWARE_ID = "HardwareID";
     static final String CP_COMPOSITE_TYPE = "CompositeType";
@@ -361,38 +354,40 @@ public interface SmisConstants {
     static final String CP_EMC_INITIATOR_TYPE = "EMCInitiatorType";
     static final String CP_VOLUME_USAGE = "Usage";
     static final String CP_EMCMAXSUBSCRIPTIONPERCENT = "EMCMaxSubscriptionPercent";
-    static final String CP_EMCNUMBEROFMEMBERS ="EMCNumberOfMembers";
+    static final String CP_EMCNUMBEROFMEMBERS = "EMCNumberOfMembers";
     static final String CP_EMC_IN_POOLS = "EMCInPools";
     static final String CP_CONSISTENT_POINT_IN_TIME = "ConsistentPointInTime";
-    static final String CP_EXTENT_STRIPE_LENGTH  = "ExtentStripeLength";
+    static final String CP_EXTENT_STRIPE_LENGTH = "ExtentStripeLength";
     static final String CP_LOCALITY = "Locality";
-    static final String CP_EMC_SLO ="EMCSLO";
-    static final String CP_EMC_SRP ="EMCSRP";
-    static final String CP_EMC_WORKLOAD ="EMCWorkload";
+    static final String CP_EMC_SLO = "EMCSLO";
+    static final String CP_EMC_SRP = "EMCSRP";
+    static final String CP_EMC_WORKLOAD = "EMCWorkload";
     static final String CP_EMC_COLLECTIONS = "EMCCollections";
     static final String CP_COLLECTIONS = "Collections";
     static final String CP_EMC_FORCE = "EMCForce";
-    
+
     // Host IO Limit for VMAX
     static final String EMC_MAX_BANDWIDTH = "EMCMaximumBandwidth";
     static final String EMC_MAX_IO = "EMCMaximumIO";
-    
+
     // Array of Property String (PS) constants
-	static final String[] PS_HOST_IO = new String[] {
-			SmisConstants.EMC_MAX_BANDWIDTH, SmisConstants.EMC_MAX_IO,
-			SmisConstants.CP_ELEMENT_NAME, SmisConstants.CP_EMC_SLO,
-			SmisConstants.CP_EMC_SRP, SmisConstants.CP_EMC_WORKLOAD,
-			SmisConstants.CP_FAST_SETTING };
+    static final String[] PS_HOST_IO = new String[] {
+            SmisConstants.EMC_MAX_BANDWIDTH, SmisConstants.EMC_MAX_IO,
+            SmisConstants.CP_ELEMENT_NAME, SmisConstants.CP_EMC_SLO,
+            SmisConstants.CP_EMC_SRP, SmisConstants.CP_EMC_WORKLOAD,
+            SmisConstants.CP_FAST_SETTING };
     static final String[] PS_ONLY_COPY_STATE = new String[] { CP_COPY_STATE };
-    static final String[] PS_ELEMENT_NAME = new String[] { SmisConstants.CP_ELEMENT_NAME};
-    static final String[] PS_V3_STORAGE_GROUP_PROPERTIES = new String[] { CP_ELEMENT_NAME, CP_FAST_SETTING, CP_ASSOCIATED_TO_VIEW, EMC_MAX_BANDWIDTH, EMC_MAX_IO };
+    static final String[] PS_ELEMENT_NAME = new String[] { SmisConstants.CP_ELEMENT_NAME };
+    static final String[] PS_V3_STORAGE_GROUP_PROPERTIES = new String[] { CP_ELEMENT_NAME, CP_FAST_SETTING, CP_ASSOCIATED_TO_VIEW,
+            EMC_MAX_BANDWIDTH, EMC_MAX_IO };
     static final String[] PS_V3_FAST_SETTING_PROPERTIES = new String[] { CP_FAST_SETTING };
     static final String[] PS_V3_VIRTUAL_PROVISIONING_POOL_PROPERTIES = new String[] { CP_DISK_DRIVE_TYPE };
     static final String[] PS_SPACE_CONSUMED = new String[] { SmisConstants.CP_SPACE_CONSUMED };
     static final String[] PS_DEVICE_NUMBER = new String[] { SmisConstants.CP_DEVICE_NUMBER };
     static final String[] PS_THIN_VOLUME_INITIAL_RESERVE = new String[] { SmisConstants.CP_THIN_VOLUME_INITIAL_RESERVE };
     static final String[] PS_EMC_STORAGE_TIER_METHODOLOGY = new String[] { SmisConstants.EMC_STORAGE_TIER_METHODOLOGY };
-    static final String[] PS_LUN_MASKING_CNTRL_NAME_AND_ROLE = new String[] { CP_ELEMENT_NAME, CP_EMC_ADAPTER_ROLE, CP_SYSTEM_NAME, CP_DEVICE_ID };
+    static final String[] PS_LUN_MASKING_CNTRL_NAME_AND_ROLE = new String[] { CP_ELEMENT_NAME, CP_EMC_ADAPTER_ROLE, CP_SYSTEM_NAME,
+            CP_DEVICE_ID };
     static final String[] PS_EMCWWN = new String[] { CP_WWN_NAME };
     static final String[] PS_STORAGE_ID = new String[] { CP_STORAGE_ID };
     static final String[] PS_NAME = new String[] { CP_NAME };
@@ -403,19 +398,18 @@ public interface SmisConstants {
     static final String NONE = "NONE";
     // EMCRecoverPointEnabled tag required on VMAX volumes for working with RP.
 
-    static final String[] PS_COPY_STATE_AND_DESC = new String[] {CP_COPY_STATE, EMC_COPY_STATE_DESC};
-    static final String[] PS_COPY_STATE_AND_DESC_SYNCTYPE = new String[] {CP_COPY_STATE, EMC_COPY_STATE_DESC, CP_SYNC_TYPE};
-    static final String[] PS_THINLY_PROVISIONED = new String[] {CP_THINLY_PROVISIONED};
+    static final String[] PS_COPY_STATE_AND_DESC = new String[] { CP_COPY_STATE, EMC_COPY_STATE_DESC };
+    static final String[] PS_COPY_STATE_AND_DESC_SYNCTYPE = new String[] { CP_COPY_STATE, EMC_COPY_STATE_DESC, CP_SYNC_TYPE };
+    static final String[] PS_THINLY_PROVISIONED = new String[] { CP_THINLY_PROVISIONED };
 
-    
-    //EMCRecoverPointEnabled tag required on VMAX volumes for working with RP.
+    // EMCRecoverPointEnabled tag required on VMAX volumes for working with RP.
     static final String EMC_RECOVERPOINT_ENABLED = "EMCRecoverPointEnabled";
     static final String[] CP_EMC_RECOVERPOINT_ENABLED = new String[] { SmisConstants.EMC_RECOVERPOINT_ENABLED };
     static final String CP_PERCENT_SYNCED = "PercentSynced";
     static final String[] PS_PERCENT_SYNCED = new String[] { CP_PERCENT_SYNCED };
     static final String CP_PROGRESS_STATUS = "ProgressStatus";
-    
-    //Network SMIS constants
+
+    // Network SMIS constants
     static final String CP_NSNAME = "NAME";
     static final String CP_CLASSNAME = "CLASSNAME";
     static final String CP_FABRIC = "FABRIC";
@@ -430,14 +424,15 @@ public interface SmisConstants {
         SE_TargetMaskingGroup,
         SE_InitiatorMaskingGroup
     }
-    
-    //sync type enum
+
+    // sync type enum
     static enum SYNC_TYPE {
         SNAPSHOT(SNAPSHOT_VALUE),
         CLONE(CLONE_VALUE),
         MIRROR(MIRROR_VALUE);
-        
+
         private final int value;
+
         private SYNC_TYPE(int value) {
             this.value = value;
         }
@@ -446,9 +441,9 @@ public interface SmisConstants {
             return value;
         }
     }
-    
+
     public static final UnsignedInteger16 READ_WRITE_UINT16 = new UnsignedInteger16(READ_WRITE_VALUE);
-       
+
     public static final CIMObjectPath NULL_CIM_OBJECT_PATH = CimObjectPathCreator.createInstance("CIM_System", Constants.EMC_NAMESPACE);
     public final static CIMObjectPath NULL_IBM_CIM_OBJECT_PATH = CimObjectPathCreator
             .createInstance("CIM_System", Constants.IBM_NAMESPACE);
@@ -457,5 +452,5 @@ public interface SmisConstants {
     public static int DIFFERENTIAL_CLONE_VALUE = 5;
     public static int COPY_BEFORE_ACTIVATE = 10;
     public static int PROVISIONING_TARGET_SAME_AS_SOURCE = 5;
-    
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block.tier;
@@ -21,7 +21,7 @@ public class AutoTieringPolicyRestRep extends DiscoveredDataObjectRestRep {
     private Boolean policyEnabled;
     private String provisioningType;
     private String systemType;
-    
+
     /**
      * Determines the operational state of auto tiering policy
      * 
@@ -37,7 +37,7 @@ public class AutoTieringPolicyRestRep extends DiscoveredDataObjectRestRep {
     public void setPolicyEnabled(Boolean policyEnabled) {
         this.policyEnabled = policyEnabled;
     }
-    
+
     /**
      * Name of the auto tiering policy
      * 
@@ -52,7 +52,7 @@ public class AutoTieringPolicyRestRep extends DiscoveredDataObjectRestRep {
     public void setPolicyName(String policyName) {
         this.policyName = policyName;
     }
-    
+
     /**
      * The provisioning type of the auto tiering policy
      * 
@@ -68,7 +68,7 @@ public class AutoTieringPolicyRestRep extends DiscoveredDataObjectRestRep {
     public void setProvisioningType(String provisioningType) {
         this.provisioningType = provisioningType;
     }
-    
+
     /**
      * The type of storage system to which the auto tiering policy belongs
      * 
@@ -83,7 +83,7 @@ public class AutoTieringPolicyRestRep extends DiscoveredDataObjectRestRep {
     public void setSystemType(String systemType) {
         this.systemType = systemType;
     }
-    
+
     /**
      * The storage system on which this auto tiering policy resides.
      * 
@@ -97,7 +97,7 @@ public class AutoTieringPolicyRestRep extends DiscoveredDataObjectRestRep {
     public void setStorageDevice(RelatedResourceRep storageDevice) {
         this.storageDevice = storageDevice;
     }
-    
+
     /**
      * Name of the default storage group.
      * 
@@ -111,7 +111,7 @@ public class AutoTieringPolicyRestRep extends DiscoveredDataObjectRestRep {
     public void setStorageGroupName(String storageGroupName) {
         this.storageGroupName = storageGroupName;
     }
-    
+
     /**
      * The list of storage pools associated with this auto tiering policy
      * 

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -83,14 +73,13 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 
-
 /**
  * A service that provides APIs for viewing, updating and deleting vcenters and their
  * data centers.
- *
+ * 
  */
-@DefaultPermissions( read_roles = {Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN}, 
-                    write_roles = {Role.TENANT_ADMIN})
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
+        writeRoles = { Role.TENANT_ADMIN })
 @Path("/compute/vcenters")
 public class VcenterService extends TaskResourceService {
 
@@ -98,6 +87,7 @@ public class VcenterService extends TaskResourceService {
     protected final static Logger _log = LoggerFactory.getLogger(VcenterService.class);
 
     private static final String EVENT_SERVICE_TYPE = "vcenter";
+
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
     }
@@ -107,7 +97,7 @@ public class VcenterService extends TaskResourceService {
 
     @Autowired
     private VcenterDataCenterService _vcenterDataCenterService;
-    
+
     private static class DiscoverJobExec implements AsyncTaskExecutorIntf {
 
         private final ComputeSystemController _controller;
@@ -123,19 +113,19 @@ public class VcenterService extends TaskResourceService {
 
         @Override
         public ResourceOperationTypeEnum getOperation() {
-            return  ResourceOperationTypeEnum.DISCOVER_VCENTER;
+            return ResourceOperationTypeEnum.DISCOVER_VCENTER;
         }
     }
 
     /**
      * Updates one or more of the vCenter attributes. Discovery is initiated
      * after the vCenter is updated.
-     *
+     * 
      * @param id the URN of a ViPR vCenter
      * @param updateParam the parameter that has the attributes to be updated.
      * @prereq none
      * @brief Update vCenter
-     * @return the vCenter discovery async task representation.     
+     * @return the vCenter discovery async task representation.
      */
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -157,29 +147,31 @@ public class VcenterService extends TaskResourceService {
 
         return doDiscoverVcenter(vcenter);
     }
-    
+
     /**
      * Discovers (refreshes) a vCenter. This is an asynchronous call.
+     * 
      * @param id The URI of the vCenter.
      * @prereq none
      * @brief Discover vCenter
      * @return TaskResourceRep (asynchronous call)
      */
     @POST
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/discover")
-    @CheckPermission(roles = {Role.TENANT_ADMIN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep discoverVcenter(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, Vcenter.class, "id");
         Vcenter vcenter = queryObject(Vcenter.class, id, true);
 
         return doDiscoverVcenter(vcenter);
     }
-    
+
     /**
      * Vcenter Discovery
+     * 
      * @param the Vcenter to be discovered.
-     * provided, a new taskId is generated.
+     *            provided, a new taskId is generated.
      * @return the task used to track the discovery job
      */
     protected TaskResourceRep doDiscoverVcenter(Vcenter vcenter) {
@@ -196,9 +188,10 @@ public class VcenterService extends TaskResourceService {
 
     /**
      * Validates the create/update vCenter input data
+     * 
      * @param param the input parameter
      * @param vcenter the vcenter being updated in case of update operation.
-     * This parameter must be null for create operations.
+     *            This parameter must be null for create operations.
      */
     protected void validateVcenter(VcenterParam param, Vcenter vcenter, Boolean validateConnection) {
         if (vcenter == null || (param.findIpAddress() != null && !param.findIpAddress().equals(vcenter.getIpAddress()))) {
@@ -212,44 +205,44 @@ public class VcenterService extends TaskResourceService {
             if (StringUtils.isNotBlank(errorMessage)) {
                 throw APIException.badRequests.invalidVCenterConnection(errorMessage);
             }
-        }        
+        }
     }
-    
-
 
     /**
      * Shows the information for one vCenter server.
+     * 
      * @param id the URN of a ViPR vCenter
      * @prereq none
      * @brief Show vCenter
      * @return All non-null attributes of the vCenter.
-     * @throws DatabaseException when a DB error occurs.     
+     * @throws DatabaseException when a DB error occurs.
      */
     @GET
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public VcenterRestRep getVcenter(@PathParam("id") URI id) throws DatabaseException {
         Vcenter vcenter = queryObject(Vcenter.class, id, false);
-    	// check the user permissions for this tenant org
-        verifyAuthorizedInTenantOrg (vcenter.getTenant(), getUserFromContext());
+        // check the user permissions for this tenant org
+        verifyAuthorizedInTenantOrg(vcenter.getTenant(), getUserFromContext());
         return map(vcenter);
     }
 
     /**
      * List the hosts of a vCenter.
+     * 
      * @param id the URN of a ViPR vCenter
      * @prereq none
      * @brief List vCenter hosts
      * @return The list of hosts of the vCenter.
-     * @throws DatabaseException when a DB error occurs.     
+     * @throws DatabaseException when a DB error occurs.
      */
     @GET
     @Path("/{id}/hosts")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public HostList getVcenterHosts(@PathParam("id") URI id) throws DatabaseException {
         Vcenter vcenter = queryObject(Vcenter.class, id, false);
-    	// check the user permissions for this tenant org
-        verifyAuthorizedInTenantOrg (vcenter.getTenant(), getUserFromContext());
+        // check the user permissions for this tenant org
+        verifyAuthorizedInTenantOrg(vcenter.getTenant(), getUserFromContext());
         // get the hosts
         HostList list = new HostList();
         List<NamedElementQueryResultList.NamedElement> datacenters = listChildren(id,
@@ -263,77 +256,81 @@ public class VcenterService extends TaskResourceService {
 
     /**
      * List the clusters in a vCenter
+     * 
      * @param id the URN of a ViPR vCenter
      * @prereq none
      * @brief List vCenter clusters
      * @return The list of clusters of the vCenter.
-     * @throws DatabaseException when a DB error occurs.     
+     * @throws DatabaseException when a DB error occurs.
      */
     @GET
     @Path("/{id}/clusters")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public ClusterList getVcenterClusters(@PathParam("id") URI id) throws DatabaseException {
         Vcenter vcenter = queryObject(Vcenter.class, id, false);
-    	// check the user permissions for this tenant org
-        verifyAuthorizedInTenantOrg (vcenter.getTenant(), getUserFromContext());
+        // check the user permissions for this tenant org
+        verifyAuthorizedInTenantOrg(vcenter.getTenant(), getUserFromContext());
         // get the clusters
         ClusterList list = new ClusterList();
         List<NamedElementQueryResultList.NamedElement> datacenters = listChildren(id,
                 VcenterDataCenter.class, "label", "vcenter");
         for (NamedElementQueryResultList.NamedElement datacenter : datacenters) {
             // add all clusters that are directly related to the data center
-            list.getClusters().addAll(map(ResourceTypeEnum.CLUSTER, (listChildren(datacenter.getId(), Cluster.class, "label", "vcenterDataCenter"))));
+            list.getClusters().addAll(
+                    map(ResourceTypeEnum.CLUSTER, (listChildren(datacenter.getId(), Cluster.class, "label", "vcenterDataCenter"))));
         }
         return list;
     }
 
     /**
      * Deactivates the vCenter, its vCenter data centers, clusters and hosts.
+     * 
      * @param id the URN of a ViPR vCenter to be deactivated
      * @prereq none
      * @brief Delete vCenter
      * @return OK if deactivation completed successfully
-     * @throws DatabaseException when a DB error occurs     
+     * @throws DatabaseException when a DB error occurs
      */
     @POST
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = {Role.TENANT_ADMIN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep deactivateVcenter(@PathParam("id") URI id,
-    		@DefaultValue("false") @QueryParam("detach-storage") boolean detachStorage) throws DatabaseException {
+            @DefaultValue("false") @QueryParam("detach-storage") boolean detachStorage) throws DatabaseException {
         if (ComputeSystemHelper.isVcenterInUse(_dbClient, id) && !detachStorage) {
-        	throw APIException.badRequests.resourceHasActiveReferences(Vcenter.class.getSimpleName(), id);
+            throw APIException.badRequests.resourceHasActiveReferences(Vcenter.class.getSimpleName(), id);
         } else {
-        	Vcenter vcenter = queryObject(Vcenter.class, id, true);
-            
+            Vcenter vcenter = queryObject(Vcenter.class, id, true);
+
             String taskId = UUID.randomUUID().toString();
             Operation op = _dbClient.createTaskOpStatus(Vcenter.class, vcenter.getId(), taskId,
                     ResourceOperationTypeEnum.DELETE_VCENTER);
-            
+
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
             controller.detachVcenterStorage(vcenter.getId(), true, taskId);
-                        
+
             auditOp(OperationTypeEnum.DELETE_VCENTER, true, null, vcenter.auditParameters());
-            
+
             return toTask(vcenter, taskId, op);
-        } 
+        }
     }
-    
+
     /**
      * Detaches storage from the vcenter.
+     * 
      * @param id the URN of a ViPR vcenter
      * @brief Detach storage from vcenter
      * @return task
-     * @throws DatabaseException when a DB error occurs     
+     * @throws DatabaseException when a DB error occurs
      */
     @POST
     @Path("/{id}/detach-storage")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep detachStorage(@PathParam("id") URI id) throws DatabaseException {
         Vcenter vcenter = queryObject(Vcenter.class, id, true);
         ArgValidator.checkEntity(vcenter, id, true);
-        
+
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Vcenter.class, vcenter.getId(), taskId,
                 ResourceOperationTypeEnum.DETACH_VCENTER_DATACENTER_STORAGE);
@@ -344,13 +341,14 @@ public class VcenterService extends TaskResourceService {
 
     /**
      * Creates a new vCenter data center.
+     * 
      * @param id the URN of the parent vCenter
      * @param createParam the details of the data center
      * @prereq none
      * @brief Create vCenter data center
      * @return the details of the vCenter data center, including its id and link,
-     * when creation completes successfully.
-     * @throws DatabaseException when a database error occurs.     
+     *         when creation completes successfully.
+     * @throws DatabaseException when a database error occurs.
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -362,7 +360,7 @@ public class VcenterService extends TaskResourceService {
         Vcenter vcenter = queryObject(Vcenter.class, id, false);
         checkDuplicateChildName(id, VcenterDataCenter.class, "label",
                 "vcenter", createParam.getName(), _dbClient);
-        VcenterDataCenter datacenter  = new VcenterDataCenter();
+        VcenterDataCenter datacenter = new VcenterDataCenter();
         datacenter.setId(URIUtil.createId(VcenterDataCenter.class));
         datacenter.setLabel(createParam.getName());
         datacenter.setVcenter(id);
@@ -375,20 +373,21 @@ public class VcenterService extends TaskResourceService {
 
     /**
      * List the vCenter data centers of the vCenter.
+     * 
      * @param id the URN of a ViPR vCenter
      * @prereq none
      * @brief List vCenter data centers
      * @return All the list of vCenter data centers.
-     * @throws DatabaseException when a DB error occurs.     
+     * @throws DatabaseException when a DB error occurs.
      */
     @GET
     @Path("/{id}/vcenter-data-centers")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public VcenterDataCenterList getVcenterDataCenters(@PathParam("id") URI id) throws DatabaseException {
         Vcenter vcenter = queryObject(Vcenter.class, id, false);
-    	// check the user permissions for this tenant org
-        verifyAuthorizedInTenantOrg (vcenter.getTenant(), getUserFromContext());
-        //get the vcenters
+        // check the user permissions for this tenant org
+        verifyAuthorizedInTenantOrg(vcenter.getTenant(), getUserFromContext());
+        // get the vcenters
         VcenterDataCenterList list = new VcenterDataCenterList();
         List<NamedElementQueryResultList.NamedElement> elements = listChildren(id,
                 VcenterDataCenter.class, "label", "vcenter");
@@ -398,6 +397,7 @@ public class VcenterService extends TaskResourceService {
 
     /**
      * Creates a new instance of vcenter.
+     * 
      * @param tenant the vcenter parent tenant organization
      * @param param the input parameter containing the vcenter attributes
      * @return an instance of {@link Vcenter}
@@ -412,6 +412,7 @@ public class VcenterService extends TaskResourceService {
 
     /**
      * Populate an instance of vcenter with the provided vcenter parameter
+     * 
      * @param vcenter the vcenter to be populated
      * @param param the parameter that contains the attributes.
      */
@@ -426,19 +427,19 @@ public class VcenterService extends TaskResourceService {
     }
 
     /**
-    * List data of specified vCenters.
-    *
-    * @param param POST data containing the id list.
-    * @prereq none
-    * @brief List data of vCenters
-    * @return list of representations.
-    *
-    * @throws DatabaseException When an error occurs querying the database.    
-    */
+     * List data of specified vCenters.
+     * 
+     * @param param POST data containing the id list.
+     * @prereq none
+     * @brief List data of vCenters
+     * @return list of representations.
+     * 
+     * @throws DatabaseException When an error occurs querying the database.
+     */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public VcenterBulkRep getBulkResources(BulkIdParam param) {
         return (VcenterBulkRep) super.getBulkResources(param);
@@ -462,7 +463,7 @@ public class VcenterService extends TaskResourceService {
     }
 
     @Override
-    protected ResourceTypeEnum getResourceType(){
+    protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.VCENTER;
     }
 
@@ -470,7 +471,7 @@ public class VcenterService extends TaskResourceService {
     public VcenterBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<Vcenter> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new VcenterBulkRep(BulkList.wrapping(_dbIterator, MapVcenter.getInstance()));
     }
 
@@ -478,7 +479,7 @@ public class VcenterService extends TaskResourceService {
     public VcenterBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
 
         Iterator<Vcenter> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         BulkList.ResourceFilter filter = new BulkList.VcenterFilter(getUserFromContext(), _permissionsHelper);
         return new VcenterBulkRep(BulkList.wrapping(_dbIterator, MapVcenter.getInstance(), filter));
     }
@@ -494,7 +495,7 @@ public class VcenterService extends TaskResourceService {
     }
 
     public static class VcenterResRepFilter<E extends RelatedResourceRep>
-    extends ResRepFilter<E> {
+            extends ResRepFilter<E> {
         public VcenterResRepFilter(StorageOSUser user,
                 PermissionsHelper permissionsHelper) {
             super(user, permissionsHelper);
@@ -503,13 +504,15 @@ public class VcenterService extends TaskResourceService {
         @Override
         public boolean isAccessible(E resrep) {
             boolean ret = false;
-            URI id = resrep.getId(); 
+            URI id = resrep.getId();
 
             Vcenter obj = _permissionsHelper.getObjectById(id, Vcenter.class);
-            if (obj == null)
+            if (obj == null) {
                 return false;
-            if (obj.getTenant().toString().equals(_user.getTenantId()))
+            }
+            if (obj.getTenant().toString().equals(_user.getTenantId())) {
                 return true;
+            }
             ret = isTenantAccessible(obj.getTenant());
             return ret;
         }

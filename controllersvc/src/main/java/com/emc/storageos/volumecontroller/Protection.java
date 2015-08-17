@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller;
 
@@ -32,79 +22,77 @@ public class Protection implements Serializable {
     private URI targetJournalVarray;
     private URI targetJournalVpool;
     private ProtectionType protectionType;
-    
+
     public static enum ProtectionType {
-    	LOCAL,
-    	REMOTE
+        LOCAL,
+        REMOTE
     }
-    
+
     public URI getTargetDevice() {
         return targetDevice;
     }
-    
+
     public void setTargetDevice(URI targetDevice) {
-    	this.targetDevice = targetDevice;
+        this.targetDevice = targetDevice;
     }
 
     public URI getTargetStoragePool() {
         return targetStoragePool;
     }
-    
-	public void setTargetStoragePool(URI targetStoragePool) {
+
+    public void setTargetStoragePool(URI targetStoragePool) {
         this.targetStoragePool = targetStoragePool;
     }
 
     public URI getTargetJournalStoragePool() {
         return targetJournalStoragePool;
     }
-    
-	public void setTargetJournalStoragePool(URI targetJournalStoragePool) {
-		this.targetJournalStoragePool = targetJournalStoragePool;
+
+    public void setTargetJournalStoragePool(URI targetJournalStoragePool) {
+        this.targetJournalStoragePool = targetJournalStoragePool;
     }
-	
-	
-	public URI getTargetJournalVarray() {
-		return targetJournalVarray;
-	}
 
-	public void setTargetJournalVarray(URI targetJournalVarray) {
-		this.targetJournalVarray = targetJournalVarray;
-	}
+    public URI getTargetJournalVarray() {
+        return targetJournalVarray;
+    }
 
-	public URI getTargetJournalVpool() {
-		return targetJournalVpool;
-	}
+    public void setTargetJournalVarray(URI targetJournalVarray) {
+        this.targetJournalVarray = targetJournalVarray;
+    }
 
-	public void setTargetJournalVpool(URI targetJournalVpool) {
-		this.targetJournalVpool = targetJournalVpool;
-	}
-	
+    public URI getTargetJournalVpool() {
+        return targetJournalVpool;
+    }
+
+    public void setTargetJournalVpool(URI targetJournalVpool) {
+        this.targetJournalVpool = targetJournalVpool;
+    }
 
     public String getTargetInternalSiteName() {
         return targetInternalSiteName;
     }
-    
+
     public void setTargetInternalSiteName(String targetInternalSiteName) {
-    	this.targetInternalSiteName = targetInternalSiteName;
+        this.targetInternalSiteName = targetInternalSiteName;
     }
 
-	public URI getTargetJournalDevice() {
-		return targetJournalDevice;
-	}
+    public URI getTargetJournalDevice() {
+        return targetJournalDevice;
+    }
 
-	public void setTargetJournalDevice(URI _targetJournalDevice) {
-		this.targetJournalDevice = _targetJournalDevice;
-	}
+    public void setTargetJournalDevice(URI _targetJournalDevice) {
+        this.targetJournalDevice = _targetJournalDevice;
+    }
 
-	public ProtectionType getProtectionType() {
-		return protectionType;
-	}
+    public ProtectionType getProtectionType() {
+        return protectionType;
+    }
 
-	public void setProtectionType(ProtectionType protectionType) {
-		this.protectionType = protectionType;
-	}
-	
-	public URI getTargetInternalSiteStorageSystem() {
+    public void setProtectionType(ProtectionType protectionType) {
+        this.protectionType = protectionType;
+    }
+
+    public URI getTargetInternalSiteStorageSystem() {
         return targetInternalSiteStorageSystem;
     }
 
@@ -112,19 +100,19 @@ public class Protection implements Serializable {
             URI targetInternalSiteStorageSystem) {
         this.targetInternalSiteStorageSystem = targetInternalSiteStorageSystem;
     }
-	
+
     @Override
-	public String toString() {
-		return "Protection [_targetDevice=" + targetDevice
-				+ ", _targetPool=" + targetStoragePool
-				+ ", _targetJournalPool=" + targetJournalStoragePool
-				+ ", _targetInternalSiteName=" + targetInternalSiteName
-				+ ", _targetInternalSiteStorageSystem=" + targetInternalSiteStorageSystem
-				+ ", _tagetJournalDevice =" + targetJournalDevice
-				+ "]";
-	}
+    public String toString() {
+        return "Protection [_targetDevice=" + targetDevice
+                + ", _targetPool=" + targetStoragePool
+                + ", _targetJournalPool=" + targetJournalStoragePool
+                + ", _targetInternalSiteName=" + targetInternalSiteName
+                + ", _targetInternalSiteStorageSystem=" + targetInternalSiteStorageSystem
+                + ", _tagetJournalDevice =" + targetJournalDevice
+                + "]";
+    }
 
     public String toString(DbClient _dbClient) {
-    	return "NIY";
+        return "NIY";
     }
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.auth;
 
@@ -25,12 +15,13 @@ import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMapping;
 
 /**
- *  Base class for user attribute repositories
+ * Base class for user attribute repositories
  */
 public interface StorageOSPersonAttributeDao {
 
     /**
      * Check if a group is valid in the current configuration
+     * 
      * @param groupId - group ID to check
      * @return true if the group is valid in this authentication config
      */
@@ -39,6 +30,7 @@ public interface StorageOSPersonAttributeDao {
 
     /**
      * Check if a user is valid within the specified tenant
+     * 
      * @param userId ID of the user to check
      * @param tenantId ID of the user's tenant
      */
@@ -46,6 +38,7 @@ public interface StorageOSPersonAttributeDao {
 
     /**
      * Retrieve the person's attributes from the attribute repository
+     * 
      * @param credentials to lookup in the attribute repository
      * @param failureReason reason why the retrieval failed
      * @return The person's attributes
@@ -55,6 +48,7 @@ public interface StorageOSPersonAttributeDao {
 
     /**
      * Another implementation of getStorageOSUser which throws Exception with error message instead of using failure reason.
+     * 
      * @param credentials
      * @return
      */
@@ -62,14 +56,14 @@ public interface StorageOSPersonAttributeDao {
 
     /**
      * Get a map of tenancies a user maps to and the applied user mapping
+     * 
      * @param username name of the user
      * @return A map with tenant ID as the key and the applied mapping as the value
      */
     public Map<URI, UserMapping> getUserTenants(String username);
 
-
     /**
-     *
+     * 
      * @param username
      * @param tenantURI
      * @param userMapping

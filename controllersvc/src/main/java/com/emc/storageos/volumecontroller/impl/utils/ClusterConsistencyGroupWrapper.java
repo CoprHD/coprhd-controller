@@ -1,54 +1,44 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.utils;
 
 /**
- * Wrapper class used only by VPlexDeviceController.  This object encapsulates
- * the relationship between VPlex cluster and CG name.  Also keeps track of
+ * Wrapper class used only by VPlexDeviceController. This object encapsulates
+ * the relationship between VPlex cluster and CG name. Also keeps track of
  * whether or not the CG is distributed.
  */
 public class ClusterConsistencyGroupWrapper {
     String clusterName;
     boolean distributed;
     String cgName;
-    
+
     public String getClusterName() {
         return clusterName;
     }
-    
+
     public void setClusterName(String clusterName) {
         this.clusterName = clusterName;
     }
-    
+
     public boolean isDistributed() {
         return distributed;
     }
-    
+
     public void setDistributed(boolean distributed) {
         this.distributed = distributed;
     }
-    
+
     public String getCgName() {
         return cgName;
     }
-    
+
     public void setCgName(String cgName) {
         this.cgName = cgName;
     }
-    
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -59,7 +49,7 @@ public class ClusterConsistencyGroupWrapper {
         result = prime * result + (distributed ? 1231 : 1237);
         return result;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
@@ -91,5 +81,5 @@ public class ClusterConsistencyGroupWrapper {
         }
         return true;
     }
-    
+
 }

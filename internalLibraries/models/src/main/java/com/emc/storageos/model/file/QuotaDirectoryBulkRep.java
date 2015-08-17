@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file;
@@ -18,6 +18,7 @@ public class QuotaDirectoryBulkRep extends BulkRestRep {
     /**
      * The list of Quota Directories, returned as response to bulk
      * queries.
+     * 
      * @valid none
      */
     @XmlElement(name = "quotadirectory")

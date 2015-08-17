@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.event;
@@ -13,8 +13,9 @@ public class EventParameters {
     private String userStr;
     private String contact;
 
-    public EventParameters() {}
-    
+    public EventParameters() {
+    }
+
     public EventParameters(String userStr, String contact) {
         this.userStr = userStr;
         this.contact = contact;

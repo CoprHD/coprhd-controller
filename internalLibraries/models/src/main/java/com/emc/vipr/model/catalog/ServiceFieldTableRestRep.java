@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -17,9 +17,9 @@ public class ServiceFieldTableRestRep extends ServiceItemRestRep implements Serv
 
     private List<ServiceFieldRestRep> items;
 
-    @XmlElementWrapper(name="items")
+    @XmlElementWrapper(name = "items")
     @XmlElements({
-        @XmlElement(name="field", type=ServiceFieldRestRep.class)
+            @XmlElement(name = "field", type = ServiceFieldRestRep.class)
     })
     public List<ServiceFieldRestRep> getItems() {
         if (items == null) {
@@ -27,6 +27,7 @@ public class ServiceFieldTableRestRep extends ServiceItemRestRep implements Serv
         }
         return items;
     }
+
     public void setItems(List<ServiceFieldRestRep> items) {
         this.items = items;
     }

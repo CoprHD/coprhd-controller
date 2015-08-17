@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.model.customconfig;
@@ -30,15 +20,17 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 public class CustomConfigList {
     private List<NamedRelatedResourceRep> customConfigs;
 
-    public CustomConfigList() {}
-    
+    public CustomConfigList() {
+    }
+
     public CustomConfigList(List<NamedRelatedResourceRep> configs) {
         this.customConfigs = configs;
     }
 
     /**
-     * List of custom config objects that exist in ViPR. Each   
+     * List of custom config objects that exist in ViPR. Each
      * custom config contains an id, name, and link.
+     * 
      * @valid none
      */
     @XmlElement(name = "config")

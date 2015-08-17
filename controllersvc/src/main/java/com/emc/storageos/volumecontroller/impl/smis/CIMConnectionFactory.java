@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) 2012. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
@@ -46,11 +36,10 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 
-
 /**
  * This class will encapsulate the CIM ConnectionManager.
  */
-public class CIMConnectionFactory { 
+public class CIMConnectionFactory {
     // Logger
     private static final Logger _log = LoggerFactory
             .getLogger(CIMConnectionFactory.class);
@@ -65,7 +54,7 @@ public class CIMConnectionFactory {
 
     @Autowired
     private RecordableEventManager _evtMgr;
-    
+
     private static final String EVENT_SERVICE_TYPE = "StorageProvider";
     private static final String EVENT_SERVICE_SOURCE = "CIMConnectionFactory";
     private static final String STORAGE_PROVIDER_DOWN_DESCRIPTION = "Storage Provider is Down";
@@ -73,10 +62,10 @@ public class CIMConnectionFactory {
     private static final String STORAGE_PROVIDER_DOWN_DESCRIPTION_VNXFILE = "Storage Provider is Down for this VNXFile. Provider IP : ";
     private static final String STORAGE_PROVIDER_UP_DESCRIPTION_VNXFILE = "Storage Provider is Up for this VNXFile. Provider IP : ";
     /**
-     * CIM Object Path instance   to validate connectivity
+     * CIM Object Path instance to validate connectivity
      */
     private static final CIMObjectPath _cop = CimObjectPathCreator.createInstance(
-            Constants.PROFILECLASS,CimConstants.DFLT_CIM_CONNECTION_INTEROP_NS);
+            Constants.PROFILECLASS, CimConstants.DFLT_CIM_CONNECTION_INTEROP_NS);
 
     /**
      * setter method to inject connectionManager.
@@ -112,12 +101,12 @@ public class CIMConnectionFactory {
             /**
              * Check cimConnection already exist for vnxfile, if not create new one
              */
-            if(StorageSystem.Type.vnxfile.name().equals(storageDevice.getSystemType())){
+            if (StorageSystem.Type.vnxfile.name().equals(storageDevice.getSystemType())) {
                 connection = _connectionManager.getConnection(storageDevice.getSmisProviderIP());
-            } else{
-                connection = getConnection(storageDevice.getSmisProviderIP(),storageDevice.getSmisPortNumber().toString());
+            } else {
+                connection = getConnection(storageDevice.getSmisProviderIP(), storageDevice.getSmisPortNumber().toString());
             }
-                        
+
             if (null == connection) {
                 final CimConnectionInfo connInfo = new CimConnectionInfo();
                 connInfo.setHost(storageDevice.getSmisProviderIP());
@@ -126,16 +115,16 @@ public class CIMConnectionFactory {
                 connInfo.setPassword(storageDevice.getSmisPassword());
                 connInfo.setUseSSL(storageDevice.getSmisUseSSL());
                 connInfo.setInteropNS(CimConstants.DFLT_CIM_CONNECTION_INTEROP_NS);
-                
+
                 // Set the type of connection to be created.
                 connInfo.setType(getConnectionTypeForDevice(storageDevice.getSystemType()));
 
                 // Set the implementation namespace for this type of storage device
                 connInfo
-                    .setImplNS(getImplNamespaceForDevice(storageDevice.getSystemType()));
-                
+                        .setImplNS(getImplNamespaceForDevice(storageDevice.getSystemType()));
+
                 _connectionManager.addConnection(connInfo);
-                connection = getConnection(storageDevice.getSmisProviderIP(),storageDevice.getSmisPortNumber().toString());
+                connection = getConnection(storageDevice.getSmisProviderIP(), storageDevice.getSmisPortNumber().toString());
             }
         } catch (final ConnectionManagerException ex) {
             _log.error("No CIMOM Connection found for ipaddress due to ",
@@ -153,90 +142,91 @@ public class CIMConnectionFactory {
      * @return List<URI> : returns the list of active provider URIs.
      */
     public List<URI> refreshConnections(final List<StorageProvider> smisProviderList) {
-    	_log.debug("In refreshConnections()");
+        _log.debug("In refreshConnections()");
         List<URI> activeProviderURIList = new ArrayList<URI>();
-        for(StorageProvider smisProvider: smisProviderList){
-        	 try {
-        		 CimConnection connection = getConnection(smisProvider.getIPAddress(),smisProvider.getPortNumber().toString());
-                 if (null == connection) {
-                     _log.error("No CIMOM connection found for ip {}",
-                             smisProvider.getIPAddress());
-                     //No need to add connection, as getConnection() called from any thread would create it.
-                     continue;
-                 }
-                 validateProviderConnection(smisProvider, connection,
-                         activeProviderURIList);
-        	 } catch (final DatabaseException ex) {
-                 _log.error(
-                         "DatabaseException occurred while fetching the storageDevice for {} due to ",
-                         smisProvider.getId(), ex);
-             } catch (final ConnectionManagerException ex) {
-                 _log.error("No CIMOM Connection found for ipaddress due to ",
-                         ex);
-             } catch (final Exception ex) {
-                 _log.error("Exception while refreshing connections due to ",
-                         ex);
-             }
+        for (StorageProvider smisProvider : smisProviderList) {
+            try {
+                CimConnection connection = getConnection(smisProvider.getIPAddress(), smisProvider.getPortNumber().toString());
+                if (null == connection) {
+                    _log.error("No CIMOM connection found for ip {}",
+                            smisProvider.getIPAddress());
+                    // No need to add connection, as getConnection() called from any thread would create it.
+                    continue;
+                }
+                validateProviderConnection(smisProvider, connection,
+                        activeProviderURIList);
+            } catch (final DatabaseException ex) {
+                _log.error(
+                        "DatabaseException occurred while fetching the storageDevice for {} due to ",
+                        smisProvider.getId(), ex);
+            } catch (final ConnectionManagerException ex) {
+                _log.error("No CIMOM Connection found for ipaddress due to ",
+                        ex);
+            } catch (final Exception ex) {
+                _log.error("Exception while refreshing connections due to ",
+                        ex);
+            }
         }
         return activeProviderURIList;
     }
-    
-    
+
     /**
-     * Creates valid CIMConnection instances and removes invalid cimConnection instances from connectionManager for vnxfile StorageSystem's smis provider
+     * Creates valid CIMConnection instances and removes invalid cimConnection instances from connectionManager for vnxfile StorageSystem's
+     * smis provider
      * 1. Get all vnxFile StorageSystem from DB
      * 2. Check if the connection is valid one using liveliness check
      * 3. If the connection can communicate smis provider do nothing
      * 4. else remove connection from _connectionManager
-     * @throws IOException 
-     * @throws ConnectionManagerException 
+     * 
+     * @throws IOException
+     * @throws ConnectionManagerException
      */
-    public void refreshVnXFileConnections() throws IOException, ConnectionManagerException{
+    public void refreshVnXFileConnections() throws IOException, ConnectionManagerException {
         List<URI> allStorageSystemsURIList = _dbClient
                 .queryByType(StorageSystem.class, true);
         List<StorageSystem> allStorageSystemList = _dbClient.queryObject(
                 StorageSystem.class, allStorageSystemsURIList);
-        for(StorageSystem storageSystem:allStorageSystemList){
-            if(null!=storageSystem && 
-                    Type.vnxfile.toString().equals(storageSystem.getSystemType())){
+        for (StorageSystem storageSystem : allStorageSystemList) {
+            if (null != storageSystem &&
+                    Type.vnxfile.toString().equals(storageSystem.getSystemType())) {
                 CimConnection cimConnection = getConnection(storageSystem);
-                 if (null == cimConnection) {
-                     _log.error("No CIMOM connection found for ip {}",
-                             storageSystem.getSmisProviderIP());
-                     recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_DOWN, 
-            				 STORAGE_PROVIDER_DOWN_DESCRIPTION_VNXFILE + storageSystem.getSmisProviderIP(), 
-            				 storageSystem.getId());
-                     //No need to add connection, as getConnection() called from any thread would create it.
-                     continue;
-                 }
-                 if(!checkConnectionliveness(cimConnection)){
-                	 // If the provider is in NOTCONNECTED state, generating failure event & 
-                	 // changing connection status for storagesystem
-                	 if(null != storageSystem.getSmisConnectionStatus() &&
-                			 ConnectionStatus.CONNECTED.toString().equalsIgnoreCase(
-                			 storageSystem.getSmisConnectionStatus())){
-                		 recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_DOWN, 
-                				 STORAGE_PROVIDER_DOWN_DESCRIPTION_VNXFILE + storageSystem.getSmisProviderIP(), 
-                				 storageSystem.getId());
-                		 storageSystem.setSmisConnectionStatus(ConnectionStatus.NOTCONNECTED.toString());
-                		 _dbClient.persistObject(storageSystem);
-                	 }
-                     _connectionManager.removeConnection(storageSystem.getSmisProviderIP());
-                     _log.info("Removed invalid connection for smis {} from connectionManager",storageSystem.getSmisProviderIP());
-                 }
-                 else {
-                	 // If the provider is in CONNECTED state, generating success event &
-                	 // changing connection status for storagesystem
-                	 if(null != storageSystem.getSmisConnectionStatus() &&
-                			 ConnectionStatus.NOTCONNECTED.toString().equalsIgnoreCase(
-                			 storageSystem.getSmisConnectionStatus())) {
-                		 recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_UP, 
-                				 STORAGE_PROVIDER_UP_DESCRIPTION_VNXFILE + storageSystem.getSmisProviderIP(), 
-                				 storageSystem.getId());
-                		 storageSystem.setSmisConnectionStatus(ConnectionStatus.CONNECTED.toString());
-                		 _dbClient.persistObject(storageSystem);
-                	 }
-                 }
+                if (null == cimConnection) {
+                    _log.error("No CIMOM connection found for ip {}",
+                            storageSystem.getSmisProviderIP());
+                    recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_DOWN,
+                            STORAGE_PROVIDER_DOWN_DESCRIPTION_VNXFILE + storageSystem.getSmisProviderIP(),
+                            storageSystem.getId());
+                    // No need to add connection, as getConnection() called from any thread would create it.
+                    continue;
+                }
+                if (!checkConnectionliveness(cimConnection)) {
+                    // If the provider is in NOTCONNECTED state, generating failure event &
+                    // changing connection status for storagesystem
+                    if (null != storageSystem.getSmisConnectionStatus() &&
+                            ConnectionStatus.CONNECTED.toString().equalsIgnoreCase(
+                                    storageSystem.getSmisConnectionStatus())) {
+                        recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_DOWN,
+                                STORAGE_PROVIDER_DOWN_DESCRIPTION_VNXFILE + storageSystem.getSmisProviderIP(),
+                                storageSystem.getId());
+                        storageSystem.setSmisConnectionStatus(ConnectionStatus.NOTCONNECTED.toString());
+                        _dbClient.persistObject(storageSystem);
+                    }
+                    _connectionManager.removeConnection(storageSystem.getSmisProviderIP());
+                    _log.info("Removed invalid connection for smis {} from connectionManager", storageSystem.getSmisProviderIP());
+                }
+                else {
+                    // If the provider is in CONNECTED state, generating success event &
+                    // changing connection status for storagesystem
+                    if (null != storageSystem.getSmisConnectionStatus() &&
+                            ConnectionStatus.NOTCONNECTED.toString().equalsIgnoreCase(
+                                    storageSystem.getSmisConnectionStatus())) {
+                        recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_UP,
+                                STORAGE_PROVIDER_UP_DESCRIPTION_VNXFILE + storageSystem.getSmisProviderIP(),
+                                storageSystem.getId());
+                        storageSystem.setSmisConnectionStatus(ConnectionStatus.CONNECTED.toString());
+                        _dbClient.persistObject(storageSystem);
+                    }
+                }
             }
         }
     }
@@ -249,32 +239,32 @@ public class CIMConnectionFactory {
      * @param activeProviderURIList
      * @throws ConnectionManagerException
      */
-	private void validateProviderConnection(
+    private void validateProviderConnection(
             final StorageProvider smisProvider, final CimConnection connection,
             final List<URI> activeProviderURIList) throws ConnectionManagerException {
-    	_log.debug("In validateProviderConnection()");
+        _log.debug("In validateProviderConnection()");
         // Don't add the inactive SMIS Provider.
         if (!smisProvider.getInactive()) {
-        	_log.info("{} is the active smis provider", smisProvider.getId());
+            _log.info("{} is the active smis provider", smisProvider.getId());
             // If Provider Connection is active then do the scanner
             // otherwise no point of doing the scanner.
             try {
                 if (checkConnectionliveness(connection)) {
-                	if (StorageProvider.ConnectionStatus.NOTCONNECTED.toString().equalsIgnoreCase(
-                			smisProvider.getConnectionStatus())) {
-                		recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_UP, 
-                				STORAGE_PROVIDER_UP_DESCRIPTION,	smisProvider.getId());
-                	}
+                    if (StorageProvider.ConnectionStatus.NOTCONNECTED.toString().equalsIgnoreCase(
+                            smisProvider.getConnectionStatus())) {
+                        recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_UP,
+                                STORAGE_PROVIDER_UP_DESCRIPTION, smisProvider.getId());
+                    }
                     smisProvider
                             .setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED
                                     .toString());
                     activeProviderURIList.add(smisProvider.getId());
                 } else {
-                	if (StorageProvider.ConnectionStatus.CONNECTED.toString().equalsIgnoreCase(
-                			smisProvider.getConnectionStatus())) {
-                		recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_DOWN, 
-                				STORAGE_PROVIDER_DOWN_DESCRIPTION,	smisProvider.getId());
-                	}
+                    if (StorageProvider.ConnectionStatus.CONNECTED.toString().equalsIgnoreCase(
+                            smisProvider.getConnectionStatus())) {
+                        recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_DOWN,
+                                STORAGE_PROVIDER_DOWN_DESCRIPTION, smisProvider.getId());
+                    }
                     _connectionManager.removeConnection(smisProvider
                             .getIPAddress());
                     _log.error("Connection Liveness Failed {}",
@@ -290,19 +280,19 @@ public class CIMConnectionFactory {
                         ioEx);
             }
         } else {
-        	_log.info("{} is not the active smis provider", smisProvider.getId());
+            _log.info("{} is not the active smis provider", smisProvider.getId());
             if (null != connection) {
                 _connectionManager.removeConnection(smisProvider.getIPAddress());
             }
         }
     }
-    
-    public void recordStorageProviderEvent(OperationTypeEnum opType, 
-    		String description, URI storageProvider) {
-    	String evType;
+
+    public void recordStorageProviderEvent(OperationTypeEnum opType,
+            String description, URI storageProvider) {
+        String evType;
         evType = opType.getEvType(true);
         _log.info("Recording {} event", evType);
-        
+
         RecordableBourneEvent event = new RecordableBourneEvent(
                 /* String */evType,
                 /* tenant id */null,
@@ -319,7 +309,7 @@ public class CIMConnectionFactory {
                 /* Event Source */EVENT_SERVICE_SOURCE,
                 /* Operational Status codes */"",
                 /* Operational Status Descriptions */"");
-        
+
         try {
             _evtMgr.recordEvents(event);
         } catch (Exception ex) {
@@ -335,18 +325,19 @@ public class CIMConnectionFactory {
      * @return boolean
      */
     public boolean checkConnectionliveness(CimConnection connection) {
-    	boolean isLive = false;
-    	if (null == connection)
-    		return isLive;
+        boolean isLive = false;
+        if (null == connection) {
+            return isLive;
+        }
         WBEMClient wbemClient = connection.getCimClient();
-        _log.debug("copPath:{}",_cop);      
+        _log.debug("copPath:{}", _cop);
         try {
             // Call the provider to get computer systems.
             wbemClient.enumerateInstanceNames(_cop);
             isLive = true;
         } catch (WBEMException wbemEx) {
             _log.error("Invalid connection found for ipAddress: {}", connection.getHost());
-        }    
+        }
         return isLive;
     }
 
@@ -354,18 +345,19 @@ public class CIMConnectionFactory {
      * Get a CimConnection for a given hostName.
      * if connection is null, then add a new Connection.
      * getConnection, at any point of time will get a new Connection Object.
+     * 
      * @param hostName
      *            : Provider hostName, if not existing.
      * @return CimConnection.
      * @throws IOException
      */
-    public synchronized CimConnection getConnection(String ipAddress,String port) {
+    public synchronized CimConnection getConnection(String ipAddress, String port) {
         CimConnection connection = null;
         try {
             connection = _connectionManager.getConnection(ipAddress);
             if (null == connection) {
-                connection = addConnection(ipAddress,port);
-                
+                connection = addConnection(ipAddress, port);
+
             }
         } catch (final ConnectionManagerException ex) {
             _log.error(
@@ -377,18 +369,20 @@ public class CIMConnectionFactory {
         }
         return connection;
     }
-   /**
-    * If connection is null, create a new Connection
-    * @param smisIPAddress
-    */
-    private synchronized CimConnection addConnection(String smisIPAddress,String port) {
+
+    /**
+     * If connection is null, create a new Connection
+     * 
+     * @param smisIPAddress
+     */
+    private synchronized CimConnection addConnection(String smisIPAddress, String port) {
         CimConnection connection = null;
         try {
             connection = _connectionManager.getConnection(smisIPAddress);
             if (null == connection) {
-                String smisAltId = smisIPAddress+"-"+port;
+                String smisAltId = smisIPAddress + "-" + port;
                 List<StorageProvider> providers = CustomQueryUtility.getActiveStorageProvidersByProviderId(_dbClient, smisAltId);
-                if(providers.isEmpty()) {
+                if (providers.isEmpty()) {
                     _log.error("No SMISProvider found with id {}", smisAltId);
                     return connection;
                 }
@@ -399,7 +393,7 @@ public class CIMConnectionFactory {
                 connInfo.setUser(smisProvider.getUserName());
                 connInfo.setPassword(smisProvider.getPassword());
                 connInfo.setUseSSL(smisProvider.getUseSSL());
-                if (smisProvider.getInterfaceType().equals(StorageProvider.InterfaceType.ibmxiv.name()) || 
+                if (smisProvider.getInterfaceType().equals(StorageProvider.InterfaceType.ibmxiv.name()) ||
                         "IBM".equals(smisProvider.getManufacturer())) {
                     connInfo.setType(CimConstants.CIM_CONNECTION_TYPE);
                     connInfo.setImplNS(CimConstants.DFLT_IBM_CIM_CONNECTION_IMPL_NS);
@@ -408,7 +402,7 @@ public class CIMConnectionFactory {
                     connInfo.setType(CimConstants.ECOM_CONNECTION_TYPE);
                     connInfo.setImplNS(CimConstants.DFLT_CIM_CONNECTION_IMPL_NS);
                 }
-                
+
                 connInfo.setInteropNS(CimConstants.DFLT_CIM_CONNECTION_INTEROP_NS);
                 _connectionManager.addConnection(connInfo);
                 connection = _connectionManager.getConnection(smisIPAddress);
@@ -423,148 +417,149 @@ public class CIMConnectionFactory {
         }
         return connection;
     }
-    
+
     /**
      * Un-Subscribe connection for the given Passive SMIS provider
+     * 
      * @param smisProviderURI {@link String} Passive SMIS Provider's URI
      * @return success flag. True means unsubscription for the given smisProvider is success, else returns false
      */
-    public boolean unsubscribeSMIProviderConnection(String smisProviderURI){
-        _log.debug("Entering {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+    public boolean unsubscribeSMIProviderConnection(String smisProviderURI) {
+        _log.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         boolean isSuccess = false;
         try {
-            _log.debug("Un-Subscribe initiated for SMIS provider :{}",smisProviderURI);
+            _log.debug("Un-Subscribe initiated for SMIS provider :{}", smisProviderURI);
             CimConnection cimConnection = getSMISProviderConnection(smisProviderURI);
-            if(null != cimConnection){
+            if (null != cimConnection) {
                 _connectionManager.unsubscribe(cimConnection);
                 isSuccess = true;
             }
-        }catch (Exception e) {
-            _log.error("Un-subscription for the SMIS provider {} is failed",smisProviderURI);
-            _log.error(e.getMessage(),e);
-            //throw e;
+        } catch (Exception e) {
+            _log.error("Un-subscription for the SMIS provider {} is failed", smisProviderURI);
+            _log.error(e.getMessage(), e);
+            // throw e;
         }
-        _log.debug("Exiting {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        _log.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         return isSuccess;
     }
-    
+
     /**
      * Make subscription to the given SMIS provider for monitoring use case
+     * 
      * @param smisProviderURI {@link String} Active SMIS Provider's URI for subscription
      * @return success flag. True means subscription for the given smisProvider is success, else returns false
      */
-    public boolean subscribeSMIProviderConnection(String smisProviderURI){
-        _log.debug("Entering {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+    public boolean subscribeSMIProviderConnection(String smisProviderURI) {
+        _log.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         boolean isSuccess = false;
         try {
-            _log.debug("smisProviderURI :{}",smisProviderURI);
+            _log.debug("smisProviderURI :{}", smisProviderURI);
             CimConnection cimConnection = getSMISProviderConnection(smisProviderURI);
-            if(null!=cimConnection){
+            if (null != cimConnection) {
                 _connectionManager.subscribe(cimConnection);
                 isSuccess = true;
             }
-        }catch (Exception e) {
-            _log.error("subscription for the SMIS provider {} is failed",smisProviderURI);
-            _log.error(e.getMessage(),e);
-            //throw e;
+        } catch (Exception e) {
+            _log.error("subscription for the SMIS provider {} is failed", smisProviderURI);
+            _log.error(e.getMessage(), e);
+            // throw e;
         }
-        _log.debug("Exiting {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        _log.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         return isSuccess;
     }
+
     /**
      * Deletes stale subscriptions
+     * 
      * @param smisProviderURI {@link String} SMIS Provider's URI for delete stale subscription
-     * @return  boolean success flag. True means delete stale subscription for the given smisProvider is success, else returns false
+     * @return boolean success flag. True means delete stale subscription for the given smisProvider is success, else returns false
      */
-    public boolean deleteStaleSubscriptions(String smisProviderURI){
-        _log.debug("Entering {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+    public boolean deleteStaleSubscriptions(String smisProviderURI) {
+        _log.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         boolean isSuccess = false;
         try {
-            _log.debug("smisProviderURI :{}",smisProviderURI);
+            _log.debug("smisProviderURI :{}", smisProviderURI);
             CimConnection cimConnection = getSMISProviderConnection(smisProviderURI);
-            if(null!=cimConnection){
+            if (null != cimConnection) {
                 _connectionManager.deleteStaleSubscriptions(cimConnection);
                 isSuccess = true;
             }
-        }catch (Exception e) {
-            _log.error("Delete stale subscription for the SMIS provider {} is failed",smisProviderURI);
-            _log.error(e.getMessage(),e);
-            //throw e;
+        } catch (Exception e) {
+            _log.error("Delete stale subscription for the SMIS provider {} is failed", smisProviderURI);
+            _log.error(e.getMessage(), e);
+            // throw e;
         }
-        _log.debug("Exiting {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        _log.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         return isSuccess;
     }
-    
-    
+
     /**
      * Make subscription to the given vnxfile storageSystem for monitoring use case
-     * @param smisProviderURI {@link String} vnxfile StorageSystem's  URI for subscription
+     * 
+     * @param smisProviderURI {@link String} vnxfile StorageSystem's URI for subscription
      * @return success flag. True means subscription for the given storageSystem is success, else returns false
      */
-    public boolean subscribeVnxFileForIndication(String storageSystemURI){
-        _log.debug("Entering {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+    public boolean subscribeVnxFileForIndication(String storageSystemURI) {
+        _log.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         boolean isSuccess = false;
         try {
-            _log.debug("storageSystemURI :{}",storageSystemURI);
+            _log.debug("storageSystemURI :{}", storageSystemURI);
             StorageSystem storageDevice = _dbClient.queryObject(StorageSystem.class, URI.create(storageSystemURI));
             CimConnection cimConnection = getConnection(storageDevice);
-            if(null!=cimConnection){
+            if (null != cimConnection) {
                 _connectionManager.subscribe(cimConnection);
                 isSuccess = true;
             }
-        }catch (Exception e) {
-            _log.error("subscription for the StoargeSystem {} is failed",storageSystemURI);
-            _log.error(e.getMessage(),e);
-            //throw e;
+        } catch (Exception e) {
+            _log.error("subscription for the StoargeSystem {} is failed", storageSystemURI);
+            _log.error(e.getMessage(), e);
+            // throw e;
         }
-        _log.debug("vnx file subscription status :{}",isSuccess);
-        _log.debug("Exiting {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        _log.debug("vnx file subscription status :{}", isSuccess);
+        _log.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         return isSuccess;
     }
-    
-    
-    public boolean deleteVnxFileStaleSubscriptions(String storageSystemURI){
-        _log.debug("Entering {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+
+    public boolean deleteVnxFileStaleSubscriptions(String storageSystemURI) {
+        _log.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         boolean isSuccess = false;
         try {
-            _log.debug("storageSystemURI :{}",storageSystemURI);
+            _log.debug("storageSystemURI :{}", storageSystemURI);
             StorageSystem storageDevice = _dbClient.queryObject(StorageSystem.class, URI.create(storageSystemURI));
             CimConnection cimConnection = getConnection(storageDevice);
-            if(null!=cimConnection){
+            if (null != cimConnection) {
                 _connectionManager.deleteStaleSubscriptions(cimConnection);
                 isSuccess = true;
             }
-        }catch (Exception e) {
-            _log.error("Delete stale subscription for the vnx file {} is failed",storageSystemURI);
-            _log.error(e.getMessage(),e);
-            //throw e;
+        } catch (Exception e) {
+            _log.error("Delete stale subscription for the vnx file {} is failed", storageSystemURI);
+            _log.error(e.getMessage(), e);
+            // throw e;
         }
-        _log.debug("Exiting {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        _log.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         return isSuccess;
     }
-    
-    private CimConnection getSMISProviderConnection(String smisProviderURI){
+
+    private CimConnection getSMISProviderConnection(String smisProviderURI) {
         CimConnection cimConnection = null;
         try {
-            if(null!=smisProviderURI){
-            	StorageProvider smisProvider = _dbClient.queryObject(StorageProvider.class, URI.create(smisProviderURI));
-                if(null != smisProvider){
+            if (null != smisProviderURI) {
+                StorageProvider smisProvider = _dbClient.queryObject(StorageProvider.class, URI.create(smisProviderURI));
+                if (null != smisProvider) {
                     cimConnection = getConnection(smisProvider.getIPAddress(), smisProvider.getPortNumber().toString());
                 }
             }
         } catch (final DatabaseException e) {
-            _log.error("Exception occured while creating cim connection for the provider :{}",smisProviderURI);
+            _log.error("Exception occured while creating cim connection for the provider :{}", smisProviderURI);
         }
-            
+
         return cimConnection;
     }
-    
-    
 
     public String getNamespace(StorageSystem storageDevice) {
         return getConnection(storageDevice).getImplNamespace();
     }
-    
+
     /**
      * Determines the connection type to establish, depending upon the passed
      * storage device type. Currently the connection manager supports three
@@ -584,7 +579,7 @@ public class CIMConnectionFactory {
     private String getConnectionTypeForDevice(String storageDeviceType) {
 
         if ((StorageSystem.Type.vnxblock.name().equals(storageDeviceType))
-            || (StorageSystem.Type.vmax.name().equals(storageDeviceType))) {
+                || (StorageSystem.Type.vmax.name().equals(storageDeviceType))) {
             return CimConstants.ECOM_CONNECTION_TYPE;
         } else if (StorageSystem.Type.vnxfile.name().equals(storageDeviceType)) {
             return CimConstants.ECOM_FILE_CONNECTION_TYPE;
@@ -592,7 +587,7 @@ public class CIMConnectionFactory {
             return CimConstants.CIM_CONNECTION_TYPE;
         } else {
             _log.error("Unexpected storage device type {} for CIM event monitoring",
-                storageDeviceType);
+                    storageDeviceType);
         }
 
         return CimConstants.CIM_CONNECTION_TYPE;
@@ -608,15 +603,15 @@ public class CIMConnectionFactory {
     private String getImplNamespaceForDevice(String storageDeviceType) {
 
         if ((StorageSystem.Type.vnxblock.name().equals(storageDeviceType))
-            || (StorageSystem.Type.vmax.name().equals(storageDeviceType))) {
+                || (StorageSystem.Type.vmax.name().equals(storageDeviceType))) {
             return CimConstants.DFLT_CIM_CONNECTION_IMPL_NS;
         } else if (StorageSystem.Type.vnxfile.name().equals(storageDeviceType)) {
             return CimConstants.FILE_CIM_CONNECTION_IMPL_NS;
         } else if (StorageSystem.Type.ibmxiv.name().equals(storageDeviceType)) {
             return CimConstants.DFLT_IBM_CIM_CONNECTION_IMPL_NS;
-    	} else {
+        } else {
             _log.error("Unexpected storage device type {} for CIM event monitoring",
-                storageDeviceType);
+                    storageDeviceType);
         }
 
         return CimConstants.DFLT_CIM_CONNECTION_IMPL_NS;

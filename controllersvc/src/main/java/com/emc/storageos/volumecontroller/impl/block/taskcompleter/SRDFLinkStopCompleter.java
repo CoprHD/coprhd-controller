@@ -1,15 +1,9 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
-/*
- * Copyright (c) 2014. EMC Corporation All Rights Reserved This software contains the intellectual
- * property of EMC Corporation or is licensed to EMC Corporation from third parties. Use of this
- * software and the intellectual property contained therein is expressly limited to the terms and
- * conditions of the License Agreement under which it is provided by or on behalf of EMC.
- */
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -36,7 +30,7 @@ public class SRDFLinkStopCompleter extends SRDFTaskCompleter {
     public SRDFLinkStopCompleter(List<URI> ids, String opId) {
         super(ids, opId);
     }
-    
+
     public void setVolumes(Collection<Volume> srcVolumes, Collection<Volume> targetVolumes) {
         this.srcVolumes = srcVolumes;
         this.tgtVolumes = targetVolumes;
@@ -47,41 +41,41 @@ public class SRDFLinkStopCompleter extends SRDFTaskCompleter {
             throws DeviceControllerException {
         try {
             setDbClient(dbClient);
-          
+
             switch (status) {
 
-            case ready:
+                case ready:
 
-                if (null != srcVolumes && null != tgtVolumes && !srcVolumes.isEmpty() && !tgtVolumes.isEmpty()) {
-                    for (Volume sourceVol : srcVolumes) {
-                        sourceVol.setPersonality(NullColumnValueGetter.getNullStr());
-                        sourceVol.setAccessState(Volume.VolumeAccessState.READWRITE.name());
-                        if (null != sourceVol.getSrdfTargets()) {
-                            sourceVol.getSrdfTargets().clear();
+                    if (null != srcVolumes && null != tgtVolumes && !srcVolumes.isEmpty() && !tgtVolumes.isEmpty()) {
+                        for (Volume sourceVol : srcVolumes) {
+                            sourceVol.setPersonality(NullColumnValueGetter.getNullStr());
+                            sourceVol.setAccessState(Volume.VolumeAccessState.READWRITE.name());
+                            if (null != sourceVol.getSrdfTargets()) {
+                                sourceVol.getSrdfTargets().clear();
+                            }
+                            sourceVol.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                            dbClient.persistObject(sourceVol);
                         }
-                        sourceVol.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                        dbClient.persistObject(sourceVol);
-                    }
 
-                    for (Volume target : tgtVolumes) {
-                        target.setPersonality(NullColumnValueGetter.getNullStr());
-                        target.setAccessState(Volume.VolumeAccessState.READWRITE.name());
-                        target.setSrdfParent(new NamedURI(NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullStr()));
-                        target.setSrdfCopyMode(NullColumnValueGetter.getNullStr());
-                        target.setSrdfGroup(NullColumnValueGetter.getNullURI());
-                        target.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                        dbClient.updateAndReindexObject(target);
-                    }
+                        for (Volume target : tgtVolumes) {
+                            target.setPersonality(NullColumnValueGetter.getNullStr());
+                            target.setAccessState(Volume.VolumeAccessState.READWRITE.name());
+                            target.setSrdfParent(new NamedURI(NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullStr()));
+                            target.setSrdfCopyMode(NullColumnValueGetter.getNullStr());
+                            target.setSrdfGroup(NullColumnValueGetter.getNullURI());
+                            target.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                            dbClient.updateAndReindexObject(target);
+                        }
 
-                    Volume target = tgtVolumes.iterator().next();
-                    Volume source = srcVolumes.iterator().next();
-                    _log.info("SRDF Devices source {} and target {} converted to non srdf devices", source.getId(),
-                            target.getId());
-                    recordSRDFOperation(dbClient, OperationTypeEnum.STOP_SRDF_LINK, status, source.getId().toString(), target
-                            .getId().toString());
-                }
-            default:
-                _log.info("Unable to handle SRDF Link Stop Operational status: {}", status);
+                        Volume target = tgtVolumes.iterator().next();
+                        Volume source = srcVolumes.iterator().next();
+                        _log.info("SRDF Devices source {} and target {} converted to non srdf devices", source.getId(),
+                                target.getId());
+                        recordSRDFOperation(dbClient, OperationTypeEnum.STOP_SRDF_LINK, status, source.getId().toString(), target
+                                .getId().toString());
+                    }
+                default:
+                    _log.info("Unable to handle SRDF Link Stop Operational status: {}", status);
             }
 
         } catch (Exception e) {

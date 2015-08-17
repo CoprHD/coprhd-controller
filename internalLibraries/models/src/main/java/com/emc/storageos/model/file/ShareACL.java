@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file;
@@ -15,151 +15,149 @@ import com.emc.storageos.model.file.CifsShareACLUpdateParams.ShareACLOperationEr
 @XmlRootElement
 public class ShareACL implements Serializable {
 
-	private static final long serialVersionUID = 1780598964262028652L;
-	/*
-	 * Payload attributes
-	 */
-	private URI fileSystemId;
-	private URI snapshotId;
-	private String domain;
-	private String user;
-	private String group;
-	private String shareName;
-	private String permission;
+    private static final long serialVersionUID = 1780598964262028652L;
+    /*
+     * Payload attributes
+     */
+    private URI fileSystemId;
+    private URI snapshotId;
+    private String domain;
+    private String user;
+    private String group;
+    private String shareName;
+    private String permission;
 
-	/*
-	 * Other attributes - not part of payload
-	 */
-	private boolean proceedToNextStep;
-	private ShareACLOperationErrorType errorType;
+    /*
+     * Other attributes - not part of payload
+     */
+    private boolean proceedToNextStep;
+    private ShareACLOperationErrorType errorType;
 
-	public boolean canProceedToNextStep() {
-		return proceedToNextStep;
-	}
+    public boolean canProceedToNextStep() {
+        return proceedToNextStep;
+    }
 
-	public void proceedToNextStep() {
-		this.proceedToNextStep = true;
-	}
-	
-	public void cancelNextStep(ShareACLOperationErrorType errorType) {
-		this.proceedToNextStep = false;
-		this.errorType = errorType;
-	}
-	
+    public void proceedToNextStep() {
+        this.proceedToNextStep = true;
+    }
 
-	public ShareACLOperationErrorType getErrorType() {
-		return errorType;
-	}
+    public void cancelNextStep(ShareACLOperationErrorType errorType) {
+        this.proceedToNextStep = false;
+        this.errorType = errorType;
+    }
 
-	@XmlElement(name = "filesystem_id")
-	public URI getFileSystemId() {
-		return fileSystemId;
-	}
+    public ShareACLOperationErrorType getErrorType() {
+        return errorType;
+    }
 
-	@XmlElement(name = "snapshot_id")
-	public URI getSnapshotId() {
-		return snapshotId;
-	}
+    @XmlElement(name = "filesystem_id")
+    public URI getFileSystemId() {
+        return fileSystemId;
+    }
 
-	@XmlElement(name = "user")
-	public String getUser() {
-		return user;
-	}
+    @XmlElement(name = "snapshot_id")
+    public URI getSnapshotId() {
+        return snapshotId;
+    }
 
-	@XmlElement(name = "group")
-	public String getGroup() {
-		return group;
-	}
+    @XmlElement(name = "user")
+    public String getUser() {
+        return user;
+    }
 
-	@XmlElement(name = "share_name")
-	public String getShareName() {
-		return shareName;
-	}
+    @XmlElement(name = "group")
+    public String getGroup() {
+        return group;
+    }
 
-	@XmlElement(name = "permission")
-	public String getPermission() {
-		return permission;
-	}
-	
-	@XmlElement(name = "domain")
-	public String getDomain() {
-		return domain;
-	}
+    @XmlElement(name = "share_name")
+    public String getShareName() {
+        return shareName;
+    }
 
-	public void setDomain(String domain) {
-		this.domain = domain;
-	}
+    @XmlElement(name = "permission")
+    public String getPermission() {
+        return permission;
+    }
 
-	public void setFileSystemId(URI fileSystemId) {
-		this.fileSystemId = fileSystemId;
-	}
+    @XmlElement(name = "domain")
+    public String getDomain() {
+        return domain;
+    }
 
-	public void setSnapshotId(URI snapshotId) {
-		this.snapshotId = snapshotId;
-	}
+    public void setDomain(String domain) {
+        this.domain = domain;
+    }
 
-	public void setUser(String user) {
-		this.user = user;
-	}
+    public void setFileSystemId(URI fileSystemId) {
+        this.fileSystemId = fileSystemId;
+    }
 
-	public void setGroup(String group) {
-		this.group = group;
-	}
+    public void setSnapshotId(URI snapshotId) {
+        this.snapshotId = snapshotId;
+    }
 
-	public void setShareName(String shareName) {
-		this.shareName = shareName;
-	}
+    public void setUser(String user) {
+        this.user = user;
+    }
 
-	public void setPermission(String permission) {
-		this.permission = permission;
-	}
+    public void setGroup(String group) {
+        this.group = group;
+    }
 
+    public void setShareName(String shareName) {
+        this.shareName = shareName;
+    }
 
-	@Override
-	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("ShareACL [");
-		if (fileSystemId != null) {
-			builder.append("fileSystemId=");
-			builder.append(fileSystemId);
-			builder.append(", ");
-		}
-		if (snapshotId != null) {
-			builder.append("snapshotId=");
-			builder.append(snapshotId);
-			builder.append(", ");
-		}
-		if (domain != null) {
-			builder.append("domain=");
-			builder.append(domain);
-			builder.append(", ");
-		}
-		if (user != null) {
-			builder.append("user=");
-			builder.append(user);
-			builder.append(", ");
-		}
-		if (group != null) {
-			builder.append("group=");
-			builder.append(group);
-			builder.append(", ");
-		}
-		if (shareName != null) {
-			builder.append("shareName=");
-			builder.append(shareName);
-			builder.append(", ");
-		}
+    public void setPermission(String permission) {
+        this.permission = permission;
+    }
 
-		if (permission != null) {
-			builder.append("permission=");
-			builder.append(permission);
-		}
-		builder.append("]");
-		return builder.toString();
-	}
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("ShareACL [");
+        if (fileSystemId != null) {
+            builder.append("fileSystemId=");
+            builder.append(fileSystemId);
+            builder.append(", ");
+        }
+        if (snapshotId != null) {
+            builder.append("snapshotId=");
+            builder.append(snapshotId);
+            builder.append(", ");
+        }
+        if (domain != null) {
+            builder.append("domain=");
+            builder.append(domain);
+            builder.append(", ");
+        }
+        if (user != null) {
+            builder.append("user=");
+            builder.append(user);
+            builder.append(", ");
+        }
+        if (group != null) {
+            builder.append("group=");
+            builder.append(group);
+            builder.append(", ");
+        }
+        if (shareName != null) {
+            builder.append("shareName=");
+            builder.append(shareName);
+            builder.append(", ");
+        }
 
-	public ShareACL() {
+        if (permission != null) {
+            builder.append("permission=");
+            builder.append(permission);
+        }
+        builder.append("]");
+        return builder.toString();
+    }
 
-	}
-	
+    public ShareACL() {
+
+    }
+
 }

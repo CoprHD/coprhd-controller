@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -34,8 +34,7 @@ public class StorageProviderUtils {
     public static StorageProviderRestRep getStorageProvider(URI id) {
         try {
             return getViprClient().storageProviders().get(id);
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }

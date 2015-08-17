@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.catalog;
@@ -49,9 +49,9 @@ public class ApprovalConfiguration extends Controller {
         CatalogPreferencesUpdateParam updateParam = new CatalogPreferencesUpdateParam();
         updateParam.setTenantId(Models.currentAdminTenant());
         approvalConfig.writeTo(updateParam);
-        
+
         CatalogPreferenceUtils.updatePreferences(updateParam);
-        
+
         flash.success(MessagesUtils.get("approvalConfig.saved"));
         edit();
     }
@@ -68,7 +68,7 @@ public class ApprovalConfiguration extends Controller {
                 }
             }
             if (StringUtils.isNotBlank(approvalUrl)) {
-                // Play's URL validation is not very good, it doesn't allow IP address URLs 
+                // Play's URL validation is not very good, it doesn't allow IP address URLs
                 try {
                     URL url = new URL(approvalUrl);
                     if (!"http".equalsIgnoreCase(url.getProtocol()) && !"https".equalsIgnoreCase(url.getProtocol())) {
@@ -77,8 +77,7 @@ public class ApprovalConfiguration extends Controller {
                     else if (!HostNameOrIpAddressCheck.isValidHostNameOrIp(url.getHost())) {
                         Validation.addError(formName + ".approvalUrl", "validation.url");
                     }
-                }
-                catch (MalformedURLException e) {
+                } catch (MalformedURLException e) {
                     Validation.addError(formName + ".approvalUrl", "validation.url");
                 }
             }

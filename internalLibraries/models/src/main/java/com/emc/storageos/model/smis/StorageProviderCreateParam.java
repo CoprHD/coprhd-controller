@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.smis;
@@ -11,7 +11,7 @@ import com.emc.storageos.model.valid.Length;
 
 @XmlRootElement(name = "storage_provider_create")
 public class StorageProviderCreateParam {
-    
+
     public static Boolean USE_SSL_DEFAULT = Boolean.TRUE;
 
     private String name;
@@ -26,8 +26,9 @@ public class StorageProviderCreateParam {
     private String secondaryPassword;
     private String elementManagerURL;
 
-    public StorageProviderCreateParam() {}
-    
+    public StorageProviderCreateParam() {
+    }
+
     public StorageProviderCreateParam(String name, String ipAddress,
             Integer portNumber, String userName, String password, Boolean useSSL, String interfaceType) {
         this.name = name;
@@ -40,8 +41,8 @@ public class StorageProviderCreateParam {
     }
 
     /**
-     * Name of the Storage Provider 
-     */     
+     * Name of the Storage Provider
+     */
     @XmlElement(required = true)
     @Length(min = 2, max = 128)
     public String getName() {
@@ -53,9 +54,10 @@ public class StorageProviderCreateParam {
     }
 
     /**
-     * IP address of the Storage provider. 
+     * IP address of the Storage provider.
+     * 
      * @valid example: 10.247.99.87
-     */     
+     */
     @XmlElement(required = true, name = "ip_address")
     public String getIpAddress() {
         return ipAddress;
@@ -66,9 +68,10 @@ public class StorageProviderCreateParam {
     }
 
     /**
-     * The port number of the Storage provider  
-     * @valid example: 2001 
-     */     
+     * The port number of the Storage provider
+     * 
+     * @valid example: 2001
+     */
     @XmlElement(required = true, name = "port_number")
     public Integer getPortNumber() {
         return portNumber;
@@ -79,9 +82,10 @@ public class StorageProviderCreateParam {
     }
 
     /**
-     * User name of the Storage provider  
-     * @valid example: system 
-     */     
+     * User name of the Storage provider
+     * 
+     * @valid example: system
+     */
     @XmlElement(required = true, name = "user_name")
     public String getUserName() {
         return userName;
@@ -92,9 +96,10 @@ public class StorageProviderCreateParam {
     }
 
     /**
-     * Password of the Storage provider  
-     * @valid example: none 
-     */     
+     * Password of the Storage provider
+     * 
+     * @valid example: none
+     */
     @XmlElement(required = true)
     public String getPassword() {
         return password;
@@ -105,10 +110,11 @@ public class StorageProviderCreateParam {
     }
 
     /**
-     * Specifies whether to use SSL (Secure Sockets Layer) 
+     * Specifies whether to use SSL (Secure Sockets Layer)
      * as the authentication method.
-     * @valid none 
-     */     
+     * 
+     * @valid none
+     */
     @XmlElement(name = "use_ssl")
     public Boolean getUseSSL() {
         return useSSL;
@@ -117,8 +123,10 @@ public class StorageProviderCreateParam {
     public void setUseSSL(Boolean useSSL) {
         this.useSSL = useSSL;
     }
+
     /**
      * Interface type of the Storage Provider
+     * 
      * @valid example: hicommand,smis,vplex,cinder,scaleio,ddmc,ibmxiv
      */
     @XmlElement(required = true, name = "interface_type")
@@ -133,8 +141,9 @@ public class StorageProviderCreateParam {
     /**
      * A command prefix to invoke the ScaleIO CLI. This is an optional parameter
      * and is only applicable for a ScaleIO StorageProvider.
+     * 
      * @valid none
-     * @return
+     * @return ScaleIO CLI
      */
     @XmlElement(required = false, name = "sio_cli")
     public String getSioCLI() {
@@ -147,6 +156,7 @@ public class StorageProviderCreateParam {
 
     /**
      * Secondary credentials that may be required for management
+     * 
      * @valid none
      */
     @XmlElement(required = false, name = "secondary_username")
@@ -156,6 +166,7 @@ public class StorageProviderCreateParam {
 
     /**
      * Secondary credentials that may be required for management
+     * 
      * @valid none
      */
     public void setSecondaryUsername(String secondaryUsername) {
@@ -173,7 +184,7 @@ public class StorageProviderCreateParam {
 
     /**
      * URL of the Element Management system that is associated with the Provider.
-     *
+     * 
      * @valid none
      */
     @XmlElement(required = false, name = "element_manager_url")

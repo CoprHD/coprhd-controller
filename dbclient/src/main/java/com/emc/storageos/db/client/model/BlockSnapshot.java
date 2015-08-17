@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
@@ -22,27 +12,26 @@ import javax.xml.bind.annotation.XmlElement;
 import java.net.URI;
 import java.util.List;
 
-
 /**
  * @author burckb
- *
+ * 
  */
 
 @Cf("BlockSnapshot")
 public class BlockSnapshot extends BlockObject implements ProjectResourceSnapshot {
     // Volume the snapshot was created from
     private NamedURI _parent;
-    
+
     // Project the snapshot was associated to
     private NamedURI _project;
- 
+
     // New volume generated when the snapshot was created or exported
     private String _newVolumeNativeId;
-    
+
     // Set of snapshots generated at the same time, with the same consistency group
     private String _snapsetLabel;
-    
-    //Source ALU, for convenience
+
+    // Source ALU, for convenience
     private String _sourceNativeId;
 
     // Name reference of Clar_SynchronizationAspectForSource
@@ -67,33 +56,33 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     // Activation means that the source and target synchronization has been initialized.
     // (Data may not have been written to the target, however)
     private Boolean _isSyncActive;
-    
+
     // Logical size of a storage volume on array which is volume.ConsumableBlocks * volume.BlockSize.
     private Long _provisionedCapacity;
-    
+
     // Total amount of storage space consumed within the StoragePool which is SpaceConsumed of CIM_AllocatedFromStoragePool.
     private Long _allocatedCapacity;
-    
+
     // Snapshot technology type
     private String _technologyType;
-    
+
     // TODO EMCW-RP: This RP information below belongs in a subclass extending BlockSnapshot.
-    //      This work will be done as part of the protection API work.
-    
+    // This work will be done as part of the protection API work.
+
     // BEGIN RecoverPoint specific information
     private URI _protectionSet;
     private String _emName;
     private String _emBookmarkTime;
-    
+
     // The next 3 values make up the ConsistencyGroupCopyUID of the copy
     private Integer _emCGGroupId;
     private Integer _emCGGroupCopyId;
-    private String  _emInternalSiteName;
-    
+    private String _emInternalSiteName;
+
     // The next 3 values make up the ConsistencyGroupCopyUID of the production at the time of replication
     private Integer _productionGroupId;
     private Integer _productionGroupCopyId;
-    private String  _productionInternalSiteName;
+    private String _productionInternalSiteName;
     // END RecoverPoint specific information
 
     // Is an indication that the snapshot needs to be copied to the target.
@@ -110,6 +99,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     public NamedURI getParent() {
         return _parent;
     }
+
     public void setParent(NamedURI parent) {
         _parent = parent;
         setChanged("parent");
@@ -123,6 +113,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     public String getNewVolumeNativeId() {
         return _newVolumeNativeId;
     }
+
     public void setNewVolumeNativeId(String newVolume) {
         _newVolumeNativeId = newVolume;
         setChanged("newVolumeNativeId");
@@ -138,22 +129,23 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
         _snapsetLabel = snapsetLabel;
         setChanged("snapsetLabel");
     }
-    
+
     @NamedRelationIndex(cf = "NamedRelationIndex", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
         return _project;
     }
+
     public void setProject(NamedURI project) {
         _project = project;
         setChanged("project");
     }
 
-    
     @Name("sourceNativeId")
     public String getSourceNativeId() {
         return _sourceNativeId;
     }
+
     public void setSourceNativeId(String sourceALU) {
         _sourceNativeId = sourceALU;
         setChanged("sourceNativeId");
@@ -179,7 +171,6 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
         setChanged("settingsGroupInstance");
     }
 
-    
     @Name("snapshotGroupInstance")
     @Deprecated
     public String getSnapshotGroupInstance() {
@@ -191,7 +182,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
         _snapshotGroupInstance = snapshotGroupInstance;
         setChanged("snapshotGroupInstance");
     }
-    
+
     @Name("isSyncActive")
     public Boolean getIsSyncActive() {
         return (_isSyncActive != null) ? _isSyncActive : Boolean.FALSE;
@@ -216,7 +207,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     public String getEmName() {
         return _emName;
     }
-    
+
     public void setEmName(String emName) {
         this._emName = emName;
         setChanged("emName");
@@ -226,65 +217,67 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     public String getEmBookmarkTime() {
         return _emBookmarkTime;
     }
-    
+
     public void setEmBookmarkTime(String emBookmarkTime) {
         this._emBookmarkTime = emBookmarkTime;
         setChanged("emBookmarkTime");
     }
-    
+
     @Name("emCGGroupId")
     public Integer getEmCGGroupId() {
         return _emCGGroupId;
     }
-    
+
     public void setEmCGGroupId(Integer emCGGroupId) {
         this._emCGGroupId = emCGGroupId;
         setChanged("emCGGroupId");
     }
-    
+
     @Name("emCGGroupCopyId")
     public Integer getEmCGGroupCopyId() {
         return _emCGGroupCopyId;
     }
-    
+
     public void setEmCGGroupCopyId(Integer emCGGroupCopyId) {
         this._emCGGroupCopyId = emCGGroupCopyId;
         setChanged("emCGGroupCopyId");
     }
-    
+
     @Name("emInternalSiteName")
     public String getEmInternalSiteName() {
         return _emInternalSiteName;
     }
-    
+
     public void setEmInternalSiteName(String emInternalSiteName) {
         this._emInternalSiteName = emInternalSiteName;
         setChanged("emInternalSiteName");
     }
-    
+
     @Name("productionGroupId")
     public Integer getProductionGroupId() {
         return _productionGroupId;
     }
-    
+
     public void setProductionGroupId(Integer productionGroupId) {
         this._productionGroupId = productionGroupId;
         setChanged("productionGroupId");
     }
-    
+
     @Name("productionGroupCopyId")
     public Integer getProductionGroupCopyId() {
         return _productionGroupCopyId;
     }
-    
+
     public void setProductionGroupCopyId(Integer productionGroupCopyId) {
         this._productionGroupCopyId = productionGroupCopyId;
         setChanged("productionGroupCopyId");
     }
+
     @Name("productionInternalSiteName")
     public String getProductionInternalSiteName() {
         return _productionInternalSiteName;
     }
+
     public void setProductionInternalSiteName(String productionInternalSiteName) {
         this._productionInternalSiteName = productionInternalSiteName;
         setChanged("productionInternalSiteName");
@@ -301,7 +294,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
         this._protectionSet = _protectionSet;
         setChanged("protectionSet");
     }
-    
+
     @Name("provisionedCapacity")
     public Long getProvisionedCapacity() {
         return (null == _provisionedCapacity) ? 0L : _provisionedCapacity;
@@ -335,7 +328,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     /**
      * Given a list of BlockSnapshot objects, determine if they were created as part of a
      * consistency group.
-     *
+     * 
      * @param snapshotList
      *            [required] - List of BlockSnapshot objects
      * @return true if the BlockSnapshots were created as part of volume consistency group.
@@ -355,12 +348,13 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
         }
         return isCgCreate;
     }
-    
+
     /**
      * Deprecated - Needed only for 2.1 migration callback.
      * 
-     * Convenience method to get the consistency group for a snapshot.  Snapshots
+     * Convenience method to get the consistency group for a snapshot. Snapshots
      * will only have one consistency group so get the first one.
+     * 
      * @return
      */
     @Deprecated

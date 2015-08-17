@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -27,7 +27,7 @@ public class ConfigPropertyUtils {
     public static final String DEFAULT_SMTP_TLS_PORT = "465";
     public static final String DEFAULT_SMTP_PORT = "25";
     public static final String SMTP_PROPERTY_PREFIX = "system_connectemc_smtp_";
-    
+
     public static PropertiesMetadata getPropertiesMetadata() {
         return getSysClient().config().getPropMetadata();
     }
@@ -35,7 +35,7 @@ public class ConfigPropertyUtils {
     public static Map<String, String> getProperties() {
         return getSysClient().config().getProperties().getProperties();
     }
-    
+
     public static Map<String, String> getPropertiesFromCoordinator() {
         // Only do this if we have coordinator available
         if (StorageOsPlugin.isEnabled()) {
@@ -47,7 +47,7 @@ public class ConfigPropertyUtils {
         }
         return Maps.newHashMap();
     }
-    
+
     public static void saveProperties(Map<String, String> updatedProperties) {
         saveProperties(getSysClient(), updatedProperties);
     }
@@ -69,25 +69,25 @@ public class ConfigPropertyUtils {
             loadSmtpSettingsIntoPlay();
         }
     }
-    
+
     public static void loadCoordinatorProperties() {
         Map<String, String> properties = getPropertiesFromCoordinator();
         loadSmtpSettingsIntoPlay(properties);
         loadApplicationBaseUrl(properties);
     }
-    
+
     public static void loadApplicationBaseUrl(Map<String, String> properties) {
         String applicationHost = getApplicationHost(properties);
         if (StringUtils.isNotBlank(applicationHost)) {
             String applicationBaseUrl = String.format("https://%s/", applicationHost);
             Play.configuration.setProperty("application.baseUrl", applicationBaseUrl);
         }
-        
+
         Logger.debug("  application.baseUrl = %s", Play.configuration.getProperty("application.baseUrl"));
     }
-    
+
     /**
-     * Gets the host name or IP for the application from the coordinator properties.  This will use the virtual IP
+     * Gets the host name or IP for the application from the coordinator properties. This will use the virtual IP
      * if available, otherwise it uses the standalone network IP.
      * 
      * @param properties the coordinator properties.
@@ -107,7 +107,7 @@ public class ConfigPropertyUtils {
             return null;
         }
     }
-    
+
     /**
      * Determines if the properties contain any SMTP settings.
      * 
@@ -122,11 +122,11 @@ public class ConfigPropertyUtils {
         }
         return false;
     }
-    
+
     public static void loadSmtpSettingsIntoPlay() {
         loadSmtpSettingsIntoPlay(getPropertiesFromCoordinator());
     }
-    
+
     public static void loadSmtpSettingsIntoPlay(Map<String, String> properties) {
         Logger.info("Loading SMTP Settings into Play");
 
@@ -187,7 +187,7 @@ public class ConfigPropertyUtils {
         }
         return port;
     }
-    
+
     private static void setPlayProperty(String name, String value) {
         if (StringUtils.isNotBlank(value)) {
             Play.configuration.setProperty(name, value);

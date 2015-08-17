@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -9,26 +9,26 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class Parameter {
-    
+
     /**
      * Label or key for this parameter to an order
      */
-    private String label;                       
-    
+    private String label;
+
     /**
      * Actual value for this parameter (often times an ID)
      */
-    private String value;                 
-    
+    private String value;
+
     private String friendlyLabel;
-    
+
     /**
      * User friendly text value representing the choice (often the label)
      */
-    private String friendlyValue;               
-    
+    private String friendlyValue;
+
     private boolean userInput = true;
-    
+
     private boolean encrypted = false;
 
     public Parameter() {
@@ -89,14 +89,14 @@ public class Parameter {
     public void setUserInput(boolean userInput) {
         this.userInput = userInput;
     }
-    
+
     @XmlElement(name = "encrypted")
     public boolean isEncrypted() {
         return encrypted;
     }
-    
+
     public void setEncrypted(boolean encrypted) {
         this.encrypted = encrypted;
     }
-    
+
 }

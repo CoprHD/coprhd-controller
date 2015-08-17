@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core.util;
@@ -38,7 +38,7 @@ public class VirtualPoolUtils {
 
     private static List<NamedRelatedVirtualPoolRep> byType(List<NamedRelatedVirtualPoolRep> pools, String type) {
         List<NamedRelatedVirtualPoolRep> response = new ArrayList<NamedRelatedVirtualPoolRep>();
-        for (NamedRelatedVirtualPoolRep pool: pools) {
+        for (NamedRelatedVirtualPoolRep pool : pools) {
             if (type.equalsIgnoreCase(pool.getVirtualPoolType())) {
                 response.add(pool);
             }

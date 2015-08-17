@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.networkcontroller;
@@ -9,27 +9,28 @@ import java.util.ArrayList;
 
 /**
  * This class holds the context for multiple fiber channel zoning operations that are in flight.
+ * 
  * @author Watson
- *
+ * 
  */
-public class NetworkFCContext implements Serializable{
-	
-	boolean addingZones = true;
-	ArrayList<NetworkFCZoneInfo> _zoneInfos = new ArrayList<NetworkFCZoneInfo>();
+public class NetworkFCContext implements Serializable {
 
-	public ArrayList<NetworkFCZoneInfo> getZoneInfos() {
-		return _zoneInfos;
-	}
+    boolean addingZones = true;
+    ArrayList<NetworkFCZoneInfo> _zoneInfos = new ArrayList<NetworkFCZoneInfo>();
 
-	public void setZoneInfos(ArrayList<NetworkFCZoneInfo> zoneInfos) {
-		this._zoneInfos = zoneInfos;
-	}
+    public ArrayList<NetworkFCZoneInfo> getZoneInfos() {
+        return _zoneInfos;
+    }
 
-	public boolean isAddingZones() {
-		return addingZones;
-	}
+    public void setZoneInfos(ArrayList<NetworkFCZoneInfo> zoneInfos) {
+        this._zoneInfos = zoneInfos;
+    }
 
-	public void setAddingZones(boolean addingZones) {
-		this.addingZones = addingZones;
-	}
+    public boolean isAddingZones() {
+        return addingZones;
+    }
+
+    public void setAddingZones(boolean addingZones) {
+        this.addingZones = addingZones;
+    }
 }

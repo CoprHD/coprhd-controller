@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block.tasks;
@@ -32,10 +32,10 @@ public class CreateExportNoWait extends ViPRExecutionTask<Task<ExportGroupRestRe
         this.hostId = hostId;
         this.clusterId = clusterId;
         if (clusterId != null) {
-        	provideDetailArgs(name, getMessage("CreateExport.cluster"), hostName, volumeIds, hlu);
+            provideDetailArgs(name, getMessage("CreateExport.cluster"), hostName, volumeIds, hlu);
         }
         else {
-        	provideDetailArgs(name, getMessage("CreateExport.hostname"), hostName, volumeIds, hlu);
+            provideDetailArgs(name, getMessage("CreateExport.hostname"), hostName, volumeIds, hlu);
         }
     }
 

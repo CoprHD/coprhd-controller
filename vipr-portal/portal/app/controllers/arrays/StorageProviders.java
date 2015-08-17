@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.arrays;
@@ -58,14 +58,14 @@ public class StorageProviders extends ViprResourceController {
     protected static final String UNKNOWN = "SMISProviders.unknown";
     protected static final String DISCOVERY_STARTED = "SMISProviders.introspection";
     private static final int SAVE_WAIT_MILLIS = 300000;
-    
+
     private static void addReferenceData() {
         renderArgs.put("interfaceTypeOptions", StorageProviderTypes.OPTIONS);
         renderArgs.put("sslDefaultStorageProviderList", Arrays.asList(StorageProviderTypes.SSL_DEFAULT_OPTIONS));
         renderArgs.put("nonSSLStorageSystemList", Arrays.asList(StorageSystemTypes.NON_SSL_OPTIONS));
         renderArgs.put("mdmDefaultStorageProviderList", Arrays.asList(StorageSystemTypes.MDM_DEFAULT_OPTIONS));
         renderArgs.put("elementManagerStorageProviderList", Arrays.asList(StorageSystemTypes.ELEMENT_MANAGER_OPTIONS));
-        
+
         List<EnumOption> defaultStorageProviderPortMap = Arrays.asList(EnumOption.options(DefaultStorageProviderPortMap.values()));
         renderArgs.put("defaultStorageProviderPortMap", defaultStorageProviderPortMap);
     }
@@ -129,7 +129,7 @@ public class StorageProviders extends ViprResourceController {
         }
     }
 
-    @FlashException(keep=true, referrer={"create","edit"})
+    @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(StorageProviderForm smisProvider) {
         smisProvider.validate("smisProvider");
         if (Validation.hasErrors()) {
@@ -176,7 +176,7 @@ public class StorageProviders extends ViprResourceController {
         list();
     }
 
-    //Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here
+    // Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here
     @SuppressWarnings("squid:S2068")
     public static class StorageProviderForm {
 
@@ -205,18 +205,18 @@ public class StorageProviders extends ViprResourceController {
         public String confirmPassword = "";
 
         public Boolean useSSL;
-        
+
         public String interfaceType;
-        
+
         @MaxSize(2048)
         public String secondaryUsername;
-        
+
         @MaxSize(2048)
         public String secondaryPassword = "";
-        
+
         @MaxSize(2048)
         public String secondaryPasswordConfirm = "";
-        
+
         public String elementManagerURL;
 
         public StorageProviderForm() {
@@ -277,11 +277,11 @@ public class StorageProviders extends ViprResourceController {
                 Validation.addError(fieldName + ".confirmPassword",
                         MessagesUtils.get("smisProvider.confirmPassword.not.match"));
             }
-            
+
             if (!StringUtils.equals(StringUtils.trim(secondaryPassword), StringUtils.trim(secondaryPasswordConfirm))) {
-            	Validation.addError(fieldName + ".secondaryPasswordConfirm",
-                	    MessagesUtils.get("smisProvider.secondaryPassword.confirmPassword.not.match"));
-        	}            
+                Validation.addError(fieldName + ".secondaryPasswordConfirm",
+                        MessagesUtils.get("smisProvider.secondaryPassword.confirmPassword.not.match"));
+            }
         }
     }
 
@@ -299,8 +299,7 @@ public class StorageProviders extends ViprResourceController {
         public void doJob() throws Exception {
             try {
                 task.waitFor(SAVE_WAIT_MILLIS);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 // Ignore, trying to ensure basic SMI-S discovery completes before kicking off storage system discovery
             }
             client.storageSystems().discoverAll();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.ports;
@@ -19,15 +19,17 @@ import java.util.List;
 public class StoragePortList {
     private List<NamedRelatedResourceRep> ports;
 
-    public StoragePortList() {}
-    
+    public StoragePortList() {
+    }
+
     public StoragePortList(List<NamedRelatedResourceRep> ports) {
         this.ports = ports;
     }
 
     /**
-     * List of Storage ports.  A Storage port represents a 
+     * List of Storage ports. A Storage port represents a
      * port of a storage device.
+     * 
      * @valid none
      */
     @XmlElement(name = "storage_port")

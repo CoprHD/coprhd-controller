@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.fast.vnx;
 
@@ -107,26 +97,26 @@ public class CommitedSettingsInstanceProcessor extends PoolProcessor {
     private void updatePoolSettingId(
             int tierMethodology, StoragePool pool, String poolSettingId) {
         switch (tierMethodology) {
-        case Constants.NO_DATA_MOVEMENT:
-            pool.setNoDataMovementId(poolSettingId);
-            break;
-        case Constants.AUTO_TIER:
-            pool.setAutoTierSettingId(poolSettingId);
-            break;
-        case Constants.HIGH_AVAILABLE_TIER:
-            pool.setHighAvailableTierId(poolSettingId);
-            break;
-        case Constants.LOW_AVAILABLE_TIER:
-            pool.setLowAvailableTierId(poolSettingId);
-            break;
-        case Constants.START_HIGH_THEN_AUTO_TIER:
-            pool.setStartHighThenAutoTierId(poolSettingId);
-            break;
-        default:
-            _logger.warn(
-                    "Found Invalid Storage tier methodology '{}' for Storage Pool {}",
-                    tierMethodology, pool.getId());
-            break;
+            case Constants.NO_DATA_MOVEMENT:
+                pool.setNoDataMovementId(poolSettingId);
+                break;
+            case Constants.AUTO_TIER:
+                pool.setAutoTierSettingId(poolSettingId);
+                break;
+            case Constants.HIGH_AVAILABLE_TIER:
+                pool.setHighAvailableTierId(poolSettingId);
+                break;
+            case Constants.LOW_AVAILABLE_TIER:
+                pool.setLowAvailableTierId(poolSettingId);
+                break;
+            case Constants.START_HIGH_THEN_AUTO_TIER:
+                pool.setStartHighThenAutoTierId(poolSettingId);
+                break;
+            default:
+                _logger.warn(
+                        "Found Invalid Storage tier methodology '{}' for Storage Pool {}",
+                        tierMethodology, pool.getId());
+                break;
         }
     }
 }

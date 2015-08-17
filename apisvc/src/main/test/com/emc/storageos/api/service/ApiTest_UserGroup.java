@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2011-2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2011-2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service;
@@ -38,7 +28,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 /**
- *
+ * 
  * ApiTest_UserGroup class to exercise the core api functionality of User Group.
  */
 public class ApiTest_UserGroup extends ApiTestBase {
@@ -53,9 +43,9 @@ public class ApiTest_UserGroup extends ApiTestBase {
     private final String TEST_PROJECT_DELETE_API = "/projects/%s/deactivate";
 
     private final String TEST_DEFAULT_USER_GROUP_NAME = "Depart_Dev";
-    private final String[] TEST_DEFAULT_VDC_ROLES = {"SYSTEM_ADMIN", "SECURITY_ADMIN", "SYSTEM_MONITOR", "SYSTEM_AUDITOR"};
-    private final String[] TEST_DEFAULT_TENANT_ROLES = {"TENANT_ADMIN", "PROJECT_ADMIN", "TENANT_APPROVER"};
-    private final String[] TEST_DEFAULT_ACLS = {"ALL", "BACKUP", "USE", "OWN"};
+    private final String[] TEST_DEFAULT_VDC_ROLES = { "SYSTEM_ADMIN", "SECURITY_ADMIN", "SYSTEM_MONITOR", "SYSTEM_AUDITOR" };
+    private final String[] TEST_DEFAULT_TENANT_ROLES = { "TENANT_ADMIN", "PROJECT_ADMIN", "TENANT_APPROVER" };
+    private final String[] TEST_DEFAULT_ACLS = { "ALL", "BACKUP", "USE", "OWN" };
 
     private String authnProviderDomain = null;
     private ApiTest_AuthnProviderUtils apiTestAuthnProviderUtils = new ApiTest_AuthnProviderUtils();;
@@ -63,7 +53,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
     private LinkedList<CleanupResource> _cleanupResourceList = null;
 
     @Before
-    public void setUp() throws Exception{
+    public void setUp() throws Exception {
         setupHttpsResources();
         _cleanupResourceList = new LinkedList<CleanupResource>();
 
@@ -73,19 +63,19 @@ public class ApiTest_UserGroup extends ApiTestBase {
     }
 
     @After
-    public void tearDown(){
+    public void tearDown() {
         CleanupResource.cleanUpTestResources(_cleanupResourceList);
         tearDownHttpsResources();
     }
 
-    private void registerResourceForCleanup(CleanupResource resource){
-        if (_cleanupResourceList == null){
+    private void registerResourceForCleanup(CleanupResource resource) {
+        if (_cleanupResourceList == null) {
             _cleanupResourceList = new LinkedList<CleanupResource>();
         }
         _cleanupResourceList.add(resource);
     }
 
-    UserGroup removeDuplicateAttributes (UserGroup from) {
+    UserGroup removeDuplicateAttributes(UserGroup from) {
         Assert.assertNotNull(from);
         Assert.assertFalse(CollectionUtils.isEmpty(from.getAttributes()));
 
@@ -146,7 +136,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
         if (!CollectionUtils.isEmpty(updateParam.getRemoveAttributes())) {
             for (String removeAttributeKey : updateParam.getRemoveAttributes()) {
                 Iterator<String> it = userGroup.getAttributes().iterator();
-                while(it.hasNext()){
+                while (it.hasNext()) {
                     String userAttributeParamString = it.next();
                     UserAttributeParam userAttributeParam = UserAttributeParam.fromString(userAttributeParamString);
                     Assert.assertNotNull(userAttributeParam);
@@ -212,7 +202,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
         return removeDuplicateAttributes(userGroup);
     }
 
-    boolean isSame (UserGroup expected, UserGroup actual) {
+    boolean isSame(UserGroup expected, UserGroup actual) {
         Assert.assertNotNull(expected);
         Assert.assertNotNull(actual);
 
@@ -226,12 +216,12 @@ public class ApiTest_UserGroup extends ApiTestBase {
         Assert.assertTrue(actual.getDomain().equalsIgnoreCase(expected.getDomain()));
     }
 
-    //Function to validate the Authn provider creation and add resource to the cleanup list.
-    private void validateAuthnProviderCreateSuccess(AuthnProviderRestRep resp, int status){
+    // Function to validate the Authn provider creation and add resource to the cleanup list.
+    private void validateAuthnProviderCreateSuccess(AuthnProviderRestRep resp, int status) {
         Assert.assertEquals(200, status);
 
-        //Add the created authnprovider to cleanup list, so that at the end of this test
-        //the resource will be destroyed.
+        // Add the created authnprovider to cleanup list, so that at the end of this test
+        // the resource will be destroyed.
         final String deleteObjectURL = getAuthnProviderDeleteApi(resp.getId());
         CleanupResource authnProviderToCleanup = new CleanupResource("delete", deleteObjectURL, rSys, null);
 
@@ -250,8 +240,8 @@ public class ApiTest_UserGroup extends ApiTestBase {
         UserGroup actualUserGroup = buildUserGroupFromRestRep(resp);
         Assert.assertTrue(isSame(expectedUserGroup, actualUserGroup));
 
-        //Add the created userGroup to cleanup list, so that at the end of this test
-        //the object will be destroyed.
+        // Add the created userGroup to cleanup list, so that at the end of this test
+        // the object will be destroyed.
         final String deleteObjectURL = this.getTestEditApi(resp.getId());
         CleanupResource userGroupToCleanup = new CleanupResource("delete", deleteObjectURL, rSys, null);
 
@@ -261,8 +251,8 @@ public class ApiTest_UserGroup extends ApiTestBase {
     }
 
     private void validateUserGroupEditSuccess(UserGroup userGroup,
-                                              UserGroupUpdateParam expected,
-                                              ClientResponse actual){
+            UserGroupUpdateParam expected,
+            ClientResponse actual) {
         Assert.assertEquals(200, actual.getStatus());
 
         UserGroupRestRep resp = actual.getEntity(UserGroupRestRep.class);
@@ -275,7 +265,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
         Assert.assertTrue(isSame(expectedUserGroup, actualUserGroup));
     }
 
-    private BulkIdParam validateUserGroupBulkGetSuccess(ClientResponse actual, long expectedIDCount){
+    private BulkIdParam validateUserGroupBulkGetSuccess(ClientResponse actual, long expectedIDCount) {
         Assert.assertEquals(200, actual.getStatus());
 
         BulkIdParam resp = actual.getEntity(BulkIdParam.class);
@@ -286,7 +276,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
         return resp;
     }
 
-    private void validateUserGroupBulkPostSuccess(ClientResponse actual, long expectedIDCount){
+    private void validateUserGroupBulkPostSuccess(ClientResponse actual, long expectedIDCount) {
         Assert.assertEquals(200, actual.getStatus());
 
         UserGroupBulkRestRep resp = actual.getEntity(UserGroupBulkRestRep.class);
@@ -295,7 +285,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
         Assert.assertTrue(expectedIDCount <= resp.getUserGroups().size());
     }
 
-    private void validateUserGroupBadRequest(int expectedStatus, String expectedErrorMsg, ClientResponse actual){
+    private void validateUserGroupBadRequest(int expectedStatus, String expectedErrorMsg, ClientResponse actual) {
         Assert.assertNotNull(actual);
         Assert.assertEquals(expectedStatus, actual.getStatus());
 
@@ -303,8 +293,8 @@ public class ApiTest_UserGroup extends ApiTestBase {
         Assert.assertTrue(actualErrorMsg.getDetailedMessage().contains(expectedErrorMsg));
     }
 
-    private void validateVDCRoleAssignmentsSuccess (RoleAssignments actual, String expectedEntity,
-                                                    List<String> expectedRoles, boolean isGroup) {
+    private void validateVDCRoleAssignmentsSuccess(RoleAssignments actual, String expectedEntity,
+            List<String> expectedRoles, boolean isGroup) {
         Assert.assertNotNull(actual);
         Assert.assertFalse(CollectionUtils.isEmpty(actual.getAssignments()));
 
@@ -312,11 +302,11 @@ public class ApiTest_UserGroup extends ApiTestBase {
         for (RoleAssignmentEntry roleAssignmentEntry : actual.getAssignments()) {
             Assert.assertNotNull(roleAssignmentEntry);
             if (isGroup) {
-                if (expectedEntity.equalsIgnoreCase(roleAssignmentEntry.getGroup())){
+                if (expectedEntity.equalsIgnoreCase(roleAssignmentEntry.getGroup())) {
                     found = true;
                 }
             } else {
-                if (expectedEntity.equalsIgnoreCase(roleAssignmentEntry.getSubjectId())){
+                if (expectedEntity.equalsIgnoreCase(roleAssignmentEntry.getSubjectId())) {
                     found = true;
                 }
             }
@@ -324,8 +314,8 @@ public class ApiTest_UserGroup extends ApiTestBase {
         Assert.assertTrue(found);
     }
 
-    private void validateVDCRoleAssignmentsRemove (RoleAssignments actual, String expectedEntity,
-                                                    boolean isGroup) {
+    private void validateVDCRoleAssignmentsRemove(RoleAssignments actual, String expectedEntity,
+            boolean isGroup) {
         Assert.assertNotNull(actual);
 
         boolean found = false;
@@ -336,7 +326,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
                     found = true;
                 }
             } else {
-                if (expectedEntity.equalsIgnoreCase(roleAssignmentEntry.getSubjectId())){
+                if (expectedEntity.equalsIgnoreCase(roleAssignmentEntry.getSubjectId())) {
                     found = true;
                 }
             }
@@ -344,8 +334,8 @@ public class ApiTest_UserGroup extends ApiTestBase {
         Assert.assertFalse(found);
     }
 
-    private void validateACLAssignmentsSuccess (ACLAssignments actual, String expectedEntity,
-                                                    List<String> expectedRoles, boolean isGroup) {
+    private void validateACLAssignmentsSuccess(ACLAssignments actual, String expectedEntity,
+            List<String> expectedRoles, boolean isGroup) {
         Assert.assertNotNull(actual);
         Assert.assertFalse(CollectionUtils.isEmpty(actual.getAssignments()));
 
@@ -353,11 +343,11 @@ public class ApiTest_UserGroup extends ApiTestBase {
         for (ACLEntry aclAssignmentEntry : actual.getAssignments()) {
             Assert.assertNotNull(aclAssignmentEntry);
             if (isGroup) {
-                if (expectedEntity.equalsIgnoreCase(aclAssignmentEntry.getGroup())){
+                if (expectedEntity.equalsIgnoreCase(aclAssignmentEntry.getGroup())) {
                     found = true;
                 }
             } else {
-                if (expectedEntity.equalsIgnoreCase(aclAssignmentEntry.getSubjectId())){
+                if (expectedEntity.equalsIgnoreCase(aclAssignmentEntry.getSubjectId())) {
                     found = true;
                 }
             }
@@ -365,8 +355,8 @@ public class ApiTest_UserGroup extends ApiTestBase {
         Assert.assertTrue(found);
     }
 
-    private void validateACLAssignmentsRemove (ACLAssignments actual, String expectedEntity,
-                                                   boolean isGroup) {
+    private void validateACLAssignmentsRemove(ACLAssignments actual, String expectedEntity,
+            boolean isGroup) {
         Assert.assertNotNull(actual);
 
         boolean found = false;
@@ -377,7 +367,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
                     found = true;
                 }
             } else {
-                if (expectedEntity.equalsIgnoreCase(aclAssignmentEntry.getSubjectId())){
+                if (expectedEntity.equalsIgnoreCase(aclAssignmentEntry.getSubjectId())) {
                     found = true;
                 }
             }
@@ -407,31 +397,31 @@ public class ApiTest_UserGroup extends ApiTestBase {
         Assert.assertTrue(CollectionUtils.isEmpty(actual.getHomeTenantRoles()));
     }
 
-    private String getTestApi(){
+    private String getTestApi() {
         return TEST_API;
     }
 
-    private String getTestEditApi(URI uri){
+    private String getTestEditApi(URI uri) {
         return String.format(TEST_EDIT_API, uri.toString());
     }
 
-    private String getTestBulkApi () {
+    private String getTestBulkApi() {
         return TEST_BULK_API;
     }
 
-    private String getTestTagsApi () {
+    private String getTestTagsApi() {
         return TEST_TAGS_API;
     }
 
-    private String getAuthnProviderCreateApi(){
+    private String getAuthnProviderCreateApi() {
         return apiTestAuthnProviderUtils.getAuthnProviderBaseURL();
     }
 
-    private String getAuthnProviderDeleteApi(URI uri){
+    private String getAuthnProviderDeleteApi(URI uri) {
         return apiTestAuthnProviderUtils.getAuthnProviderEditURL(uri);
     }
 
-    private String getVDCRoleAssignmentsApi () {
+    private String getVDCRoleAssignmentsApi() {
         return TEST_VDC_ROLE_ASSIGNMENT_API;
     }
 
@@ -439,31 +429,31 @@ public class ApiTest_UserGroup extends ApiTestBase {
         return TEST_USER_WHOAMI_API;
     }
 
-    private String getTenantRoleAssignmentApi (URI id) {
-        return  apiTestTenants.getTestRoleAssignmentsApi(id);
+    private String getTenantRoleAssignmentApi(URI id) {
+        return apiTestTenants.getTestRoleAssignmentsApi(id);
     }
 
-    private String getTenantEditApi (URI id) {
-        return  apiTestTenants.getTestEditApi(id);
+    private String getTenantEditApi(URI id) {
+        return apiTestTenants.getTestEditApi(id);
     }
 
-    private String getTenantDeleteApi (URI id) {
-        return  apiTestTenants.getTestDeleteApi(id);
+    private String getTenantDeleteApi(URI id) {
+        return apiTestTenants.getTestDeleteApi(id);
     }
 
-    private String getSubTenantCreateApi () {
-        return  apiTestTenants.getTestApi();
+    private String getSubTenantCreateApi() {
+        return apiTestTenants.getTestApi();
     }
 
-    private String getProjectCreateApi (URI tenantId) {
-        return  apiTestTenants.getProjectCreateApi(tenantId);
+    private String getProjectCreateApi(URI tenantId) {
+        return apiTestTenants.getProjectCreateApi(tenantId);
     }
 
-    private String getProjectApi (URI id) {
+    private String getProjectApi(URI id) {
         return String.format(TEST_GET_PROJECT_API, id);
     }
 
-    private String getProjectACLAssignmentApi (URI id) {
+    private String getProjectACLAssignmentApi(URI id) {
         return String.format(TEST_PROJECT_ACL_ASSIGNMENTS_API, id);
     }
 
@@ -475,94 +465,95 @@ public class ApiTest_UserGroup extends ApiTestBase {
         return TEST_DEFAULT_USER_GROUP_NAME;
     }
 
-    private Set<String> getDefaultAttributeKeys(){
+    private Set<String> getDefaultAttributeKeys() {
         return apiTestAuthnProviderUtils.getDefaultAttributeKeys();
     }
 
-    private Set<String> getDefaultAttributeDepartmentValues(){
+    private Set<String> getDefaultAttributeDepartmentValues() {
         return apiTestAuthnProviderUtils.getDefaultAttributeDepartmentValues();
     }
 
-    private Set<String> getDefaultAttributeLocalityValues(){
+    private Set<String> getDefaultAttributeLocalityValues() {
         return apiTestAuthnProviderUtils.getDefaultAttributeLocalityValues();
     }
 
-    private List<String> getDefaultVDCRoles () {
+    private List<String> getDefaultVDCRoles() {
         return new ArrayList<>(Arrays.asList(TEST_DEFAULT_VDC_ROLES));
     }
 
-    private List<String> getDefaultTenantRoles () {
+    private List<String> getDefaultTenantRoles() {
         return new ArrayList<>(Arrays.asList(TEST_DEFAULT_TENANT_ROLES));
     }
 
-    private List<String> getDefaultACLs () {
+    private List<String> getDefaultACLs() {
         return new ArrayList<>(Arrays.asList(TEST_DEFAULT_ACLS));
     }
 
-    private String getAttributeKey(int index){
+    private String getAttributeKey(int index) {
         return apiTestAuthnProviderUtils.getAttributeKey(index);
     }
 
-    private String getAttributeDepartmentValue(int index){
+    private String getAttributeDepartmentValue(int index) {
         return apiTestAuthnProviderUtils.getAttributeDepartmentValue(index);
     }
 
-    private String getAttributeLocalityValue(int index){
+    private String getAttributeLocalityValue(int index) {
         return apiTestAuthnProviderUtils.getAttributeLocalityValue(index);
     }
 
-    private String getVDCRole (int index) {
+    private String getVDCRole(int index) {
         return TEST_DEFAULT_VDC_ROLES[index];
     }
 
-    private String getTenantRole (int index) {
+    private String getTenantRole(int index) {
         return TEST_DEFAULT_TENANT_ROLES[index];
     }
 
-    private String getACL (int index) {
+    private String getACL(int index) {
         return TEST_DEFAULT_ACLS[index];
     }
 
-    private String getAuthnProviderDomain () {
+    private String getAuthnProviderDomain() {
         return authnProviderDomain;
     }
 
-    private void setAuthnProviderDomain (String domain) {
+    private void setAuthnProviderDomain(String domain) {
         authnProviderDomain = domain;
     }
 
-    private String getUserWithDomain (int index) {
+    private String getUserWithDomain(int index) {
         return apiTestAuthnProviderUtils.getUserWithDomain(index);
     }
 
-    private String getLDAPUserPassword () {
+    private String getLDAPUserPassword() {
         return apiTestAuthnProviderUtils.getLDAPUserPassword();
     }
 
-    private String getLDAPGroup (int index) {
+    private String getLDAPGroup(int index) {
         return apiTestAuthnProviderUtils.getLDAPGroup(index);
     }
 
-    private String getSecondDomain () {
+    private String getSecondDomain() {
         return apiTestAuthnProviderUtils.getSecondDomain();
     }
 
-    private String getOneLetterDomain () {
+    private String getOneLetterDomain() {
         return apiTestAuthnProviderUtils.getOneLetterDomain();
     }
 
-    private URI createDefaultAuthnProvider (String description) {
-        //Create a default authnprovider.
+    private URI createDefaultAuthnProvider(String description) {
+        // Create a default authnprovider.
         AuthnCreateParam authnProviderCreateParam = apiTestAuthnProviderUtils.getDefaultAuthnCreateParam(description);
 
-        //Add the one letter domain to make sure that works fine with User Group.
+        // Add the one letter domain to make sure that works fine with User Group.
         authnProviderCreateParam.getDomains().add(getOneLetterDomain());
 
-        ClientResponse clientAuthnProviderCreateResp = rSys.path(getAuthnProviderCreateApi()).post(ClientResponse.class, authnProviderCreateParam);
+        ClientResponse clientAuthnProviderCreateResp = rSys.path(getAuthnProviderCreateApi()).post(ClientResponse.class,
+                authnProviderCreateParam);
 
         AuthnProviderRestRep resp = clientAuthnProviderCreateResp.getEntity(AuthnProviderRestRep.class);
-        //Validate the authn provider creation success and add the
-        //resource to the resource clean up list.
+        // Validate the authn provider creation success and add the
+        // resource to the resource clean up list.
         validateAuthnProviderCreateSuccess(resp, clientAuthnProviderCreateResp.getStatus());
         Iterator<String> it = authnProviderCreateParam.getDomains().iterator();
         while (it.hasNext()) {
@@ -629,14 +620,14 @@ public class ApiTest_UserGroup extends ApiTestBase {
         Assert.assertEquals(200, resp.getStatus());
     }
 
-    private URI createTestTenant () {
+    private URI createTestTenant() {
         TenantCreateParam createParam = apiTestTenants.getDefaultTenantCreateParam("Default Tenant creation " +
-                                                "for User group test.");
+                "for User group test.");
         TenantOrgRestRep resp = rSys.path(getSubTenantCreateApi()).post(TenantOrgRestRep.class, createParam);
         Assert.assertNotNull(resp.getId());
 
-        //Add the created tenant to cleanup list, so that at the end of this test
-        //the resource will be destroyed.
+        // Add the created tenant to cleanup list, so that at the end of this test
+        // the resource will be destroyed.
         final String deleteObjectURL = getTenantDeleteApi(resp.getId());
         CleanupResource tenantToCleanup = new CleanupResource("post", deleteObjectURL, rSys, null);
 
@@ -645,14 +636,14 @@ public class ApiTest_UserGroup extends ApiTestBase {
         return resp.getId();
     }
 
-    private URI createTestProject (URI tenantId) {
+    private URI createTestProject(URI tenantId) {
         ProjectParam createParam = apiTestTenants.getDefaultProjectParam("UserGroupProject");
 
         ProjectElement resp = rSys.path(getProjectCreateApi(tenantId)).post(ProjectElement.class, createParam);
         Assert.assertNotNull(resp.getId());
 
-        //Add the created project to cleanup list, so that at the end of this test
-        //the resource will be destroyed.
+        // Add the created project to cleanup list, so that at the end of this test
+        // the resource will be destroyed.
         final String deleteObjectURL = getDeleteProjectApi(resp.getId());
         CleanupResource projectToCleanup = new CleanupResource("post", deleteObjectURL, rSys, null);
 
@@ -702,7 +693,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
         return updateParam;
     }
 
-    private RoleAssignmentEntry getRoleAssignmentEntry (String entity, List<String> roles, boolean isGroup) {
+    private RoleAssignmentEntry getRoleAssignmentEntry(String entity, List<String> roles, boolean isGroup) {
         RoleAssignmentEntry roleAssignmentEntry = new RoleAssignmentEntry();
         if (isGroup) {
             roleAssignmentEntry.setGroup(entity);
@@ -714,12 +705,12 @@ public class ApiTest_UserGroup extends ApiTestBase {
         return roleAssignmentEntry;
     }
 
-    private RoleAssignmentChanges getDefaultVDCRoleAssignmentChanges () {
+    private RoleAssignmentChanges getDefaultVDCRoleAssignmentChanges() {
         RoleAssignmentChanges roleAssignmentChanges = new RoleAssignmentChanges();
         return roleAssignmentChanges;
     }
 
-    private ACLEntry getACLAssignmentEntry (String entity, List<String> acls, boolean isGroup) {
+    private ACLEntry getACLAssignmentEntry(String entity, List<String> acls, boolean isGroup) {
         ACLEntry aclAssignmentEntry = new ACLEntry();
         if (isGroup) {
             aclAssignmentEntry.setGroup(entity);
@@ -731,7 +722,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
         return aclAssignmentEntry;
     }
 
-    private ACLAssignmentChanges getDefaultACLAssignmentChanges () {
+    private ACLAssignmentChanges getDefaultACLAssignmentChanges() {
         ACLAssignmentChanges aclAssignmentChanges = new ACLAssignmentChanges();
         return aclAssignmentChanges;
     }
@@ -743,7 +734,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
-        //Set the label to null
+        // Set the label to null
         createParam.setLabel(null);
 
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
@@ -759,8 +750,8 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
-        //Set the label to null
-        String nameWithAt = createParam.getLabel()+"@some";
+        // Set the label to null
+        String nameWithAt = createParam.getLabel() + "@some";
         createParam.setLabel(nameWithAt);
 
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
@@ -777,7 +768,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
-        //Set the domain to null
+        // Set the domain to null
         createParam.setDomain(null);
 
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
@@ -787,15 +778,15 @@ public class ApiTest_UserGroup extends ApiTestBase {
     }
 
     @Test
-     public void testUserGroupCreationWithInvalidDomain() {
+    public void testUserGroupCreationWithInvalidDomain() {
         final String testName = "testUserGroupCreationWithInvalidDomain - ";
         createDefaultAuthnProvider(testName + "Default Authn Provider creation");
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
-        //Set the domain to invalid domain that is not
-        //available with any of the pre-configured
-        //authnProvider.
+        // Set the domain to invalid domain that is not
+        // available with any of the pre-configured
+        // authnProvider.
         createParam.setDomain("invalidDomain.com");
 
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
@@ -812,7 +803,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
-        //Remove all the attributes.
+        // Remove all the attributes.
         createParam.getAttributes().clear();
 
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
@@ -828,7 +819,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
-        //Remove the key from one of the default attribute key.
+        // Remove the key from one of the default attribute key.
         Iterator<UserAttributeParam> it = createParam.getAttributes().iterator();
         while (it.hasNext()) {
             UserAttributeParam userAttributeParam = it.next();
@@ -851,7 +842,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
-        //Remove the values from one of the default attribute key.
+        // Remove the values from one of the default attribute key.
         Iterator<UserAttributeParam> it = createParam.getAttributes().iterator();
         while (it.hasNext()) {
             UserAttributeParam userAttributeParam = it.next();
@@ -918,7 +909,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         createParam = getDefaultUserGroupCreateParam();
 
-        //Try to create a user group with same name. It should fail.
+        // Try to create a user group with same name. It should fail.
         clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
 
         String partialErrorString = "A component/resource with the label %s already exists";
@@ -939,10 +930,10 @@ public class ApiTest_UserGroup extends ApiTestBase {
         createParam = getDefaultUserGroupCreateParam();
         String oldName = createParam.getLabel();
 
-        //Change the name something different,
-        //so that other properties (domain and attributes) will be same.
-        //And this should give error back, saying existing user group
-        //with same domain and attributes.
+        // Change the name something different,
+        // so that other properties (domain and attributes) will be same.
+        // And this should give error back, saying existing user group
+        // with same domain and attributes.
         createParam.setLabel("NewName");
 
         clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
@@ -966,16 +957,16 @@ public class ApiTest_UserGroup extends ApiTestBase {
         createParam = getDefaultUserGroupCreateParam();
         String oldName = createParam.getLabel();
 
-        //Change the name something different,
-        //so that other properties (domain and attributes) will be same.
-        //And this should give error back, saying existing user group
-        //with same domain and attributes.
+        // Change the name something different,
+        // so that other properties (domain and attributes) will be same.
+        // And this should give error back, saying existing user group
+        // with same domain and attributes.
         createParam.setLabel("NewName");
 
         createParam.getAttributes().clear();
 
-        //Attribute key 0 and value 0 is already part of the
-        //another group.
+        // Attribute key 0 and value 0 is already part of the
+        // another group.
         UserAttributeParam attributeParam = new UserAttributeParam();
         attributeParam.setKey(getAttributeKey(0));
         attributeParam.getValues().add(getAttributeDepartmentValue(0));
@@ -1003,16 +994,16 @@ public class ApiTest_UserGroup extends ApiTestBase {
         createParam = getDefaultUserGroupCreateParam();
         String oldName = createParam.getLabel();
 
-        //Change the name something different,
-        //so that other properties (domain and attributes) will be same.
-        //And this should give error back, saying existing user group
-        //with same domain and attributes.
+        // Change the name something different,
+        // so that other properties (domain and attributes) will be same.
+        // And this should give error back, saying existing user group
+        // with same domain and attributes.
         createParam.setLabel("NewName");
 
         createParam.getAttributes().clear();
 
-        //Attribute key 0 and value 0 is already part of the
-        //another group.
+        // Attribute key 0 and value 0 is already part of the
+        // another group.
         UserAttributeParam attributeParam = new UserAttributeParam();
         attributeParam.setKey(getAttributeKey(0));
         attributeParam.getValues().add(getAttributeDepartmentValue(0));
@@ -1030,7 +1021,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
     }
 
     @Test
-     public void testUserGroupOverlapCombinationTests1() {
+    public void testUserGroupOverlapCombinationTests1() {
         final String testName = "testUserGroupOverlapCombinationTests1 - ";
         createDefaultAuthnProvider(testName + "Default Authn Provider creation");
 
@@ -1042,16 +1033,16 @@ public class ApiTest_UserGroup extends ApiTestBase {
         createParam = getDefaultUserGroupCreateParam();
         String oldName = createParam.getLabel();
 
-        //Change the name something different,
-        //so that other properties (domain and attributes) will be same.
-        //And this should give error back, saying existing user group
-        //with same domain and attributes.
+        // Change the name something different,
+        // so that other properties (domain and attributes) will be same.
+        // And this should give error back, saying existing user group
+        // with same domain and attributes.
         createParam.setLabel("NewName");
 
         createParam.getAttributes().clear();
 
-        //Attribute key 0 and value 0 is already part of the
-        //another group.
+        // Attribute key 0 and value 0 is already part of the
+        // another group.
         UserAttributeParam attributeParam = new UserAttributeParam();
 
         attributeParam.setKey(getAttributeKey(0));
@@ -1061,8 +1052,8 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         createParam.getAttributes().add(attributeParam);
 
-        //Now add some random attributes that are not part of existing
-        //group. This should make the edit successful.
+        // Now add some random attributes that are not part of existing
+        // group. This should make the edit successful.
         UserAttributeParam attributeParam1 = new UserAttributeParam();
         attributeParam1.setKey("RandomKey");
         attributeParam1.getValues().clear();
@@ -1088,16 +1079,16 @@ public class ApiTest_UserGroup extends ApiTestBase {
         createParam = getDefaultUserGroupCreateParam();
         String oldName = createParam.getLabel();
 
-        //Change the name something different,
-        //so that other properties (domain and attributes) will be same.
-        //And this should give error back, saying existing user group
-        //with same domain and attributes.
+        // Change the name something different,
+        // so that other properties (domain and attributes) will be same.
+        // And this should give error back, saying existing user group
+        // with same domain and attributes.
         createParam.setLabel("NewName");
 
-        //Now add some random attributes that are not part of existing
-        //group. Since, we kept all the existing attributes as it is
-        //and adding this new RandomKey attribute, the existing
-        //group will be overlapping with this NewName group.
+        // Now add some random attributes that are not part of existing
+        // group. Since, we kept all the existing attributes as it is
+        // and adding this new RandomKey attribute, the existing
+        // group will be overlapping with this NewName group.
         UserAttributeParam attributeParam1 = new UserAttributeParam();
         attributeParam1.setKey("RandomKey");
         attributeParam1.getValues().add("RandomValue1");
@@ -1126,16 +1117,16 @@ public class ApiTest_UserGroup extends ApiTestBase {
         createParam = getDefaultUserGroupCreateParam();
         String oldName = createParam.getLabel();
 
-        //Change the name something different,
-        //so that other properties (domain and attributes) will be same.
-        //And this should give error back, saying existing user group
-        //with same domain and attributes.
+        // Change the name something different,
+        // so that other properties (domain and attributes) will be same.
+        // And this should give error back, saying existing user group
+        // with same domain and attributes.
         createParam.setLabel("NewName");
 
         createParam.getAttributes().clear();
 
-        //Attribute key 0 and value 0 is already part of the
-        //another group.
+        // Attribute key 0 and value 0 is already part of the
+        // another group.
         UserAttributeParam attributeParam = new UserAttributeParam();
 
         attributeParam.setKey(getAttributeKey(0));
@@ -1145,8 +1136,8 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         createParam.getAttributes().add(attributeParam);
 
-        //Now add some random attributes that are not part of existing
-        //group. This should make the edit successful.
+        // Now add some random attributes that are not part of existing
+        // group. This should make the edit successful.
         UserAttributeParam attributeParam1 = new UserAttributeParam();
         attributeParam1.setKey("RandomKey");
         attributeParam1.getValues().clear();
@@ -1158,20 +1149,20 @@ public class ApiTest_UserGroup extends ApiTestBase {
         clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
         validateUserGroupCreateSuccess(createParam, clientUserGroupCreateResp);
 
-        //Now create a user group that will overlap with both the existing groups.
+        // Now create a user group that will overlap with both the existing groups.
         UserGroupCreateParam newCreateParam = getDefaultUserGroupCreateParam();
         newCreateParam.setLabel("RandomGroup");
 
-        //Remove all the attributes.
+        // Remove all the attributes.
         newCreateParam.getAttributes().clear();
 
-        //Now add the attribute that matches with the first group.
+        // Now add the attribute that matches with the first group.
         UserAttributeParam firstAttribute = new UserAttributeParam();
         firstAttribute.setKey(getAttributeKey(0));
         firstAttribute.getValues().add(getAttributeDepartmentValue(0));
         newCreateParam.getAttributes().add(firstAttribute);
 
-        //Now add the second attribute that matches with the second group.
+        // Now add the second attribute that matches with the second group.
         UserAttributeParam secondAttribute = new UserAttributeParam();
         secondAttribute.setKey("RandomKey");
         secondAttribute.getValues().add("RandomValue1");
@@ -1192,7 +1183,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
-        //Change to one letter domain name.
+        // Change to one letter domain name.
         createParam.setDomain(getOneLetterDomain());
 
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
@@ -1201,13 +1192,13 @@ public class ApiTest_UserGroup extends ApiTestBase {
         createParam = getDefaultUserGroupCreateParam();
         String oldName = createParam.getLabel();
 
-        //Change the name something different,
-        //so that other properties (domain and attributes) will be same.
-        //And this should give error back, saying existing user group
-        //with same domain and attributes.
+        // Change the name something different,
+        // so that other properties (domain and attributes) will be same.
+        // And this should give error back, saying existing user group
+        // with same domain and attributes.
         createParam.setLabel("NewName");
 
-        //Change to one letter domain name.
+        // Change to one letter domain name.
         createParam.setDomain(getOneLetterDomain());
 
         clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
@@ -1230,9 +1221,9 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         createParam = getDefaultUserGroupCreateParam();
 
-        //Change the name something different and keep the same
-        //attributes key but with different values for each key.
-        //This should be successful.
+        // Change the name something different and keep the same
+        // attributes key but with different values for each key.
+        // This should be successful.
         createParam.setLabel("NewName");
         Iterator<UserAttributeParam> it = createParam.getAttributes().iterator();
         while (it.hasNext()) {
@@ -1259,9 +1250,9 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         createParam = getDefaultUserGroupCreateParam();
 
-        //Change the name something different and keep the same
-        //attributes key but with different values for each key.
-        //This should be successful.
+        // Change the name something different and keep the same
+        // attributes key but with different values for each key.
+        // This should be successful.
         createParam.setLabel("NewName");
         Iterator<UserAttributeParam> it = createParam.getAttributes().iterator();
         while (it.hasNext()) {
@@ -1287,7 +1278,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupUpdateParam updateParam = getUserGroupUpdateParamFromRestRep(userGroupCreateResp);
 
-        //Set remove the name from the update param, so that the request will fail.
+        // Set remove the name from the update param, so that the request will fail.
         updateParam.setLabel(null);
 
         String testEditAPI = getTestEditApi(userGroupCreateResp.getId());
@@ -1310,7 +1301,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupUpdateParam updateParam = getUserGroupUpdateParamFromRestRep(userGroupCreateResp);
 
-        //Change the name in the update request. This is also not supported.
+        // Change the name in the update request. This is also not supported.
         updateParam.setLabel("NewName");
 
         String testEditAPI = getTestEditApi(userGroupCreateResp.getId());
@@ -1334,7 +1325,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupUpdateParam updateParam = getUserGroupUpdateParamFromRestRep(userGroupCreateResp);
 
-        //Remove the domain from the update param. This will return error.
+        // Remove the domain from the update param. This will return error.
         updateParam.setDomain(null);
 
         String testEditAPI = getTestEditApi(userGroupCreateResp.getId());
@@ -1355,8 +1346,8 @@ public class ApiTest_UserGroup extends ApiTestBase {
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
         UserGroupRestRep userGroupCreateResp = validateUserGroupCreateSuccess(createParam, clientUserGroupCreateResp);
 
-        //Set the domain to invalid domain that is not
-        //available with any of the pre-configured authnProvider.
+        // Set the domain to invalid domain that is not
+        // available with any of the pre-configured authnProvider.
         UserGroupUpdateParam updateParam = getUserGroupUpdateParamFromRestRep(userGroupCreateResp);
         updateParam.setDomain("InvalidDomain.com");
 
@@ -1381,7 +1372,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupUpdateParam updateParam = getUserGroupUpdateParamFromRestRep(userGroupCreateResp);
 
-        //Remove the key from one of the default attribute key.
+        // Remove the key from one of the default attribute key.
         Iterator<UserAttributeParam> it = updateParam.getAddAttributes().iterator();
         while (it.hasNext()) {
             UserAttributeParam userAttributeParam = it.next();
@@ -1411,7 +1402,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupUpdateParam updateParam = getUserGroupUpdateParamFromRestRep(userGroupCreateResp);
 
-        //Remove the key from one of the default attribute key.
+        // Remove the key from one of the default attribute key.
         Iterator<UserAttributeParam> it = updateParam.getAddAttributes().iterator();
         while (it.hasNext()) {
             UserAttributeParam userAttributeParam = it.next();
@@ -1443,7 +1434,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupUpdateParam updateParam = getUserGroupUpdateParamFromRestRep(userGroupCreateResp);
 
-        //Clear both add and remove attributes. This should be successful.
+        // Clear both add and remove attributes. This should be successful.
         updateParam.getAddAttributes().clear();
         updateParam.getRemoveAttributes().clear();
 
@@ -1467,11 +1458,11 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupUpdateParam updateParam = getUserGroupUpdateParamFromRestRep(userGroupCreateResp);
 
-        //Clear both add and remove attributes. This should be successful.
+        // Clear both add and remove attributes. This should be successful.
         updateParam.getAddAttributes().clear();
         updateParam.getRemoveAttributes().clear();
 
-        //Change the domain.
+        // Change the domain.
         updateParam.setDomain(getSecondDomain());
 
         String testEditAPI = getTestEditApi(userGroupCreateResp.getId());
@@ -1494,7 +1485,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupUpdateParam updateParam = getUserGroupUpdateParamFromRestRep(userGroupCreateResp);
 
-        //Add one additional attribute to the user group.
+        // Add one additional attribute to the user group.
         UserAttributeParam attributeParam = new UserAttributeParam();
         attributeParam.setKey("newKey");
         attributeParam.getValues().add("newValue1");
@@ -1502,10 +1493,10 @@ public class ApiTest_UserGroup extends ApiTestBase {
         attributeParam.getValues().add("newValue2");
         updateParam.getAddAttributes().add(attributeParam);
 
-        //Clear both add and remove attributes.
+        // Clear both add and remove attributes.
         updateParam.getRemoveAttributes().clear();
 
-        //Change the domain.
+        // Change the domain.
         updateParam.setDomain(getSecondDomain());
 
         String testEditAPI = getTestEditApi(userGroupCreateResp.getId());
@@ -1526,13 +1517,13 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupUpdateParam updateParam = getUserGroupUpdateParamFromRestRep(userGroupCreateResp);
 
-        //Add all the attributes to the remove list.
-        for(UserAttributeParam userAttributeParam : userGroupCreateResp.getAttributes()) {
+        // Add all the attributes to the remove list.
+        for (UserAttributeParam userAttributeParam : userGroupCreateResp.getAttributes()) {
             Assert.assertNotNull(userAttributeParam);
             updateParam.getRemoveAttributes().add(userAttributeParam.getKey());
         }
 
-        //Clear the add list. So that, nothing will be added new.
+        // Clear the add list. So that, nothing will be added new.
         updateParam.getAddAttributes().clear();
 
         String testEditAPI = getTestEditApi(userGroupCreateResp.getId());
@@ -1553,16 +1544,16 @@ public class ApiTest_UserGroup extends ApiTestBase {
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
         UserGroupRestRep userGroupCreateResp = validateUserGroupCreateSuccess(createParam, clientUserGroupCreateResp);
 
-        //Update the provider tenant user mapping with the
-        //just created user group "Depart_Dev".
+        // Update the provider tenant user mapping with the
+        // just created user group "Depart_Dev".
         updateTenantGroups(rootTenantId, userGroupCreateResp.getName());
 
         String roleAssignmentsApi = getVDCRoleAssignmentsApi();
         boolean isGroup = true;
 
-        //Assigning all the VDC roles to InvalidName group.
-        //This InvalidName group is neither in LDAP/AD or in the local
-        //user group.
+        // Assigning all the VDC roles to InvalidName group.
+        // This InvalidName group is neither in LDAP/AD or in the local
+        // user group.
         RoleAssignmentEntry roleAssignmentEntry1 = getRoleAssignmentEntry("InvalidName",
                 getDefaultVDCRoles(), isGroup);
         RoleAssignmentChanges roleAssignmentChanges = getDefaultVDCRoleAssignmentChanges();
@@ -1573,8 +1564,8 @@ public class ApiTest_UserGroup extends ApiTestBase {
         partialErrorMsg = String.format(partialErrorMsg, roleAssignmentEntry1.getGroup().toUpperCase());
         validateUserGroupBadRequest(400, partialErrorMsg, clientResponseRoleAssignments);
 
-        //Now remove the user group from the
-        //provider tenant user mappings.
+        // Now remove the user group from the
+        // provider tenant user mappings.
         removeTenantUserMapping(rootTenantId, userGroupCreateResp.getName());
     }
 
@@ -1588,61 +1579,61 @@ public class ApiTest_UserGroup extends ApiTestBase {
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
         UserGroupRestRep userGroupCreateResp = validateUserGroupCreateSuccess(createParam, clientUserGroupCreateResp);
 
-        //Update the provider tenant user mapping with the
-        //just created user group "Depart_Dev".
+        // Update the provider tenant user mapping with the
+        // just created user group "Depart_Dev".
         updateTenantGroups(rootTenantId, userGroupCreateResp.getName());
 
         String roleAssignmentsApi = getVDCRoleAssignmentsApi();
 
         boolean isGroup = true;
 
-        //Assigning all the VDC roles to Depart_Dev user group
-        //(with attributes department = [ENG, DEV] and l = [Boston]
+        // Assigning all the VDC roles to Depart_Dev user group
+        // (with attributes department = [ENG, DEV] and l = [Boston]
         RoleAssignmentEntry roleAssignmentEntry1 = getRoleAssignmentEntry(userGroupCreateResp.getName(),
-                                                        getDefaultVDCRoles(), isGroup);
+                getDefaultVDCRoles(), isGroup);
         RoleAssignmentChanges roleAssignmentChanges = getDefaultVDCRoleAssignmentChanges();
         roleAssignmentChanges.getAdd().add(roleAssignmentEntry1);
 
         RoleAssignments roleAssignments = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentChanges);
         validateVDCRoleAssignmentsSuccess(roleAssignments, userGroupCreateResp.getName(), getDefaultVDCRoles(), isGroup);
 
-        //Create a user whose attributes matches with the above created
-        //user group "Depart_Dev". Matching LDAP user is ldapViPRUser5.
+        // Create a user whose attributes matches with the above created
+        // user group "Depart_Dev". Matching LDAP user is ldapViPRUser5.
         BalancedWebResource ldapViPRUser5 = getHttpsClient(getUserWithDomain(4), getLDAPUserPassword());
 
         String whoAmIApi = getUserWhoAmIApi();
         UserInfo ldapViPRUser5UserInfo = ldapViPRUser5.path(whoAmIApi).get(UserInfo.class);
         validateUserVDCRoles(ldapViPRUser5UserInfo, getDefaultVDCRoles());
 
-        //Now try to delete the user group "Depart_Dev".
-        //It should fail, as it is associated with the VDC role assignments and
-        //provider tenants user mapping group.
+        // Now try to delete the user group "Depart_Dev".
+        // It should fail, as it is associated with the VDC role assignments and
+        // provider tenants user mapping group.
         deleteUserGroupAndExpectFailure(userGroupCreateResp.getId());
 
-        //Now try to change the domain the of the user group "Depart_Dev".
-        //It should fail, as it is associated with the VDC role assginments and
-        //provider tenants user mapping group.
+        // Now try to change the domain the of the user group "Depart_Dev".
+        // It should fail, as it is associated with the VDC role assginments and
+        // provider tenants user mapping group.
         changeUserGroupDomainAndExpectFailure(userGroupCreateResp);
 
-        //Edit the user group but dont change any properties in the group.
-        //This should be successful irrespective of whether it is used in
-        //any role or acl or user mapping assignments.
+        // Edit the user group but dont change any properties in the group.
+        // This should be successful irrespective of whether it is used in
+        // any role or acl or user mapping assignments.
         editUserGroupWithoutAnyChangeAndExpectSuccess(userGroupCreateResp);
 
-        //Now remove the user group from the role assignments.
+        // Now remove the user group from the role assignments.
         roleAssignmentChanges.getAdd().clear();
         roleAssignmentChanges.getRemove().add(roleAssignmentEntry1);
 
         roleAssignments = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentChanges);
         validateVDCRoleAssignmentsRemove(roleAssignments, userGroupCreateResp.getName(), isGroup);
 
-        //Now the user should not have any roles associated with the
-        //user group "Depart_Dev".
+        // Now the user should not have any roles associated with the
+        // user group "Depart_Dev".
         ldapViPRUser5UserInfo = ldapViPRUser5.path(whoAmIApi).get(UserInfo.class);
         validateNoneUserVDCRoles(ldapViPRUser5UserInfo);
 
-        //Now remove the user group from the
-        //provider tenant user mappings.
+        // Now remove the user group from the
+        // provider tenant user mappings.
         removeTenantUserMapping(rootTenantId, userGroupCreateResp.getName());
     }
 
@@ -1656,18 +1647,18 @@ public class ApiTest_UserGroup extends ApiTestBase {
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
         UserGroupRestRep userGroupCreateResp = validateUserGroupCreateSuccess(createParam, clientUserGroupCreateResp);
 
-        //Create a test tenant.
+        // Create a test tenant.
         URI testTenantId = createTestTenant();
 
-        //Update the tenant user mapping with the
-        //just created user group "Depart_Dev".
+        // Update the tenant user mapping with the
+        // just created user group "Depart_Dev".
         updateTenantGroups(testTenantId, userGroupCreateResp.getName());
 
         String roleAssignmentsApi = getTenantRoleAssignmentApi(testTenantId);
         boolean isGroup = true;
 
-        //Assigning all the tenant roles to InvalidName group.
-        //This group is neither available in LDAP/AD or local user group.
+        // Assigning all the tenant roles to InvalidName group.
+        // This group is neither available in LDAP/AD or local user group.
         RoleAssignmentEntry roleAssignmentEntry1 = getRoleAssignmentEntry("InvalidName",
                 getDefaultTenantRoles(), isGroup);
         RoleAssignmentChanges roleAssignmentChanges = getDefaultVDCRoleAssignmentChanges();
@@ -1678,7 +1669,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
         partialErrorMsg = String.format(partialErrorMsg, roleAssignmentEntry1.getGroup().toUpperCase());
         validateUserGroupBadRequest(400, partialErrorMsg, clientResponseRoleAssignments);
 
-        //Now remove the user group from the provider tenant user mappings.
+        // Now remove the user group from the provider tenant user mappings.
         removeTenantUserMapping(testTenantId, userGroupCreateResp.getName());
     }
 
@@ -1692,38 +1683,38 @@ public class ApiTest_UserGroup extends ApiTestBase {
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
         UserGroupRestRep userGroupCreateResp = validateUserGroupCreateSuccess(createParam, clientUserGroupCreateResp);
 
-        //Create a test tenant.
+        // Create a test tenant.
         URI testTenantId = createTestTenant();
 
-        //Update the tenant user mapping with the
-        //just created user group "Depart_Dev".
+        // Update the tenant user mapping with the
+        // just created user group "Depart_Dev".
         updateTenantGroups(testTenantId, userGroupCreateResp.getName());
 
-        //Create a user whose attributes matches with the above created
-        //user group "Depart_Dev". Matching LDAP user is ldapViPRUser5.
+        // Create a user whose attributes matches with the above created
+        // user group "Depart_Dev". Matching LDAP user is ldapViPRUser5.
         BalancedWebResource ldapViPRUser5 = getHttpsClient(getUserWithDomain(4), getLDAPUserPassword());
 
-        //Get the tenant of the user ldapViPRUser5.
+        // Get the tenant of the user ldapViPRUser5.
         String getTenantApi = "/tenant";
         TenantResponse ldapViPRUser5Tenant = ldapViPRUser5.path(getTenantApi).get(TenantResponse.class);
         Assert.assertNotNull(ldapViPRUser5Tenant);
         Assert.assertEquals(testTenantId, ldapViPRUser5Tenant.getTenant());
 
-        //Now try to delete the user group "Depart_Dev".
-        //It should fail, as it is associated with
-        //tenants user mapping group.
+        // Now try to delete the user group "Depart_Dev".
+        // It should fail, as it is associated with
+        // tenants user mapping group.
         deleteUserGroupAndExpectFailure(userGroupCreateResp.getId());
 
-        //Now try to change the domain the of the user group "Depart_Dev".
-        //It should fail, as it is associated with tenants user mapping group.
+        // Now try to change the domain the of the user group "Depart_Dev".
+        // It should fail, as it is associated with tenants user mapping group.
         changeUserGroupDomainAndExpectFailure(userGroupCreateResp);
 
-        //Edit the user group but dont change any properties in the group.
-        //This should be successful irrespective of whether it is used in
-        //any role or acl or user mapping assignments.
+        // Edit the user group but dont change any properties in the group.
+        // This should be successful irrespective of whether it is used in
+        // any role or acl or user mapping assignments.
         editUserGroupWithoutAnyChangeAndExpectSuccess(userGroupCreateResp);
 
-        //Now remove the user group from the tenant user mappings.
+        // Now remove the user group from the tenant user mappings.
         removeTenantUserMapping(testTenantId, userGroupCreateResp.getName());
     }
 
@@ -1737,18 +1728,18 @@ public class ApiTest_UserGroup extends ApiTestBase {
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
         UserGroupRestRep userGroupCreateResp = validateUserGroupCreateSuccess(createParam, clientUserGroupCreateResp);
 
-        //Create a test tenant.
+        // Create a test tenant.
         URI testTenantId = createTestTenant();
 
-        //Update the tenant user mapping with the
-        //just created user group "Depart_Dev".
+        // Update the tenant user mapping with the
+        // just created user group "Depart_Dev".
         updateTenantGroups(testTenantId, userGroupCreateResp.getName());
 
         String roleAssignmentsApi = getTenantRoleAssignmentApi(testTenantId);
         boolean isGroup = true;
 
-        //Assigning all the Tenant roles to Depart_Dev user group
-        //(with attributes department = [ENG, DEV] and l = [Boston]
+        // Assigning all the Tenant roles to Depart_Dev user group
+        // (with attributes department = [ENG, DEV] and l = [Boston]
         RoleAssignmentEntry roleAssignmentEntry1 = getRoleAssignmentEntry(userGroupCreateResp.getName(),
                 getDefaultTenantRoles(), isGroup);
         RoleAssignmentChanges roleAssignmentChanges = getDefaultVDCRoleAssignmentChanges();
@@ -1757,42 +1748,42 @@ public class ApiTest_UserGroup extends ApiTestBase {
         RoleAssignments roleAssignments = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentChanges);
         validateVDCRoleAssignmentsSuccess(roleAssignments, userGroupCreateResp.getName(), getDefaultTenantRoles(), isGroup);
 
-        //Create a user whose attributes matches with the above created
-        //user group "Depart_Dev". Matching LDAP user is ldapViPRUser5.
+        // Create a user whose attributes matches with the above created
+        // user group "Depart_Dev". Matching LDAP user is ldapViPRUser5.
         BalancedWebResource ldapViPRUser5 = getHttpsClient(getUserWithDomain(4), getLDAPUserPassword());
 
         String whoAmIApi = getUserWhoAmIApi();
         UserInfo ldapViPRUser5UserInfo = ldapViPRUser5.path(whoAmIApi).get(UserInfo.class);
         validateUserTenantRoles(ldapViPRUser5UserInfo, getDefaultTenantRoles());
 
-        //Now try to delete the user group "Depart_Dev".
-        //It should fail, as it is associated with the tenant role assignments and
-        //tenants user mapping group.
+        // Now try to delete the user group "Depart_Dev".
+        // It should fail, as it is associated with the tenant role assignments and
+        // tenants user mapping group.
         deleteUserGroupAndExpectFailure(userGroupCreateResp.getId());
 
-        //Now try to change the domain the of the user group "Depart_Dev".
-        //It should fail, as it is associated with the tenant role assignments and
-        //tenants user mapping group.
+        // Now try to change the domain the of the user group "Depart_Dev".
+        // It should fail, as it is associated with the tenant role assignments and
+        // tenants user mapping group.
         changeUserGroupDomainAndExpectFailure(userGroupCreateResp);
 
-        //Edit the user group but dont change any properties in the group.
-        //This should be successful irrespective of whether it is used in
-        //any role or acl or user mapping assignments.
+        // Edit the user group but dont change any properties in the group.
+        // This should be successful irrespective of whether it is used in
+        // any role or acl or user mapping assignments.
         editUserGroupWithoutAnyChangeAndExpectSuccess(userGroupCreateResp);
 
-        //Now remove the user group from the role assignments.
+        // Now remove the user group from the role assignments.
         roleAssignmentChanges.getAdd().clear();
         roleAssignmentChanges.getRemove().add(roleAssignmentEntry1);
 
         roleAssignments = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentChanges);
         validateVDCRoleAssignmentsRemove(roleAssignments, userGroupCreateResp.getName(), isGroup);
 
-        //Now the user should not have any roles associated with the
-        //user group "Depart_Dev".
+        // Now the user should not have any roles associated with the
+        // user group "Depart_Dev".
         ldapViPRUser5UserInfo = ldapViPRUser5.path(whoAmIApi).get(UserInfo.class);
         validateNoneUserTenantRoles(ldapViPRUser5UserInfo);
 
-        //Now remove the user group from the tenant user mappings.
+        // Now remove the user group from the tenant user mappings.
         removeTenantUserMapping(testTenantId, userGroupCreateResp.getName());
     }
 
@@ -1806,21 +1797,21 @@ public class ApiTest_UserGroup extends ApiTestBase {
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
         UserGroupRestRep userGroupCreateResp = validateUserGroupCreateSuccess(createParam, clientUserGroupCreateResp);
 
-        //Create a test tenant.
+        // Create a test tenant.
         URI testTenantId = createTestTenant();
 
-        //Update the provider tenant user mapping with the
-        //just created user group "Depart_Dev".
+        // Update the provider tenant user mapping with the
+        // just created user group "Depart_Dev".
         updateTenantGroups(testTenantId, userGroupCreateResp.getName());
 
-        //Create a test project for the just created tenant.
+        // Create a test project for the just created tenant.
         URI projectId = createTestProject(testTenantId);
         boolean isGroup = true;
 
         String aclAssignmentsApi = getProjectACLAssignmentApi(projectId);
 
-        //Assigning all the project acls to Depart_Dev user group
-        //(with attributes department = [ENG, DEV] and l = [Boston]
+        // Assigning all the project acls to Depart_Dev user group
+        // (with attributes department = [ENG, DEV] and l = [Boston]
         List<String> acls = new ArrayList<String>();
         acls.add(getACL(1));
         ACLEntry aclAssignmentEntry1 = getACLAssignmentEntry(userGroupCreateResp.getName(), acls, isGroup);
@@ -1830,44 +1821,44 @@ public class ApiTest_UserGroup extends ApiTestBase {
         ACLAssignments aclAssignments = rSys.path(aclAssignmentsApi).put(ACLAssignments.class, aclAssignmentChanges);
         validateACLAssignmentsSuccess(aclAssignments, userGroupCreateResp.getName(), acls, isGroup);
 
-        //Create a user whose attributes matches with the above created
-        //user group "Depart_Dev". Matching LDAP user is ldapViPRUser5.
+        // Create a user whose attributes matches with the above created
+        // user group "Depart_Dev". Matching LDAP user is ldapViPRUser5.
         BalancedWebResource ldapViPRUser5 = getHttpsClient(getUserWithDomain(4), getLDAPUserPassword());
 
         ProjectRestRep ldapViPRUser5ProjectInfo = ldapViPRUser5.path(getProjectApi(projectId)).get(ProjectRestRep.class);
         Assert.assertEquals(projectId, ldapViPRUser5ProjectInfo.getId());
 
-        //Now try to delete the user group "Depart_Dev".
-        //It should fail, as it is associated with the project acls assignments and
-        //tenant user mappings.
+        // Now try to delete the user group "Depart_Dev".
+        // It should fail, as it is associated with the project acls assignments and
+        // tenant user mappings.
         deleteUserGroupAndExpectFailure(userGroupCreateResp.getId());
 
-        //Now try to change the domain the of the user group "Depart_Dev".
-        //It should fail, as it is associated with the project acls assignments and
-        //tenant user mappings.
+        // Now try to change the domain the of the user group "Depart_Dev".
+        // It should fail, as it is associated with the project acls assignments and
+        // tenant user mappings.
         changeUserGroupDomainAndExpectFailure(userGroupCreateResp);
 
-        //Edit the user group but dont change any properties in the group.
-        //This should be successful irrespective of whether it is used in
-        //any role or acl or user mapping assignments.
+        // Edit the user group but dont change any properties in the group.
+        // This should be successful irrespective of whether it is used in
+        // any role or acl or user mapping assignments.
         editUserGroupWithoutAnyChangeAndExpectSuccess(userGroupCreateResp);
 
-        //Now remove the user group from the acl assignments.
+        // Now remove the user group from the acl assignments.
         aclAssignmentChanges.getAdd().clear();
         aclAssignmentChanges.getRemove().add(aclAssignmentEntry1);
 
         aclAssignments = rSys.path(aclAssignmentsApi).put(ACLAssignments.class, aclAssignmentChanges);
         validateACLAssignmentsRemove(aclAssignments, userGroupCreateResp.getName(), isGroup);
 
-        //Now the user should not have any acls associated with the
-        //user group "Depart_Dev". This is done by just
-        //querying about the just created project. Since user
-        //does not have any project role or tenant roles, the request
-        //will fail.
+        // Now the user should not have any acls associated with the
+        // user group "Depart_Dev". This is done by just
+        // querying about the just created project. Since user
+        // does not have any project role or tenant roles, the request
+        // will fail.
         ClientResponse clientResponseProjectInfo = ldapViPRUser5.path(getProjectApi(projectId)).get(ClientResponse.class);
         Assert.assertEquals(403, clientResponseProjectInfo.getStatus());
 
-        //Now remove the user group from the tenant user mappings.
+        // Now remove the user group from the tenant user mappings.
         removeTenantUserMapping(testTenantId, userGroupCreateResp.getName());
     }
 
@@ -1876,11 +1867,11 @@ public class ApiTest_UserGroup extends ApiTestBase {
         final String testName = "testUserGroupCreateByNonSecurityAdmin - ";
         createDefaultAuthnProvider(testName + "Default Authn Provider creation");
 
-        //Update one of the provider tenant user mapping with the
-        //with null group.
+        // Update one of the provider tenant user mapping with the
+        // with null group.
         updateTenantGroups(rootTenantId, null);
 
-        //Assigning the VDC role System Admin to ldapViPRUser5.
+        // Assigning the VDC role System Admin to ldapViPRUser5.
         List<String> roles = new ArrayList<String>();
         roles.add(getVDCRole(0));
         String userNameWithDomain = getUserWithDomain(4);
@@ -1895,7 +1886,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
         RoleAssignments roleAssignments = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentChanges);
         validateVDCRoleAssignmentsSuccess(roleAssignments, userNameWithDomain, roles, isGroup);
 
-        //Create a user ldpaViPRUser5.
+        // Create a user ldpaViPRUser5.
         BalancedWebResource ldapViPRUser5 = getHttpsClient(userNameWithDomain, getLDAPUserPassword());
 
         String whoAmIApi = getUserWhoAmIApi();
@@ -1904,31 +1895,31 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
-        //Try to create a user group by non security admin user (ldapViPRUser5).
+        // Try to create a user group by non security admin user (ldapViPRUser5).
         ClientResponse clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).post(ClientResponse.class, createParam);
 
         String partialErrorMessage = "Insufficient permissions for user %s";
         partialErrorMessage = String.format(partialErrorMessage, userNameWithDomain.toLowerCase());
         validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
 
-        //Try to get a list of user groups by non security/tenant admin or project owner (ldapViPRUser5).
+        // Try to get a list of user groups by non security/tenant admin or project owner (ldapViPRUser5).
         clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).get(ClientResponse.class);
 
         partialErrorMessage = "Insufficient permissions for user %s";
         partialErrorMessage = String.format(partialErrorMessage, userNameWithDomain.toLowerCase());
         validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
 
-        //Test the bulk api. Here expecting true as ldapViPRUser5 is a sysadmin
+        // Test the bulk api. Here expecting true as ldapViPRUser5 is a sysadmin
         testUserGroupBulkApi(ldapViPRUser5, true, true);
 
-        //Now remove the role assignments for the user..
+        // Now remove the role assignments for the user..
         roleAssignmentChanges.getAdd().clear();
         roleAssignmentChanges.getRemove().add(roleAssignmentEntry1);
 
         roleAssignments = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentChanges);
         validateVDCRoleAssignmentsRemove(roleAssignments, userNameWithDomain, isGroup);
 
-        //Now remove the user group from the tenant user mappings.
+        // Now remove the user group from the tenant user mappings.
         removeTenantUserMapping(rootTenantId, null);
     }
 
@@ -1937,16 +1928,16 @@ public class ApiTest_UserGroup extends ApiTestBase {
         final String testName = "testUserGroupCreateByTenantAdmin - ";
         createDefaultAuthnProvider(testName + "Default Authn Provider creation");
 
-        //Create a test tenant.
+        // Create a test tenant.
         URI testTenantId = createTestTenant();
 
-        //Remove the group from just created tenant user mapping.
-        //So that, all the users in the domain can be assigned with
-        //tenant roles. Here getting the ldapGroup(2) as that is the
-        //one used as default one for creating the tenant.
+        // Remove the group from just created tenant user mapping.
+        // So that, all the users in the domain can be assigned with
+        // tenant roles. Here getting the ldapGroup(2) as that is the
+        // one used as default one for creating the tenant.
         removeUserMappingGroups(testTenantId, getLDAPGroup(2));
 
-        //Assigning the VDC role Tenant Admin to ldapViPRUser5.
+        // Assigning the VDC role Tenant Admin to ldapViPRUser5.
         List<String> roles = new ArrayList<String>();
         roles.add(getTenantRole(0));
         String userNameWithDomain = getUserWithDomain(4);
@@ -1961,7 +1952,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
         RoleAssignments roleAssignments = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentChanges);
         validateVDCRoleAssignmentsSuccess(roleAssignments, userNameWithDomain, roles, isGroup);
 
-        //Create a user ldapViPRUser5.
+        // Create a user ldapViPRUser5.
         BalancedWebResource ldapViPRUser5 = getHttpsClient(userNameWithDomain, getLDAPUserPassword());
 
         String whoAmIApi = getUserWhoAmIApi();
@@ -1970,30 +1961,30 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
-        //Try to create a user group by non security admin user (ldapViPRUser5).
+        // Try to create a user group by non security admin user (ldapViPRUser5).
         ClientResponse clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).post(ClientResponse.class, createParam);
 
         String partialErrorMessage = "Insufficient permissions for user %s";
         partialErrorMessage = String.format(partialErrorMessage, userNameWithDomain.toLowerCase());
         validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
 
-        //Tenant Admin and Project owner has a readonly access.
+        // Tenant Admin and Project owner has a readonly access.
         clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).get(ClientResponse.class);
         Assert.assertEquals(200, clientResponseUserGroupCreate.getStatus());
 
-        //Test the bulk api. Here expecting false for get, as ldapViPRUser5
-        //is not a sysadmin or sysmonitor and expecting true for post, as
-        //ldapViPRUser5 is tenant admin.
+        // Test the bulk api. Here expecting false for get, as ldapViPRUser5
+        // is not a sysadmin or sysmonitor and expecting true for post, as
+        // ldapViPRUser5 is tenant admin.
         testUserGroupBulkApi(ldapViPRUser5, false, true);
 
-        //Now remove the user group from the role assignments.
+        // Now remove the user group from the role assignments.
         roleAssignmentChanges.getAdd().clear();
         roleAssignmentChanges.getRemove().add(roleAssignmentEntry1);
 
         roleAssignments = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentChanges);
         validateVDCRoleAssignmentsRemove(roleAssignments, userNameWithDomain, isGroup);
 
-        //Now the user should not have any roles.
+        // Now the user should not have any roles.
         ldapViPRUser5UserInfo = ldapViPRUser5.path(whoAmIApi).get(UserInfo.class);
         validateNoneUserTenantRoles(ldapViPRUser5UserInfo);
     }
@@ -2003,16 +1994,16 @@ public class ApiTest_UserGroup extends ApiTestBase {
         final String testName = "testUserGroupCreateByNonTenantAdmin - ";
         createDefaultAuthnProvider(testName + "Default Authn Provider creation");
 
-        //Create a test tenant.
+        // Create a test tenant.
         URI testTenantId = createTestTenant();
 
-        //Remove the group just created tenant user mapping.
-        //So that, all the users in the domain can be assigned with
-        //tenant roles. Here getting the ldapGroup(2) as that is the
-        //one used as default one for creating the tenant.
+        // Remove the group just created tenant user mapping.
+        // So that, all the users in the domain can be assigned with
+        // tenant roles. Here getting the ldapGroup(2) as that is the
+        // one used as default one for creating the tenant.
         removeUserMappingGroups(testTenantId, getLDAPGroup(2));
 
-        //Assigning the tenant role Project admin to ldapViPRUser5.
+        // Assigning the tenant role Project admin to ldapViPRUser5.
         List<String> roles = new ArrayList<String>();
         roles.add(getTenantRole(1));
         String userNameWithDomain = getUserWithDomain(4);
@@ -2027,7 +2018,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
         RoleAssignments roleAssignments = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentChanges);
         validateVDCRoleAssignmentsSuccess(roleAssignments, userNameWithDomain, roles, isGroup);
 
-        //Create a user ldapViPRUser5.
+        // Create a user ldapViPRUser5.
         BalancedWebResource ldapViPRUser5 = getHttpsClient(userNameWithDomain, getLDAPUserPassword());
 
         String whoAmIApi = getUserWhoAmIApi();
@@ -2036,29 +2027,29 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
-        //Try to create a user group by non security admin user (ldapViPRUser5).
+        // Try to create a user group by non security admin user (ldapViPRUser5).
         ClientResponse clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).post(ClientResponse.class, createParam);
 
         String partialErrorMessage = "Insufficient permissions for user %s";
         partialErrorMessage = String.format(partialErrorMessage, userNameWithDomain.toLowerCase());
         validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
 
-        //Only tenant Admin and Project owner has a readonly access.
+        // Only tenant Admin and Project owner has a readonly access.
         clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).get(ClientResponse.class);
         validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
 
-        //Test the bulk api. Here expecting false as ldapViPRUser5
+        // Test the bulk api. Here expecting false as ldapViPRUser5
         // is not a sysadmin, project owner, tenant admin.
         testUserGroupBulkApi(ldapViPRUser5, false, false);
 
-        //Now remove the user group from the role assignments.
+        // Now remove the user group from the role assignments.
         roleAssignmentChanges.getAdd().clear();
         roleAssignmentChanges.getRemove().add(roleAssignmentEntry1);
 
         roleAssignments = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentChanges);
         validateVDCRoleAssignmentsRemove(roleAssignments, userNameWithDomain, isGroup);
 
-        //Now the user should not have any roles
+        // Now the user should not have any roles
         ldapViPRUser5UserInfo = ldapViPRUser5.path(whoAmIApi).get(UserInfo.class);
         validateNoneUserTenantRoles(ldapViPRUser5UserInfo);
     }
@@ -2068,28 +2059,28 @@ public class ApiTest_UserGroup extends ApiTestBase {
         final String testName = "testUserGroupCreateWithProjectOwner - ";
         createDefaultAuthnProvider(testName + "Default Authn Provider creation");
 
-        //Create a test tenant.
+        // Create a test tenant.
         URI testTenantId = createTestTenant();
 
-        //Remove the group just created tenant user mapping.
-        //So that, all the users in the domain can be assigned with
-        //tenant roles. Here getting the ldapGroup(2) as that is the
-        //one used as default one for creating the tenant.
+        // Remove the group just created tenant user mapping.
+        // So that, all the users in the domain can be assigned with
+        // tenant roles. Here getting the ldapGroup(2) as that is the
+        // one used as default one for creating the tenant.
         removeUserMappingGroups(testTenantId, getLDAPGroup(2));
 
-        //Create a test project for the just created tenant.
+        // Create a test project for the just created tenant.
         URI projectId = createTestProject(testTenantId);
 
         String userNameWithDomain = getUserWithDomain(4);
 
-        //Change the owner of the project to ldapViPRUser5 from rSys.
+        // Change the owner of the project to ldapViPRUser5 from rSys.
         String projectEditApi = getProjectApi(projectId);
         ProjectUpdateParam updateParam = new ProjectUpdateParam();
         updateParam.setOwner(userNameWithDomain);
         ClientResponse clientResponseProjectEdit = rSys.path(projectEditApi).put(ClientResponse.class, updateParam);
         Assert.assertEquals(200, clientResponseProjectEdit.getStatus());
 
-        //Create a user ldapViPRUser5.
+        // Create a user ldapViPRUser5.
         BalancedWebResource ldapViPRUser5 = getHttpsClient(userNameWithDomain, getLDAPUserPassword());
 
         ProjectRestRep ldapViPRUser5ProjectInfo = ldapViPRUser5.path(getProjectApi(projectId)).get(ProjectRestRep.class);
@@ -2097,20 +2088,20 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
-        //Try to create a user group by non security admin user (ldapViPRUser5).
+        // Try to create a user group by non security admin user (ldapViPRUser5).
         ClientResponse clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).post(ClientResponse.class, createParam);
 
         String partialErrorMessage = "Insufficient permissions for user %s";
         partialErrorMessage = String.format(partialErrorMessage, userNameWithDomain.toLowerCase());
         validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
 
-        //Tenant Admin and Project owner has a readonly access.
+        // Tenant Admin and Project owner has a readonly access.
         clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).get(ClientResponse.class);
         Assert.assertEquals(200, clientResponseUserGroupCreate.getStatus());
 
-        //Test the bulk api. Here expecting false for get, as ldapViPRUser5
-        //is not a sysadmin or sysmonitor and expecting true for post, as
-        //ldapViPRUser5 is project owner.
+        // Test the bulk api. Here expecting false for get, as ldapViPRUser5
+        // is not a sysadmin or sysmonitor and expecting true for post, as
+        // ldapViPRUser5 is project owner.
         testUserGroupBulkApi(ldapViPRUser5, false, true);
 
         ProjectRestRep ProjectInfo = ldapViPRUser5.path(getProjectApi(projectId)).get(ProjectRestRep.class);
@@ -2122,22 +2113,22 @@ public class ApiTest_UserGroup extends ApiTestBase {
         final String testName = "testUserGroupCreateWithProjectAclALL - ";
         createDefaultAuthnProvider(testName + "Default Authn Provider creation");
 
-        //Create a test tenant.
+        // Create a test tenant.
         URI testTenantId = createTestTenant();
 
-        //Remove the group just created tenant user mapping.
-        //So that, all the users in the domain can be assigned with
-        //tenant roles. Here getting the ldapGroup(2) as that is the
-        //one used as default one for creating the tenant.
+        // Remove the group just created tenant user mapping.
+        // So that, all the users in the domain can be assigned with
+        // tenant roles. Here getting the ldapGroup(2) as that is the
+        // one used as default one for creating the tenant.
         removeUserMappingGroups(testTenantId, getLDAPGroup(2));
 
-        //Create a test project for the just created tenant.
+        // Create a test project for the just created tenant.
         URI projectId = createTestProject(testTenantId);
 
         String aclAssignmentsApi = getProjectACLAssignmentApi(projectId);
         boolean isGroup = false;
 
-        //Assigning all the project acls ALL to the user ldapViPRUser5
+        // Assigning all the project acls ALL to the user ldapViPRUser5
         List<String> acls = new ArrayList<String>();
         acls.add(getACL(0));
         String userNameWithDomain = getUserWithDomain(4);
@@ -2149,7 +2140,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
         ACLAssignments aclAssignments = rSys.path(aclAssignmentsApi).put(ACLAssignments.class, aclAssignmentChanges);
         validateACLAssignmentsSuccess(aclAssignments, userNameWithDomain, acls, isGroup);
 
-        //Create a user ldapViPRUser5.
+        // Create a user ldapViPRUser5.
         BalancedWebResource ldapViPRUser5 = getHttpsClient(userNameWithDomain, getLDAPUserPassword());
 
         ProjectRestRep ldapViPRUser5ProjectInfo = ldapViPRUser5.path(getProjectApi(projectId)).get(ProjectRestRep.class);
@@ -2157,30 +2148,30 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
-        //Try to create a user group by non security admin user (ldapViPRUser5).
+        // Try to create a user group by non security admin user (ldapViPRUser5).
         ClientResponse clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).post(ClientResponse.class, createParam);
 
         String partialErrorMessage = "Insufficient permissions for user %s";
         partialErrorMessage = String.format(partialErrorMessage, userNameWithDomain.toLowerCase());
         validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
 
-        //Only Tenant Admin and Project owner has a readonly access.
+        // Only Tenant Admin and Project owner has a readonly access.
         clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).get(ClientResponse.class);
         validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
 
-        //Test the bulk api. Here expecting false for get, as ldapViPRUser5
-        //is not a sysadmin or sysmonitor and expecting true for post, as
-        //ldapViPRUser5 has all project acl.
+        // Test the bulk api. Here expecting false for get, as ldapViPRUser5
+        // is not a sysadmin or sysmonitor and expecting true for post, as
+        // ldapViPRUser5 has all project acl.
         testUserGroupBulkApi(ldapViPRUser5, false, false);
 
-        //Now remove the user group from the acl assignments.
+        // Now remove the user group from the acl assignments.
         aclAssignmentChanges.getAdd().clear();
         aclAssignmentChanges.getRemove().add(aclAssignmentEntry1);
 
         aclAssignments = rSys.path(aclAssignmentsApi).put(ACLAssignments.class, aclAssignmentChanges);
         validateACLAssignmentsRemove(aclAssignments, userNameWithDomain, isGroup);
 
-        //Now the user should not have any acls.
+        // Now the user should not have any acls.
         ClientResponse clientResponseProjectInfo = ldapViPRUser5.path(getProjectApi(projectId)).get(ClientResponse.class);
         Assert.assertEquals(403, clientResponseProjectInfo.getStatus());
     }
@@ -2190,22 +2181,22 @@ public class ApiTest_UserGroup extends ApiTestBase {
         final String testName = "testUserGroupCreateWithProjectAclBACKUP - ";
         createDefaultAuthnProvider(testName + "Default Authn Provider creation");
 
-        //Create a test tenant.
+        // Create a test tenant.
         URI testTenantId = createTestTenant();
 
-        //Remove the group just created tenant user mapping.
-        //So that, all the users in the domain can be assigned with
-        //tenant roles. Here getting the ldapGroup(2) as that is the
-        //one used as default one for creating the tenant.
+        // Remove the group just created tenant user mapping.
+        // So that, all the users in the domain can be assigned with
+        // tenant roles. Here getting the ldapGroup(2) as that is the
+        // one used as default one for creating the tenant.
         removeUserMappingGroups(testTenantId, getLDAPGroup(2));
 
-        //Create a test project for the just created tenant.
+        // Create a test project for the just created tenant.
         URI projectId = createTestProject(testTenantId);
 
         String aclAssignmentsApi = getProjectACLAssignmentApi(projectId);
         boolean isGroup = false;
 
-        //Assigning all the project acls BACKUP ldapViPRUser5.
+        // Assigning all the project acls BACKUP ldapViPRUser5.
         List<String> acls = new ArrayList<String>();
         acls.add(getACL(1));
         String userNameWithDomain = getUserWithDomain(4);
@@ -2217,7 +2208,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
         ACLAssignments aclAssignments = rSys.path(aclAssignmentsApi).put(ACLAssignments.class, aclAssignmentChanges);
         validateACLAssignmentsSuccess(aclAssignments, userNameWithDomain, acls, isGroup);
 
-        //Create a user ldapViPRUser5.
+        // Create a user ldapViPRUser5.
         BalancedWebResource ldapViPRUser5 = getHttpsClient(userNameWithDomain, getLDAPUserPassword());
 
         ProjectRestRep ldapViPRUser5ProjectInfo = ldapViPRUser5.path(getProjectApi(projectId)).get(ProjectRestRep.class);
@@ -2225,30 +2216,30 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
-        //Try to create a user group by non security admin user (ldapViPRUser5).
+        // Try to create a user group by non security admin user (ldapViPRUser5).
         ClientResponse clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).post(ClientResponse.class, createParam);
 
         String partialErrorMessage = "Insufficient permissions for user %s";
         partialErrorMessage = String.format(partialErrorMessage, userNameWithDomain.toLowerCase());
         validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
 
-        //Only Tenant Admin and Project owner has a readonly access.
+        // Only Tenant Admin and Project owner has a readonly access.
         clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).get(ClientResponse.class);
         validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
 
-        //Test the bulk api. Here expecting false for get, as ldapViPRUser5
-        //is not a sysadmin or sysmonitor and expecting false for post, as
-        //ldapViPRUser5 is tenant admin, project owner, security admin.
+        // Test the bulk api. Here expecting false for get, as ldapViPRUser5
+        // is not a sysadmin or sysmonitor and expecting false for post, as
+        // ldapViPRUser5 is tenant admin, project owner, security admin.
         testUserGroupBulkApi(ldapViPRUser5, false, false);
 
-        //Now remove the user group from the acl assignments.
+        // Now remove the user group from the acl assignments.
         aclAssignmentChanges.getAdd().clear();
         aclAssignmentChanges.getRemove().add(aclAssignmentEntry1);
 
         aclAssignments = rSys.path(aclAssignmentsApi).put(ACLAssignments.class, aclAssignmentChanges);
         validateACLAssignmentsRemove(aclAssignments, userNameWithDomain, true);
 
-        //Now the user should not have any acls.
+        // Now the user should not have any acls.
         ClientResponse clientResponseProjectInfo = ldapViPRUser5.path(getProjectApi(projectId)).get(ClientResponse.class);
         Assert.assertEquals(403, clientResponseProjectInfo.getStatus());
     }
@@ -2260,13 +2251,13 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
-        //Set name to Depart_QE.
+        // Set name to Depart_QE.
         createParam.setLabel("Depart_QE");
 
-        //Remove all the attributes.
+        // Remove all the attributes.
         createParam.getAttributes().clear();
 
-        //Just set only one attribute and its only one value.
+        // Just set only one attribute and its only one value.
         UserAttributeParam userAttributeParam = new UserAttributeParam();
         userAttributeParam.setKey(getAttributeKey(0));
         userAttributeParam.getValues().add(getAttributeDepartmentValue(1));
@@ -2276,17 +2267,17 @@ public class ApiTest_UserGroup extends ApiTestBase {
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
         UserGroupRestRep userGroupCreateResp = validateUserGroupCreateSuccess(createParam, clientUserGroupCreateResp);
 
-        //Create a test tenant.
+        // Create a test tenant.
         URI testTenantId = createTestTenant();
 
-        //Update the tenant user mapping with the
-        //just created user group "Depart_QE".
+        // Update the tenant user mapping with the
+        // just created user group "Depart_QE".
         updateTenantGroups(testTenantId, userGroupCreateResp.getName());
 
         String roleAssignmentsApi = getTenantRoleAssignmentApi(testTenantId);
         boolean isGroup = true;
 
-        //Assigning all the Tenant roles to Depart_QE user group(with attributes department = [QE]
+        // Assigning all the Tenant roles to Depart_QE user group(with attributes department = [QE]
         RoleAssignmentEntry roleAssignmentEntry1 = getRoleAssignmentEntry(userGroupCreateResp.getName(),
                 getDefaultTenantRoles(), isGroup);
         RoleAssignmentChanges roleAssignmentChanges = getDefaultVDCRoleAssignmentChanges();
@@ -2295,42 +2286,42 @@ public class ApiTest_UserGroup extends ApiTestBase {
         RoleAssignments roleAssignments = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentChanges);
         validateVDCRoleAssignmentsSuccess(roleAssignments, userGroupCreateResp.getName(), getDefaultTenantRoles(), isGroup);
 
-        //Create a user whose attributes matches with the above created
-        //user group "Depart_QE". Matching LDAP user is ldapViPRUser5.
+        // Create a user whose attributes matches with the above created
+        // user group "Depart_QE". Matching LDAP user is ldapViPRUser5.
         BalancedWebResource ldapViPRUser7 = getHttpsClient(getUserWithDomain(6), getLDAPUserPassword());
 
         String whoAmIApi = getUserWhoAmIApi();
         UserInfo ldapViPRUser7UserInfo = ldapViPRUser7.path(whoAmIApi).get(UserInfo.class);
         validateUserTenantRoles(ldapViPRUser7UserInfo, getDefaultTenantRoles());
 
-        //Now try to delete the user group "Depart_QE".
-        //It should fail, as it is associated with the tenant role assignments and
-        //tenants user mapping group.
+        // Now try to delete the user group "Depart_QE".
+        // It should fail, as it is associated with the tenant role assignments and
+        // tenants user mapping group.
         deleteUserGroupAndExpectFailure(userGroupCreateResp.getId());
 
-        //Now try to change the domain the of the user group "Depart_Dev".
-        //It should fail, as it is associated with the tenant role assignments and
-        //tenants user mapping group.
+        // Now try to change the domain the of the user group "Depart_Dev".
+        // It should fail, as it is associated with the tenant role assignments and
+        // tenants user mapping group.
         changeUserGroupDomainAndExpectFailure(userGroupCreateResp);
 
-        //Edit the user group but dont change any properties in the group.
-        //This should be successful irrespective of whether it is used in
-        //any role or acl or user mapping assignments.
+        // Edit the user group but dont change any properties in the group.
+        // This should be successful irrespective of whether it is used in
+        // any role or acl or user mapping assignments.
         editUserGroupWithoutAnyChangeAndExpectSuccess(userGroupCreateResp);
 
-        //Now remove the user group from the role assignments.
+        // Now remove the user group from the role assignments.
         roleAssignmentChanges.getAdd().clear();
         roleAssignmentChanges.getRemove().add(roleAssignmentEntry1);
 
         roleAssignments = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentChanges);
         validateVDCRoleAssignmentsRemove(roleAssignments, userGroupCreateResp.getName(), isGroup);
 
-        //Now the user should not have any roles associated with the
-        //user group "Depart_QE".
+        // Now the user should not have any roles associated with the
+        // user group "Depart_QE".
         ldapViPRUser7UserInfo = ldapViPRUser7.path(whoAmIApi).get(UserInfo.class);
         validateNoneUserTenantRoles(ldapViPRUser7UserInfo);
 
-        //Now remove the user group from the tenant user mappings.
+        // Now remove the user group from the tenant user mappings.
         removeTenantUserMapping(testTenantId, userGroupCreateResp.getName());
     }
 
@@ -2339,7 +2330,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
         final String testName = "testUserGroupBulkAPI - ";
         createDefaultAuthnProvider(testName + "Default Authn Provider creation");
 
-        //Test the bulk api.
+        // Test the bulk api.
         testUserGroupBulkApi(rSys, true, true);
     }
 
@@ -2356,9 +2347,9 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         createParam = getDefaultUserGroupCreateParam();
 
-        //Change the name something different and keep the same
-        //attributes key but with different values for each key.
-        //This should be successful.
+        // Change the name something different and keep the same
+        // attributes key but with different values for each key.
+        // This should be successful.
         createParam.setLabel("NewName");
         Iterator<UserAttributeParam> it = createParam.getAttributes().iterator();
         while (it.hasNext()) {
@@ -2374,7 +2365,7 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         bulkIds.add(userGroupRestRep.getId());
 
-        //Get all the ids of UserGroup configured in the system.
+        // Get all the ids of UserGroup configured in the system.
         ClientResponse clientUserGroupBulkResp = user.path(testBulkApi).get(ClientResponse.class);
         if (!expectGetSuccess) {
             Assert.assertEquals(403, clientUserGroupBulkResp.getStatus());
@@ -2394,8 +2385,8 @@ public class ApiTest_UserGroup extends ApiTestBase {
             expectedPostReqCount = 0;
         }
 
-        //Get the details of all the UserGroups configured in the system.
-        //By passing the same set of ids received in the response of get request.
+        // Get the details of all the UserGroups configured in the system.
+        // By passing the same set of ids received in the response of get request.
         clientUserGroupBulkResp = user.path(testBulkApi).post(ClientResponse.class, bulkIdParam);
         validateUserGroupBulkPostSuccess(clientUserGroupBulkResp, expectedPostReqCount);
     }

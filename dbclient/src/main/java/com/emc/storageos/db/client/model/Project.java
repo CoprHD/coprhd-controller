@@ -1,22 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
 
 import com.emc.storageos.db.client.model.DbKeyspace.Keyspaces;
-
 
 /**
  * Project data object
@@ -26,7 +15,7 @@ import com.emc.storageos.db.client.model.DbKeyspace.Keyspaces;
 public class Project extends DataObjectWithACLs {
     private NamedURI _tenantOrg;
     private String _owner;
-    private Long   _quotaGB;
+    private Long _quotaGB;
     private Boolean _quotaEnabled;
 
     @NamedRelationIndex(cf = "NamedRelation", type = TenantOrg.class)
@@ -50,9 +39,8 @@ public class Project extends DataObjectWithACLs {
         setChanged("owner");
     }
 
-
     @Name("quota")
-    public Long getQuota(){
+    public Long getQuota() {
         return (null == _quotaGB) ? 0L : _quotaGB;
     }
 
@@ -62,12 +50,12 @@ public class Project extends DataObjectWithACLs {
     }
 
     @Name("quotaEnabled")
-    public Boolean  getQuotaEnabled(){
+    public Boolean getQuotaEnabled() {
         return (_quotaEnabled == null) ? false : _quotaEnabled;
     }
 
-    public void  setQuotaEnabled(Boolean enable){
-         _quotaEnabled = enable;
+    public void setQuotaEnabled(Boolean enable) {
+        _quotaEnabled = enable;
         setChanged("quotaEnabled");
     }
 

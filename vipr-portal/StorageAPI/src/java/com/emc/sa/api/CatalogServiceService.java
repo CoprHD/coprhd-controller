@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.api;
@@ -68,27 +68,28 @@ import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceUpdateParam;
 
 @DefaultPermissions(
-        read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, 
-        write_roles = { Role.TENANT_ADMIN }, 
-        read_acls = { ACL.ANY })
+        readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
+        writeRoles = { Role.TENANT_ADMIN },
+        readAcls = { ACL.ANY })
 @Path("/catalog/services")
 public class CatalogServiceService extends CatalogTaggedResourceService {
 
     private static final String EVENT_SERVICE_TYPE = "catalog-service";
-    
+
     @Autowired
     private CatalogServiceManager catalogServiceManager;
-    
+
     @Autowired
     private CatalogCategoryManager catalogCategoryManager;
-    
+
     @Autowired
     private RecordableEventManager eventManager;
-    
+
     @Autowired
     private ServiceDescriptors serviceDescriptors;
 
     private CatalogConfigUtils catalogConfigUtils;
+
     public void setCatalogConfigUtils(CatalogConfigUtils catalogConfigUtils) {
         this.catalogConfigUtils = catalogConfigUtils;
     }
@@ -101,7 +102,8 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
     @Override
     protected URI getTenantOwner(URI id) {
         CatalogService catalogService = queryResource(id);
-        CatalogCategory parentCatalogCategory = catalogCategoryManager.getCatalogCategoryById(catalogService.getCatalogCategoryId().getURI());
+        CatalogCategory parentCatalogCategory = catalogCategoryManager.getCatalogCategoryById(catalogService.getCatalogCategoryId()
+                .getURI());
         return uri(parentCatalogCategory.getTenant());
     }
 
@@ -109,7 +111,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.CATALOG_SERVICE;
     }
-    
+
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
@@ -132,31 +134,31 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
      * Gets a service descriptor by ID, returning null if no such service exists.
      * 
      * @param serviceId
-     *        the service ID.
+     *            the service ID.
      * @return the service descriptor, or null.
      */
     private ServiceDescriptor getServiceDescriptor(String serviceId) {
         try {
             return serviceDescriptors.getDescriptor(Locale.getDefault(), serviceId);
-        }
-        catch (IllegalStateException e) {
+        } catch (IllegalStateException e) {
             return null;
         }
     }
-    
+
     /**
      * Gets the service descriptor for the given service.
      * 
      * @param service
-     *        the catalog service.
+     *            the catalog service.
      * @return the service descriptor, or null.
      */
     private ServiceDescriptor getServiceDescriptor(CatalogService service) {
         return getServiceDescriptor(service.getBaseService());
     }
-    
-    /**     
+
+    /**
      * Get info for catalog category
+     * 
      * @param id the URN of a Catalog Category
      * @prereq none
      * @brief Show catalog category
@@ -169,10 +171,10 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
         CatalogService catalogService = queryResource(id);
         ServiceDescriptor serviceDescriptor = getServiceDescriptor(catalogService);
         List<CatalogServiceField> catalogServiceFields = catalogServiceManager.getCatalogServiceFields(catalogService.getId());
-        
+
         return map(catalogService, serviceDescriptor, catalogServiceFields);
     }
-    
+
     /**
      * Creates a new catalog service
      * 
@@ -180,37 +182,38 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
      *            the parameter to create a new catalog service
      * @prereq none
      * @brief Create Catalog Service
-     * @return none     
+     * @return none
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     @Path("")
     public CatalogServiceRestRep createCatalogService(CatalogServiceCreateParam createParam) {
 
         StorageOSUser user = getUserFromContext();
         CatalogCategory parentCatalogCategory = catalogCategoryManager.getCatalogCategoryById(createParam.getCatalogCategory());
         verifyAuthorizedInTenantOrg(uri(parentCatalogCategory.getTenant()), user);
-        
+
         validateParam(createParam, null);
-        
+
         CatalogService catalogService = createNewObject(createParam, parentCatalogCategory);
         List<CatalogServiceField> catalogServiceFields = createNewObjectList(catalogService, createParam.getCatalogServiceFields());
         catalogServiceManager.createCatalogService(catalogService, catalogServiceFields);
-        
+
         auditOpSuccess(OperationTypeEnum.CREATE_CATALOG_SERVICE, catalogService.auditParameters());
-        
+
         // Refresh Objects
         catalogService = catalogServiceManager.getCatalogServiceById(catalogService.getId());
         catalogServiceFields = catalogServiceManager.getCatalogServiceFields(catalogService.getId());
         ServiceDescriptor serviceDescriptor = getServiceDescriptor(catalogService);
-        
+
         return map(catalogService, serviceDescriptor, catalogServiceFields);
-    }          
-    
-    /**     
+    }
+
+    /**
      * Update catalog service
+     * 
      * @param param Catalog Service update parameters
      * @param id the URN the catalog service
      * @prereq none
@@ -221,20 +224,21 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public CatalogServiceRestRep updateCatalogService(@PathParam("id") URI id, CatalogServiceUpdateParam param) {
         CatalogService catalogService = getCatalogServiceById(id, true);
         List<CatalogServiceField> catalogServiceFields = catalogServiceManager.getCatalogServiceFields(id);
-        
+
         StorageOSUser user = getUserFromContext();
         CatalogCategory parentCatalogCategory = catalogCategoryManager.getCatalogCategoryById(param.getCatalogCategory());
-        verifyAuthorizedInTenantOrg(uri(parentCatalogCategory.getTenant()), user);  
+        verifyAuthorizedInTenantOrg(uri(parentCatalogCategory.getTenant()), user);
 
         validateParam(param, catalogService);
-        
+
         updateObject(catalogService, param, parentCatalogCategory);
-        List<CatalogServiceField> updatedCatalogServiceFields = updateObjectList(catalogService, catalogServiceFields, param.getCatalogServiceFields());
-        
+        List<CatalogServiceField> updatedCatalogServiceFields = updateObjectList(catalogService, catalogServiceFields,
+                param.getCatalogServiceFields());
+
         catalogServiceManager.updateCatalogService(catalogService, updatedCatalogServiceFields);
         auditOpSuccess(OperationTypeEnum.UPDATE_CATALOG_SERVICE, catalogService.auditParameters());
 
@@ -242,146 +246,150 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
         catalogService = catalogServiceManager.getCatalogServiceById(catalogService.getId());
         catalogServiceFields = catalogServiceManager.getCatalogServiceFields(catalogService.getId());
         ServiceDescriptor serviceDescriptor = getServiceDescriptor(catalogService);
-        
+
         return map(catalogService, serviceDescriptor, catalogServiceFields);
-    }  
-    
+    }
+
     @GET
     @Path("/{id}/acl")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.TENANT_ADMIN}, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public ACLAssignments getRoleAssignments(@PathParam("id") URI id) {
         return getRoleAssignmentsResponse(id);
-    }    
-    
+    }
+
     @PUT
     @Path("/{id}/acl")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.TENANT_ADMIN}, acls = {ACL.OWN} , block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN }, acls = { ACL.OWN }, blockProxies = true)
     public ACLAssignments updateRoleAssignments(@PathParam("id") URI id,
             ACLAssignmentChanges changes) {
         CatalogService catalogService = catalogServiceManager.getCatalogServiceById(id);
-        CatalogCategory parentCatalogCategory = catalogCategoryManager.getCatalogCategoryById(catalogService.getCatalogCategoryId().getURI());
-        URI tenantId = uri(parentCatalogCategory.getTenant()); 
-        
-        _permissionsHelper.updateACLs(catalogService, changes, new CatalogACLInputFilter(tenantId));
-        
-        catalogServiceManager.updateCatalogService(catalogService, null);;
+        CatalogCategory parentCatalogCategory = catalogCategoryManager.getCatalogCategoryById(catalogService.getCatalogCategoryId()
+                .getURI());
+        URI tenantId = uri(parentCatalogCategory.getTenant());
 
-        auditOpSuccess(OperationTypeEnum.MODIFY_CATALOG_SERVICE_ACL,catalogService.getId()
+        _permissionsHelper.updateACLs(catalogService, changes, new CatalogACLInputFilter(tenantId));
+
+        catalogServiceManager.updateCatalogService(catalogService, null);
+        ;
+
+        auditOpSuccess(OperationTypeEnum.MODIFY_CATALOG_SERVICE_ACL, catalogService.getId()
                 .toString(), catalogService.getLabel(), changes);
 
         catalogConfigUtils.notifyCatalogAclChange();
 
         return getRoleAssignmentsResponse(id);
-    }    
-    
+    }
+
     @PUT
     @Path("/{id}/move/up")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public Response moveUpCatalogService(@PathParam("id") URI id) {
-        
+
         catalogServiceManager.moveUpCatalogService(id);
-        
+
         return Response.ok().build();
-    }      
-    
+    }
+
     @PUT
     @Path("/{id}/move/down")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public Response moveDownCatalogService(@PathParam("id") URI id) {
-        
+
         catalogServiceManager.moveDownCatalogService(id);
-        
+
         return Response.ok().build();
-    }            
-    
+    }
+
     private ACLAssignments getRoleAssignmentsResponse(URI id) {
         CatalogService catalogService = catalogServiceManager.getCatalogServiceById(id);
         ACLAssignments response = new ACLAssignments();
         response.setAssignments(_permissionsHelper.convertToACLEntries(catalogService.getAcls()));
         return response;
-    }    
-    
+    }
+
     @PUT
     @Path("/{id}/fields/{name}/move/up")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public Response moveUpCatalogServiceField(@PathParam("id") URI id, @PathParam("name") String name) {
-        
+
         catalogServiceManager.moveUpCatalogServiceField(id, name);
-        
+
         return Response.ok().build();
-    }      
-    
+    }
+
     @PUT
     @Path("/{id}/fields/{name}/move/down")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public Response moveDownCatalogService(@PathParam("id") URI id, @PathParam("name") String name) {
-        
+
         catalogServiceManager.moveDownCatalogServiceField(id, name);
-        
+
         return Response.ok().build();
-    }            
-    
+    }
+
     /**
      * Deactivates the catalog service
+     * 
      * @param id the URN of an catalog service to be deactivated
      * @brief Deactivate Catalog Service
      * @return OK if deactivation completed successfully
-     * @throws DatabaseException when a DB error occurs     
+     * @throws DatabaseException when a DB error occurs
      */
     @POST
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public Response deactivateCatalogService(@PathParam("id") URI id) throws DatabaseException {
         CatalogService catalogService = queryResource(id);
         ArgValidator.checkEntity(catalogService, id, true);
-        
+
         catalogServiceManager.deleteCatalogService(catalogService);
 
         auditOpSuccess(OperationTypeEnum.DELETE_CATALOG_SERVICE, catalogService.auditParameters());
-        
+
         return Response.ok().build();
-    }     
-    
+    }
+
     /**
      * Gets the list a user's recent services
+     * 
      * @brief List user's recent catalog services
      * @return a list of user's recent services
-     * @throws DatabaseException when a DB error occurs     
+     * @throws DatabaseException when a DB error occurs
      */
     @GET
     @Path("/recent")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CatalogServiceList getRecentCatalogServices() throws DatabaseException {
-        
+
         StorageOSUser user = getUserFromContext();
-        
+
         List<CatalogService> catalogServices = catalogServiceManager.getRecentCatalogServices(user);
 
         return toCatalogServiceList(catalogServices);
-    }      
-    
+    }
+
     private CatalogService getCatalogServiceById(URI id, boolean checkInactive) {
         CatalogService catalogService = catalogServiceManager.getCatalogServiceById(id);
         ArgValidator.checkEntity(catalogService, id, isIdEmbeddedInURL(id), checkInactive);
-        return catalogService;        
-    }           
+        return catalogService;
+    }
 
     private void validateParam(CatalogServiceCommonParam input, CatalogService existing) {
-        
-        ServiceDescriptor descriptor = 
+
+        ServiceDescriptor descriptor =
                 catalogServiceManager.getServiceDescriptor(input.getBaseService());
-  
+
         if (descriptor == null) {
             throw APIException.badRequests.baseServiceNotFound(input.getBaseService());
         }
-        
+
         for (CatalogServiceFieldParam field : input.getCatalogServiceFields()) {
             if (!field.getOverride()) {
                 continue;
@@ -396,43 +404,43 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
         }
 
     }
-    
-    /**    
+
+    /**
      * List data for the specified services.
-     *
+     * 
      * @param param POST data containing the id list.
      * @prereq none
      * @brief List data of specified services
      * @return list of representations.
-     *
+     * 
      * @throws DatabaseException When an error occurs querying the database.
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public CatalogServiceBulkRep getBulkResources(BulkIdParam param) {
         return (CatalogServiceBulkRep) super.getBulkResources(param);
     }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public Class<CatalogService> getResourceClass() {
         return CatalogService.class;
     }
-    
+
     @Override
     public CatalogServiceBulkRep queryBulkResourceReps(List<URI> ids) {
         return queryBulkResourceReps(ids, null);
     }
-    
+
     @Override
     public CatalogServiceBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
         CatalogServiceFilter filter = new CatalogServiceFilter(getUserFromContext(), _permissionsHelper, this.catalogCategoryManager);
         return queryBulkResourceReps(ids, filter);
     }
-    
+
     private CatalogServiceBulkRep queryBulkResourceReps(List<URI> ids, CatalogServiceFilter filter) {
         List<CatalogServiceRestRep> catalogServiceRestReps = new ArrayList<CatalogServiceRestRep>();
         List<CatalogServiceAndFields> catalogServicesWithFields = catalogServiceManager
@@ -443,12 +451,12 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
                 CatalogService service = catalogServiceAndField.getCatalogService();
                 ServiceDescriptor descriptor = descriptors.get(service.getBaseService());
                 List<CatalogServiceField> serviceFields = catalogServiceAndField.getCatalogServiceFields();
-                
+
                 catalogServiceRestReps.add(map(service, descriptor, serviceFields));
             }
         }
-        
+
         catalogServiceRestReps = SortedIndexUtils.createSortedList(catalogServiceRestReps.iterator());
-        return new CatalogServiceBulkRep(catalogServiceRestReps);         
+        return new CatalogServiceBulkRep(catalogServiceRestReps);
     }
 }

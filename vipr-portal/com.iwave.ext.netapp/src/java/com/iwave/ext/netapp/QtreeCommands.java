@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.netapp;
@@ -17,33 +17,32 @@ import com.google.common.collect.Lists;
 import com.iwave.ext.netapp.model.Qtree;
 
 public class QtreeCommands {
-    
+
     private Logger log = Logger.getLogger(getClass());
-    
+
     private NaServer server = null;
-    
+
     public QtreeCommands(NaServer server) {
         this.server = server;
     }
-    
+
     public List<Qtree> listQtree(String volume) {
         NaElement elem = new NaElement("qtree-list");
         if (StringUtils.isNotBlank(volume)) {
             elem.addNewChild("volume", volume);
         }
-           
+
         NaElement resultElem = null;
         try {
             resultElem = server.invokeElem(elem);
-        }
-        catch( Exception e ) {
+        } catch (Exception e) {
             throw createError(elem, e);
-        }     
-        
+        }
+
         List<Qtree> qtrees = Lists.newArrayList();
         for (NaElement qtreeElem : (List<NaElement>) resultElem.getChildByName("qtrees").getChildren()) {
             Qtree qtree = new Qtree();
-            qtree.setId((Integer)ConvertUtils.convert(qtreeElem.getChildContent("id"), Integer.class));
+            qtree.setId((Integer) ConvertUtils.convert(qtreeElem.getChildContent("id"), Integer.class));
             qtree.setOplocks(qtreeElem.getChildContent("oplocks"));
             qtree.setOwningVfiler(qtreeElem.getChildContent("owning-vfiler"));
             qtree.setQtree(qtreeElem.getChildContent("qtree"));
@@ -52,10 +51,10 @@ public class QtreeCommands {
             qtree.setVolume(qtreeElem.getChildContent("volume"));
             qtrees.add(qtree);
         }
-        return qtrees;        
+        return qtrees;
 
     }
-    
+
     public void createQtree(String qtree, String volume) {
         createQtree(qtree, volume, "");
     }
@@ -70,12 +69,11 @@ public class QtreeCommands {
 
         try {
             server.invokeElem(elem);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw createError(elem, e);
         }
     }
-    
+
     public void deleteQtree(String qtree, boolean force) {
         NaElement elem = new NaElement("qtree-delete");
         elem.addNewChild("qtree", qtree);
@@ -83,8 +81,7 @@ public class QtreeCommands {
 
         try {
             server.invokeElem(elem);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw createError(elem, e);
         }
     }

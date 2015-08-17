@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor;
 
@@ -18,12 +8,9 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
@@ -44,14 +31,13 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 
-
 public class LunMaskingProcessor extends StorageProcessor {
     private static final String STORAGE_VOLUME_PREFIX = "storagevolume";
     private Logger _logger = LoggerFactory.getLogger(LunMaskingProcessor.class);
     private List<Object> _args;
-    
+
     private DbClient _dbClient;
-    
+
     @Override
     public void processResult(
             Operation operation, Object resultObj, Map<String, Object> keyMap)
@@ -68,7 +54,7 @@ public class LunMaskingProcessor extends StorageProcessor {
         URI systemId = profile.getSystemId();
         try {
             StorageSystem device = _dbClient.queryObject(StorageSystem.class, systemId);
-            
+
             while (it.hasNext()) {
                 CIMObjectPath path = it.next();
                 // if cascaded SG, note down the Host Io limits, and get the
@@ -92,11 +78,11 @@ public class LunMaskingProcessor extends StorageProcessor {
                         processedSGCoPs.add(path);
                     }
                 }
-                
+
                 // Clar_LunMaskingSCSIProtocolController-->StorageVolume, if volume entry is there,
                 // then consider those as exported Volumes.
                 String systemName = (String) maskingViewPath.getKey(Constants.SYSTEMNAME).getValue();
-                if (systemName.toLowerCase().contains(Constants.CLARIION) &&  path.toString().toLowerCase().contains(STORAGE_VOLUME_PREFIX)) {
+                if (systemName.toLowerCase().contains(Constants.CLARIION) && path.toString().toLowerCase().contains(STORAGE_VOLUME_PREFIX)) {
                     String volumeNativeGuid = getVolumeNativeGuid(path);
                     VolHostIOObject obj = new VolHostIOObject();
                     obj.setVolNativeGuid(volumeNativeGuid);
@@ -119,7 +105,7 @@ public class LunMaskingProcessor extends StorageProcessor {
                         .get(Constants.EXPORTED_VOLUMES);
                 alreadyExportedVolumes.putAll(volToIolimits);
             }
-            
+
             if (device.checkIfVmax3()) {
                 // set the CoPs of SG's processed in the keyMap.
                 // This list will be used as a reference to skip them to fetch unexported volume
@@ -131,7 +117,7 @@ public class LunMaskingProcessor extends StorageProcessor {
                             .get(Constants.STORAGE_GROUPS_PROCESSED);
                     volumesWithFastPolicy.addAll(processedSGCoPs);
                 }
-                
+
                 // Set the volumesWithSLO in the keyMap for further processing.
                 if (!keyMap.containsKey(Constants.VOLUMES_WITH_SLOS)) {
                     keyMap.put(Constants.VOLUMES_WITH_SLOS, volToFastPolicy);
@@ -145,9 +131,10 @@ public class LunMaskingProcessor extends StorageProcessor {
             _logger.error("Extracting already exported Volumes failed", e);
         }
     }
-    
+
     /**
      * get All Child SGs if cascaded
+     * 
      * @param path
      * @param client
      * @return
@@ -168,19 +155,20 @@ public class LunMaskingProcessor extends StorageProcessor {
                 if (comparePath.toString().endsWith(path.toString())) {
                     return Collections.emptyList();
                 }
-                _logger.debug("Found Child SG {}",comparePath.toString());
+                _logger.debug("Found Child SG {}", comparePath.toString());
                 childSGs.add(comparePath);
             }
 
         } catch (Exception e) {
             _logger.info("Got exception trying to retrieve cascade status of SG.  Assuming cascaded: ", e);
         } finally {
-            if (null != pathItr)
+            if (null != pathItr) {
                 pathItr.close();
+            }
         }
         return childSGs;
     }
-    
+
     /**
      * Add IO limits on volume based on SG they belong to.
      * 
@@ -192,20 +180,20 @@ public class LunMaskingProcessor extends StorageProcessor {
      * @param parentHostIoBw
      * @param parentHostIoPs
      */
-    private void addIoLimitsOnVolume(WBEMClient client, CIMObjectPath path, Map<String, VolHostIOObject> volToIolimits, 
+    private void addIoLimitsOnVolume(WBEMClient client, CIMObjectPath path, Map<String, VolHostIOObject> volToIolimits,
             Map<String, String> volToFastPolicy, String parentHostIoBw, String parentHostIoPs) {
         try {
             CIMInstance instance = client.getInstance(path, false, true, SmisConstants.PS_HOST_IO);
             String hostIoBw = String.valueOf(instance.getPropertyValue(SmisConstants.EMC_MAX_BANDWIDTH));
             String hostIoPs = String.valueOf(instance.getPropertyValue(SmisConstants.EMC_MAX_IO));
             String fastSetting = SmisUtils.getSLOPolicyName(instance);
-            
+
             _logger.info("Bw {} and Iops {} found for SG : {} ",
                     new Object[] { hostIoBw, hostIoPs, String.valueOf(instance.getPropertyValue(Constants.ELEMENTNAME)) });
             if (hostIoBw == "0" && hostIoPs == "0") {
                 hostIoBw = parentHostIoBw;
                 hostIoPs = parentHostIoPs;
-            } 
+            }
             CloseableIterator<CIMObjectPath> volPaths = client.associatorNames(path, null, Constants.STORAGE_VOLUME, null, null);
             while (volPaths.hasNext()) {
                 CIMObjectPath volPath = volPaths.next();
@@ -214,7 +202,7 @@ public class LunMaskingProcessor extends StorageProcessor {
                 obj.setVolNativeGuid(volumeNativeGuid);
                 obj.setHostIoBw(hostIoBw);
                 obj.setHostIops(hostIoPs);
-                _logger.debug("Volume key: {}..obj : {}",volumeNativeGuid,obj.toString());
+                _logger.debug("Volume key: {}..obj : {}", volumeNativeGuid, obj.toString());
                 volToIolimits.put(volumeNativeGuid, obj);
                 if (null != fastSetting && !fastSetting.isEmpty()) {
                     volToFastPolicy.put(volumeNativeGuid, fastSetting);

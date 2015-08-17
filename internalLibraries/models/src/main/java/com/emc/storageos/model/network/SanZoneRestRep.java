@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.network;
@@ -15,24 +15,26 @@ import javax.xml.bind.annotation.XmlRootElement;
  * This represents a SAN Zone returned by the Network System.
  * Each zone has a name, and two or more members each consisting of a WWPN address.
  */
-@XmlRootElement(name="san_zone")
+@XmlRootElement(name = "san_zone")
 public class SanZoneRestRep {
 
     private String name;
     private List<SanZoneMemberRestRep> members;
 
-    public SanZoneRestRep() {}
-            
+    public SanZoneRestRep() {
+    }
+
     public SanZoneRestRep(String name, List<SanZoneMemberRestRep> members) {
         this.name = name;
         this.members = members;
     }
 
-    /** 
-     * The zone name. 
+    /**
+     * The zone name.
+     * 
      * @valid A name starting with an alpha character and consisting of alpha-numberic characters and underscores.
      */
-    @XmlElement(required=true)
+    @XmlElement(required = true)
     public String getName() {
         return name;
     }

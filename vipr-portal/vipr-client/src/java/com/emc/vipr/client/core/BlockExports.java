@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -65,10 +65,10 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
         return defaultList(response.getExports());
     }
 
-    public List<ExportGroupRestRep> getExports(List<URI> exportIds){
-    	return getBulkResources(new BulkIdParam(exportIds));
+    public List<ExportGroupRestRep> getExports(List<URI> exportIds) {
+        return getBulkResources(new BulkIdParam(exportIds));
     }
-    
+
     @Override
     public Tasks<ExportGroupRestRep> getTasks(URI id) {
         return doGetTasks(id);
@@ -85,7 +85,7 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
      * API Call: <tt>POST /block/exports</tt>
      * 
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return a task for monitoring the progress of the export creation.
      */
     public Task<ExportGroupRestRep> create(ExportCreateParam input) {
@@ -98,9 +98,9 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
      * API Call: <tt>PUT /block/exports/{id}</tt>
      * 
      * @param id
-     *        the ID of the block export to update.
+     *            the ID of the block export to update.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return a task for monitoring the progress of the export update.
      */
     public Task<ExportGroupRestRep> update(URI id, ExportUpdateParam input) {
@@ -113,7 +113,7 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
      * API Call: <tt>POST /block/exports/{id}/deactivate</tt>
      * 
      * @param id
-     *        the ID of the block export to deactivate.
+     *            the ID of the block export to deactivate.
      * @return a task for monitoring the progress of the export deactivate.
      */
     public Task<ExportGroupRestRep> deactivate(URI id) {
@@ -122,13 +122,13 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
 
     /**
      * Finds the exports associated with a cluster.
-     *
+     * 
      * @param clusterId
-     *        the ID of the cluster.
+     *            the ID of the cluster.
      * @param projectId
-     *        the ID of the project to restrict exports to, or null for no restriction*
+     *            the ID of the project to restrict exports to, or null for no restriction*
      * @param varrayId
-     *        the ID of the varray to restrict exports to, or null for no restriction*
+     *            the ID of the varray to restrict exports to, or null for no restriction*
      * @return the list of export groups associated with the cluster.
      */
     public List<ExportGroupRestRep> findByCluster(URI clusterId, URI projectId, URI varrayId) {
@@ -137,15 +137,15 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
 
     /**
      * Finds the exports associated with a host.
-     *
+     * 
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @param projectId
-     *        the ID of the project to restrict exports to, or null for no restriction
+     *            the ID of the project to restrict exports to, or null for no restriction
      * @param varrayId
-     *        the ID of the varray to restrict exports to, or null for no restriction*     *
+     *            the ID of the varray to restrict exports to, or null for no restriction* *
      * @return the list of export groups associated with the host.
-     *
+     * 
      */
     public List<ExportGroupRestRep> findByHost(URI hostId, URI projectId, URI varrayId) {
         return search().byHost(hostId).filter(new ExportHostFilter(hostId, projectId, varrayId)).run();
@@ -153,13 +153,13 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
 
     /**
      * Finds any exports (HOST, CLUSTER or EXCLUSIVE) that contain the host.
-     *
+     * 
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @param projectId
-     *        the ID of the project to restrict exports to, or null for no restriction
+     *            the ID of the project to restrict exports to, or null for no restriction
      * @param varrayId
-     *        the ID of the varray to restrict exports to, or null for no restriction     *
+     *            the ID of the varray to restrict exports to, or null for no restriction *
      * @return the list of export groups associated with the host.
      */
     public List<ExportGroupRestRep> findContainingHost(URI hostId, URI projectId, URI varrayId) {
@@ -171,14 +171,13 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
      * array ID is specified, only exports associated with that virtual array are returned.
      * 
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @param projectId
-     *        the ID of the project.
+     *            the ID of the project.
      * @param virtualArrayId
-     *        the ID of the virtual array to restrict the exports to, or null for no restriction.
+     *            the ID of the virtual array to restrict the exports to, or null for no restriction.
      * @return the list of export groups associated with the host or any host in the same cluster.
-     * @deprecated This method was only used in one test class {@code ViPRClientApp}
-     *             which doesn't use this method anymore.
+     * @deprecated This method was only used in one test class {@code ViPRClientApp} which doesn't use this method anymore.
      */
     @Deprecated
     public List<ExportGroupRestRep> findByHostOrCluster(URI hostId, URI projectId, URI virtualArrayId) {
@@ -198,11 +197,11 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
 
     /**
      * Finds the exports associated with a host (or that host's cluster) that are for the given project.
-     *
+     * 
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @param projectId
-     *        the ID of the project.
+     *            the ID of the project.
      * @return the list of export groups associated with the host or any host in the same cluster.
      * @deprecated This was a convenience method to a {@link #findByHostOrCluster(URI, URI, URI) deprecated method}.
      */
@@ -216,7 +215,7 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
      * provided initiators' ports and calls {@link #getExportsForInitiatorPorts(Collection)}.
      * 
      * @param initiators
-     *        the initiators.
+     *            the initiators.
      * @return the list of exports.
      */
     public List<ITLRestRep> getExportsForInitiators(Collection<InitiatorRestRep> initiators) {
@@ -235,7 +234,7 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
      * API Call: <tt>GET /block/exports?initiators={initiatorPort1},{initiatorPort2},...</tt>
      * 
      * @param initiatorPorts
-     *        the initiator ports.
+     *            the initiator ports.
      * @return the list of exports.
      */
     public List<ITLRestRep> getExportsForInitiatorPorts(Collection<String> initiatorPorts) {
@@ -251,7 +250,7 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
         ITLRestRepList list = client.getURI(ITLRestRepList.class, builder.build());
         return defaultList(list.getExportList());
     }
-    
+
     /**
      * Creates a search builder specifically for creating export group search queries.
      * 

@@ -1,0 +1,90 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import json
+import time
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# unmanaged volume cli functions
+#----------------------------------------------------------------------
+
+def ingest_exported_volumes(args):
+    bourne.connect(args.ip)
+    start = time.time()
+    o = bourne.ingest_exported_volumes(args.host, args.cluster, args.varray, args.vpool, args.project, args.volspec)
+    print o
+    total = time.time() - start
+    print "Ingestion of Exported Volumes took", "{0:.2f}".format(total), "seconds to complete"
+            
+def ingest_unexported_volumes(args):
+    bourne.connect(args.ip)
+    start = time.time()
+    o = bourne.ingest_unexported_volumes(args.varray, args.vpool, args.project, args.volspec)
+    print o
+    total = time.time() - start
+    print "Ingestion of UnExported Volumes took", "{0:.2f}".format(total), "seconds to complete"
+
+#----------------------------------------------------------------------
+# command-line parsing
+#
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# volume <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne unmangaed volumes cli usage.')
+parser.add_argument('cmd', help = 'cmd = (ingestexport | ingestunexport)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# volume create label project cos size
+ingestexport = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+ingestexport.add_argument('--host',    help = 'host label')
+ingestexport.add_argument('--cluster', help = 'cluster label')
+ingestexport.add_argument('varray',    help = 'varray where volumes to ingest')
+ingestexport.add_argument('vpool',     help = 'vpool where volumes to ingest')
+ingestexport.add_argument('project',   help = 'container project name')
+ingestexport.add_argument('--volspec',       help = 'volumes spec "volume1,volume2"')
+
+
+# volume create label project cos size
+ingestunexport = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+ingestunexport.add_argument('varray',    help = 'varray where volumes to ingest')
+ingestunexport.add_argument('vpool',     help = 'vpool where volumes to ingest')
+ingestunexport.add_argument('project',   help = 'container project name')
+ingestunexport.add_argument('--volspec', help = 'volumes spec "volume1,volume2"')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "ingest_export"):
+        args = ingestexport.parse_args()
+        ingest_exported_volumes(args)
+    elif (cmd == "ingest_unexport"):
+        args = ingestunexport.parse_args()
+        ingest_unexported_volumes(args)
+    else:
+        parser.print_help()
+
+except:
+    raise
+

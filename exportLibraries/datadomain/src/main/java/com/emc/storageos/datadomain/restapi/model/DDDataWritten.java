@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.datadomain.restapi.model;
@@ -10,17 +10,17 @@ import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
 public class DDDataWritten {
-	
-	@SerializedName("pre_comp_written")
-    @JsonProperty(value="pre_comp_written")
+
+    @SerializedName("pre_comp_written")
+    @JsonProperty(value = "pre_comp_written")
     private long preCompWritten;
-	
+
     @SerializedName("post_comp_written")
-    @JsonProperty(value="post_comp_written")
+    @JsonProperty(value = "post_comp_written")
     private long postCompWritten;
-	
+
     @SerializedName("compression_factor")
-    @JsonProperty(value="compression_factor")
+    @JsonProperty(value = "compression_factor")
     private float compressionFactor;
 
     public long getPreCompWritten() {

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.scaleio.api;
@@ -28,22 +18,22 @@ public class ScaleIOQueryAllVolumesCommand extends AbstractScaleIOQueryCommand<S
     private static final String VOLUME_INFO_1_30 = "VolumeInfo1_30";
     private static final String STORAGE_POOL = "StoragePool";
 
-    //    Query-all-volumes returned 2 Volumes.
-//
-//    Protection Domain: Name: PD-1 ID: b1a5a2ef00000000
-//
-//    >> Volume ID e9e515a300000000 Name: ABC Storage pool: Primary Size:8 GB (8192 MB)
-//    Creation time: 2014-03-28 10:01:38
-//    Volume is unmapped
-//    Encryption is disabled
-//    >> Volume ID e9e515a400000001 Name: unnamed Storage pool: Primary Size:8 GB (8192 MB)
-//    Creation time: 2014-03-28 10:01:56
-//    Volume is unmapped
-//    Encryption is disabled
-//
-//
-//    Protection Domain: Name: PD-2 ID: b1a5a35300000001
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    // Query-all-volumes returned 2 Volumes.
+    //
+    // Protection Domain: Name: PD-1 ID: b1a5a2ef00000000
+    //
+    // >> Volume ID e9e515a300000000 Name: ABC Storage pool: Primary Size:8 GB (8192 MB)
+    // Creation time: 2014-03-28 10:01:38
+    // Volume is unmapped
+    // Encryption is disabled
+    // >> Volume ID e9e515a400000001 Name: unnamed Storage pool: Primary Size:8 GB (8192 MB)
+    // Creation time: 2014-03-28 10:01:56
+    // Volume is unmapped
+    // Encryption is disabled
+    //
+    //
+    // Protection Domain: Name: PD-2 ID: b1a5a35300000001
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern("Protection Domain: Name:\\s+(.*?)\\s+ID:\\s+(\\w+)", PROTECTION_DOMAIN),
             new ParsePattern("Protection Domain\\s+(\\w+)\\s+Name:\\s+(.*)", PROTECTION_DOMAIN_1_30),
             new ParsePattern("\\s*>>\\s+Volume ID\\s+(\\w+)\\s+Name:\\s+(.*?)\\s+Storage pool:\\s+(.*?)\\s+Size:" +
@@ -63,7 +53,7 @@ public class ScaleIOQueryAllVolumesCommand extends AbstractScaleIOQueryCommand<S
 
     @Override
     ParsePattern[] getOutputPatternSpecification() {
-        return PARSING_CONFIG.clone(); //No need to check not null condition here
+        return PARSING_CONFIG.clone(); // No need to check not null condition here
     }
 
     @Override

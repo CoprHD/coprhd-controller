@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.varray;
@@ -20,12 +20,13 @@ public class DecommissionedResources {
 
     /**
      * A list of decommissioned resources
+     * 
      * @valid none
      */
     @XmlElement(name = "decommissioned_resource")
     public List<DecommissionedResourceRep> getResources() {
         if (resources == null) {
-            resources =  new ArrayList<DecommissionedResourceRep>();
+            resources = new ArrayList<DecommissionedResourceRep>();
         }
         return resources;
     }
@@ -34,9 +35,9 @@ public class DecommissionedResources {
         this.resources = resources;
     }
 
-    public void addResource(DecommissionedResourceRep resource){
+    public void addResource(DecommissionedResourceRep resource) {
         if (resources == null) {
-            resources =  new ArrayList<DecommissionedResourceRep>();
+            resources = new ArrayList<DecommissionedResourceRep>();
         }
         resources.add(resource);
     }

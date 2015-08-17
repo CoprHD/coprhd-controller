@@ -1,13 +1,7 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
  */
-// Copyright 2012 by EMC Corporation ("EMC").
-//
-// UNPUBLISHED  CONFIDENTIAL  AND  PROPRIETARY  PROPERTY OF EMC. The copyright
-// notice above does not evidence any actual  or  intended publication of this
-// software. Disclosure and dissemination are pursuant to separate agreements.
-// Unauthorized use, distribution or dissemination are strictly prohibited.
 
 package com.emc.storageos.cimadapter.connections.cim;
 
@@ -51,13 +45,13 @@ public abstract class CimConstants {
 
     // Default impl namespace for a CIM connection
     public static final String DFLT_CIM_CONNECTION_IMPL_NS = "root/emc";
-    
+
     // Default impl namespace for a CIM connection
     public static final String FILE_CIM_CONNECTION_IMPL_NS = "root/emc/celerra";
 
     // Default impl namespace for a CIM connection for IBM
     public static final String DFLT_IBM_CIM_CONNECTION_IMPL_NS = "root/ibm";
-    
+
     // Secure connection protocol.
     public static final String SECURE_PROTOCOL = "https";
 

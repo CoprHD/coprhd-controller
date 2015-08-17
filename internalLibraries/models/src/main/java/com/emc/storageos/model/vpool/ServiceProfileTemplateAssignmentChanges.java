@@ -1,11 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.vpool;
 
 import javax.xml.bind.annotation.XmlElement;
-
 
 /**
  * Class captures lists of URIs for Service Profile Templates to be assigned/unassigned
@@ -16,10 +15,11 @@ public class ServiceProfileTemplateAssignmentChanges {
     private ServiceProfileTemplateAssignments add;
     private ServiceProfileTemplateAssignments remove;
 
-    public ServiceProfileTemplateAssignmentChanges() {}
-    
+    public ServiceProfileTemplateAssignmentChanges() {
+    }
+
     public ServiceProfileTemplateAssignmentChanges(ServiceProfileTemplateAssignments add,
-    		ServiceProfileTemplateAssignments remove) {
+            ServiceProfileTemplateAssignments remove) {
         this.add = add;
         this.remove = remove;
     }
@@ -45,11 +45,11 @@ public class ServiceProfileTemplateAssignmentChanges {
     }
 
     public boolean hasRemoved() {
-        return remove != null && remove.getServiceProfileTemplates().size() > 0;
+        return (remove != null && !remove.getServiceProfileTemplates().isEmpty());
     }
 
     public boolean hasAdded() {
-        return add != null && add.getServiceProfileTemplates().size() > 0;
-    }	
+        return (add != null && !add.getServiceProfileTemplates().isEmpty());
+    }
 
 }

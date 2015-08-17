@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file;
@@ -12,8 +12,9 @@ public class FileSystemExpandParam {
 
     private String newSize;
 
-    public FileSystemExpandParam() {}
-    
+    public FileSystemExpandParam() {
+    }
+
     public FileSystemExpandParam(String newSize) {
         this.newSize = newSize;
     }
@@ -22,6 +23,7 @@ public class FileSystemExpandParam {
      * Defines new expanded size of a FileSystem.
      * Supported size formats: TB, GB, MB, B. Default format is size in bytes.
      * Examples: 100GB, 614400000, 614400000B
+     * 
      * @valid none
      */
     @XmlElement(required = true, name = "new_size")
@@ -32,5 +34,5 @@ public class FileSystemExpandParam {
     public void setNewSize(String newSize) {
         this.newSize = newSize;
     }
-      
+
 }

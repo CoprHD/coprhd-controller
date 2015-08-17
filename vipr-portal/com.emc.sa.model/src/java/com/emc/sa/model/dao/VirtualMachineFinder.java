@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.model.dao;
@@ -18,12 +18,12 @@ public class VirtualMachineFinder extends ModelFinder<VirtualMachine> {
 
     public List<VirtualMachine> findByDatacenter(URI datacenterId) {
         List<NamedElement> virtualMachines = findIdsByDatacenter(datacenterId);
-        
-        return findByIds(toURIs(virtualMachines));        
-    }   
-    
+
+        return findByIds(toURIs(virtualMachines));
+    }
+
     public List<NamedElement> findIdsByDatacenter(URI datacenterId) {
         return client.findBy(VirtualMachine.class, VirtualMachine.DATACENTER_ID, datacenterId);
-    }    
-    
+    }
+
 }

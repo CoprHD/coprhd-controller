@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.system;
@@ -31,7 +31,7 @@ public class Config {
 
     public Config(RestClient client) {
         this.client = client;
-    }	
+    }
 
     /**
      * Get system configuration properties.
@@ -58,81 +58,81 @@ public class Config {
         }
         return client.getURI(PropertyInfoRestRep.class, builder.build());
     }
-	
-	/**
-	 * Update system configuration properties
-	 * <p>
-	 * API Call: PUT /config/properties
-	 * 
-	 * @param setProperty Property's key value pair.
-	 * @return Cluster information
-	 */
-	public ClusterInfo setProperties(PropertyInfoUpdate setProperty) {
-		return client.put(ClusterInfo.class, setProperty, CONFIG_PROPERTIES_URL);
-	}
-	
-	/**
-	 * Show metadata of system configuration properties.
-	 * <p>
-	 * API Call: GET /config/properties/metadata
-	 * 
-	 * @return Properties Metadata
-	 */
-	public PropertiesMetadata getPropMetadata() {
-		return client.get(PropertiesMetadata.class, CONFIG_PROP_METADATA_URL);
-	}
-	
-	/**
-	 * Configure ConnectEMC FTPS transport related properties.
-	 * <p>
-	 * API Call: POST /config/connectemc/ftps
-	 * 
-	 * @param ftpsParams ConnectEMC FTPS transport related properties
-	 * @return The cluster information
-	 */
-	public ClusterInfo configureConnectEmcFtpsParams(ConnectEmcFtps ftpsParams) {
-		return client.post(ClusterInfo.class, ftpsParams, CONFIG_CONNECT_EMC_FTPS_URL);
-	}
-	
-	/**
-	 * Configure ConnectEMC SMTP/Email transport related properties.
-	 * <p>
-	 * API Call: POST /config/connectemc/email
-	 * 
-	 * @param emailParams ConnectEMC SMTP/Email transport related properties
-	 * @return The cluster information
-	 */
-	public ClusterInfo configureConnectEmcEmailParams(ConnectEmcEmail emailParams) {
-		return client.post(ClusterInfo.class, emailParams, CONFIG_CONNECT_EMC_EMAIL_URL);
-	}
-	
-	/**
-	 * Reset configuration properties to their default values. Properties with 
-	 * no default values will remain unchanged.
-	 * <p>
-	 * API Call: POST /config/properties/reset
-	 * 
-	 * @param propertyList Configuration properties to reset
-	 * @param removeObsoleteProps If true, removes obsolete properties
-	 * @return The cluster information
-	 */
-	public ClusterInfo resetProps(PropertyList propertyList, boolean removeObsoleteProps) {
-    	UriBuilder builder = client.uriBuilder(CONFIG_PROP_RESET_URL);
-    	if (removeObsoleteProps) {
-    		addQueryParam(builder, REMOVE_OBSOLETE_PARAM, REMOVE_OBSOLETE);
-    	} 
 
-		return client.postURI(ClusterInfo.class, propertyList, builder.build());		
-	}
-	
-	/**
-	 * Reset configuration properties to their default values. Properties with 
-	 * no default values will remain unchanged. Removes obsolete properties.
-	 * 
-	 * @param propertyList Configuration properties to reset
-	 * @return The cluster information
-	 */
-	public ClusterInfo resetProps(PropertyList propertyList) {
-		return resetProps(propertyList, true);
-	}
+    /**
+     * Update system configuration properties
+     * <p>
+     * API Call: PUT /config/properties
+     * 
+     * @param setProperty Property's key value pair.
+     * @return Cluster information
+     */
+    public ClusterInfo setProperties(PropertyInfoUpdate setProperty) {
+        return client.put(ClusterInfo.class, setProperty, CONFIG_PROPERTIES_URL);
+    }
+
+    /**
+     * Show metadata of system configuration properties.
+     * <p>
+     * API Call: GET /config/properties/metadata
+     * 
+     * @return Properties Metadata
+     */
+    public PropertiesMetadata getPropMetadata() {
+        return client.get(PropertiesMetadata.class, CONFIG_PROP_METADATA_URL);
+    }
+
+    /**
+     * Configure ConnectEMC FTPS transport related properties.
+     * <p>
+     * API Call: POST /config/connectemc/ftps
+     * 
+     * @param ftpsParams ConnectEMC FTPS transport related properties
+     * @return The cluster information
+     */
+    public ClusterInfo configureConnectEmcFtpsParams(ConnectEmcFtps ftpsParams) {
+        return client.post(ClusterInfo.class, ftpsParams, CONFIG_CONNECT_EMC_FTPS_URL);
+    }
+
+    /**
+     * Configure ConnectEMC SMTP/Email transport related properties.
+     * <p>
+     * API Call: POST /config/connectemc/email
+     * 
+     * @param emailParams ConnectEMC SMTP/Email transport related properties
+     * @return The cluster information
+     */
+    public ClusterInfo configureConnectEmcEmailParams(ConnectEmcEmail emailParams) {
+        return client.post(ClusterInfo.class, emailParams, CONFIG_CONNECT_EMC_EMAIL_URL);
+    }
+
+    /**
+     * Reset configuration properties to their default values. Properties with
+     * no default values will remain unchanged.
+     * <p>
+     * API Call: POST /config/properties/reset
+     * 
+     * @param propertyList Configuration properties to reset
+     * @param removeObsoleteProps If true, removes obsolete properties
+     * @return The cluster information
+     */
+    public ClusterInfo resetProps(PropertyList propertyList, boolean removeObsoleteProps) {
+        UriBuilder builder = client.uriBuilder(CONFIG_PROP_RESET_URL);
+        if (removeObsoleteProps) {
+            addQueryParam(builder, REMOVE_OBSOLETE_PARAM, REMOVE_OBSOLETE);
+        }
+
+        return client.postURI(ClusterInfo.class, propertyList, builder.build());
+    }
+
+    /**
+     * Reset configuration properties to their default values. Properties with
+     * no default values will remain unchanged. Removes obsolete properties.
+     * 
+     * @param propertyList Configuration properties to reset
+     * @return The cluster information
+     */
+    public ClusterInfo resetProps(PropertyList propertyList) {
+        return resetProps(propertyList, true);
+    }
 }

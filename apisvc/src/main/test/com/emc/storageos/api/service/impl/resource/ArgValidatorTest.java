@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -29,14 +19,14 @@ import com.emc.storageos.svcs.errorhandling.resources.NotFoundException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
 public class ArgValidatorTest extends Assert {
-    
+
     @Test
     public void testCheckValidUri(){
         ArgValidator.checkUri(URI.create("urn:storageos:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:vdc1"));
     }
-    
-    @Test(expected=APIException.class)
-    public void testCheckUriBadScheme(){
+
+    @Test(expected = APIException.class)
+    public void testCheckUriBadScheme() {
         try {
             ArgValidator.checkUri(URI.create("other:storageos:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:vdc1"));
         } catch (APIException apiException) {
@@ -45,9 +35,9 @@ public class ArgValidatorTest extends Assert {
             throw apiException;
         }
     }
-    
-    @Test(expected=APIException.class)
-    public void testCheckUriBadSchemeSpecificPart(){
+
+    @Test(expected = APIException.class)
+    public void testCheckUriBadSchemeSpecificPart() {
         try {
             ArgValidator.checkUri(URI.create("urn:other:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:vdc1"));
         } catch (APIException apiException) {
@@ -56,9 +46,9 @@ public class ArgValidatorTest extends Assert {
             throw apiException;
         }
     }
-    
-    @Test(expected=APIException.class)
-    public void testCheckEmptyUri(){
+
+    @Test(expected = APIException.class)
+    public void testCheckEmptyUri() {
         try {
             ArgValidator.checkUri(URI.create(EMPTY));
         } catch (APIException apiException) {
@@ -67,9 +57,9 @@ public class ArgValidatorTest extends Assert {
             throw apiException;
         }
     }
-    
-    @Test(expected=APIException.class)
-    public void testCheckNullUri(){
+
+    @Test(expected = APIException.class)
+    public void testCheckNullUri() {
         try {
             ArgValidator.checkUri(null);
         } catch (APIException apiException) {
@@ -78,15 +68,15 @@ public class ArgValidatorTest extends Assert {
             throw apiException;
         }
     }
-    
+
     @Test
-    public void testCheckFieldNotNullPositiveCase(){
+    public void testCheckFieldNotNullPositiveCase() {
         final Object mockObject = new Object();
         ArgValidator.checkFieldNotNull(mockObject, "mock");
     }
-    
-    @Test(expected=BadRequestException.class)
-    public void testCheckFieldNotNullNegativeCase(){
+
+    @Test(expected = BadRequestException.class)
+    public void testCheckFieldNotNullNegativeCase() {
         try {
             ArgValidator.checkFieldNotNull(null, "mock");
         } catch (BadRequestException e) {
@@ -95,19 +85,20 @@ public class ArgValidatorTest extends Assert {
             throw e;
         }
     }
-    
+
     @Test
-    public void testCheckEntityPositiveCase(){
-        ArgValidator.checkEntity(new StorageSystem(), URI.create("urn:storageos:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:vdc1"), false);
+    public void testCheckEntityPositiveCase() {
+        ArgValidator.checkEntity(new StorageSystem(), URI.create("urn:storageos:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:vdc"),
+                false);
     }
 
-    @Test(expected=NotFoundException.class)
-    public void testCheckEntityNegativeCase(){
-        ArgValidator.checkEntity(null, URI.create("urn:storageos:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:vdc1"), true);
+    @Test(expected = NotFoundException.class)
+    public void testCheckEntityNegativeCase() {
+        ArgValidator.checkEntity(null, URI.create("urn:storageos:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:vdc"), true);
     }
 
-    @Test(expected=BadRequestException.class)
-    public void testCheckEntityInactiveEntityBadRequest(){
+    @Test(expected = BadRequestException.class)
+    public void testCheckEntityInactiveEntityBadRequest() {
         try {
             DataObject object = new DataObject(){};
             object.setId(URI.create("urn:storageos:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:vdc1"));
@@ -115,13 +106,14 @@ public class ArgValidatorTest extends Assert {
             ArgValidator.checkEntity(object, object.getId(), false);
         } catch (APIException bre) {
             assertEquals(ServiceCode.API_PARAMETER_INACTIVE, bre.getServiceCode());
-            assertEquals("Entity with the given id urn:storageos:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:vdc1 is inactive and marked for deletion", bre.getLocalizedMessage());
+            assertEquals("Entity with the given id urn:storageos:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:vdc1 is inactive and marked for deletion", 
+                    bre.getLocalizedMessage());
             throw bre;
         }
     }
 
-    @Test(expected=NotFoundException.class)
-    public void testCheckEntityInactiveEntityNotfound(){
+    @Test(expected = NotFoundException.class)
+    public void testCheckEntityInactiveEntityNotfound() {
         try {
             DataObject object = new DataObject(){};
             object.setId(URI.create("urn:storageos:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:vdc1"));
@@ -129,7 +121,8 @@ public class ArgValidatorTest extends Assert {
             ArgValidator.checkEntity(object, object.getId(), true);
         } catch (APIException bre) {
             assertEquals(ServiceCode.API_URL_ENTITY_INACTIVE, bre.getServiceCode());
-            assertEquals("Entity specified in URL with the given id urn:storageos:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:vdc1 is inactive and marked for deletion", bre.getLocalizedMessage());
+            assertEquals("Entity specified in URL with the given id urn:storageos:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:vdc1 is inactive and marked for deletion", 
+                    bre.getLocalizedMessage());
             throw bre;
         }
     }

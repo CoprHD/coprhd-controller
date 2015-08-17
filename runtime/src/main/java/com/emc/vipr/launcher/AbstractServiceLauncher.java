@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.launcher;
@@ -35,8 +35,7 @@ public abstract class AbstractServiceLauncher implements Runnable {
         try {
             log.info("Starting service: {}", serviceName);
             runService();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Could not start service: {}", serviceName, e);
             System.exit(-1);
         }
@@ -48,10 +47,10 @@ public abstract class AbstractServiceLauncher implements Runnable {
      * Starts a bean, by invoking the 'start' method.
      * 
      * @param beanName
-     *        the name of the bean in the context.
+     *            the name of the bean in the context.
      * 
      * @throws Exception
-     *         if an exception occurs.
+     *             if an exception occurs.
      */
     protected void startBean(String beanName) throws Exception {
         Object bean = getBean(beanName);

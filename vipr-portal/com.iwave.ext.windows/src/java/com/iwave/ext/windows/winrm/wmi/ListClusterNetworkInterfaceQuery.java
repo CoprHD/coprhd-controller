@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.windows.winrm.wmi;
@@ -15,7 +15,7 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpression;
 import java.util.List;
 
-public class ListClusterNetworkInterfaceQuery    extends WinRMEnumerateOperation<MSClusterNetworkInterface> {
+public class ListClusterNetworkInterfaceQuery extends WinRMEnumerateOperation<MSClusterNetworkInterface> {
     public static final String NETWORK_INTERFACE_SERVICES_URI = WinRMConstants.WMI_BASE_URI + "root/mscluster/MSCluster_NetworkInterface";
 
     private static final XPath XPATH = XmlUtils.createXPath("ns=" + NETWORK_INTERFACE_SERVICES_URI);

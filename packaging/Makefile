@@ -893,6 +893,8 @@ endif
 	$(ATSIGN)$(ECHO) "$(OVFBUILD_BASE_NAME)"                                 >$(INSTALL_PREFIX)/opt/storageos/etc/productbase
 	$(ATSIGN)$(CHMOD) 444 $(INSTALL_PREFIX)/opt/storageos/etc/{gitrevision,gitrepo,gitbranch,product,productbase}
 	$(ATSIGN)$(CHMOD) 770 $(INSTALL_PREFIX)/opt/storageos/play/play
+	$(ATSIGN)$(CHMOD) 750 $(INSTALL_PREFIX)/data/db
+	$(ATSIGN)$(CHMOD) 750 $(INSTALL_PREFIX)/data/geodb
 
 _uninstall:
 	@echo "Uninstalling $(INSTALL_PREFIX)$(PRODUCT_PREFIX)"

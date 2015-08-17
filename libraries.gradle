@@ -82,6 +82,14 @@ ext {
         "commons-lang:commons-lang:2.6",
     ]
 
+    zookeeper = [
+        slf4j,
+        log4j,
+        "jline:jline:0.9.94",
+        "org.jboss.netty:netty:3.2.8.Final",
+        "org.apache.zookeeper:zookeeper:3.4.6"
+    ]
+
     spring_loaded = [
         "org.springsource.springloaded:springloaded-core:1.1.4",
 

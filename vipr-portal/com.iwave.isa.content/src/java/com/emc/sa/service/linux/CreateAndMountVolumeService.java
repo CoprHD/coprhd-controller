@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.linux;
@@ -40,7 +40,7 @@ public class CreateAndMountVolumeService extends LinuxService {
         refreshStorage(volume);
         mountVolume(volume);
     }
-    
+
     private BlockObjectRestRep createVolume() {
         List<BlockObjectRestRep> volumes = createVolumeHelper.createAndExportVolumes();
         if (volumes.size() != 1) {
@@ -48,11 +48,11 @@ public class CreateAndMountVolumeService extends LinuxService {
         }
         return volumes.get(0);
     }
-    
+
     private void refreshStorage(BlockObjectRestRep volume) {
         mountBlockVolumeHelper.refreshStorage(Lists.newArrayList(volume));
     }
-    
+
     private void mountVolume(BlockObjectRestRep volume) {
         mountBlockVolumeHelper.mountVolume(volume);
     }

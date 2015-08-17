@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.usermanagement.util.ad;
@@ -14,6 +14,7 @@ public class DummyTrustManager implements X509TrustManager {
     {
         // do nothing
     }
+
     public void checkClientTrusted(X509Certificate[] xcs, String string) throws CertificateException
     {
         // do nothing

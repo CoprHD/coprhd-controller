@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
@@ -27,7 +27,8 @@ public class SRDFLinkSuspendCompleter extends SRDFTaskCompleter {
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             setDbClient(dbClient);
-            recordSRDFOperation(dbClient, OperationTypeEnum.SUSPEND_SRDF_LINK, status, getSourceVolume().getId().toString(), getTargetVolume().getId().toString());
+            recordSRDFOperation(dbClient, OperationTypeEnum.SUSPEND_SRDF_LINK, status, getSourceVolume().getId().toString(),
+                    getTargetVolume().getId().toString());
         } catch (Exception e) {
             _log.error("Failed updating status. SRDFMirrorSuspend {}, for task " + getOpId(), getId(), e);
         } finally {

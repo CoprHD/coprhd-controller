@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
@@ -24,7 +14,6 @@ import org.apache.commons.httpclient.methods.PostMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.nas.vnxfile.xmlapi.Checkpoint;
 import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
 import com.emc.nas.vnxfile.xmlapi.Severity;
 import com.emc.nas.vnxfile.xmlapi.Status;
@@ -39,7 +28,7 @@ public class VNXFSQuotaDirsProcessor extends VNXFileProcessor {
 
     @Override
     public void processResult(Operation operation, Object resultObj,
-                              Map<String, Object> keyMap) throws BaseCollectionException {
+            Map<String, Object> keyMap) throws BaseCollectionException {
         _logger.info("processing quota dir id response" + resultObj);
         final PostMethod result = (PostMethod) resultObj;
         try {
@@ -53,7 +42,7 @@ public class VNXFSQuotaDirsProcessor extends VNXFileProcessor {
                 List<Object> quotaDirList = getQueryResponse(responsePacket);
                 List<TreeQuota> quotaDirs = new ArrayList<TreeQuota>();
                 final String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
-                _logger.info( "Quota dirs for parent file systems to match: {} Size of quotadir found {} ", fsId, quotaDirList.size());
+                _logger.info("Quota dirs for parent file systems to match: {} Size of quotadir found {} ", fsId, quotaDirList.size());
                 Iterator<Object> quotaDirItr = quotaDirList.iterator();
                 if (quotaDirItr.hasNext()) {
                     Status status = (Status) quotaDirItr.next();
@@ -65,12 +54,12 @@ public class VNXFSQuotaDirsProcessor extends VNXFileProcessor {
                                 String id = quotaDir.getTree();
                                 quotaDirs.add(quotaDir);
                                 _logger.info("Found matching quota dir: {}", id);
-                                
+
                                 isQuotaDirFound = true;
                             }
                         }
-                        if(isQuotaDirFound){
-                        	_logger.info("Number of Quota dirs found for FS : {} are : {}", fsId, quotaDirs.size()) ;
+                        if (isQuotaDirFound) {
+                            _logger.info("Number of Quota dirs found for FS : {} are : {}", fsId, quotaDirs.size());
                             keyMap.put(VNXFileConstants.QUOTA_DIR_LIST, quotaDirs);
                             keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
                         }

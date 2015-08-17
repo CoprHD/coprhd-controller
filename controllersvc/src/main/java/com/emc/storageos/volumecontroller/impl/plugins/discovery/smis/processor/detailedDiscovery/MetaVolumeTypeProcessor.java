@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery;
 
@@ -40,13 +30,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- *
+ * 
  * StorageProcessor class to process data about meta type for a meta volume and set this data
  * in unmanaged volume instance.
  */
 public class MetaVolumeTypeProcessor extends StorageProcessor {
     private Logger _logger = LoggerFactory.getLogger(MetaVolumeMembersProcessor.class);
-    private static final String[] STRIPE_EXTENTS_NUMBER = new String[]{SmisConstants.CP_EXTENT_STRIPE_LENGTH};
+    private static final String[] STRIPE_EXTENTS_NUMBER = new String[] { SmisConstants.CP_EXTENT_STRIPE_LENGTH };
 
     private List<Object> _args;
 
@@ -125,9 +115,11 @@ public class MetaVolumeTypeProcessor extends StorageProcessor {
                     // unmanaged volume update
                     StringSet metaVolumeTypeSet = new StringSet();
                     metaVolumeTypeSet.add(metaVolumeType);
-                    preExistingVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.META_VOLUME_TYPE.toString(), metaVolumeTypeSet);
+                    preExistingVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.META_VOLUME_TYPE.toString(),
+                            metaVolumeTypeSet);
 
-                    // If meta volume is striped vmax volume, make sure that we remove vpools with fast expansion from matched vpool list for this volume.
+                    // If meta volume is striped vmax volume, make sure that we remove vpools with fast expansion from matched vpool list
+                    // for this volume.
                     if (Volume.CompositionType.STRIPED.toString().equalsIgnoreCase(metaVolumeType)) {
                         URI storageSystemUri = preExistingVolume.getStorageSystemUri();
                         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemUri);

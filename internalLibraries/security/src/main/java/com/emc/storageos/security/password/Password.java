@@ -1,26 +1,13 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.security.password;
 
-
 import com.emc.storageos.db.client.model.PasswordHistory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
-
 import java.text.MessageFormat;
 import java.util.*;
 
@@ -81,7 +68,7 @@ public class Password {
             return;
         }
 
-        for (int i=0; i<password.length(); i++) {
+        for (int i = 0; i < password.length(); i++) {
             char c = password.charAt(i);
             CharInString charInString = new CharInString(i, c);
             if (Character.isDigit(c)) {
@@ -121,8 +108,8 @@ public class Password {
 
     /**
      * Returns the number of digits in this password.
-     *
-     * @return  number of digits in the password
+     * 
+     * @return number of digits in the password
      */
     public int getNumberOfDigits()
     {
@@ -131,8 +118,8 @@ public class Password {
 
     /**
      * Returns the number of alphabetical characters in this password.
-     *
-     * @return  number of alphabetical characters in this password
+     * 
+     * @return number of alphabetical characters in this password
      */
     public int getNumberOfAlphabets()
     {
@@ -141,8 +128,8 @@ public class Password {
 
     /**
      * Returns the number of uppercase characters in this password.
-     *
-     * @return  number of uppercase characters in this password
+     * 
+     * @return number of uppercase characters in this password
      */
     public int getNumberOfUppercase()
     {
@@ -151,8 +138,8 @@ public class Password {
 
     /**
      * Returns the number of lowercase characters in this password.
-     *
-     * @return  number of lowercase characters in this password
+     * 
+     * @return number of lowercase characters in this password
      */
     public int getNumberOfLowercase()
     {
@@ -161,18 +148,17 @@ public class Password {
 
     /**
      * Returns the number of speical characters in this password.
-     *
-     * @return  number of whitespace characters in this password
+     * 
+     * @return number of whitespace characters in this password
      */
     public int getNumberOfSpeicial()
     {
         return special.size();
     }
 
-
     public long getLatestChangedTime() {
-        List<Map.Entry<String,Long>> l = getSortedPasswordByTime();
-        if ( l != null && !l.isEmpty() ) {
+        List<Map.Entry<String, Long>> l = getSortedPasswordByTime();
+        if (l != null && !l.isEmpty()) {
             return l.get(0).getValue();
         } else {
             return 0;
@@ -182,19 +168,18 @@ public class Password {
     public List<String> getPreviousPasswords(int number) {
         List<String> passwords = new ArrayList<String>();
 
-        List<Map.Entry<String,Long>> l = getSortedPasswordByTime();
-        if (l == null ) {
+        List<Map.Entry<String, Long>> l = getSortedPasswordByTime();
+        if (l == null) {
             return passwords;
         }
 
         int length = Math.min(number, l.size());
-        for (int i=0; i<length; i++) {
+        for (int i = 0; i < length; i++) {
             passwords.add(l.get(i).getKey());
             _log.info(MessageFormat.format("password {0} modify time: {1}", i, l.get(i).getValue()));
         }
         return passwords;
     }
-
 
     private List<Map.Entry<String, Long>> getSortedPasswordByTime() {
         PasswordHistory lph = getPasswordHistory();
@@ -202,14 +187,18 @@ public class Password {
             return null;
         }
 
-        ArrayList<Map.Entry<String,Long>> list = new ArrayList<Map.Entry<String,Long>>(lph.getUserPasswordHash().entrySet());
+        ArrayList<Map.Entry<String, Long>> list = new ArrayList<Map.Entry<String, Long>>(lph.getUserPasswordHash().entrySet());
         Collections.sort(list,
                 new Comparator<Map.Entry<String, Long>>() {
                     public int compare(Map.Entry<String, Long> o1, Map.Entry<String, Long> o2) {
                         // for fixing CTRL-10305, it should NOT use intValue() of a long, as it may get overflow.
-                        if (o2.getValue() == o1.getValue()) return 0;
-                        else if (o2.getValue() > o1.getValue()) return 1;
-                        else return -1;
+                        if (o2.getValue() == o1.getValue()) {
+                            return 0;
+                        } else if (o2.getValue() > o1.getValue()) {
+                            return 1;
+                        } else {
+                            return -1;
+                        }
                     }
                 });
 

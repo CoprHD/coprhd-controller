@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
@@ -91,7 +81,7 @@ public class VolumeExpandCompleter extends VolumeTaskCompleter {
             super.complete(dbClient, status, coded);
             Volume volume = dbClient.queryObject(Volume.class, getId());
             if (Operation.Status.ready == status) {
-               dbClient.ready(Volume.class, getId(), getOpId());
+                dbClient.ready(Volume.class, getId(), getOpId());
                 _log.info(String.format("Done VolumeExpand - Volume Id: %s, NativeId: %s, OpId: %s, status: %s, New size: %d",
                         getId().toString(), volume.getNativeId(), getOpId(), status.name(), _size));
             } else if (Operation.Status.error == status) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.engine;
@@ -47,37 +47,36 @@ public class ViPRServiceTest {
             String specifier = matcher.group();
             char conversion = specifier.toLowerCase().charAt(specifier.length() - 1);
             switch (conversion) {
-            case 'c':
-                args.add('c');
-                break;
-            case 'd':
-            case 'o':
-            case 'x':
-                args.add(0);
-                break;
-            case 'e':
-            case 'f':
-            case 'g':
-            case 'a':
-                args.add(0.0);
-                break;
-            case 't':
-                args.add(new Date());
-                break;
-            case '%':
-                // skip
-                break;
-            default:
-                args.add("");
-                break;
+                case 'c':
+                    args.add('c');
+                    break;
+                case 'd':
+                case 'o':
+                case 'x':
+                    args.add(0);
+                    break;
+                case 'e':
+                case 'f':
+                case 'g':
+                case 'a':
+                    args.add(0.0);
+                    break;
+                case 't':
+                    args.add(new Date());
+                    break;
+                case '%':
+                    // skip
+                    break;
+                default:
+                    args.add("");
+                    break;
             }
         }
 
         try {
             String.format(value, args.toArray());
             return true;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             return false;
         }
     }

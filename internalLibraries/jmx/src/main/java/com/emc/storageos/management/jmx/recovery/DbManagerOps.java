@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.management.jmx.recovery;
 
@@ -49,6 +39,7 @@ public class DbManagerOps implements AutoCloseable {
 
     /**
      * Create an DbManagerOps object that connects to specified service on localhost.
+     * 
      * @param svcName The name of the service, which should have pid file as /var/run/svcName.pid
      * @throws IOException
      * @throws MalformedObjectNameException
@@ -56,7 +47,8 @@ public class DbManagerOps implements AutoCloseable {
      * @throws AgentLoadException
      * @throws AgentInitializationException
      */
-    public DbManagerOps(String svcName) throws IOException, MalformedObjectNameException, AttachNotSupportedException, AgentLoadException, AgentInitializationException {
+    public DbManagerOps(String svcName) throws IOException, MalformedObjectNameException, AttachNotSupportedException, AgentLoadException,
+            AgentInitializationException {
         this.conn = initJMXConnector(svcName);
         initMbean(this.conn.getMBeanServerConnection());
     }
@@ -64,6 +56,7 @@ public class DbManagerOps implements AutoCloseable {
     /**
      * Create an DbManagerOps object using given MBeanServerConnection. The connection is built outside
      * of this object's control.
+     * 
      * @param mbsc The MBeanServerConnection caller has made.
      * @throws IOException
      * @throws MalformedObjectNameException
@@ -76,7 +69,8 @@ public class DbManagerOps implements AutoCloseable {
         this.mbean = JMX.newMBeanProxy(mbsc, new ObjectName(MBEAN_NAME), DbManagerMBean.class);
     }
 
-    private JMXConnector initJMXConnector(String svcName) throws IOException, AttachNotSupportedException, AgentLoadException, AgentInitializationException {
+    private JMXConnector initJMXConnector(String svcName) throws IOException, AttachNotSupportedException, AgentLoadException,
+            AgentInitializationException {
         String logPidFileName = String.format(PID_PATTERN, svcName);
 
         try (Scanner scanner = new Scanner(new File(logPidFileName))) {
@@ -105,6 +99,7 @@ public class DbManagerOps implements AutoCloseable {
 
     /**
      * Get a map from node ID to their state.
+     * 
      * @return Map from node ID to state, true means up, false means down.
      */
     public Map<String, Boolean> getNodeStates() {
@@ -113,6 +108,7 @@ public class DbManagerOps implements AutoCloseable {
 
     /**
      * Remove a node from cluster.
+     * 
      * @param nodeId The ID of vipr node, e.g. vipr1, vipr2, etc.
      */
     public void removeNode(String nodeId) throws IOException, MalformedObjectNameException {
@@ -121,6 +117,7 @@ public class DbManagerOps implements AutoCloseable {
 
     /**
      * Trigger node repair for specified keyspace
+     * 
      * @param canResume
      */
     public void startNodeRepair(boolean canResume, boolean crossVdc) throws Exception {
@@ -129,8 +126,9 @@ public class DbManagerOps implements AutoCloseable {
 
     /**
      * Get status of last repair, can be either running, failed, or succeeded.
+     * 
      * @param forCurrentNodesOnly If true, this method will only return repairs for current node set.
-     *                            If false, all historical repairs for any node set can be returned.
+     *            If false, all historical repairs for any node set can be returned.
      * @return The object describing the status. null if no repair started yet.
      */
     public DbRepairStatus getLastRepairStatus(boolean forCurrentNodesOnly) {
@@ -139,8 +137,9 @@ public class DbManagerOps implements AutoCloseable {
 
     /**
      * Get status of last succeeded repair, the returned status, if any, is always succeeded.
+     * 
      * @param forCurrentNodesOnly If true, this method will only return repairs for current node set.
-     *                            If false, all historical repairs for any node set can be returned.
+     *            If false, all historical repairs for any node set can be returned.
      * @return The object describing the status. null if no succeeded repair yet.
      */
     public DbRepairStatus getLastSucceededRepairStatus(boolean forCurrentNodesOnly) {
@@ -153,6 +152,7 @@ public class DbManagerOps implements AutoCloseable {
 
     /**
      * Remove multiple nodes from cluster.
+     * 
      * @param nodeIds the ID list of vipr nodes, e.g. vipr1, vipr2, etc.
      */
     public void removeNodes(List<String> nodeIds) {
@@ -198,7 +198,7 @@ public class DbManagerOps implements AutoCloseable {
     }
 
     public DbRepairStatus waitDbRepairFinish(boolean forCurrentStateOnly) throws Exception {
-        for (int lastProgress = -1; ; Thread.sleep(1000)) {
+        for (int lastProgress = -1;; Thread.sleep(1000)) {
             DbRepairStatus status = getLastRepairStatus(forCurrentStateOnly);
             if (status == null) {
                 log.info("No db repair found(forCurrentStateOnly={})", forCurrentStateOnly ? "true" : "false");

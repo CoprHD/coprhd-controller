@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.upgrade.callbacks;
@@ -32,17 +22,17 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 /**
  * Migration handler to update the internal flags of Export Group
- * and Initiator objects for RecoverPoint. 
+ * and Initiator objects for RecoverPoint.
  */
 public class RpExportGroupInternalFlagMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(RpExportGroupInternalFlagMigration.class);
-    
+
     @Override
-    public void process() {        
+    public void process() {
         updateFlagsForInitiators();
         updateFlagsForExportGroups();
     }
-        
+
     /**
      * Update initiators that need to have the internal flags set.
      */
@@ -52,18 +42,18 @@ public class RpExportGroupInternalFlagMigration extends BaseCustomMigrationCallb
         Iterator<Initiator> initiators = dbClient.queryIterativeObjects(Initiator.class, initiatorURIs);
         while (initiators.hasNext()) {
             Initiator initiator = initiators.next();
-            log.debug("Examining initiator (id={}) for upgrade", initiator.getId().toString());            
-                            
+            log.debug("Examining initiator (id={}) for upgrade", initiator.getId().toString());
+
             // Check to see if this is a RP Initiator
-            if (checkIfInitiatorForRPBeforeMigration(initiator)) {                
+            if (checkIfInitiatorForRPBeforeMigration(initiator)) {
                 log.info("Initiator (id={}) must be upgraded", initiator.getId().toString());
-                initiator.addInternalFlags(Flag.RECOVERPOINT);                
+                initiator.addInternalFlags(Flag.RECOVERPOINT);
                 dbClient.persistObject(initiator);
-                log.info("Marked initiator (id={}) as RecoverPoint", initiator.getId().toString());                
+                log.info("Marked initiator (id={}) as RecoverPoint", initiator.getId().toString());
             }
         }
     }
-    
+
     /**
      * Update export groups that need to have the internal flags set.
      */
@@ -73,18 +63,18 @@ public class RpExportGroupInternalFlagMigration extends BaseCustomMigrationCallb
         Iterator<ExportGroup> exportGroups = dbClient.queryIterativeObjects(ExportGroup.class, exportGroupURIs);
         while (exportGroups.hasNext()) {
             ExportGroup exportGroup = exportGroups.next();
-            log.debug("Examining export group (id={}) for upgrade", exportGroup.getId().toString());            
-            
+            log.debug("Examining export group (id={}) for upgrade", exportGroup.getId().toString());
+
             // Check to see if this export group has RP Initiators
-            if (checkIfInitiatorsForRPAfterMigration(exportGroup.getInitiators())) {                
+            if (checkIfInitiatorsForRPAfterMigration(exportGroup.getInitiators())) {
                 log.info("Export group (id={}) must be upgraded", exportGroup.getId().toString());
-                exportGroup.addInternalFlags(Flag.RECOVERPOINT);                
+                exportGroup.addInternalFlags(Flag.RECOVERPOINT);
                 dbClient.persistObject(exportGroup);
-                log.info("Marked export group (id={}) as RecoverPoint", exportGroup.getId().toString());                
+                log.info("Marked export group (id={}) as RecoverPoint", exportGroup.getId().toString());
             }
         }
     }
-    
+
     /**
      * Check if the passed in initiator is for RP
      * 
@@ -92,21 +82,21 @@ public class RpExportGroupInternalFlagMigration extends BaseCustomMigrationCallb
      *            -- initiator to check
      * @return true if the initiators are for RP, false otherwise
      */
-    private boolean checkIfInitiatorForRPBeforeMigration(Initiator initiator) {       
+    private boolean checkIfInitiatorForRPBeforeMigration(Initiator initiator) {
         if (initiator == null) {
             return false;
-        }        
+        }
 
-        boolean isRP = true; 
-        if (NullColumnValueGetter.isNullValue(initiator.getHostName()) 
+        boolean isRP = true;
+        if (NullColumnValueGetter.isNullValue(initiator.getHostName())
                 || !NullColumnValueGetter.isNullURI(initiator.getHost())) {
             isRP = false;
-        }                    
-        
+        }
+
         log.debug("RP initiator? " + (isRP ? "Yes!" : "No!"));
         return isRP;
     }
-    
+
     /**
      * Check if the passed in initiators are for RP
      * 
@@ -114,11 +104,11 @@ public class RpExportGroupInternalFlagMigration extends BaseCustomMigrationCallb
      *            -- initiators to check
      * @return true if the initiators are for RP, false otherwise
      */
-    private boolean checkIfInitiatorsForRPAfterMigration(StringSet initiators) {                                
+    private boolean checkIfInitiatorsForRPAfterMigration(StringSet initiators) {
         if (initiators == null) {
             return false;
         }
-        
+
         boolean isRP = false;
         for (String initiatorId : initiators) {
             Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(initiatorId));
@@ -128,8 +118,8 @@ public class RpExportGroupInternalFlagMigration extends BaseCustomMigrationCallb
                     break;
                 }
             }
-        }        
-        
+        }
+
         log.debug("RP initiators? " + (isRP ? "Yes!" : "No!"));
         return isRP;
     }

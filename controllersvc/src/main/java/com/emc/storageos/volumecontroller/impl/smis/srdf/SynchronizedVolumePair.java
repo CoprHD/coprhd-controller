@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.smis.srdf;
@@ -13,7 +13,7 @@ import static com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator.genera
 /**
  * Given a StorageSynchronized CIMObjectPath, this class generates ViPR native GUID's for both the
  * source and target volume elements.
- *
+ * 
  * Created by bibbyi1 on 4/15/2015.
  */
 public class SynchronizedVolumePair {

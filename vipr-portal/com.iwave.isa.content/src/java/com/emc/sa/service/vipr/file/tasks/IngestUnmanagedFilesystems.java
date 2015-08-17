@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.file.tasks;
@@ -46,8 +46,8 @@ public class IngestUnmanagedFilesystems extends ViPRExecutionTask<List<NamedRela
     private List<NamedRelatedResourceRep> ingestInChunks(FileSystemIngest ingest) {
         List<NamedRelatedResourceRep> results = Lists.newArrayList();
         int i = 1;
-        for (Iterator<URI> ids = unmanagedFilesystemIds.iterator(); ids.hasNext(); ) {
-        	i++;
+        for (Iterator<URI> ids = unmanagedFilesystemIds.iterator(); ids.hasNext();) {
+            i++;
             URI id = ids.next();
             ingest.getUnManagedFileSystems().add(id);
             if (i == IngestUnexportedUnmanagedVolumes.INGEST_CHUNK_SIZE || !ids.hasNext()) {

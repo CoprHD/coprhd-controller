@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.util;
@@ -15,15 +15,14 @@ public class ResourceOnlyNameGenerator implements NameGenerator {
 
     @Override
     public String generate(String ignore, String resource, String ignore2,
-                           char ignore3, int maxLength) {
-       
+            char ignore3, int maxLength) {
+
         return removeSpecialCharsForName(resource, maxLength);
     }
-    
-    
-    public static String removeSpecialCharsForName(String resource, int maxLength){
+
+    public static String removeSpecialCharsForName(String resource, int maxLength) {
         String result = null;
-        if(resource!=null){
+        if (resource != null) {
             String resourceName = resource.replaceAll(INVALID_CHARS_REGEX, "");
             result = resourceName;
             // If larger than the max size, truncate
@@ -36,9 +35,9 @@ public class ResourceOnlyNameGenerator implements NameGenerator {
 
     // This method allows you specify a String to replace invalid characters with
     public static String removeSpecialCharsForName(String resource,
-                                                   String replace, int maxLength){
+            String replace, int maxLength) {
         String result = null;
-        if(resource!=null){
+        if (resource != null) {
             String fixedReplace = replace.replaceAll(INVALID_CHARS_REGEX, "");
             String resourceName = resource.replaceAll(INVALID_CHARS_REGEX, fixedReplace);
             result = resourceName;

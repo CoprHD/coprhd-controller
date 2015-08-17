@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor;
@@ -21,7 +21,6 @@ import java.net.URI;
 import java.util.List;
 
 public abstract class PoolProcessor extends Processor {
-    
 
     /**
      * return a StorageSystem object for a given systemId.
@@ -52,8 +51,9 @@ public abstract class PoolProcessor extends Processor {
     protected String getPoolIdFromCapabilities(CIMObjectPath poolCapabilitiesPath) {
         String instanceID = poolCapabilitiesPath.getKey(Constants.INSTANCEID).getValue()
                 .toString();
-        if (null == instanceID)
+        if (null == instanceID) {
             return null;
+        }
         return getNativeIDFromInstance(instanceID);
     }
 
@@ -72,7 +72,7 @@ public abstract class PoolProcessor extends Processor {
                 .generateNativeGuid(device, poolID, NativeGUIDGenerator.POOL);
         return checkStoragePoolExistsInDB(nativeGuid, _dbClient);
     }
-    
+
     /**
      * Check if Pool exists in DB.
      * 
@@ -84,20 +84,20 @@ public abstract class PoolProcessor extends Processor {
      */
     protected StoragePool checkStoragePoolExistsInDB(
             String nativeGuid, DbClient _dbClient) throws IOException {
-    	StoragePool pool = null;
+        StoragePool pool = null;
         // use NativeGuid to lookup Pools in DB
         List<StoragePool> poolInDB = CustomQueryUtility.getActiveStoragePoolByNativeGuid(_dbClient, nativeGuid);
-        if (poolInDB !=null && !poolInDB.isEmpty()) {
-        	pool = poolInDB.get(0);
+        if (poolInDB != null && !poolInDB.isEmpty()) {
+            pool = poolInDB.get(0);
         }
         return pool;
     }
-    
+
     /**
      * Returns a string that describes, succinctly, the SLO policy
-     *
-     * @param slo             [in] SLO name (EMCSLO)
-     * @param workload        [in] Workload name (EMCWorkload)
+     * 
+     * @param slo [in] SLO name (EMCSLO)
+     * @param workload [in] Workload name (EMCWorkload)
      * @param avgResponseTime [in] Average Expected Response time for the SLO + Workload (EMCApproxAverageResponseTime)
      * @return A String that represents a combination of the attributes
      */
@@ -111,6 +111,5 @@ public abstract class PoolProcessor extends Processor {
         }
         return result;
     }
-    
 
 }

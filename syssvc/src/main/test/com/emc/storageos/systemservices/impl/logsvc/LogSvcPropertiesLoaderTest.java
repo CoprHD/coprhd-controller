@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc;
 
@@ -72,7 +62,7 @@ public class LogSvcPropertiesLoaderTest {
             pathsBuilder.append(pathsIter.next());
         }
         Assert.assertEquals(pathsBuilder.toString(),
-            s_logsvcProps.getProperty(LOG_FILE_PATHS_PROP));
+                s_logsvcProps.getProperty(LOG_FILE_PATHS_PROP));
     }
 
     /**
@@ -83,7 +73,7 @@ public class LogSvcPropertiesLoaderTest {
         Assert.assertNotNull(_logSvcPropertiesLoader);
         long nodeTimeout = _logSvcPropertiesLoader.getNodeLogCollectorTimeout();
         Assert.assertEquals(nodeTimeout,
-            Long.parseLong(s_logsvcProps.getProperty(NODE_COLLECTION_TO_PROP)));
+                Long.parseLong(s_logsvcProps.getProperty(NODE_COLLECTION_TO_PROP)));
     }
 
     /**
@@ -94,7 +84,7 @@ public class LogSvcPropertiesLoaderTest {
         Assert.assertNotNull(_logSvcPropertiesLoader);
         long logTimeout = _logSvcPropertiesLoader.getFileLogCollectorTimeout();
         Assert.assertEquals(logTimeout,
-            Long.parseLong(s_logsvcProps.getProperty(FILE_COLLECTION_TO_PROP)));
+                Long.parseLong(s_logsvcProps.getProperty(FILE_COLLECTION_TO_PROP)));
     }
 
     /**

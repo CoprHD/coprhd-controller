@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.windows.tasks;
@@ -16,7 +16,7 @@ public class ExtendVolume extends DiskPartScript<Void> {
 
     @Override
     public void execute() throws Exception {
-       String output = getTargetSystem().extendVolume(mountpoint);
-       logDebug(output);
+        String output = getTargetSystem().extendVolume(mountpoint);
+        logDebug(output);
     }
 }

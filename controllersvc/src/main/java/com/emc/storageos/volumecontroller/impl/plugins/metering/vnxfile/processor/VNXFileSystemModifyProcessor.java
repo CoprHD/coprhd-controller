@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
@@ -65,27 +55,27 @@ public class VNXFileSystemModifyProcessor extends VNXFileProcessor {
                 Iterator<Object> queryRespItr = queryResponse.iterator();
                 while (queryRespItr.hasNext()) {
                     Object responseObj = queryRespItr.next();
-                    if(responseObj != null){
-                    	if (responseObj instanceof TaskResponse) {
-                    		TaskResponse taskResp = (TaskResponse) responseObj;
-                    		status = taskResp.getStatus();
-                    		_logger.info(
-                    				"FileSystem modify task response status: {}",
-                    				status.getMaxSeverity().name());
+                    if (responseObj != null) {
+                        if (responseObj instanceof TaskResponse) {
+                            TaskResponse taskResp = (TaskResponse) responseObj;
+                            status = taskResp.getStatus();
+                            _logger.info(
+                                    "FileSystem modify task response status: {}",
+                                    status.getMaxSeverity().name());
 
-                    		if (status.getMaxSeverity() == Severity.OK) {
-                    			keyMap.put(VNXFileConstants.CMD_RESULT,
-                    					VNXFileConstants.CMD_SUCCESS);
-                    		} else {
-                    			processErrorStatus(status, keyMap);
-                    		}
-                    		break;
-                    	} else {
-                    		_logger.info("Response not TaskResponse: {}",
-                    				responseObj.getClass().getName());
-                    	}
-                    }else{
-                    	_logger.warn( "FileSystem modify task response is null");
+                            if (status.getMaxSeverity() == Severity.OK) {
+                                keyMap.put(VNXFileConstants.CMD_RESULT,
+                                        VNXFileConstants.CMD_SUCCESS);
+                            } else {
+                                processErrorStatus(status, keyMap);
+                            }
+                            break;
+                        } else {
+                            _logger.info("Response not TaskResponse: {}",
+                                    responseObj.getClass().getName());
+                        }
+                    } else {
+                        _logger.warn("FileSystem modify task response is null");
                     }
                 }
                 // Extract session information from the response header.

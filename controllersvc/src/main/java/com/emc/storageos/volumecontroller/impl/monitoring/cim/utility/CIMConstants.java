@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.monitoring.cim.utility;
@@ -23,12 +13,12 @@ public abstract class CIMConstants {
 
     // Volume View related Indication Constants
     public static final String VOLUME_VIEW_INDICATION_FREE_CAPACITY = "SourceInstanceEMCSPRemainingManagedSpace";
-    public static final String VOLUME_VIEW_INDICATION_POOL_NAME  = "SourceInstanceSPPoolID";
+    public static final String VOLUME_VIEW_INDICATION_POOL_NAME = "SourceInstanceSPPoolID";
     public static final String VOLUME_VIEW_INDICATION_TOTAL_CAPACITY = "SourceInstanceEMCSPTotalManagedSpace";
-    
+
     // Storage Pool related Indication Constants
     public static final String STORAGE_POOL_INDICATION_FREE_CAPACITY = "SourceInstanceRemainingManagedSpace";
-    public static final String STORAGE_POOL_INDICATION_POOL_NAME  = "SourceInstancePoolID";
+    public static final String STORAGE_POOL_INDICATION_POOL_NAME = "SourceInstancePoolID";
     public static final String STORAGE_POOL_INDICATION_TOTAL_CAPACITY = "SourceInstanceTotalManagedSpace";
     public static final String STORAGE_POOL_INDICATION_SUBSCRIBED_CAPACITY = "SourceInstanceEMCSubscribedCapacity";
 
@@ -41,14 +31,13 @@ public abstract class CIMConstants {
     public static final String INDICATION_TIME = "IndicationTime";
     public static final String SOURCE_INSTANCE_SS_INSTANCE_ID = "SourceInstanceSSInstanceID";
     public static final String SOURCE_INSTANCE_SP_CREATION_CLASS_NAME = "SourceInstanceSPCreationClassName";
-    
+
     public static final String SOURCE_INSTANCE_MODEL_PATH_CLASS_SUFFIX_TAG = "SourceInstanceModelPathClassSuffixTag";
     public static final String SOURCE_INSTANCE_MODEL_PATH_CLASS_PREFIX_TAG = "SourceInstanceModelPathClassPrefixTag";
     public static final String SOURCE_INSTANCE_MODEL_PATH_COMPOSITE_ID = "SourceInstanceModelPathCompositeID";
     public static final String SOURCE_INSTANCE_MODEL_PATH_SP_INSTANCE_ID = "SourceInstanceModelPathSPInstanceID";
     public static final String SOURCE_INSTANCE_MODEL_PATH_INSTANCE_ID = "SourceInstanceModelPathInstanceID";
-    
-     
+
     // Alert Indication Constants
     public static final String ALERT_MANAGED_ELEMENT_CLASS_SUFFIX_TAG = "AlertingManagedElementClassSuffixTag";
     public static final String ALERT_MANAGED_ELEMENT_COMPOSITE_ID = "AlertingManagedElementCompositeID";
@@ -61,13 +50,13 @@ public abstract class CIMConstants {
     public static final String DESCRIPTION = "Description";
 
     public static final String PROVIDER_NAME = "ProviderName";
-    //Usually this severity will be used in block related alerts
+    // Usually this severity will be used in block related alerts
     public static final String PERCEIVED_SEVERITY = "PerceivedSeverity";
-    //Usually this severity will be available in file related alerts
+    // Usually this severity will be available in file related alerts
     public static final String OTHER_SEVERITY = "OtherSeverity";
     public static final String SOURCE_INSTANCE_OPERATIONAL_STATUS_CODES = "SourceInstanceOperationalStatus";
     public static final String SOURCE_INSTANCE_OPERATIONAL_STATUS_DESCRIPTIONS = "SourceInstanceStatusDescriptions";
-    
+
     // COMMON Constants
     public static final String INDICATION_SOURCE = "IndicationSource";
     public static final String CIM_INDICATION_TYPE = "CimIndicationType";
@@ -86,20 +75,20 @@ public abstract class CIMConstants {
     public static final String INST_CREATION_EVENT = "InstCreation";
     public static final String INST_MODIFICATION_EVENT = "InstModification";
     public static final String INST_DELETION_EVENT = "InstDeletion";
-    
+
     // The separator for event extensions
-    
+
     public static final char EXTENSION_SEPARATOR = ';';
     public static final String COMMA_SEPERATOR = ",";
-    
+
     // Labels for extension properties for Events.
     public static final String OPERATIONAL_STATUS_EXTENSION = "Operational Status";
     public static final String EVENT_SOURCE = "EventSource";
-    
+
     // Interval processor in Minutes
     public static final long INDICATION_PROCESS_INTERVAL = 2;
-    
-    public static final String FC_PORT_CLASS_SUFFIX ="FrontEndFCPort";
-    public static final String iSCSI_PORT_CLASS_SUFFIX ="iSCSIProtocolEndpoint";
-    
+
+    public static final String FC_PORT_CLASS_SUFFIX = "FrontEndFCPort";
+    public static final String iSCSI_PORT_CLASS_SUFFIX = "iSCSIProtocolEndpoint";
+
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.coordinator.client.service;
@@ -62,7 +52,7 @@ public class WorkPoolTest extends CoordinatorTestBase {
                 _logger.info("Removed assignment {}", next.getId());
                 _assignmentCount.countDown();
 
-            }            
+            }
             _assigned = work;
         }
 
@@ -71,7 +61,7 @@ public class WorkPoolTest extends CoordinatorTestBase {
         }
 
     }
-    
+
     @Test
     public void testWorkPool() throws Exception {
         final int totalWorkItemCount = 100;
@@ -93,9 +83,9 @@ public class WorkPoolTest extends CoordinatorTestBase {
         assignmentLatch = new CountDownLatch(totalWorkItemCount);
         for (int index = 0; index < totalWorkerCount; index++) {
             listeners.get(index).setAssignmentLatch(assignmentLatch);
-        } 
+        }
         for (int index = 0; index < totalWorkItemCount; index++) {
-            workerList.get(index % totalWorkerCount).removeWork(Integer.toString(index));       
+            workerList.get(index % totalWorkerCount).removeWork(Integer.toString(index));
         }
 
         Assert.assertTrue(assignmentLatch.await(30, TimeUnit.SECONDS));

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
@@ -54,15 +44,15 @@ public class SmisCreateMultiVolumeJob extends SmisAbstractCreateVolumeJob {
     // Executor used for short-lived task to update
     // the volume names in the background
     private static final Executor _executor = Executors.newCachedThreadPool();
-    private static final AtomicReference<DistributedSemaphore> _distributedLock  =
+    private static final AtomicReference<DistributedSemaphore> _distributedLock =
             new AtomicReference<DistributedSemaphore>();
     private static final AtomicReference<CoordinatorClient> _coordinator =
             new AtomicReference<CoordinatorClient>();
     private static final int MAX_PERMITS = 10;
 
     public SmisCreateMultiVolumeJob(CIMObjectPath cimJob,
-                                    URI storageSystem, URI storagePool, int count,
-                                    TaskCompleter taskCompleter) {
+            URI storageSystem, URI storagePool, int count,
+            TaskCompleter taskCompleter) {
         super(cimJob, storageSystem, storagePool, taskCompleter, String.format("Create%dVolumes", count));
 
         // Keep a reference to these singletons
@@ -78,15 +68,15 @@ public class SmisCreateMultiVolumeJob extends SmisAbstractCreateVolumeJob {
 
     /**
      * Execute operations to rename the volume name, which will run in the background.
-     *
-     * @param dbClient     [in] - Client for reading/writing from/to database.
-     * @param client       [in] - WBEMClient for accessing SMI-S provider data
-     * @param volume       [in] - Reference to Bourne's Volume object
-     * @param volumePath   [in] - Name reference to the SMI-S side volume object
+     * 
+     * @param dbClient [in] - Client for reading/writing from/to database.
+     * @param client [in] - WBEMClient for accessing SMI-S provider data
+     * @param volume [in] - Reference to Bourne's Volume object
+     * @param volumePath [in] - Name reference to the SMI-S side volume object
      */
     @Override
     void specificProcessing(final DbClient dbClient, final WBEMClient client, final Volume volume,
-                            CIMInstance volumeInstance, final CIMObjectPath volumePath) {
+            CIMInstance volumeInstance, final CIMObjectPath volumePath) {
         _executor.execute(new Runnable() {
             @Override
             public void run() {
@@ -114,14 +104,14 @@ public class SmisCreateMultiVolumeJob extends SmisAbstractCreateVolumeJob {
 
     /**
      * Method will modify the name of a given volume to a generate name.
-     *
-     * @param dbClient   [in] - Client instance for reading/writing from/to DB
-     * @param client     [in] - WBEMClient used for reading/writing from/to SMI-S
+     * 
+     * @param dbClient [in] - Client instance for reading/writing from/to DB
+     * @param client [in] - WBEMClient used for reading/writing from/to SMI-S
      * @param volumePath [in] - CIMObjectPath referencing the volume
-     * @param volume     [in] - Volume object
+     * @param volume [in] - Volume object
      */
     private void changeVolumeName(DbClient dbClient, WBEMClient client, CIMObjectPath volumePath,
-                                  Volume volume, String name) {
+            Volume volume, String name) {
         Lease lease = null;
         try {
             _log.info(String.format("Attempting to modify volume %s to %s", volumePath.toString(), name));
@@ -130,10 +120,10 @@ public class SmisCreateMultiVolumeJob extends SmisAbstractCreateVolumeJob {
                         (CIMPropertyFactory) ControllerServiceImpl.getBean("CIMPropertyFactory"));
             }
             CIMInstance toUpdate = new CIMInstance(volumePath,
-                    new CIMProperty[]{
+                    new CIMProperty[] {
                             _propertyFactoryRef.get().string(SmisConstants.CP_ELEMENT_NAME, name)
                     }
-            );
+                    );
             if (_distributedLock.get() == null) {
                 if (_coordinator.get() == null) {
                     _coordinator.compareAndSet(null,
@@ -167,6 +157,3 @@ public class SmisCreateMultiVolumeJob extends SmisAbstractCreateVolumeJob {
     }
 
 }
-
-
-

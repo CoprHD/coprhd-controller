@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -60,9 +60,9 @@ public class StoragePoolDataTable extends DataTable {
             this.id = storagePool.getId().toString();
             this.name = storagePool.getPoolName();
             this.storageSystem = StringUtils.defaultIfEmpty(storageSystemName, MessagesUtils.get("StoragePoolDataTable.notApplicable"));
-            this.status = StringUtils.isNotEmpty(storagePool.getOperationalStatus()) ? 
-                    WordUtils.capitalizeFully(storagePool.getOperationalStatus()) : 
-                        MessagesUtils.get("StoragePoolDataTable.notApplicable");
+            this.status = StringUtils.isNotEmpty(storagePool.getOperationalStatus()) ?
+                    WordUtils.capitalizeFully(storagePool.getOperationalStatus()) :
+                    MessagesUtils.get("StoragePoolDataTable.notApplicable");
             this.driveTypes = StringUtils.join(storagePool.getDriveTypes(), ", ");
 
             this.freeCapacity = storagePool.getFreeCapacity();

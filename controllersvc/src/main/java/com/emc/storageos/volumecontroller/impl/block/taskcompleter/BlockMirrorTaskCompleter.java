@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) $today_year. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
@@ -78,7 +68,7 @@ public class BlockMirrorTaskCompleter extends TaskCompleter {
 
     /**
      * Record block mirror related event and audit
-     *
+     * 
      * @param dbClient db client
      * @param opType operation type
      * @param status operation status
@@ -99,24 +89,24 @@ public class BlockMirrorTaskCompleter extends TaskCompleter {
 
             Volume volume = (Volume) extParam[1];
             switch (opType) {
-            case CREATE_VOLUME_MIRROR:
-                if (opStatus) {
+                case CREATE_VOLUME_MIRROR:
+                    if (opStatus) {
+                        AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, mirror.getId()
+                                .toString(), mirror.getLabel(), volume.getId().toString());
+                    } else {
+                        AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage,
+                                mirror.getLabel(), volume.getId().toString());
+                    }
+                    break;
+                case DEACTIVATE_VOLUME_MIRROR:
+                case DELETE_VOLUME_MIRROR:
+                case DETACH_VOLUME_MIRROR:
+                case FRACTURE_VOLUME_MIRROR:
                     AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, mirror.getId()
                             .toString(), mirror.getLabel(), volume.getId().toString());
-                } else {
-                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage,
-                            mirror.getLabel(), volume.getId().toString());
-                }
-                break;
-            case DEACTIVATE_VOLUME_MIRROR:
-            case DELETE_VOLUME_MIRROR:
-            case DETACH_VOLUME_MIRROR:
-            case FRACTURE_VOLUME_MIRROR:
-                AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, mirror.getId()
-                        .toString(), mirror.getLabel(), volume.getId().toString());
-                break;
-            default:
-                _log.error("unrecognized volume mirror operation type");
+                    break;
+                default:
+                    _log.error("unrecognized volume mirror operation type");
             }
         } catch (Exception e) {
             _log.error("Failed to record volume mirror operation {}, err: ", opType.toString(), e);

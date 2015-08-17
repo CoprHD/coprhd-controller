@@ -12,7 +12,7 @@ import java.util.TreeMap;
 @XmlRootElement(name = "properties_metadata")
 public class PropertiesMetadata {
     // Singleton instance provides access to global metadata
-    private static PropertiesMetadata INSTANCE;
+    private static volatile PropertiesMetadata INSTANCE;
 
     private Map<String, PropertyMetadata> metadata;
 

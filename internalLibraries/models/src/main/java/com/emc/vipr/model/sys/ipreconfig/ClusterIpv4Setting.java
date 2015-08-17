@@ -8,11 +8,13 @@ import com.emc.storageos.model.property.PropertyConstants;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
+
 import java.io.Serializable;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
+
 import com.google.common.net.InetAddresses;
 
 /**
@@ -89,8 +91,27 @@ public class ClusterIpv4Setting implements Serializable {
 
         return true;
     }
+    
 
-    @Override
+    /* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result
+				+ ((network_addrs == null) ? 0 : network_addrs.hashCode());
+		result = prime * result
+				+ ((network_gateway == null) ? 0 : network_gateway.hashCode());
+		result = prime * result
+				+ ((network_netmask == null) ? 0 : network_netmask.hashCode());
+		result = prime * result
+				+ ((network_vip == null) ? 0 : network_vip.hashCode());
+		return result;
+	}
+
+	@Override
     public String toString() {
         StringBuffer propStrBuf = new StringBuffer();
         propStrBuf.append(PropertyConstants.IPV4_VIP_KEY).append(PropertyConstants.DELIMITER).append(network_vip).append("\n");
@@ -220,7 +241,7 @@ public class ClusterIpv4Setting implements Serializable {
                 }
 
                 // check if all values are same (on the same subnet)
-                if (values.size() == 0) {
+                if (values.isEmpty()) {
                     return true;
                 }
                 int checkValue = values.get(0);
@@ -244,7 +265,7 @@ public class ClusterIpv4Setting implements Serializable {
      * @return true if all the same value, false otherwise
      */
     private boolean areAllEqual(List<Integer> values) {
-        if (values.size() == 0) {
+        if (values.isEmpty()) {
             return true;
         }
         int checkValue = values.get(0);

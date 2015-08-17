@@ -12,7 +12,9 @@ import java.util.*;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.security.password.PasswordUtils;
+import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.Cluster;
+import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.SSLConnectionContext;
 
 import org.apache.commons.lang.StringUtils;
@@ -52,6 +54,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.impl.*;
 import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.common.DbConfigConstants;
+import com.emc.storageos.db.common.DbSchemaInterceptorImpl;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -1134,7 +1137,7 @@ public class SchemaUtil {
     public void insertVdcVersion(final DbClient dbClient) {
 
         String dbFullVersion = this._service.getVersion();
-        String[] parts = StringUtils.split(dbFullVersion, VdcUtil.VERSION_PART_SEPERATOR);
+        String[] parts = StringUtils.split(dbFullVersion, DbConfigConstants.VERSION_PART_SEPERATOR);
         String version = parts[0] + "." + parts[1];
         URI vdcId = VdcUtil.getLocalVdc().getId();
 
@@ -1191,4 +1194,28 @@ public class SchemaUtil {
         }
         return origVersion != null && version.equals(origVersion);
     }
+    
+    public boolean dropUnusedCfsIfExists() {
+        AstyanaxContext<Cluster> context =  connectCluster();
+        try {
+            KeyspaceDefinition kd = context.getClient().describeKeyspace(_clusterName);
+            if (kd == null) {
+                String errMsg = "Fatal error: Keyspace not exist when drop cf";
+                _log.error(errMsg);
+                throw new IllegalStateException(errMsg);
+            }
+            for (String cfName : DbSchemaInterceptorImpl.getIgnoreCfList()) {
+                ColumnFamilyDefinition cfd = kd.getColumnFamily(cfName);
+                if (cfd != null) {
+            	    _log.info("drop cf {} from db", cfName);
+            	    String schemaVersion = dropColumnFamily(cfName, context);
+                    waitForSchemaChange(schemaVersion, context.getClient());
+                }
+            }
+        } catch (Exception e){
+            _log.error("drop Cf error ", e);
+       	    return false;
+        }
+        return true;
+   }
 }

@@ -1014,6 +1014,131 @@ public class VPlexApiDiscoveryManager {
     }
 
     /**
+     * Find the virtual volume(s) containing the passed name in the
+     * virtualVolumeInfos list.
+     * 
+     * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
+     *            clusters.
+     * @param virtualVolumeInfos List of virtual volumes to find.
+     * @param fetchAtts true to fetch the virtual volume attributes.
+     * @param retry Indicates retry should occur if the first attempt to find
+     *            the virtual volume fails.
+     * 
+     * @return A map of virtual volume name to the virtual volume info.
+     * 
+     * @throws VPlexApiException When an error occurs finding the virtual
+     *             volume.
+     */
+    Map<String, VPlexVirtualVolumeInfo> findVirtualVolumes(List<VPlexClusterInfo> clusterInfoList,
+            List<VPlexVirtualVolumeInfo> virtualVolumeInfos,
+            boolean fetchAtts, boolean retry) throws VPlexApiException {
+
+        if (virtualVolumeInfos == null) {
+            throw VPlexApiException.exceptions.cantFindRequestedVolumeNull();
+        }
+
+        StringBuffer volumeNameStrBuf = new StringBuffer();
+
+        // Make a map of virtual volume name to VPlexVirtualVolumeInfo
+        Map<String, VPlexVirtualVolumeInfo> virtualVolumesToFind = new HashMap<String, VPlexVirtualVolumeInfo>();
+        for (VPlexVirtualVolumeInfo virtualVolumeInfo : virtualVolumeInfos) {
+            volumeNameStrBuf.append(virtualVolumeInfo.getName()).append(" ");
+            virtualVolumesToFind.put(virtualVolumeInfo.getName(), virtualVolumeInfo);
+        }
+        s_logger.info("Find virtual volume(s) containing {}", volumeNameStrBuf.toString());
+
+        // Make a map of virtual volume name to VPlexVirtualVolumeInfo for the virtual volume found on VPLEX.
+        Map<String, VPlexVirtualVolumeInfo> foundVirtualVolumes = new HashMap<String, VPlexVirtualVolumeInfo>();
+
+        int retryCount = 0;
+        while (++retryCount <= VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES) {
+            try {
+                // Make a map of VPLEX cluster to virtual volumes found on that cluster.
+                Map<String, List<VPlexVirtualVolumeInfo>> clusterToVirtualVolumeMap = new HashMap<String, List<VPlexVirtualVolumeInfo>>();
+                for (VPlexClusterInfo clusterInfo : clusterInfoList) {
+                    List<VPlexVirtualVolumeInfo> clusterVolumeInfoList = getVirtualVolumesForCluster(clusterInfo.getName());
+                    clusterToVirtualVolumeMap.put(clusterInfo.getName(), clusterVolumeInfoList);
+                }
+
+                List<VPlexVirtualVolumeInfo> virtualVolumeToFindList = new ArrayList<VPlexVirtualVolumeInfo>();
+                for (Map.Entry<String, VPlexVirtualVolumeInfo> entry : virtualVolumesToFind.entrySet()) {
+                    virtualVolumeToFindList.add(entry.getValue());
+                }
+
+                for (VPlexVirtualVolumeInfo virtualVolumeInfo : virtualVolumeToFindList) {
+                    List<VPlexVirtualVolumeInfo> clusterVolumeInfoList =
+                            clusterToVirtualVolumeMap.get(virtualVolumeInfo.getClusters().get(0));
+                    for (VPlexVirtualVolumeInfo volumeInfo : clusterVolumeInfoList) {
+                        s_logger.info("Virtual volume Info: {}", volumeInfo.toString());
+                        if (volumeInfo.getName().equals(virtualVolumeInfo.getName())) {
+                            s_logger.info("Found virtual volume {}", volumeInfo.getName());
+                            foundVirtualVolumes.put(virtualVolumeInfo.getName(), volumeInfo);
+                            // Remove the found virtual volume from the virtualVolumesToFind Map
+                            virtualVolumesToFind.remove(virtualVolumeInfo.getName());
+                        }
+                    }
+                }
+
+                if (!foundVirtualVolumes.isEmpty() && foundVirtualVolumes.size() == virtualVolumeInfos.size()) {
+                    return foundVirtualVolumes;
+                }
+
+                if ((retry) && (retryCount < VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES)) {
+                    s_logger.warn(String.format("Virtual volumes %s not found on try %d of %d",
+                            geAllVolumeNamesFromMap(virtualVolumesToFind),
+                            retryCount, VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES));
+                    VPlexApiUtils.pauseThread(VPlexApiConstants.FIND_NEW_ARTIFACT_SLEEP_TIME_MS);
+                } else {
+                    break;
+                }
+            } catch (VPlexApiException vae) {
+                if ((retry) && (retryCount < VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES)) {
+                    s_logger.error(String.format("Exception finding virtual volumes on try %d of %d",
+                            retryCount, VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES), vae);
+                    VPlexApiUtils.pauseThread(VPlexApiConstants.FIND_NEW_ARTIFACT_SLEEP_TIME_MS);
+                } else {
+                    if (!foundVirtualVolumes.isEmpty()) {
+                        return foundVirtualVolumes;
+                    } else {
+                        throw vae;
+                    }
+                }
+            } catch (Exception e) {
+                if ((retry) && (retryCount < VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES)) {
+                    s_logger.error(String.format("Exception finding virtual volumes on try %d of %d",
+                            retryCount, VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES), e);
+                    VPlexApiUtils.pauseThread(VPlexApiConstants.FIND_NEW_ARTIFACT_SLEEP_TIME_MS);
+                } else {
+                    if (!foundVirtualVolumes.isEmpty()) {
+                        return foundVirtualVolumes;
+                    } else {
+                        throw e;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * This method returns all volume names from the map.
+     * 
+     * @param virtualVolumesToFind Map of Volume name to volume info
+     * @return returns all volume names from the Map
+     */
+    private String geAllVolumeNamesFromMap(Map<String, VPlexVirtualVolumeInfo> virtualVolumesToFind) {
+        StringBuffer volumesBuffer = new StringBuffer();
+        if (!virtualVolumesToFind.isEmpty()) {
+            Set<String> volumeNames = virtualVolumesToFind.keySet();
+            for (String volumeName : volumeNames) {
+                volumesBuffer.append(volumeName).append(" ");
+            }
+        }
+        return volumesBuffer.toString();
+    }
+
+    /**
      * Get the storage system info for the cluster with the passed name.
      * 
      * @param clusterName The name of the cluster.

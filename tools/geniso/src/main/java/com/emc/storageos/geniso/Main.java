@@ -98,7 +98,7 @@ public class Main {
             header.write(data, 0, dataStartPosition);
             trailer.write(data, trailerOffset, trailerLength);
         } catch (IOException e) {
-            System.err.println(String.format("Failed to create the ISO header %s and trailer %s:",
+            System.err.println(String.format("Failed to create the ISO header %s and trailer %s: %s",
                     isoHeader, isoTrailer, e.getMessage()));
             return;
         }

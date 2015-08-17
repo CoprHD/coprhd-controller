@@ -60,8 +60,8 @@ public class DbServiceImpl implements DbService {
     private static final Logger _log = LoggerFactory.getLogger(DbServiceImpl.class);
     private static final String DB_SCHEMA_LOCK = "dbschema";
     private static final String GEODB_SCHEMA_LOCK = "geodbschema";
-    private static final String dbNoEncryptFlagFile = "/data/db/no_db_encryption";
-    private static final String dbInitializedFlagFile = "/var/run/storageos/dbsvc_initialized";
+    private static final String DB_NO_ENCRYPT_FLAG_FILE = "/data/db/no_db_encryption";
+    private static final String DB_INITIALIZED_FLAG_FILE = "/var/run/storageos/dbsvc_initialized";
     private static final Integer INIT_LOCAL_DB_NUM_TOKENS = 256;
     private static final Integer INIT_GEO_DB_NUM_TOKENS = 16;
 
@@ -461,26 +461,26 @@ public class DbServiceImpl implements DbService {
     }
 
     private boolean setDisableDbEncryptionFlag() {
-        File dbEncryptFlag = new File(dbNoEncryptFlagFile);
+        File dbEncryptFlag = new File(DB_NO_ENCRYPT_FLAG_FILE);
         try {
             if (!dbEncryptFlag.exists()) {
                 new FileOutputStream(dbEncryptFlag).close();
             }
         } catch (Exception e) {
-            _log.error("Failed to create file {} e", dbEncryptFlag.getName(), e);
+            _log.error("Failed to create file {} e=", dbEncryptFlag.getName(), e);
             return false;
         }
         return true;
     }
 
-    private void setDbInitializedFlag() {
-        File dbInitializedFlag = new File(dbInitializedFlagFile);
+    protected void setDbInitializedFlag() {
+        File dbInitializedFlag = new File(DB_INITIALIZED_FLAG_FILE);
         try {
             if (!dbInitializedFlag.exists()) {
                 new FileOutputStream(dbInitializedFlag).close();
             }
         } catch (Exception e) {
-            _log.error("Failed to create file {} e", dbInitializedFlag.getName(), e);
+            _log.error("Failed to create file {} e=", dbInitializedFlag.getName(), e);
         }
     }
 
@@ -842,14 +842,6 @@ public class DbServiceImpl implements DbService {
 
         if (_gcExecutor != null) {
             _gcExecutor.stop();
-        }
-
-        _svcBeacon.stop();
-
-        try {
-            _dbClient.stop();
-        } catch (Exception e) {
-            _log.error("Failed to stop dbclient");
         }
 
         if (decommission && cassandraInitialized) {

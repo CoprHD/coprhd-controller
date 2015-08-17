@@ -113,26 +113,28 @@ public class RecoveryManager implements Runnable {
      * c. Triggering(INIT): current node should take charge of node recovery
      */
     private void checkRecoveryStatus() throws Exception {
-        InterProcessLock lock = null;
-        try {
-            lock = getRecoveryLock();
-            RecoveryStatus status = queryNodeRecoveryStatus();
-            if (isRecovering(status)) {
-                log.warn("This is a stale recovery request due to recovery leader change");
-                return;
-            } else if (isTriggering(status)) {
-                log.info("The recovery status is triggering so run recovery directly");
-                return;
+        while (true) {
+            InterProcessLock lock = null;
+            try {
+                lock = getRecoveryLock();
+                RecoveryStatus status = queryNodeRecoveryStatus();
+                if (isRecovering(status)) {
+                    log.warn("This is a stale recovery request due to recovery leader change");
+                    return;
+                } else if (isTriggering(status)) {
+                    log.info("The recovery status is triggering so run recovery directly");
+                    return;
+                }
+                setWaitingRecoveryTriggeringFlag(true);
+            } catch (Exception e) {
+                markRecoveryFailed(RecoveryStatus.ErrorCode.INTERNAL_ERROR);
+                throw e;
+            } finally {
+                releaseLock(lock);
             }
-            setWaitingRecoveryTriggeringFlag(true);
-        } catch (Exception e) {
-            markRecoveryFailed(RecoveryStatus.ErrorCode.INTERNAL_ERROR);
-            throw e;
-        } finally {
-            releaseLock(lock);
+            log.info("Wait to be triggered");
+            waitOnRecoveryTriggering();
         }
-        log.info("Wait to be triggered");
-        waitOnRecoveryTriggering();
     }
 
     private boolean getWaitingRecoveryTriggeringFlag() {
@@ -778,7 +780,8 @@ public class RecoveryManager implements Runnable {
         recoveryExecutor.shutdownNow();
         try {
             while (!recoveryExecutor.awaitTermination(RecoveryConstants.THREAD_CHECK_INTERVAL, TimeUnit.SECONDS)) {
-                log.warn("Waiting recovery thread pool to shutdown for another 30s");
+                log.warn("Waiting recovery thread pool to shutdown for another {} seconds",
+                        RecoveryConstants.THREAD_CHECK_INTERVAL);
             }
         } catch (InterruptedException e) {
             log.error("Interrupted while waiting to shutdown recovery thread pool", e);

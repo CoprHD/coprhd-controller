@@ -253,8 +253,7 @@ public class VNXFileCommApi {
         reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSys);
         reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fileId);
         _provExecutor.setKeyMap(reqAttributeMap);
-        _provExecutor.setKeyMap(reqAttributeMap);
-        _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FSIDQUERY_FILE_DELETE));
+        _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FSIDQUERY_FILE));
         boolean isFsAvailable = false;
         String cmdResult = (String) _provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
         if (null != cmdResult && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {

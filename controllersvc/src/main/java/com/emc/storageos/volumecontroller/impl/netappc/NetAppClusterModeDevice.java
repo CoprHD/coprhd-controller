@@ -254,12 +254,11 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
         NetAppClusterApi ncApi = new NetAppClusterApi.Builder(storage.getIpAddress(),
                 storage.getPortNumber(), storage.getUsername(),
                 storage.getPassword()).https(true).svm(portGroup).build();
-        try {
-            ncApi.listVolumeInfo(args.getFsName(), null);
-        } catch (Exception e) {
+        List<String> fs = ncApi.listFileSystems();
+        if (!fs.isEmpty() && fs.contains(args.getFsName())) {
+            return true;
+        } else
             return false;
-        }
-        return true;
     }
 
     @Override

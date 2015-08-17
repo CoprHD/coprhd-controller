@@ -659,15 +659,22 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
     }
 
     @Override
-    public boolean doCheckFSExists(StorageSystem storage,
-            FileDeviceInputOutput args) throws ControllerException {
+    public boolean doCheckFSExists(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
         _log.info("checking file system existence on array: ", args.getFsName());
-        DataDomainClient ddClient = getDataDomainClient(storage);
-        DDMTreeInfoDetail mtreeInfo = ddClient.getMTree(args.getStoragePool().getNativeId(), args.getFs().getNativeId());
-        if (mtreeInfo != null && (mtreeInfo.name.equals(args.getFsName()))) {
-            return true;
-        } else
-            return false;
+        boolean isMtreeExists = true;
+        try {
+            DataDomainClient ddClient = getDataDomainClient(storage);
+            URI storagePoolId = args.getFs().getPool();
+            StoragePool storagePool = _dbClient.queryObject(StoragePool.class, storagePoolId);
+            DDMTreeInfoDetail mtreeInfo = ddClient.getMTree(storagePool.getNativeId(), args.getFs().getNativeId());
+            if (mtreeInfo != null && (mtreeInfo.name.equals(args.getFsName()))) {
+                isMtreeExists = true;
+            }
+        } catch (DataDomainResourceNotFoundException e) {
+            _log.info("Mtree not found.", e);
+            isMtreeExists = false;
+        }
+        return isMtreeExists;
     }
 
     @Override

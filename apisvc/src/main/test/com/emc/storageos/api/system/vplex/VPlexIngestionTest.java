@@ -33,12 +33,35 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.search.SearchBuilder;
 
+/**
+ * This class runs tests on VPlex (backend) ingestion. It was created in August 2015.
+ * 
+ * See the superclass ApisvcTestBase for instructions on setting up the environment to run the test.
+ * All these instructions should be followed. This will start the apisvc. 
+ * There is additional configuration for this test needed as follows:
+ * 1. Copy the file vplex-ingestion-test.properties from the directory containing this source
+ * to the directory /opt/storageos/conf. Edit the version in /opt/storageos/conf to have appropriate
+ * settings for your environment. Two environments are possible, the simulator based environment,
+ * and a hardware based environment.
+ * 2. To run this from Eclipse, right click on this source file, and select "Run As J-Unit". It won't run
+ * until you modify the environmental settings as described in ApisvcTestBase, but then should start
+ * the apisvc and run correctly. Note you must have the apisvc stopped when doing this, but all other
+ * services should be running. This test effectively becomes part of the apisvc.
+ * 
+ * The general architecture of the tests are that there is a preparation phase for each one (prepare1, prepare2, ...),
+ * followed by a discovery of the unmanaged devices on all the arrays (prepare999),
+ * followed by the actual ingestion tests (test1, test2, ...).
+ * This is done because on real hardware, the discovery phase takes an inordinate amount of time (> 1 hour.)
+ * Arguments are passed between the prepare steps and the test steps using the args static Map.
+ *
+ */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class VPlexIngestionTest extends ApisvcTestBase {
 	Properties properties = new Properties();
 	ApiSystemTestUtil util = null;
 	private static Map<String, String> args = new HashMap<String, String>();
 	
+	// Fields that can appear in the configuration file.
 	private static final String PROJECT = "project";
 	private static final String LOCAL_VPOOL = "localVpool";
 	private static final String LOCAL_VARRAY = "localVarray";
@@ -53,16 +76,15 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 	private static final String ARRAY1_GUID = "array1GUID";
 	private static final String ARRAY2_GUID = "array2GUID";
 	private static final String VPLEX_GUID = "vplexGUID";
+	// Name of the configuration file:
 	private static final String CONFIG_FILE = "vplex-ingestion-test.properties";
 	
 	protected ViPRCoreClient client = null;
-	private static boolean firstTime = true;
 	
 	@Before
 	// This starts the apisvc. We assume all other required services are running except the apisvc.
 	// Note the apisvc is only started once for the entire test run.
 	public void setup() {
-		firstTime = false;
 		try {
 			FileInputStream configFile = new FileInputStream(CONFIG_FILE);
 			properties.load(configFile);
@@ -75,8 +97,10 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 			Assert.assertTrue("IO exception configuration file: " +  CONFIG_FILE, false);
 		}
 
+		// This routine starts the apisvc the first time it is called.
 		startApisvc();
 
+		// A new client is setup each time a test runs.
 		client = getViprClient(properties.getProperty(VIPR_IP), 
 				properties.getProperty(USER_NAME), properties.getProperty(PASS_WORD));
 		util = new ApiSystemTestUtil(client, dbClient, log);
@@ -334,8 +358,11 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 		}
 	}
 	
-	
+	@Ignore
 	@Test
+	/**
+	 * Causes the apisvc to hang around for an hour after testing completes.
+	 */
 	public void test999() {
 		printLog("test999");
 		try {

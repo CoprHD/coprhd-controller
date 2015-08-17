@@ -1707,9 +1707,6 @@ vplexexport_tests() {
     run export-tests/vplexexport.sh test1
 }
 
-
-
-
 ######################### Start of RecoverPoint ############################
 #
 # RecoverPoint can be run in a simulated and physical environment.
@@ -1727,7 +1724,7 @@ rp_targets()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods varray1 varray2 varray3 varray4 \
+        --neighborhoods $RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3 $RECOVERPOINT_VARRAY4 \
         --max_snapshots 10
 }
 
@@ -1739,7 +1736,7 @@ rpvplex_targets()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods varray1 varray2 varray3 varray4 \
+        --neighborhoods $RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3 $RECOVERPOINT_VARRAY4 \
         --max_snapshots 10 \
         --highavailability vplex_local
 }
@@ -1752,7 +1749,7 @@ rpvplex_ha()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods varray1 varray2 varray3 varray4 \
+        --neighborhoods $RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3 $RECOVERPOINT_VARRAY4 \
         --highavailability vplex_local
 }
 
@@ -1764,7 +1761,7 @@ rp_regular()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods varray1 \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
         --max_snapshots 10
 }
 
@@ -1776,7 +1773,7 @@ rpvplex_local_regular()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods varray1 \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
         --highavailability vplex_local
 }
 
@@ -1788,9 +1785,9 @@ rpvplex_dist_regular()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods varray1 \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
         --highavailability vplex_distributed \
-        --haNeighborhood varray2 \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha
 }
 
@@ -1802,9 +1799,9 @@ rp_cdp()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods varray1 \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS 'varray1:rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES
@@ -1818,9 +1815,9 @@ rp_crr()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods varray1 \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS 'varray3:rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES
@@ -1834,9 +1831,9 @@ rp_clr()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods varray1 \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS 'varray1:rp_targets'$1':min','varray3:rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES
@@ -1850,9 +1847,9 @@ rpvplex_cdp()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods varray1 \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS 'varray1:rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
@@ -1867,14 +1864,14 @@ rpvplex_crr()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods varray1 \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS 'varray3:rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
-        --haNeighborhood varray2 \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha
 }
 
@@ -1886,14 +1883,14 @@ rpvplex_clr()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods varray1 \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS 'varray1:rp_targets'$1':min','varray3:rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
-        --haNeighborhood varray2 \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha
 }
 
@@ -1905,14 +1902,14 @@ mp_cdp()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods varray1 \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS 'varray1:rp_targets'$1':min','varray2:rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min' \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
-        --haNeighborhood varray2 \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha \
         --metropoint true \
         --activeProtectionAtHASite false
@@ -1926,14 +1923,14 @@ mp_crr()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods varray1 \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS 'varray3:rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
-        --haNeighborhood varray2 \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha \
         --metropoint true \
         --activeProtectionAtHASite false
@@ -1947,14 +1944,14 @@ mp_clr()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods varray1 \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS 'varray1:rp_targets'$1':min','varray2:rp_targets'$1':min','varray3:rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
-        --haNeighborhood varray2 \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha \
         --metropoint true \
         --activeProtectionAtHASite false
@@ -2001,7 +1998,7 @@ rp_network_setup()
 {
     echo '*** Recoverpoint network setup ***'
 
-    networksystem create $RP_BROCADE_NETWORK brocade --smisip $RP_BROCADE_NETWORK_PROVIDER --smisport 5988 --smisuser $RP_BROCADE_NETWORK_PROVIDER_USERNAME --smispw "$RP_BROCADE_NETWORK_PROVIDER_PASSWORD" --smisssl false
+    networksystem create $RECOVERPOINT_BROCADE_NETWORK brocade --smisip $RECOVERPOINT_BROCADE_NETWORK_PROVIDER --smisport 5988 --smisuser $RECOVERPOINT_BROCADE_NETWORK_PROVIDER_USERNAME --smispw "$RECOVERPOINT_BROCADE_NETWORK_PROVIDER_PASSWORD" --smisssl false
     sleep 20
     transportzone listall
 }
@@ -2046,28 +2043,28 @@ rp_port_setup()
 {
     echo '*** Recoverpoint port setup ***'
 
-    storageport update $RECOVERPOINT_STORAGE_ARRAY_A_GUID FC --addvarrays varray1
-    storageport update $RECOVERPOINT_STORAGE_ARRAY_B_GUID FC --addvarrays varray2
-    storageport update $RECOVERPOINT_STORAGE_ARRAY_C_GUID FC --addvarrays varray3
-    storageport update $RECOVERPOINT_STORAGE_ARRAY_D_GUID FC --addvarrays varray4
+    storageport update $RECOVERPOINT_STORAGE_ARRAY_A_GUID FC --addvarrays $RECOVERPOINT_VARRAY1
+    storageport update $RECOVERPOINT_STORAGE_ARRAY_B_GUID FC --addvarrays $RECOVERPOINT_VARRAY2
+    storageport update $RECOVERPOINT_STORAGE_ARRAY_C_GUID FC --addvarrays $RECOVERPOINT_VARRAY3
+    storageport update $RECOVERPOINT_STORAGE_ARRAY_D_GUID FC --addvarrays $RECOVERPOINT_VARRAY4
 
     #VPLEX
     # Override port to varray assigments for VPLEX clusters to prevent port mixing in clusters
     # Source Site
     # Cluster 1
-    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-1-1-A --addvarrays varray1
-    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-1-1-B --addvarrays varray1
+    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-1-1-A --addvarrays $RECOVERPOINT_VARRAY1
+    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-1-1-B --addvarrays $RECOVERPOINT_VARRAY1
     # Cluster 2
-    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-2-1-A --addvarrays varray2
-    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-2-1-B --addvarrays varray2
+    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-2-1-A --addvarrays $RECOVERPOINT_VARRAY2
+    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-2-1-B --addvarrays $RECOVERPOINT_VARRAY2
 
     # Target Site
     # Cluster 1
-    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-A --addvarrays varray3
-    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-B --addvarrays varray3
+    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-A --addvarrays $RECOVERPOINT_VARRAY3
+    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-B --addvarrays $RECOVERPOINT_VARRAY3
     # Cluster 2
-    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-A --addvarrays varray4
-    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-B --addvarrays varray4
+    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-A --addvarrays $RECOVERPOINT_VARRAY4
+    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-B --addvarrays $RECOVERPOINT_VARRAY4
 }
 
 # Simulator setup not working yet
@@ -2097,7 +2094,6 @@ rp_port_setup()
 #        echo 'Using simulators in recoverpoint_common_setup'
 #        transportzone assign ${SIMULATOR_VSAN_11} $NH
 #        RP_NATIVE_GUID=$VMAX1_SIMULATOR_NATIVEGUID
-
 #    fi
 #}
 
@@ -2129,9 +2125,9 @@ rp_isolate_rpa_clusters()
 {
     echo '*** Recoverpoint isolate RPA clusters ***'
 
-    run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER1_IP --addvarrays varray1
-    run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3_IP --addvarrays varray2
-    run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER4_IP --addvarrays varray3
+    run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER1_IP --addvarrays $RECOVERPOINT_VARRAY1
+    run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3_IP --addvarrays $RECOVERPOINT_VARRAY2
+    run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER4_IP --addvarrays $RECOVERPOINT_VARRAY3
 }
 
 recoverpoint_exports()

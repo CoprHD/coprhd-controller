@@ -307,20 +307,20 @@ public class DbsvcTestBase {
     	@Override
     	public void setDbInitializedFlag() {
     		String os = System.getProperty("os.name").toLowerCase();
-    		String currentPath = System.getProperty("user.dir");
-    		_log.info("CurrentPath is {}", currentPath);
-    		File dbInitializedFlag;
     		if( os.indexOf("windows") >= 0) {
-    			dbInitializedFlag = new File(".");
+    			String currentPath = System.getProperty("user.dir");
+        		_log.info("CurrentPath is {}", currentPath);
+    			File dbInitializedFlag = new File(".");
+    			try {
+                    if (!dbInitializedFlag.exists())
+                        new FileOutputStream(dbInitializedFlag).close();
+                }catch (Exception e) {
+                    _log.error("Failed to create file {} e", dbInitializedFlag.getName(), e);
+                }
     		}else{
-    			dbInitializedFlag = new File("/var/run/storageos/dbsvc_initialized");
+    			super.setDbInitializedFlag();
     		}
-            try {
-                if (!dbInitializedFlag.exists())
-                    new FileOutputStream(dbInitializedFlag).close();
-            }catch (Exception e) {
-                _log.error("Failed to create file {} e", dbInitializedFlag.getName(), e);
-            }
+            
         }
     }
 }

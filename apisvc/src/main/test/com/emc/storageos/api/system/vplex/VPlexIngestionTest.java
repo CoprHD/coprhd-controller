@@ -75,6 +75,7 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 	private static final String PASS_WORD = "passWord";
 	private static final String ARRAY1_GUID = "array1GUID";
 	private static final String ARRAY2_GUID = "array2GUID";
+	private static final String ARRAY3_GUID = "array3GUID";
 	private static final String VPLEX_GUID = "vplexGUID";
 	// Name of the configuration file:
 	private static final String CONFIG_FILE = "vplex-ingestion-test.properties";
@@ -231,6 +232,13 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 					storageSystemURI = util.getURIFromLabel(StorageSystem.class, properties.getProperty(ARRAY2_GUID));
 					util.discoverStorageSystem(storageSystemURI, true);
 					stop(String.format("Discovery of %s", properties.getProperty(ARRAY2_GUID)));
+				}
+				if (!properties.getProperty(ARRAY3_GUID).equals("null")) {
+					printLog("Discovering " + properties.getProperty(ARRAY3_GUID));
+					start();
+					storageSystemURI = util.getURIFromLabel(StorageSystem.class, properties.getProperty(ARRAY3_GUID));
+					util.discoverStorageSystem(storageSystemURI, true);
+					stop(String.format("Discovery of %s", properties.getProperty(ARRAY3_GUID)));
 				}
 				printLog("Discovering " + properties.getProperty(VPLEX_GUID));
 				start();

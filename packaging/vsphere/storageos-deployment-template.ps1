@@ -210,8 +210,8 @@ function Usage() {
 function CleanUp() {
 	Get-ChildItem -path $scriptPath | Where{$_.Name.Contains("disk4")} | Remove-Item
 	if ($Script:isVMX -eq $true) {
-		Remove-Item $scriptName"\vipr-$releaseVersion-$currentNodeId\$vmname.vmx" -recurse
-		Remove-Item $scriptName"\vipr-$releaseVersion-$currentNodeId\$vmname\*" -recurse
+		Remove-Item $scriptPath"\vipr-$releaseVersion-$currentNodeId\$vmname.vmx" -recurse
+		Remove-Item $scriptPath"\vipr-$releaseVersion-$currentNodeId\$vmname\*" -recurse
 	}
 }
 

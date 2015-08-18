@@ -2346,4 +2346,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException createSnapSessionNotSupportedForRPProtected();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidZeroLinkedTargetsRequested();
 }

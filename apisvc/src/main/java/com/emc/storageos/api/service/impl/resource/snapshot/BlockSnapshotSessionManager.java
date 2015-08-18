@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionTargetsParam;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -43,7 +44,7 @@ import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.services.OperationTypeEnum;
 
 /**
- * 
+ * Class that implements all block snapshot session requests.
  */
 public class BlockSnapshotSessionManager {
 
@@ -83,11 +84,9 @@ public class BlockSnapshotSessionManager {
      * @param permissionsHelper A reference to a permission helper.
      * @param auditLogManager A reference to an audit log manager.
      * @param coordinator A reference to the coordinator.
-     * @param placementManager A reference to the placement manager.
      * @param securityContext A reference to the security context.
      * @param uriInfo A reference to the URI info.
      * @param request A reference to the snapshot session request.
-     * @param tenantsService A reference to the tenants service or null.
      */
     public BlockSnapshotSessionManager(DbClient dbClient, PermissionsHelper permissionsHelper,
             AuditLogManager auditLogManager, CoordinatorClient coordinator,
@@ -147,10 +146,13 @@ public class BlockSnapshotSessionManager {
     }
 
     /**
+     * Implements a request to create a new block snapshot session.
      * 
-     * @param sourceURI
-     * @param param
-     * @param fcManager
+     * @param sourceURI The URI of the snapshot session source object.
+     * @param param A reference to the create session information.
+     * @param fcManager A reference to a full copy manager.
+     * 
+     * @return TaskList A TaskList
      */
     public TaskList createSnapshotSession(URI sourceURI, SnapshotSessionCreateParam param, BlockFullCopyManager fcManager) {
         s_logger.info("START create snapshot session for source {}", sourceURI);
@@ -211,6 +213,55 @@ public class BlockSnapshotSessionManager {
         auditOp(OperationTypeEnum.CREATE_SNAPSHOT_SESSION, true, AuditLogManager.AUDITOP_BEGIN, snapSessionLabel, sourceURI.toString());
 
         s_logger.info("FINISH create snapshot session for source {}", sourceURI);
+        return response;
+    }
+
+    /**
+     * Implements a request to create and link new target volumes to the
+     * BlockSnapshotSession instance with the passed URI.
+     * 
+     * @param snapSessionURI The URI of a BlockSnapshotSession instance.
+     * @param param The new target information.
+     * 
+     * @return A TaskResourceRep.
+     */
+    public TaskResourceRep linkNewTargetVolumesToSnapshotSession(URI snapSessionURI, SnapshotSessionTargetsParam param) {
+        s_logger.info("START link new targets for snapshot session {}", snapSessionURI);
+
+        // Get the snapshot session.
+        BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient);
+
+        // Get the snapshot session source object.
+        BlockObject snapSessionSourceObj = BlockObject.fetch(_dbClient, snapSession.getParent().getURI());
+
+        // Get the project for the snapshot session source object.
+        Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObj, _dbClient);
+
+        // Get the target device information.
+        int newLinkedTargetsCount = param.getCount();
+        String newTargetsCopyMode = param.getCopyMode();
+
+        // Get the platform specific block snapshot session implementation.
+        BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObj);
+
+        // Validate that the requested new targets can be linked to the snapshot session.
+        snapSessionApiImpl.validatLinkNewTargetsRequest(snapSessionSourceObj, project, newLinkedTargetsCount, newTargetsCopyMode);
+
+        // Prepare the BlockSnapshot instances to represent the new linked targets.
+        List<URI> snapshotURIs = snapSessionApiImpl.prepareSnapshotsForSession(newLinkedTargetsCount, snapSessionSourceObj,
+                snapSession.getSessionLabel(), snapSession.getLabel());
+
+        // Create a unique task identifier.
+        String taskId = UUID.randomUUID().toString();
+
+        // Create a task for the snapshot session.
+        TaskResourceRep response = toTask(snapSession, taskId);
+
+        // Create and link new targets to the snapshot session.
+        snapSessionApiImpl.linkNewTargetVolumesToSnapshotSession(snapSessionSourceObj, snapSession, snapshotURIs,
+                newLinkedTargetsCount, newTargetsCopyMode, taskId);
+
+        s_logger.info("FINISH link new targets for snapshot session {}", snapSessionURI);
         return response;
     }
 

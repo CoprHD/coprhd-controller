@@ -3652,4 +3652,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     public void rollbackLinkBlockSnapshotSessionTargets(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs, String stepId) {
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void linkNewTargetVolumesToSnapshotSession(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs,
+            String copyMode, String opId) throws InternalException {
+
+    }
 }

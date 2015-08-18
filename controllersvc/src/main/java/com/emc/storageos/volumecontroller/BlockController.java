@@ -393,15 +393,32 @@ public interface BlockController extends BlockStorageManagementController {
             String opId) throws ControllerException;
 
     /**
+     * Creates new array snapshot point in time copies on the array with the passed URI
+     * and optionally links 1 or more targets volumes to each snapshots.
      * 
-     * @param systemURI
-     * @param snapSessionURIs
-     * @param sessionSnapshotURIMap
-     * @param copyMode
-     * @param opId
+     * @param systemURI The URI of the storage system.
+     * @param snapSessionURIs The URIs of the BlockSnapshotSession instances.
+     * @param sessionSnapshotURIMap Map of the BlockSnapshot instances for each session.
+     * @param copyMode The copy mode for linked targets.
+     * @param opId The unique task identifier.
+     * 
      * @throws InternalException
      */
     public void createSnapshotSession(URI systemURI, List<URI> snapSessionURIs,
             Map<URI, List<URI>> sessionSnapshotURIMap, String copyMode, String opId)
             throws InternalException;
+
+    /**
+     * Create and link new target volumes to the BlockSnapshotSession with the passed URI.
+     * 
+     * @param systemURI The URI of the storage system.
+     * @param snapSessionURI The URI of the snapshot session.
+     * @param snapshotURIs The URIs of the snapshots representing the linked targets
+     * @param copyMode The copy mode for the linked targets.
+     * @param opId The unique task identifier.
+     * 
+     * @throws InternalException
+     */
+    public void linkNewTargetVolumesToSnapshotSession(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs,
+            String copyMode, String opId) throws InternalException;
 }

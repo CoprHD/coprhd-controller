@@ -54,4 +54,13 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
         // without linked targets.
         throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validatLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
+            String newTargetCopyMode) {
+        throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
+    }
 }

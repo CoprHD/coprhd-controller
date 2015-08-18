@@ -1,12 +1,6 @@
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
+/*
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -20,20 +14,23 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionManager;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionBulkRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
+import com.emc.storageos.model.block.SnapshotSessionTargetsParam;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 
 /**
- * 
+ * Service class that implements APIs on instances of BlockSnapshotSession.
  */
 @Path("/block/snapshot-sessions")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.ANY },
@@ -41,22 +38,27 @@ import com.emc.storageos.security.authorization.Role;
 public class BlockSnapshotSessionService extends TaskResourceService {
 
     /**
+     * The method implements the API to create and link new target
+     * volumes to an existing BlockSnapshotSession instance.
      * 
+     * @brief Link target volumes to snapshot session.
      * 
-     * @brief
+     * @prereq The block snapshot session has been created and the maximum
+     *         number of targets has not already been linked to the snapshot sessions
+     *         for the source object.
      * 
-     * @prereq
+     * @param id The URI of the BlockSnapshotSession instance to which the
+     *            new targets will be linked.
+     * @param param The linked target information.
      * 
-     * @param id
-     * 
-     * @return
+     * @return A TaskList.
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/link-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskList linkTargetVolumes(@PathParam("id") URI id) {
-        return null;
+    public TaskResourceRep linkTargetVolumes(@PathParam("id") URI id, SnapshotSessionTargetsParam param) {
+        return getSnapshotSessionManager().linkNewTargetVolumesToSnapshotSession(id, param);
     }
 
     /**
@@ -102,44 +104,6 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     @Path("/{id}/restore")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList restoreSnapshotSession(@PathParam("id") URI id) {
-        return null;
-    }
-
-    /**
-     * 
-     * 
-     * @brief
-     * 
-     * @prereq
-     * 
-     * @param id
-     * 
-     * @return
-     */
-    @POST
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/activate")
-    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskList activateSnapshotSession(@PathParam("id") URI id) {
-        return null;
-    }
-
-    /**
-     * 
-     * 
-     * @brief
-     * 
-     * @prereq
-     * 
-     * @param id
-     * 
-     * @return
-     */
-    @POST
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/protection/full-copies")
-    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskList createFullCopy(@PathParam("id") URI id) {
         return null;
     }
 
@@ -230,5 +194,17 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     @Override
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.BLOCK_SNAPSHOT_SESSION;
+    }
+
+    /**
+     * Creates and returns an instance of the block snapshot session manager to handle
+     * a snapshot session requests.
+     * 
+     * @return BlockSnapshotSessionManager
+     */
+    private BlockSnapshotSessionManager getSnapshotSessionManager() {
+        BlockSnapshotSessionManager snapshotSessionManager = new BlockSnapshotSessionManager(_dbClient,
+                _permissionsHelper, _auditMgr, _coordinator, sc, uriInfo, _request);
+        return snapshotSessionManager;
     }
 }

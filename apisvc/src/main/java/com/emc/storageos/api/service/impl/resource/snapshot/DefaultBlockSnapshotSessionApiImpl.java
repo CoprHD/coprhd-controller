@@ -151,7 +151,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 // Verify the new target count. There can be restrictions on the
                 // number of targets that can be linked to the snapshot sessions
                 // for a given source.
-                verifyNewTargetCount(sourceObj, newTargetsCount);
+                verifyNewTargetCount(sourceObj, newTargetsCount, true);
             } else {
                 // TBD Future - What if source is a BlockSnapshot i.e., cascaded snapshot?
                 // What about when the source is a BlockSnapshot. It has no vpool
@@ -175,8 +175,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * the passed volume.
      * 
      * TBD - Reconcile with implementation in AbstractBlockServiceApiImpl,
-     * which needs to be updated to look at sessions instances not block
-     * snapshot instances.
+     * which needs to be updated to look at sessions instances.
      * 
      * @param volume A reference to a snapshot source volume.
      * 
@@ -188,6 +187,9 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         // is the source.
         List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
                 BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
+
+        // TBD - Still have to account for Block snapshot instances not associated with a
+        // session as these will also have a point in time copy on the array.
         return snapSessions.size();
     }
 
@@ -217,14 +219,17 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
 
     /**
      * Verifies that the number of targets to be linked to a snapshot session
-     * is valid for the specified source. Should be overridden to provide platform
-     * specific behavior.
+     * is valid for the specified source.
      * 
      * @param sourceObj A reference to the snapshot session source
      * @param newTargetsCount The number of new targets to be linked to a session.
+     * @param zeroIsValid true if zero is a valid count, false otherwise.
      */
-    protected void verifyNewTargetCount(BlockObject sourceObj, int newTargetsCount) {
-        // NoOp by default.
+    protected void verifyNewTargetCount(BlockObject sourceObj, int newTargetsCount, boolean zeroIsValid) {
+        // If zero is no valid and the value is zero, throw an error.
+        if ((!zeroIsValid) && (newTargetsCount == 0)) {
+            throw APIException.badRequests.invalidZeroLinkedTargetsRequested();
+        }
     }
 
     /**
@@ -298,15 +303,10 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     }
 
     /**
-     * 
-     * @param newTargetCount
-     * @param sourceObj
-     * @param snapSessionLabel
-     * @param instanceLabel
-     * 
-     * @return
+     * {@inheritDoc}
      */
-    protected List<URI> prepareSnapshotsForSession(int newTargetCount, BlockObject sourceObj, String sessionLabel,
+    @Override
+    public List<URI> prepareSnapshotsForSession(int newTargetCount, BlockObject sourceObj, String sessionLabel,
             String sessionInstanceLabel) {
 
         List<URI> snapshotURIs = new ArrayList<URI>();
@@ -356,13 +356,42 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validatLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
+            String newTargetCopyMode) {
+
+        // Validate the project tenant.
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+        ArgValidator.checkEntity(tenant, project.getTenantOrg().getURI(), false);
+
+        // Verify the user is authorized.
+        BlockServiceUtils.verifyUserIsAuthorizedForRequest(project,
+                BlockServiceUtils.getUserFromContext(_securityContext), _permissionsHelper);
+
+        // Verify the new target count. There can be restrictions on the
+        // number of targets that can be linked to the snapshot sessions
+        // for a given source.
+        verifyNewTargetCount(snapSessionSourceObj, newTargetsCount, false);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void linkNewTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
+            List<URI> snapshotURIs, int newTargetsCount, String copyMode, String taskId) {
+        APIException.methodNotAllowed.notSupported();
+    }
+
+    /**
      * Looks up controller dependency for given hardware
      * 
      * @param clazz controller interface
      * @param hw hardware name
-     * @param <T>
      * 
-     * @return
+     * @return A reference to the controller.
      */
     protected <T extends Controller> T getController(Class<T> clazz, String hw) {
         return _coordinator.locateService(clazz, BlockServiceApi.CONTROLLER_SVC,

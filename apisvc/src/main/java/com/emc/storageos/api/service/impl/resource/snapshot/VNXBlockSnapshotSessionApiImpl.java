@@ -50,4 +50,13 @@ public class VNXBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionA
             String name, int newTargetsCount, String newTargetCopyMode, BlockFullCopyManager fcManager) {
         throw APIException.methodNotAllowed.notSupportedForVNX();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validatLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
+            String newTargetCopyMode) {
+        throw APIException.methodNotAllowed.notSupportedForVNX();
+    }
 }

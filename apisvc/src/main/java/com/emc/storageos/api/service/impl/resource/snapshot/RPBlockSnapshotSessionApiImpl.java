@@ -83,7 +83,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      * {@inheritDoc}
      */
     @Override
-    protected List<URI> prepareSnapshotsForSession(int newTargetCount, BlockObject sourceObj, String sessionLabel,
+    public List<URI> prepareSnapshotsForSession(int newTargetCount, BlockObject sourceObj, String sessionLabel,
             String sessionInstanceLabel) {
         // Important: that the only difference between these snapshots and snapshots created with the
         // create snapshot APIs is that the parent and project NamedURIs for the snapshot use the
@@ -111,5 +111,14 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
         BlockSnapshotSessionApi vmax3Impl = _blockSnapshotSessionMgr
                 .getPlatformSpecificImpl(BlockSnapshotSessionManager.SnapshotSessionImpl.vmax3);
         vmax3Impl.createSnapshotSession(sourceObj, snapSessionURIs, snapSessionSnapshotMap, copyMode, taskId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validatLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
+            String newTargetCopyMode) {
+        throw APIException.methodNotAllowed.notSupportedForRP();
     }
 }

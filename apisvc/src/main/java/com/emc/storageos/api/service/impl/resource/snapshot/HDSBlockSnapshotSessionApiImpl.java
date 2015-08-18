@@ -53,4 +53,13 @@ public class HDSBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionA
         // targets, so we could support in the future.
         throw APIException.methodNotAllowed.notSupportedForHDS();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validatLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
+            String newTargetCopyMode) {
+        throw APIException.methodNotAllowed.notSupportedForHDS();
+    }
 }

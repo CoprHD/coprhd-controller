@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -116,5 +117,21 @@ public class BlockSnapshotSessionUtils {
 
         VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolURI);
         return vpool;
+    }
+
+    /**
+     * Validates and returns the BlockSnapshotSession instance with the passed URI.
+     * 
+     * @param sourceURI The URI for a BlockSnapshotSession instance.
+     * @param uriInfo A reference to the URI information.
+     * @param dbClient A reference to a database client.
+     * 
+     * @return A reference to the BlockSnapshotSession instance.
+     */
+    public static BlockSnapshotSession querySnapshotSession(URI snapSessionURI, UriInfo uriInfo, DbClient dbClient) {
+        ArgValidator.checkUri(snapSessionURI);
+        BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+        ArgValidator.checkEntity(snapSession, snapSessionURI, BlockServiceUtils.isIdEmbeddedInURL(snapSessionURI, uriInfo), true);
+        return snapSession;
     }
 }

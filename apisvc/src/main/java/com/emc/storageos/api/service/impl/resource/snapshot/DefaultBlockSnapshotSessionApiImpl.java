@@ -350,7 +350,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
-            Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, Boolean createInactive, String taskId) {
+            Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, String taskId) {
         // Must be implemented by platform implementations for which this is supported.
         APIException.methodNotAllowed.notSupported();
     }

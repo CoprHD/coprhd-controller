@@ -674,7 +674,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
      * {@inheritDoc}
      */
     @Override
-    public void linkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI, Boolean createInactive,
+    public void linkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             String copyMode, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();

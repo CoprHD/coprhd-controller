@@ -2114,11 +2114,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * {@inheritDoc}
      */
     @Override
-    public void doLinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI, Boolean createInactive,
+    public void doLinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             String copyMode, TaskCompleter completer) throws DeviceControllerException {
 
         try {
-            _snapshotOperations.linkBlockSnapshotSessionTarget(system, snapSessionURI, snapshotURI, createInactive, copyMode, completer);
+            _snapshotOperations.linkBlockSnapshotSessionTarget(system, snapSessionURI, snapshotURI, copyMode, completer);
         } catch (Exception e) {
             _log.error(String.format("Exception trying to link new targets to block snapshot session %s on array %s",
                     snapSessionURI, system.getSerialNumber()), e);

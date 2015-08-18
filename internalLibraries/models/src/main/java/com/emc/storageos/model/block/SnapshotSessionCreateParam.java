@@ -14,21 +14,33 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * 
+ * Class that captures the POST data passed in a request to create
+ * a new BlockSnapshotSession instance.
  */
 @XmlRootElement(name = "snapshot_session_create")
 public class SnapshotSessionCreateParam {
 
+    // The name for the snapshot session.
     private String name;
-    private Boolean createInactive;
+
+    // The linked target information.
     private SnapshotSessionTargetsParam linkedTargets;
 
+    /**
+     * Default constructor.
+     */
     public SnapshotSessionCreateParam() {
     }
 
-    public SnapshotSessionCreateParam(String name, Boolean createInactive) {
+    /**
+     * Constructor.
+     * 
+     * @param name The name for the snapshot session.
+     * @param linkedTargets A reference to the linked target information.
+     */
+    public SnapshotSessionCreateParam(String name, SnapshotSessionTargetsParam linkedTargets) {
         this.name = name;
-        this.createInactive = createInactive;
+        this.linkedTargets = linkedTargets;
     }
 
     /**
@@ -43,31 +55,6 @@ public class SnapshotSessionCreateParam {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    /**
-     * If create_inactive is set to true, then the
-     * operation will create the snapshot session, but
-     * not activate the synchronization between source
-     * and specified target volumes, if any. The
-     * activation would have to be done using the block
-     * snapshot session activate API. This parameter
-     * only applies when linked targets are specified.
-     * 
-     * The default value for the parameter is false.
-     * That is, the operation will create and activate
-     * the synchronization for the snapshot session.
-     * 
-     * @valid true
-     * @valid false
-     */
-    @XmlElement(name = "create_inactive", required = false, defaultValue = "false")
-    public Boolean getCreateInactive() {
-        return createInactive;
-    }
-
-    public void setCreateInactive(Boolean createInactive) {
-        this.createInactive = createInactive;
     }
 
     /**

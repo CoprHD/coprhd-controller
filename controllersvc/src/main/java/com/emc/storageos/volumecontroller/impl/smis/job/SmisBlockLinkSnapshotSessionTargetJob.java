@@ -34,9 +34,6 @@ public class SmisBlockLinkSnapshotSessionTargetJob extends SmisSnapShotJob {
     private static final String JOB_NAME = "SmisBlockLinkSnapshotSessionTargetJob";
 
     //
-    private final Boolean _isSyncActive;
-
-    //
     @SuppressWarnings("unused")
     private final String _copyMode;
 
@@ -47,14 +44,12 @@ public class SmisBlockLinkSnapshotSessionTargetJob extends SmisSnapShotJob {
      * 
      * @param cimJob
      * @param systemURI
-     * @param isSyncActive
      * @param copyMode
      * @param taskCompleter
      */
-    public SmisBlockLinkSnapshotSessionTargetJob(CIMObjectPath cimJob, URI systemURI, Boolean isSyncActive, String copyMode,
+    public SmisBlockLinkSnapshotSessionTargetJob(CIMObjectPath cimJob, URI systemURI, String copyMode,
             TaskCompleter taskCompleter) {
         super(cimJob, systemURI, taskCompleter, JOB_NAME);
-        _isSyncActive = isSyncActive;
         _copyMode = copyMode;
     }
 
@@ -90,7 +85,7 @@ public class SmisBlockLinkSnapshotSessionTargetJob extends SmisSnapShotJob {
                     snapshot.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(system, snapshot));
                     snapshot.setDeviceLabel(targetVolumeElementName);
                     snapshot.setInactive(false);
-                    snapshot.setIsSyncActive(_isSyncActive);
+                    snapshot.setIsSyncActive(Boolean.TRUE);
                     snapshot.setCreationTime(Calendar.getInstance());
                     snapshot.setWWN(targetVolumeWWN.toUpperCase());
                     snapshot.setAlternateName(targetVolumeAltName);

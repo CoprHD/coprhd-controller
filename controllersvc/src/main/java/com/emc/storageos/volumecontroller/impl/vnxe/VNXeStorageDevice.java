@@ -2348,7 +2348,7 @@ public class VNXeStorageDevice extends VNXeOperations
      * {@inheritDoc}
      */
     @Override
-    public void doLinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapShotURI, Boolean createInactive,
+    public void doLinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapShotURI,
             String copyMode, TaskCompleter completer) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }

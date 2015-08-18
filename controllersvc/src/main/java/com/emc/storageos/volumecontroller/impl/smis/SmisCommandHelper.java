@@ -839,13 +839,13 @@ public class SmisCommandHelper implements SmisConstants {
      * 
      * @param settingsStatePath
      * @param targetDevicePath
-     * @param createInactive
      * @param copyMode
      * @return
      */
     public CIMArgument[] getModifySettingsDefinedStateForLinkTargets(CIMObjectPath settingsStatePath,
-            CIMObjectPath targetDevicePath, Boolean createInactive, String copyMode) {
-        int operation = (copyMode.equals(BlockSnapshotSession.CopyMode.copy.name()) ? 5 : 8);
+            CIMObjectPath targetDevicePath, String copyMode) {
+        int operation = (copyMode.equals(BlockSnapshotSession.CopyMode.copy.name()) ?
+                COPY_TO_TARGET_VALUE : ATTACH_TO_TARGET_VALUE);
         return new CIMArgument[] {
                 _cimArgument.uint16(CP_OPERATION, operation),
                 _cimArgument.reference(CP_TARGET_ELEMENT, targetDevicePath),

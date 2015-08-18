@@ -199,13 +199,12 @@ public interface SnapshotOperations {
      * @param system
      * @param snapSessionURI
      * @param snapshotURI
-     * @param createInactive
      * @param copyMode
      * @param completer
      * 
      * @throws DeviceControllerException
      */
-    public void linkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI, Boolean createInactive,
+    public void linkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             String copyMode, TaskCompleter completer)
             throws DeviceControllerException;
 }

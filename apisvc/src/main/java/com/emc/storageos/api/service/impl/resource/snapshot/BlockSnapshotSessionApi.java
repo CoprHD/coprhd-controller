@@ -13,6 +13,10 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 
+/**
+ * Defines the API for platform specific implementations for block snapshot
+ * session operations.
+ */
 public interface BlockSnapshotSessionApi {
 
     /**
@@ -59,8 +63,12 @@ public interface BlockSnapshotSessionApi {
     /**
      * Creates a new block snapshot session.
      * 
-     * @return TaskList
+     * @param sourceObj A reference to the source object.
+     * @param snapSessionURIs The URI of the ViPR BlockSnashotSession instances to be created.
+     * @param snapSessionSnapshotMap A map containing the URis of the BlockSnapshot instances for each session.
+     * @param copyMode The copy mode for linked targets.
+     * @param taskId A unique task identifier.
      */
     public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
-            Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, Boolean createInactive, String taskId);
+            Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, String taskId);
 }

@@ -64,6 +64,7 @@ public interface SmisConstants {
     static final int INACTIVE_VALUE = 8;
     static final int PREPARED_VALUE = 11;
     static final int COPY_TO_TARGET_VALUE = 5;
+    static final int ATTACH_TO_TARGET_VALUE = 8;
     static final int PORT_WWN_ID_TYPE_VALUE = 2;
     static final int PORT_ISCSI_ID_TYPE_VALUE = 5;
     static final int CONCATENATED_META_VOLUME_TYPE = 2;

@@ -36,8 +36,8 @@ import com.emc.storageos.security.authorization.Role;
  * 
  */
 @Path("/block/snapshot-sessions")
-@DefaultPermissions(read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-    read_acls = { ACL.ANY }, write_roles = { Role.TENANT_ADMIN }, write_acls = { ACL.ANY })
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.ANY },
+        writeRoles = { Role.TENANT_ADMIN }, writeAcls = { ACL.ANY })
 public class BlockSnapshotSessionService extends TaskResourceService {
 
     /**
@@ -52,13 +52,13 @@ public class BlockSnapshotSessionService extends TaskResourceService {
      * @return
      */
     @POST
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/link-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList linkTargetVolumes(@PathParam("id") URI id) {
         return null;
     }
-    
+
     /**
      * 
      * 
@@ -71,15 +71,15 @@ public class BlockSnapshotSessionService extends TaskResourceService {
      * @return
      */
     @POST
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/relink-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList relinkTargetVolumes(@PathParam("id") URI id) {
         return null;
     }
-    
+
     @POST
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/unlink-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList unlinkTargetVolumes(@PathParam("id") URI id) {
@@ -98,13 +98,13 @@ public class BlockSnapshotSessionService extends TaskResourceService {
      * @return
      */
     @POST
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/restore")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList restoreSnapshotSession(@PathParam("id") URI id) {
         return null;
     }
-    
+
     /**
      * 
      * 
@@ -117,13 +117,13 @@ public class BlockSnapshotSessionService extends TaskResourceService {
      * @return
      */
     @POST
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/activate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList activateSnapshotSession(@PathParam("id") URI id) {
         return null;
     }
-    
+
     /**
      * 
      * 
@@ -136,13 +136,13 @@ public class BlockSnapshotSessionService extends TaskResourceService {
      * @return
      */
     @POST
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList createFullCopy(@PathParam("id") URI id) {
         return null;
     }
-    
+
     /**
      * 
      * 
@@ -155,13 +155,13 @@ public class BlockSnapshotSessionService extends TaskResourceService {
      * @return
      */
     @POST
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList deactivateSnapshotSession(@PathParam("id") URI id) {
         return null;
     }
-    
+
     /**
      * 
      * 
@@ -174,13 +174,13 @@ public class BlockSnapshotSessionService extends TaskResourceService {
      * @return
      */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public BlockSnapshotSessionRestRep getSnapshotSession(@PathParam("id") URI id) {
         return null;
     }
-    
+
     /**
      * 
      * @brief
@@ -193,8 +193,8 @@ public class BlockSnapshotSessionService extends TaskResourceService {
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public BlockSnapshotSessionBulkRep getBulkResources(BulkIdParam param) {
         return (BlockSnapshotSessionBulkRep) super.getBulkResources(param);
@@ -205,7 +205,7 @@ public class BlockSnapshotSessionService extends TaskResourceService {
      */
     @Override
     protected BlockSnapshotSession queryResource(URI id) {
-        ArgValidator.checkUri(id);        
+        ArgValidator.checkUri(id);
         BlockSnapshotSession blockSnapshotSession = _permissionsHelper.getObjectById(id, BlockSnapshotSession.class);
         ArgValidator.checkEntityNotNull(blockSnapshotSession, id, isIdEmbeddedInURL(id));
         return blockSnapshotSession;

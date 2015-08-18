@@ -107,9 +107,9 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
-            Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, Boolean createInactive, String taskId) {
+            Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, String taskId) {
         BlockSnapshotSessionApi vmax3Impl = _blockSnapshotSessionMgr
                 .getPlatformSpecificImpl(BlockSnapshotSessionManager.SnapshotSessionImpl.vmax3);
-        vmax3Impl.createSnapshotSession(sourceObj, snapSessionURIs, snapSessionSnapshotMap, copyMode, createInactive, taskId);
+        vmax3Impl.createSnapshotSession(sourceObj, snapSessionURIs, snapSessionSnapshotMap, copyMode, taskId);
     }
 }

@@ -720,12 +720,11 @@ public interface BlockStorageDevice {
      * @param system
      * @param snapSessionURI
      * @param snapshotURI
-     * @param createInactive
      * @param copyMode
      * @param completer
      * 
      * @throws DeviceControllerException
      */
-    public void doLinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI, Boolean createInactive,
+    public void doLinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             String copyMode, TaskCompleter completer) throws DeviceControllerException;
 }

@@ -3516,8 +3516,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     @Override
-    public void createSnapshotSession(URI systemURI, List<URI> snapSessionURIs, Map<URI, List<URI>> sessionSnapshotURIMap, String copyMode,
-            Boolean createInactive, String opId)
+    public void createSnapshotSession(URI systemURI, List<URI> snapSessionURIs,
+            Map<URI, List<URI>> sessionSnapshotURIMap, String copyMode, String opId)
             throws InternalException {
 
         TaskCompleter completer = new BlockSnapshotSessionCreateWorkflowCompleter(snapSessionURIs, sessionSnapshotURIMap, opId);
@@ -3542,8 +3542,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                     LINK_SNAPSHOT_SESSION_TARGETS_STEP_GROUP,
                                     String.format("Linking targets for snapshot session %s", snapSessionURI),
                                     waitFor, systemURI, getDeviceType(systemURI), getClass(),
-                                    linkBlockSnapshotSessionTargetsMethod(systemURI, snapSessionURI, snapshotURI,
-                                            createInactive, copyMode),
+                                    linkBlockSnapshotSessionTargetsMethod(systemURI, snapSessionURI, snapshotURI, copyMode),
                                     rollbackLinkBlockSnapshotSessionTargetsMethod(systemURI, snapSessionURI, snapshotURIs), null);
                         }
                     }
@@ -3597,14 +3596,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param systemURI
      * @param snapSessionURI
      * @param snapshotURI
-     * @param createInactive
      * @param copyMode
      * 
      * @return
      */
-    public static Workflow.Method linkBlockSnapshotSessionTargetsMethod(URI systemURI, URI snapSessionURI, URI snapshotURI,
-            Boolean createInactive, String copyMode) {
-        return new Workflow.Method(LINK_SNAPSHOT_SESSION_TARGETS_METHOD, systemURI, snapSessionURI, snapshotURI, createInactive, copyMode);
+    public static Workflow.Method linkBlockSnapshotSessionTargetsMethod(URI systemURI,
+            URI snapSessionURI, URI snapshotURI, String copyMode) {
+        return new Workflow.Method(LINK_SNAPSHOT_SESSION_TARGETS_METHOD, systemURI, snapSessionURI, snapshotURI, copyMode);
     }
 
     /**
@@ -3612,18 +3610,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param systemURI
      * @param snapSessionURI
      * @param snapshotURI
-     * @param createInactive
      * @param copyMode
      * @param stepId
      */
-    public void linkBlockSnapshotSessionTargets(URI systemURI, URI snapSessionURI, URI snapshotURI, Boolean createInactive,
-            String copyMode, String stepId) {
+    public void linkBlockSnapshotSessionTargets(URI systemURI, URI snapSessionURI,
+            URI snapshotURI, String copyMode, String stepId) {
         TaskCompleter completer = null;
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
             completer = new LinkBlockSnapshotSessionTargetCompleter(snapSessionURI, snapshotURI, stepId);
-            getDevice(system.getSystemType()).doLinkBlockSnapshotSessionTarget(system, snapSessionURI, snapshotURI, createInactive,
-                    copyMode, completer);
+            getDevice(system.getSystemType()).doLinkBlockSnapshotSessionTarget(system, snapSessionURI,
+                    snapshotURI, copyMode, completer);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);

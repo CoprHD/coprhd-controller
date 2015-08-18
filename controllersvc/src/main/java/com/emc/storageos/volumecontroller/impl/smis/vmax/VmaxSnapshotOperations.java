@@ -1267,7 +1267,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      */
     @SuppressWarnings("rawtypes")
     @Override
-    public void linkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI, Boolean createInactive,
+    public void linkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             String copyMode, TaskCompleter completer)
             throws DeviceControllerException {
         if (system.checkIfVmax3()) {
@@ -1285,7 +1285,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     String label = _nameGenerator.generate(tenantName, snapshot.getLabel(), snapshotURI.toString(), '-',
                             SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH);
                     Map<String, String> targetDeviceMap = createTargetDevices(system, poolPath, volumeGroupPath, null, "SingleSnapshot",
-                            label, createInactive, 1, sourceVolume.getCapacity(), completer);
+                            label, Boolean.FALSE, 1, sourceVolume.getCapacity(), completer);
                     String targetDeviceInstanceId = targetDeviceMap.keySet().iterator().next();
 
                     CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
@@ -1296,14 +1296,14 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     CIMArgument[] inArgs = null;
                     CIMArgument[] outArgs = new CIMArgument[5];
                     inArgs = _helper.getModifySettingsDefinedStateForLinkTargets(settingsStatePath,
-                            targetDevicePath, createInactive, copyMode);
+                            targetDevicePath, copyMode);
                     _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
                     CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
                     if (jobPath != null) {
                         _log.info("Link snapshot session target being completed in job {}", jobPath.getKey(SmisConstants.CP_INSTANCE_ID)
                                 .getValue());
                         ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockLinkSnapshotSessionTargetJob(jobPath, system.getId(),
-                                !createInactive, copyMode, completer)));
+                                copyMode, completer)));
                     } else {
                         // TBD - Need to verify this code path. Testing always returned job, which
                         // is likely the case.

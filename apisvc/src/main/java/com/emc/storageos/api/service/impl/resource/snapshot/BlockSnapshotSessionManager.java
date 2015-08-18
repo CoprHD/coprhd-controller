@@ -158,10 +158,6 @@ public class BlockSnapshotSessionManager {
         // Get the snapshot session label.
         String snapSessionLabel = param.getName();
 
-        // Get whether or not the snapshot session should be created inactive.
-        // Check if the request calls for activation of the snapshot session.
-        Boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE : param.getCreateInactive();
-
         // Get the target device information, if any.
         int newLinkedTargetsCount = 0;
         String newTargetsCopyMode = CopyMode.nocopy.name();
@@ -209,8 +205,7 @@ public class BlockSnapshotSessionManager {
         }
 
         // Create the snapshot sessions.
-        snapSessionApiImpl.createSnapshotSession(snapSessionSourceObj, snapSessionURIs, snapSessionSnapshotMap, newTargetsCopyMode,
-                createInactive, taskId);
+        snapSessionApiImpl.createSnapshotSession(snapSessionSourceObj, snapSessionURIs, snapSessionSnapshotMap, newTargetsCopyMode, taskId);
 
         // Record a message in the audit log.
         auditOp(OperationTypeEnum.CREATE_SNAPSHOT_SESSION, true, AuditLogManager.AUDITOP_BEGIN, snapSessionLabel, sourceURI.toString());

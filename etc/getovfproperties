@@ -178,10 +178,10 @@ _parse_ovfenv_xml() {
                # This is for devkit to have dns and ntp present in ovf props
                s/devkit_nameservers/network_nameservers/g
                s/devkit_ntpservers/network_ntpservers/g
-               s/^\(network\|node\|devkit\).*/\0/
-               p;d
+               s/^\(network\|node\|devkit\).*/\0/p
+               d
            }
-           N;b P;
+           N; b P
        }'
 }
 

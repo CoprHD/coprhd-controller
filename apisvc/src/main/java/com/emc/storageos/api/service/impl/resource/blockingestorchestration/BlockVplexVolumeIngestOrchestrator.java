@@ -119,26 +119,14 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 validateUnmanagedBackendVolumes(vPool, vplexProject, tenant, unmanagedBackendVolumes);
                 
                 ingestBackendVolumes(systemCache, poolCache, vPool,
-                        virtualArray, vplexProject, tenant,
-                        unManagedVolumesToBeDeleted, taskStatusMap,
-                        context.getAllUnmanagedVolumes(), context.getProcessedUnManagedVolumeMap(),
-                        context.getCreatedObjectMap(), context.getUpdatedObjectMap());
+                        virtualArray, vplexProject, tenant, unManagedVolumesToBeDeleted, 
+                        taskStatusMap, context);
 
                 ingestBackendExportMasks(system, vPool, virtualArray, vplexProject,
-                        tenant, unManagedVolumesToBeDeleted, context.getUpdatedObjectMap(),
-                        taskStatusMap, unmanagedBackendVolumes,
-                        context.getProcessedUnManagedVolumeMap(), context.getCreatedObjectMap(),
-                        context.getIngestedObjects());
+                        tenant, unManagedVolumesToBeDeleted, 
+                        taskStatusMap, context);
 
-                printExtraLogging(context);
-                
-                _dbClient.createObject(context.getIngestedObjects());
-                _dbClient.createObject(context.getCreatedObjectMap().values());
-                for (List<DataObject> dos : context.getUpdatedObjectMap().values()) {
-                    _logger.info("persisting " + dos);
-                    _dbClient.persistObject(dos);
-                }
-                _dbClient.persistObject(context.getProcessedUnManagedVolumeMap().values());
+                handlePersistence(context);
             }
         } catch (Exception ex) {
             
@@ -155,22 +143,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         createVplexMirrorObjects(context);
         
         return virtualVolume;
-    }
-
-    private void printExtraLogging(VplexBackendIngestionContext context) {
-        // TODO remove this excessive logging just for testing
-        for (BlockObject o : context.getIngestedObjects()) {
-            _logger.info("ingested object: " + o.getNativeGuid());
-        }
-        for (BlockObject o : context.getCreatedObjectMap().values()) {
-            _logger.info("vplex created object map: " + o.getNativeGuid());
-        }
-        for (Entry<String, List<DataObject>> e : context.getUpdatedObjectMap().entrySet()) {
-            _logger.info("updated object map: " + e.getKey() + " : " + e.getValue());
-        }
-        for (UnManagedVolume umv : context.getProcessedUnManagedVolumeMap().values()) {
-            _logger.info("processed unmanaged volume: " + umv.getNativeGuid());
-        }
     }
 
     private void validateUnmanagedBackendVolumes(VirtualPool vPool, Project project,
@@ -198,13 +170,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             Project vplexProject, TenantOrg tenant,
             List<UnManagedVolume> unManagedVolumesToBeDeleted,
             Map<String, StringBuffer> taskStatusMap,
-            List<UnManagedVolume> associatedVolumes,
-            Map<String, UnManagedVolume> processedUnManagedVolumeMap,
-            Map<String, BlockObject> vplexCreatedObjectMap,
-            Map<String, List<DataObject>> vplexUpdatedObjectMap) {
+            VplexBackendIngestionContext context) {
 
-        _logger.info("ingesting these backend volumes: " + associatedVolumes);
-        for (UnManagedVolume associatedVolume : associatedVolumes) {
+        for (UnManagedVolume associatedVolume : context.getAllUnmanagedVolumes()) {
             _logger.info("Ingestion started for exported vplex backend unmanagedvolume {}", associatedVolume.getNativeGuid());
 
             try {
@@ -220,8 +188,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 @SuppressWarnings("unchecked")
                 BlockObject blockObject = ingestStrategy.ingestBlockObjects(systemCache, poolCache, 
                         associatedSystem, associatedVolume, vPool, virtualArray, 
-                        vplexProject, tenant, unManagedVolumesToBeDeleted, vplexCreatedObjectMap, 
-                        vplexUpdatedObjectMap, true, VolumeIngestionUtil.getBlockObjectClass(associatedVolume), taskStatusMap);
+                        vplexProject, tenant, unManagedVolumesToBeDeleted, context.getCreatedObjectMap(), 
+                        context.getUpdatedObjectMap(), true, 
+                        VolumeIngestionUtil.getBlockObjectClass(associatedVolume), taskStatusMap);
                 
                 _logger.info("Ingestion ended for exported unmanagedvolume {}", associatedVolume.getNativeGuid());
                 if (null == blockObject)  {
@@ -231,8 +200,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                             associatedVolume.getLabel(), "check the logs for more details");
                 }
                 
-                vplexCreatedObjectMap.put(blockObject.getNativeGuid(), blockObject);
-                processedUnManagedVolumeMap.put(associatedVolume.getNativeGuid(), associatedVolume);
+                context.getCreatedObjectMap().put(blockObject.getNativeGuid(), blockObject);
+                context.getProcessedUnManagedVolumeMap().put(associatedVolume.getNativeGuid(), associatedVolume);
             } catch ( APIException ex ) {
                 _logger.warn(ex.getLocalizedMessage(), ex);
                 // TODO: throw exception? sort out error handling
@@ -248,17 +217,13 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             VirtualPool vPool, VirtualArray virtualArray, Project vplexProject,
             TenantOrg tenant,
             List<UnManagedVolume> unManagedVolumesToBeDeleted,
-            Map<String, List<DataObject>> updatedObjectMap,
             Map<String, StringBuffer> taskStatusMap,
-            List<UnManagedVolume> associatedVolumes,
-            Map<String, UnManagedVolume> processedUnManagedVolumeMap,
-            Map<String, BlockObject> vplexCreatedObjectMap,
-            List<BlockObject> ingestedObjects) {
+            VplexBackendIngestionContext context) {
         
-        for (String unManagedVolumeGUID: processedUnManagedVolumeMap.keySet()) {
+        for (String unManagedVolumeGUID: context.getProcessedUnManagedVolumeMap().keySet()) {
             String objectGUID = unManagedVolumeGUID.replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-            BlockObject processedBlockObject = vplexCreatedObjectMap.get(objectGUID);
-            UnManagedVolume processedUnManagedVolume = processedUnManagedVolumeMap.get(unManagedVolumeGUID);
+            BlockObject processedBlockObject = context.getCreatedObjectMap().get(objectGUID);
+            UnManagedVolume processedUnManagedVolume = context.getProcessedUnManagedVolumeMap().get(unManagedVolumeGUID);
             _logger.info("ingesting export mask(s) for unmanaged volume " + processedUnManagedVolume);
 
             try {
@@ -298,7 +263,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 exportIngestParam.setVpool(vPool.getId());
                 
                 List<URI> associatedVolumeUris = new ArrayList<URI>();
-                for (UnManagedVolume umv : associatedVolumes) {
+                for (UnManagedVolume umv : context.getUnmanagedBackendVolumes()) {
                     associatedVolumeUris.add(umv.getId());
                 }
                 exportIngestParam.setUnManagedVolumes(associatedVolumeUris);
@@ -310,7 +275,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     throw IngestionException.exceptions.generalVolumeException(
                             processedUnManagedVolume.getLabel(), "check the logs for more details");
                 }
-                ingestedObjects.add(blockObject);
+                context.getIngestedObjects().add(blockObject);
                 
                 if (blockObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
                     StringBuffer taskStatus = taskStatusMap
@@ -329,7 +294,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
                 // Update the related objects if any after successful export
                 // mask ingestion
-                List<DataObject> updatedObjects = updatedObjectMap.get(unManagedVolumeGUID);
+                List<DataObject> updatedObjects = context.getUpdatedObjectMap().get(unManagedVolumeGUID);
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     _dbClient.updateAndReindexObject(updatedObjects);
                 }
@@ -397,6 +362,32 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             // TODO: set associated vol on clone
         }
 
+    }
+
+    private void printExtraLogging(VplexBackendIngestionContext context) {
+        // TODO remove this excessive logging just for testing
+        for (BlockObject o : context.getIngestedObjects()) {
+            _logger.info("ingested object: " + o.getNativeGuid());
+        }
+        for (BlockObject o : context.getCreatedObjectMap().values()) {
+            _logger.info("vplex created object map: " + o.getNativeGuid());
+        }
+        for (Entry<String, List<DataObject>> e : context.getUpdatedObjectMap().entrySet()) {
+            _logger.info("updated object map: " + e.getKey() + " : " + e.getValue());
+        }
+        for (UnManagedVolume umv : context.getProcessedUnManagedVolumeMap().values()) {
+            _logger.info("processed unmanaged volume: " + umv.getNativeGuid());
+        }
+    }
+
+    private void handlePersistence(VplexBackendIngestionContext context) {
+        printExtraLogging(context);
+        _dbClient.createObject(context.getIngestedObjects());
+        _dbClient.createObject(context.getCreatedObjectMap().values());
+        for (List<DataObject> dos : context.getUpdatedObjectMap().values()) {
+            _dbClient.persistObject(dos);
+        }
+        _dbClient.persistObject(context.getProcessedUnManagedVolumeMap().values());
     }
 
     

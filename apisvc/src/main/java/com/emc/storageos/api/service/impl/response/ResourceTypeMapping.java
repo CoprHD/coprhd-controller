@@ -73,7 +73,6 @@ public class ResourceTypeMapping {
         classMapping.put(CUSTOM_CONFIG, CustomConfig.class);
         classMapping.put(SYS_EVENT, SysEvent.class);
         classMapping.put(USER_GROUP, UserGroup.class);
-        classMapping.put(VIRTUAL_NAS,VirtualNAS.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping.entrySet()) {
             resourceMapping.put(entry.getValue(), entry.getKey());

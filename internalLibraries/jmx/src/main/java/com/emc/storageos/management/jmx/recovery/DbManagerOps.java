@@ -21,16 +21,20 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class DbManagerOps implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(DbManagerOps.class);
     private static final Integer DB_REPAIR_MAX_RETRY_COUNT = 3;
     private static final String JMX_URL_PATTERN = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
-    private static final String PID_PATTERN = "/var/run/storageos/%s.pid";
+    private static final String PID_DIR = "/var/run/storageos/";
+    private static final String PID_FILENAME_PATTERN = "%s(-coverage)?.pid";
     private static final String CONNECTOR_ADDRESS = "com.sun.management.jmxremote.localConnectorAddress";
     public final static String MBEAN_NAME = "com.emc.storageos.db.server.impl:name=DbManager";
 
@@ -69,31 +73,28 @@ public class DbManagerOps implements AutoCloseable {
         this.mbean = JMX.newMBeanProxy(mbsc, new ObjectName(MBEAN_NAME), DbManagerMBean.class);
     }
 
+    
     private JMXConnector initJMXConnector(String svcName) throws IOException, AttachNotSupportedException, AgentLoadException,
             AgentInitializationException {
-        String logPidFileName = String.format(PID_PATTERN, svcName);
+    	int pid = getServicePid(svcName);
+        log.info("{} service pid {}", svcName, pid);
 
-        try (Scanner scanner = new Scanner(new File(logPidFileName))) {
-            int pid = scanner.nextInt();
-            log.debug("Got pid {} from pid file {}", pid, logPidFileName);
+        VirtualMachine vm = VirtualMachine.attach(String.valueOf(pid));
+        try {
+            String connectorAddress = vm.getAgentProperties().getProperty(CONNECTOR_ADDRESS);
+            if (connectorAddress == null) {
+                String agent = Strings.join(File.separator,
+                        vm.getSystemProperties().getProperty("java.home"),
+                        "lib", "management-agent.jar");
+                vm.loadAgent(agent);
 
-            VirtualMachine vm = VirtualMachine.attach(String.valueOf(pid));
-            try {
-                String connectorAddress = vm.getAgentProperties().getProperty(CONNECTOR_ADDRESS);
-                if (connectorAddress == null) {
-                    String agent = Strings.join(File.separator,
-                            vm.getSystemProperties().getProperty("java.home"),
-                            "lib", "management-agent.jar");
-                    vm.loadAgent(agent);
-
-                    connectorAddress = vm.getAgentProperties().getProperty(CONNECTOR_ADDRESS);
-                }
-
-                JMXServiceURL serviceURL = new JMXServiceURL(connectorAddress);
-                return JMXConnectorFactory.connect(serviceURL);
-            } finally {
-                vm.detach();
+                connectorAddress = vm.getAgentProperties().getProperty(CONNECTOR_ADDRESS);
             }
+
+            JMXServiceURL serviceURL = new JMXServiceURL(connectorAddress);
+            return JMXConnectorFactory.connect(serviceURL);
+        } finally {
+            vm.detach();
         }
     }
 
@@ -226,4 +227,33 @@ public class DbManagerOps implements AutoCloseable {
             this.conn = null;
         }
     }
+    
+    private int getServicePid(String svcName) throws FileNotFoundException {
+    	String pidFilename = getServicePidFile(svcName);
+    	try (Scanner scanner = new Scanner(new File(PID_DIR+pidFilename))) {
+    		return scanner.nextInt();
+    	}
+    }
+    
+    private String getServicePidFile(String svcName) {
+    	File dir = new File(PID_DIR);
+    	String namePattern = String.format(PID_FILENAME_PATTERN, svcName);
+    	final Pattern pattern = Pattern.compile(namePattern);
+    	
+    	String[] files = dir.list(new FilenameFilter() {
+
+			@Override
+			public boolean accept(File dir, String filename) {
+				return pattern.matcher(filename).matches();
+			}
+    		
+    	});
+    	
+    	if (files == null || files.length == 0) {
+    		log.error("can't find {} pid file", svcName);
+    		throw new IllegalStateException("can't find pid file, please check service status");
+    	}
+    	
+    	return files[0];
+	}
 }

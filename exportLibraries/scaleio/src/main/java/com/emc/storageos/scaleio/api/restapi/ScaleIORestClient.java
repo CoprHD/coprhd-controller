@@ -298,8 +298,15 @@ public class ScaleIORestClient extends StandardRestClient {
      */
     public List<ScaleIOScsiInitiator> queryAllSCSIInitiators() throws JSONException {
         log.info("Discovery all SCSI Initiators");
+        List<ScaleIOScsiInitiator> scsiInits = null;
         ClientResponse response = get(URI.create(ScaleIOConstants.GET_SCSI_INITIATOR_URI));
-        return getResponseObjects(ScaleIOScsiInitiator.class, response);
+        try {
+        	scsiInits = getResponseObjects(ScaleIOScsiInitiator.class, response);
+        } catch (Exception e) {
+        	//1.32 and later does not support get ScsiInitiators
+        	log.info("Caught exception:", e);
+        }
+        return scsiInits;
     }
 
     /**

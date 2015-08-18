@@ -1185,37 +1185,7 @@ public class PlacementTests extends DbsvcTestBase {
                 }
                 
                 _log.info(rec.toString(_dbClient));
-            }
-
-//            assertNotNull(recommendations);
-//            assertTrue(recommendations.size() > 0);
-//            assertNotNull(recommendations.get(0));
-//            RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
-//            assertNotNull(rec.getInternalSiteName());
-//            assertNotNull(rec.getSourceDevice());
-//            assertNotNull(rec.getSourcePool());
-//            assertNotNull(rec.getSourceJournalStoragePool());
-//            assertNotNull(rec.getProtectionDevice());
-//            assertNotNull(rec.getPlacementStepsCompleted().name());
-//            assertNotNull(rec.getVirtualArrayProtectionMap());
-//            assertTrue(rec.getVirtualArrayProtectionMap().size() > 0);
-//            assertNotNull(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetStorageSystem());
-//            assertNotNull(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetJournalDevice());
-//            assertNotNull(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetInternalSiteName());
-//            assertTrue("site1".equals(rec.getInternalSiteName()));
-//            assertTrue(("xtremio2".equals(rec.getSourceDevice().toString())) || ("xtremio1".equals(rec.getSourceDevice().toString())));
-//            assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
-//            assertTrue("IDENTIFIED_SOLUTION_FOR_ALL_TARGETS".equals(rec.getPlacementStepsCompleted().name()));
-//            assertTrue(rec.getVirtualArrayProtectionMap().containsKey(URI.create("varray2")));
-//            assertTrue(("xtremio4".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetStorageSystem().toString())) || ("xtremio5".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetStorageSystem().toString())));
-//            assertTrue(("xtremio4".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetJournalDevice().toString())) || ("xtremio5".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetJournalDevice().toString())));
-//            assertTrue("site2".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetInternalSiteName()));
-//            assertTrue(("pool2".equals(rec.getSourcePool().toString())) || ("pool1".equals(rec.getSourcePool().toString())));
-//            assertTrue(("pool2".equals(rec.getSourceJournalStoragePool().toString())) || ("pool1".equals(rec.getSourceJournalStoragePool().toString())));
-//            assertTrue(("pool5".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetStoragePool().toString())) || ("pool4".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetStoragePool().toString())));
-//            assertTrue(("pool5".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetJournalStoragePool().toString())) || ("pool4".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetJournalStoragePool().toString())));
-//            _log.info("Recommendation " + i + ": " + recommendations.size() + ", Source Pool Chosen: " + rec.getSourcePool().toString() +  ", Target Pool Chosen: " + rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetStoragePool().toString());
-//       }
+        }
     }
 
     /**

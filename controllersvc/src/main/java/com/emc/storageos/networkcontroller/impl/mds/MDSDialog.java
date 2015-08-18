@@ -429,6 +429,9 @@ public class MDSDialog extends SSHDialog {
                     member = new ZoneMember(ZoneMember.ConnectivityMemberType.WWPN);
                     zone.getMembers().add(member);
 
+                    if (excludeAliases) {
+                        _log.info("Excluding aliases while getting zone members");
+                    }
                     if (index == 2) {
                         member.setAddress(groups[0]);  // set wwn id
 
@@ -2092,21 +2095,22 @@ public class MDSDialog extends SSHDialog {
      * @throws NetworkDeviceControllerException
      */
     public Zone showZone(String zoneName) throws NetworkDeviceControllerException {
-        return showZone(zoneName, null);
+        return showZone(zoneName, null, true);
     }
 
     /**
      * Get list of zones for given zone names
      * 
      * @param zoneNames
+     * @param excludeAliases
      * @return
      */
-    public List<Zone> showZones(Collection<String> zoneNames) {
+    public List<Zone> showZones(Collection<String> zoneNames, boolean excludeAliases) {
         List<Zone> zones = new ArrayList<Zone>();
         if (zoneNames != null && !zoneNames.isEmpty()) {
             Map<String, String> aliasDatabase = showDeviceAliasDatabase();
             for (String zoneName : zoneNames) {
-                Zone zone = showZone(zoneName, aliasDatabase);
+                Zone zone = showZone(zoneName, aliasDatabase, excludeAliases);
                 zones.add(zone);
             }
         }
@@ -2118,10 +2122,12 @@ public class MDSDialog extends SSHDialog {
      * 
      * @param zoneName
      * @param aliasDatabase
+     * @param excludeAliases
      * @return
      * @throws NetworkDeviceControllerException
      */
-    private Zone showZone(String zoneName, Map<String, String> aliasDatabase) throws NetworkDeviceControllerException {
+    private Zone showZone(String zoneName, Map<String, String> aliasDatabase, boolean excludeAliases)
+            throws NetworkDeviceControllerException {
         Zone zone = new Zone(zoneName);
         SSHPrompt[] prompts = { SSHPrompt.POUND, SSHPrompt.GREATER_THAN };
         StringBuilder buf = new StringBuilder();
@@ -2139,6 +2145,9 @@ public class MDSDialog extends SSHDialog {
 
         Map<String, String> myAliasDatabase = aliasDatabase == null ? showDeviceAliasDatabase() : aliasDatabase;
 
+        if (excludeAliases) {
+            _log.info("Excluding aliases while getting zone members");
+        }
         for (String line : lines) {
             int index = match(line, regex, groups);
             member = new ZoneMember(ZoneMember.ConnectivityMemberType.WWPN);
@@ -2147,15 +2156,17 @@ public class MDSDialog extends SSHDialog {
                     member.setAddress(groups[0]);  // set wwn id
                     // matched "pwwn <wwnid> [alias]" regex, thus
                     // set alias field as well
-                    if (groups.length >= 2 && groups[1] != null) {
+                    if (!excludeAliases && groups.length >= 2 && groups[1] != null) {
                         member.setAlias(groups[1].replace("[", "").replace("]", ""));
                     }
                     zone.getMembers().add(member);
                     break;
                 case 1:
                     // matched "device-alias <alias>
-                    member.setAlias(groups[0]); // set alias
-                    member.setAliasType(true); // indicate member type of alias
+                    if (!excludeAliases) {
+                        member.setAlias(groups[0]); // set alias
+                        member.setAliasType(true); // indicate member type of alias
+                    }
                     String pwwn = getDeviceAliasPwwn(groups[0], myAliasDatabase);
                     if (!StringUtils.isEmpty(pwwn)) {
                         member.setAddress(pwwn);

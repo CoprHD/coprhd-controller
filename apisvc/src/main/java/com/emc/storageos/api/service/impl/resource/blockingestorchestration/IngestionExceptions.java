@@ -142,4 +142,13 @@ public interface IngestionExceptions {
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException inconsistentZoningAcrossHosts(String messages);
+    
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException failedToIngestVplexBackend(String message);
+    
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException failedToFindAnyVplexBackendVolumes(String virtualVolumeName, String supportingDeviceName);
+    
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException failedToFindAllVplexBackendVolumes(String virtualVolumeName, String supportingDeviceName, String volumesFound);
 }

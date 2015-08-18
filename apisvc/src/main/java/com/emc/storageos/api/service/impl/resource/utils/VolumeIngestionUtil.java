@@ -2326,5 +2326,15 @@ public class VolumeIngestionUtil {
         return deviceToUnManagedVolumeMap;
     }
 
+    public static boolean isVplexLocal(UnManagedVolume unManagedVolume) {
+        String locality = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.VPLEX_LOCALITY.toString(),
+                    unManagedVolume.getVolumeInformation());
+        if ("distributed".equals(locality)) {
+            return false;
+        }
+        
+        return true;
+    }
     
 }

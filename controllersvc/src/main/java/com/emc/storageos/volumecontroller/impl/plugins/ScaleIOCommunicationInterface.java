@@ -19,7 +19,6 @@ import com.emc.storageos.scaleio.api.restapi.response.ScaleIOProtectionDomain;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDC;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDS;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDS.IP;
-import com.emc.storageos.scaleio.api.restapi.response.ScaleIOScsiInitiator;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOStoragePool;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSystem;
 import com.emc.storageos.util.VersionChecker;
@@ -128,7 +127,6 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
 
     @Override
     public void discover(AccessProfile accessProfile) throws BaseCollectionException {
-        StorageSystem.CompatibilityStatus compatibilityStatus = StorageSystem.CompatibilityStatus.COMPATIBLE;
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
         _locker.acquireLock(accessProfile.getIpAddress(), LOCK_WAIT_SECONDS);
         log.info("Starting discovery of ScaleIO StorageProvider. IP={} StorageSystem {}",
@@ -140,8 +138,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                 List<ScaleIOProtectionDomain> protectionDomains = scaleIOHandle.getProtectionDomains();
                 List<ScaleIOSDC> allSDCs = scaleIOHandle.queryAllSDC();
                 List<ScaleIOSDS> allSDSs = scaleIOHandle.queryAllSDS();
-                List<ScaleIOScsiInitiator> allSCSIInitiators = scaleIOHandle.queryAllSCSIInitiators();
-
+                
                 List<StoragePort> ports = new ArrayList<>();
                 List<StoragePool> newPools = new ArrayList<StoragePool>();
                 List<StoragePool> updatePools = new ArrayList<StoragePool>();
@@ -182,15 +179,13 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                             createStoragePorts(storageSystem, compatibility, network, sdsList, domainName);
                     ports.addAll(thesePorts);
                     createHost(network, allSDCs);
-                    boolean hasSCSIInitiators =
-                            createSCSIInitiatorsAndStoragePorts(storageSystem, domainName, compatibilityStatus,
-                                    installationId, allSCSIInitiators, allSDCs, ports);
+                    
                     List<StoragePort> notVisiblePorts = DiscoveryUtils.checkStoragePortsNotVisible(ports, _dbClient,
                             storageSystem.getId());
                     if (notVisiblePorts != null && !notVisiblePorts.isEmpty()) {
                         ports.addAll(notVisiblePorts);
                     }
-                    Set<String> supportedProtocols = (hasSCSIInitiators) ? SCALEIO_AND_ISCSI : SCALEIO_ONLY;
+                    Set<String> supportedProtocols = SCALEIO_ONLY;
                     List<ScaleIOStoragePool> storagePools = scaleIOHandle.getProtectionDomainStoragePools(protectionDomainId);
                     for (ScaleIOStoragePool storagePool : storagePools) {
                         String poolName = storagePool.getName();
@@ -419,109 +414,6 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * This will create an IP network for the SIO system to contain the iSCSI initiators
-     * associated with the system (if any). It will also create the iSCSI initiators and
-     * StoragePorts, placing them in the IP network.
-     * 
-     * @param storageSystem [in] - StorageSystem object (ProtectionDomain)
-     * @param protectionDomainName [in] - Protection Domain name
-     * @param compatibilityStatus [in] - Compatibility status to use on the ports
-     * @param installationId [in] - Installation ID unique to ScaleIO instance
-     * @param queryAllSCSIInitiatorsResult [in] - Result of querying ScaleIO for SCSI initiators
-     * @param queryAllSDCResult [in] - Result of querying ScaleIO for SDC clients
-     * @param ports [out] - List to update with iSCSI StoragePorts that were discovered
-     * @return - true if there were SCSI initiators found on the system.
-     * @throws IOException
-     */
-    private boolean createSCSIInitiatorsAndStoragePorts(StorageSystem storageSystem, String protectionDomainName,
-            DiscoveredDataObject.CompatibilityStatus compatibilityStatus,
-            String installationId,
-            List<ScaleIOScsiInitiator> allSCSIInitiators,
-            List<ScaleIOSDC> allSDCs, List<StoragePort> ports) throws IOException {
-        boolean hasSCSIInitiators = false;
-        if (allSDCs != null && allSCSIInitiators != null && !allSCSIInitiators.isEmpty()) {
-            List<String> initiatorsToAddToNetwork = new ArrayList<>();
-            String networkId = String.format("%s-IP", installationId);
-            Network networkForSCSIInitiators = createIPNetworkForSCSIInitiators(networkId);
-
-            for (ScaleIOScsiInitiator scsiInit : allSCSIInitiators) {
-                String id = scsiInit.getId();
-                String iqn = scsiInit.getIqn();
-                Initiator initiator = createSCSIInitiator(iqn, id);
-                if (!networkForSCSIInitiators.hasEndpoint(initiator.getInitiatorPort())) {
-                    initiatorsToAddToNetwork.add(initiator.getInitiatorPort());
-                }
-                hasSCSIInitiators = true;
-            }
-
-            if (!initiatorsToAddToNetwork.isEmpty()) {
-                networkForSCSIInitiators.addEndpoints(initiatorsToAddToNetwork, true);
-                _dbClient.updateAndReindexObject(networkForSCSIInitiators);
-            }
-
-            List<StoragePort> iSCSIPorts =
-                    createSCSIStoragePorts(storageSystem, protectionDomainName, compatibilityStatus,
-                            networkForSCSIInitiators, allSDCs);
-            ports.addAll(iSCSIPorts);
-        }
-        return hasSCSIInitiators;
-    }
-
-    /**
-     * Create an IP Network object for iSCSI initiators.
-     * 
-     * @param uniqueId [in] - Unique string identifier for the network
-     * @return Network object
-     */
-    private Network createIPNetworkForSCSIInitiators(String uniqueId) {
-        Network network;
-        List<Network> results =
-                CustomQueryUtility.queryActiveResourcesByAltId(_dbClient, Network.class, "nativeId", uniqueId);
-        if (results == null || results.isEmpty()) {
-            network = new Network();
-            network.setId(URIUtil.createId(Network.class));
-            network.setTransportType(StorageProtocol.Transport.IP.name());
-            network.setNativeId(uniqueId);
-            network.setLabel(String.format("%s-ScaleIONetwork", uniqueId));
-            network.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.name());
-            network.setInactive(false);
-            _dbClient.createObject(network);
-        } else {
-            network = results.get(0);
-        }
-        return network;
-    }
-
-    /**
-     * Create iSCSI initiator for the specified host
-     * 
-     * @param iqn [id] - iSCSI IQN for the port
-     * @return Initiator object
-     */
-    private Initiator createSCSIInitiator(String iqn, String id) {
-        Initiator initiator;
-        List<Initiator> results =
-                CustomQueryUtility.queryActiveResourcesByAltId(_dbClient, Initiator.class, "iniport", iqn);
-        if (results == null || results.isEmpty()) {
-            initiator = new Initiator();
-            initiator.setId(URIUtil.createId(Initiator.class));
-            initiator.setInitiatorPort(iqn);
-            initiator.setProtocol(HostInterface.Protocol.iSCSI.name());
-            initiator.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.name());
-            initiator.setInactive(false);
-            if (id != null && !id.isEmpty()) {
-                initiator.setLabel(id);
-            }
-            _dbClient.createObject(initiator);
-        } else {
-            initiator = results.get(0);
-            initiator.setLabel(id);
-            _dbClient.persistObject(initiator);
-        }
-        return initiator;
-    }
-
-    /**
      * Create a Network object for the ScaleIO instance and associate it with the VArray
      * 
      * @param uniqueId [in] - Unique string identifier for the network
@@ -603,82 +495,6 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                 port.setTransportType(StorageProtocol.Transport.ScaleIO.name());
                 port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                 port.setInactive(false);
-                _dbClient.createObject(port);
-                endpoints.add(port.getPortNetworkId());
-            } else {
-                port = results.get(0);
-            }
-            ports.add(port);
-        }
-        network.addEndpoints(endpoints, true);
-        _dbClient.updateAndReindexObject(network);
-        return ports;
-    }
-
-    /**
-     * Create an iSCSI StoragePort for each SDC in the ScaleIO instance. The SDC would present iSCSI
-     * targets to iSCSI initiators. These are psuedo-StoragePorts or the purpose of tying up
-     * the host-end to the storage-end of the IP Network
-     * <p/>
-     * Note about StoragePorts created here: The iSCSI target ports are generated and created per StorageSystem, keeping them in line with
-     * other arrays. However, ScaleIO itself has a different way of presenting the targets. The targets are actually on the SDC client hosts
-     * -- any SDC client in the ScaleIO system that has the SCSI software running on it will be able to present an iSCSI target to an iSCSI
-     * initiator. The name of this target will take the form of iqn.2010-12.com.ecs:[SDC GUID]. In order for ViPR to support multiple using
-     * multiple StorageSystems (ProtectionDomains) using the same set of SDC, we have to invent targets per ProtectionDomain. This means
-     * that we will created a slightly modified IDQ to distinguish between them: iqn.2010-12.com.ecs.[PD name]:[SDC GUID]. Having such an
-     * implementation does not affect the volume export because ScaleIO does not require specifying the target.
-     * 
-     * @param storageSystem [in] - StorageSystem object (ProtectionDomain)
-     * @param compatibilityStatus [in] - Compatibility status to use on the ports
-     * @param network [in] - Network to associate with the ports
-     * @param queryAllSDCResult [in] - SDS query result
-     */
-    private List<StoragePort> createSCSIStoragePorts(StorageSystem storageSystem, String protectionDomainName,
-            DiscoveredDataObject.CompatibilityStatus compatibilityStatus,
-            Network network, List<ScaleIOSDC> allSDCs)
-            throws IOException {
-        List<StoragePort> ports = new ArrayList<>();
-        List<String> endpoints = new ArrayList<>();
-        String fixedProtectionDomainName = protectionDomainName.replaceAll("\\s+", "").toLowerCase();
-        for (ScaleIOSDC sdc : allSDCs) {
-            String sdcGUID = sdc.getSdcGuid();
-            String sdcIP = sdc.getSdcIp();
-            String generatedTargetName = String.format("iqn.2010-12.com.ecs.%s:%s", fixedProtectionDomainName,
-                    sdcGUID.toLowerCase());
-            StoragePort port;
-            List<StoragePort> results = CustomQueryUtility.
-                    queryActiveResourcesByAltId(_dbClient, StoragePort.class, "portNetworkId", generatedTargetName);
-            if (results == null || results.isEmpty()) {
-                String nativeGUID =
-                        NativeGUIDGenerator.generateNativeGuid(storageSystem,
-                                sdcIP, NativeGUIDGenerator.ADAPTER);
-                StorageHADomain adapter = new StorageHADomain();
-                adapter.setStorageDeviceURI(storageSystem.getId());
-                adapter.setId(URIUtil.createId(StorageHADomain.class));
-                adapter.setAdapterName(sdcIP);
-                adapter.setLabel(sdcIP);
-                adapter.setNativeGuid(nativeGUID);
-                adapter.setNumberofPorts("1");
-                adapter.setAdapterType(StorageHADomain.HADomainType.FRONTEND.name());
-                adapter.setInactive(false);
-                _dbClient.createObject(adapter);
-
-                port = new StoragePort();
-                port.setId(URIUtil.createId(StoragePort.class));
-                port.setPortNetworkId(generatedTargetName);
-                port.setLabel(generatedTargetName);
-                port.setStorageDevice(storageSystem.getId());
-                port.setCompatibilityStatus(compatibilityStatus.name());
-                port.setOperationalStatus(OperationalStatus.OK.name());
-                port.setIpAddress(sdcIP);
-                port.setNetwork(network.getId());
-                port.setPortGroup("");
-                port.setPortName(generatedTargetName);
-                port.setPortType(StoragePort.PortType.frontend.name());
-                port.setStorageHADomain(adapter.getId());
-                port.setTransportType(StorageProtocol.Transport.IP.name());
-                port.setInactive(false);
-                port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                 _dbClient.createObject(port);
                 endpoints.add(port.getPortNetworkId());
             } else {

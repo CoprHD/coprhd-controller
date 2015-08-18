@@ -112,7 +112,10 @@ public class SystemHealth extends Controller {
         int progress = dbstatus.getProgress();
         String health = dbstatus.getStatus().toString();
         angularRenderArgs().put("progress", progress + "%");
-        angularRenderArgs().put("health", health);
+        if (health =="SUCCESS" || health =="FAILED") {
+        	health = "FINISHED";
+        }
+        renderArgs.put("health", health);
         if (dbstatus.getStartTime() != null) {
             DateTime startTime = new DateTime(dbstatus.getStartTime().getTime());
             renderArgs.put("startTime", startTime);

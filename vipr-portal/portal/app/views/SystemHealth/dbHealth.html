@@ -15,6 +15,9 @@
   </table>
   </div>
 </div>
+
+<div ng-show="dbstatus.status=='IN_PROGRESS'" class="alert alert-info">{{'dbstatus.inprogress.info' | t}}</div>
+
 <div class="col-md-1 ">
     <knob warn="value < (max * 0.1)" danger="value < (max * 0.3)" value="progress" max ="100" ></knob>
  </div>
@@ -24,6 +27,12 @@
     <div class="dbstats">
       <table class="table table-condensed table-striped">
         <tbody>
+        <tr>
+        <tr>
+          <td class="status">{{'dbstatus.status' |t}}</td>
+          <td id="health" class="time">${health}</td></div>
+        </tr>  
+        </tr>
         #{if dbstatus.status.toString()!='NOT_STARTED'}
         #{if startTime} 
           <tr>                  
@@ -31,7 +40,7 @@
             <td id="start" class="time"></td>
           </tr>
            	<script>
-        		var starttime = '${startTime}';
+        		var starttime = '${startTime}';        		
         		$('#start').append(formatLocalDateTime(new Date(starttime)));
  			</script>
           #{/if}

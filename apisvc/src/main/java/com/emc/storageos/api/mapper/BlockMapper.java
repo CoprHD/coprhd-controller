@@ -347,9 +347,6 @@ public class BlockMapper {
         // Map session label.
         to.setSessionLabel(from.getSessionLabel());
 
-        // Map is sync active.
-        to.setSyncActive(from.getIsSyncActive());
-
         return to;
     }
 

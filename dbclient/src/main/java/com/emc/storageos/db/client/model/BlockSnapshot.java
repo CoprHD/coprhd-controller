@@ -5,12 +5,12 @@
 
 package com.emc.storageos.db.client.model;
 
-import com.emc.storageos.db.client.DbClient;
+import java.net.URI;
+import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
 
-import java.net.URI;
-import java.util.List;
+import com.emc.storageos.db.client.DbClient;
 
 /**
  * @author burckb
@@ -35,7 +35,6 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     private String _sourceNativeId;
 
     // Name reference of Clar_SynchronizationAspectForSource
-    @Deprecated
     private String _settingsInstance;
 
     // Name reference of Snapshot'ed consistency group. That is,
@@ -51,7 +50,6 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     // and saved for the blocksnapshot. Future operations, will have to use this
     // to manipulate the snapshot or snapset group (for example, disabling or
     // deleting the snapshot/snapset).
-    @Deprecated
     private String _settingsGroupInstance;
 
     // This value is an indicator of whether or not the snapshot has been activated.
@@ -96,6 +94,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
         SRDF
     };
 
+    @Override
     @NamedRelationIndex(cf = "NamedRelationIndex", type = Volume.class)
     @Name("parent")
     public NamedURI getParent() {
@@ -107,6 +106,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
         setChanged("parent");
     }
 
+    @Override
     public Class<? extends DataObject> parentClass() {
         return Volume.class;
     }
@@ -132,6 +132,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
         setChanged("snapsetLabel");
     }
 
+    @Override
     @NamedRelationIndex(cf = "NamedRelationIndex", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
@@ -154,24 +155,20 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     }
 
     @Name("settingsInstance")
-    @Deprecated
     public String getSettingsInstance() {
         return _settingsInstance;
     }
 
-    @Deprecated
     public void setSettingsInstance(String settingsInstance) {
         _settingsInstance = settingsInstance;
         setChanged("settingsInstance");
     }
 
     @Name("settingsGroupInstance")
-    @Deprecated
     public String getSettingsGroupInstance() {
         return _settingsGroupInstance;
     }
 
-    @Deprecated
     public void setSettingsGroupInstance(String groupSettings) {
         _settingsGroupInstance = groupSettings;
         setChanged("settingsGroupInstance");

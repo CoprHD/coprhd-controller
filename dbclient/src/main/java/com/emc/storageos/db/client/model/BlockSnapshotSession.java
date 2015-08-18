@@ -43,10 +43,6 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
     // same session label but a different, unique label.
     private String _sessionLabel;
 
-    // true when the session is created in an active state, else
-    // false.
-    private Boolean _isSyncActive;
-
     // Reference to snapshot session on the array for example an
     // CIMObjectPath for a SynchronizationAspectForSource or
     // SynchronizationAspectForSourceGroup. It is necessary to
@@ -103,16 +99,6 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
     public void setSessionLabel(String sessionLabel) {
         _sessionLabel = sessionLabel;
         setChanged("sessionLabel");
-    }
-
-    @Name("isSyncActive")
-    public Boolean getIsSyncActive() {
-        return (_isSyncActive != null) ? _isSyncActive : Boolean.FALSE;
-    }
-
-    public void setIsSyncActive(Boolean isSyncActive) {
-        _isSyncActive = isSyncActive;
-        setChanged("isSyncActive");
     }
 
     @Name("sessionInstance")

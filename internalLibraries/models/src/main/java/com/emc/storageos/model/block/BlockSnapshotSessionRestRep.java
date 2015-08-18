@@ -27,9 +27,8 @@ public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
     private RelatedResourceRep project;
     private List<RelatedResourceRep> linkedTargets;
     private String sessionLabel;
-    private Boolean syncActive;
-    
-    /** 
+
+    /**
      * URI and reference link to the snapshot session source.
      * 
      * @valid none
@@ -43,7 +42,7 @@ public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
         this.parent = parent;
     }
 
-    /** 
+    /**
      * URI and reference link of the project to which the snapshot belongs.
      * 
      * @valid none
@@ -56,7 +55,7 @@ public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
     public void setProject(RelatedResourceRep project) {
         this.project = project;
     }
-    
+
     /**
      * List of target volumes, i.e., BlockSnapshot instances, linked to the
      * block snapshot session.
@@ -75,8 +74,8 @@ public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
     public void setLinkedTargets(List<RelatedResourceRep> linkedTargets) {
         this.linkedTargets = linkedTargets;
     }
-    
-    /** 
+
+    /**
      * User specified session label.
      * 
      * @valid none
@@ -88,20 +87,5 @@ public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
 
     public void setSessionLabel(String sessionLabel) {
         this.sessionLabel = sessionLabel;
-    }
-
-    /** 
-     * Whether or not the snapshot is active.
-     * 
-     * @valid true
-     * @valid false
-     */
-    @XmlElement(name = "is_sync_active")
-    public Boolean getSyncActive() {
-        return syncActive;
-    }
-
-    public void setSyncActive(Boolean syncActive) {
-        this.syncActive = syncActive;
     }
 }

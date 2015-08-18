@@ -113,7 +113,7 @@ public class KeystoreEngine extends KeyStoreSpi {
         log.debug("engineDeleteEntry called ( alias = {} )", alias);
 
         if (alias.equalsIgnoreCase(ViPR_KEY_AND_CERTIFICATE_ALIAS)) {
-            throw SecurityException.fatals.ViPRKeyCertificateEntryCannotBeDeleted();
+            throw SecurityException.fatals.viprKeyCertificateEntryCannotBeDeleted();
         }
 
         if (distributedKeyStore.containsUserAddedCerts(alias)) {

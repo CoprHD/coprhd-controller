@@ -458,7 +458,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // Now we need to do the necessary zoning and export steps to ensure
                     // the VPlex can see these new backend volumes.
                     lastStep = createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
-                            volumeMap, projectURI, tenantURI, lastStep);
+                            volumeMap, projectURI, tenantURI, waitFor);
                 } catch (Exception ex) {
                     _log.error("Could not create volumes for vplex: " + vplexURI, ex);
                     TaskCompleter completer = new VPlexTaskCompleter(Volume.class, vplexURI,

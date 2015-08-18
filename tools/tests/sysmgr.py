@@ -419,15 +419,11 @@ def get_properties_body(props):
     params = dict()
     properties = dict()
     params['properties'] = properties
-    properties['entry'] = []
     for p in props:
         m = re.match("(.+?)=(.*)\n?", p)
         if m:
             key, value = m.groups()
-            entry = dict()
-            entry['key'] = key
-            entry['value'] = value
-            properties['entry'].append(entry)
+            properties[key] = value
     return params        
 
 def get_props_metadata(args):

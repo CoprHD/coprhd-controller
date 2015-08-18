@@ -82,8 +82,12 @@ public class RecoveryManager implements Runnable {
      * Initialize recovery manager
      */
     public void init() {
-        startRecoveryLeaderSelector();
-        addRecoveryStatusListener();
+        if (!isVMwareVapp()) {
+            startRecoveryLeaderSelector();
+            addRecoveryStatusListener();
+        } else {
+            log.info("No need to init for node recovery in VMware vApp environment");
+        } 
     }
 
     /**
@@ -109,26 +113,28 @@ public class RecoveryManager implements Runnable {
      * c. Triggering(INIT): current node should take charge of node recovery
      */
     private void checkRecoveryStatus() throws Exception {
-        InterProcessLock lock = null;
-        try {
-            lock = getRecoveryLock();
-            RecoveryStatus status = queryNodeRecoveryStatus();
-            if (isRecovering(status)) {
-                log.warn("This is a stale recovery request due to recovery leader change");
-                return;
-            } else if (isTriggering(status)) {
-                log.info("The recovery status is triggering so run recovery directly");
-                return;
+        while (true) {
+            InterProcessLock lock = null;
+            try {
+                lock = getRecoveryLock();
+                RecoveryStatus status = queryNodeRecoveryStatus();
+                if (isRecovering(status)) {
+                    log.warn("This is a stale recovery request due to recovery leader change");
+                    return;
+                } else if (isTriggering(status)) {
+                    log.info("The recovery status is triggering so run recovery directly");
+                    return;
+                }
+                setWaitingRecoveryTriggeringFlag(true);
+            } catch (Exception e) {
+                markRecoveryFailed(RecoveryStatus.ErrorCode.INTERNAL_ERROR);
+                throw e;
+            } finally {
+                releaseLock(lock);
             }
-            setWaitingRecoveryTriggeringFlag(true);
-        } catch (Exception e) {
-            markRecoveryFailed(RecoveryStatus.ErrorCode.INTERNAL_ERROR);
-            throw e;
-        } finally {
-            releaseLock(lock);
+            log.info("Wait to be triggered");
+            waitOnRecoveryTriggering();
         }
-        log.info("Wait to be triggered");
-        waitOnRecoveryTriggering();
     }
 
     private boolean getWaitingRecoveryTriggeringFlag() {
@@ -238,7 +244,7 @@ public class RecoveryManager implements Runnable {
             log.info("Node recovery is done successful");
         } catch (Exception ex) {
             markRecoveryFailed(RecoveryStatus.ErrorCode.INTERNAL_ERROR);
-            log.error("Node recovery failed:", ex.getMessage());
+            log.error("Node recovery failed:", ex);
             throw ex;
         } finally {
             releaseLock(lock);
@@ -452,10 +458,14 @@ public class RecoveryManager implements Runnable {
      * Check if platform is supported
      */
     private void validatePlatform() {
-        if (PlatformUtils.isVMwareVapp()) {
+        if (isVMwareVapp()) {
             log.warn("Platform(vApp) is unsupported for node recovery");
             throw new UnsupportedOperationException("Platform(vApp) is unsupported for node recovery");
         }
+    }
+
+    private boolean isVMwareVapp() {
+        return PlatformUtils.isVMwareVapp();
     }
 
     /**
@@ -755,7 +765,7 @@ public class RecoveryManager implements Runnable {
 
         @Override
         protected void stopLeadership() {
-            log.info("Give up leader, stop recovery manager");
+            log.info("Give up leader, try to stop recovery manager");
             isLeader.set(false);
             stop();
         }
@@ -767,8 +777,15 @@ public class RecoveryManager implements Runnable {
     }
 
     private void stop() {
-        recoveryExecutor.shutdown();
-        wakeupRecoveryThread();
+        recoveryExecutor.shutdownNow();
+        try {
+            while (!recoveryExecutor.awaitTermination(RecoveryConstants.THREAD_CHECK_INTERVAL, TimeUnit.SECONDS)) {
+                log.warn("Waiting recovery thread pool to shutdown for another {} seconds",
+                        RecoveryConstants.THREAD_CHECK_INTERVAL);
+            }
+        } catch (InterruptedException e) {
+            log.error("Interrupted while waiting to shutdown recovery thread pool", e);
+        }
     }
 
     private boolean isNodeRecoveryDbRepairInProgress() {

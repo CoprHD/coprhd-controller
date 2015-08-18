@@ -647,6 +647,9 @@ angular.module("portalApp").controller('taskDetailsCtrl', function($scope, $time
     $scope.viewOrder = function() {
         window.location = routes.Orders_receipt({'orderId':$scope.task.orderId});
     }
+    $scope.getLocalDateTime = function(o,datestring){
+    	return render.localDate(o,datestring);
+    }
 });
 angular.module("portalApp").controller("summaryCountCtrl", function($scope, $http, $timeout, $window) {
     $scope.pending = 0;
@@ -780,6 +783,10 @@ angular.module("portalApp").controller("storageProviderCtrl", function($scope) {
     $scope.isMDMDefaultType = function() {
         return containsOption($scope.smisProvider.interfaceType, $scope.mdmDefaultStorageProviderList);
     }
+    
+    $scope.isMDMOnlyType = function() {
+    	return containsOption($scope.smisProvider.interfaceType, $scope.mdmonlyProviderList);
+    }
 
     $scope.isElementManagerType = function() {
         return containsOption($scope.smisProvider.interfaceType, $scope.elementManagerStorageProviderList);
@@ -899,6 +906,10 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         var url = DOWNLOAD_LOGS + "?" + encodeArgs(args);
         window.open(url, "_blank");
     };
+    
+    $scope.getLocalDateTime = function(o,datestring){
+    	return render.localDate(o,datestring);
+    }
     
     // Fill the table with data
     fetchLogs(getFetchArgs());

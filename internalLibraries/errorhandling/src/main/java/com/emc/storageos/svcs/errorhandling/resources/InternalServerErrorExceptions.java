@@ -192,7 +192,7 @@ public interface InternalServerErrorExceptions {
     public InternalServerErrorException systemVArrayNotDefined();
 
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
-    public InternalServerErrorException UnexpectedErrorDuringVarrayChange(Exception e);
+    public InternalServerErrorException unexpectedErrorDuringVarrayChange(Exception e);
 
     @DeclareServiceCode(ServiceCode.SECURITY_AUTH_TIMEOUT)
     public InternalServerErrorException authTimeout();

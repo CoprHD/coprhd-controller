@@ -267,8 +267,8 @@ public class NetworkDeviceController implements NetworkController {
     }
 
     @Override
-    public List<Zoneset> getZonesets(URI uri, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers)
-            throws ControllerException {
+    public List<Zoneset> getZonesets(URI uri, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers,
+    		 boolean excludeAliases) throws ControllerException {
         NetworkSystem device = getDeviceObject(uri);
         // Get the file device reference for the type of file device managed
         // by the controller.
@@ -277,7 +277,7 @@ public class NetworkDeviceController implements NetworkController {
             throw NetworkDeviceControllerException.exceptions.getZonesetsFailedNull(device.getSystemType());
         }
         try {
-            List<Zoneset> zonesets = networkDevice.getZonesets(device, fabricId, fabricWwn, zoneName, excludeMembers);
+            List<Zoneset> zonesets = networkDevice.getZonesets(device, fabricId, fabricWwn, zoneName, excludeMembers, excludeAliases);
             // NOTE! The RMI infrastructure doesn't know how to deal with CIMObjectPaths, even if they are in
             // Object pointers, so remove them here!
             for (Zoneset zs : zonesets) {

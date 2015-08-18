@@ -73,6 +73,9 @@ public class SystemHealth extends Controller {
     public static final String PARAM_START_TIME = "startTime";
     public static final String PARAM_END_TIME = "endTime";
     public static final String PARAM_CONFIG_PROP = "redeploy";
+    public static final String DBHEALTH_STATUS_SUCCESS = "SUCCESS";
+    public static final String DBHEALTH_STATUS_FAIL = "FAILED";
+    public static final String DBHEALTH_STATUS_FINISH = "FINISHED";
 
     public static final String DEFAULT_SEVERITY = "7";
     public static final String[] SEVERITIES = { "4", "5", "7", "8" };
@@ -112,8 +115,8 @@ public class SystemHealth extends Controller {
         int progress = dbstatus.getProgress();
         String health = dbstatus.getStatus().toString();
         angularRenderArgs().put("progress", progress + "%");
-        if (health =="SUCCESS" || health =="FAILED") {
-        	health = "FINISHED";
+        if (health == DBHEALTH_STATUS_SUCCESS || health == DBHEALTH_STATUS_FAIL) {
+        	health = DBHEALTH_STATUS_FINISH;
         }
         renderArgs.put("health", health);
         if (dbstatus.getStartTime() != null) {

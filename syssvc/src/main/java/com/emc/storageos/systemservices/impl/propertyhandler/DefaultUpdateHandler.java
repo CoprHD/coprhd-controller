@@ -27,7 +27,7 @@ public class DefaultUpdateHandler implements UpdateHandler {
      * @param property
      * @return
      */
-    public boolean isProprotyChanged(PropertyInfoRestRep oldProps, PropertyInfoRestRep newProps, String property) {
+    public boolean isPropertyChanged(PropertyInfoRestRep oldProps, PropertyInfoRestRep newProps, String property) {
         String oldValue = oldProps.getProperty(property);
         String newValue = newProps.getProperty(property);
 

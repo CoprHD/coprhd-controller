@@ -35,7 +35,7 @@ public class AuthLoginAttemptsHandler extends DefaultUpdateHandler {
      * @param newProps
      */
     public void before(PropertyInfoRestRep oldProps, PropertyInfoRestRep newProps) {
-        if (!isProprotyChanged(oldProps, newProps, _propertyName)) {
+        if (!isPropertyChanged(oldProps, newProps, _propertyName)) {
             return;
         }
 
@@ -53,7 +53,7 @@ public class AuthLoginAttemptsHandler extends DefaultUpdateHandler {
      * @param newProps
      */
     public void after(PropertyInfoRestRep oldProps, PropertyInfoRestRep newProps) {
-        if (!isProprotyChanged(oldProps, newProps, _propertyName)) {
+        if (!isPropertyChanged(oldProps, newProps, _propertyName)) {
             return;
         }
 

@@ -148,6 +148,11 @@ _mount_ovfenv() {
     echo "${ovfenv_mnt}"
 }
 
+# Parse ovf-env.xml for system properties
+#
+# Node_id is parsed from oe:id (vm name) first and added to hold space
+# If node_id "per VM" property is found then it replaces node_id in hold space
+# Finally node_id is printed from hold space before finishing
 _parse_ovfenv_xml() {
        sed -n '
        /<Entity / {g; p; q}

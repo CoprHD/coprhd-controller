@@ -146,7 +146,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
             }
             result = vnxComm.createFileSystem(storage,
                     args.getFsName(),
-                    args.getPoolName(),        // This will be used for CLI create FS
+                    args.getPoolName(),         // This will be used for CLI create FS
                     "1",
                     fsSize,
                     args.getThinProvision(),
@@ -720,12 +720,12 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
             VNXFileExport fileExport = new VNXFileExport(clients,
                     portName,
                     path,
-                    "",             // no security type
+                    "",              // no security type
                     smbFileShare.getPermission(),
-                    "",             // root user mapping n/a for CIFS
+                    "",              // root user mapping n/a for CIFS
                     VNXFileSshApi.VNX_CIFS,
-                    "",       // Port information is never used for for CIFS or NFS exports.
-                    "",        // SUB DIR
+                    "",        // Port information is never used for for CIFS or NFS exports.
+                    "",         // SUB DIR
                     ""); // Comments -- TODO
 
             fileExport.setExportName(smbFileShare.getName());

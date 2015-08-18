@@ -249,15 +249,21 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
     public boolean doCheckFSExists(StorageSystem storage,
             FileDeviceInputOutput args) throws ControllerException {
         _log.info("checking file system existence on array: ", args.getFsName());
-        String portGroup = findVfilerName(args.getFs());
-        NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
-                storage.getPortNumber(), storage.getUsername(),
-                storage.getPassword()).https(true).vFiler(portGroup).build();
-        List<String> fs = nApi.listFileSystems();
-        if (!fs.isEmpty() && fs.contains(args.getFsName())) {
-            return true;
-        } else
-            return false;
+        boolean isFSExists = true;
+        try {
+            String portGroup = findVfilerName(args.getFs());
+            NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
+                    storage.getPortNumber(), storage.getUsername(),
+                    storage.getPassword()).https(true).vFiler(portGroup).build();
+            List<String> fs = nApi.listFileSystems();
+            if (!fs.isEmpty() && fs.contains(args.getFsName())) {
+                isFSExists = true;
+            } else
+                isFSExists = false;
+        } catch (NetAppException e) {
+            _log.error("NetAppFileStorageDevice::doCheckFSExists failed with an Exception", e);
+        }
+        return isFSExists;
     }
 
     private Boolean netAppDeleteNFSExports(StorageSystem storage,

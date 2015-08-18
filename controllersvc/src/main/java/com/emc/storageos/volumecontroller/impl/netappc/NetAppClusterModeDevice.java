@@ -33,6 +33,7 @@ import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ShareACL;
+import com.emc.storageos.netapp.NetAppException;
 import com.emc.storageos.netappc.NetAppCException;
 import com.emc.storageos.netappc.NetAppClusterApi;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -250,15 +251,21 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
     public boolean doCheckFSExists(StorageSystem storage,
             FileDeviceInputOutput args) throws ControllerException {
         _log.info("checking file system existence on array: ", args.getFsName());
-        String portGroup = findSVMName(args.getFs());
-        NetAppClusterApi ncApi = new NetAppClusterApi.Builder(storage.getIpAddress(),
-                storage.getPortNumber(), storage.getUsername(),
-                storage.getPassword()).https(true).svm(portGroup).build();
-        List<String> fs = ncApi.listFileSystems();
-        if (!fs.isEmpty() && fs.contains(args.getFsName())) {
-            return true;
-        } else
-            return false;
+        boolean isFSExists = true;
+        try {
+            String portGroup = findSVMName(args.getFs());
+            NetAppClusterApi ncApi = new NetAppClusterApi.Builder(storage.getIpAddress(),
+                    storage.getPortNumber(), storage.getUsername(),
+                    storage.getPassword()).https(true).svm(portGroup).build();
+            List<String> fs = ncApi.listFileSystems();
+            if (!fs.isEmpty() && fs.contains(args.getFsName())) {
+                isFSExists = true;
+            } else
+                isFSExists = false;
+        } catch (NetAppException e) {
+            _log.error("NetAppFileStorageDevice::doCheckFSExists failed with an Exception", e);
+        }
+        return isFSExists;
     }
 
     @Override

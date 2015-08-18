@@ -667,7 +667,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
             URI storagePoolId = args.getFs().getPool();
             StoragePool storagePool = _dbClient.queryObject(StoragePool.class, storagePoolId);
             DDMTreeInfoDetail mtreeInfo = ddClient.getMTree(storagePool.getNativeId(), args.getFs().getNativeId());
-            if (mtreeInfo != null && (mtreeInfo.name.equals(args.getFsName()))) {
+            if (mtreeInfo != null && (mtreeInfo.id.equals(args.getFsNativeId()))) {
                 isMtreeExists = true;
             }
         } catch (DataDomainResourceNotFoundException e) {

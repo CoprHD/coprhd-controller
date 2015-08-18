@@ -712,7 +712,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     public boolean doCheckFSExists(StorageSystem storage, FileDeviceInputOutput args)
             throws ControllerException {
         _log.info("checking file system existence on array: ", args.getFsName());
-        boolean isFSExists = true;
+        boolean isFSExists = true; // setting true by default for safer side
         try {
             IsilonApi isi = getIsilonDevice(storage);
             isFSExists = isi.existsDir(args.getFsMountPath());

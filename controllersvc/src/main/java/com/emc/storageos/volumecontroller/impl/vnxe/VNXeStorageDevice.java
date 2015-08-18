@@ -220,13 +220,19 @@ public class VNXeStorageDevice extends VNXeOperations
     public boolean doCheckFSExists(StorageSystem storage,
             FileDeviceInputOutput fileInOut) throws ControllerException {
         _logger.info("checking file system existence on array: ", fileInOut.getFsName());
-        String name = fileInOut.getFsName();
-        VNXeApiClient apiClient = getVnxeClient(storage);
-        VNXeFileSystem fs = apiClient.getFileSystemByFSName(name);
-        if (fs != null && (fs.getName().equals(name))) {
-            return true;
-        } else
-            return false;
+        boolean isFSExists = true;
+        try {
+            String name = fileInOut.getFsName();
+            VNXeApiClient apiClient = getVnxeClient(storage);
+            VNXeFileSystem fs = apiClient.getFileSystemByFSName(name);
+            if (fs != null && (fs.getName().equals(name))) {
+                isFSExists = true;
+            } else
+                isFSExists = false;
+        } catch (Exception e) {
+            _logger.error("Qerying File System failed with exception:", e);
+        }
+        return isFSExists;
     }
     /*
      * @Override

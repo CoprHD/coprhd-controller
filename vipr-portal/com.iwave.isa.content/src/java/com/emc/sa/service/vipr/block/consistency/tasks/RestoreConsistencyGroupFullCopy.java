@@ -19,6 +19,6 @@ public class RestoreConsistencyGroupFullCopy extends
 
     @Override
     protected Tasks<BlockConsistencyGroupRestRep> doExecute() throws Exception {
-        return getClient().blockConsistencyGroups().resynchronizeFullCopy(consistencyGroup, fullCopy);
+        return getClient().blockConsistencyGroups().restoreFullCopy(consistencyGroup, fullCopy);
     }
 }

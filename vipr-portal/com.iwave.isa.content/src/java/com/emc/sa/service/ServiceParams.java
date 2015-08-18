@@ -40,6 +40,7 @@ public interface ServiceParams {
     public String COMPUTE_VIRTUAL_POOL = "computeVirtualPool";
     public String NAME = "name";
     public String TYPE = "type";
+    public String STORAGE_TYPE = "storageType";
     public String VOLUMES = "volumes";
     public String DELETION_TYPE = "deletionType";
     public String STORAGE_SYSTEMS = "storageSystems";

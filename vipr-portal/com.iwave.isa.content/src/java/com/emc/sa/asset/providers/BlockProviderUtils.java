@@ -19,6 +19,8 @@ import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.model.DiscoveredSystemObjectRestRep;
+import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeRestRep.RecoverPointRestRep;
@@ -29,6 +31,7 @@ import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.filters.DefaultResourceFilter;
 import com.emc.vipr.client.core.util.VirtualPoolUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -295,6 +298,41 @@ public class BlockProviderUtils {
             volumeNameMap.put(volume.getId(), volume.getName());
         }
         return volumeNameMap;
+    }
+
+    public static List<BlockConsistencyGroupRestRep> getSupportedConsistencyGroups(final ViPRCoreClient client, URI projectId) {
+        List<BlockConsistencyGroupRestRep> consistencyGroups = client.blockConsistencyGroups()
+                .search()
+                .byProject(projectId)
+                .filter(new DefaultResourceFilter<BlockConsistencyGroupRestRep>() {
+                    @Override
+                    public boolean accept(BlockConsistencyGroupRestRep item) {
+                        return BlockProviderUtils.isSupportedConsistencyGroup(client, item);
+                    }
+                })
+                .run();
+        return consistencyGroups;
+    }
+
+    public static boolean isSupportedConsistencyGroup(ViPRCoreClient client, BlockConsistencyGroupRestRep consistencyGroup) {
+        if (consistencyGroup.getVolumes() != null && consistencyGroup.getVolumes().isEmpty()) {
+            return false;
+        }
+        Set<RelatedResourceRep> vpools = new HashSet<>();
+        client.blockVolumes().getByRefs(consistencyGroup.getVolumes());
+        for (VolumeRestRep volume : client.blockVolumes().getByRefs(consistencyGroup.getVolumes())) {
+            vpools.add(volume.getVirtualPool());
+        }
+        for (BlockVirtualPoolRestRep vpool : client.blockVpools().getByRefs(vpools)) {
+            if (!isSupportedVPool(vpool)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean isSupportedVPool(BlockVirtualPoolRestRep vpool) {
+        return vpool != null && vpool.getMultiVolumeConsistent() != null && vpool.getMultiVolumeConsistent();
     }
 
 }

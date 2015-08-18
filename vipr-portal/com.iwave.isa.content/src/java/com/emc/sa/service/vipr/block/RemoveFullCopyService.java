@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.COPIES;
+import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
 import static com.emc.sa.service.ServiceParams.VOLUME;
 
 import java.net.URI;
@@ -17,6 +18,10 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 
 @Service("RemoveFullCopy")
 public class RemoveFullCopyService extends ViPRService {
+
+    @Param(STORAGE_TYPE)
+    protected String storageType;
+
     @Param(VOLUME)
     protected URI volumeId;
 
@@ -27,12 +32,20 @@ public class RemoveFullCopyService extends ViPRService {
 
     @Override
     public void precheck() {
-        volume = BlockStorageUtils.getBlockResource(volumeId);
-        logInfo("remove.full.copy.service.precheck", volume.getName());
+        if ("volume".equals(storageType)) {
+            volume = BlockStorageUtils.getBlockResource(volumeId);
+            logInfo("remove.full.copy.service.precheck", volume.getName());
+        }
     }
 
     @Override
     public void execute() {
-        BlockStorageUtils.removeFullCopies(uris(copyIds));
+        if ("volume".equals(storageType)) {
+            BlockStorageUtils.removeFullCopies(uris(copyIds));
+        } else {
+            for (URI copyId : uris(copyIds)) {
+                ConsistencyUtils.removeFullCopy(volumeId, copyId);
+            }
+        }
     }
 }

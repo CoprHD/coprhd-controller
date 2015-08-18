@@ -6,10 +6,20 @@
       type:"assetType.vipr.project",
       lockable: true
     },
+
+    storageType:{
+      type:"assetType.vipr.blockVolumeOrConsistencyType",
+      lockable:true,
+      initialValue:"volume"
+    },
+
+    consistencyGroup:{
+      type:"assetType.vipr.consistencyGroupByProject"
+    },
     
     snapshots:{
-      type:"assetType.vipr.blockSnapshot",
-      select: "many"
-    }     
+      type:"assetType.vipr.blockSnapshotOrConsistencyGroup"
+    }  
+
   }
 }

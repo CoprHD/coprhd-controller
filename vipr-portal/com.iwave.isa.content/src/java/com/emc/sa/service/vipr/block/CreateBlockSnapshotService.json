@@ -6,6 +6,12 @@
       type:"assetType.vipr.project",
       lockable: true
     },
+
+    storageType:{
+      type:"assetType.vipr.blockVolumeOrConsistencyType",
+      lockable:true,
+      initialValue:"volume"
+    },
     
     volumes:{
       type:"assetType.vipr.snapshotBlockVolume"

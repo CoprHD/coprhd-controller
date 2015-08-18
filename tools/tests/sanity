@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | isilon | vplex | vplexexport | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | rpvplex | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery} [local|ldap] [<timeslot>]'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore} [local|ldap] [<timeslot>]'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -118,7 +118,7 @@ fi
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
 
 case $SS in
-    all|isilon|vplex|vplexexport|netapp|netappc|recoverpoint|rpvplex|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery)
+    all|isilon|vplex|vplexexport|netapp|netappc|recoverpoint|rpvplex|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -5698,6 +5698,113 @@ start_vdc_services()
         SSH $ip_addr '/etc/storageos/storageos start;' $OPT
         SSH $ip_addr 'service nginx start;' $OPT
     done
+}
+
+#Usage: sanity <conf path> <vip> backuprestore
+# E.g.: sanity conf/sanity.conf 137.69.169.21 backuprestore
+backuprestore_setup()
+{
+    echo "Setup backup restore environment begin"
+    vip=$BOURNE_IPADDR
+
+    echo "Enable root ssh permit"
+    syssvc $CONFIG_FILE "$vip" set_prop system_permit_root_ssh yes
+    echo "Enable root ssh permit done"
+}
+
+backuprestore_tests()
+{
+    backupname='sanity'
+    filepath='/tmp/sanity.zip'
+
+    backup_tests "${backupname}" "${filepath}"
+    restore_tests "${filepath}"
+}
+
+backup_tests()
+{
+    backupname=$1
+    filepath=$2
+
+    echo "Creating backup(${backupname})"
+    backup create "${backupname}"
+    if [ $? == 0 ]; then
+        echo "Create backup successful"
+    else
+        echo "Create backup failed"
+        exit 1
+    fi
+
+    echo "Creating backup(${backupname}-tmp)"
+    backup create "${backupname}-tmp"
+    if [ $? == 0 ]; then
+        echo "Create backup successful"
+    else
+        echo "Create backup failed"
+        exit 1
+    fi
+
+    echo "Listing backup(${backupname})"
+    found=`backup list "${backupname}"`
+    echo "found=$found"
+    if [ "$found"x == "${backupname}"x ]; then
+        echo "List backup successful"
+    else
+        echo "List backup failed"
+        exit 1
+    fi
+
+    echo "Deleting backup(${backupname}-tmp)"
+    backup delete "${backupname}-tmp"
+    if [ $? == 0 ]; then
+        echo "Delete backup successful"
+    else
+        echo "Delete backup failed"
+        exit 1
+    fi
+
+    echo "Listing backup(${backupname}-tmp)"
+    found=`backup list "${backupname}-tmp"`
+    echo "found=$found"
+    if [ "$found"x == "${backupname}-tmp"x ]; then
+        echo "Backup(${backupname}-tmp) should not exist"
+        exit 1
+    fi
+
+    echo "Downloading backup(${backupname}) to ${filepath}"
+    backup download "${backupname}" "${filepath}"
+    if [[ $? == 0 && -f ${filepath} ]]; then
+        echo "Download backup successful"
+    else
+        echo "Download backup failed"
+        exit 1
+    fi
+
+    echo "Deleting backup(${backupname})"
+    backup delete "${backupname}"
+    if [ $? == 0 ]; then
+        echo "Delete backup successful"
+    else
+        echo "Delete backup failed"
+        exit 1
+    fi
+}
+
+restore_tests()
+{
+    filepath=$1
+    password=$SYSADMIN_PASSWORD
+
+    echo "Uploading backup file ${filepath} to $BOURNE_IPADDR"
+    SCP $BOURNE_IPADDR ${filepath} ${filepath}
+
+    echo "Restoring backup file ${filepath} on $BOURNE_IPADDR"    
+    result=`SSH $BOURNE_IPADDR "echo -e 'yes\n$password' | /opt/storageos/bin/restore '${filepath}'" | grep 'Restore'`
+    echo "$result"
+    if [ "$result"x != "Restore successful!"x ]; then
+        echo "Please check /opt/storageos/logs/bkutils.log for details"
+        exit 1
+    fi
 }
 
 recovery_setup()

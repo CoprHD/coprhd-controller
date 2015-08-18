@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import models.StorageProviderTypes;
+
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -74,13 +76,19 @@ public class StorageProviderUtils {
         update.setName(name);
         update.setIpAddress(ipAddress);
         update.setPortNumber(portNumber);
-        update.setUserName(userName);
-        update.setPassword(password);
+        update.setUserName(userName);        
+        update.setPassword(password);        
         update.setUseSSL(useSSL == null ? false : useSSL);
         update.setInterfaceType(interfaceType);
         update.setSecondaryUsername(StringUtils.defaultIfEmpty(secondaryUsername, null));
         update.setSecondaryPassword(StringUtils.defaultIfEmpty(secondaryPassword, null));
         update.setElementManagerURL(StringUtils.defaultIfEmpty(elementManagerURL, null));
+        if (StorageProviderTypes.isScaleIOApi(interfaceType)) {
+        	update.setUserName(secondaryUsername);
+        	update.setPassword(secondaryPassword);
+        	update.setSecondaryUsername(null);
+        	update.setSecondaryPassword(null);
+        }
         return getViprClient().storageProviders().create(update);
     }
 
@@ -98,6 +106,12 @@ public class StorageProviderUtils {
         update.setSecondaryUsername(StringUtils.defaultIfEmpty(secondaryUsername, null));
         update.setSecondaryPassword(StringUtils.defaultIfEmpty(secondaryPassword, null));
         update.setElementManagerURL(StringUtils.defaultIfEmpty(elementManagerURL, null));
+        if (StorageProviderTypes.isScaleIOApi(interfaceType)) {
+        	update.setUserName(secondaryUsername);
+        	update.setPassword(secondaryPassword);
+        	update.setSecondaryUsername(null);
+        	update.setSecondaryPassword(null);
+        }
         return getViprClient().storageProviders().update(id, update);
     }
 

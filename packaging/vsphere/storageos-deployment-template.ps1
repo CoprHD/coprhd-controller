@@ -732,7 +732,7 @@ function DisplayNetworkProperties() {
 
 function DisplayVMSettings() {
 	Write-Host "VM Settings"
-	Write-Host "	Mode [ install | redeploy | vmx ]: $Script:mode"
+	Write-Host "	Mode [ install | redeploy | install-vmx ]: $Script:mode"
 	Write-Host "	Node ID: $Script:nodeId"
 	if ($Script:isVMX -eq $false) {
 		Write-Host "	Datastore: $Script:ds"

@@ -59,7 +59,7 @@ public class VplexBackendIngestionContext {
         allVolumes.addAll(getUnmanagedFullClones().keySet());
         allVolumes.addAll(getUnmanagedFullClones().values());
         allVolumes.addAll(getUnmanagedBackendOnlyClones().values());
-        allVolumes.addAll(getUnmanagedMirrors());
+        // allVolumes.addAll(getUnmanagedMirrors());  TODO disabled for QE drop1 build
         return allVolumes;
     }
     

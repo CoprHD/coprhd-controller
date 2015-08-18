@@ -253,6 +253,10 @@ public class TenantsService extends TaggedResource {
         if (param.getDescription() != null) {
             tenant.setDescription(param.getDescription());
         }
+        
+        if (param.getNamespace() != null) {
+            tenant.setNamespace(param.getNamespace());
+        }
 
         if (!isUserMappingEmpty(param)) {
             // only SecurityAdmin can modify user-mapping

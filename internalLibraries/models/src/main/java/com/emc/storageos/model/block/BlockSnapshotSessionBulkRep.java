@@ -1,12 +1,6 @@
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
+/*
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.block;
 
@@ -18,23 +12,35 @@ import javax.xml.bind.annotation.XmlElement;
 import com.emc.storageos.model.BulkRestRep;
 
 /**
- *
+ * Class encapsulates the data returned in response to a bulk request
+ * for multiple BlockSnapshotSession instances.
  */
 public class BlockSnapshotSessionBulkRep extends BulkRestRep {
 
+    // A list of BlockSnapshotSession instance response objects.
     private List<BlockSnapshotSessionRestRep> blockSnapshotSessions;
 
+    /**
+     * Default constructor.
+     */
     public BlockSnapshotSessionBulkRep() {
     }
 
+    /**
+     * Constructor.
+     * 
+     * @param blockSnapshotSessions A list of BlockSnapshotSession instance response objects.
+     */
     public BlockSnapshotSessionBulkRep(List<BlockSnapshotSessionRestRep> blockSnapshotSessions) {
         this.blockSnapshotSessions = blockSnapshotSessions;
     }
 
     /**
-     * List of block snapshot sessions.
+     * Get the list of block snapshot sessions responses.
      * 
      * @valid none
+     * 
+     * @return The list of block snapshot sessions responses
      */
     @XmlElement(name = "block_snapshot_session")
     public List<BlockSnapshotSessionRestRep> getBlockSnapshotSessions() {
@@ -44,6 +50,11 @@ public class BlockSnapshotSessionBulkRep extends BulkRestRep {
         return blockSnapshotSessions;
     }
 
+    /**
+     * Set the list of block snapshot sessions responses.
+     * 
+     * @param blockSnapshotSessions The list of block snapshot sessions responses.
+     */
     public void setBlockSnapshotSessions(List<BlockSnapshotSessionRestRep> blockSnapshotSessions) {
         this.blockSnapshotSessions = blockSnapshotSessions;
     }

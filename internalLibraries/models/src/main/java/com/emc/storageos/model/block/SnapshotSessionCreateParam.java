@@ -1,12 +1,6 @@
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
+/*
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.block;
 
@@ -44,32 +38,48 @@ public class SnapshotSessionCreateParam {
     }
 
     /**
-     * The snapshot session name.
+     * Get the snapshot session name.
      * 
      * @valid none
+     * 
+     * @return The snapshot session name.
      */
     @XmlElement
     public String getName() {
         return name;
     }
 
+    /**
+     * Set the snapshot session name.
+     * 
+     * @param name The snapshot session name.
+     */
     public void setName(String name) {
         this.name = name;
     }
 
     /**
-     * Specifies the target volumes to linked to the newly created
+     * Gets the target volumes to be linked to the newly created
      * block snapshot session. When not specified, no targets volumes
      * will be linked to the newly created snapshot session.
      * 
      * @valid none
      * 
+     * @return The target volumes to be linked to the newly created
+     *         block snapshot session.
      */
     @XmlElement(name = "linked_targets", required = false)
     public SnapshotSessionTargetsParam getLinkedTargets() {
         return linkedTargets;
     }
 
+    /**
+     * sets the target volumes to be linked to the newly created
+     * block snapshot session.
+     * 
+     * @param linkedTargets The target volumes to be linked to the newly
+     *            created block snapshot session.
+     */
     public void setLinkedTargets(SnapshotSessionTargetsParam linkedTargets) {
         this.linkedTargets = linkedTargets;
     }

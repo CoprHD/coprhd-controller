@@ -1652,7 +1652,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 initiatorWwnToNameMap, vplexSystem, vplexClusterName, inits, exportGroup,
                                 varrayUri, blockObjectMap,
                                 exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
-                                exportMasksToUpdateOnDeviceWithStoragePorts);
+                                exportMasksToUpdateOnDeviceWithStoragePorts, opId);
                         long elapsed = new Date().getTime() - start;
                         _log.info("TIMER: finding an existing storage view took {} ms and returned {}",
                                 elapsed, foundMatchingStorageView);
@@ -1668,7 +1668,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         reuseExistingExportMask(blockObjectMap, vplexSystem, exportGroup,
                                 varrayUri, exportMasksToUpdateOnDevice,
                                 exportMasksToUpdateOnDeviceWithStoragePorts, inits,
-                                allPortsFromMaskMatchForVarray, viprExportMask);
+                                allPortsFromMaskMatchForVarray, viprExportMask, opId);
 
                         foundMatchingStorageView = true;
 
@@ -1809,6 +1809,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param exportMasksToUpdateOnDevice collection of ExportMasks to update
      * @param exportMasksToUpdateOnDeviceWithInitiators a map of ExportMasks to initiators
      * @param exportMasksToUpdateOnDeviceWithStoragePorts a map of ExportMasks to storage ports
+     * @param opId the task or workflow step id
      * @return whether or not a storage view was actually found on the device
      */
     private boolean checkForExistingStorageViews(VPlexApiClient client,
@@ -1817,7 +1818,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ExportGroup exportGroup, URI varrayUri, Map<URI, Integer> blockObjectMap,
             List<ExportMask> exportMasksToUpdateOnDevice,
             Map<URI, List<Initiator>> exportMasksToUpdateOnDeviceWithInitiators,
-            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts) throws Exception {
+            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts, String opId) throws Exception {
         boolean foundMatchingStorageView = false;
 
         List<String> initiatorNames = new ArrayList<String>();
@@ -1938,9 +1939,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     blockObjectMap.keySet(), exportGroup.getNumPaths());
 
             // Try to assign new ports by passing in existingMap
+            StringSetMap existingAndPrezonedZoningMap = _blockScheduler.assignPrezonedStoragePorts(vplexSystem, exportGroup,
+                    initsToAdd, exportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
             Map<URI, List<URI>> assignments =
                     _blockScheduler.assignStoragePorts(vplexSystem, varrayUri, inits,
-                            pathParams, exportMask.getZoningMap(), null, _networkDeviceController);
+                            pathParams, existingAndPrezonedZoningMap, null, _networkDeviceController);
+            // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
+            ExportUtils.addPrezonedAssignments(exportMask, assignments, existingAndPrezonedZoningMap);
             if (assignments != null && !assignments.isEmpty()) {
                 // Update zoningMap if there are new assignments
                 exportMask = ExportUtils.updateZoningMap(_dbClient, exportMask, assignments,
@@ -1975,13 +1980,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param inits the host initiators of the host in question
      * @param allPortsFromMaskMatchForVarray a flag indicating the storage port networking status
      * @param viprExportMask the ExportMask in the ViPR database to re-use
+     * @param opId opId the task or workflow step id
      */
     private void reuseExistingExportMask(Map<URI, Integer> blockObjectMap,
             StorageSystem vplexSystem, ExportGroup exportGroup, URI varrayUri,
             List<ExportMask> exportMasksToUpdateOnDevice,
             Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts,
             List<Initiator> inits, boolean allPortsFromMaskMatchForVarray,
-            ExportMask viprExportMask) {
+            ExportMask viprExportMask, String opId) {
 
         exportMasksToUpdateOnDevice.add(viprExportMask);
         exportGroup.addExportMask(viprExportMask.getId());
@@ -1997,9 +2003,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // there is already exportmask in database but the storageports in that exportmask are not
         // in the passed in varray (varrayUri)
         if (!allPortsFromMaskMatchForVarray) {
+            StringSetMap existingAndPrezonedZoningMap = _blockScheduler.assignPrezonedStoragePorts(vplexSystem, exportGroup,
+                    inits, viprExportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
             Map<URI, List<URI>> assignments =
                     _blockScheduler.assignStoragePorts(vplexSystem, varrayUri, inits,
-                            pathParams, viprExportMask.getZoningMap(), null, _networkDeviceController);
+                            pathParams, existingAndPrezonedZoningMap, null, _networkDeviceController);
+            // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
+            ExportUtils.addPrezonedAssignments(viprExportMask, assignments, existingAndPrezonedZoningMap);
             if (assignments != null && !assignments.isEmpty()) {
                 // Update zoning Map with these new assignments
                 viprExportMask = ExportUtils.updateZoningMap(_dbClient, viprExportMask, assignments,

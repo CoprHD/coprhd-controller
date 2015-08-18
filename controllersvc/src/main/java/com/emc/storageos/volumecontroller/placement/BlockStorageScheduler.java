@@ -2031,7 +2031,7 @@ public class BlockStorageScheduler {
      * @return true if additional paths can be added to pre-zoned ones
      */
     private boolean allocateFromPrezonedPortsOnly(NetworkDeviceController networkDeviceController, URI virtualArrayUri) {
-        return !networkDeviceController.portAllocationIgnoreExistingZones()
+        return networkDeviceController != null && !networkDeviceController.portAllocationIgnoreExistingZones()
                 && !NetworkScheduler.isZoningRequired(_dbClient, virtualArrayUri);
     }
 

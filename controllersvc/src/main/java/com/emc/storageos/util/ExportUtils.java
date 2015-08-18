@@ -1184,4 +1184,31 @@ public class ExportUtils {
         return localPorts;
     }
 
+    /**
+     * Consolidate the assignments made from pre-zoned ports to those made by ordinary port assignment.
+     * The list should not contain any initiators in the mask existing zoning map. This list is
+     * used to determine how to update the export mask and is expected to have new assignments only.
+     * 
+     * @param exportMask -- the export mask to be updated
+     * @param assignments -- assignments made from all ports not based on what is pre-zoned.
+     * @param existingAndPrezonedZoningMap -- assignments made from pre-zoned ports.
+     */
+    public static void addPrezonedAssignments(ExportMask exportMask, Map<URI, List<URI>> assignments,
+            StringSetMap existingAndPrezonedZoningMap) {
+        for (String iniUriStr : existingAndPrezonedZoningMap.keySet()) {
+            StringSet iniPorts = new StringSet(existingAndPrezonedZoningMap.get(iniUriStr));
+            if (exportMask.getZoningMap() != null) {
+                if (exportMask.getZoningMap().containsKey(iniUriStr)) {
+                    iniPorts.removeAll(exportMask.getZoningMap().get(iniUriStr));
+                }
+                if (!iniPorts.isEmpty()) {
+                    URI iniUri = URI.create(iniUriStr);
+                    if (!assignments.containsKey(iniUri)) {
+                        assignments.put(iniUri, new ArrayList<URI>());
+                    }
+                    assignments.get(URI.create(iniUriStr)).addAll(StringSetUtil.stringSetToUriList(iniPorts));
+                }
+            }
+        }
+    }
 }

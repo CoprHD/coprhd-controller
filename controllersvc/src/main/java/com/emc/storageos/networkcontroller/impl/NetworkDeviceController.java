@@ -1064,17 +1064,8 @@ public class NetworkDeviceController implements NetworkController {
                 return true;
             }
 
-            // get existing zones from the switch, first check if the zones were retrieved by previous steps and cached in the workflow
-            Map<String, List<Zone>> zonesMap = (Map<String, List<Zone>>) WorkflowService.getInstance().loadWorkflowData(token, "zonemap");
-
-            // if the existing zones were not already retrieved and cached by other steps, retrieve them now
-            if (zonesMap == null) {
-                _log.info("Getting existing zones from network system");
-                List<Initiator> exportInitiators = ExportUtils.getExportMasksInitiators(exportMaskURIs, _dbClient);
-                zonesMap = getInitiatorsZones(exportInitiators);
-            } else {
-                _log.info("Existing zones were already retrieved and stored in the workflow");
-            }
+            // get existing zones
+            Map<String, List<Zone>> zonesMap = getExistingZonesMap(exportMaskURIs, token);
 
             // Compute the zones for the ExportGroup
             List<NetworkFCZoneInfo> zones = _networkScheduler.
@@ -1109,6 +1100,45 @@ public class NetworkDeviceController implements NetworkController {
             WorkflowStepCompleter.stepFailed(token, svcError);
         }
         return status;
+    }
+
+    /**
+     * Some of the zones may have been read in previous workfklow steps. Get those from the workflow
+     * and if any initiators are not already retrieved, get thir zones.
+     * 
+     * @param exportMaskUris
+     * @param token
+     * @return
+     */
+    private Map<String, List<Zone>> getExistingZonesMap(Collection<URI> exportMaskUris, String token) {
+
+        // get existing zones from the switch, first check if the zones were retrieved by previous steps and cached in the workflow
+        Map<String, List<Zone>> zonesMap = (Map<String, List<Zone>>) WorkflowService.getInstance().loadWorkflowData(token, "zonemap");
+
+        // if the existing zones were not already retrieved and cached by other steps, retrieve them now
+        if (zonesMap == null) {
+            zonesMap = new HashMap<String, List<Zone>>();
+        } else {
+            _log.info("Existing zones were found in the workflow for initiators {}", zonesMap.keySet());
+        }
+        List<Initiator> exportInitiators = ExportUtils.getExportMasksInitiators(exportMaskUris, _dbClient);
+        Iterator<Initiator> itr = exportInitiators.iterator();
+        Initiator ini = null;
+        List<String> otherInitiators = new ArrayList<String>();
+        while (itr.hasNext()) {
+            ini = itr.next();
+            if (zonesMap.containsKey(ini.getInitiatorPort())) {
+                itr.remove();
+            } else {
+                otherInitiators.add(ini.getInitiatorPort());
+            }
+        }
+        if (!exportInitiators.isEmpty()) {
+            _log.info("Getting existing zones from network system for {} ", otherInitiators);
+            zonesMap.putAll(getInitiatorsZones(exportInitiators));
+        }
+        return zonesMap;
+
     }
 
     /**
@@ -1193,16 +1223,8 @@ public class NetworkDeviceController implements NetworkController {
                 return true;
             }
 
-            // get existing zones from the switch, first check if the zones were retrieved by previous steps and cached in the workflow
-            Map<String, List<Zone>> zonesMap = (Map<String, List<Zone>>) WorkflowService.getInstance().loadWorkflowData(token, "zonemap");
-
-            // if the existing zones were not already retrieved and cached by other steps, retrieve them now
-            if (zonesMap == null) {
-                _log.info("Getting existing zones from network system");
-                zonesMap = getInitiatorsZones(getInitiatorsFromMapExportMasksToInitiators(exportMasksToInitiators));
-            } else {
-                _log.info("Existing zones were already retrieved and stored in the workflow");
-            }
+            // get existing zones
+            Map<String, List<Zone>> zonesMap = getExistingZonesMap(exportMasksToInitiators.keySet(), token);
 
             // Compute zones that are required.
             List<NetworkFCZoneInfo> zoneInfos =

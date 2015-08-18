@@ -411,74 +411,35 @@
 	  "image": "icon_compute_cluster.png",
 	  "description": "clusterservices.description",
 	  "services": [
-  	    {
-  	      "image": "icon_compute_cluster_add.png",
-  	      "baseService": "CreateComputeCluster"
-  	    },
-  	    {
-  	      "image": "icon_compute_cluster_host_add.png",
-  	      "baseService": "AddHostToCluster"	      	    	    
-  	    },
-  	    {
-  	      "image": "icon_compute_cluster_remove.png",
-  	      "baseService": "RemoveHostFromCluster"
-  	    },
-  	    {
-  	      "image": "icon_compute_cluster_remove.png",
-  	      "baseService": "RemoveComputeCluster"	      	    	    
-  	    },
-  	    {
-  	      "image": "icon_compute_cluster_add.png",
-  	      "baseService": "CreateBareMetalCluster"
-  	    },	        
-  	    {
-  	      "image": "icon_compute_cluster_host_add.png",
-  	      "baseService": "AddBareMetalHostToCluster"	      	    	    
-  	    },    
-  	    {	      
-  	      "image": "icon_compute_cluster_vcenter_update.png",
-  	      "baseService": "UpdateVcenterCluster"	      	      	    	    
-  	    }
-      ]
-    },
-    {
-    "title": "consistencygroup.title",
-    "image": "icon_compute_cluster.png",
-    "description": "consistencygroup.description",
-    "services": [
-        {
-          "image": "icon_compute_cluster_remove.png",
-          "baseService": "ConsistencyGroupCreateFullCopy"
-        },
-        {
-          "image": "icon_compute_cluster_remove.png",
-          "baseService": "ConsistencyGroupDetachFullCopy"
-        },
-        {
-          "image": "icon_compute_cluster_remove.png",
-          "baseService": "ConsistencyGroupRemoveFullCopy"                   
-        },          
-        {
-          "image": "icon_compute_cluster_remove.png",
-          "baseService": "ConsistencyGroupRestoreFullCopy"                    
-        },    
-        {       
-          "image": "icon_compute_cluster_remove.png",
-          "baseService": "ConsistencyGroupResynchronizeFullCopy"                           
-        },
-        {
-          "image": "icon_compute_cluster_add.png",
-          "baseService": "ConsistencyGroupCreateSnapshot"                   
-        },
-        {
-          "image": "icon_compute_cluster_add.png",
-          "baseService": "ConsistencyGroupRemoveSnapshot"
-        },    
-        {       
-          "image": "icon_compute_cluster_add.png",
-          "baseService": "ConsistencyGroupRestoreSnapshot"                           
-        }
-  	  ]
-  	}
+	    {
+	      "image": "icon_compute_cluster_add.png",
+	      "baseService": "CreateComputeCluster"
+	    },
+	    {
+	      "image": "icon_compute_cluster_host_add.png",
+	      "baseService": "AddHostToCluster"	      	    	    
+	    },
+	    {
+	      "image": "icon_compute_cluster_remove.png",
+	      "baseService": "RemoveHostFromCluster"
+	    },
+	    {
+	      "image": "icon_compute_cluster_remove.png",
+	      "baseService": "RemoveComputeCluster"	      	    	    
+	    },
+	    {
+	      "image": "icon_compute_cluster_add.png",
+	      "baseService": "CreateBareMetalCluster"
+	    },	        
+	    {
+	      "image": "icon_compute_cluster_host_add.png",
+	      "baseService": "AddBareMetalHostToCluster"	      	    	    
+	    },    
+	    {	      
+	      "image": "icon_compute_cluster_vcenter_update.png",
+	      "baseService": "UpdateVcenterCluster"	      	      	    	    
+	    }
+	  ]
+	}
   ]
 }

@@ -469,6 +469,59 @@ public class VNXFileArgsCreator extends ArgsCreator {
         }
         return iStream;
     }
+    
+    public InputStream fetchMoverStats(final Argument argument,
+                                        final Map<String, Object> keyMap, int index)
+                                        throws VNXFilePluginException {
+        _logger.info("VNX Mover Stats query");
+        InputStream iStream = null;
+        List<QueryStats> statsList = new ArrayList<QueryStats>();
+        try {
+            Set<String> movers = (Set<String>) keyMap.get(VNXFileConstants.MOVERLIST);
+            if (null != movers && !movers.isEmpty()) {
+                for (String moverID : movers) {
+                    QueryStats queryStats = new QueryStats();
+                    MoverStatsSetQueryParams moverStatsSetQueryParams = new MoverStatsSetQueryParams();
+                    moverStatsSetQueryParams.setStatsSet(MoverStatsSetType.NETWORK_DEVICES);
+                    moverStatsSetQueryParams.setMover(moverID);
+                    queryStats.setMoverStats(moverStatsSetQueryParams);
+                    statsList.add(queryStats);
+                }
+                iStream = _vnxFileInputRequestBuilder.getMultiRequestQueryStatsPacket(statsList);
+            } else {
+                _logger.error("No movers found to construct volumeStats query.");
+            }
+            
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for celerra mover stats",
+                    jaxbException.getCause());
+        }
+        return iStream;
+    }
+    
+    public InputStream fetchMoverInterfacesInfo(final Argument argument,
+            final Map<String, Object> keyMap,
+            int index) throws VNXFilePluginException {
+        _logger.info("mover interfaces info query");
+        InputStream iStream = null;
+        try {
+            Query query = new Query();
+            MoverQueryParams moverQuery = new MoverQueryParams();
+            MoverQueryParams.AspectSelection selection = new MoverQueryParams.AspectSelection();
+            selection.setMoverNetworkDevices(true);
+            moverQuery.setAspectSelection(selection);
+            query.getQueryRequestChoice().add(moverQuery);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(moverQuery, false);
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for datamover info",
+                    jaxbException.getCause());
+        }
+        return iStream;
+    }
+    
+    
 
     /**
      * Performs a query for the user accounts on the specified data mover.

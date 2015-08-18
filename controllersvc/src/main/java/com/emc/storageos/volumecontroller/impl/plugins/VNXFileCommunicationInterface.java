@@ -95,6 +95,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      */
     private static final Logger _logger = LoggerFactory.getLogger(VNXFileCommunicationInterface.class);
     private static final String METERINGFILE = "metering-file";
+    private static final String PORTMETRICSFILE = "port-metrics-file";
+    
     private static final String DM_ROLE_STANDBY = "standby";
     private static final String TRUE = "true";
     private static final String FALSE = "false";
@@ -222,6 +224,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             populateMap(accessProfile);
             // Read the operations and execute them.
             executor.execute((Namespace) namespaces.getNsList().get(METERINGFILE));
+            executor.execute((Namespace) namespaces.getNsList().get(PORTMETRICSFILE));
+            
+            
+            
             dumpStatRecords();
             injectStats();
             _logger.info("End collecting statistics for ip address {}",

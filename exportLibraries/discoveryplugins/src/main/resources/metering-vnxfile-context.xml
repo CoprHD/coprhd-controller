@@ -25,6 +25,7 @@
 		<property name="nsList">
 			<map>
 				<entry key="metering-file" value-ref="vnxfilenamespace" />
+				<entry key="port-metrics-file" value-ref="vnxportmetricsnamespace" />
             </map>
 		</property>
 	</bean>
@@ -42,6 +43,65 @@
 			</list>
 		</property>
 	</bean>
+	
+	<bean id="vnxportmetricsnamespace"
+		class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+		<property name="operations">
+			<list>
+				<ref bean="loginoperation" />
+				<ref bean="vnxdatamoverquery"/>
+				<ref bean="vnxdminterfacesquery" />
+				<ref bean="vnxmoverstatsquery" />
+				<ref bean="sessioncleanoperation" />
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="vnxdatamoverquery"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxdatamoverprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxdmquery" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxdminterfacesquery"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxdatamoverinterfaceprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxdminterfacequery" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxstorageportstatsquery"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxstorageportstatsprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxmoverstatsquery" />
+            </list>
+        </property>
+    </bean>
+ 
 
 	<bean id="loginoperation"
 		class="com.emc.storageos.plugins.common.domainmodel.Operation">
@@ -139,6 +199,27 @@
 		<property name="method" value="fetchFileSystemUsageStats" />
 		<property name="value" value="" />
 	</bean>
+	
+	<bean id="vnxmoverstatsquery"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="fetchMoverStats" />
+        <property name="_value" value="movers" />
+    </bean>
+    
+    <bean id="vnxdminterfacequery"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="fetchMoverInterfacesInfo" />
+        <property name="_value" value="movers" />
+    </bean>
+	
+	<bean id="vnxdmquery"
+        class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="fetchDataMoverInfo" />
+        <property name="_value" value="" />
+    </bean>
 
 	<bean id="filesharequery"
 		class="com.emc.storageos.plugins.common.domainmodel.Argument">
@@ -215,10 +296,26 @@
 	<bean id="authprocessor"
 		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXLoginProcessor">
     </bean>
+    
 	<bean id="snapshotprocessor"
 		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXSnapshotProcessor">
 	    <property name="unmarshaller" ref="unmarshaller"/>
 	</bean>
+	
+	<bean id="vnxdatamoverinterfaceprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXDataMoverInterfaceProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+	
+	<bean id="vnxdatamoverprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXDataMoverIdProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+    
+    <bean id="vnxstorageportstatsprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXStoragePortStatsProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
 		
 	<bean id="fileshareinfoprocessor"
 		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemInfoProcessor">

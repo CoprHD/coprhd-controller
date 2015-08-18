@@ -37,7 +37,7 @@ import com.emc.vipr.client.ViPRCoreClient;
       -ea
       -server
       -d64
-      -Xmx512m
+      -Xmx1024m
       -XX:+HeapDumpOnOutOfMemoryError
       -XX:HeapDumpPath=/opt/storageos/logs/apisvc-$$.hprof
       -XX:+PrintGCDateStamps

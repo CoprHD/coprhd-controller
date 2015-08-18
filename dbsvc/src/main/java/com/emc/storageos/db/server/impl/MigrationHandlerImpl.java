@@ -278,7 +278,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
             }
             sleepBeforeRetry();
         }  // while -- not done
-        markMigrationFail(currentSchemaVersion, null);
+        markMigrationFail(currentSchemaVersion);
         return false;
     }
 
@@ -299,6 +299,10 @@ public class MigrationHandlerImpl implements MigrationHandler {
         if (e != null) {
             log.error(e.getMessage(), e);
         }
+    }
+    
+    private void markMigrationFail(String currentSchemaVersion) {
+        markMigrationFail(currentSchemaVersion, null);
     }
 
     private boolean isUnRetryableException(Exception e) {

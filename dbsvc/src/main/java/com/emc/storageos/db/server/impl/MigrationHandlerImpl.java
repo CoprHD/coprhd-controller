@@ -367,7 +367,8 @@ public class MigrationHandlerImpl implements MigrationHandler {
         try {
             reader = new BufferedReader(new StringReader(record.getSchema()));
             DbSchemas schemas = DbSchemaChecker.unmarshalSchemas(version, reader);
-            removeUnusedSchemaIfExists(schemas);
+            log.info("{} drop unused schema if exists", version);
+            schemas.removeUnusedSchemaIfExists();
             return schemas;
         } finally {
             if (reader != null) {
@@ -379,18 +380,6 @@ public class MigrationHandlerImpl implements MigrationHandler {
             }
         }
     }
-
-    private void removeUnusedSchemaIfExists(DbSchemas schemas) {
-    	Iterator<DbSchema> it = schemas.getSchemas().iterator();
-    	List<String> ignoreSchemaNames = DbSchemaInterceptorImpl.getIgnoreCfList();
-    	while (it.hasNext()) {
-    		DbSchema schema = it.next();
-    		if (ignoreSchemaNames.contains(schema.getName())) {
-    			log.info("skip schema:{} since it's removed", schema.getName());
-    			it.remove();
-    		}
-    	}
-	}
 
 	private void persistSchema(String version, String schema) {
         SchemaRecord record = new SchemaRecord();

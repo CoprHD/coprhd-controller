@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -27,7 +28,6 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
-import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 
 public class VPlexControllerUtils {
@@ -286,4 +286,5 @@ public class VPlexControllerUtils {
         log.info("Device map for device {} is {}", deviceName, topLevelDeviceMap);
         return topLevelDeviceMap;
     }
+    
 }

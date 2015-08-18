@@ -9,6 +9,7 @@ import java.math.BigInteger;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -2282,4 +2283,48 @@ public class VolumeIngestionUtil {
         return clones;
     }
 
+
+    public static Map<String, URI> getVplexDeviceToUnManagedVolumeMap(UnManagedVolume unManagedVolume, DbClient dbClient) {
+        URI vplexUri = unManagedVolume.getStorageSystemUri();
+        Iterator<UnManagedVolume> allUnmanagedVolumes = null;
+        _logger.info("about to start dingle timer");
+        long dingleTimer = new Date().getTime();
+        Map<String,URI> deviceToUnManagedVolumeMap = new HashMap<String,URI>();
+        List<URI> storageSystem = new ArrayList<URI>();
+        storageSystem.add(vplexUri);
+        try {
+            // TODO how long will this nonsense take? no way to query StringSetMap values with dbClient
+            _logger.info("about to query for ids");
+            List<URI> ids = dbClient.queryByType(UnManagedVolume.class, true);
+            List<String> fields = new ArrayList<String>();
+            fields.add("storageDevice");
+            fields.add("volumeInformation");
+            allUnmanagedVolumes = dbClient.queryIterativeObjectFields(UnManagedVolume.class, fields, ids);
+        } catch (Throwable t) {
+            // TODO: remove this, but having trouble with dbclient not logging in testing
+            _logger.error("Throwable caught!!!!!!!!!!!!!! ");
+            _logger.error("Throwable caught: " + t.toString());
+        }
+        if (null != allUnmanagedVolumes) {
+            while (allUnmanagedVolumes.hasNext()) {
+                UnManagedVolume vol = allUnmanagedVolumes.next();
+                if (vol.getStorageSystemUri().equals(vplexUri)) {
+                    String supportingDeviceName = 
+                            PropertySetterUtil.extractValueFromStringSet(
+                                    SupportedVolumeInformation.VPLEX_SUPPORTING_DEVICE_NAME.toString(), 
+                                    vol.getVolumeInformation());
+                    if (null != supportingDeviceName) {
+                        deviceToUnManagedVolumeMap.put(supportingDeviceName, vol.getId());
+                    }
+                }
+            }
+        } else {
+            // :(
+            throw IngestionException.exceptions.generalException("could not load deviceToUnManagedVolumeMap");
+        }
+        _logger.info("creating deviceToUnManagedVolumeMap took {} ms", new Date().getTime() - dingleTimer);
+        return deviceToUnManagedVolumeMap;
+    }
+
+    
 }

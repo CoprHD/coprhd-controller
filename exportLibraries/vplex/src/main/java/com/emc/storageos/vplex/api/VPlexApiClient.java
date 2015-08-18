@@ -1540,6 +1540,20 @@ public class VPlexApiClient {
         s_logger.info("Request to find storage volume wwns for {} on VPLEX at {}",
                 deviceName, _baseURI);
         
+        
+        
+        // if local
+        // get top level device
+        // check raid level / geometry
+        //  if raid-0, proceed as normal
+        //  if raid-1, then it has child devices in a mirror configuration
+        //      recurse one more level to set child devices
+        //      if devices have raid-0 geometry, they are okay, get their wwns
+        //  if raid-C, then it has child devices expanded via concatenation, reject
+        // 
+        
+        
+        
         List<VPlexStorageVolumeInfo> storageVolumes = getDiscoveryManager()
                 .getStorageVolumesForDevice(deviceName, locality, false);
         
@@ -1563,6 +1577,7 @@ public class VPlexApiClient {
         return deviceName;
     }
     
+    // wanting a map of slot number to device wwn
     public Map<String, String> getTopLevelDeviceMap(String deviceName, String locality) {
         Map<String, String> topLevelDeviceMap = new TreeMap<String, String>();
         

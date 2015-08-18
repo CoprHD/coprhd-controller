@@ -543,7 +543,7 @@ public class PropertiesConfigurationValidator {
         }
 
         // hostname doesn't appear to be an ip adress, let's check for hostname.
-        String[] hostLabels = hostName.split("\\.");
+        String[] hostLabels = hostName.split("\\.",-1);
         if (hostLabels.length == 0) {
             return false;
         }
@@ -582,7 +582,7 @@ public class PropertiesConfigurationValidator {
             return false;
         }
 
-        String[] hostLabels = hostName.split("\\.");
+        String[] hostLabels = hostName.split("\\.",-1);
         if (hostLabels.length == 0 || hostLabels.length > 4) {
             return false;
         }

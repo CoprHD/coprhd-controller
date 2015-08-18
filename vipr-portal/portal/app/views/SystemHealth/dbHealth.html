@@ -16,7 +16,9 @@
   </div>
 </div>
 
-<div ng-show="dbstatus.status=='IN_PROGRESS'" class="alert alert-info">{{'dbstatus.inprogress.info' | t}}</div>
+#{if dbstatus.status.toString() =='IN_PROGRESS'}
+<div class="alert alert-info">{{'dbstatus.inprogress.info' | t}}</div>
+#{/if}
 
 <div class="col-md-1 ">
     <knob warn="value < (max * 0.1)" danger="value < (max * 0.3)" value="progress" max ="100" ></knob>

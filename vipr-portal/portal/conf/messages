@@ -627,6 +627,7 @@ CustomConfigs.add=Add
 CustomConfigs.save=Save
 CustomConfigs.cancel=Cancel
 CustomConfigs.category.SanZone=SAN Zoning
+CustomConfigs.configType.SanZoneAddVolumeCheckZoning=Enable Zoning Add Volume
 CustomConfigs.category.VMAX=VMAX Masking
 CustomConfigs.category.VNX=VNX Storage Groups
 CustomConfigs.category.PortAllocation=Port Allocation

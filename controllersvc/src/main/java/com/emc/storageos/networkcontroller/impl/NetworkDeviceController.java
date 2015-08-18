@@ -7,6 +7,7 @@ package com.emc.storageos.networkcontroller.impl;
 import java.io.IOException;
 import java.net.URI;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -23,6 +24,10 @@ import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.DataSourceFactory;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
@@ -43,6 +48,7 @@ import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -99,6 +105,10 @@ public class NetworkDeviceController implements NetworkController {
     private static final String EVENT_SERVICE_TYPE = "network";
     private static final String EVENT_SERVICE_SOURCE = "NetworkDeviceController";
 
+    @Autowired
+    private DataSourceFactory dataSourceFactory;
+    @Autowired
+    private CustomConfigHandler customConfigHandler;
     @Autowired
     private AuditLogManager _auditMgr;
     @Autowired
@@ -333,9 +343,10 @@ public class NetworkDeviceController implements NetworkController {
      * 
      * @param device NetworkDevice
      * @param fabricId String
+     * @param fabricWwn Fabric WWN String
      * @param exportGroupUri The ExportGroup URI. Used for reference counting.
      * @param fabricInfos - Describe each zone.
-     * @param activateZones - activate active zoneset after zones change
+     * @param doRemove - activate active zoneset after zones change
      * @param retryAltNetworkDevice - a boolean to indicate if re-try to be done.
      *            This is to stop this function from running again after the alternate
      *            system is retried once.
@@ -998,7 +1009,7 @@ public class NetworkDeviceController implements NetworkController {
      * Note: these arguments (except token) must match zoneExportMasksCreateMethod above.
      * This routine executes as a Workflow Step.
      * 
-     * @param URI exportGroupURI -- ExportGroup URI
+     * @param exportGroupURI -- ExportGroup URI
      * @param exportMaskURIs -- A list of ExportMask URIs to be zoned.
      * @param volumeURIs -- A collection of Volume URIs to be zoned
      * @param token -- The workflow step id.
@@ -1138,7 +1149,106 @@ public class NetworkDeviceController implements NetworkController {
         _log.info(String.format
                 ("Entering zoneExportAddVolumes for ExportGroup: %s (%s) Volumes: %s",
                         exportGroup.getLabel(), exportGroup.getId(), volumeURIs.toString()));
-        return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token);
+        //Check if Zoning needs to be checked from system config
+        //if zoning not needed clone existing zoning info andSet workflow step succeeded
+        //   and return true
+        //else call the doZoneExportMasksCreate to check/create/remove zones
+        StringMap scope = new StringMap();
+        scope.put(CustomConfigConstants.GLOBAL_KEY, CustomConfigConstants.GLOBAL_KEY);
+        String addZoneWhileAddingVolume =  customConfigHandler.getCustomConfigValue(
+                CustomConfigConstants.ZONE_ADD_VOLUME, scope);
+        Boolean addZoneOperation = false;
+        if(addZoneWhileAddingVolume != null) {
+            addZoneOperation = Boolean.getBoolean(addZoneWhileAddingVolume);
+        }
+
+        _log.info("zoneExportAddVolumes checking for custome config value to skip zoning checks", addZoneOperation);
+
+        if(addZoneOperation) {
+            _log.info("zoneExportAddVolumes continue with zoning checks", addZoneOperation);
+            //Do all zoning checking and operations
+            return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token);
+        } else {
+            _log.info("zoneExportAddVolumes continue without zoning checks", addZoneOperation);
+            return cloneCZoneReferencesFromExistingZone(exportGroup, exportMaskURIs, volumeURIs, token);
+        }
+    }
+
+    private boolean cloneCZoneReferencesFromExistingZone(ExportGroup exportGroup, List<URI> exportMaskURIs,
+                                                        Collection<URI> volumeURIs, String token) {
+        _log.info(String.format
+                ("Entering cloneCZoneReferencesFromExistingZone for ExportGroup: %s (%s) Volumes: %s",
+                        exportGroup.getLabel(), exportGroup.getId(), volumeURIs.toString()));
+        boolean success = true;
+        //Find all Zone for the export mask
+        //Figure out from the database which zones are used for the specific masks and volume from the export group
+        //Create FCZoneReference and associate with the Volume
+        //Persist the info to database
+
+        //Get EndPoints from ExportMask both Initiators and Storage Ports
+        //FCZoneReference.makeEndpointsKey(List<String> endpoints)
+        //Look up FCZoneReferences based on the key
+        //If FCZoneReferences Exists
+        //   Iterate thru the FCZoneReferences and make sure the ExportGroup is the same
+        //
+        //     Iterate thru the Volumes
+        //       For each FCReference , clone and set the volume URI
+        //
+        //Else FCZoneRerences doest Exist
+        //      We need to create Zoning operation (Just go with the current flow)
+
+        for (URI exportMaskURI : exportMaskURIs) {
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, Transport.FC);
+            Set<StoragePort> storagePorts = ExportMaskUtils.getPortsForExportMask(_dbClient, exportMask, Transport.FC);
+            Iterator<Initiator> initIt = initiators.iterator();
+            ArrayList<FCZoneReference> newfcZoneRefs = new ArrayList<>();
+            while (initIt.hasNext()) {
+                Initiator initiator = initIt.next();
+                Iterator<StoragePort> storageIt = storagePorts.iterator();
+                while (storageIt.hasNext()) {
+                    StoragePort port = storageIt.next();
+                    String inti = initiator.getInitiatorNode();
+                    String portName = port.getPortNetworkId();
+                    for (URI volURI : volumeURIs) {
+                        //Find FCZoneReferences for the given Initiator and Storage Port
+                        String fcKey = FCZoneReference.makeEndpointsKey(Arrays.asList(new String[]{inti, portName}));
+                        Joiner joiner = dbModelClient.join(FCZoneReference.class, "refs", "pwwnKey", fcKey).go();
+                        List<FCZoneReference> list = joiner.list("refs");
+                        Iterator<FCZoneReference> fcZoneReferenceIterator = list.iterator();
+                        while (fcZoneReferenceIterator.hasNext()) {
+                            FCZoneReference fcZoneReference = fcZoneReferenceIterator.next();
+                            if (fcZoneReference != null && fcZoneReference.getVolumeUri() != null &&
+                                    fcZoneReference.getVolumeUri() != volURI) {
+                                FCZoneReference ref = new FCZoneReference();
+                                ref.setPwwnKey(fcKey);
+                                ref.setFabricId(fcZoneReference.getFabricId());
+                                ref.setNetworkSystemUri(fcZoneReference.getNetworkSystemUri());
+                                ref.setVolumeUri(volURI);
+                                ref.setGroupUri(exportGroup.getId());
+                                ref.setZoneName(fcZoneReference.getZoneName());
+                                ref.setId(URIUtil.createId(FCZoneReference.class));
+                                ref.setLabel(fcKey);
+                                ref.setExistingZone(true);
+                                newfcZoneRefs.add(ref);
+                            }
+                        }
+                    }
+                }
+            }
+            if (!newfcZoneRefs.isEmpty()) {
+                _log.info("cloneCZoneReferencesFromExistingZone found {} FCZoneReferences and cloned them",
+                        newfcZoneRefs.size());
+                _dbClient.updateAndReindexObject(newfcZoneRefs);
+                WorkflowStepCompleter.stepSucceded(token);
+            } else {
+                _log.info("cloneCZoneReferencesFromExistingZone found {} FCZoneReferences, continue with zoning checks",
+                        newfcZoneRefs.size());
+                //Follow the old path because we didnt find any existing FCZoneReferences
+                return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token);
+            }
+        }
+        return success;
     }
 
     /**
@@ -1146,8 +1256,6 @@ public class NetworkDeviceController implements NetworkController {
      * 
      * @param exportGroupURI
      * @param exportMasksToInitiators - Map of ExportMap URI to list of Initiator URIs
-     * @param exportGroup
-     * @param exportMasksToInitiators
      * @return
      */
     public Workflow.Method zoneExportAddInitiatorsMethod(URI exportGroupURI,
@@ -1165,7 +1273,7 @@ public class NetworkDeviceController implements NetworkController {
      * Note: these arguments (except token) must match zoneExportAddInitiatorsMethod above.
      * This routine executes as a Workflow Step.
      * 
-     * @param exportGroup -- Used for the zone references.
+     * @param exportGroupURI -- Used for the zone references.
      * @param exportMasksToInitiators - Map of ExportMap URI to list of Initiator URIs
      * @param token Workflow step id
      * @return true if success, false otherwise
@@ -1428,7 +1536,7 @@ public class NetworkDeviceController implements NetworkController {
      * Note: these arguments (except token) must match zoneExportRemoveVolumesMethod above.
      * This routine executes as a Workflow Step.
      * 
-     * @param exportGroup
+     * @param exportGroupURI
      * @param exportMaskURIs - a List of ExportMask URIs
      * @param volumeURIs - a Collection of Volume URIs
      * @param token - The Workflow Step id.
@@ -1464,12 +1572,10 @@ public class NetworkDeviceController implements NetworkController {
      * the potential ports that are paired to make up the zones.
      * Note: these arguments (except token) must match zoneExportRemoveInitiatorsMethod above.
      * This routine executes as a Workflow Step.
-     * 
-     * @param initiators
-     * @param exportGroup
-     * @param exportMask
-     * @param context
-     * @param completer TaskCompleter for the storage task in case of exception
+     *
+     * @param exportGroupURI
+     * @param exportMasksToInitiators
+     * @param token TaskCompleter for the storage task in case of exception
      * @return true if success, false otherwise
      * @throws IOException
      * @throws ControllerException
@@ -2057,8 +2163,9 @@ public class NetworkDeviceController implements NetworkController {
     /**
      * Finds all the zone paths that exists between a list of initiators and storage ports.
      * 
+     * @param network
      * @param initiators the list of initiators
-     * @param storagePorts a map of storage port keyed by the port WWN
+     * @param portsMap a map of storage port keyed by the port WWN
      * @return a zoning map of zones that exists on the network systems
      */
     public StringSetMap getZoningMap(NetworkLite network, List<Initiator> initiators,
@@ -2467,8 +2574,7 @@ public class NetworkDeviceController implements NetworkController {
      * 
      * @param info the zone info containing the zone, its network,
      *            its network system, ...
-     * @param initiator the zone initiator
-     * @param volume volume the FCZoneReference volume
+     * @param volumeURi volume the FCZoneReference volume
      * @param exportGroup the FCZoneReference export group
      * @return an instance of FCZoneReference
      */

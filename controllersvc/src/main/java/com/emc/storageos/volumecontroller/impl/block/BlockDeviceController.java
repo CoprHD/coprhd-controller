@@ -161,6 +161,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String TERMINATE_RESTORE_SESSIONS_METHOD = "terminateRestoreSessions";
     private static final String FRACTURE_CLONE_METHOD = "fractureClone";
     private static final String CREATE_SAPSHOT_SESSION_WF_NAME = "createSnapshotSessionWf";
+    private static final String LINK_SNAPSHOT_SESSION_TARGETS_WF_NAME = "linkTargetVolumesToSnapshotSessionWF";
     private static final String CREATE_SNAPSHOT_SESSION_STEP_GROUP = "createSnapshotSession";
     private static final String CREATE_SNAPSHOT_SESSION_METHOD = "createBlockSnapshotSession";
     private static final String LINK_SNAPSHOT_SESSION_TARGETS_STEP_GROUP = "LinkSnapshotSessionTarget";
@@ -3515,6 +3516,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         this.srdfDeviceController = srdfDeviceController;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void createSnapshotSession(URI systemURI, List<URI> snapSessionURIs,
             Map<URI, List<URI>> sessionSnapshotURIMap, String copyMode, String opId)
@@ -3543,7 +3547,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                     String.format("Linking targets for snapshot session %s", snapSessionURI),
                                     waitFor, systemURI, getDeviceType(systemURI), getClass(),
                                     linkBlockSnapshotSessionTargetsMethod(systemURI, snapSessionURI, snapshotURI, copyMode),
-                                    rollbackLinkBlockSnapshotSessionTargetsMethod(systemURI, snapSessionURI, snapshotURIs), null);
+                                    rollbackLinkBlockSnapshotSessionTargetsMethod(systemURI, snapSessionURI, snapshotURI), null);
                         }
                     }
                 }
@@ -3563,17 +3567,19 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param systemURI The URI of the storage system on which the snapshot sessions are created.
      * @param snapSessionURIs The URIs of the sessions in ViPR
      * 
-     * @return A reference to a Workflow.Method
+     * @return A reference to a Workflow.Method for creating an array snapshot.
      */
     public static Workflow.Method createBlockSnapshotSessionMethod(URI systemURI, List<URI> snapSessionURIs) {
         return new Workflow.Method(CREATE_SNAPSHOT_SESSION_METHOD, systemURI, snapSessionURIs);
     }
 
     /**
+     * Creates array snapshots on the array with the passed URI and associates these
+     * with the BlockSnapshotSession instances with the passed URIs.
      * 
-     * @param systemURI
-     * @param snapSessionURIs
-     * @param stepId
+     * @param systemURI The URI of the storage system.
+     * @param snapSessionURIs The URIs of the BlockSnapshotSessioninstances representing the array snapshots.
+     * @param stepId The unique id of the workflow step in which the snapshots are be created.
      */
     public void createBlockSnapshotSession(URI systemURI, List<URI> snapSessionURIs, String stepId) {
         TaskCompleter completer = null;
@@ -3592,13 +3598,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
+     * Create the workflow method that is invoked by the workflow service
+     * to link a target volume to the array snapshot.
      * 
-     * @param systemURI
-     * @param snapSessionURI
-     * @param snapshotURI
-     * @param copyMode
+     * @param systemURI The URI of the storage system.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance.
+     * @param snapshotURI The URI of the BlockSnapshot instance representing the linked target volume.
+     * @param copyMode The manner in which the target is linked to the array snapshot.
      * 
-     * @return
+     * @return A reference to a Workflow.Method for linking a target volume to an array snapshot.
      */
     public static Workflow.Method linkBlockSnapshotSessionTargetsMethod(URI systemURI,
             URI snapSessionURI, URI snapshotURI, String copyMode) {
@@ -3606,12 +3614,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
+     * Creates and link a target volume to an array snapshot on the storage system
+     * with the passed URI. The new target volume is linked to the array snapshot
+     * based on the passed copy mode and is associated with the BlockSnapshot
+     * instance with the passed URI.
      * 
-     * @param systemURI
-     * @param snapSessionURI
-     * @param snapshotURI
-     * @param copyMode
-     * @param stepId
+     * @param systemURI The URI of the storage system.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance.
+     * @param snapshotURI The URI of the BlockSnapshot instance representing the linked target volume.
+     * @param copyMode The manner in which the target is linked to the array snapshot.
+     * @param stepId The unique id of the workflow step in which the target are linked.
      */
     public void linkBlockSnapshotSessionTargets(URI systemURI, URI snapSessionURI,
             URI snapshotURI, String copyMode, String stepId) {
@@ -3632,25 +3644,30 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
+     * Create the workflow method that is invoked by the workflow service
+     * to rollback a failed attempt to link a target volume to the array
+     * snapshot.
      * 
-     * @param systemURI
-     * @param snapSessionURI
-     * @param snapshotURIs
+     * @param systemURI The URI of the storage system.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance.
+     * @param snapshotURI The URI of the BlockSnapshot instance.
      * 
-     * @return
+     * @return A reference to a Workflow.Method for rolling back a failed attempt to link
+     *         a target volume to an array snapshot.
      */
-    public static Workflow.Method rollbackLinkBlockSnapshotSessionTargetsMethod(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs) {
-        return new Workflow.Method(RB_LINK_SNAPSHOT_SESSION_TARGETS_METHOD, systemURI, snapSessionURI, snapshotURIs);
+    public static Workflow.Method rollbackLinkBlockSnapshotSessionTargetsMethod(URI systemURI, URI snapSessionURI, URI snapshotURI) {
+        return new Workflow.Method(RB_LINK_SNAPSHOT_SESSION_TARGETS_METHOD, systemURI, snapSessionURI, snapshotURI);
     }
 
     /**
+     * Rollback a failed attempt to link a target volume to the array snapshot.
      * 
-     * @param systemURI
-     * @param snapSessionURI
-     * @param snapshotURIs
-     * @param stepId
+     * @param systemURI The URI of the storage system.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance.
+     * @param snapshotURI The URI of the BlockSnapshot instance.
+     * @param stepId The unique id of the workflow step in which the rollback is executed.
      */
-    public void rollbackLinkBlockSnapshotSessionTargets(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs, String stepId) {
+    public void rollbackLinkBlockSnapshotSessionTargets(URI systemURI, URI snapSessionURI, URI snapshotURI, String stepId) {
     }
 
     /**
@@ -3659,6 +3676,27 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     @Override
     public void linkNewTargetVolumesToSnapshotSession(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs,
             String copyMode, String opId) throws InternalException {
+        TaskCompleter completer = new LinkBlockSnapshotSessionTargetsWorkflowCompleter(snapSessionURI, snapshotURIs, opId);
+        try {
+            // Get a new workflow to execute creation of the snapshot session and if
+            // necessary creation and linking of target volumes to the new session.
+            Workflow workflow = _workflowService.getNewWorkflow(this, LINK_SNAPSHOT_SESSION_TARGETS_WF_NAME, false, opId);
+            _log.info("Created new workflow to create and link new targets for snapshot session {} with operation id {}",
+                    snapSessionURI, opId);
 
+            for (URI snapshotURI : snapshotURIs) {
+                workflow.createStep(
+                        LINK_SNAPSHOT_SESSION_TARGETS_STEP_GROUP,
+                        String.format("Linking targets for snapshot session %s", snapSessionURI),
+                        null, systemURI, getDeviceType(systemURI), getClass(),
+                        linkBlockSnapshotSessionTargetsMethod(systemURI, snapSessionURI, snapshotURI, copyMode),
+                        rollbackLinkBlockSnapshotSessionTargetsMethod(systemURI, snapSessionURI, snapshotURI), null);
+            }
+            workflow.executePlan(completer, "Create and link new target volumes for block snapshot session successful");
+        } catch (Exception e) {
+            _log.error("Create and link new target volumes for block snapshot session failed", e);
+            ServiceCoded serviceException = DeviceControllerException.exceptions.linkBlockSnapshotSessionTargetsFailed(e);
+            completer.error(_dbClient, serviceException);
+        }
     }
 }

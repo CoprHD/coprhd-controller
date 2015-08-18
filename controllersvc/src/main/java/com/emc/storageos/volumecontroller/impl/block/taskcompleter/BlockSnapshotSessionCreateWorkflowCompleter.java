@@ -94,9 +94,9 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends TaskCompleter {
                 // If there is a workflow, update the step to complete.
                 updateWorkflowStatus(status, coded);
             }
-            s_logger.info("Done Snapshot Session Create {}, with Status: {}", getOpId(), status.name());
+            s_logger.info("Done snapshot session create task {} with status: {}", getOpId(), status.name());
         } catch (Exception e) {
-            s_logger.error("Failed updating status. Snapshot Session Create {}, for task " + getOpId(), getId(), e);
+            s_logger.error("Failed updating status for snapshot session create task {}", getOpId(), e);
         }
     }
 

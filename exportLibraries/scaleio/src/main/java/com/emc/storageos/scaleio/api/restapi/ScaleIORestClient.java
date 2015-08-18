@@ -6,6 +6,7 @@ package com.emc.storageos.scaleio.api.restapi;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -298,7 +299,7 @@ public class ScaleIORestClient extends StandardRestClient {
      */
     public List<ScaleIOScsiInitiator> queryAllSCSIInitiators() throws JSONException {
         log.info("Discovery all SCSI Initiators");
-        List<ScaleIOScsiInitiator> scsiInits = null;
+        List<ScaleIOScsiInitiator> scsiInits = Collections.emptyList();
         try {
         	ClientResponse response = get(URI.create(ScaleIOConstants.GET_SCSI_INITIATOR_URI));
         	scsiInits = getResponseObjects(ScaleIOScsiInitiator.class, response);

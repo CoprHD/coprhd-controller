@@ -94,10 +94,9 @@ public class RecoverPointScheduler implements Scheduler {
     private Map<String, List<String>> storagePoolStorageSystemCache;   
     private Map<VirtualArray, Boolean> tgtVarrayHasHaVpool =
             new HashMap<VirtualArray, Boolean>();  
-    private List<Recommendation> srcVPlexHaRecommendations = 
-            new ArrayList<Recommendation>();
-    private Map<URI, List<Recommendation>> tgtVPlexHaRecommendations = 
-            new HashMap<URI, List<Recommendation>>();
+    private RPRecommendation srcHaRecommendation = new RPRecommendation();            
+    private Map<URI, Recommendation> tgtHaRecommendation = 
+            new HashMap<URI, Recommendation>();
     
     private AttributeMatcherFramework _matcherFramework;
     public void setMatcherFramework(AttributeMatcherFramework matcherFramework) {
@@ -151,22 +150,22 @@ public class RecoverPointScheduler implements Scheduler {
 		this.tgtVarrayHasHaVpool = tgtVarrayHasHaVpool;
 	}
 	
-	public List<Recommendation> getSrcVPlexHaRecommendations() {
-       return srcVPlexHaRecommendations;
+	public RPRecommendation getSrcHaRecommendation() {
+       return this.srcHaRecommendation;
    }
 
-   public void setSrcVPlexHaRecommendations(
-           List<Recommendation> srcVPlexHaRecommendations) {
-       this.srcVPlexHaRecommendations = srcVPlexHaRecommendations;
+   public void setSrcHaRecommendation(
+           RPRecommendation srcHaRecommendation) {
+       this.srcHaRecommendation = srcHaRecommendation;
    }
 
-   public Map<URI, List<Recommendation>> getTgtVPlexHaRecommendations() {
-       return tgtVPlexHaRecommendations;
+   public Map<URI, Recommendation> getTgtHaRecommendation() {
+       return tgtHaRecommendation;
    }
 
-   public void setTgtVPlexHaRecommendations(
-           Map<URI, List<Recommendation>> tgtVPlexHaRecommendations) {
-       this.tgtVPlexHaRecommendations = tgtVPlexHaRecommendations;
+   public void setTgtHaRecommendation(
+           Map<URI, Recommendation> tgtHaRecommendation) {
+       this.tgtHaRecommendation = tgtHaRecommendation;
    }
     
     /**
@@ -284,7 +283,6 @@ public class RecoverPointScheduler implements Scheduler {
         }
                       
         List<Recommendation> recommendations = buildCgRecommendations(capabilities, vpool, protectionVarrays, null);        
-
         if (recommendations.isEmpty()) {
             // Schedule storage based on the source pool constraint.        	
             recommendations = scheduleStorageSourcePoolConstraint(varray, protectionVarrays, vpool, capabilities, candidatePools, project, null, null);      
@@ -307,14 +305,12 @@ public class RecoverPointScheduler implements Scheduler {
 	            // VPlex clusters.
 	            recommendations = createMetroPointRecommendations(container.getSrcVarray(), protectionVarrays, container.getSrcVpool(), haVarray, 
 	            		haVpool, project, capabilities, candidatePools, haCandidateStoragePools, null);            
-	        } else {
-	        	
-	        }
+	        } 
         }
          
        logRecommendations(recommendations);        
-        if (true)
-        	throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(URI.create(null), URI.create(null));   
+        //if (true)
+        	//throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(URI.create(null), URI.create(null));   
         //TODO Bharath - Remove intentional exception after testing
         return recommendations;
 	}	
@@ -416,8 +412,7 @@ public class RecoverPointScheduler implements Scheduler {
         placementStatus.setSrcVPool(vpool.getLabel());
                
         BlockConsistencyGroup cg = dbClient.queryObject(
-                BlockConsistencyGroup.class, capabilities.getBlockConsistencyGroup());
-   
+                BlockConsistencyGroup.class, capabilities.getBlockConsistencyGroup());  
         
         int totalRequestedCount = capabilities.getResourceCount();
         int totalSatisfiedCount = 0;
@@ -498,18 +493,22 @@ public class RecoverPointScheduler implements Scheduler {
     			    
     			    _log.info(String.format("RP Placement : Choosing RP site %s for source", candidateSourceInternalSiteName));    		
     			    rpProtectionRecommendation.setProtectionDevice(candidateProtectionSystem.getId());    
-    				RPRecommendation rpRecommendation = buildSourceRecommendation(rpProtectionRecommendation, associatedStorageSystem, varray, vpool, 
+    				RPRecommendation rpRecommendation = buildSourceRecommendation(associatedStorageSystem, varray, vpool, 
 																candidateProtectionSystem, sourcePool, candidatePools,
 																capabilities, satisfiedCount, placementStatus, vpoolChangeVolume, false);
     				if (rpRecommendation == null) {
     					// No placement found for the associatedStorageSystem, so continue.
     					continue;
+    				}    			
+    				    		
+    				RPRecommendation haRecommendation = this.getHaRecommendation(varray, vpool, project, capabilities);
+    				if (haRecommendation != null) {
+    					rpRecommendation.setHaRecommendation(haRecommendation);
     				}
-    				 
+    				    				
     				totalSatisfiedCount += satisfiedCount;
     				requestedCount = requestedCount - totalSatisfiedCount;  
     				rpProtectionRecommendation.getSourceRecommendations().add(rpRecommendation);
-    				//rpProtectionRecommendation.getRpRecommendations().put(rpRecommendation, new ArrayList<RPRecommendation>());
                  	
     				if (sourceJournalRecommendation == null) {
     					sourceJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation, candidateSourceInternalSiteName, vpool.getJournalSize(),
@@ -608,14 +607,28 @@ public class RecoverPointScheduler implements Scheduler {
         	candidateStoragePools = removePoolsRequiringHaIfNotEnabled(candidateStoragePools, srcVpool, personality);
         }
         
-        //long desiredPoolCapacity = newCapabilities.getResourceCount() * size;
-        //List<StoragePool> poolsMatchingCapacity = blockScheduler.getPoolsMatchingCapacity(desiredPoolCapacity, newCapabilities.getSize(), newCapabilities.getResourceCount(), 
-        //											candidateStoragePools, VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(srcVpool.getSupportedProvisioningType()), null);
-                
         blockScheduler.sortPools(candidateStoragePools);
         printSortedStoragePools(candidateStoragePools);
         return candidateStoragePools ;
-    }    
+    }  
+    
+    private List<StoragePool> getMatchingPools(VirtualArray srcVarray, VirtualPool srcVpool, VirtualArray haVarray, VirtualPool haVpool, 
+			Project project, VirtualPoolCapabilityValuesWrapper capabilities) {
+    	List<StoragePool> srcCandidateStoragePools = new ArrayList<StoragePool>();
+    	Map<String, List<StoragePool>> vplexPoolMapForSrcVarray = getVplexMatchingPools(srcVarray, srcVpool, haVarray, haVpool, project, capabilities);
+    	  // Add all the appropriately matched source storage pools
+        for (String vplexId : vplexPoolMapForSrcVarray.keySet()) {
+            srcCandidateStoragePools.addAll(vplexPoolMapForSrcVarray.get(vplexId));
+        }
+        if (!srcCandidateStoragePools.isEmpty()) {
+        _log.info("VPLEX pools matching completed: {}",
+                Joiner.on("\t").join(getURIsFromPools(srcCandidateStoragePools)));
+        }
+        
+        blockScheduler.sortPools(srcCandidateStoragePools); 
+        return srcCandidateStoragePools;
+    }
+    
     /**
      * Retrieve valid Storage Pools from the VPLEX Scheduler.
      * 
@@ -625,11 +638,9 @@ public class RecoverPointScheduler implements Scheduler {
      * @param haVarray 
      * @param capabilities
      * @return
-     */
-    private List<StoragePool> getMatchingPools(VirtualArray srcVarray, VirtualPool srcVpool, VirtualArray haVarray, VirtualPool haVpool, 
-    							Project project, VirtualPoolCapabilityValuesWrapper capabilities) {
-    	
-        List<StoragePool> srcCandidateStoragePools = new ArrayList<StoragePool>();                       
+     */    
+    private Map<String, List<StoragePool>> getVplexMatchingPools(VirtualArray srcVarray, VirtualPool srcVpool, VirtualArray haVarray, VirtualPool haVpool, 
+    							Project project, VirtualPoolCapabilityValuesWrapper capabilities) {    	     
         _log.info("Get matching pools for Varray[{}] and Vpool[{}]...", srcVarray.getLabel(), srcVpool.getLabel());
         List<StoragePool> allMatchingPools = vplexScheduler.getMatchingPools(srcVarray, null,
             srcVpool, capabilities);
@@ -658,52 +669,56 @@ public class RecoverPointScheduler implements Scheduler {
                 // any placement recommendations.
                 _log.info("No matching pools because there are no VPlex connected storage systems for the requested virtual array.");
                 return null;
-            }
-            
-            // Add all the appropriately matched source storage pools
-            for (String vplexId : vplexPoolMapForSrcVarray.keySet()) {
-                srcCandidateStoragePools.addAll(vplexPoolMapForSrcVarray.get(vplexId));
-            }
-            
-            _log.info("VPLEX pools matching completed: {}",
-                    Joiner.on("\t").join(getURIsFromPools(srcCandidateStoragePools)));
-        } 
-        else {
+            }            
+          
+        } else {
             // There are no matching pools in the source virtual array
             // on any arrays connected to a VPlex storage system
             // or there are, but a specific VPlex system was requested
             // and there are none for that VPlex system.
             _log.info("No matching pools on storage systems connected to a VPlex");
             return null;
-        }
-        
-        // If the source Vpool specifies VPlex, we need to check if this is VPLEX local or VPLEX
+        }                            
+        return vplexPoolMapForSrcVarray;
+    }
+
+	private RPRecommendation getHaRecommendation(VirtualArray varray,
+			VirtualPool vpool,
+			Project project, VirtualPoolCapabilityValuesWrapper capabilities) {
+		
+		// If the source Vpool specifies VPlex, we need to check if this is VPLEX local or VPLEX
         // distributed. If it's VPLEX distributed, there will be a separate recommendation just for that
         // which will be used by VPlexBlockApiService to create the distributed volumes in VPLEX.
         
-        // If HA / VPlex Distributed is specified we need to get the VPLEX recommendations
-        boolean isVplexDistributed = VirtualPool.HighAvailabilityType.vplex_distributed.name()
-                .equals(srcVpool.getHighAvailability());
-        boolean metroPointEnabled = VirtualPool.vPoolSpecifiesMetroPoint(srcVpool);
-        
+        // If HA / VPlex Distributed is specified we need to get the VPLEX recommendations       
         // Only find the HA recommendations if MetroPoint is not enabled.  The HA/secondary cluster
         // Recommendations for MetroPoint need to involve RP connectivity so there is no sense executing 
-        // this logic.
-        if (isVplexDistributed && !metroPointEnabled) {
-           this.srcVPlexHaRecommendations = findVPlexHARecommendations(srcVarray, srcVpool, 
-                                                                        haVarray, haVpool,
-                                                                        project, capabilities, 
-                                                                        vplexPoolMapForSrcVarray);
-            if (this.srcVPlexHaRecommendations == null ||
-                this.srcVPlexHaRecommendations.isEmpty()) {
-                _log.error("No HA Recommendations could be created.");
-                throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(srcVpool.getId(), srcVarray.getId());
-            }
+        // this logic.    		
+		if (vpool.getHighAvailability() ==  null || VirtualPool.HighAvailabilityType.vplex_local.name().equals(vpool.getHighAvailability()) 
+				|| VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
+			return null;
+		}
+				
+		VirtualArray haVarray = vplexScheduler.getHaVirtualArray(varray, project, vpool);
+   	 	VirtualPool haVpool = vplexScheduler.getHaVirtualPool(varray, project,vpool);		
+		Map<String, List<StoragePool>> vplexPoolMapForSrcVarray = getVplexMatchingPools(varray, vpool, haVarray, haVpool, project, capabilities);
+				  
+    	Recommendation haRecommendation = findVPlexHARecommendations(varray, vpool, haVarray, haVpool,
+                          	project, capabilities, vplexPoolMapForSrcVarray);
+        if (haRecommendation == null) {
+            _log.error("No HA Recommendations could be created.");
+            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
         }
         
-        blockScheduler.sortPools(srcCandidateStoragePools);        
-        return srcCandidateStoragePools;
-    }
+        RPRecommendation rpHaRecommendation = new RPRecommendation();
+        VPlexRecommendation vplexRec = (VPlexRecommendation) haRecommendation;
+        rpHaRecommendation.setSourcePool(vplexRec.getSourcePool());
+        rpHaRecommendation.setSourceDevice(vplexRec.getSourceDevice());
+        rpHaRecommendation.setVirtualArray(vplexRec.getVirtualArray());
+        rpHaRecommendation.setVirtualPool(vplexRec.getVirtualPool());
+        rpHaRecommendation.setVirtualVolumeRecommendation(vplexRec);
+        return rpHaRecommendation;             
+	}
 	
 	 /**
      * This method is driven by the flag on the RP+VPLEX Source Vpool to use HA as RP Source or not.
@@ -741,8 +756,8 @@ public class RecoverPointScheduler implements Scheduler {
         // initialize the storage pool -> storage systems map
         this.storagePoolStorageSystemCache = new HashMap<String, List<String>>();
         // Reset the HA Recommendations
-        this.srcVPlexHaRecommendations = new ArrayList<Recommendation>();
-        this.tgtVPlexHaRecommendations = new HashMap<URI, List<Recommendation>>();
+        this.srcHaRecommendation = new RPRecommendation();
+        this.tgtHaRecommendation = new HashMap<URI, Recommendation>();
         this.tgtVarrayHasHaVpool = new HashMap<VirtualArray, Boolean>();        
     }
 	
@@ -793,7 +808,7 @@ public class RecoverPointScheduler implements Scheduler {
     * @param vplexPoolMapForSrcVarray
     * @return
     */
-   private List<Recommendation> findVPlexHARecommendations(VirtualArray srcVarray, VirtualPool srcVpool, 
+   private Recommendation findVPlexHARecommendations(VirtualArray srcVarray, VirtualPool srcVpool, 
                                                                VirtualArray haVarray, VirtualPool haVpool, 
                                                                Project project, 
                                                                VirtualPoolCapabilityValuesWrapper srcVpoolCapabilities, 
@@ -807,13 +822,17 @@ public class RecoverPointScheduler implements Scheduler {
            haVpool = vplexScheduler.getHaVirtualPool(srcVarray, project, srcVpool);
        }
            
-       vplexHaVArrayRecommendations = convertHARecommendations(getAllHARecommendations(
+       vplexHaVArrayRecommendations = getAllHARecommendations(
+               srcVarray, srcVpool, 
+               haVarray, haVpool, 
+               srcVpoolCapabilities, 
+               vplexPoolMapForSrcVarray);/*convertHARecommendations(getAllHARecommendations(
                                                srcVarray, srcVpool, 
                                                haVarray, haVpool, 
                                                srcVpoolCapabilities, 
-                                               vplexPoolMapForSrcVarray));        
+                                               vplexPoolMapForSrcVarray));     */   
                            
-       return vplexHaVArrayRecommendations;
+       return vplexHaVArrayRecommendations.get(0);
    }
 
    /**
@@ -1210,7 +1229,7 @@ public class RecoverPointScheduler implements Scheduler {
                            .equals(tgtVpool.getHighAvailability());
                    
                    if (isVplexDistributed) {
-                       this.tgtVPlexHaRecommendations.put(tgtVarray.getId(), 
+                       this.tgtHaRecommendation.put(tgtVarray.getId(), 
                                findVPlexHARecommendations(tgtVarray, tgtVpool, null, null, project, srcVpoolCapabilities, sortedTargetVPlexStoragePools));
                    }
                }
@@ -1615,6 +1634,7 @@ public class RecoverPointScheduler implements Scheduler {
     	    rpRecommendation.setSourcePool(sourceVolume.getPool());
     	    rpRecommendation.setSourceDevice(sourceVolume.getStorageController());
     	    rpRecommendation.setInternalSiteName(sourceVolume.getInternalSiteName());
+    	    //TODO Bharath - fill in HA recommendation and VPLEX recommendation if that exists.
     	    
     	    RPRecommendation targetRecommendation = new RPRecommendation();     	
             Volume targetVolume = getTargetVolumeForProtectionVirtualArray(sourceVolume, protectionVarray);
@@ -1622,8 +1642,7 @@ public class RecoverPointScheduler implements Scheduler {
             StoragePool targetPool = dbClient.queryObject(StoragePool.class, targetVolume.getPool());
             targetRecommendation.setSourcePool(targetPool.getId());
             targetRecommendation.setSourceDevice(targetPool.getStorageDevice());
-           
-                                 
+                                            
             RPRecommendation journalRecommendation = new RPRecommendation();
             Volume targetJournal = dbClient.queryObject(Volume.class, targetVolume.getRpJournalVolume());
             journalRecommendation.setSourcePool(targetJournal.getPool());
@@ -1720,8 +1739,7 @@ public class RecoverPointScheduler implements Scheduler {
                             storagePool.getLabel(), cg.getLabel()));
                 }
             }
-        }
-        
+        }        
         return cgPoolsHaveAvailableCapacity;
 	}
 	
@@ -1962,7 +1980,7 @@ public class RecoverPointScheduler implements Scheduler {
     							dbClient.queryObject(VirtualPool.class, URI.create(vpool.getJournalVpool())) : haVpool);
     					
     					rpProtectionRecommendation.setProtectionDevice(primaryProtectionSystem.getId());  
-    					RPRecommendation primaryRpRecommendation = buildSourceRecommendation(rpProtectionRecommendation, primaryAssociatedStorageSystem, varray, vpool, 
+    					RPRecommendation primaryRpRecommendation = buildSourceRecommendation(primaryAssociatedStorageSystem, varray, vpool, 
 		    															primaryProtectionSystem, sourcePool, candidateActiveSourcePools,
 																		capabilities, satisfiedSourceVolCount, placementStatus, vpoolChangeVolume, false);    					    				    					    					    					
     					if (primaryRpRecommendation == null) {
@@ -2089,7 +2107,7 @@ public class RecoverPointScheduler implements Scheduler {
     									journalVpool = (NullColumnValueGetter.isNotNullValue(vpool.getStandbyJournalVpool()) ? 
     											dbClient.queryObject(VirtualPool.class, URI.create(vpool.getStandbyJournalVpool())) : haVpool);
     									
-    									RPRecommendation secondaryRpRecommendation = buildSourceRecommendation(rpProtectionRecommendation, secondaryAssociatedStorageSystem, haVarray, haVpool, 
+    									RPRecommendation secondaryRpRecommendation = buildSourceRecommendation(secondaryAssociatedStorageSystem, haVarray, haVpool, 
 	    																					selectedSecondaryProtectionSystem, 
 											    											standbySourcePool, candidateStandbySourcePools, 
 											    											capabilities,
@@ -2240,7 +2258,7 @@ public class RecoverPointScheduler implements Scheduler {
      * @param standbySite indicates if this is a metropoint standby site (or active if false)
      * @return recommendation object
      */
-    private RPRecommendation buildSourceRecommendation(RPProtectionRecommendation rpProtectionRecommendation, String associatedStorageSystem, VirtualArray vArray, 
+    private RPRecommendation buildSourceRecommendation(String associatedStorageSystem, VirtualArray vArray, 
 								    		VirtualPool vPool, ProtectionSystem ps, StoragePool sourcePool, List<StoragePool> sortedSourcePoolsMap, 
 								    		VirtualPoolCapabilityValuesWrapper capabilities,
 								    		int satisfiedSourceVolCount, PlacementStatus placementStat, Volume vpoolChangeVolume, boolean isMPStandby) {
@@ -3389,18 +3407,9 @@ public class RecoverPointScheduler implements Scheduler {
 	    				ProtectionSystem ps = dbClient.queryObject(ProtectionSystem.class, psUri);
 	    				RPRecommendation targetJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation, targetInternalSiteName,
 	    						protectionSettings.getJournalSize(), targetJournalVarray, targetJournalVpool, ps, candidateJournalPools, newCapabilities, requestedCount, null, false);
-//	    				URI  tgtJournalPoolURI = placeJournalStoragePool(rpSiteVisibleJournalPools, newCapabilities, requestedCount,  
-//								rpProtectionRecommendation, rpRecommendation, protectionSettings.getJournalSize());
 
 	    				_log.info(String.format("Setting recommendation for TARGET: Journal-varray [%s] -- Journal-vpool [%s]", targetJournalVarray.getLabel(), 
 	    						targetJournalVpool.getLabel()));	    			    	
-	    				//RPRecommendation targetJournalRecommendation = new RPRecommendation();
-//		    			targetJournalRecommendation.setResourceCount(1);
-//		    			targetJournalRecommendation.setSourcePool(tgtJournalPoolURI);
-//		    			targetJournalRecommendation.setSourceDevice(dbClient.queryObject(StoragePool.class, tgtJournalPoolURI).getStorageDevice());
-//		    			targetJournalRecommendation.setVirtualArray(targetJournalVarray.getId());
-//		    			targetJournalRecommendation.setVirtualPool(targetJournalVpool);
-//		    			targetJournalRecommendation.setInternalSiteName(targetInternalSiteName);
 	    				rpProtectionRecommendation.getTargetJournalRecommendations().add(targetJournalRecommendation);
 	    			}
 	    			

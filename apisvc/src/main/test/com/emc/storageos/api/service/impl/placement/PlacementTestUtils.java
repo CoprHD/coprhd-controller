@@ -165,8 +165,13 @@ public class PlacementTestUtils {
         proSystem.setCgCount(cgCount);
         proSystem.setSiteVolumeCapacity(siteVolCap);
         proSystem.setSiteVolumeCount(siteVolCnt);
-        proSystem.setSiteVisibleStorageArrays(rpVisibleArrays);
+        proSystem.setSiteVisibleStorageArrays(rpVisibleArrays);    
+        StringMap siteNames = new StringMap();
+        siteNames.put(cluster1, cluster1);
+        siteNames.put(cluster2, cluster2);
+        proSystem.setRpSiteNames(siteNames);
         _dbClient.createObject(proSystem);
+       
         return proSystem;
     }
 
@@ -207,29 +212,19 @@ public class PlacementTestUtils {
 
         RecoverPointScheduler rpScheduler = new RecoverPointScheduler();
         rpScheduler.setDbClient(dbClient);
+        rpScheduler.setVplexScheduler(vplexScheduler);
         rpScheduler.setBlockScheduler(storageScheduler);
         PermissionsHelper permHelper = new PermissionsHelper(dbClient);
         rpScheduler._permissionsHelper = permHelper;
         RPHelper rpHelper = new RPHelper();
         rpHelper.setDbClient(dbClient);
         rpScheduler.setRpHelper(rpHelper);
-
-        RPVPlexScheduler rpvScheduler = new RPVPlexScheduler();
-        rpvScheduler.setDbClient(dbClient);
-        rpvScheduler.setBlockScheduler(storageScheduler);
-        rpvScheduler.setVplexScheduler(vplexScheduler);
-        PermissionsHelper permHelper1 = new PermissionsHelper(dbClient);
-        rpvScheduler.permissionsHelper = permHelper1;
-        rpvScheduler.setRecoverPointScheduler(rpScheduler);
-        RPHelper rpHelper1 = new RPHelper();
-        rpHelper1.setDbClient(dbClient);
-        rpvScheduler.setRpHelper(rpHelper1);
+        
 	
 		schedulerMap.put("srdf", srdfScheduler);
 		schedulerMap.put("vplex", vplexScheduler);
 		schedulerMap.put("block", storageScheduler);
-        schedulerMap.put("rp", rpScheduler);
-        schedulerMap.put("rpvplex", rpvScheduler);
+        schedulerMap.put("rp", rpScheduler);        
 		placementManager.setStorageSchedulers(schedulerMap);
 		
 		return placementManager.getRecommendationsForVolumeCreateRequest(varray, project, vpool, capabilities);

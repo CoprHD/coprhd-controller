@@ -49,6 +49,10 @@ public class RPRecommendation extends Recommendation {
 		return haRecommendation;
 	}
 	
+	public void setHaRecommendation(RPRecommendation haRecommendation) {
+		this.haRecommendation = haRecommendation;
+	}
+	
 	public List<RPRecommendation> getTargetRecommendations() {
 		return targetRecommendations;
 	}
@@ -56,11 +60,7 @@ public class RPRecommendation extends Recommendation {
 	public void setTargetRecommendations(List<RPRecommendation> targetRecommendations) {
 		this.targetRecommendations = targetRecommendations;
 	}
-
-	public void setHaRecommendation(RPRecommendation haRecommendation) {
-		this.haRecommendation = haRecommendation;
-	}	
-	
+		
 	 public String getInternalSiteName() {
 		return internalSiteName;
 	 }

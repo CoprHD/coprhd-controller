@@ -25,4 +25,6 @@ public class RecoveryConstants {
     public static final String RECOVERY_STARTTIME = "starttime";
     public static final String RECOVERY_ENDTIME = "endtime";
     public static final String RECOVERY_ERRCODE = "errorcode";
+
+    public static final int THREAD_CHECK_INTERVAL = 30;
 }

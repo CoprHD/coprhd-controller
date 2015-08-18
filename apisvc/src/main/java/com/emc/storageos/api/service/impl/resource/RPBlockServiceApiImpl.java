@@ -41,8 +41,8 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
@@ -61,8 +61,8 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
@@ -83,8 +83,8 @@ import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
-import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Protection;
 import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
@@ -1108,8 +1108,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray varray,
-            VirtualPool vpool, List<Recommendation> recommendations, String task,
-            VirtualPoolCapabilityValuesWrapper capabilities) throws InternalException {
+            VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList,
+            String task, VirtualPoolCapabilityValuesWrapper capabilities) throws InternalException {
 
         // Prepare the Bourne Volumes to be created and associated
         // with the actual storage system volumes created. Also create
@@ -1117,7 +1117,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // returned for the purpose of monitoring the volume creation
         // operation for each volume to be created.
         String volumeLabel = param.getName();
-        TaskList taskList = new TaskList();
         Iterator<Recommendation> recommendationsIter;
 
         final BlockConsistencyGroup consistencyGroup = capabilities.getBlockConsistencyGroup() == null ? null : _dbClient
@@ -1411,7 +1410,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
         capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, vpoolChangeParam.getConsistencyGroup());
-        createVolumes(param, project, varray, newVpool, recommendations, taskId, capabilities);
+        // WJEIV -- Need to fix this use case depending on what the API is expecting
+        createVolumes(param, project, varray, newVpool, recommendations, null, taskId, capabilities);
     }
 
     /**

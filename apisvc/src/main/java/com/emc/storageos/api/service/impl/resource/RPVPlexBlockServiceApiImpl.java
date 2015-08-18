@@ -1237,16 +1237,19 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray srcVarray,
-            VirtualPool srcVpool, List<Recommendation> recommendations, String task,
-            VirtualPoolCapabilityValuesWrapper capabilities) throws InternalException {
+            VirtualPool srcVpool, List<Recommendation> recommendations, TaskList taskList,
+            String task, VirtualPoolCapabilityValuesWrapper capabilities) throws InternalException {
 
+        if (taskList == null) {
+            taskList = new TaskList();
+        }
+        
         // Prepare the Bourne Volumes to be created and associated
         // with the actual storage system volumes created. Also create
         // a BlockTaskList containing the list of task resources to be
         // returned for the purpose of monitoring the volume creation
         // operation for each volume to be created.
         String volumeLabel = param.getName();
-        TaskList taskList = new TaskList();
 
         // List to store the volume descriptors for the Block Orchestration
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
@@ -1648,7 +1651,8 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
         capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, vpoolChangeParam.getConsistencyGroup());
-        createVolumes(param, project, varray, newVpool, recommendations, taskId, capabilities);
+        // WJEIV -- Check to see if upgrading this volume requires any pre-creation.
+        createVolumes(param, project, varray, newVpool, recommendations, null, taskId, capabilities);
     }
 
     /**
@@ -2005,7 +2009,8 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
         capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
-        createVolumes(param, project, varray, newVpool, recommendations, taskId, capabilities);
+        // Check to see if upgrading this volume requires precreation.
+        createVolumes(param, project, varray, newVpool, recommendations, null, taskId, capabilities);
     }
 
     /**

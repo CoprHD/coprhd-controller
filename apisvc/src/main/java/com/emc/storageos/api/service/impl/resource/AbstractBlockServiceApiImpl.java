@@ -297,8 +297,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray varray,
-            VirtualPool vpool, List<Recommendation> recommendations, String task,
-            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws ControllerException,
+            VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList,
+            String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws ControllerException,
             InternalException {
 
         throw APIException.methodNotAllowed.notSupported();

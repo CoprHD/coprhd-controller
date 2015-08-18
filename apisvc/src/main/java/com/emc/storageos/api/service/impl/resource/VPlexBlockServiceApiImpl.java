@@ -50,13 +50,12 @@ import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -65,6 +64,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -231,10 +231,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project,
-            VirtualArray vArray, VirtualPool vPool, List<Recommendation> volRecommendations, String task,
-            VirtualPoolCapabilityValuesWrapper vPoolCapabilities) throws InternalException {
+            VirtualArray vArray, VirtualPool vPool, List<Recommendation> volRecommendations, TaskList taskList,
+            String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities) throws InternalException {
 
-        TaskList taskList = new TaskList();
+        if (taskList == null) {
+            taskList = new TaskList();
+        }
+        
         List<URI> allVolumes = new ArrayList<URI>();
         List<VolumeDescriptor> descriptors = createVPlexVolumeDescriptors(param, project, vArray, vPool,
                 volRecommendations, task, vPoolCapabilities,

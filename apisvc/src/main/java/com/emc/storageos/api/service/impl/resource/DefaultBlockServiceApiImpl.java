@@ -70,10 +70,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray neighborhood,
-            VirtualPool cos, List<Recommendation> recommendations, String task,
-            VirtualPoolCapabilityValuesWrapper cosCapabilities) throws InternalException {
-
-        TaskList taskList = new TaskList();
+            VirtualPool cos, List<Recommendation> recommendations, TaskList taskList,
+            String task, VirtualPoolCapabilityValuesWrapper cosCapabilities) throws InternalException {
         // Prepare the Bourne Volumes to be created and associated
         // with the actual storage system volumes created. Also create
         // a BlockTaskList containing the list of task resources to be

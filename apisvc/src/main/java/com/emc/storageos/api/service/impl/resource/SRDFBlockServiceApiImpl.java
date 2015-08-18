@@ -562,11 +562,10 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     @Override
     public TaskList createVolumes(final VolumeCreate param, final Project project,
             final VirtualArray varray, final VirtualPool cos,
-            final List<Recommendation> volRecommendations, final String task,
-            final VirtualPoolCapabilityValuesWrapper capabilities) throws InternalException {
+            final List<Recommendation> volRecommendations, TaskList taskList,
+            final String task, final VirtualPoolCapabilityValuesWrapper capabilities) throws InternalException {
 
         List<Recommendation> recommendations = volRecommendations;
-        TaskList taskList;
         // Prepare the Bourne Volumes to be created and associated
         // with the actual storage system volumes created. Also create
         // a BlockTaskList containing the list of task resources to be
@@ -574,7 +573,10 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         // operation for each volume to be created.
         int volumeCounter = 1;
         String volumeLabel = param.getName();
-        taskList = new TaskList();
+        if (taskList == null) {
+            taskList = new TaskList();
+        }
+        
         Iterator<Recommendation> recommendationsIter;
 
         final BlockConsistencyGroup consistencyGroup = capabilities.getBlockConsistencyGroup() == null ? null
@@ -815,7 +817,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                     capabilities.getMetaVolumeMemberCount()));
         }
 
-        createVolumes(param, project, varray, vpool, recommendations, taskId, capabilities);
+        // WJEIV -- double check this use case to make sure it works.
+        createVolumes(param, project, varray, vpool, recommendations, null, taskId, capabilities);
     }
 
     /**

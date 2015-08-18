@@ -130,11 +130,11 @@ $Script:isVMX=$false
 
 # Usability
 function Usage() {
-    Write-Host "Usage: $scriptName -help | -mode [ install | redeploy | vmx] [options]"
+    Write-Host "Usage: $scriptName -help | -mode [ install | redeploy | install-vmx ] [options]"
     Write-Host "-mode: "
-    Write-Host "         install      Install a new cluster"
-    Write-Host "         redeploy     Redeploy a VM in a cluster"
-	Write-Host "         vmx          Install a VM at VMware workstation"
+    Write-Host "         install              Install a new cluster"
+    Write-Host "         redeploy             Redeploy a VM in a cluster"
+	Write-Host "         install-vmx          Install a VM at VMware workstation"
     Write-Host "	"
     Write-Host "Install mode options: "
     Write-Host "    -vip:               Public virtual IPv4 address"
@@ -194,7 +194,7 @@ function Usage() {
 	Write-Host ""
 	Write-Host "    example: .\$scriptName -mode redeploy -file your_setting_file_path -nodeid 1 -targeturi vi://username:password@vsphere_host_url -ds datastore_name -net network_name -vmprefix vmprefix- -vmfolder vm_folder -dm zeroedthick -cpucount 2 -memory 8192 -poweron"
 	Write-Host ""
-	Write-Host "VMX mode options: "
+	Write-Host "Install-vmx mode options: "
     Write-Host "    -nodecount          Node counts of the cluster (valid value is 1 or 3 or 5), please note 1+0 cluster is a evaluation variant with no production support"
     Write-Host "    -nodeid:            Specific node to be deployed, for VMX, nodeid is only support 1 node"
 	Write-Host "    -vmfolder:          Virtual Machine location"
@@ -203,7 +203,7 @@ function Usage() {
 	Write-Host "    -vmname             (Optional) Virtual machine name"
 	Write-Host "    -interactive        (Optional) Interactive way to deploy"
 	Write-Host ""
-	Write-Host "    example: .\$scriptName -mode vmx vip 1.2.3.0 -ipaddr_1 1.2.3.1 -gateway 1.1.1.1 -netmask 255.255.255.0 -vmprefix vmprefix- -vmfolder vm_location -net network_mode -nodecount 1 -nodeid 1"
+	Write-Host "    example: .\$scriptName -mode install-vmx vip 1.2.3.0 -ipaddr_1 1.2.3.1 -gateway 1.1.1.1 -netmask 255.255.255.0 -vmprefix vmprefix- -vmfolder vm_location -net network_mode -nodecount 1 -nodeid 1"
 	Write-Host ""
 }
 
@@ -1165,7 +1165,7 @@ try {
 
 			CheckRedeploymentParams
         }
-        "vmx" {
+        "install-vmx" {
 			$Script:isVMX=$true
 			# 0. Validate necessary parameters integrity	
 			Write-Host ""

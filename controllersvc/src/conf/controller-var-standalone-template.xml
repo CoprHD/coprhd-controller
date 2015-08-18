@@ -42,6 +42,7 @@
                 <value>host</value>
                 <value>vcenter</value>
                 <value>scaleio</value>
+                <value>scaleioapi</value>
                 <value>xtremio</value>
             </set>
         </property>

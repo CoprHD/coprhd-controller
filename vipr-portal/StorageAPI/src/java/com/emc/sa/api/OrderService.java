@@ -89,8 +89,8 @@ import com.emc.vipr.model.catalog.Parameter;
 import com.google.common.collect.Lists;
 
 @DefaultPermissions(
-        read_roles = {},
-        write_roles = {})
+        readRoles = {},
+        writeRoles = {})
 @Path("/catalog/orders")
 public class OrderService extends CatalogTaggedResourceService {
 

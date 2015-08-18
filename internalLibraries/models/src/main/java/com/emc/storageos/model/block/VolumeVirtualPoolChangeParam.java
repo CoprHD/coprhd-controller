@@ -88,7 +88,7 @@ public class VolumeVirtualPoolChangeParam {
      * The ViPR consistency group to associate the volume with for
      * the creation of the RecoverPoint consistency group.
      * 
-     * @return
+     * @return The Consistency Group to associate the volume during creation of RP consistency group
      */
     @XmlElement(name = "consistency_group")
     public URI getConsistencyGroup() {

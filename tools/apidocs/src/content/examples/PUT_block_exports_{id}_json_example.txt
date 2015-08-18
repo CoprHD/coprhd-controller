@@ -5,34 +5,66 @@ X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
 
 {
     "cluster_changes": {},
-    "host_changes": {},
-    "initiator_changes": {},
+    "host_changes": {
+    		"add" :[
+    			"urn:storageos:Host:adacd011-ec90-4db3-929d-550db9b78db5:vdc1"
+    		]
+    },
+    "initiator_changes": {
+    		"add":[
+    			"urn:storageos:Initiator:d90880b7-b122-4cc3-ae91-56196382b497:vdc1"
+    		]
+    },
     "volume_changes": {
-        "remove": [
-            "urn:storageos:BlockSnapshot:4fedc0c0-2ad3-4aec-a8b1-dc41227390e9:"
-        ]
+    		"add":[
+    			{"id":"urn:storageos:Volume:9f67ed59-f585-4613-ad24-73c5e639ae99:vdc1"}
+		],
+             "remove":["urn:storageos:Volume:ea78d978-3864-4691-92fa-a3110b1a713b:vdc1"]
     }
 }
+
 ==RESPONSE
 HTTP/1.1 200 OK
 Content-Type: application/json
 
 {
-    "description": "update export",
-    "link": {
-        "href": "/block/exports/urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:/tasks/a2d4e295-aa8c-4125-9fd8-9df947c96e92",
-        "rel": "self"
-    },
-    "message": "update export",
-    "op_id": "a2d4e295-aa8c-4125-9fd8-9df947c96e92",
-    "resource": {
-        "id": "urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:",
-        "link": {
-            "href": "/block/exports/urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:",
-            "rel": "self"
-        },
-        "name": "rpSanity-example.com-13564"
-    },
-    "start_time": 1380722446251,
-    "state": "pending"
+	name: "UPDATE EXPORT GROUP",
+	id: "urn:storageos:Task:d58bebaf-d1e3-43d8-80f0-260f3869d2c6:vdc1",
+	link: {
+		rel: "self",
+		href: "/vdc/tasks/urn:storageos:Task:d58bebaf-d1e3-43d8-80f0-260f3869d2c6:vdc1",
+	},
+	inactive: false,
+	global: false,
+	remote: false,
+	vdc: {
+		id: "urn:storageos:VirtualDataCenter:30f5bedc-048c-470c-8e7c-53118cfb82f9:vdc1",
+		link: {
+				rel: "self",
+				href: "/vdc/urn:storageos:VirtualDataCenter:30f5bedc-048c-470c-8e7c-53118cfb82f9:vdc1"
+			}
+		}
+	internal: false
+	resource: {
+		id: "urn:storageos:ExportGroup:67769dba-b1cc-4927-9b0d-0210645c2204:vdc1",
+		name: "10.247.78.47",
+		link: {
+			rel: "self",
+			href: "/block/exports/urn:storageos:ExportGroup:67769dba-b1cc-4927-9b0d-0210645c2204:vdc1"
+		},
+	},
+	tenant: {
+		id: "urn:storageos:TenantOrg:b4475e79-0424-4588-b746-0e5a49e7d531:global",
+		link: {
+			rel: "self",
+			href: "/tenants/urn:storageos:TenantOrg:b4475e79-0424-4588-b746-0e5a49e7d531:global",
+		}
+	},
+	state: "pending",
+	description: "update export group operation",
+	progress: 0,
+	creation_time: 1438060151458,
+	op_id: "728015ee-c4b1-446b-9f0f-a610b24d2422",
+	associated_resources: [0],
+	start_time: 1438060151457
 }

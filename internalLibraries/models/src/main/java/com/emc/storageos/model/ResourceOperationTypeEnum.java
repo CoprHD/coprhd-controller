@@ -271,7 +271,8 @@ public enum ResourceOperationTypeEnum {
     CREATE_VCENTER_CLUSTER("CREATE VCENTER CLUSTER", "create a cluster in vCenter server"),
     UPDATE_VCENTER_CLUSTER("UPDATE VCENTER CLUSTER", "update a cluster in vCenter server"),
     SYS_EVENT("SYSTEM EVENT", "System Event"),
-    CREATE_SNAPSHOT_SESSION("CREATE SNAPSHOT SESSION", "create a snapshot session");
+    CREATE_SNAPSHOT_SESSION("CREATE SNAPSHOT SESSION", "create a snapshot session"),
+    LINK_SNAPSHOT_SESSION_TARGETS("LINK SNAPSHOT SESSION TARGETS", "links target volumes to a snapshot session");
 
     private final String name;
     private final String description;

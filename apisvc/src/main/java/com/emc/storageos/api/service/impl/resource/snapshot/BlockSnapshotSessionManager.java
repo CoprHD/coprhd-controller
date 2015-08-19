@@ -31,9 +31,11 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.BlockSnapshotSession.CopyMode;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
@@ -241,6 +243,9 @@ public class BlockSnapshotSessionManager {
         // Get the target device information.
         int newLinkedTargetsCount = param.getNewLinkedTargets().getCount();
         String newTargetsCopyMode = param.getNewLinkedTargets().getCopyMode();
+        if (newTargetsCopyMode == null) {
+            newTargetsCopyMode = CopyMode.nocopy.name();
+        }
 
         // Get the platform specific block snapshot session implementation.
         BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObj);
@@ -256,6 +261,10 @@ public class BlockSnapshotSessionManager {
         String taskId = UUID.randomUUID().toString();
 
         // Create a task for the snapshot session.
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.LINK_SNAPSHOT_SESSION_TARGETS);
+        _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSessionURI, taskId, op);
+        snapSession.getOpStatus().put(taskId, op);
         TaskResourceRep response = toTask(snapSession, taskId);
 
         // Create and link new targets to the snapshot session.

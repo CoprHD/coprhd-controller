@@ -119,6 +119,11 @@ public class RPRecommendation extends Recommendation {
 			buff.append("\tHigh Availability Recommendation :" + "\n");
 			buff.append(getHaRecommendation().toString(dbClient, ps));
 			buff.append("----------------------\n");
+			if (this.getHaRecommendation().getTargetRecommendations() != null && !this.getHaRecommendation().getTargetRecommendations().isEmpty()){
+				buff.append("\tHA protection" + "\n");
+				buff.append(this.getHaRecommendation().getTargetRecommendations().get(0).toString(dbClient, ps));
+				buff.append("\t-------------------\n");
+			}
 		}
 		return buff.toString();
 	}	

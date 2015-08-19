@@ -194,28 +194,35 @@ public class RecoverPointSchedulerTest extends Assert {
 		return ps;
 	}
 	
-	public void fillRecommendationObject(RPProtectionRecommendation rec, ProtectionSystem ps, String sourceInternalSiteName, String destInternalSiteName, VirtualArray sourceVarray, VirtualArray destVarray, StoragePool sourceStoragePool, StoragePool destStoragePool, int resourceCount) {
+	public void fillRecommendationObject(RPProtectionRecommendation rec, ProtectionSystem ps, String sourceInternalSiteName, String destInternalSiteName, 
+					VirtualArray sourceVarray, VirtualArray destVarray, StoragePool sourceStoragePool, StoragePool destStoragePool, int resourceCount) {
 		rec.setProtectionDevice(ps.getId());
+		
+		//fill the source
 		RPRecommendation sourceRec = new RPRecommendation();
 		sourceRec.setInternalSiteName(sourceInternalSiteName);
 		sourceRec.setSourcePool(sourceStoragePool.getId());
 		rec.setResourceCount(resourceCount);
 		
+		//fill source journal
 		RPRecommendation sourceJournalRec = new RPRecommendation();
 		sourceJournalRec.setSourcePool(sourceStoragePool.getId());
 		sourceJournalRec.setInternalSiteName(sourceInternalSiteName);
+		sourceJournalRec.setResourceCount(resourceCount);
 		
+		//fill target
 		RPRecommendation targetRec = new RPRecommendation();
-		targetRec.setInternalSiteName(destInternalSiteName);
-		targetRec.setSourceDevice(destStoragePool.getId());
-		
-		RPRecommendation targetJournalRec = new RPRecommendation();
-		targetJournalRec.setSourcePool(destStoragePool.getId());
-		targetJournalRec.setInternalSiteName(destInternalSiteName);
-		
+		targetRec.setInternalSiteName(destInternalSiteName);		
+		targetRec.setSourcePool(sourceStoragePool.getId());
 		sourceRec.setTargetRecommendations(new ArrayList<RPRecommendation>());
 		sourceRec.getTargetRecommendations().add(targetRec);
 		
+		//fill targetJournal
+		RPRecommendation targetJournalRec = new RPRecommendation();
+		targetJournalRec.setSourcePool(destStoragePool.getId());
+		targetJournalRec.setInternalSiteName(destInternalSiteName);
+				
+		//populate the protection recommendation object with all the recommendation
 		rec.setSourceRecommendations(new ArrayList<RPRecommendation>());
 		rec.getSourceRecommendations().add(sourceRec);
 		rec.setSourceJournalRecommendation(sourceJournalRec);

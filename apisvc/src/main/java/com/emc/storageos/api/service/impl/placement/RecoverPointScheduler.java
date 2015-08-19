@@ -283,15 +283,11 @@ public class RecoverPointScheduler implements Scheduler {
         }
                       
         List<Recommendation> recommendations = buildCgRecommendations(capabilities, vpool, protectionVarrays, null);        
-        if (recommendations.isEmpty()) {
-            // Schedule storage based on the source pool constraint.        	
-            recommendations = scheduleStorageSourcePoolConstraint(varray, protectionVarrays, vpool, capabilities, candidatePools, project, null, null);      
-        }
-                                                              
-        this.initResources();        
-        if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
-        	  _log.info("Getting recommendations for RP + VPLEX volume placement...");    
+                                             
+        this.initResources();             
+        if (recommendations.isEmpty()){ 	  
 	        if (VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
+	        	_log.info("Getting recommendations for Metropoint volume placement...");    
 	        	// MetroPoint has been enabled.  get the HA virtual array and virtual pool.  This will allow us to obtain 
 	        	// candidate storage pool and secondary cluster protection recommendations.	        
 	        	 haVarray = vplexScheduler.getHaVirtualArray(container.getSrcVarray(), project, container.getSrcVpool());
@@ -305,7 +301,10 @@ public class RecoverPointScheduler implements Scheduler {
 	            // VPlex clusters.
 	            recommendations = createMetroPointRecommendations(container.getSrcVarray(), protectionVarrays, container.getSrcVpool(), haVarray, 
 	            		haVpool, project, capabilities, candidatePools, haCandidateStoragePools, null);            
-	        } 
+	        } else {
+	        	 // Schedule storage based on the source pool constraint.        	
+	            recommendations = scheduleStorageSourcePoolConstraint(varray, protectionVarrays, vpool, capabilities, candidatePools, project, null, null);      
+	        }
         }
          
        logRecommendations(recommendations);        
@@ -617,15 +616,18 @@ public class RecoverPointScheduler implements Scheduler {
     	List<StoragePool> srcCandidateStoragePools = new ArrayList<StoragePool>();
     	Map<String, List<StoragePool>> vplexPoolMapForSrcVarray = getVplexMatchingPools(srcVarray, srcVpool, haVarray, haVpool, project, capabilities);
     	  // Add all the appropriately matched source storage pools
-        for (String vplexId : vplexPoolMapForSrcVarray.keySet()) {
-            srcCandidateStoragePools.addAll(vplexPoolMapForSrcVarray.get(vplexId));
+    	if (vplexPoolMapForSrcVarray != null) {
+	        for (String vplexId : vplexPoolMapForSrcVarray.keySet()) {
+	            srcCandidateStoragePools.addAll(vplexPoolMapForSrcVarray.get(vplexId));
+	        }	        
+    	}
+    	
+    	if (!srcCandidateStoragePools.isEmpty()) {
+	        _log.info("VPLEX pools matching completed: {}",
+	                Joiner.on("\t").join(getURIsFromPools(srcCandidateStoragePools)));
+	        blockScheduler.sortPools(srcCandidateStoragePools); 
         }
-        if (!srcCandidateStoragePools.isEmpty()) {
-        _log.info("VPLEX pools matching completed: {}",
-                Joiner.on("\t").join(getURIsFromPools(srcCandidateStoragePools)));
-        }
-        
-        blockScheduler.sortPools(srcCandidateStoragePools); 
+               
         return srcCandidateStoragePools;
     }
     
@@ -826,12 +828,9 @@ public class RecoverPointScheduler implements Scheduler {
                srcVarray, srcVpool, 
                haVarray, haVpool, 
                srcVpoolCapabilities, 
-               vplexPoolMapForSrcVarray);/*convertHARecommendations(getAllHARecommendations(
-                                               srcVarray, srcVpool, 
-                                               haVarray, haVpool, 
-                                               srcVpoolCapabilities, 
-                                               vplexPoolMapForSrcVarray));     */   
+               vplexPoolMapForSrcVarray);  
                            
+       //There is only one recommendation ever, return the first recommendation.
        return vplexHaVArrayRecommendations.get(0);
    }
 
@@ -3284,7 +3283,7 @@ public class RecoverPointScheduler implements Scheduler {
         if (candidateJournalPools.isEmpty()) {
         	//TODO: Error out here, no journal storage pool found
         }
-        _log.info("Candidate Journal Storage pools: ");
+        _log.info("Candidate Target Storage pools: ");
         printSortedStoragePools(candidateTargetPools);
         
         _log.info("Candidate Journal Storage pools: ");
@@ -3968,11 +3967,20 @@ public class RecoverPointScheduler implements Scheduler {
 			return false;
 		}
 		
-		public String toString(DbClient dbClient) {	
-			
+		public boolean containsProtectionToVarray(RPProtectionRecommendation recommendation, URI varrayUri) {
+			for (RPRecommendation sourceRec : recommendation.getSourceRecommendations()) {
+				for (RPRecommendation targetRec : sourceRec.getTargetRecommendations()) {
+					if (targetRec.getVirtualArray().equals(varrayUri)) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+		
+		public String toString(DbClient dbClient) {				
 			StringBuffer buff = new StringBuffer("\n--------------------------------------------------------------------------------------------------------------------------------------------------------\n");
-			return buff.toString();
-			/* 
+			 
 			buff.append("RecoverPoint-Protected Placement Error:  It is possible that other solutions were available and equal in their level of success to the one listed below.\n");
 			buff.append("--------------------------------------------------------------------------------------------------------------------------------------------------------\n");
 			if (this.latestInvalidRecommendation == null) {
@@ -3987,7 +3995,7 @@ public class RecoverPointScheduler implements Scheduler {
 					StoragePool jpool = (StoragePool)dbClient.queryObject(StoragePool.class, this.latestInvalidRecommendation.getSourceJournalRecommendation().getSourcePool());
 					StorageSystem system = (StorageSystem)dbClient.queryObject(StorageSystem.class, this.latestInvalidRecommendation.getSourceDevice());
 					ProtectionSystem ps = dbClient.queryObject(ProtectionSystem.class, this.latestInvalidRecommendation.getProtectionDevice());
-					String sourceInternalSiteName = this.latestInvalidRecommendation.getRpRecommendations().get(0).get(0).getInternalSiteName();
+					String sourceInternalSiteName = this.latestInvalidRecommendation.getSourceRecommendations().get(0).getInternalSiteName();
 					String sourceRPSiteName = (ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(sourceInternalSiteName) : sourceInternalSiteName; 
 					buff.append("--------------------------------------------------------------------------------------------------------------------------------------------------------\n");				   
 					buff.append("\tSource Virtual Array: " + this.srcVArray + "\n");
@@ -3999,6 +4007,7 @@ public class RecoverPointScheduler implements Scheduler {
 					buff.append("\tSource Journal Storage Pool: " + (jpool != null ? jpool.getLabel() : "null") + "\n");
 					buff.append("--------------------------------------------------------------------------------------------------------------------------------------------------------\n");
 				}
+				
 				if (this.latestInvalidRecommendation.getPlacementStepsCompleted().ordinal() == PlacementProgress.IDENTIFIED_SOLUTION_FOR_SUBSET_OF_TARGETS.ordinal()) {
 					buff.append("Placement determined protection is not possible to all " + this.processedProtectionVArrays.size() + " of the requested virtual arrays.\n");
 				}
@@ -4009,41 +4018,38 @@ public class RecoverPointScheduler implements Scheduler {
 
 				for (URI varrayID : this.processedProtectionVArrays.keySet()) {
 					VirtualArray varray = (VirtualArray)dbClient.queryObject(VirtualArray.class,  varrayID);	
-					for (RPRecommendation rpRec : this.latestInvalidRecommendation.getRpRecommendations()) {
-						if (rpRec.getVarrayProtectionMap().get(varrayID) != null) {
-							Protection protection = rpRec.getVarrayProtectionMap().get(varrayID);							
-							StoragePool targetjPool = (StoragePool)dbClient.queryObject(StoragePool.class, protection.getTargetJournalRecommendation().getSourcePool());
+					for (RPRecommendation rpRec : this.latestInvalidRecommendation.getSourceRecommendations()) {
+						for(RPRecommendation targetRec : rpRec.getTargetRecommendations()) {							
+							//StoragePool targetjPool = (StoragePool)dbClient.queryObject(StoragePool.class, protection.getTargetJournalRecommendation().getSourcePool());
+							if (containsProtectionToVarray(latestInvalidRecommendation, varrayID)) {
 							ProtectionSystem ps = dbClient.queryObject(ProtectionSystem.class, this.latestInvalidRecommendation.getProtectionDevice());
-							String targetInternalSiteName = protection.getTargetInternalSiteName();
+							String targetInternalSiteName = targetRec.getInternalSiteName();
 							String targetRPSiteName = (ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(targetInternalSiteName) : targetInternalSiteName; 
 							buff.append("\tProtection to Virtual Array: " + varray.getLabel() + "\n");
-							buff.append("\tProtection to RP Site: " + targetRPSiteName + "\n");
-														
-							for(Map.Entry<URI, URI> entry : protection.getProtectionPoolStorageMap().entrySet()) {
-								StoragePool targetPool = dbClient.queryObject(StoragePool.class, entry.getKey());								
-								StorageSystem targetSystem = (StorageSystem)dbClient.queryObject(StorageSystem.class, entry.getKey());
-								buff.append("\tProtection to Storage System: " + targetSystem.getLabel() + "\n");
-								buff.append("\tProtection to Storage Pool: " + targetPool.getLabel() + "\n");
-								}
-							buff.append("\tProtection Journal Storage Pool: " + targetjPool.getLabel() + "\n");
+							buff.append("\tProtection to RP Site: " + targetRPSiteName + "\n");																				
+							StoragePool targetPool = dbClient.queryObject(StoragePool.class, targetRec.getSourcePool());								
+							StorageSystem targetSystem = (StorageSystem)dbClient.queryObject(StorageSystem.class, targetRec.getSourceDevice());
+							buff.append("\tProtection to Storage System: " + targetSystem.getLabel() + "\n");
+							buff.append("\tProtection to Storage Pool: " + targetPool.getLabel() + "\n");
+								
+							//buff.append("\tProtection Journal Storage Pool: " + targetjPool.getLabel() + "\n");
 						} else if (this.processedProtectionVArrays.get(varrayID)) {
-						buff.append("Protection to virtual array " + varray.getLabel() + " is not possible.\n");
+							buff.append("Protection to virtual array " + varray.getLabel() + " is not possible.\n");
 						} else {
 							buff.append("Did not process protection to virtual array " + varray.getLabel() + " because protection was not possible to another virtual array in the request.\n");
 						}
 					buff.append("--------------------------------------------------------------------------------------------------------------------------------------------------------\n");
-				}
+					}
 					   			
 				if (this.latestInvalidRecommendation.getPlacementStepsCompleted().ordinal() == PlacementProgress.PROTECTION_SYSTEM_CANNOT_FULFILL_REQUEST.ordinal()) {
 					buff.append("The protection system " + dbClient.queryObject(ProtectionSystem.class, this.latestInvalidRecommendation.getProtectionDevice()).getLabel() + 
 							"cannot fulfill the protection request for the reason below:\n" + this.latestInvalidRecommendation.getProtectionSystemCriteriaError() + "\n");
 				}	
 			}
-			buff.append("--------------------------------------------------------------------------------------------------------------------------------------------------------\n");
-			
-		}			   	
-		return buff.toString();
-		*/
+					buff.append("--------------------------------------------------------------------------------------------------------------------------------------------------------\n");			
+			}			   				
+		}
+			return buff.toString();	
 		}
 	}
 }

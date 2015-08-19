@@ -143,7 +143,7 @@ public class PlacementTestUtils {
 		return storageSystem;
 	}
 
-    public static ProtectionSystem createProtectionSystem(DbClient _dbClient, String type, String label, String cluster1, String cluster2, String protocol,
+    public static ProtectionSystem createProtectionSystem(DbClient _dbClient, String type, String label, String cluster1, String cluster2, String cluster3, String protocol,
                                                           StringSetMap siteInitiators, StringSet associatedStorageSystems, StringSetMap rpVisibleArrays, Long cgCapacity,
                                                           Long cgCount, StringMap siteVolCap, StringMap siteVolCnt) {
         ProtectionSystem proSystem = new ProtectionSystem();
@@ -152,6 +152,17 @@ public class PlacementTestUtils {
         StringSet cluTopo = new StringSet();
         cluTopo.add(topology);
         cluTopo.add(topology2);
+        if (cluster3 != null) {
+        	String topology3 = proSystem.assembleClusterTopology(cluster1,  cluster3, protocol);
+        	String topology4 = proSystem.assembleClusterTopology(cluster3,  cluster1, protocol);
+        	String topology5 = proSystem.assembleClusterTopology(cluster2,  cluster3, protocol);
+        	String topology6 = proSystem.assembleClusterTopology(cluster3,  cluster2, protocol);
+        	cluTopo.add(topology3);
+        	cluTopo.add(topology4);
+        	cluTopo.add(topology5);
+        	cluTopo.add(topology6);
+        }
+        
         proSystem.setClusterTopology(cluTopo);
         proSystem.setSiteInitiators(siteInitiators);
         proSystem.setId(URI.create(label));
@@ -169,6 +180,9 @@ public class PlacementTestUtils {
         StringMap siteNames = new StringMap();
         siteNames.put(cluster1, cluster1);
         siteNames.put(cluster2, cluster2);
+        if (null != cluster3) {
+        	siteNames.put(cluster3, cluster3);
+        }
         proSystem.setRpSiteNames(siteNames);
         _dbClient.createObject(proSystem);
        

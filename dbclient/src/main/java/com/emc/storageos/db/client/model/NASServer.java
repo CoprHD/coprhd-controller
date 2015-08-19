@@ -72,14 +72,15 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
         setChanged("nasName");
     }
 
-    @Name("storageDeviceURI")
+    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
+    @Name("storageDevice")
     public URI getStorageDeviceURI() {
         return storageDeviceURI;
     }
 
     public void setStorageDeviceURI(URI stroageDeviceURi) {
         this.storageDeviceURI = stroageDeviceURi;
-        setChanged("stroageDeviceURI");
+        setChanged("storageDevice");
     }
 
     @Name("maxFSID")
@@ -89,7 +90,7 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
 
     public void setMaxFSID(String maxFSID) {
         this.maxFSID = maxFSID;
-        setChanged("this.maxFSID");
+        setChanged("maxFSID");
     }
 
     @Name("maxExports")
@@ -99,7 +100,7 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
 
     public void setMaxExports(String maxExports) {
         this.maxExports = maxExports;
-        setChanged("this.maxExports");
+        setChanged("maxExports");
     }
 
     @Name("maxProvisionedCapacity")
@@ -109,7 +110,7 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
 
     public void setMaxProvisionedCapacity(String maxProvisionedCapacity) {
         this.maxProvisionedCapacity = maxProvisionedCapacity;
-        setChanged("this.maxProvisionedCapacity");
+        setChanged("maxProvisionedCapacity");
     }
 
     @Name("protocols")
@@ -119,7 +120,7 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
 
     public void setProtocols(StringSet protocols) {
         this.protocols = protocols;
-        setChanged("this.protocols");
+        setChanged("protocols");
     }
 
     @Name("cifsServers")
@@ -129,7 +130,7 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
 
     public void setCifsServers(StringSet cifsServers) {
         this.cifsServers = cifsServers;
-        setChanged("this.cifsServers");
+        setChanged("cifsServers");
     }
 
     @Name("storagePorts")
@@ -159,7 +160,7 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
 
     public void setStorageDomain(StringSet storageDomain) {
         this.storageDomain = storageDomain;
-        setChanged("StorageDomain");
+        setChanged("storageDomain");
     }
 
     @Name("registrationStatus")

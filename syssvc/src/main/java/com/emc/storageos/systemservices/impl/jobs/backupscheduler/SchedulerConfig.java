@@ -26,7 +26,6 @@ import com.emc.storageos.services.util.Strings;
 import com.emc.vipr.model.sys.ClusterInfo.ClusterState;
 import com.emc.vipr.model.sys.recovery.RecoveryConstants;
 import com.emc.vipr.model.sys.recovery.RecoveryStatus;
-
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -51,12 +50,10 @@ import java.util.TreeSet;
  * This class holds the configuration for scheduled backup & upload
  */
 public class SchedulerConfig {
-    private static final Logger log = LoggerFactory.getLogger(SchedulerConfig.class);
-    
     private static final String BACKUP_SCHEDULER_LOCK = "scheduled_backup";
     private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
-    private static final int MAX_VERSION_RETRY_TIMES = 5;
-    private static final int MAX_VERSION_RETRY_INTERVAL = 1000*30;
+
+    private static final Logger log = LoggerFactory.getLogger(SchedulerConfig.class);
 
     private CoordinatorClient coordinatorClient;
     private EncryptionProvider encryptionProvider;
@@ -64,6 +61,7 @@ public class SchedulerConfig {
 
     private MailHelper mailHelper;
 
+    public String dbSchemaVersion;
     public int nodeCount;
 
     // Configurations mirrored from system properties
@@ -102,8 +100,10 @@ public class SchedulerConfig {
 
     public void reload() throws Exception {
         log.info("Loading configuration");
+
+        this.dbSchemaVersion = this.coordinatorClient.getCurrentDbSchemaVersion();
         
-        getSofttwareWithRetry();
+        this.softwareVersion = this.coordinatorClient.getTargetInfo(RepositoryInfo.class).getCurrentVersion().toString();
 
         PropertyInfo propInfo = this.coordinatorClient.getPropertyInfo();
 
@@ -324,6 +324,7 @@ public class SchedulerConfig {
         log.info("Current control nodes' state: {}", state);
         if (state == ClusterState.STABLE || state == ClusterState.SYNCING
                 || state == ClusterState.DEGRADED) {
+            this.dbSchemaVersion = currentVersion;
             return false;
         }
         return true;
@@ -353,24 +354,4 @@ public class SchedulerConfig {
 	public void setSoftwareVersion(String softwareVersion) {
 		this.softwareVersion = softwareVersion;
 	}
-	
-	private void getSofttwareWithRetry() throws Exception, InterruptedException {
-        int retryTimes = 0;
-        RepositoryInfo targetInfo = null;
-        while (retryTimes <= MAX_VERSION_RETRY_TIMES) {
-            retryTimes++;
-            targetInfo = this.coordinatorClient.getTargetInfo(RepositoryInfo.class);
-            if (targetInfo == null){
-                log.info("can't get version, try {} seconds later", MAX_VERSION_RETRY_INTERVAL/1000);
-                Thread.sleep(MAX_VERSION_RETRY_INTERVAL);
-                continue;
-            }
-            this.softwareVersion = targetInfo.getCurrentVersion().toString();
-            log.info("Version: {}", softwareVersion);
-            break;
-        }
-        
-        if (targetInfo == null)
-            throw new Exception("Can't get version information from coordinator client");
-    }
 }

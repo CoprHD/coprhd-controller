@@ -21,7 +21,7 @@ import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import com.emc.storageos.services.util.EnvConfig;
 
 public class ScaleIORestClientTest {
-    private static Logger log = LoggerFactory.getLogger(ScaleIORestClient.class);
+    private static Logger log = LoggerFactory.getLogger(ScaleIORestClientTest.class);
     private static ScaleIORestClient restClient;
     private static final String UNIT_TEST_CONFIG_FILE = "sanity";
     private static final String HOST = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.ipaddress");

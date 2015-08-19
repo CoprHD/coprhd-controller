@@ -3,6 +3,7 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,7 @@ public class VplexBackendIngestionContext {
     private List<UnManagedVolume> unmanagedBackendVolumes;
     private List<UnManagedVolume> unmanagedSnapshots;
     private Map<UnManagedVolume, UnManagedVolume> unmanagedFullClones;
-    private Map<UnManagedVolume, UnManagedVolume> unmanagedBackendOnlyClones;
+    private Map<UnManagedVolume, Set<UnManagedVolume>> unmanagedBackendOnlyClones;
     private List<UnManagedVolume> unmanagedMirrors;
     
     Map<String, UnManagedVolume> processedUnManagedVolumeMap = new HashMap<String, UnManagedVolume>();
@@ -58,7 +59,9 @@ public class VplexBackendIngestionContext {
         allVolumes.addAll(getUnmanagedSnapshots());
         allVolumes.addAll(getUnmanagedFullClones().keySet());
         allVolumes.addAll(getUnmanagedFullClones().values());
-        allVolumes.addAll(getUnmanagedBackendOnlyClones().values());
+        for (Set<UnManagedVolume> backendClones : getUnmanagedBackendOnlyClones().values()) {
+            allVolumes.addAll(backendClones);
+        }
         // allVolumes.addAll(getUnmanagedMirrors());  TODO disabled for QE drop1 build
         return allVolumes;
     }
@@ -140,6 +143,7 @@ public class VplexBackendIngestionContext {
         return unmanagedSnapshots;
     }
 
+    // map of backend clone volume to virtual volume 
     public Map<UnManagedVolume, UnManagedVolume> getUnmanagedFullClones() {
         if (null != unmanagedFullClones) {
             return unmanagedFullClones;
@@ -178,8 +182,19 @@ public class VplexBackendIngestionContext {
                     if (null != umvUri) {
                         UnManagedVolume virtualVolumeClone = _dbClient.queryObject(UnManagedVolume.class, umvUri);
                         if (null != virtualVolumeClone) {
-                            _logger.info("adding mapping for vvol clone {} to backend clone {}", virtualVolumeClone, backendClone);
-                            unmanagedFullClones.put(virtualVolumeClone, backendClone);
+                            _logger.info("adding mapping for vvol clone {} to backend clone {}", 
+                                    virtualVolumeClone, backendClone);
+                            unmanagedFullClones.put(backendClone, virtualVolumeClone);
+                            _logger.info("   because this clone has a virtual volume "
+                                    + "in front of it, removing from backend only clone set");
+                            Iterator<Entry<UnManagedVolume, Set<UnManagedVolume>>> it = 
+                                    getUnmanagedBackendOnlyClones().entrySet().iterator();
+                            while (it.hasNext()) {
+                               Entry<UnManagedVolume, Set<UnManagedVolume>> item = it.next();
+                               if (item.getKey().getId().toString().equals(backendClone.getId().toString())){
+                                   getUnmanagedBackendOnlyClones().remove(item.getKey());
+                               }
+                            }
                         }
                     }
                 } else {
@@ -191,13 +206,20 @@ public class VplexBackendIngestionContext {
         return unmanagedFullClones;
     }
 
-    public Map<UnManagedVolume, UnManagedVolume> getUnmanagedBackendOnlyClones() {
+    // map of parent backend volume to children clone/copy backend volumes
+    public Map<UnManagedVolume, Set<UnManagedVolume>> getUnmanagedBackendOnlyClones() {
         if (null != unmanagedBackendOnlyClones) {
             return unmanagedBackendOnlyClones;
         }
         
-        // TODO: implement
-        unmanagedBackendOnlyClones = new HashMap<UnManagedVolume, UnManagedVolume>(); 
+        unmanagedBackendOnlyClones = new HashMap<UnManagedVolume, Set<UnManagedVolume>>();
+        
+        for (UnManagedVolume sourceVolume : getUnmanagedBackendVolumes()) {
+            Set<UnManagedVolume> backendClonesFound = new HashSet<UnManagedVolume>();
+            backendClonesFound.addAll(VolumeIngestionUtil.getUnManagedClones(sourceVolume, _dbClient));
+            unmanagedBackendOnlyClones.put(sourceVolume, backendClonesFound);
+        }
+        
         return unmanagedBackendOnlyClones;
     }
 

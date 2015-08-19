@@ -559,10 +559,6 @@ public class VNXFileCommApi {
                                     result.setCommandFailed();
                                     result.setMessage(errMsg);
                                     return result;
-                                } else {
-                                    // Set as inactive
-                                    snapshot.setInactive(true);
-                                    _dbClient.persistObject(snapshot);
                                 }
                             }
                         }
@@ -609,10 +605,6 @@ public class VNXFileCommApi {
                 cmdResult = (String) _provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
                 if (null != cmdResult && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
                     result.setCommandSuccess();
-                    if (fs != null) {
-                        fs.setInactive(true);
-                        _dbClient.persistObject(fs);
-                    }
                 } else {
                     String errMsg = (String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
                     result.setCommandFailed();
@@ -656,26 +648,6 @@ public class VNXFileCommApi {
                             result.setCommandFailed();
                             result.setMessage(errMsg);
                             return result;
-                        } else {
-                            String nativeGuid = NativeGUIDGenerator.generateNativeGuidForQuotaDir(_dbClient, quotaDirName, fs.getId());
-                            QuotaDirectory quotaDir = null;
-                            URIQueryResultList quotaDirIDList = new URIQueryResultList();
-                            _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getQuotaDirsByNativeGuid(nativeGuid),
-                                    quotaDirIDList);
-                            if (quotaDirIDList != null && quotaDirIDList.iterator().hasNext()) {
-                                _log.info("Quota dirs found with native guid : {} ", nativeGuid);
-
-                                while (quotaDirIDList.iterator().hasNext()) {
-                                    URI uri = quotaDirIDList.iterator().next();
-                                    quotaDir = _dbClient.queryObject(QuotaDirectory.class, uri);
-                                    if (quotaDir != null && !quotaDir.getInactive()) {
-                                        _log.info("Deactivated quota dir : {} ", quotaDir.getName());
-                                        // Set as inactive
-                                        quotaDir.setInactive(true);
-                                        _dbClient.persistObject(quotaDir);
-                                    }
-                                }
-                            }
                         }
                     }
                 }

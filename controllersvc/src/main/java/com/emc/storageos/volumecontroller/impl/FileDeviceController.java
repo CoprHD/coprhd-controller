@@ -156,7 +156,7 @@ public class FileDeviceController implements FileController {
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                      // user ID TODO when AAA fixed
+                URI.create("ViPR-User"),                                         // user ID TODO when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -188,7 +188,7 @@ public class FileDeviceController implements FileController {
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                      // user ID TODO when AAA fixed
+                URI.create("ViPR-User"),                                         // user ID TODO when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -433,10 +433,8 @@ public class FileDeviceController implements FileController {
     }
 
     private void doFSDeleteQuotaDirsFromDB(FileDeviceInputOutput args) throws Exception {
-        // Query All Quota dirs Specific to a File System.
         List<QuotaDirectory> quotaDirs = queryFileQuotaDirs(args);
-        if (quotaDirs != null) {
-            // ALl quota dirs
+        if (quotaDirs != null && !quotaDirs.isEmpty()) {
             _log.info("Doing CRUD Operations on all DB QuotaDirectory for requested fs");
             for (QuotaDirectory dir : quotaDirs) {
                 _log.info("Deleting quota dir from DB - Dir :{}", dir);
@@ -527,7 +525,7 @@ public class FileDeviceController implements FileController {
 
             if (result.getCommandPending()) {
                 return;
-            }                                                    // Set Mount path info for the exports
+            }                                                       // Set Mount path info for the exports
             FSExportMap fsExports = fsObj.getFsExports();
 
             // Per New model get the rules and see if any rules that are already saved and available.
@@ -2008,18 +2006,18 @@ public class FileDeviceController implements FileController {
         _log.info("getSnapshots: FS {}: {} ", fs.getId().toString(), snapIDList.toString());
         List<Snapshot> snapList = _dbClient.queryObject(Snapshot.class, snapIDList);
 
-        // Set this as snapshot operation to delete only snapshots.
-        args.setFileOperation(false);
-        for (Snapshot snapshot : snapList) {
-            _log.info("Marking Snapshot as InActive Snapshot Id {} Fs Id : {}", snapshot.getId(), snapshot.getParent());
-            snapshot.setInactive(true);
-            args.addSnapshot(snapshot);
-            doDeleteExportRulesFromDB(true, null, args);
-            deleteShareACLsFromDB(args);
-            _dbClient.persistObject(snapshot);
+        args.setFileOperation(false);// Set this as snapshot operation to delete only snapshots.
+        if (snapList != null && !snapList.isEmpty()) {
+            for (Snapshot snapshot : snapList) {
+                _log.info("Marking Snapshot as InActive Snapshot Id {} Fs Id : {}", snapshot.getId(), snapshot.getParent());
+                snapshot.setInactive(true);
+                args.addSnapshot(snapshot);
+                doDeleteExportRulesFromDB(true, null, args);
+                deleteShareACLsFromDB(args);
+                _dbClient.persistObject(snapshot);
+            }
+            args.setFileOperation(true);       // restoring back
         }
-        args.setFileOperation(true);       // restoring back
-
     }
 
     private void doCRUDExports(FileExportUpdateParams param, FileShare fs, FileDeviceInputOutput args) throws Exception {

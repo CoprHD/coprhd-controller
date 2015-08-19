@@ -316,7 +316,10 @@ public class DbCli {
                                 throw new Exception("field format exception");
                             }
                             StringMap sMap = (StringMap) pd.getReadMethod().invoke(object);
-                            if (sMap != null ) sMap.clear();
+                            if (sMap == null) {
+                            	sMap = new StringMap();
+                            }
+                            sMap.clear();
 
                             Set<String> keys = newStringMap.keySet();
                             for (String key : keys) {
@@ -348,6 +351,9 @@ public class DbCli {
                                 throw new Exception("field format exception");
                             }
                             StringSetMap sMap = (StringSetMap) pd.getReadMethod().invoke(object);
+                            if (sMap == null) {
+                                sMap = new StringSetMap();
+                            }
                             Set<String> keys = sMap.keySet();
                             for (String key : keys) {
                                 sMap.remove(key);

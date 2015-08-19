@@ -17,8 +17,8 @@ public class SnapshotSessionCreateParam {
     // The name for the snapshot session.
     private String name;
 
-    // The linked target information.
-    private SnapshotSessionTargetsParam linkedTargets;
+    // The new linked target information.
+    private SnapshotSessionNewTargetsParam newLinkedTargets;
 
     /**
      * Default constructor.
@@ -30,11 +30,11 @@ public class SnapshotSessionCreateParam {
      * Constructor.
      * 
      * @param name The name for the snapshot session.
-     * @param linkedTargets A reference to the linked target information.
+     * @param newLinkedTargets A reference to the linked target information.
      */
-    public SnapshotSessionCreateParam(String name, SnapshotSessionTargetsParam linkedTargets) {
+    public SnapshotSessionCreateParam(String name, SnapshotSessionNewTargetsParam newLinkedTargets) {
         this.name = name;
-        this.linkedTargets = linkedTargets;
+        this.newLinkedTargets = newLinkedTargets;
     }
 
     /**
@@ -59,28 +59,30 @@ public class SnapshotSessionCreateParam {
     }
 
     /**
-     * Gets the target volumes to be linked to the newly created
-     * block snapshot session. When not specified, no targets volumes
-     * will be linked to the newly created snapshot session.
+     * Gets the new targets parameter specifying info about new target volumes
+     * to be created and linked to the newly created block snapshot session.
+     * When not specified, no targets volumes will be created and linked to the
+     * newly created snapshot session.
      * 
      * @valid none
      * 
-     * @return The target volumes to be linked to the newly created
-     *         block snapshot session.
+     * @return The new targets parameter specifying info about new target volumes
+     *         to be created and linked to the newly created block snapshot session.
      */
-    @XmlElement(name = "linked_targets", required = false)
-    public SnapshotSessionTargetsParam getLinkedTargets() {
-        return linkedTargets;
+    @XmlElement(name = "new_linked_targets", required = false)
+    public SnapshotSessionNewTargetsParam getNewLinkedTargets() {
+        return newLinkedTargets;
     }
 
     /**
-     * sets the target volumes to be linked to the newly created
-     * block snapshot session.
+     * Sets the new targets parameter specifying info about new target volumes
+     * to be created and linked to the newly created block snapshot session.
      * 
-     * @param linkedTargets The target volumes to be linked to the newly
-     *            created block snapshot session.
+     * @param newLinkedTargets The new targets parameter specifying info about new
+     *            target volumes to be created and linked to the newly created
+     *            block snapshot session.
      */
-    public void setLinkedTargets(SnapshotSessionTargetsParam linkedTargets) {
-        this.linkedTargets = linkedTargets;
+    public void setNewLinkedTargets(SnapshotSessionNewTargetsParam newLinkedTargets) {
+        this.newLinkedTargets = newLinkedTargets;
     }
 }

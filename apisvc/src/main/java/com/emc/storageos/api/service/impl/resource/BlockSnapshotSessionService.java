@@ -23,7 +23,7 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionBulkRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
-import com.emc.storageos.model.block.SnapshotSessionTargetsParam;
+import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -57,8 +57,8 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/link-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskResourceRep linkTargetVolumes(@PathParam("id") URI id, SnapshotSessionTargetsParam param) {
-        return getSnapshotSessionManager().linkNewTargetVolumesToSnapshotSession(id, param);
+    public TaskResourceRep linkTargetVolumes(@PathParam("id") URI id, SnapshotSessionLinkTargetsParam param) {
+        return getSnapshotSessionManager().linkTargetVolumesToSnapshotSession(id, param);
     }
 
     /**

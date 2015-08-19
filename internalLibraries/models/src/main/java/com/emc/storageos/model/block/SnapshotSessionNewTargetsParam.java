@@ -10,7 +10,7 @@ import javax.xml.bind.annotation.XmlElement;
  * Class that captures the POST data representing the linked targets passed
  * in a request to create a new BlockSnapshotSession instance.
  */
-public class SnapshotSessionTargetsParam {
+public class SnapshotSessionNewTargetsParam {
 
     // The number of targets to be created and linked to the session.
     private Integer count;
@@ -22,7 +22,7 @@ public class SnapshotSessionTargetsParam {
     /**
      * Default Constructor.
      */
-    public SnapshotSessionTargetsParam() {
+    public SnapshotSessionNewTargetsParam() {
     }
 
     /**
@@ -31,13 +31,13 @@ public class SnapshotSessionTargetsParam {
      * @param count The number of targets to be created and linked to the session.
      * @param copyMode The copy mode for the targets when they are linked to the session.
      */
-    public SnapshotSessionTargetsParam(Integer count, String copyMode) {
+    public SnapshotSessionNewTargetsParam(Integer count, String copyMode) {
         this.count = count;
         this.copyMode = copyMode;
     }
 
     /**
-     * get the number of new targets to create and link to the snapshot session.
+     * Get the number of new targets to create and link to the snapshot session.
      * 
      * @valid none
      * 

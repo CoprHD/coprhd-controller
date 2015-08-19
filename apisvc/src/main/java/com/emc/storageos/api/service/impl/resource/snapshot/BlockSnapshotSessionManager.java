@@ -37,7 +37,8 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
-import com.emc.storageos.model.block.SnapshotSessionTargetsParam;
+import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
+import com.emc.storageos.model.block.SnapshotSessionNewTargetsParam;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InterNodeHMACAuthFilter;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -163,7 +164,7 @@ public class BlockSnapshotSessionManager {
         // Get the target device information, if any.
         int newLinkedTargetsCount = 0;
         String newTargetsCopyMode = CopyMode.nocopy.name();
-        SnapshotSessionTargetsParam linkedTargetsParam = param.getLinkedTargets();
+        SnapshotSessionNewTargetsParam linkedTargetsParam = param.getNewLinkedTargets();
         if (linkedTargetsParam != null) {
             newLinkedTargetsCount = linkedTargetsParam.getCount().intValue();
             newTargetsCopyMode = linkedTargetsParam.getCopyMode();
@@ -221,11 +222,11 @@ public class BlockSnapshotSessionManager {
      * BlockSnapshotSession instance with the passed URI.
      * 
      * @param snapSessionURI The URI of a BlockSnapshotSession instance.
-     * @param param The new target information.
+     * @param param The linked target information.
      * 
      * @return A TaskResourceRep.
      */
-    public TaskResourceRep linkNewTargetVolumesToSnapshotSession(URI snapSessionURI, SnapshotSessionTargetsParam param) {
+    public TaskResourceRep linkTargetVolumesToSnapshotSession(URI snapSessionURI, SnapshotSessionLinkTargetsParam param) {
         s_logger.info("START link new targets for snapshot session {}", snapSessionURI);
 
         // Get the snapshot session.
@@ -238,8 +239,8 @@ public class BlockSnapshotSessionManager {
         Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObj, _dbClient);
 
         // Get the target device information.
-        int newLinkedTargetsCount = param.getCount();
-        String newTargetsCopyMode = param.getCopyMode();
+        int newLinkedTargetsCount = param.getNewLinkedTargets().getCount();
+        String newTargetsCopyMode = param.getNewLinkedTargets().getCopyMode();
 
         // Get the platform specific block snapshot session implementation.
         BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObj);

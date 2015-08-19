@@ -51,6 +51,7 @@
                 <value>cinder</value>
                 <value>openstack</value>
                 <value>scaleio</value>
+                <value>scaleioapi</value>
                 <value>xtremio</value>
             </set>
         </property>

@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.upgrade.InternalDbClient;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.google.common.collect.Lists;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -297,7 +298,7 @@ public class InternalDbClientImpl extends InternalDbClient {
     }
     
     public Map<String, Long> getFieldModificationTimestampMap(DataObjectType type, URI id) {
-    	Map<String, Long> fieldTimestampMap = new HashMap<String, Long>();
+    	Map<String, Long> fieldTimestampMap = new HashMap<>();
     	ColumnFamily<String, CompositeColumnName> cf = type.getCF();
     	Keyspace ks = this.getKeyspace(type.getDataObjectClass());
     	List<URI> ids = new ArrayList<URI>();
@@ -308,9 +309,28 @@ public class InternalDbClientImpl extends InternalDbClient {
     		return fieldTimestampMap;
     	}
     	for (Column<CompositeColumnName> column : rows.iterator().next().getColumns()) {
-    		fieldTimestampMap.put(column.getName().getOne(), Long.valueOf(column.getTimestamp()));
+    		fieldTimestampMap.put(column.getName().getOne(), column.getTimestamp()/1000);
     	}
     	
     	return fieldTimestampMap;
+    }
+    
+    public Column<CompositeColumnName> getLatestModifiedField(DataObjectType type, URI id) {
+        Column<CompositeColumnName> latestField = null;
+        ColumnFamily<String, CompositeColumnName> cf = type.getCF();
+        Keyspace ks = this.getKeyspace(type.getDataObjectClass());
+        Rows<String, CompositeColumnName> rows = this.queryRowsWithAllColumns(ks,
+                Lists.newArrayList(id), cf);
+        if (rows.isEmpty()) {
+            log.warn("Can not find the latest modified field of {}", id);
+            return latestField;
+        }
+        for (Column<CompositeColumnName> column : rows.iterator().next().getColumns()) {
+            if (latestField == null || column.getTimestamp() > column.getTimestamp()) {
+                latestField = column;
+            }
+        }
+
+        return latestField;
     }
 }

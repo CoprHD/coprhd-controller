@@ -190,8 +190,10 @@ public abstract class CommandHandler {
                 processTimeSeriesReq(args, _client);
                 return;
             }
-            if (args[1].equalsIgnoreCase(LIST_ACTIVE) ||
-                    args[1].equalsIgnoreCase(LIST_LIMIT)) {
+            
+            if (args[1].equalsIgnoreCase(LIST_ACTIVE)
+                    || args[1].equalsIgnoreCase(LIST_LIMIT)
+                    || args[1].equalsIgnoreCase(MODIFICATION_TIME)) {
                 processListArgs(args, _client);
             }
             cfName = args[args.length - 1];
@@ -292,28 +294,34 @@ public abstract class CommandHandler {
                 if (args[i].equalsIgnoreCase(LIST_ACTIVE)) {
                     _client.setActiveOnly(true);
                 }
-                if (args[i].equalsIgnoreCase(MODIFICATION_TIME)) {
-                	_client.setShowModificationTime(true);
-                }
                 if (args[i].equalsIgnoreCase(LIST_LIMIT)) {
                     _client.setTurnOnLimit(true);
                     if (args[i + 1].matches(REGEX_NUMBERS)) {
                         _client.setListLimit(Integer.valueOf(args[i + 1]));
                     }
                 }
+                if (args[i].equalsIgnoreCase(MODIFICATION_TIME)) {
+                    _client.setShowModificationTime(true);
+                }
             }
         }
     }
 
     public static class QueryHandler extends CommandHandler {
+        private static final String MODIFICATION_TIME = "-mf";
         String id = null;
 
-        public QueryHandler(String[] args) {
+        public QueryHandler(String[] args, DBClient _client) {
             if (args.length < 3) {
                 throw new IllegalArgumentException("Invalid query command ");
             }
-            cfName = args[1];
-            id = args[2];
+
+            if (args[1].equalsIgnoreCase(MODIFICATION_TIME)) {
+                _client.setShowModificationTime(true);
+            }
+
+            cfName = args[args.length - 2];
+            id = args[args.length - 1];
         }
 
         @Override

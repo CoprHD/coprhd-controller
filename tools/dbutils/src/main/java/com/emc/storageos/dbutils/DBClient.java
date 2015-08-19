@@ -8,6 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.emc.storageos.db.client.TimeSeriesMetadata;
 import com.emc.storageos.db.client.TimeSeriesQueryResult;
+import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.EncryptionProviderImpl;
@@ -24,6 +25,7 @@ import com.emc.storageos.geo.vdccontroller.impl.InternalDbClient;
 import com.emc.storageos.geomodel.VdcConfig;
 import com.emc.storageos.security.SerializerUtils;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.Column;
 import com.sun.jersey.core.spi.scanning.PackageNamesScanner;
 import com.sun.jersey.spi.scanning.AnnotationScannerListener;
 
@@ -157,7 +159,6 @@ public class DBClient {
             throws Exception {
 
         Iterator<T> objects;
-        BeanInfo bInfo;
         int countLimit = 0;
         int countAll = 0;
         String input;
@@ -165,13 +166,10 @@ public class DBClient {
 
         try {
             objects = _dbClient.queryIterativeObjects(clazz, ids);
-            bInfo = Introspector.getBeanInfo(clazz);
             while (objects.hasNext()) {
                 T object = (T) objects.next();
-                if (this.showModificationTime) {
-                    Map<String, Long> fieldModificationTimeMap = _dbClient.getFieldModificationTimestampMap(TypeMap.getDoType(clazz), object.getId());                	
-                }
-                printBeanProperties(bInfo.getPropertyDescriptors(), object);
+                printBeanProperties(clazz, object);
+                
                 countLimit++;
                 countAll++;
                 if (!turnOnLimit || countLimit != listLimit) {
@@ -194,9 +192,6 @@ public class DBClient {
             log.error("Error querying from db: " + ex);
             System.err.println("Error querying from db: " + ex);
             throw ex;
-        } catch (IntrospectionException ex) {
-            log.error("Unexpected exception getting bean info", ex);
-            throw new RuntimeException("Unexpected exception getting bean info", ex);
         } finally {
             buf.close();
         }
@@ -220,15 +215,7 @@ public class DBClient {
             return;
         }
 
-        BeanInfo bInfo;
-
-        try {
-            bInfo = Introspector.getBeanInfo(clazz);
-        } catch (IntrospectionException ex) {
-            throw new RuntimeException("Unexpected exception getting bean info", ex);
-        }
-
-        printBeanProperties(bInfo.getPropertyDescriptors(), object);
+        printBeanProperties(clazz, object);
     }
 
     /**
@@ -238,9 +225,18 @@ public class DBClient {
      * @param object
      * @throws Exception
      */
-    private <T extends DataObject> void printBeanProperties(PropertyDescriptor[] pds,
-            T object) throws Exception {
+    private <T extends DataObject> void printBeanProperties(Class<T> clazz, T object)
+            throws Exception {
         System.out.println("id: " + object.getId().toString());
+        BeanInfo bInfo;
+        try {
+            bInfo = Introspector.getBeanInfo(clazz);
+        } catch (IntrospectionException ex) {
+            log.error("Unexpected exception getting bean info", ex);
+            throw new RuntimeException("Unexpected exception getting bean info", ex);
+        }
+        
+        PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
         Object objValue;
         Class type;
         for (PropertyDescriptor pd : pds) {
@@ -277,6 +273,16 @@ public class DBClient {
             } else {
                 System.out.println(objValue);
             }
+        }
+        
+        if (this.showModificationTime) {
+            Column<CompositeColumnName> latestField = _dbClient
+                    .getLatestModifiedField(TypeMap.getDoType(clazz),
+                            object.getId());
+            System.out.println(String.format(
+                    "The latest modified time is %s on Field(%s).\n", new Date(
+                            latestField.getTimestamp() / 1000), latestField
+                            .getName().getOne()));
         }
     }
 

@@ -303,7 +303,7 @@ public class ScaleIORestClient extends StandardRestClient {
             scsiInits = getResponseObjects(ScaleIOScsiInitiator.class, response);
         } catch (Exception e) {
             // 1.32 and later does not support get ScsiInitiators
-            log.info("Caught exception:", e);
+            log.debug("This exception is expected for ScaleIO 1.32 and later, since iSCSI supported is removed. Exception:", e);
         }
         return scsiInits;
     }

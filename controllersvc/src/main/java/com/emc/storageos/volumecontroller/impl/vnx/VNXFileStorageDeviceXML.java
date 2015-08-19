@@ -146,7 +146,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
             }
             result = vnxComm.createFileSystem(storage,
                     args.getFsName(),
-                    args.getPoolName(),         // This will be used for CLI create FS
+                    args.getPoolName(),           // This will be used for CLI create FS
                     "1",
                     fsSize,
                     args.getThinProvision(),
@@ -281,14 +281,19 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
     public boolean doCheckFSExists(StorageSystem storage,
             FileDeviceInputOutput args) throws ControllerException {
         _log.info("checking file system existence on array: ", args.getFsName());
-        ApplicationContext context = null;
-        context = loadContext();
-        VNXFileCommApi vnxComm = loadVNXFileCommunicationAPIs(context);
-        if (null == vnxComm) {
-            throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
+        boolean isFSExists = true;
+        try {
+            ApplicationContext context = null;
+            context = loadContext();
+            VNXFileCommApi vnxComm = loadVNXFileCommunicationAPIs(context);
+            if (null == vnxComm) {
+                throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
+            }
+            isFSExists = vnxComm.checkFileSystemExists(storage, args.getFsNativeId(), args.getFsName());
+        } catch (VNXException e) {
+            _log.error("Querying FS existence failed");
         }
-        boolean result = vnxComm.checkFileSystemExists(storage, args.getFsNativeId(), args.getFsName());
-        return result;
+        return isFSExists;
     }
 
     @Override
@@ -720,12 +725,12 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
             VNXFileExport fileExport = new VNXFileExport(clients,
                     portName,
                     path,
-                    "",              // no security type
+                    "",                // no security type
                     smbFileShare.getPermission(),
-                    "",              // root user mapping n/a for CIFS
+                    "",                // root user mapping n/a for CIFS
                     VNXFileSshApi.VNX_CIFS,
-                    "",        // Port information is never used for for CIFS or NFS exports.
-                    "",         // SUB DIR
+                    "",          // Port information is never used for for CIFS or NFS exports.
+                    "",           // SUB DIR
                     ""); // Comments -- TODO
 
             fileExport.setExportName(smbFileShare.getName());

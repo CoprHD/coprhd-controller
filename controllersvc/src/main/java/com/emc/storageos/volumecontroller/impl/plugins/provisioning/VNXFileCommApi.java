@@ -249,15 +249,19 @@ public class VNXFileCommApi {
     public boolean checkFileSystemExists(StorageSystem system, String fileId, String fileSys) throws VNXException {
 
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
-        updateAttributes(reqAttributeMap, system);
-        reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSys);
-        reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fileId);
-        _provExecutor.setKeyMap(reqAttributeMap);
-        _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FSIDQUERY_FILE));
-        boolean isFsAvailable = false;
-        String cmdResult = (String) _provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
-        if (null != cmdResult && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
-            isFsAvailable = (Boolean) _provExecutor.getKeyMap().get(VNXFileConstants.IS_FILESYSTEM_AVAILABLE_ON_ARRAY);
+        boolean isFsAvailable = true;
+        try {
+            updateAttributes(reqAttributeMap, system);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSys);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fileId);
+            _provExecutor.setKeyMap(reqAttributeMap);
+            _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FSIDQUERY_FILE));
+            String cmdResult = (String) _provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
+            if (null != cmdResult && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
+                isFsAvailable = (Boolean) _provExecutor.getKeyMap().get(VNXFileConstants.IS_FILESYSTEM_AVAILABLE_ON_ARRAY);
+            }
+        } catch (Exception e) {
+            throw VNXException.exceptions.communicationFailed(e.getMessage());
         }
         return isFsAvailable;
     }

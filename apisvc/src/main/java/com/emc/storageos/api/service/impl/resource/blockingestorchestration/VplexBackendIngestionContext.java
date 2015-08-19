@@ -340,4 +340,19 @@ public class VplexBackendIngestionContext {
         return ingestedObjects;
     }
     
+    @Override
+    public String toString() {
+        StringBuilder s = new StringBuilder("VplexBackendIngestionContext --- ");
+        s.append("unmanaged virtual volume: ").append(this._unmanagedVirtualVolume).append(" || ");
+        s.append("unmanaged backend volume(s): ").append(this.getUnmanagedBackendVolumes()).append(" || ");
+        s.append("unmanaged snapshots: ").append(this.getUnmanagedSnapshots()).append(" || ");
+        s.append("unmanaged full clones: ").append(this.getUnmanagedFullClones()).append(" || ");
+        s.append("unmanaged backend only clones: ").append(this.getUnmanagedBackendOnlyClones()).append(" || ");
+        s.append("unmanaged mirrors: ").append(this.getUnmanagedMirrors()).append(" || ");
+        s.append("ingested objects: ").append(this.getIngestedObjects()).append(" || ");
+        s.append("created objects map: ").append(this.getCreatedObjectMap()).append(" || ");
+        s.append("updated objects map: ").append(this.getUpdatedObjectMap()).append(" || ");
+        s.append("processed unmanaged volumes: ").append(this.getProcessedUnManagedVolumeMap());
+        return s.toString();
+    }
 }

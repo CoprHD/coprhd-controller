@@ -123,13 +123,13 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         tenant, unManagedVolumesToBeDeleted, 
                         taskStatusMap, context);
 
-                
                 createVplexMirrorObjects(context);
                 handleFinalDetails(context);
                 handlePersistence(context);
             }
         } catch (Exception ex) {
             _logger.error("error during VPLEX backend ingestion: ", ex);
+            _logger.error(context.toString());
             throw IngestionException.exceptions.failedToIngestVplexBackend(ex.getLocalizedMessage());
         }
 
@@ -379,32 +379,17 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
     }
 
-    private void printExtraLogging(VplexBackendIngestionContext context) {
-        // TODO remove this excessive logging just for testing
-        for (BlockObject o : context.getIngestedObjects()) {
-            _logger.info("ingested object list entry: " + o.getNativeGuid());
-        }
-        for (BlockObject o : context.getCreatedObjectMap().values()) {
-            _logger.info("vplex created object map entry: " + o.getNativeGuid());
-        }
-        for (Entry<String, List<DataObject>> e : context.getUpdatedObjectMap().entrySet()) {
-            _logger.info("updated object map entry: " + e.getKey() + " : " + e.getValue());
-        }
-        for (UnManagedVolume umv : context.getProcessedUnManagedVolumeMap().values()) {
-            _logger.info("processed unmanaged volume entry: " + umv.getNativeGuid());
-        }
-    }
-
     private void handleFinalDetails(VplexBackendIngestionContext context) {
         for (BlockObject o : context.getIngestedObjects()) {
             if (o instanceof Volume) {
                 ((Volume) o).addInternalFlags(Flag.INTERNAL_OBJECT);
             }
         }
+        
+        _logger.info(context.toString());
     }
 
     private void handlePersistence(VplexBackendIngestionContext context) {
-        printExtraLogging(context);
         _dbClient.createObject(context.getIngestedObjects());
         _dbClient.createObject(context.getCreatedObjectMap().values());
         for (List<DataObject> dos : context.getUpdatedObjectMap().values()) {

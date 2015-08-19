@@ -253,6 +253,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
                     // set current version in zk
                     schemaUtil.setCurrentVersion(targetVersion);
                     log.info("current schema version is updated to {}", targetVersion);
+                    schemaUtil.dropUnusedCfsIfExists();
                 }
                 schemaUtil.setMigrationStatus(MigrationStatus.DONE);
                 // Remove migration checkpoint after done

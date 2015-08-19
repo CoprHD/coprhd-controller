@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualNAS.vNasState;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
@@ -485,6 +486,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         tempSet.add(vdm.getProtocol());
         vNas.setProtocols(tempSet);
         vNas.setId(URIUtil.createId(VirtualNAS.class));
+        vNas.setNasState(vNasState.LOADED.getNasState());
         return vNas;
 
     }
@@ -905,7 +907,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             VirtualNAS vNas = findvNasByNativeId(nativeId);
             
             vNas.setStoragePorts(tempList);
-            
+            _dbClient.persistObject(vNas);
         }
         
 

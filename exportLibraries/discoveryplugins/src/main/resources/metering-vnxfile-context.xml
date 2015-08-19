@@ -10,6 +10,7 @@
 		<property name="namespaces" ref="namespaces" />
 		<property name="partitionManager" ref="partitionManager"/>
 		<property name="xmlDumpGenerator" ref="fileXMLDumpgenerator"/>
+		<property name="xmlDumpGenerator" ref="fileXMLDumpgenerator"/>
 	</bean>
 
 	<bean id="vnxfileexecutor"
@@ -315,6 +316,7 @@
     <bean id="vnxstorageportstatsprocessor"
           class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXStoragePortStatsProcessor">
         <property name="unmarshaller" ref="unmarshaller"/>
+        <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
     </bean>
 		
 	<bean id="fileshareinfoprocessor"
@@ -389,4 +391,6 @@
     
     <bean id="fileXMLDumpgenerator" class="com.emc.storageos.volumecontroller.impl.plugins.metering.file.FileXMLStatsDumpGenerator" />
     <bean id="statsColumnInjector" class="com.emc.storageos.volumecontroller.impl.plugins.metering.file.FileDBInsertion" />
+    <bean id="portMetricsProcessor" class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor" >
+    </bean>
 </beans>

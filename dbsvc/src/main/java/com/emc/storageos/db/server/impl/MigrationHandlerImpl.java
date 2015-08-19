@@ -367,8 +367,6 @@ public class MigrationHandlerImpl implements MigrationHandler {
         try {
             reader = new BufferedReader(new StringReader(record.getSchema()));
             DbSchemas schemas = DbSchemaChecker.unmarshalSchemas(version, reader);
-            log.info("{} drop unused schema if exists", version);
-            schemas.removeUnusedSchemaIfExists();
             return schemas;
         } finally {
             if (reader != null) {

@@ -296,6 +296,8 @@ public class DbSchemaChecker {
             Unmarshaller um = jc.createUnmarshaller();
 
             schemas = (DbSchemas) um.unmarshal(reader);
+            log.info("{} drop unused schema if exists", version);
+            removeUnusedSchemaIfExists(schemas, DbSchemaInterceptorImpl.getIgnoreCfList());
             if (DbSchemaFilter.needDoFilterFor(version)) {
                 log.info("filter out the garbage fileds for {}", version);
                 DbSchemaFilter.doFilter(schemas);
@@ -305,6 +307,28 @@ public class DbSchemaChecker {
         }
 
         return schemas;
+    }
+
+    /**
+     * drop schema from db is not allowed, but we have special cases to drop schema such as:
+     * Data Service separation, we drop schema used by Data Service to perform cleanup,
+     * during migration we convert xml-based schema stored in db to DbSchemas object as previous
+     * schema, the dropped schema needs to be skipped before schema comparison in order to removed
+     * schema , otherwise migration will fail because of unsupported schema change.
+     * 
+     * @param schemas
+     * @param ignoreSchemaNames, the list of schema names which needs to be removed from schemas
+     * @return
+     */
+    private static void removeUnusedSchemaIfExists(DbSchemas schemas, List<String> ignoreSchemaNames) {
+        Iterator<DbSchema> it = schemas.getSchemas().iterator();
+        while (it.hasNext()) {
+            DbSchema schema = it.next();
+            if (ignoreSchemaNames.contains(schema.getName())) {
+                log.info("skip schema:{} since it's removed", schema.getName());
+                it.remove();
+            }
+        }
     }
 
     /*

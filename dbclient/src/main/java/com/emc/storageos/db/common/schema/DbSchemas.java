@@ -88,17 +88,4 @@ public class DbSchemas {
 
         return schemaDuplicateColumns;
     }
-    
-    public void removeUnusedSchemaIfExists() {
-    	Iterator<DbSchema> it = this.schemas.iterator();
-    	List<String> ignoreSchemaNames = DbSchemaInterceptorImpl.getIgnoreCfList();
-    	while (it.hasNext()) {
-    		DbSchema schema = it.next();
-    		if (ignoreSchemaNames.contains(schema.getName())) {
-    			log.info("skip schema:{} since it's removed", schema.getName());
-    			it.remove();
-    		}
-    	}
-	}
-
 }

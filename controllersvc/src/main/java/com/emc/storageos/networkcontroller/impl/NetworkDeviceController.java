@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.networkcontroller.impl;
 
-import java.io.IOException;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -268,7 +267,7 @@ public class NetworkDeviceController implements NetworkController {
 
     @Override
     public List<Zoneset> getZonesets(URI uri, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers,
-    		 boolean excludeAliases) throws ControllerException {
+            boolean excludeAliases) throws ControllerException {
         NetworkSystem device = getDeviceObject(uri);
         // Get the file device reference for the type of file device managed
         // by the controller.
@@ -1256,19 +1255,6 @@ public class NetworkDeviceController implements NetworkController {
             WorkflowStepCompleter.stepFailed(token, svcError);
             return status;
         }
-    }
-
-    private List<Initiator> getInitiatorsFromMapExportMasksToInitiators(Map<URI, List<URI>> exportMasksToInitiators) {
-        Set<URI> uris = new HashSet<URI>();
-        for (Collection<URI> col : exportMasksToInitiators.values()) {
-            uris.addAll(col);
-        }
-        List<Initiator> initiators = new ArrayList<Initiator>();
-        Iterator<Initiator> itr = _dbClient.queryIterativeObjects(Initiator.class, uris, true);
-        while (itr.hasNext()) {
-            initiators.add(itr.next());
-        }
-        return initiators;
     }
 
     /**

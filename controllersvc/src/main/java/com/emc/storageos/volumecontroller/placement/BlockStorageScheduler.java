@@ -143,8 +143,7 @@ public class BlockStorageScheduler {
             Collection<URI> volumeURIs,
             NetworkDeviceController networkDeviceController) throws DeviceControllerException {
         Map<URI, List<URI>> assignmentMap = null;
-        if (NetworkScheduler.isZoningRequired(_dbClient, virtualArray) || networkDeviceController == null ||
-                networkDeviceController.portAllocationIgnoreExistingZones()) {
+        if (!allocateFromPrezonedPortsOnly(networkDeviceController, virtualArray)) {
             try {
                 assignmentMap = internalAssignStoragePorts(storage, virtualArray,
                         initiators, volumeURIs, pathParams, existingZoningMap);
@@ -420,7 +419,8 @@ public class BlockStorageScheduler {
                 URI exportGroupURI = exportGroupURIs.iterator().next();
                 ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
                 if (ExportUtils.checkIfExportGroupIsRP(exportGroup)) {
-                    _log.info("filterStoragePortsForRPVMAX - Found that exporting volumes that are being split by VMAX.  Examining storage ports and qualifying only storage ports used in the RecoverPoint masking view(s)");
+                    _log.info("filterStoragePortsForRPVMAX - Found that exporting volumes that are being split by VMAX.  "
+                            + "Examining storage ports and qualifying only storage ports used in the RecoverPoint masking view(s)");
                     // Explore storage ports in the masking views and collect them.
                     Set<URI> rpTargetPorts = new HashSet<URI>();
                     if (exportGroup.getExportMasks() == null) {
@@ -457,11 +457,13 @@ public class BlockStorageScheduler {
                             if (!rpTargetPorts.contains(port.getId())) {
                                 removePorts.add(port);
                                 _log.info(
-                                        "filterStoragePortsForRPVMAX - Found that RP masking view does not use port {}, so it does not qualify for host/cluster export",
+                                        "filterStoragePortsForRPVMAX - Found that RP masking view does not use port {}, "
+                                                + "so it does not qualify for host/cluster export",
                                         port.getPortName());
                             } else {
                                 _log.info(
-                                        "filterStoragePortsForRPVMAX - Found that RP masking view uses port {}, so it qualifies for host/cluster export",
+                                        "filterStoragePortsForRPVMAX - Found that RP masking view uses port {}, "
+                                                + "so it qualifies for host/cluster export",
                                         port.getPortName());
                             }
                         }
@@ -663,7 +665,6 @@ public class BlockStorageScheduler {
      * 
      * @param assignments Map<Initiator, List<StoragePort> the new assignments
      * @param newZoningMap the new zoning map being generated.
-     * @return Map<URI, List<URI>> Map of Initiator URI to a list of StoragePort URIs
      */
     private void addAssignmentsToZoningMap(Map<Initiator, List<StoragePort>> assignments, StringSetMap newZoningMap) {
         for (Initiator initiator : assignments.keySet()) {
@@ -953,9 +954,9 @@ public class BlockStorageScheduler {
                     || StoragePort.OperationalStatus.NOT_OK.equals(StoragePort.OperationalStatus.valueOf(sp.getOperationalStatus()))
                     || StoragePort.PortType.valueOf(sp.getPortType()) != StoragePort.PortType.frontend) {
                 _log.debug(
-                        "Storage port {} is not selected because it is inactive, is not compatible, is not visible, has no network assignment, "
-                                +
-                                "is not registered, has a status other than OK, or is not a frontend port", sp.getLabel());
+                        "Storage port {} is not selected because it is inactive, is not compatible, "
+                                + "is not visible, has no network assignment, "
+                                + "is not registered, has a status other than OK, or is not a frontend port", sp.getLabel());
                 notRegisteredOrOk.add(portName(sp));
                 continue;
             }
@@ -1064,12 +1065,14 @@ public class BlockStorageScheduler {
                     wrongNetwork.add(portName(sp));
                 }
             }
-            if (!wrongNetwork.isEmpty())
+            if (!wrongNetwork.isEmpty()) {
                 _log.info("Ports not selected because they are not in the requested network: "
                         + networkURI + " " + Joiner.on(" ").join(wrongNetwork));
-            if (!rspList.isEmpty() && !spList.isEmpty())
+            }
+            if (!rspList.isEmpty() && !spList.isEmpty()) {
                 _log.info("Ports not selected because they are routed and local ports are available: "
                         + networkURI + " " + Joiner.on(" ").join(routedPorts));
+            }
             _log.info("Ports that were selected: " +
                     (spList.isEmpty() ? Joiner.on(" ").join(routedPorts) : Joiner.on(" ").join(unroutedPorts)));
             portsInNetwork.put(networkLite, spList.isEmpty() ? rspList : spList);
@@ -1289,8 +1292,9 @@ public class BlockStorageScheduler {
      */
     static public List<URI> getTargetURIsFromAssignments(Map<URI, List<URI>> assignments, StringSetMap map) {
         Set<URI> targets = new HashSet<URI>();
-        for (List<URI> portList : assignments.values())
+        for (List<URI> portList : assignments.values()) {
             targets.addAll(portList);
+        }
         for (String ini : map.keySet()) {
             if (map.get(ini) != null) {
                 for (String portUri : map.get(ini)) {

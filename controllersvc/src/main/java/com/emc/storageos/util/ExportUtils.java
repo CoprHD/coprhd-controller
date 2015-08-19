@@ -1152,13 +1152,15 @@ public class ExportUtils {
                 spList.add(sp);
             }
         }
-        if (!notRegisteredOrOk.isEmpty())
+        if (!notRegisteredOrOk.isEmpty()) {
             _log.info("Ports not selected because they are inactive, have no network assignment, " +
                     "are not registered, bad operational status, or not type front-end: "
                     + Joiner.on(" ").join(notRegisteredOrOk));
-        if (!notInVarray.isEmpty())
+        }
+        if (!notInVarray.isEmpty()) {
             _log.info("Ports not selected because they are not assigned to the requested virtual array: "
                     + varrayURI + " " + Joiner.on(" ").join(notInVarray));
+        }
         return spList;
     }
 

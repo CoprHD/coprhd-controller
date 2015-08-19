@@ -725,8 +725,9 @@ public class NetworkScheduler {
             for (URI volumeURI : volumeURIs) {
                 BlockObject volume = BlockObject.fetch(_dbClient, volumeURI);
                 // If the volume is from a different device, don't create a reference.
-                if (!volume.getStorageController().equals(sp.getStorageDevice()))
+                if (!volume.getStorageController().equals(sp.getStorageDevice())) {
                     continue;
+                }
                 NetworkFCZoneInfo volZoneInfo = zoneInfo.clone();
                 volZoneInfo.setVolumeId(volumeURI);
                 zoneInfos.add(volZoneInfo);

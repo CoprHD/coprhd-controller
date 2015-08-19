@@ -179,8 +179,9 @@ public class NetworkUtil {
         NetworkLite networkLite = null;
         for (URI uri : uris) {
             networkLite = getNetworkLite(uri, dbClient);
-            if (networkLite != null)
+            if (networkLite != null) {
                 networks.add(networkLite);
+            }
         }
         return networks;
     }

@@ -727,8 +727,9 @@ public class ExportMaskUtils {
      */
     static public StringSetMap getZoneMapFromAssignments(Map<URI, List<URI>> assignments, StringSetMap existingZones) {
         StringSetMap zoneMap = new StringSetMap();
-        if (existingZones != null)
+        if (existingZones != null) {
             zoneMap.putAll(existingZones);
+        }
         for (URI initiatorURI : assignments.keySet()) {
             StringSet portIds = new StringSet();
             List<URI> portURIs = assignments.get(initiatorURI);

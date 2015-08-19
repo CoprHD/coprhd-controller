@@ -351,6 +351,9 @@ public class DbCli {
                                 throw new Exception("field format exception");
                             }
                             StringSetMap sMap = (StringSetMap) pd.getReadMethod().invoke(object);
+                            if (sMap == null) {
+                                sMap = new StringSetMap();
+                            }
                             Set<String> keys = sMap.keySet();
                             for (String key : keys) {
                                 sMap.remove(key);

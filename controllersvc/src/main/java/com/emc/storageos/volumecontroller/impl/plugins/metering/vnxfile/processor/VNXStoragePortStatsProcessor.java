@@ -60,6 +60,8 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor{
                         (Map<String, Map<String, List<String>>>)keyMap.get(VNXFileConstants.INTREFACE_PORT_MAP); 
                 StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, profile.getSystemId());
                 
+                List<Stat> newstatsList = null;
+                
                 //process response
                 List<Object> queryResponse = getQueryResponse(responsePacket);
                 Iterator<Object> queryRespItr = queryResponse.iterator();
@@ -77,7 +79,7 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor{
                         
                         Map<String, BigInteger> stringMapPortIOs = new HashMap<String, BigInteger>();
                         //process Moverstats per port and storage in map 
-                        getPortIOs(sampleList, stringMapPortIOs);
+                        getPortI0Traffic(sampleList, stringMapPortIOs);
                         
                         //process mover stats per data mover
                         String moverId = moverNetStats.getMover();
@@ -87,8 +89,12 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor{
                         long sampleTime = sampleList.get(0).getTime();
                         
                         //process the port metrics
-                        processInterfaceInfo(interPortMap, stringMapPortIOs, 
+                        newstatsList = processPortStatsInfo(interPortMap, stringMapPortIOs, 
                                                     storageSystem, dbClient, sampleTime);
+                        
+                        //finally add to stat object
+                        statsList.addAll(newstatsList);
+ 
                     }
                 }
                 
@@ -110,13 +116,14 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor{
         
     }
     
-    private void processInterfaceInfo(Map<String, List<String>> interPortMap, 
+    private List<Stat> processPortStatsInfo(Map<String, List<String>> interPortMap, 
                                         Map<String, BigInteger> stringMapPortIOs, 
                                         StorageSystem storageSystem, DbClient dbClient,
                                         Long sampleTime) {
         
         //get the interfaces and corresponding port
-        
+        List<Stat> stat = new ArrayList<Stat>();
+        Stat fePortStat = null;
         for (Entry<String, List<String>> entry : interPortMap.entrySet()) {
             String interfaceIP = entry.getKey();
             List<String> portList = entry.getValue();
@@ -143,11 +150,16 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor{
             //send port metrics processor to store the content
             portMetricsProcessor.processFEPortMetrics(0L, iopes, storagePort, sampleTime);
             
+            //finally add above value to stat object
+            fePortStat =preparePortStatInfo(portNativeGuid, storagePort.getId(), iopes, sampleTime);
+            stat.add(fePortStat);
         }
+        
+        return stat;
     }
     
     /* get IO traffic(in + out) from sample list */
-    private Map<String, BigInteger>  getPortIOs(List<MoverNetStats.Sample> sampleList , 
+    private Map<String, BigInteger>  getPortI0Traffic(List<MoverNetStats.Sample> sampleList , 
                                                         Map<String, BigInteger> stringMapPortIOs)
     {
         //Mover stats
@@ -186,6 +198,19 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor{
             }
         }
         return port;
+    }
+    
+    /* prepare the port stat info*/
+    private Stat preparePortStatInfo(String nativeId, URI resourceId, long iops, long timeSample) {
+        Stat fePortStat = new Stat();
+        fePortStat.setServiceType(Constants._File);
+        fePortStat.setTimeCollected(timeSample);
+        fePortStat.setResourceId(resourceId);
+        fePortStat.setNativeGuid(nativeId);
+        fePortStat.setTotalIOs(iops);
+        
+        return fePortStat;
+        
     }
     
     public void setPortMetricsProcessor(PortMetricsProcessor portMetricsProcessor) {

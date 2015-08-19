@@ -87,9 +87,9 @@ public class VplexBackendIngestionContext {
                     VPlexControllerUtils.getStorageVolumeInfoForDevice(
                             deviceName, locality, 
                             _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
-            
         } catch (VPlexApiException ex) {
             _logger.error("could not determine backend storage volumes for {}: ", _unmanagedVirtualVolume.getLabel(), ex);
+            throw IngestionException.exceptions.failedToGetStorageVolumeInfoForDevice(deviceName, ex.getLocalizedMessage());
         }
         
         if (null != backendVolumeWwns) {
@@ -109,7 +109,6 @@ public class VplexBackendIngestionContext {
             }
         }
         
-
         unmanagedBackendVolumes = _dbClient.queryObject(UnManagedVolume.class, associatedVolumeUris);
         
         _logger.info("for VPLEX UnManagedVolume {} found these associated volumes: " + unmanagedBackendVolumes, _unmanagedVirtualVolume.getId());

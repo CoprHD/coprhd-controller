@@ -151,4 +151,7 @@ public interface IngestionExceptions {
     
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException failedToFindAllVplexBackendVolumes(String virtualVolumeName, String supportingDeviceName, String volumesFound);
+    
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException failedToGetStorageVolumeInfoForDevice(String supportingDeviceName, String reason);
 }

@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.BeforeClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClientFactory;
@@ -19,6 +21,7 @@ import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import com.emc.storageos.services.util.EnvConfig;
 
 public class ScaleIORestClientTest {
+    private static Logger log = LoggerFactory.getLogger(ScaleIORestClient.class);
     private static ScaleIORestClient restClient;
     private static final String UNIT_TEST_CONFIG_FILE = "sanity";
     private static final String HOST = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.ipaddress");
@@ -40,20 +43,17 @@ public class ScaleIORestClientTest {
 
     }
 
-
     // @Test
     public void testGetVersion() {
         String result = null;
         try {
             result = restClient.getVersion();
         } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            log.error("Exception: ", e);
         }
 
         System.out.printf("version %s", result);
     }
-
 
     // @Test
     public void testQuerySDS() {
@@ -64,11 +64,11 @@ public class ScaleIORestClientTest {
                 String sdsId = sds.getId();
                 String sdsPort = sds.getPort();
                 String sdsIp = sds.getIpList().get(0).getIp();
-                System.out.printf("Sds id : %s  port : %s  IP: %s \n", sdsId, sdsPort, sdsIp);
-             
+                System.out.printf("Sds id : %s  port : %s  IP: %s %n", sdsId, sdsPort, sdsIp);
+
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Exception: ", e);
         }
     }
 
@@ -87,7 +87,7 @@ public class ScaleIORestClientTest {
 
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Exception: ", e);
         }
     }
 
@@ -97,7 +97,7 @@ public class ScaleIORestClientTest {
             ScaleIOVolume result = restClient.addVolume("a", "d924dfbf00000002", "volTest3", "1073741824", true);
             System.out.printf("created volume id: %s", result.getId());
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Exception: ", e);
         }
     }
 
@@ -107,7 +107,7 @@ public class ScaleIORestClientTest {
             restClient.removeVolume("537b42c60000002a");
             System.out.println("removed.");
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Exception: ", e);
         }
     }
 
@@ -122,6 +122,7 @@ public class ScaleIORestClientTest {
             System.out.println("size is :" + sizeInGB.toString());
         } catch (Exception e) {
             e.printStackTrace();
+            log.error("Exception: ", e);
         }
     }
 
@@ -132,7 +133,7 @@ public class ScaleIORestClientTest {
             String volId = "537b69d70000003c";
             restClient.mapVolumeToSDC(volId, sdcId);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Exception: ", e);
         }
     }
 
@@ -143,7 +144,7 @@ public class ScaleIORestClientTest {
             String volId = "537b69d70000003c";
             restClient.unMapVolumeToSDC(volId, sdcId);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Exception: ", e);
         }
     }
 
@@ -159,7 +160,7 @@ public class ScaleIORestClientTest {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Exception: ", e);
         }
     }
 
@@ -172,7 +173,7 @@ public class ScaleIORestClientTest {
             restClient.snapshotMultiVolume(map, restClient.getSystemId());
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Exception: ", e);
         }
     }
 
@@ -183,7 +184,7 @@ public class ScaleIORestClientTest {
             System.out.println("removed");
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Exception: ", e);
         }
     }
 }

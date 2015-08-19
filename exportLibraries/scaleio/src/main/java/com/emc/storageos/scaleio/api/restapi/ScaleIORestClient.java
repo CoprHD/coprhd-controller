@@ -57,23 +57,22 @@ import com.google.gson.Gson;
 public class ScaleIORestClient extends StandardRestClient {
 
     private static Logger log = LoggerFactory.getLogger(ScaleIORestClient.class);
-    ScaleIORestClientFactory factory;
 
     /**
      * Constructor
+     * 
      * @param factory A reference to the ScaleIORestClientFactory
      * @param baseURI the base URI to connect to ScaleIO Gateway
      * @param client A reference to a Jersey Apache HTTP client.
      * @param username The MDM usernam.
      * @param password The MDM user password.
      */
-    public ScaleIORestClient(ScaleIORestClientFactory factory, URI baseURI, String username, String password, Client client) {
+    public ScaleIORestClient(URI baseURI, String username, String password, Client client) {
         _client = client;
         _base = baseURI;
         _username = username;
         _password = password;
         _authToken = "";
-        this.factory = factory;
     }
 
     public void setUsername(String username) {
@@ -85,8 +84,7 @@ public class ScaleIORestClient extends StandardRestClient {
     }
 
     public String init() throws Exception {
-        String version = getVersion();
-        return version;
+        return getVersion();
     }
 
     /**
@@ -301,11 +299,11 @@ public class ScaleIORestClient extends StandardRestClient {
         log.info("Discovery all SCSI Initiators");
         List<ScaleIOScsiInitiator> scsiInits = Collections.emptyList();
         try {
-        	ClientResponse response = get(URI.create(ScaleIOConstants.GET_SCSI_INITIATOR_URI));
-        	scsiInits = getResponseObjects(ScaleIOScsiInitiator.class, response);
+            ClientResponse response = get(URI.create(ScaleIOConstants.GET_SCSI_INITIATOR_URI));
+            scsiInits = getResponseObjects(ScaleIOScsiInitiator.class, response);
         } catch (Exception e) {
-        	//1.32 and later does not support get ScsiInitiators
-        	log.info("Caught exception:", e);
+            // 1.32 and later does not support get ScsiInitiators
+            log.info("Caught exception:", e);
         }
         return scsiInits;
     }
@@ -365,30 +363,26 @@ public class ScaleIORestClient extends StandardRestClient {
     @Override
     protected void authenticate() {
         log.info("Authenticating");
-        try {
-            _client.removeAllFilters();
-            _client.addFilter(new HTTPBasicAuthFilter(_username, _password));
-            if (log.isDebugEnabled()) {
-                _client.addFilter(new LoggingFilter(System.out));
-            }
-            URI requestURI = _base.resolve(URI.create(ScaleIOConstants.API_LOGIN));
-            ClientResponse response = _client.resource(requestURI).type(MediaType.APPLICATION_JSON)
-                    .get(ClientResponse.class);
 
-            if (response.getClientResponseStatus() != ClientResponse.Status.OK
-                    && response.getClientResponseStatus() != ClientResponse.Status.CREATED) {
-                throw ScaleIOException.exceptions.authenticationFailure(_base.toString());
-            }
-            _authToken = response.getEntity(String.class).replace("\"", "");
-            _client.removeAllFilters();
-            _client.addFilter(new HTTPBasicAuthFilter(_username, _authToken));
-            if (log.isDebugEnabled()) {
-                _client.addFilter(new LoggingFilter(System.out));
-            }
-        } catch (Exception e) {
-            ScaleIOException.exceptions.authenticationFailure(_base.toString());
+        _client.removeAllFilters();
+        _client.addFilter(new HTTPBasicAuthFilter(_username, _password));
+        if (log.isDebugEnabled()) {
+            _client.addFilter(new LoggingFilter(System.out));
         }
+        URI requestURI = _base.resolve(URI.create(ScaleIOConstants.API_LOGIN));
+        ClientResponse response = _client.resource(requestURI).type(MediaType.APPLICATION_JSON)
+                .get(ClientResponse.class);
 
+        if (response.getClientResponseStatus() != ClientResponse.Status.OK
+                && response.getClientResponseStatus() != ClientResponse.Status.CREATED) {
+            throw ScaleIOException.exceptions.authenticationFailure(_base.toString());
+        }
+        _authToken = response.getEntity(String.class).replace("\"", "");
+        _client.removeAllFilters();
+        _client.addFilter(new HTTPBasicAuthFilter(_username, _authToken));
+        if (log.isDebugEnabled()) {
+            _client.addFilter(new LoggingFilter(System.out));
+        }
     }
 
     @Override

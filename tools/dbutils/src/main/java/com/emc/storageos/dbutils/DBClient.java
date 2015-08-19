@@ -323,7 +323,6 @@ public class DBClient {
     @SuppressWarnings("unchecked")
     public void listRecords(String cfName) throws Exception {
         final Class clazz = _cfMap.get(cfName); // fill in type from cfName
-        final DataObjectType doType = TypeMap.getDoType(clazz);
         if (clazz == null) {
             System.err.println("Unknown Column Family: " + cfName);
             return;

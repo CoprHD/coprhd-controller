@@ -79,10 +79,7 @@ public class FileStorageScheduler {
         List<Recommendation> poolRecommendations =
                 _scheduler.getRecommendationsForPools(vArray.getId().toString(), candidatePools, capabilities);
 
-        List<FileRecommendation> recommendations =
-                selectStorageHADomainMatchingVpool(vPool, vArray.getId(), poolRecommendations);
-        
-        List<FileRecommendation> recommendationsBasedOnVNAS = getRecommendedStoragePortsForVNAS(vPool, poolRecommendations, project);
+        List<FileRecommendation> recommendations = getRecommendedStoragePortsForVNAS(vPool, poolRecommendations, project);
         // We need to place all the resources. If we can't then
         // log an error and clear the list of recommendations.
         if (recommendations.isEmpty()) {
@@ -120,11 +117,14 @@ public class FileStorageScheduler {
             			spURIList.add(sp.getId());
             		}
             		rec.setStoragePorts(spURIList);
+            		result.add(rec);
             	}
+            } else {
+            	result.add(rec);
             }
         
         }
-		return null;
+		return result;
 	}
 
 	private List<StoragePort> getStoragePortsOfHAvNAS(Project project, StringSet protocols) {

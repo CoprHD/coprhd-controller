@@ -817,22 +817,28 @@ public class ProjectService extends TaggedResource {
     }
 
     public StringSet validateVNASServers(Project project, AssignVNASParam param) {
-        boolean isValid = false;
         Set<String> vNasId = param.getVnasServers();
         StringSet validNas = new StringSet();
         if (vNasId != null && !vNasId.isEmpty()) {
             for (String id : vNasId) {
                 URI vnasURI = URI.create(id);
                 VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
-                // Check list of vNAS servers are not tagged with any project
-                // Check list of vNAS servers are in loaded state
-                if (vnas.getProject() == null && vnas.getVNasState() == "loaded") {
-                    validNas.add(id);
+
+                // Check list of VNAS servers are part of varray
+                if (vnas.getTaggedVirtualArrays() != null && !vnas.getTaggedVirtualArrays().isEmpty()) {
+
+                    // Check list of vNAS servers are not tagged with any project
+                    // Check list of vNAS servers are in loaded state
+                    if (vnas.getProject() == null && vnas.getVNasState().equalsIgnoreCase(VirtualNAS.vNasState.Loaded.name())) {
+                        validNas.add(id);
+                        vnas.setProject(project.getId());
+                        _dbClient.persistObject(vnas);
+                        _log.info("VNAS server {} successfully assigned to project {} ", vnas.getLabel(), project.getLabel());
+                    }
                 }
             }
         }
 
-        // 3. Check list of vnas servers are part of varray
         // 4. Check list of vnas servers and project are in same domain
         // 5. Check No FS is created through any project while assigning VDM (Upgrade case)
         NamedURI tenantUri = project.getTenantOrg();

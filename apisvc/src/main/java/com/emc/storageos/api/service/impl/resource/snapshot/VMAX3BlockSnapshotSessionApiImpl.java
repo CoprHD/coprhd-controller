@@ -127,10 +127,10 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      * {@inheritDoc}
      */
     @Override
-    public void validatLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
+    public void validateLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
             String newTargetCopyMode) {
         // Do the super class validation.
-        super.validatLinkNewTargetsRequest(snapSessionSourceObj, project, newTargetsCount, newTargetCopyMode);
+        super.validateLinkNewTargetsRequest(snapSessionSourceObj, project, newTargetsCount, newTargetCopyMode);
 
         // Verify new target copy mode is a valid value.
         verifyNewTargetCopyMode(newTargetCopyMode);
@@ -147,5 +147,18 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapSessionSourceObj.getStorageController());
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
         controller.linkNewTargetVolumesToSnapshotSession(storageSystem.getId(), snapSession.getId(), snapshotURIs, copyMode, taskId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void unlinkTargetVolumesFromSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
+            Map<URI, Boolean> snapshotDeletionMap, String taskId) {
+        // Invoke the BlockDeviceController to unlink the targets
+        // from the snapshot session.
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapSessionSourceObj.getStorageController());
+        BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
+        controller.unlinkTargetsFromSnapshotSession(storageSystem.getId(), snapSession.getId(), snapshotDeletionMap, taskId);
     }
 }

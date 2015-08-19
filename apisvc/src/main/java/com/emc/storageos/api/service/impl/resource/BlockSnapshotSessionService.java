@@ -24,6 +24,7 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionBulkRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
+import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -51,7 +52,7 @@ public class BlockSnapshotSessionService extends TaskResourceService {
      *            new targets will be linked.
      * @param param The linked target information.
      * 
-     * @return A TaskList.
+     * @return A TaskResourceRep representing the snapshot session task.
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -80,12 +81,26 @@ public class BlockSnapshotSessionService extends TaskResourceService {
         return null;
     }
 
+    /**
+     * The method implements the API to unlink target volumes from an existing
+     * BlockSnapshotSession instance and optionally delete those target volumes.
+     * 
+     * @brief Unlink target volumes from a snapshot session.
+     * 
+     * @prereq A snapshot session is created and target volumes have previously
+     *         been linked to that snapshot session.
+     * 
+     * @param id The URI of the BlockSnapshotSession instance to which the targets are linked.
+     * @param param The linked target information.
+     * 
+     * @return A TaskResourceRep representing the snapshot session task.
+     */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/unlink-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskList unlinkTargetVolumes(@PathParam("id") URI id) {
-        return null;
+    public TaskResourceRep unlinkTargetVolumesForSession(@PathParam("id") URI id, SnapshotSessionUnlinkTargetsParam param) {
+        return getSnapshotSessionManager().unlinkTargetVolumesFromSnapshotSession(id, param);
     }
 
     /**

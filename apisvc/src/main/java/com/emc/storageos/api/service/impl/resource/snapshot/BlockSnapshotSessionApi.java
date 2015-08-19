@@ -7,6 +7,9 @@ package com.emc.storageos.api.service.impl.resource.snapshot;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import javax.ws.rs.core.UriInfo;
 
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -94,7 +97,7 @@ public interface BlockSnapshotSessionApi {
      * @param newTargetsCount The number of new targets to create and link to the session.
      * @param newTargetCopyMode The copy mode for newly linked targets.
      */
-    public void validatLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
+    public void validateLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
             String newTargetCopyMode);
 
     /**
@@ -108,5 +111,30 @@ public interface BlockSnapshotSessionApi {
      * @param taskId A unique task identifier.
      */
     public void linkNewTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-            List<URI> snapshorURIs, int newTargetsCount, String copyMode, String taskId);
+            List<URI> snapshotURIs, int newTargetsCount, String copyMode, String taskId);
+
+    /**
+     * Validates a link new targets to block snapshot session request.
+     * 
+     * @param snapSession A reference to the BlockSnapshotSession instance.
+     * @param snapSessionSourceObj A reference to the snapshot session source.
+     * @param project A reference to the source project.
+     * @param snapshotURIs The URI of the BlockSnapshot instances representing the linked targets.
+     * @param uriInfo A reference to the URI information.
+     */
+    public void validateUnlinkSnapshotSessionTargets(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, Project project,
+            Set<URI> snapshotURIs, UriInfo uriInfo);
+
+    /**
+     * Unlinks the targets represented by the BlockSnapshot instances with the passed
+     * URIs from the passed BlockSnapshotSession.
+     * 
+     * @param snapSessionSourceObj A reference to the snapshot session source.
+     * @param snapSession A reference to the BlockSnapshotSession instance.
+     * @param snapshotMap A map of the containing the URIs of the BlockSnapshot instances representing the targets to be unlinked and
+     *            whether or not each target should be deleted.
+     * @param taskId A unique task identifier.
+     */
+    public void unlinkTargetVolumesFromSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
+            Map<URI, Boolean> snapshotDeletionMap, String taskId);
 }

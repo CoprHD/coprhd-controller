@@ -446,4 +446,13 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
             String copyMode, String opId) {
         blockRMI("linkNewTargetVolumesToSnapshotSession", systemURI, snapSessionURI, snapshotURIs, copyMode, opId);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void unlinkTargetsFromSnapshotSession(URI systemURI, URI snapSessionURI,
+            Map<URI, Boolean> snapshotDeletionMap, String opId) {
+        blockRMI("unlinkTargetVolumesFromSnapshotSession", systemURI, snapSessionURI, snapshotDeletionMap, opId);
+    }
 }

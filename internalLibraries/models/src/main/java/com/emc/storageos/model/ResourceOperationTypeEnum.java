@@ -272,7 +272,8 @@ public enum ResourceOperationTypeEnum {
     UPDATE_VCENTER_CLUSTER("UPDATE VCENTER CLUSTER", "update a cluster in vCenter server"),
     SYS_EVENT("SYSTEM EVENT", "System Event"),
     CREATE_SNAPSHOT_SESSION("CREATE SNAPSHOT SESSION", "create a snapshot session"),
-    LINK_SNAPSHOT_SESSION_TARGETS("LINK SNAPSHOT SESSION TARGETS", "links target volumes to a snapshot session");
+    LINK_SNAPSHOT_SESSION_TARGETS("LINK SNAPSHOT SESSION TARGETS", "links target volumes to a snapshot session"),
+    UNLINK_SNAPSHOT_SESSION_TARGETS("UNLINK SNAPSHOT SESSION TARGETS", "unlinks target volumes from a snapshot session");
 
     private final String name;
     private final String description;

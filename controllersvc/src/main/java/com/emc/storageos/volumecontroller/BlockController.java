@@ -421,4 +421,17 @@ public interface BlockController extends BlockStorageManagementController {
      */
     public void linkNewTargetVolumesToSnapshotSession(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs,
             String copyMode, String opId) throws InternalException;
+
+    /**
+     * Unlinks the targets represented by the BlockSnapshot instances with the passed
+     * URIs from the BlockSnapshotSession with the passed URI.
+     * 
+     * @param systemURI The URI of the storage system.
+     * @param snapSessionURI The URI of the snapshot session.
+     * @param snapshotMap A map of the containing the URIs of the BlockSnapshot instances representing the targets to be unlinked and
+     *            whether or not each target should be deleted.
+     * @param opId The unique task identifier.
+     */
+    public void unlinkTargetsFromSnapshotSession(URI systemURI, URI snapSessionURI,
+            Map<URI, Boolean> snapshotDeletionMap, String opId);
 }

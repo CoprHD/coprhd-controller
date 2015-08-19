@@ -8,8 +8,10 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.ws.rs.core.SecurityContext;
+import javax.ws.rs.core.UriInfo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -359,7 +361,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * {@inheritDoc}
      */
     @Override
-    public void validatLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
+    public void validateLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
             String newTargetCopyMode) {
 
         // Validate the project tenant.
@@ -382,6 +384,34 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     @Override
     public void linkNewTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
             List<URI> snapshotURIs, int newTargetsCount, String copyMode, String taskId) {
+        APIException.methodNotAllowed.notSupported();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateUnlinkSnapshotSessionTargets(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, Project project,
+            Set<URI> snapshotURIs, UriInfo uriInfo) {
+
+        // Validate the project tenant.
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+        ArgValidator.checkEntity(tenant, project.getTenantOrg().getURI(), false);
+
+        // Verify the user is authorized.
+        BlockServiceUtils.verifyUserIsAuthorizedForRequest(project,
+                BlockServiceUtils.getUserFromContext(_securityContext), _permissionsHelper);
+
+        // Validate targets are for the passed session.
+        BlockSnapshotSessionUtils.validateSnapshotSessionTargets(snapSession, snapshotURIs, uriInfo, _dbClient);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void unlinkTargetVolumesFromSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
+            Map<URI, Boolean> snapshotDeletionMap, String taskId) {
         APIException.methodNotAllowed.notSupported();
     }
 

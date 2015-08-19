@@ -3700,4 +3700,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             completer.error(_dbClient, serviceException);
         }
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void unlinkTargetsFromSnapshotSession(URI systemURI, URI snapSessionURI,
+            Map<URI, Boolean> snapshotDeletionMap, String opId) {
+
+    }
 }

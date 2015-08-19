@@ -4,15 +4,19 @@
  */
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
+import java.net.URI;
 import java.util.List;
+import java.util.Set;
 
 import javax.ws.rs.core.SecurityContext;
+import javax.ws.rs.core.UriInfo;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
@@ -55,8 +59,17 @@ public class VMAXBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSession
      * {@inheritDoc}
      */
     @Override
-    public void validatLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
+    public void validateLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
             String newTargetCopyMode) {
+        throw APIException.methodNotAllowed.notSupportedForVMAX();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateUnlinkSnapshotSessionTargets(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, Project project,
+            Set<URI> snapshotURIs, UriInfo uriInfo) {
         throw APIException.methodNotAllowed.notSupportedForVMAX();
     }
 }

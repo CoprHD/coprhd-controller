@@ -2349,4 +2349,10 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidZeroLinkedTargetsRequested();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotSessionDoesNotHaveAnyTargets(final String snapSessionId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException targetIsNotLinkedToSnapshotSession(final String targetId, final String snapSessionIdd);
 }

@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
@@ -19,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -40,6 +42,8 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.db.client.util.WWNUtility;
+import com.emc.storageos.db.joiner.Joiner;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
@@ -490,10 +494,18 @@ public class VPlexUtil {
         if (maskIds == null) {
             return null;
         }
+        ExportMask sharedExportMask = VPlexUtil.getSharedExportMasksInViPR(exportGroup, vplexURI, dbClient, null);
+
         List<ExportMask> exportMasks =
                 ExportMaskUtils.getExportMasks(dbClient, exportGroup, vplexURI);
         for (ExportMask exportMask : exportMasks) {
-            if (getExportMaskHost(dbClient, exportMask).equals(hostURI)
+            boolean shared = false;
+            if (sharedExportMask != null) {
+                if (sharedExportMask.getId().equals(exportMask.getId())) {
+                    shared = true;
+                }
+            }
+            if (getExportMaskHost(dbClient, exportMask, shared).contains(hostURI)
                     && ExportMaskUtils.exportMaskInVarray(dbClient, exportMask, varrayURI)) {
                 return exportMask;
             }
@@ -511,10 +523,13 @@ public class VPlexUtil {
      * @param exportMask
      * @return URI of host, or Null URI if host undeterminable
      */
-    public static URI getExportMaskHost(DbClient dbClient, ExportMask exportMask) {
+    public static Set<URI> getExportMaskHost(DbClient dbClient, ExportMask exportMask, boolean sharedExportMask) {
+        Set<URI> hostURIs = new HashSet<URI>();
         if (exportMask.getInitiators() == null || exportMask.getInitiators().isEmpty()) {
-            return NullColumnValueGetter.getNullURI();
+            // return NullColumnValueGetter.getNullURI();
+            return hostURIs;
         }
+
         Iterator<String> initiatorIter = exportMask.getInitiators().iterator();
         String hostName = null;
         while (initiatorIter.hasNext()) {
@@ -537,14 +552,24 @@ public class VPlexUtil {
                 // Non-null Host URI, return the first one found
                 _log.info(String.format("ExportMask %s (%s) -> Host %s",
                         exportMask.getMaskName(), exportMask.getId(), initiatorForHost.getHost()));
-                return initiatorForHost.getHost();
+                hostURIs.add(initiatorForHost.getHost());
+                // If its not a shared export mask then it represents only one host hence return
+                // after getting host for one of the initiator.
+                if (!sharedExportMask) {
+                    return hostURIs;
+                }
             }
+        }
+
+        if (!hostURIs.isEmpty()) {
+            return hostURIs;
         }
         // If there was no Initiator with a host URI, then return a hostName as a URI.
         // If there were no hostNames, return null URI.
         _log.info(String.format("ExportMask %s (%s) -> Host %s",
                 exportMask.getMaskName(), exportMask.getId(), (hostName != null ? hostName : "null")));
-        return (hostName != null ? URI.create(hostName.replaceAll("\\s", "")) : NullColumnValueGetter.getNullURI());
+        hostURIs.add(hostName != null ? URI.create(hostName.replaceAll("\\s", "")) : NullColumnValueGetter.getNullURI());
+        return hostURIs;
     }
 
     /**
@@ -715,5 +740,166 @@ public class VPlexUtil {
         }
 
         return initiators;
+    }
+
+    /**
+     * Returns the shared export masks in the export group i:e storage view on VPLEX with multiple hosts
+     * but in ViPR database there is ExportMask per host before Darth release.
+     * 
+     * @param exportGroup - ExportGroup object
+     * @param vplexURI - URI of the VPLEX system
+     * @param dbClient - database client instance
+     * @return the map of shared storage view name to ExportMasks
+     */
+    public static Map<String, Set<ExportMask>> getSharedExportMasks(ExportGroup exportGroup, URI vplexURI, DbClient dbClient) {
+        // Map of Storage view name to list of ExportMasks that represent same storage view on VPLEX.
+        Map<String, Set<ExportMask>> exportGroupExportMasks = new HashMap<String, Set<ExportMask>>();
+        Map<String, Set<ExportMask>> sharedExportMasks = new HashMap<String, Set<ExportMask>>();
+        StringSet maskIds = exportGroup.getExportMasks();
+        if (maskIds == null) {
+            return null;
+        }
+        List<ExportMask> exportMasks =
+                ExportMaskUtils.getExportMasks(dbClient, exportGroup, vplexURI);
+        for (ExportMask exportMask : exportMasks) {
+            if (!exportMask.getInactive()) {
+                if (!exportGroupExportMasks.containsKey(exportMask.getMaskName())) {
+                    exportGroupExportMasks.put(exportMask.getMaskName(), new HashSet<ExportMask>());
+                }
+                exportGroupExportMasks.get(exportMask.getMaskName()).add(exportMask);
+            }
+        }
+        for (Map.Entry<String, Set<ExportMask>> entry : exportGroupExportMasks.entrySet()) {
+            if (entry.getValue().size() > 1) {
+                sharedExportMasks.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return sharedExportMasks;
+    }
+
+    /**
+     * Given a list of initiator URIs, make a map of Host URI to a list of Initiators.
+     * 
+     * @param initiators -- list of Initiator URIs
+     * @return -- Map of Host URI to List<Initiator> (objects)
+     */
+    public static Map<URI, List<Initiator>> makeHostInitiatorsMap(List<URI> initiators, DbClient dbClient) {
+        // sort initiators in a host to initiator map
+        Map<URI, List<Initiator>> hostInitiatorMap = new HashMap<URI, List<Initiator>>();
+        if (!initiators.isEmpty()) {
+            for (URI initiatorUri : initiators) {
+
+                Initiator initiator = dbClient.queryObject(Initiator.class, initiatorUri);
+                URI initiatorHostURI = VPlexUtil.getInitiatorHost(initiator);
+                List<Initiator> initiatorSet = hostInitiatorMap.get(initiatorHostURI);
+                if (initiatorSet == null) {
+                    hostInitiatorMap.put(initiatorHostURI, new ArrayList<Initiator>());
+                    initiatorSet = hostInitiatorMap.get(initiatorHostURI);
+                }
+                initiatorSet.add(initiator);
+            }
+        }
+        _log.info("assembled map of hosts to initiators: " + hostInitiatorMap);
+        return hostInitiatorMap;
+    }
+
+    /**
+     * Returns the shared export mask in the export group i:e storage view on VPLEX with multiple hosts
+     * also in ViPR database there is one ExportMask that represent multiple host from Darth release onwards.
+     * 
+     * @param exportGroup - ExportGroup object
+     * @param vplexURI - URI of the VPLEX system
+     * @param dbClient - database client instance
+     * @return the map of shared storage view name to ExportMasks
+     */
+    public static ExportMask getSharedExportMasksInViPR(ExportGroup exportGroup, URI vplexURI, DbClient dbClient,
+            Map<URI, List<Initiator>> hostInitiatorMap) {
+        // Map of Storage view name to list of ExportMasks that represent same storage view on VPLEX.
+        ExportMask sharedExportmask = null;
+        StringSet maskIds = exportGroup.getExportMasks();
+        if (maskIds == null) {
+            return null;
+        }
+        StringSet exportGrouphosts = exportGroup.getHosts();
+        List<ExportMask> exportMasks =
+                ExportMaskUtils.getExportMasks(dbClient, exportGroup, vplexURI);
+        if (exportGrouphosts.size() > 1 && exportMasks.size() == 1) {
+            ExportMask exportmask = exportMasks.get(0);
+            ArrayList<String> exportMaskInitiators = new ArrayList<String>(exportmask.getInitiators());
+            Map<URI, List<Initiator>> exportMaskHostInitiatorsMap = makeHostInitiatorsMap(URIUtil.toURIList(exportMaskInitiators), dbClient);
+            if (hostInitiatorMap != null) {
+                for (Entry<URI, List<Initiator>> entry : hostInitiatorMap.entrySet()) {
+                    exportMaskHostInitiatorsMap.remove(entry.getKey());
+                }
+            }
+            if (exportMaskHostInitiatorsMap.size() > 1) {
+                sharedExportmask = exportmask;
+            }
+        }
+
+        return sharedExportmask;
+    }
+
+    public static ExportMask getExportMasksWithExistingInitiators(URI vplexURI, DbClient dbClient, List<Initiator> inits,
+            URI varrayUri, String vplexCluster) {
+        ExportMask sharedVplexExportMask = null;
+        List<String> initiatorNames = getInitiatorNames(inits);
+        Joiner j1 = new Joiner(dbClient);
+        j1.join(ExportMask.class, "exportmask").match("existingInitiators", initiatorNames).match("storageDevice", vplexURI).go()
+                .printTuples("exportmask");
+        Set<ExportMask> exportMasks = j1.set("exportmask");
+        for (ExportMask mask : exportMasks) {
+            // This could be a match, but:
+            // We need to make sure the storage ports presents in the exportmask
+            // belongs to the same vplex cluster as the varray.
+            // This indicates which cluster this is part of.
+            boolean clusterMatch = false;
+            _log.info("this ExportMask contains these storage ports: " + mask.getStoragePorts());
+            for (String portUri : mask.getStoragePorts()) {
+                StoragePort port = dbClient.queryObject(StoragePort.class, URI.create(portUri));
+                if (port != null && !port.getInactive()) {
+                    if (clusterMatch == false) {
+                        // We need to match the VPLEX cluster for the exportMask
+                        // as the exportMask for the same host can be in both VPLEX clusters
+                        String vplexClusterForMask = ConnectivityUtil.getVplexClusterOfPort(port);
+                        clusterMatch = vplexClusterForMask.equals(vplexCluster);
+                        if (clusterMatch) {
+                            _log.info("a matching ExportMask " + mask.getMaskName()
+                                    + " was found on this VPLEX " + varrayUri
+                                    + " on  cluster " + vplexCluster);
+                            sharedVplexExportMask = mask;
+                        } else {
+                            break;
+                        }
+                    }
+                    if (clusterMatch) {
+                        StringSet taggedVarrays = port.getTaggedVirtualArrays();
+                        if (taggedVarrays != null && taggedVarrays.contains(varrayUri.toString())) {
+                            _log.info("Virtual Array " + varrayUri +
+                                    " has connectivity to port " + port.getLabel());
+                        } else {
+                            // TODO: chcek if this needs to be done
+                            // allPortsFromMaskMatchForVarray = false;
+                        }
+                    }
+                }
+            }
+        }
+
+        return sharedVplexExportMask;
+    }
+
+    private static List<String> getInitiatorNames(List<Initiator> inits) {
+        List<String> initiatorNames = new ArrayList<String>();
+        for (Initiator init : inits) {
+            String port = init.getInitiatorPort();
+            String normalizedName = port;
+            if (WWNUtility.isValidWWN(port)) {
+                normalizedName = WWNUtility.getUpperWWNWithNoColons(port);
+                initiatorNames.add(normalizedName);
+            }
+        }
+        return initiatorNames;
     }
 }

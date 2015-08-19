@@ -7,7 +7,6 @@ package com.emc.storageos.db.common.schema;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -15,7 +14,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElements;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.db.common.DbSchemaInterceptorImpl;
 import com.google.common.base.Objects;
 
 import org.slf4j.Logger;

@@ -105,6 +105,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreC
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CreateBlockSnapshotSessionCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.LinkBlockSnapshotSessionTargetCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.LinkBlockSnapshotSessionTargetsWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MultiVolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SimpleTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateCompleter;

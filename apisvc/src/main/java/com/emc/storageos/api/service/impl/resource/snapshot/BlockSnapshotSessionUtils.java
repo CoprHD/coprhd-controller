@@ -127,13 +127,14 @@ public class BlockSnapshotSessionUtils {
      * @param sourceURI The URI for a BlockSnapshotSession instance.
      * @param uriInfo A reference to the URI information.
      * @param dbClient A reference to a database client.
+     * @param checkInactive true to check if the snapshot session is inactive.
      * 
      * @return A reference to the BlockSnapshotSession instance.
      */
-    public static BlockSnapshotSession querySnapshotSession(URI snapSessionURI, UriInfo uriInfo, DbClient dbClient) {
+    public static BlockSnapshotSession querySnapshotSession(URI snapSessionURI, UriInfo uriInfo, DbClient dbClient, boolean checkInactive) {
         ArgValidator.checkUri(snapSessionURI);
         BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
-        ArgValidator.checkEntity(snapSession, snapSessionURI, BlockServiceUtils.isIdEmbeddedInURL(snapSessionURI, uriInfo), true);
+        ArgValidator.checkEntity(snapSession, snapSessionURI, BlockServiceUtils.isIdEmbeddedInURL(snapSessionURI, uriInfo), checkInactive);
         return snapSession;
     }
 

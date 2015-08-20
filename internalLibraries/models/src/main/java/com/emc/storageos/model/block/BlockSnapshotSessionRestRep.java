@@ -7,8 +7,11 @@ package com.emc.storageos.model.block;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.RelatedResourceRep;
 
@@ -16,6 +19,8 @@ import com.emc.storageos.model.RelatedResourceRep;
  * Class encapsulates the data returned in response to a request
  * for a BlockSnapshotSession instance.
  */
+@XmlAccessorType(XmlAccessType.PROPERTY)
+@XmlRootElement(name = "block_snapshot_session")
 public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
 
     // Related resource representation for the snapshot session source object.

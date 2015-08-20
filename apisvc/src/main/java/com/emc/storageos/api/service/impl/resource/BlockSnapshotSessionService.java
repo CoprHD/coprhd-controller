@@ -142,22 +142,22 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     }
 
     /**
+     * Get the details of the BlockSnapshotSession instance with the passed id.
      * 
+     * @brief Get snapshot session details.
      * 
-     * @brief
+     * @prereq none
      * 
-     * @prereq
+     * @param id The URI of the BlockSnapshotSession instance.
      * 
-     * @param id
-     * 
-     * @return
+     * @return BlockSnapshotSessionRestRep specifying the snapshot session details.
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public BlockSnapshotSessionRestRep getSnapshotSession(@PathParam("id") URI id) {
-        return null;
+        return getSnapshotSessionManager().getSnapshotSession(id);
     }
 
     /**

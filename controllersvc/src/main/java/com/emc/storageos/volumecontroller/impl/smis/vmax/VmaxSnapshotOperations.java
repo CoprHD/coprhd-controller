@@ -1313,6 +1313,10 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             try {
                 _log.info("Unlink target {} from snapshot session {} START", snapshotURI, snapSessionURI);
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+                if (deleteTarget) {
+                    _helper.removeVolumeFromParkingSLOStorageGroup(system, snapshot.getNativeId(), false);
+                    _log.info("Done invoking remove volume {} from parking SLO storage group", snapshot.getNativeId());
+                }
                 CIMArgument[] inArgs = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(system, snapshot, deleteTarget);
                 CIMArgument[] outArgs = new CIMArgument[5];
                 _helper.callModifyReplica(system, inArgs, outArgs);

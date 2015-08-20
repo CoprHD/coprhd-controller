@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
+import static com.emc.storageos.api.mapper.BlockMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
@@ -38,6 +39,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionNewTargetsParam;
@@ -234,7 +236,7 @@ public class BlockSnapshotSessionManager {
         s_logger.info("START link new targets for snapshot session {}", snapSessionURI);
 
         // Get the snapshot session.
-        BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient);
+        BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, true);
 
         // Get the snapshot session source object.
         BlockObject snapSessionSourceObj = BlockObject.fetch(_dbClient, snapSession.getParent().getURI());
@@ -290,7 +292,7 @@ public class BlockSnapshotSessionManager {
         s_logger.info("START unlink targets from snapshot session {}", snapSessionURI);
 
         // Get the snapshot session.
-        BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient);
+        BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, true);
 
         // Get the snapshot session source object.
         BlockObject snapSessionSourceObj = BlockObject.fetch(_dbClient, snapSession.getParent().getURI());
@@ -330,6 +332,18 @@ public class BlockSnapshotSessionManager {
 
         s_logger.info("FINISH unlink targets from snapshot session {}", snapSessionURI);
         return response;
+    }
+
+    /**
+     * Get the details for the BlockSnapshotSession instance with the passed id.
+     * 
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance.
+     * 
+     * @return An instance of BlockSnapshotSessionRestRep with the details for the requested snapshot session.
+     */
+    public BlockSnapshotSessionRestRep getSnapshotSession(URI snapSessionURI) {
+        BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, false);
+        return map(_dbClient, snapSession);
     }
 
     /**

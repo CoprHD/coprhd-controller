@@ -79,7 +79,8 @@ public class FileStorageScheduler {
         List<Recommendation> poolRecommendations =
                 _scheduler.getRecommendationsForPools(vArray.getId().toString(), candidatePools, capabilities);
 
-        List<FileRecommendation> recommendations = getRecommendedStoragePortsForVNAS(vPool, poolRecommendations, project);
+        List<FileRecommendation> recommendations = getRecommendedStoragePortsForVNAS(
+        		vPool, vArray.getId(), poolRecommendations, project);
         // We need to place all the resources. If we can't then
         // log an error and clear the list of recommendations.
         if (recommendations.isEmpty()) {
@@ -92,7 +93,7 @@ public class FileStorageScheduler {
     }
 
     private List<FileRecommendation> getRecommendedStoragePortsForVNAS(VirtualPool vPool,
-			List<Recommendation> poolRecommendations, Project project) {
+    		URI vArrayURI, List<Recommendation> poolRecommendations, Project project) {
     	
         List<FileRecommendation> result = new ArrayList<FileRecommendation>();
         
@@ -107,7 +108,7 @@ public class FileStorageScheduler {
             if(Type.vnxfile.toString().equals(storage.getSystemType())) {
             	
             	_log.debug("Getting the storage ports of VNAS servers assigned to the project");
-            	List<StoragePort> storagePortList = getStoragePortsOfHAvNAS(project, vPool.getProtocols());
+            	List<StoragePort> storagePortList = getStoragePortsOfHAvNAS(vArrayURI, project, vPool.getProtocols());
             	
             	if(storagePortList !=null && !storagePortList.isEmpty()) {
             		
@@ -127,7 +128,7 @@ public class FileStorageScheduler {
 		return result;
 	}
 
-	private List<StoragePort> getStoragePortsOfHAvNAS(Project project, StringSet protocols) {
+	private List<StoragePort> getStoragePortsOfHAvNAS(URI vArrayURI, Project project, StringSet protocols) {
 		
 		List<StoragePort> portList = new ArrayList<StoragePort>();
 		
@@ -137,13 +138,18 @@ public class FileStorageScheduler {
 			
 			for (Iterator<VirtualNAS> iterator = vNASList.iterator(); iterator.hasNext();) {
 				VirtualNAS virtualNAS = iterator.next();
-				StringSet supportedProtocols = virtualNAS.getProtocols();
-				if (supportedProtocols == null || !supportedProtocols.contains(protocols)) {
-					_log.debug("Removing vNAS {} as it not supporting protocol(s) {}",
-							virtualNAS.getNasName(), protocols);
-					iterator.remove();
-				}
-	        }
+				
+				// Check if the vNAS server is part of the vArray
+				if(virtualNAS.getTaggedVirtualArrays().contains(vArrayURI)) {
+				
+					StringSet supportedProtocols = virtualNAS.getProtocols();
+					if (supportedProtocols == null || !supportedProtocols.contains(protocols)) {
+						_log.debug("Removing vNAS {} as it not supporting protocol(s) {}",
+								virtualNAS.getNasName(), protocols);
+						iterator.remove();
+					}
+		        }
+			}
 			
 			if(!vNASList.isEmpty()) {
 				
@@ -264,7 +270,7 @@ public class FileStorageScheduler {
 	                            .equalsIgnoreCase(virtualNAS.getRegistrationStatus()) ||
 	                    !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
 	                            .equals(virtualNAS.getCompatibilityStatus()) ||
-	                    !vNasState.Loaded.name().equals(virtualNAS.getVNasState()) ||
+	                    !vNasState.LOADED.name().equals(virtualNAS.getVNasState()) ||
 	                    !DiscoveryStatus.VISIBLE.name().equals(virtualNAS.getDiscoveryStatus())) {
 					iterator.remove();
 	            }

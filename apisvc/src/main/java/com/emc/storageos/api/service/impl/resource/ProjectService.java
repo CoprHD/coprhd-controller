@@ -829,7 +829,7 @@ public class ProjectService extends TaggedResource {
 
                     // Check list of vNAS servers are not tagged with any project
                     // Check list of vNAS servers are in loaded state
-                    if (vnas.getProject() == null && vnas.getVNasState().equalsIgnoreCase(VirtualNAS.vNasState.Loaded.name())) {
+                    if (vnas.getProject() == null && vnas.getVNasState().equalsIgnoreCase(VirtualNAS.vNasState.LOADED.name())) {
                         validNas.add(id);
                         vnas.setProject(project.getId());
                         _dbClient.persistObject(vnas);

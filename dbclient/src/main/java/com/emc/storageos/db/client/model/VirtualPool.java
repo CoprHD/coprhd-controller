@@ -852,6 +852,19 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     }
     
     /**
+     * Returns whether or not the passed VirtualPool specifies VPlex high availability.
+     * 
+     * @param virtualPool
+     *            A reference to the VirtualPool.
+     * @return true if the VirtualPool specifies VPlex high availability, false otherwise.
+     */
+    public static boolean vPoolSpecifiesHighAvailabilityDistributed(final VirtualPool virtualPool) {
+        String highAvailability = virtualPool.getHighAvailability();
+        return highAvailability != null
+                && (VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(highAvailability));
+    }
+    
+    /**
      * Returns whether or not the passed VirtualPool specifies MetroPoint.  This requires
      * the MetroPoint flag to be enabled along with RP protection and VPLex distributed.
      * 

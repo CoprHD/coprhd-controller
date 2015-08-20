@@ -54,6 +54,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.ConnectivityUtil;
@@ -262,7 +263,7 @@ public class RecoverPointScheduler implements Scheduler {
         VirtualArray haVarray = null;
         VirtualPool haVpool = null; 
         RPVPlexVarrayVpool container = null; 
-        if (VirtualPool.vPoolSpecifiesMetroPoint(vpool)){
+        if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool)){
         	container = swapSrcAndHAIfNeeded(varray, vpool);
         	varray = container.getSrcVarray();
         	vpool = container.getSrcVpool();
@@ -581,7 +582,7 @@ public class RecoverPointScheduler implements Scheduler {
         	newCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, size);
         }
         
-        _log.info(String.format("Fetching candidate pools for %s - %s volumes of size %s\n", newCapabilities.getResourceCount(), personality, size));
+        _log.info(String.format("Fetching candidate pools for %s - %s volumes of size %s GB\n", newCapabilities.getResourceCount(), personality, SizeUtil.translateSize(size, SizeUtil.SIZE_GB)));
                         
         // Determine if the source vpool specifies VPlex Protection
         if (VirtualPool.vPoolSpecifiesHighAvailability(srcVpool)) {        	
@@ -594,9 +595,9 @@ public class RecoverPointScheduler implements Scheduler {
             
         if (candidateStoragePools == null || candidateStoragePools.isEmpty()) {
             // There are no matching storage pools found for the source varray
-            _log.error("No matching storage pools found for the source varray: {0}. There are no storage pools that " +
+            _log.error(String.format("No matching storage pools found for the source varray: %s - source vpool: %s. There are no storage pools that " +
                     "match the passed vpool parameters and protocols and/or there are no pools that have enough capacity to " +
-                    "hold at least one resource of the requested size.",srcVarray.getLabel());
+                    "hold at least one resource of the requested size.",srcVarray.getLabel(),srcVpool.getLabel()));
             throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(srcVpool.getId(), srcVarray.getId());            
         }
         

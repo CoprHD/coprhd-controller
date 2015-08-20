@@ -202,8 +202,12 @@ _generate_disk4() {
 }
 
 _generate_ovf_file() {
-    local ovf_template_content="$(cat storageos-vsphere-template.xml)"
+    cat > "${1}" <<EOF
+${include="storageos-vsphere-template.xml"}
+EOF
+    local ovf_template_content="$(cat ${1})"
     if [ "${isvmx}" = true ] ; then
+        echo "-> start to remove vsphere only infomation"
         local vsphere_only="<Item>
         <rasd:Address>0</rasd:Address>
         <rasd:Description>SCSI Controller</rasd:Description>
@@ -212,10 +216,11 @@ _generate_ovf_file() {
         <rasd:ResourceSubType>VirtualSCSI</rasd:ResourceSubType>
         <rasd:ResourceType>6</rasd:ResourceType>
       </Item>"
-        echo "${ovf_template_content/${vsphere_only}/}" > "${1}"
-    else
-        echo "${ovf_template_content}" > "${1}"
+        ovf_template_content="${ovf_template_content/${vsphere_only}/<!-- VirtualSCSI info has been removed -->}"
     fi
+    cat > "${1}" <<EOF
+${ovf_template_content}
+EOF
 }
 
 _generate_mf_file() {
@@ -326,9 +331,12 @@ _deploy_vm_to_workstation() {
     echo "-> start to convert ovf to vmx"
     local vipr_vmx_file="${vmdk_dir}/${vmname}/${vmname}.vmx"
     eval ovftool ${acc_eulas} ${vipr_ovf_file} ${vipr_vmx_file}
-    local vmx_content="$(cat ${vipr_vmx_file})"
+    if [ $? -ne 0 ] ; then
+        _fatal "Failed to convert ${vipr_ovf_file} to ${vipr_vmx_file}"
+    fi
 
     echo "-> start to append disk info to vmx"
+    local vmx_content="$(cat ${vipr_vmx_file})"
     vmx_content="${vmx_content}
 scsi0:0.present = \"TRUE\"
 scsi0:0.deviceType = \"disk\"
@@ -352,18 +360,24 @@ vmci0.unrestricted = \"false\""
         origin_con_type='ethernet0.connectionType = "bridged"'
         new_con_type='ethernet0.connectionType = "nat"'
         vmx_content="${vmx_content/${origin_con_type}/${new_con_type}}"
-        
     fi
     echo -e "${vmx_content}" > ${vipr_vmx_file}
 
     echo "-> start to convert vmx to ovf, postion: ${tmpdir}, it may take several minutes"
     eval ovftool ${acc_eulas} ${vipr_vmx_file} ${tmpdir}
+    if [ $? -ne 0 ] ; then
+        _fatal "Failed to convert ${vipr_vmx_file} to ${tmpdir}/${vmname}/${vmname}.ovf"
+    fi
 
     echo "-> star to deploy ovf to detination folder: ${vm_folder}"
     eval ovftool ${acc_eulas} "${tmpdir}/${vmname}/${vmname}.ovf" ${vm_folder}
+    ret=$?
+    if [ $? -ne 0 ] ; then
+        _fatal "Failed to deploy ${tmpdir}/${vmname}/${vmname}.ovf to ${vm_folder}"
+    fi
 
-    echo "Next you need to double click ${vmfolder}/${vmname}.vmx to finish deployment"
-    return $?
+    echo "Done"
+    return "${ret}"
 }
 
 # functions to check parameters
@@ -528,6 +542,15 @@ _check_nodecount() {
 
 _check_target_uri() {
     return 0
+}
+
+_check_net_mode() {
+    if [ "$1" != "nat" -a "$1" != "bridged" ] ; then
+        error_message="The valid values for option net is nat and bridged in install-vmx mode"
+        return 1
+    else
+        return 0
+    fi
 }
 
 # set a parameter
@@ -702,7 +725,11 @@ _set_vmname() {
 }
 
 _set_net() {
-    _set_parameter "${net_label}" net _check_no_empty
+    if [ "${isvmx}" = false ] ; then
+        _set_parameter "${net_label}" net _check_no_empty
+    else
+        _set_parameter "${net_mode_label}" net _check_net_mode
+    fi
 }
 
 _set_vmfolder() {
@@ -1372,6 +1399,10 @@ _check_missing_network_parameters() {
 
     if [ "${has_ipv4_options}" = false -a "${has_ipv6_options}" = false ] ; then
         parameters_to_set+="network_parameters "
+    fi
+
+    if [ "${isvmx}" = true -a "${net}" != "nat" -a "${net}" != "bridged" ] ; then
+            parameters_to_set+="net "
     fi
 }
 

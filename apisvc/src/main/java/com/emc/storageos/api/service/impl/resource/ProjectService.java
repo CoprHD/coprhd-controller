@@ -826,7 +826,7 @@ public class ProjectService extends TaggedResource {
                 VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
 
                 // Check list of VNAS servers are part of varray
-                if (vnas.getTaggedVirtualArrays() != null && !vnas.getTaggedVirtualArrays().isEmpty()) {
+//                if (vnas.getTaggedVirtualArrays() != null && !vnas.getTaggedVirtualArrays().isEmpty()) {
 
                     // Check list of vNAS servers are not tagged with any project
                     // Check list of vNAS servers are in loaded state
@@ -836,7 +836,7 @@ public class ProjectService extends TaggedResource {
                         _dbClient.persistObject(vnas);
                         _log.info("VNAS server {} successfully assigned to project {} ", vnas.getLabel(), project.getLabel());
                     }
-                }
+//                }
             }
         }
 

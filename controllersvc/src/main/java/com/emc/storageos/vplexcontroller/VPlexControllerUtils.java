@@ -29,6 +29,7 @@ import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexResourceInfo;
+import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 
 public class VPlexControllerUtils {
@@ -245,10 +246,10 @@ public class VPlexControllerUtils {
         return device;
     }
     
-    public static Set<String> getStorageVolumeInfoForDevice(String deviceName, String locality, 
+    public static Map<String, VPlexStorageVolumeInfo> getStorageVolumeInfoForDevice(String deviceName, String locality, 
             Map<String, Map<String, VPlexDeviceInfo>> mirrorMap, URI vplexUri, DbClient dbClient) {
 
-        Set<String> storageVolumeInfo = null;
+        Map<String, VPlexStorageVolumeInfo> storageVolumeInfo = null;
         VPlexApiClient client = null;
 
         try {

@@ -1552,7 +1552,7 @@ public class VPlexApiClient {
         return device;
     }
     
-    public Set<String> getStorageVolumeInfoForDevice(String deviceName, String locality, 
+    public Map<String, VPlexStorageVolumeInfo> getStorageVolumeInfoForDevice(String deviceName, String locality, 
             Map<String, Map<String, VPlexDeviceInfo>> mirrorMap) throws VPlexApiException {
         if (null == deviceName || null == locality) {
             String reason = "deviceName was " + deviceName + " and locality was " + locality;
@@ -1565,9 +1565,9 @@ public class VPlexApiClient {
         List<VPlexStorageVolumeInfo> storageVolumes = getDiscoveryManager()
                 .getStorageVolumesForDevice(deviceName, locality, !mirrorMap.isEmpty());
         
-        Set<String> storageVolumeWwns = new HashSet<String>();
+        Map<String, VPlexStorageVolumeInfo> storageVolumeWwns = new HashMap<String, VPlexStorageVolumeInfo>();
         for (VPlexStorageVolumeInfo info : storageVolumes) {
-            storageVolumeWwns.add(info.getWwn());
+            storageVolumeWwns.put(info.getWwn(), info);
         }
         
         return storageVolumeWwns;

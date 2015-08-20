@@ -3376,7 +3376,7 @@ public class VPlexApiDiscoveryManager {
 
         s_logger.info("found these storage volumes for VPLEX device {}:", deviceName);
         for (VPlexStorageVolumeInfo info : storageVolumeInfoList) {
-            s_logger.info("   name: {} wwn: {}", info.getName(), info.getWwn()); 
+            s_logger.info(info.toString()); 
         }
         
         s_logger.info("TIMER: getStorageVolumesForDevice took {}ms", 

@@ -108,6 +108,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         VplexBackendIngestionContext context = new VplexBackendIngestionContext(unManagedVolume, _dbClient);
 
         try {
+            
+            // context.test();
+            
             List<UnManagedVolume> unmanagedBackendVolumes = context.getUnmanagedBackendVolumes();
             if (null != unmanagedBackendVolumes && !unmanagedBackendVolumes.isEmpty()) {
 
@@ -129,7 +132,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             }
         } catch (Exception ex) {
             _logger.error("error during VPLEX backend ingestion: ", ex);
-            _logger.error(context.toString());
             throw IngestionException.exceptions.failedToIngestVplexBackend(ex.getLocalizedMessage());
         }
 
@@ -187,7 +189,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             Project vplexProject, TenantOrg tenant,
             List<UnManagedVolume> unManagedVolumesToBeDeleted,
             Map<String, StringBuffer> taskStatusMap,
-            VplexBackendIngestionContext context) {
+            VplexBackendIngestionContext context) throws Exception {
 
         for (UnManagedVolume associatedVolume : context.getAllUnmanagedVolumes()) {
             _logger.info("Ingestion started for exported vplex backend unmanagedvolume {}", associatedVolume.getNativeGuid());
@@ -324,7 +326,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         }
     }
 
-    private void createVplexMirrorObjects(VplexBackendIngestionContext context) {
+    private void createVplexMirrorObjects(VplexBackendIngestionContext context) throws Exception {
         if (!context.getUnmanagedMirrors().isEmpty()) {
             _logger.info("creating VplexMirror object");
             for (UnManagedVolume umv : context.getUnmanagedMirrors()) {

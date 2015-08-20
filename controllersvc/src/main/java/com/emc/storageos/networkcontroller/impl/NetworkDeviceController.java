@@ -1063,7 +1063,7 @@ public class NetworkDeviceController implements NetworkController {
                 return true;
             }
 
-            // get existing zones
+            // get existing zones from the switch
             Map<String, List<Zone>> zonesMap = getExistingZonesMap(exportMaskURIs, token);
 
             // Compute the zones for the ExportGroup
@@ -1102,12 +1102,15 @@ public class NetworkDeviceController implements NetworkController {
     }
 
     /**
-     * Some of the zones may have been read in previous workfklow steps. Get those from the workflow
-     * and if any initiators are not already retrieved, get thir zones.
+     * This function wraps the logic for getting zones from the network system. The zones may have already
+     * been read in previous workflow steps during port assignment. To avoid another call into the network
+     * systems, these zones are stored in the workflow. In the case of "add initiators" workflow, only the
+     * new initiators's zones are read by port allocation. In this case, the new initiators zones are loaded
+     * from the workflow while the old initiators zones are retrieved from the network system.
      * 
-     * @param exportMaskUris
-     * @param token
-     * @return
+     * @param exportMaskUris -- the URI of the export mask being zones
+     * @param token -- the workflow step id
+     * @return a map of initiatorPort to the list if zones that already exist on the network system
      */
     private Map<String, List<Zone>> getExistingZonesMap(Collection<URI> exportMaskUris, String token) {
 
@@ -1222,7 +1225,7 @@ public class NetworkDeviceController implements NetworkController {
                 return true;
             }
 
-            // get existing zones
+            // get existing zones on the switch
             Map<String, List<Zone>> zonesMap = getExistingZonesMap(exportMasksToInitiators.keySet(), token);
 
             // Compute zones that are required.
@@ -1645,15 +1648,16 @@ public class NetworkDeviceController implements NetworkController {
     }
 
     /**
-     * Add a zone reference for an ExportGroup Zone combination.
+     * Add a zone reference for an ExportGroup-Zone combination.
      * This method is careful not to duplicate existing FCZoneReferences matching the same
      * ExportGroup and Volume. Whether a new reference is persisted or not,
      * it returns the reference.
      * 
-     * @param exportGroupURI
-     * @param zoneInfo
+     * @param exportGroupURI -- the URI of the export group
+     * @param zoneInfo -- the zoneInfo for which the FCZoneReference is being created
      * @param newOrExisting - OUT param in String[0] puts "New" or "Existing" indicating
      *            whether a New FCZoneReference was persisted.
+     * @return an FCZoneReference for the zoneInfo-exportGroup combination
      */
     private FCZoneReference addZoneReference(URI exportGroupURI, NetworkFCZoneInfo zoneInfo, String[] newOrExisting) {
         String refKey = zoneInfo.makeEndpointsKey();
@@ -1663,18 +1667,19 @@ public class NetworkDeviceController implements NetworkController {
     }
 
     /**
-     * Add a zone reference for an ExportGroup Zone combination.
-     * This method is careful not to duplicate existing FCZoneReferences matching the same
-     * ExportGroup and Volume. Whether a new reference is persisted or not,
-     * it returns the reference.
+     * A base function for creating an FCZoneReference from the parameters. This function
+     * ensures that duplicate FCZoneReference for the same refKey, volume and export group
+     * is not created.
      * 
-     * @param exportGroupURI
-     * @param volumeURI
-     * @param refKey
-     * @param fabricId
-     * @param NetworkSystemURI
-     * @param zoneName
-     * @param existingZone
+     * @param exportGroupURI -- the export group URI
+     * @param volumeURI -- the volume URI
+     * @param refKey -- the FCZoneReference key which is the concatenation of the initiator
+     *            and storage port WWNs. Note that this key is formed by sorting the WWNs
+     * @param fabricId -- the name of the fabric or the is of the vsan
+     * @param NetworkSystemURI -- the network system used to add the zone
+     * @param zoneName -- the zone name
+     * @param existingZone -- an flag that indicates if the zone is created by the aplication
+     *            or by the user, true means it was created by the user.
      * @param newOrExisting - OUT param in String[0] puts "New" or "Existing" indicating
      *            whether a New FCZoneReference was persisted.
      * @return The zone reference instance
@@ -1705,9 +1710,10 @@ public class NetworkDeviceController implements NetworkController {
     /**
      * Looks in the database for a zone for the same volume and export group and key
      * 
-     * @param exportGroupURI
-     * @param volumeURI
-     * @param refKey
+     * @param exportGroupURI -- the export group URI
+     * @param volumeURI -- the volume URI
+     * @param refKey -- the FCZoneReference key which is the concatenation of the initiator
+     *            and storage port WWNs. Note that this key is formed by sorting the WWNs
      * @param newOrExisting - OUT param in String[0] puts "New" or "Existing" indicating
      *            whether a New FCZoneReference was persisted.
      * @return The zone reference instance if found, null otherwise
@@ -1979,11 +1985,10 @@ public class NetworkDeviceController implements NetworkController {
      * map. An empty map will be returned if no zones could be found for any initiator.
      * 
      * @param network the network of the initiators
-     * @param initiators the initiators
-     * @param network
-     * @param initiators
-     * @param initiatorPortsMap
-     * @return
+     * @param initiators the initiators the initiators for which the zones will be read
+     * @param initiatorPortsMap the storage ports of interest in the networks. The zones returned
+     *            by this function are filtered to those that contain at least one initiator and of port
+     * @return a ZoneInfoMap
      */
     private ZoneInfoMap getInitiatorsInNetworkZoneInfoMap(NetworkLite network, List<Initiator> initiators,
             Map<String, StoragePort> initiatorPortsMap) {
@@ -1992,6 +1997,31 @@ public class NetworkDeviceController implements NetworkController {
         return map;
     }
 
+    /**
+     * For the given network and initiators, which are in the network,
+     * and a given list of storage ports, find all the zones on the network
+     * system for the initiators. Search the zones to find ones that have
+     * one or more of the ports and create the zoning map between the
+     * initiators and ports. Returns the results as {@link ZoneInfoMap} which is map
+     * of initiator port WWN and storage port WWN keyed by zone-key, where zone-key
+     * is the concatenation of the initiator port WWN and the storage port WWN.
+     * <p>
+     * Note that the map returned contains only the zones that were selected for use by ViPR. In the case of duplicate zones between an
+     * initiator-port pair, ViPR applies a selection criteria to choose one. See {@link #selectZonesForInitiatorsAndPorts}
+     * <p>
+     * Note that a zone in the network system can have more than one initiator and one storage port. For such zone, there can be multiple
+     * entries in the map, one for each initiator/port pairs.
+     * <p>
+     * If the initiator is not in a network or no zones could be found for the initiator, there will be no entries for this initiator in the
+     * map. An empty map will be returned if no zones could be found for any initiator.
+     * 
+     * @param network the network of the initiators
+     * @param map an OUT parameter where ZoneInfoMap is stored
+     * @param initiators the initiators the initiators for which the zones will be read
+     * @param initiatorPortsMap the storage ports of interest in the networks. The zones returned
+     *            by this function are filtered to those that contain at least one initiator and of port
+     * @return the network system used to read the zones
+     */
     private NetworkSystem fetchInitiatorsInNetworkZoneInfoMap(NetworkLite network, ZoneInfoMap map,
             List<Initiator> initiators, Map<String, StoragePort> initiatorPortsMap) {
         Map<String, Initiator> wwnToInitiatorMap = wwnToInitiatorMap(initiators);
@@ -2135,6 +2165,7 @@ public class NetworkDeviceController implements NetworkController {
      * 
      * @param initiators the list of initiators
      * @param storagePorts a map of storage port keyed by the port WWN
+     * @param initiatorWwnToZonesMap an OUT parameter used to store the zones retrieved mapped by initiator
      * 
      * @return a zoning map of zones that exists on the network systems
      */
@@ -2567,6 +2598,12 @@ public class NetworkDeviceController implements NetworkController {
         return ref;
     }
 
+    /**
+     * Returns the flag settable by the user in the system config that indicates if zoned should
+     * be refreshed each time a mask is changed in viPR.
+     * 
+     * @return true/false
+     */
     private boolean alwaysRefreshZone() {
         boolean alwaysRefresh = false; // default to true
         try {
@@ -2579,6 +2616,13 @@ public class NetworkDeviceController implements NetworkController {
         return alwaysRefresh;
     }
 
+    /**
+     * Returns the flag settable by the user in the system config that indicates if port allocation should
+     * consider existing zones in port allocation logic or if it should proceed with allocations using
+     * port metrics and hard redundancy only as criteria.
+     * 
+     * @return true/false
+     */
     public boolean portAllocationIgnoreExistingZones() {
         boolean metricOnlyBasedAllocation = false; // default to true
         try {

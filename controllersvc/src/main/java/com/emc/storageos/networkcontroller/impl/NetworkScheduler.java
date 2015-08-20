@@ -299,6 +299,7 @@ public class NetworkScheduler {
      * </ol>
      * If no zone can be found for the initiator-port pair, null is returned.
      * 
+     * @param network the network of the initiator
      * @param initiatorWwn the initiator WWN
      * @param portWwn the target WWN
      * @param existingZones a list of zones found on the network system for the initiator
@@ -590,6 +591,7 @@ public class NetworkScheduler {
      * @param exportGroup ExportGroup
      * @param volumeURIs Collection of volumes to be generated
      * @param existingZonesMap a map of initiator ports WWN to its existing zones
+     * @param dbClient an instance of DbClient
      * @return List<NetworkFCZoneInfo> representing zones to be created
      * @throws DeviceControllerException
      */
@@ -702,8 +704,8 @@ public class NetworkScheduler {
      * Place a zone described by its initiator and port, and add it to the zoneInfos list.
      * ZoneReferences and zones will be added for all volumes matching the storage port's device.
      * 
-     * @param zoneInfos List<NetworkFCZoneInfo> list of zones being built
-     * @param varrayURI VirtualArray (Neighborhood) URI
+     * @param zoneInfos list of zoneInfo being built
+     * @param varrayURI VirtualArray URI
      * @param initiator Initiator
      * @param sp StoragePort
      * @param volumeURIs
@@ -866,9 +868,10 @@ public class NetworkScheduler {
      * to the newly added Initiator.
      * 
      * @param exportGroup - The ExportGroup structure.
-     * @param varrayUri - The URI of the varray, this can be the export group's varray or alt varray
+     * @param varrayUri - The URI of the virtual array, this can be the export group's 
+     *        virtual array or its alternate virtual array
      * @param exportMask - The ExportMask structure.
-     * @param initiators - Contains the initiators wwpn wwnn and protocol type.
+     * @param initiators - Contains the initiators
      * @param zonesMap a list of existing zones mapped by the initiator port WWN
      * @return List<NetworkFCZoneInfo> indicating zones and zone references to be created.
      * @throws IOException
@@ -916,9 +919,6 @@ public class NetworkScheduler {
                             volFabricInfo.setVolumeId(URI.create(volId));
                             fabricInfos.add(volFabricInfo);
                         }
-                    } else {
-                        // TODO - Why am I throwing the exception and catching it?
-                        throw DeviceControllerException.exceptions.cannotFindStoragePortSanFabricInitiator(initiator.getInitiatorPort());
                     }
                 } catch (DeviceControllerException ex) {
                     _log.info(String.format(

@@ -1809,7 +1809,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param exportMasksToUpdateOnDevice collection of ExportMasks to update
      * @param exportMasksToUpdateOnDeviceWithInitiators a map of ExportMasks to initiators
      * @param exportMasksToUpdateOnDeviceWithStoragePorts a map of ExportMasks to storage ports
-     * @param opId the task or workflow step id
+     * @param opId the workflow step id
      * @return whether or not a storage view was actually found on the device
      */
     private boolean checkForExistingStorageViews(VPlexApiClient client,
@@ -1980,7 +1980,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param inits the host initiators of the host in question
      * @param allPortsFromMaskMatchForVarray a flag indicating the storage port networking status
      * @param viprExportMask the ExportMask in the ViPR database to re-use
-     * @param opId opId the task or workflow step id
+     * @param opId the workflow step id
      */
     private void reuseExistingExportMask(Map<URI, Integer> blockObjectMap,
             StorageSystem vplexSystem, ExportGroup exportGroup, URI varrayUri,
@@ -2028,7 +2028,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param exportMasksToCreateOnDevice collection of ExportMasks to create
      * @param inits the host initiators of the host in question
      * @param vplexCluster String representing the VPLEX cluster in question
-     * @param opId TODO
+     * @param opId the workflow step id
      * @throws Exception
      */
     private void setupNewExportMask(Map<URI, Integer> blockObjectMap,
@@ -9541,7 +9541,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param varrayURI
      * @param initiatorURIs
      * @param volumeMap
-     * @param opId TODO
+     * @param opId 
      * @param targets - OUT parameter containing list of StoragePort target URIs
      * @return an Initialized ExportMask
      * @throws Exception

@@ -19,12 +19,10 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.util.NetworkLite;
 
 /**
- * Assign StoragePorts to Initiators.
- * There are subclasses corresponding to specific array types.
+ * Assign StoragePorts to Initiators from an existing list of pre-zoned ports.
  * This class contains the default implementation, which is one storage port
  * assigned to each initiator. It is used for the VMAX.
  * 
- * @author watsot3
  */
 public class ZonedPortsStoragePortsAssigner extends DefaultStoragePortsAssigner {
     protected static final Logger _log = LoggerFactory

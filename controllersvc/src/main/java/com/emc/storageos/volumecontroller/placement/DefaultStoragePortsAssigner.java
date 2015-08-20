@@ -177,12 +177,13 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
     }
 
     /**
-     * Assign the ports to a set of new hosts.
+     * Assign the ports to a set of new hosts in the network.
      * 
      * @param assignments OUTPUT Map of list of StoragePorts representing the assignments
      * @param storagePorts INPUT the ports that can be used for assignment
      * @param pathsPerInitiator INPUT the desired number of paths per initiator
      * @param hostInitiatorsMap INPUT a map of Host URI to the Initiators in that host
+     * @param initiatorNetwork INPUT the initiators network 
      */
     protected void assignPortsToHosts(
             Map<Initiator, List<StoragePort>> assignments,

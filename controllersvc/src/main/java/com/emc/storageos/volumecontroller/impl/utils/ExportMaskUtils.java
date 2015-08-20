@@ -517,9 +517,9 @@ public class ExportMaskUtils {
      * @param volumeMap - Map of Volume URIs to Integer HLUs
      * @param targets List<URI> of StoragePorts
      * @param zoneAssignments - Map from InitiatorURI to List of assigned port URIs.
-     * @param zoningMap TODO
-     * @param maskName TODO
-     * @param dbClient TODO
+     * @param zoningMap a zoning map that has the zoning from all pre-zoned ports
+     * @param maskName the mask name
+     * @param dbClient an instance of DbClient
      * @return new ExportMask object, persisted in database
      * @throws Exception
      */
@@ -723,6 +723,7 @@ public class ExportMaskUtils {
      * Returns a StringSetMap containing the Initiator to StoragePort URIs from zoning assignments.
      * 
      * @param assignments Map<URI, List<URI>> of zoning assignments.
+     * @param existingZones the zone map created from pre-zoned ports 
      * @return StringSetMap with same information encoded as
      */
     static public StringSetMap getZoneMapFromAssignments(Map<URI, List<URI>> assignments, StringSetMap existingZones) {

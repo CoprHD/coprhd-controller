@@ -63,8 +63,9 @@ public class StringMapUtil {
      * @return a {@link StringMap} of volume/lun
      */
     public static <K extends Object, V extends Object> boolean addToListMap(Map<K, List<V>> map, K key, V value) {
-        if (map == null)
+        if (map == null) {
             return false;
+        }
         List<V> list = map.get(key);
         if (list == null) {
             list = new ArrayList<V>();

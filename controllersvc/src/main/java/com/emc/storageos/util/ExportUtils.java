@@ -1116,7 +1116,8 @@ public class ExportUtils {
     }
 
     /**
-     * Find all the ports in a storage system that can be assigned in a given virtual array.
+     * Find all the ports in a storage system that can be assigned in a given virtual array. These are
+     * registered ports that are assigned to the virtual array, in good discovery and operational status.
      * 
      * @param dbClient an instance of {@link DbClient}
      * @param storageSystemURI the URI of the storage system
@@ -1164,6 +1165,16 @@ public class ExportUtils {
         return spList;
     }
 
+    /**
+     * Given a list of storage ports and networks, map the ports to the networks. If the port network
+     * is in the networks collection, the port is mapped to it. If the port network is not in the
+     * networks collection but can is routed to it, then the port is mapped to the routed network.
+     * 
+     * @param ports
+     * @param networks
+     * @param _dbClient
+     * @return a map of networks and ports that can be used by initiators in the network.
+     */
     public static Map<NetworkLite, List<StoragePort>> mapStoragePortsToNetworks(Collection<StoragePort> ports,
             Collection<NetworkLite> networks, DbClient _dbClient) {
         Map<NetworkLite, List<StoragePort>> localPorts = new HashMap<NetworkLite, List<StoragePort>>();

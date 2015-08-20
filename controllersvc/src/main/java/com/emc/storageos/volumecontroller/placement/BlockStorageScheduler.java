@@ -126,12 +126,13 @@ public class BlockStorageScheduler {
      * for all assignments(existing and new).
      * 
      * @param storage
+     * @param the export virtual array
      * @param initiators - The new initiators to be provisioned.
      * @param pathParams - the Export Path parameters (maxPaths, pathsPerInitiator)
+     * @param existingZoningMap the zones that already exist on the mask plus any new mapping added
+     *        by assigning pre-zoned ports.
      * @param volumeURIs the URIs of the volumes in the mask
-     * @param exportGroup
-     * @param numPaths -- number of paths to allocate
-     * @param existingTargets -- A list of StoragePort URIs that were previously allocated
+     * @param networkDeviceController - a reference to NetworkDeviceController
      * @return Map<URI, List<URI> map of Initiator URIs to list of StoragePort URIs to be used by Initiator
      * @throws DeviceControllerException if there is an unexpected error
      * @throws PlacementException if we were unable to meet the placement constraints (such as minPaths.)
@@ -237,7 +238,7 @@ public class BlockStorageScheduler {
         Map<Initiator, List<StoragePort>> allAssignments = new HashMap<Initiator, List<StoragePort>>();
         allAssignments.putAll(existingAssignments);
         allAssignments.putAll(assignments);
-        // TODO - Should this use newInitiators or allInitiators?
+        // This min path check is done on allInitiators
         Collection<Initiator> allInitiators = new HashSet<Initiator>(newInitiators);
         for (Set<Initiator> existingInitiators : existingInitiatorsMap.values()) {
             allInitiators.addAll(existingInitiators);
@@ -1288,7 +1289,7 @@ public class BlockStorageScheduler {
      * Returns a list of StoragePort URIs (with no duplicates) from the
      * assignment map returned by assignStoragePorts.
      * 
-     * @return
+     * @return list URI of assigned port with no duplicates
      */
     static public List<URI> getTargetURIsFromAssignments(Map<URI, List<URI>> assignments, StringSetMap map) {
         Set<URI> targets = new HashSet<URI>();
@@ -1881,8 +1882,8 @@ public class BlockStorageScheduler {
      *            initiators are being added. It is null for new masks.
      * @param pathParams the export group aggregated path parameter
      * @param volumeURIs the volumes in the export mask
-     * @param virtualArrayUri TODO
-     * @param token TODO
+     * @param virtualArrayUri the URI of the export virtual array
+     * @param token the workflow step Id
      * @return a map of existing zones paths between the storage system ports and the
      *         mask initiators.
      */

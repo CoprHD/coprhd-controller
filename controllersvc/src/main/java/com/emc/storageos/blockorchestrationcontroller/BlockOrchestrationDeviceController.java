@@ -60,9 +60,10 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     public void createVolumes(List<VolumeDescriptor> volumes, String taskId) throws ControllerException {
         List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumes);
         VolumeCreateWorkflowCompleter completer = new VolumeCreateWorkflowCompleter(volUris, taskId, volumes);
+        Workflow workflow = null;
         try {
             // Generate the Workflow.
-            Workflow workflow = _workflowService.getNewWorkflow(this,
+            workflow = _workflowService.getNewWorkflow(this,
                     CREATE_VOLUMES_WF_NAME, true, taskId);
             String waitFor = null;    // the wait for key returned by previous call
 
@@ -93,6 +94,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
         } catch (Exception ex) {
             s_logger.error("Could not create volumes: " + volUris, ex);
+            releaseWorkflowLocks(workflow);
             String opName = ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME.getName();
             ServiceError serviceError = DeviceControllerException.errors.createVolumesFailed(
                     volUris.toString(), opName, ex);
@@ -121,10 +123,11 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     public void deleteVolumes(List<VolumeDescriptor> volumes, String taskId) throws ControllerException {
         List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumes);
         VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(volUris, taskId);
+        Workflow workflow = null;
 
         try {
             // Generate the Workflow.
-            Workflow workflow = _workflowService.getNewWorkflow(this,
+            workflow = _workflowService.getNewWorkflow(this,
                     DELETE_VOLUMES_WF_NAME, true, taskId);
             String waitFor = null;    // the wait for key returned by previous call
 
@@ -159,6 +162,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
         } catch (Exception ex) {
             s_logger.error("Could not delete volumes: " + volUris, ex);
+            releaseWorkflowLocks(workflow);
             String opName = ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME.getName();
             ServiceError serviceError = DeviceControllerException.errors.deleteVolumesFailed(
                     volUris.toString(), opName, ex);
@@ -450,5 +454,13 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
     public static void setSrdfDeviceController(SRDFDeviceController srdfDeviceController) {
         BlockOrchestrationDeviceController._srdfDeviceController = srdfDeviceController;
+    }
+
+    private void releaseWorkflowLocks(Workflow workflow) {
+        if (workflow == null) {
+            return;
+        }
+        s_logger.info("Releasing all workflow locks with owner: {}", workflow.getWorkflowURI());
+        _workflowService.releaseAllWorkflowLocks(workflow);
     }
 }

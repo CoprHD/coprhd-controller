@@ -19,7 +19,7 @@
                 <!-- auto purge interval (minutes) -->
                 <prop key="autopurge.purgeInterval">30</prop> 
 		<foreach iterator="iter">
-                <prop key="server.${iter}">${network_${iter}_ipaddr_service},2888,2889</prop>
+                <prop key="server.${iter}">${network_${iter}_ipaddr_service}:2888:2889</prop>
                 </foreach>
             </props>
         </property>

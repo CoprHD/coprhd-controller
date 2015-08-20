@@ -77,8 +77,8 @@ import com.google.common.base.Function;
  * StoragePool resource implementation
  */
 @Path("/vdc/storage-pools")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class StoragePoolService extends TaggedResource {
 
     private Logger _logger = LoggerFactory.getLogger(StoragePoolService.class);

@@ -27,8 +27,8 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 @Path("/block/full-copies")
-@DefaultPermissions(read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, read_acls = {
-        ACL.OWN, ACL.ALL }, write_roles = { Role.TENANT_ADMIN }, write_acls = { ACL.OWN,
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
+        ACL.OWN, ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = { ACL.OWN,
         ACL.ALL })
 public class BlockFullCopyService extends TaskResourceService {
 

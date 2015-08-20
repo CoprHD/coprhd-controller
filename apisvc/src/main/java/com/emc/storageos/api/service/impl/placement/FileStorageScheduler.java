@@ -79,10 +79,8 @@ public class FileStorageScheduler {
         List<Recommendation> poolRecommendations =
                 _scheduler.getRecommendationsForPools(vArray.getId().toString(), candidatePools, capabilities);
 
-        List<FileRecommendation> recommendations =
-                selectStorageHADomainMatchingVpool(vPool, vArray.getId(), poolRecommendations);
-        
-        List<FileRecommendation> recommendationsBasedOnVNAS = getRecommendedStoragePortsForVNAS(vPool, poolRecommendations, project);
+        List<FileRecommendation> recommendations = getRecommendedStoragePortsForVNAS(
+        		vPool, vArray.getId(), poolRecommendations, project);
         // We need to place all the resources. If we can't then
         // log an error and clear the list of recommendations.
         if (recommendations.isEmpty()) {
@@ -95,7 +93,7 @@ public class FileStorageScheduler {
     }
 
     private List<FileRecommendation> getRecommendedStoragePortsForVNAS(VirtualPool vPool,
-			List<Recommendation> poolRecommendations, Project project) {
+    		URI vArrayURI, List<Recommendation> poolRecommendations, Project project) {
     	
         List<FileRecommendation> result = new ArrayList<FileRecommendation>();
         
@@ -110,7 +108,7 @@ public class FileStorageScheduler {
             if(Type.vnxfile.toString().equals(storage.getSystemType())) {
             	
             	_log.debug("Getting the storage ports of VNAS servers assigned to the project");
-            	List<StoragePort> storagePortList = getStoragePortsOfHAvNAS(project, vPool.getProtocols());
+            	List<StoragePort> storagePortList = getStoragePortsOfHAvNAS(vArrayURI, project, vPool.getProtocols());
             	
             	if(storagePortList !=null && !storagePortList.isEmpty()) {
             		
@@ -120,37 +118,45 @@ public class FileStorageScheduler {
             			spURIList.add(sp.getId());
             		}
             		rec.setStoragePorts(spURIList);
+            		result.add(rec);
             	}
+            } else {
+            	result.add(rec);
             }
         
         }
-		return null;
+		return result;
 	}
 
-	private List<StoragePort> getStoragePortsOfHAvNAS(Project project, StringSet protocols) {
+	private List<StoragePort> getStoragePortsOfHAvNAS(URI vArrayURI, Project project, StringSet protocols) {
 		
 		List<StoragePort> portList = new ArrayList<StoragePort>();
 		
-		List<VirtualNAS> vNASList = getActiveVNASList(project);
+		List<VirtualNAS> vNASList = getVNASServers(project);
 		
 		if(vNASList!=null && !vNASList.isEmpty()) {
 			
 			for (Iterator<VirtualNAS> iterator = vNASList.iterator(); iterator.hasNext();) {
 				VirtualNAS virtualNAS = iterator.next();
-				StringSet supportedProtocols = virtualNAS.getProtocols();
-				if (supportedProtocols == null || !supportedProtocols.contains(protocols)) {
-					_log.debug("Removing vNAS {} as it not supporting protocol(s) {}",
-							virtualNAS.getNasName(), protocols);
-					iterator.remove();
-				}
-	        }
+				
+				// Check if the vNAS server is part of the vArray
+				if(virtualNAS.getTaggedVirtualArrays().contains(vArrayURI)) {
+				
+					StringSet supportedProtocols = virtualNAS.getProtocols();
+					if (supportedProtocols == null || !supportedProtocols.contains(protocols)) {
+						_log.debug("Removing vNAS {} as it not supporting protocol(s) {}",
+								virtualNAS.getNasName(), protocols);
+						iterator.remove();
+					}
+		        }
+			}
 			
 			if(!vNASList.isEmpty()) {
 				
 				/* Get average percentage busy values of vNAS servers. 
 				* Choose the one which is least busy */
 				
-				VirtualNAS bestPerformingVNAS = getTheLeastUsedVNAS(vNASList);
+				VirtualNAS bestPerformingVNAS = getTheLeastUsedVNASServer(vNASList);
 				
 				portList =  getAssociatedStoragePorts(bestPerformingVNAS);
 				Collections.sort(portList, new Comparator<StoragePort>() {
@@ -213,7 +219,7 @@ public class FileStorageScheduler {
 		
 	}
 
-	private VirtualNAS getTheLeastUsedVNAS(List<VirtualNAS> vNASList) {
+	private VirtualNAS getTheLeastUsedVNASServer(List<VirtualNAS> vNASList) {
 		
 		//Uses value of AVG_PERCENATAGE_USED
 		
@@ -233,7 +239,7 @@ public class FileStorageScheduler {
 		return vNASList.get(0);
 	}
 
-	private List<VirtualNAS> getActiveVNASList(Project project) {
+	private List<VirtualNAS> getVNASServers(Project project) {
 		
 		List<VirtualNAS> vNASList = null;
 		
@@ -264,7 +270,7 @@ public class FileStorageScheduler {
 	                            .equalsIgnoreCase(virtualNAS.getRegistrationStatus()) ||
 	                    !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
 	                            .equals(virtualNAS.getCompatibilityStatus()) ||
-	                    !vNasState.Loaded.name().equals(virtualNAS.getVNasState()) ||
+	                    !vNasState.LOADED.name().equals(virtualNAS.getVNasState()) ||
 	                    !DiscoveryStatus.VISIBLE.name().equals(virtualNAS.getDiscoveryStatus())) {
 					iterator.remove();
 	            }

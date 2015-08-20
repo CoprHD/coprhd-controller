@@ -40,6 +40,7 @@ package com.emc.storageos.vasa;
  */
 
 import javax.net.ssl.*;
+
 import java.io.*;
 import java.security.KeyStore;
 import java.security.MessageDigest;
@@ -191,10 +192,11 @@ public class InstallCert {
             throw new UnsupportedOperationException();
         }
 
+        @SuppressWarnings("pmd:ArrayIsStoredDirectly")
         public void checkServerTrusted(X509Certificate[] chain, String authType)
                 throws CertificateException {
             // This is just a test class and it is ok to use chain by reference
-            this.chain = chain; // NOSONAR(Array is stored directly)
+            this.chain = chain; //NOSONAR ("Suppressing Sonar violation Array is stored directly")
             tm.checkServerTrusted(chain, authType);
         }
     }

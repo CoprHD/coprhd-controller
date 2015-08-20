@@ -25,7 +25,6 @@
 		<property name="nsList">
 			<map>
 				<entry key="metering-file" value-ref="vnxfilenamespace" />
-				<entry key="port-metrics-file" value-ref="vnxportmetricsnamespace" />
             </map>
 		</property>
 	</bean>
@@ -39,30 +38,22 @@
 				<ref bean="fsusageoperation" />
 				<ref bean="snapshotoperation" />
 				<ref bean="volumestatsoperation" />
+				<!-- collecting ip port metrics -->
+				<ref bean="vnxdatamoverquery"/>
+				<ref bean="vnxdminterfacesquery" />
+				<ref bean="vnxstorageportstatsquery" />
 				<ref bean="sessioncleanoperation" />
 			</list>
 		</property>
 	</bean>
 	
-	<bean id="vnxportmetricsnamespace"
-		class="com.emc.storageos.plugins.common.domainmodel.Namespace">
-		<property name="operations">
-			<list>
-				<ref bean="loginoperation" />
-				<ref bean="vnxdatamoverquery"/>
-				<ref bean="vnxdminterfacesquery" />
-				<ref bean="vnxmoverstatsquery" />
-				<ref bean="sessioncleanoperation" />
-			</list>
-		</property>
-	</bean>
 	
 	<bean id="vnxdatamoverquery"
           class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_processor" ref="vnxdatamoverprocessor" />
+        <property name="processor" ref="vnxdatamoverprocessor" />
         <property name="instance" ref="retriever" />
-        <property name="_method" value="execute" />
-        <property name="_arguments">
+        <property name="method" value="execute" />
+        <property name="arguments">
             <list>
                 <ref bean="uri" />
                 <ref bean="cookie" />
@@ -74,10 +65,10 @@
     
     <bean id="vnxdminterfacesquery"
           class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_processor" ref="vnxdatamoverinterfaceprocessor" />
+        <property name="processor" ref="vnxdatamoverinterfaceprocessor" />
         <property name="instance" ref="retriever" />
-        <property name="_method" value="execute" />
-        <property name="_arguments">
+        <property name="method" value="execute" />
+        <property name="arguments">
             <list>
                 <ref bean="uri" />
                 <ref bean="cookie" />
@@ -89,10 +80,10 @@
     
     <bean id="vnxstorageportstatsquery"
           class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_processor" ref="vnxstorageportstatsprocessor" />
+        <property name="processor" ref="vnxstorageportstatsprocessor" />
         <property name="instance" ref="retriever" />
-        <property name="_method" value="execute" />
-        <property name="_arguments">
+        <property name="method" value="execute" />
+        <property name="arguments">
             <list>
                 <ref bean="uri" />
                 <ref bean="cookie" />
@@ -202,23 +193,23 @@
 	
 	<bean id="vnxmoverstatsquery"
           class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="fetchMoverStats" />
-        <property name="_value" value="movers" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="fetchMoverStats" />
+        <property name="value" value="movers" />
     </bean>
     
     <bean id="vnxdminterfacequery"
           class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="fetchMoverInterfacesInfo" />
-        <property name="_value" value="movers" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="fetchMoverInterfacesInfo" />
+        <property name="value" value="movers" />
     </bean>
 	
 	<bean id="vnxdmquery"
         class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="fetchDataMoverInfo" />
-        <property name="_value" value="" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="fetchDataMoverInfo" />
+        <property name="value" value="" />
     </bean>
 
 	<bean id="filesharequery"

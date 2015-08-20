@@ -131,7 +131,7 @@ public class FileStorageScheduler {
 		
 		List<StoragePort> portList = new ArrayList<StoragePort>();
 		
-		List<VirtualNAS> vNASList = getActiveVNASList(project);
+		List<VirtualNAS> vNASList = getVNASServers(project);
 		
 		if(vNASList!=null && !vNASList.isEmpty()) {
 			
@@ -150,7 +150,7 @@ public class FileStorageScheduler {
 				/* Get average percentage busy values of vNAS servers. 
 				* Choose the one which is least busy */
 				
-				VirtualNAS bestPerformingVNAS = getTheLeastUsedVNAS(vNASList);
+				VirtualNAS bestPerformingVNAS = getTheLeastUsedVNASServer(vNASList);
 				
 				portList =  getAssociatedStoragePorts(bestPerformingVNAS);
 				Collections.sort(portList, new Comparator<StoragePort>() {
@@ -213,7 +213,7 @@ public class FileStorageScheduler {
 		
 	}
 
-	private VirtualNAS getTheLeastUsedVNAS(List<VirtualNAS> vNASList) {
+	private VirtualNAS getTheLeastUsedVNASServer(List<VirtualNAS> vNASList) {
 		
 		//Uses value of AVG_PERCENATAGE_USED
 		
@@ -233,7 +233,7 @@ public class FileStorageScheduler {
 		return vNASList.get(0);
 	}
 
-	private List<VirtualNAS> getActiveVNASList(Project project) {
+	private List<VirtualNAS> getVNASServers(Project project) {
 		
 		List<VirtualNAS> vNASList = null;
 		

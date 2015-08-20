@@ -3657,7 +3657,7 @@ public class VPlexApiDiscoveryManager {
             for (VPlexDeviceInfo device : deviceInfoList) {
                 switch (device.getGeometry().toLowerCase()) {
                     case VPlexApiConstants.ARG_GEOMETRY_RAID0:
-                        s_logger.info("top-level device geometry is raid-0, no further info needed");
+                        s_logger.info("component device geometry is raid-0, no further info needed");
                         break;
                     case VPlexApiConstants.ARG_GEOMETRY_RAID1:
                     case VPlexApiConstants.ARG_GEOMETRY_RAIDC:

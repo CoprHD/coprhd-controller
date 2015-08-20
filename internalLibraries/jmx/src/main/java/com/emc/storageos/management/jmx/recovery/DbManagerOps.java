@@ -5,6 +5,7 @@
 package com.emc.storageos.management.jmx.recovery;
 
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
+import com.emc.storageos.services.util.FileUtils;
 import com.emc.storageos.services.util.Strings;
 import com.sun.tools.attach.AgentInitializationException;
 import com.sun.tools.attach.AgentLoadException;
@@ -22,18 +23,17 @@ import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.List;
-import java.util.regex.Pattern;
 
 public class DbManagerOps implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(DbManagerOps.class);
     private static final Integer DB_REPAIR_MAX_RETRY_COUNT = 3;
     private static final String JMX_URL_PATTERN = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
     private static String PID_DIR = "/var/run/storageos/";
+    // matches <svcname>.pid, <svcname>-debug.pid, <svcname>-coverage.pid which contains pid
     private static final String PID_FILENAME_PATTERN = "%s(-(coverage|debug))?.pid";
     private static final String CONNECTOR_ADDRESS = "com.sun.management.jmxremote.localConnectorAddress";
     public final static String MBEAN_NAME = "com.emc.storageos.db.server.impl:name=DbManager";
@@ -228,31 +228,10 @@ public class DbManagerOps implements AutoCloseable {
     }
 
     private int getServicePid(String svcName) throws FileNotFoundException {
-        String pidFilename = getServicePidFile(svcName);
-        try (Scanner scanner = new Scanner(new File(PID_DIR + pidFilename))) {
+        String regEx = String.format(PID_FILENAME_PATTERN, svcName);
+        File pidFile = FileUtils.getFileByRegEx(new File(PID_DIR), regEx);
+        try (Scanner scanner = new Scanner(pidFile)) {
             return scanner.nextInt();
         }
-    }
-
-    private String getServicePidFile(String svcName) {
-        File dir = new File(PID_DIR);
-        String namePattern = String.format(PID_FILENAME_PATTERN, svcName);
-        final Pattern pattern = Pattern.compile(namePattern);
-
-        String[] files = dir.list(new FilenameFilter() {
-
-            @Override
-            public boolean accept(File dir, String filename) {
-                return pattern.matcher(filename).matches();
-            }
-
-        });
-
-        if (files == null || files.length == 0) {
-            log.error("can't find {} pid file", svcName);
-            throw new IllegalStateException("can't find pid file, please check service status");
-        }
-
-        return files[0];
     }
 }

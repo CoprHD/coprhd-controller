@@ -61,7 +61,7 @@ public class VNXVDMProcessor extends VNXFileProcessor {
                         // system.getState() == VdmState.LOADED) {
                         if (system.getState() == VdmState.LOADED) {
                             VNXVdm vdm = new VNXVdm(
-                                    system.getName(), system.getMover(), system.getVdm());
+                                    system.getName(), system.getMover(), system.getVdm(),system.getState().name());
                             vdm.setInterfaces(system.getInterfaces().getLi());
                             vdms.add(vdm);
                         } else {

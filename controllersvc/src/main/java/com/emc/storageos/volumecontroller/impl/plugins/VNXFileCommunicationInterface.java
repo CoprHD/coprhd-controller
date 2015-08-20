@@ -105,6 +105,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     private static final String PHYSICAL = "PHYSICAL";
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String UNMANAGED_EXPORT_RULE = "UnManagedExportRule";
+    private final Map<String,String> storgeHADomainState = new HashMap<String, String>(); 
 
     private static int BYTESCONV = 1024;  // VNX defaults to M and apparently Bourne wants K.
 
@@ -487,6 +488,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         vNas.setProtocols(tempSet);
         vNas.setId(URIUtil.createId(VirtualNAS.class));
         vNas.setNasState(vNasState.LOADED.getNasState());
+        String vnasState = this.storgeHADomainState.get(vdm.getId().toString());
+        
+        if(!vnasState.isEmpty()){
+            vNas.setNasState(vNasState.getNasState(vnasState));
+        }
+        //clean up the vdm state entry
+        this.storgeHADomainState.remove(vdm.getId().toString());
+        
         return vNas;
 
     }
@@ -1050,7 +1059,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 portGroup.setFileSharingProtocols(protocols);
                 portGroup.setVirtual(true);
                 portGroup.setAdapterType(StorageHADomain.HADomainType.VIRTUAL.toString());
-
                 // Get parent Data Mover
                 StorageHADomain matchingParentMover = getMatchingMoverById(movers, vdm.getMoverId());
                 // Check for valid data mover
@@ -1067,6 +1075,12 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 portGroup.setFileSharingProtocols(protocols);
                 existingPortGroups.add(portGroup);
             }
+
+            /*Store the fresh Vdm state for each storageHADomain*/
+            if(this.storgeHADomainState.containsKey(portGroup.getId().toString())){
+                this.storgeHADomainState.remove(portGroup.getId().toString());
+            }
+            this.storgeHADomainState.put(portGroup.getId().toString(), vdm.getState());
         }
 
         _logger.info("Vdm Port group discovery for storage system {} complete.", system.getId());

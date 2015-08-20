@@ -42,6 +42,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualNAS.vNasState;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -829,7 +830,7 @@ public class ProjectService extends TaggedResource {
 
                     // Check list of vNAS servers are not tagged with any project
                     // Check list of vNAS servers are in loaded state
-                    if (vnas.getProject() == null && vnas.getVNasState().equalsIgnoreCase(VirtualNAS.vNasState.Loaded.name())) {
+                    if (vnas.getProject() == null && vnas.getVNasState().equalsIgnoreCase(vNasState.LOADED.getNasState())) {
                         validNas.add(id);
                         vnas.setProject(project.getId());
                         _dbClient.persistObject(vnas);

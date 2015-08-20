@@ -86,7 +86,7 @@ public class VirtualNAS extends NASServer {
 
     // Defines different States of the NAS server.
     public static enum vNasState {
-        LOADED("loded"),
+        LOADED("loaded"),
         MOUNTED("mounted"),
         TEMP_LOADED("tempunloaded"),
         PERM_UNLOADED("permunloaded"),
@@ -116,8 +116,8 @@ public class VirtualNAS extends NASServer {
 
     // Defines different vNAS types.
     public static enum vNasType {
-        Local("Local"),
-        Domain("Domain"),
+        LOCAL("local"),
+        DOMAIN("domain"),
         UNKNOWN("N/A");
 
         private String vNasType;

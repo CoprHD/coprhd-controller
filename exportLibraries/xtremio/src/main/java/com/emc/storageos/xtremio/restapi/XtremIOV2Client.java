@@ -475,7 +475,7 @@ public class XtremIOV2Client extends XtremIOClient {
         // We don't support ingestion of such snaps. So mark it as true
         restoreParam.setNoBackup(Boolean.TRUE.toString());
         restoreParam.setToVolumeId(volName);
-        restoreParam.setFromSnapshotSetId(snapshotName);
+        restoreParam.setFromVolumeId(snapshotName);
 
         log.info("Calling restore Volume from snapshot with: {}", restoreParam.toString());
         ClientResponse response = post(XtremIOConstants.XTREMIO_V2_SNAPS_URI,
@@ -492,7 +492,7 @@ public class XtremIOV2Client extends XtremIOClient {
         // We don't support ingestion of such snaps. So mark it as true
         refreshParam.setNoBackup(Boolean.TRUE.toString());
         refreshParam.setFromVolumeId(volName);
-        refreshParam.setToSnapshotSetId(snapshotName);
+        refreshParam.setToVolumeId(snapshotName);
 
         log.info("Calling refresh snapshot with: {}", refreshParam.toString());
         ClientResponse response = post(XtremIOConstants.XTREMIO_V2_SNAPS_URI,

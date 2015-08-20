@@ -128,6 +128,10 @@
       <Version>${product_version_uint16}</Version>
       <FullVersion>${product_version}.${product_release}</FullVersion>
       <Category>EMC ${product_brand}</Category>
+      <Property ovf:key="node_id" ovf:type="string" ovf:userConfigurable="false" ovf:value="standalone">
+        <Label>Node ID</Label>
+        <Description>ID of ViPR Node</Description>
+      </Property>
 ${include="storageos-standalone-properties.xml"}
     </ProductSection>
     <EulaSection>

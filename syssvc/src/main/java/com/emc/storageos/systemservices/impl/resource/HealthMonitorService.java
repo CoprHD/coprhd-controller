@@ -214,7 +214,7 @@ public class HealthMonitorService extends BaseLogSvcResource {
                 (nodeInfoList, INTERNAL_NODE_HEALTH_URI,
                         Action.GET, null, NodeHealth.class, null);
         nodehealthList.addAll(nodesData.values());
-        
+
         String thisNodeId = _coordinatorClientExt.getMyNodeId();
         if (thisNodeId.equals("standalone")) {
             return healthRestRep;
@@ -358,8 +358,8 @@ public class HealthMonitorService extends BaseLogSvcResource {
 
     /**
      * Returns IP address of the node
-     *
-     * @param nodeId node name
+     * 
+     * @param nodeId node id
      * @return IP address
      */
     private String getNodeIP(String nodeId) {
@@ -427,8 +427,8 @@ public class HealthMonitorService extends BaseLogSvcResource {
             Map<NodeHardwareInfoType, Float> hardwareInfos = new HashMap<NodeHardwareInfoType, Float>();
             hardwareInfos.put(NodeHardwareInfoType.CPUCOUNT, (float) ProcStats.getCPUCount());
             hardwareInfos.put(NodeHardwareInfoType.CPUFREQ, ProcStats.getCPUFrequence());
-            hardwareInfos.put(NodeHardwareInfoType.MEMORY, (float)ProcStats.getMemoryStats().getMemTotal());
-            hardwareInfos.put(NodeHardwareInfoType.DISK, (float)getNodeDiskAmount());
+            hardwareInfos.put(NodeHardwareInfoType.MEMORY, (float) ProcStats.getMemoryStats().getMemTotal());
+            hardwareInfos.put(NodeHardwareInfoType.DISK, (float) getNodeDiskAmount());
             return new NodeHardwareInfoRestRep(nodeId, getNodeIP(nodeId), hardwareInfos);
         } catch (Exception e) {
             _log.error("Internal error occurred while getting node hardware info. {}", e);

@@ -247,7 +247,7 @@ public class VdcConfigHelper {
                                 syssvc.getEndpoint());
                         sysClient.setCoordinatorClient(coordinator);
                         sysClient.post(SysClientFactory.URI_WAKEUP_PROPERTY_MANAGER, null, null);
-                    } catch(Exception e) {
+                    } catch (Exception e) {
                         log.error("Error waking up node: {} Cause:", syssvc.getNodeId(), e);
                     }
                 }

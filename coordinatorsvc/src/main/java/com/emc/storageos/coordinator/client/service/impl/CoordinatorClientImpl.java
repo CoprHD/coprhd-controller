@@ -483,7 +483,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      * 
      * @param serviceRoot
      *            path under /service
-     * @return child node names under /service/<serviceRoot>
+     * @return child node ids under /service/<serviceRoot>
      * @throws CoordinatorException
      */
     private List<String> lookupServicePath(String serviceRoot) throws CoordinatorException {

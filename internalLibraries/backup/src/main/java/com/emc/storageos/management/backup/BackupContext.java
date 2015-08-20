@@ -58,18 +58,19 @@ public class BackupContext {
     }
 
     /**
-     * Sets name of current node
-     * @param nodeId
-     *          The name of node
+     * Sets id of current node
+     * 
+     * @param nodeIdParam
+     *            The id of node
      */
     public void setNodeId(String nodeId) {
         Preconditions.checkArgument(nodeId != null && !nodeId.trim().isEmpty(),
-                "ViPR node name is invalid");
+                "ViPR node id is invalid");
         this.nodeId = nodeId;
     }
-    
+
     public String getNodeId() {
-    	return this.nodeId;
+        return this.nodeId;
     }
 
     public void setVdcList(List<String> vdcList) {

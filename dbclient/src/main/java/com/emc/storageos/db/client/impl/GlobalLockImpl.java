@@ -121,7 +121,7 @@ public class GlobalLockImpl implements GlobalLockItf {
     /**
      * Acquire the global lock
      * 
-     * @param owner the name of the local owner (e.g. node name or svc name etc.)
+     * @param owner the name of the local owner (e.g. node id or svc name etc.)
      */
     @Override
     public boolean acquire(final String owner) throws Exception {
@@ -208,7 +208,7 @@ public class GlobalLockImpl implements GlobalLockItf {
      * For VdcShared Mode, the release might just remove zk holder from local VDC ZK.
      * If no other holders, it will remove the global lock from geodb then.
      * 
-     * @param owner the name of the local owner (e.g. node name or svc name etc.)
+     * @param owner the name of the local owner (e.g. node id or svc name etc.)
      * @param force whether to allow a lock to be released by a different owner in the
      *            same VDC.
      */
@@ -312,7 +312,7 @@ public class GlobalLockImpl implements GlobalLockItf {
 
     /**
      * Get the global lock owner
-     * For VdcShared Mode, the owner would be the global owner but not local owner (i.e node name etc.)
+     * For VdcShared Mode, the owner would be the global owner but not local owner (i.e node id etc.)
      * Also note that in order to call this method successfully, the caller must be able
      * to write to geodbsvc (and acquire the internal distributed row lock).
      * 

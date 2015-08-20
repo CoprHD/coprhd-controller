@@ -198,7 +198,7 @@ public class ControlService {
         }
 
         List<String> controlNodeServiceNames = ServicesMetadata.getControlNodeServiceNames();
-        if(_coordinator.getMyNodeId().equals(nodeId)){
+        if (_coordinator.getMyNodeId().equals(nodeId)) {
             if (!controlNodeServiceNames.contains(name)) {
                 throw APIException.badRequests.parameterIsNotOneOfAllowedValues("service name", controlNodeServiceNames.toString());
             }

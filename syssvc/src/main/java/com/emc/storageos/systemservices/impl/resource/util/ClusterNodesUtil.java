@@ -46,8 +46,8 @@ public class ClusterNodesUtil {
 
     /**
      * Gets a reference to the node connection info for the nodes requested.
-     *
-     * @param nodeIds List of node names whose information is returned
+     * 
+     * @param nodeIds List of node ids whose information is returned
      * @return A list containing the connection info for all nodes in the Bourne
      *         cluster.
      * @throws IllegalStateException When an exception occurs trying to get the
@@ -57,7 +57,7 @@ public class ClusterNodesUtil {
         List<NodeInfo> nodeInfoList = new ArrayList<NodeInfo>();
         List<String> validNodeIds = new ArrayList<String>();
         try {
-            if( nodeIds != null && !nodeIds.isEmpty() ){
+            if (nodeIds != null && !nodeIds.isEmpty()) {
                 _log.info("Getting cluster node info for ids: {}", nodeIds);
             }
             else {
@@ -89,11 +89,11 @@ public class ClusterNodesUtil {
             throw APIException.internalServerErrors.getObjectFromError("cluster nodes info", "coordinator", e);
         }
 
-        //validate if all requested node ids information is retrieved
-        if(nodeIds != null && !nodeIds.isEmpty() &&
-                !validNodeIds.containsAll(nodeIds)){
+        // validate if all requested node ids information is retrieved
+        if (nodeIds != null && !nodeIds.isEmpty() &&
+                !validNodeIds.containsAll(nodeIds)) {
             nodeIds.removeAll(validNodeIds);
-            throw APIException.badRequests.parameterIsNotValid("node id(s): "+nodeIds);
+            throw APIException.badRequests.parameterIsNotValid("node id(s): " + nodeIds);
         }
         return nodeInfoList;
     }

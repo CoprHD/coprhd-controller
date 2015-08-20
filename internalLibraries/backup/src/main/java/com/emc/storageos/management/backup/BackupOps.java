@@ -182,9 +182,10 @@ public class BackupOps {
         CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
         for (String nodeId : addressMap.getControllerNodeIPLookupMap().keySet()) {
             String normalizedHost = normalizeDualInetAddress(addressMap.get(nodeId));
-            if (normalizedHost == null)
+            if (normalizedHost == null) {
                 throw BackupException.fatals
                         .failedToGetValidDualInetAddress("Neither IPv4 or IPv6 address is configured");
+            }
             dualAddrHosts.put(nodeId, normalizedHost);
         }
         return dualAddrHosts;

@@ -244,8 +244,8 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
     public String generateZipFileName(String tag, BackupFileSet files) {
         Set<String> availableNodes = files.uniqueNodes();
-        Set<String> nodeNames = this.coordinatorClient.getInetAddessLookupMap().getControllerNodeIPLookupMap().keySet();
-        String[] allNodes = nodeNames.toArray(new String[nodeNames.size()]);
+        Set<String> nodeIds = this.coordinatorClient.getInetAddessLookupMap().getControllerNodeIPLookupMap().keySet();
+        String[] allNodes = nodeIds.toArray(new String[nodeIds.size()]);
         Arrays.sort(allNodes);
         int backupNodeCount = 0;
         for (int i = 0; i < allNodes.length; i++) {
@@ -254,15 +254,17 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             }
         }
 
-        return ScheduledBackupTag.toZipFileName(tag, nodeNames.size(), backupNodeCount);
+        return ScheduledBackupTag.toZipFileName(tag, nodeIds.size(), backupNodeCount);
     }
 
-    public List<String> getDescParams(final String tag){
+    public List<String> getDescParams(final String tag) {
         final String nodeId = this.serviceinfo.getNodeId();
-        return new ArrayList<String>(){{
-        	add(tag);
-        	add(nodeId);
-        }};
+        return new ArrayList<String>() {
+            {
+                add(tag);
+                add(nodeId);
+            }
+        };
     }
 
     /**

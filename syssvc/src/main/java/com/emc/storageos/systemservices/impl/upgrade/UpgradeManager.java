@@ -342,7 +342,7 @@ public class UpgradeManager extends AbstractManager {
         String previousVersion = null;
         log.info("Trying to find previous version from control nodes...");
         Map<String, NodeState> nodestates = coordinator.getClusterInfo().getControlNodes();
-        for (Entry<String, NodeState> entry: nodestates.entrySet()) {
+        for (Entry<String, NodeState> entry : nodestates.entrySet()) {
             if (!entry.getKey().equals(coordinator.getMyNodeId())) {
                 previousVersion = entry.getValue().getCurrent();
                 if (previousVersion != null) {

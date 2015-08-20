@@ -76,7 +76,7 @@ public class CoordinatorClientExt {
     private InterProcessLock _remoteDownloadLock = null;
     private volatile InterProcessLock _targetLock = null;
     private InterProcessLock _newVersionLock = null;
-    // Node name used for external display/query purpose.
+    // Node id used for external display/query purpose.
     // EX: vipr1, vipr2, dataservice-10_247_100_15
     private String _myNodeId= null;
     private String _myNodeName= null;
@@ -535,7 +535,8 @@ public class CoordinatorClientExt {
     }
 
     /**
-     * Get node endpoint from node name
+     * Get node endpoint from node id
+     *
      * @param nodeId
      * @return
      */

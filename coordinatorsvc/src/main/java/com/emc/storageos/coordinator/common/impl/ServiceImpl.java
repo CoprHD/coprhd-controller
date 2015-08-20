@@ -27,9 +27,9 @@ public class ServiceImpl implements Service {
     // Service id is for internal use to talk to coordinator.
     // EX: syssvc-1, syssvc-2, syssvc-10_247_100_15
     private static final String ID_KEY = "_id";
-    // Node name used for external display/query purpose.
-    // Node id key cannot be changed from nodeName for compatibility
+    // Node id used for external display/query purpose.
     // EX: vipr1, vipr2, dataservice-10_247_100_15
+    // key must remain "_nodeName" for upgrade compatibility
     private static final String NODE_ID_KEY= "_nodeName";
     private static final String NODE_NAME_KEY= "_hostName";
     private static final String ENDPOINT_KEY = "_endpoint";

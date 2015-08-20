@@ -121,7 +121,8 @@ _genconfig_node_id() {
     esac
 }
 
-# Convert node_name or node_id to node_index
+
+# Convert node_id to node_index
 _genconfig_node_index() {
     case ${1} in
         'standalone')    echo  "${1}"         ;;

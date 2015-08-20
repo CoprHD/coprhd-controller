@@ -83,8 +83,8 @@ public class HealthMonitorService extends BaseLogSvcResource {
     @Produces({ MediaType.APPLICATION_JSON })
     public NodeStats getNodeStats(RequestParams requestParams) {
         _log.info("Retrieving node stats");
-        String nodeName = _coordinatorClientExt.getMyNodeName();
-        return getNodeStats(nodeName, getNodeIP(nodeName),
+        String nodeId = _coordinatorClientExt.getMyNodeId();
+        return getNodeStats(nodeId, getNodeIP(nodeId),
                 requestParams.getInterval(),
                 ServicesMetadata.getRoleServiceNames(_coordinatorClientExt.getNodeRoles()));
     }
@@ -99,8 +99,8 @@ public class HealthMonitorService extends BaseLogSvcResource {
     @Produces({ MediaType.APPLICATION_JSON })
     public NodeHardwareInfoRestRep getNodeHardwareInfo() {
         _log.info("Retrieving node hardware info");
-        String nodeName = _coordinatorClientExt.getMyNodeName();
-        return getNodeHardWareInfo(nodeName);
+        String nodeId = _coordinatorClientExt.getMyNodeId();
+        return getNodeHardWareInfo(nodeId);
     }
 
     /**
@@ -152,8 +152,8 @@ public class HealthMonitorService extends BaseLogSvcResource {
     @Produces({ MediaType.APPLICATION_JSON })
     public NodeHealth getNodeHealth() {
         _log.info("Retrieving node health");
-        String nodeName = _coordinatorClientExt.getMyNodeName();
-        return getNodeHealth(nodeName, getNodeIP(nodeName),
+        String nodeId = _coordinatorClientExt.getMyNodeId();
+        return getNodeHealth(nodeId, getNodeIP(nodeId),
                 ServicesMetadata.getRoleServiceNames(_coordinatorClientExt.getNodeRoles()));
     }
 
@@ -187,7 +187,7 @@ public class HealthMonitorService extends BaseLogSvcResource {
                         Action.GET, null, NodeHealth.class, null);
         nodehealthList.addAll(nodesData.values());
 
-        String thisNodeId = _coordinatorClientExt.getMyNodeName();
+        String thisNodeId = _coordinatorClientExt.getMyNodeId();
         if (thisNodeId.equals("standalone")) {
             return healthRestRep;
         }
@@ -270,9 +270,9 @@ public class HealthMonitorService extends BaseLogSvcResource {
     @Path("/internal/node-diagnostics")
     @Produces({ MediaType.APPLICATION_JSON })
     public NodeDiagnostics getNodeDiagnostics(DiagRequestParams requestParams) {
-        String nodeName = _coordinatorClientExt.getMyNodeName();
-        _log.info("Retrieving node diagnostics for node: {}", nodeName);
-        return new NodeDiagnostics(nodeName, getNodeIP(nodeName),
+        String nodeId = _coordinatorClientExt.getMyNodeId();
+        _log.info("Retrieving node diagnostics for node: {}", nodeId);
+        return new NodeDiagnostics(nodeId, getNodeIP(nodeId),
                 DiagnosticsExec.getDiagToolResults(requestParams.isVerbose()
                         ? DiagConstants.VERBOSE : ""));
     }
@@ -316,11 +316,11 @@ public class HealthMonitorService extends BaseLogSvcResource {
     /**
      * Returns IP address of the node
      * 
-     * @param nodeName node name
+     * @param nodeId node id
      * @return IP address
      */
-    private String getNodeIP(String nodeName) {
-        URI endpoint = _coordinatorClientExt.getNodeEndpoint(nodeName);
+    private String getNodeIP(String nodeId) {
+        URI endpoint = _coordinatorClientExt.getNodeEndpoint(nodeId);
         return endpoint != null ? endpoint.getHost() : null;
     }
 
@@ -376,17 +376,17 @@ public class HealthMonitorService extends BaseLogSvcResource {
     /**
      * Get node hard ware info
      * 
-     * @param nodeName
+     * @param nodeId
      * @return
      */
-    private NodeHardwareInfoRestRep getNodeHardWareInfo(String nodeName) {
+    private NodeHardwareInfoRestRep getNodeHardWareInfo(String nodeId) {
         try {
             Map<NodeHardwareInfoType, Float> hardwareInfos = new HashMap<NodeHardwareInfoType, Float>();
             hardwareInfos.put(NodeHardwareInfoType.CPUCOUNT, (float) ProcStats.getCPUCount());
             hardwareInfos.put(NodeHardwareInfoType.CPUFREQ, ProcStats.getCPUFrequence());
             hardwareInfos.put(NodeHardwareInfoType.MEMORY, (float) ProcStats.getMemoryStats().getMemTotal());
             hardwareInfos.put(NodeHardwareInfoType.DISK, (float) getNodeDiskAmount());
-            return new NodeHardwareInfoRestRep(nodeName, getNodeIP(nodeName), hardwareInfos);
+            return new NodeHardwareInfoRestRep(nodeId, getNodeIP(nodeId), hardwareInfos);
         } catch (Exception e) {
             _log.error("Internal error occurred while getting node hardware info. {}", e);
             _log.debug(ExceptionUtils.getStackTrace(e));

@@ -256,16 +256,16 @@ function CheckOtherParams($isInteractive) {
 	$Script:cpuCount=CheckParam $Script:cpuCount "CPU count" $isInteractive $false IsValidCPUCount
 	$Script:memory=CheckParam $Script:memory "Memory" $isInteractive $false IsValidMemory
 	
-	$defaultNodeName="${product_name}$Script:nodeId"
+	$defaultNodeId="${product_name}$Script:nodeId"
 	if ([String]::IsNullOrEmpty($Script:vmName)) {
 		if ([String]::IsNullOrEmpty($Script:vmPrefix)) {
-			$Script:vmName=$defaultNodeName		
+			$Script:vmName=$defaultNodeId
 		}
 		else {
 			if (-not $Script:vmPrefix.EndsWith("-")) {
 					$Script:vmPrefix=$Script:vmPrefix+"-"
 			}
-			$Script:vmName=$Script:vmPrefix+$defaultNodeName
+			$Script:vmName=$Script:vmPrefix+$defaultNodeId
 		}
 	}
 }

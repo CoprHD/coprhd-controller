@@ -10,11 +10,11 @@
 # it is provided by or on behalf of EMC.
 
 _get_backup_props() {
-    _get_props node_name node_count network_ipaddr network_ipaddr6
+    _get_props node_id node_count network_ipaddr network_ipaddr6
 }
 
 _get_sys_props() {
-    _get_props node_suffix node_name network_ipaddr_effective
+    _get_props node_suffix node_id network_ipaddr_effective
 }
 
 _get_metadata_props() {

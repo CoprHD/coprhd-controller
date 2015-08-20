@@ -832,7 +832,7 @@ public class ProjectService extends TaggedResource {
                     vnas.setProject(project.getId());
                     _dbClient.persistObject(vnas);
                     _log.info("VNAS server {} successfully assigned to project {} ", vnas.getLabel(), project.getLabel());
-                }
+//                }
             }
         }
 

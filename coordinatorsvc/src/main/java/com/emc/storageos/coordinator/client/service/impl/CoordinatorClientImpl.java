@@ -220,16 +220,16 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         DualInetAddress address = inetAddressLookupMap.getDualInetAddress();
         if (!inetAddressLookupMap.isControllerNode()) {
             // this is a data node
-            if (!verifyPublishedDualInetAddress(inetAddressLookupMap.getNodeName())) {
+            if (!verifyPublishedDualInetAddress(inetAddressLookupMap.getNodeId())) {
                 // publish
-                setNodeDualInetAddressInfo(inetAddressLookupMap.getNodeName(), address.toString());
+                setNodeDualInetAddressInfo(inetAddressLookupMap.getNodeId(), address.toString());
             }
         }
         // if the data node map does not have it yet, save it to the map
-        if (inetAddressLookupMap.get(inetAddressLookupMap.getNodeName()) == null
-                || (!inetAddressLookupMap.get(inetAddressLookupMap.getNodeName()).equals(
+        if (inetAddressLookupMap.get(inetAddressLookupMap.getNodeId()) == null
+                || (!inetAddressLookupMap.get(inetAddressLookupMap.getNodeId()).equals(
                         inetAddressLookupMap.getDualInetAddress()))) {
-            inetAddressLookupMap.put(inetAddressLookupMap.getNodeName(), address);
+            inetAddressLookupMap.put(inetAddressLookupMap.getNodeId(), address);
         }
     }
 
@@ -483,7 +483,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      * 
      * @param serviceRoot
      *            path under /service
-     * @return child node names under /service/<serviceRoot>
+     * @return child node ids under /service/<serviceRoot>
      * @throws CoordinatorException
      */
     private List<String> lookupServicePath(String serviceRoot) throws CoordinatorException {

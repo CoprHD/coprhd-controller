@@ -270,7 +270,7 @@ public class NetAppClusterModeCommIntf extends
 
                 // Ignore export for root volume and don't pull it into ViPR db.
                 if (isNodeRootVolume || isSVMRootVolume) {
-                    _logger.info("Ignore and not discover root filesystem on NTP array");
+                    _logger.info("Ignore and not discover root" + filesystem +"on NTP array");
                     continue;
                 }
 
@@ -1205,22 +1205,28 @@ public class NetAppClusterModeCommIntf extends
                 HashMap<String, HashSet<UnManagedSMBFileShare>> unMangedSMBFileShareMapSet = getAllCifsShares(listShares);
 
                 for (String key : unMangedSMBFileShareMapSet.keySet()) {
-                    String filesystem = key;
                     unManagedSMBFileShareHashSet = unMangedSMBFileShareMapSet.get(key);
-                    _logger.info("FileSystem Path {}", filesystem);
+                    String fileSystem = key;
+                    String nativeId = fileSystem;
 
-                    String nativeId = filesystem;
+                    //get a fileSystem name from the path
+                    int index = fileSystem.indexOf('/', 1);
+                    if (-1 != index) {
+                        fileSystem = fileSystem.substring(0, index);
+                        _logger.info("Unmanaged FileSystem Name {}", fileSystem);
+                    }
+                    //build native id
                     String fsUnManagedFsNativeGuid = NativeGUIDGenerator
                             .generateNativeGuidForPreExistingFileSystem(
                                     storageSystem.getSystemType(), storageSystem
-                                            .getSerialNumber().toUpperCase(), nativeId);
+                                            .getSerialNumber().toUpperCase(), fileSystem);
 
                     UnManagedFileSystem unManagedFs = checkUnManagedFileSystemExistsInDB(fsUnManagedFsNativeGuid);
                     boolean fsAlreadyExists = unManagedFs == null ? false : true;
 
                     if (fsAlreadyExists) {
-                        _logger.debug("retrieve info for file system: " + filesystem);
-                        String svm = getOwningSVM(filesystem, fileSystemInfo);
+                        _logger.debug("retrieve info for file system: " + fileSystem);
+                        String svm = getOwningSVM(fileSystem, fileSystemInfo);
                         String addr = getSVMAddress(svm, svms);
 
                         UnManagedSMBShareMap tempUnManagedSMBShareMap = new UnManagedSMBShareMap();
@@ -1286,7 +1292,7 @@ public class NetAppClusterModeCommIntf extends
                     } else {
                         _logger.info("FileSystem " + unManagedFs
                                 + "is not present in ViPR DB. Hence ignoring "
-                                + filesystem + " share");
+                                + fileSystem + " share");
                     }
                 }
             }

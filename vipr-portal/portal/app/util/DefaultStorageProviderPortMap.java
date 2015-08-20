@@ -15,6 +15,8 @@ public enum DefaultStorageProviderPortMap {
     cinder_useSSL,
     scaleio,
     scaleio_useSSL,
+    scaleioapi,
+    scaleioapi_useSSL,
     ddmc,
     ddmc_useSSL,
     ibmxiv,

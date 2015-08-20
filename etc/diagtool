@@ -111,7 +111,7 @@ _get_all_nodes() {
     fi
     echo ${ipList[@]}    
 }
-_get_all_node_names() {
+_get_all_node_ids() {
     local nodeList
 	local nodeCount=$(_get_prop "${NODE_COUNT_PROP}")
     local standalone_add=$(_get_prop_ip "${STANDALONE_NODE_IP}${1}")
@@ -947,8 +947,8 @@ _test_nodes_connectivity() {
     
     local ipv6_node_list=($(_get_all_nodes "6"))
 	local ipv4_node_list=($(_get_all_nodes ""))
-    local ipv6_node_names_list=($(_get_all_node_names "6"))
-	local ipv4_node_names_list=($(_get_all_node_names ""))
+    local ipv6_node_ids_list=($(_get_all_node_ids "6"))
+	local ipv4_node_ids_list=($(_get_all_node_ids ""))
     
     local ipv6_node_status_list=()
     local ipv4_node_status_list=()
@@ -1137,11 +1137,11 @@ _test_subnet() {
     local ipv6_gateway=$(_routing_get_gw6) 
     local ipv4_gateway=$(_routing_get_gw)
     
-    local ipv6_node_names_list=($(_get_all_node_names "6"))
-	local ipv4_node_names_list=($(_get_all_node_names ""))
+    local ipv6_node_ids_list=($(_get_all_node_ids "6"))
+	local ipv4_node_ids_list=($(_get_all_node_ids ""))
     
-    [[ ! -z ${ipv6_gateway} ]] && ipv6_node_list+=(${ipv6_gateway}) && ipv6_node_names_list+=("gateway6")
-    [[ ! -z ${ipv4_gateway} ]] && ipv4_node_list+=(${ipv4_gateway}) && ipv4_node_names_list+=("gateway")
+    [[ ! -z ${ipv6_gateway} ]] && ipv6_node_list+=(${ipv6_gateway}) && ipv6_node_ids_list+=("gateway6")
+    [[ ! -z ${ipv4_gateway} ]] && ipv4_node_list+=(${ipv4_gateway}) && ipv4_node_ids_list+=("gateway")
     
     local ipv4_subnets=($(_get_subnet_ipvx ${ipv4_node_list[@]})) 
     local ipv6_subnets=($(_get_subnet_ipvx ${ipv6_node_list[@]}))
@@ -1157,10 +1157,10 @@ _test_subnet() {
     [ ${VERBOSE} = false ] && return 0
     #print verbose
     for idx in "${!ipv4_node_list[@]}"; do 
-        _verbose "${ipv4_node_names_list[${idx}]}=${ipv4_node_list[${idx}]}, subnet is ${ipv4_subnets[${idx}]}" 
+        _verbose "${ipv4_node_ids_list[${idx}]}=${ipv4_node_list[${idx}]}, subnet is ${ipv4_subnets[${idx}]}" 
     done
     for idx in "${!ipv6_node_list[@]}"; do 
-        _verbose "${ipv6_node_names_list[${idx}]}=${ipv6_node_list[${idx}]}, subnet is ${ipv6_subnets[${idx}]}" 
+        _verbose "${ipv6_node_ids_list[${idx}]}=${ipv6_node_list[${idx}]}, subnet is ${ipv6_subnets[${idx}]}" 
     done
 }
 _test_vdc() {

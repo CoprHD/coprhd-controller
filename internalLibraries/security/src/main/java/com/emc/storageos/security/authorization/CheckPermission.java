@@ -22,5 +22,5 @@ public @interface CheckPermission {
     ACL[] acls() default {};
 
     // block proxied users
-    boolean block_proxies() default false;
+    boolean blockProxies() default false;
 }

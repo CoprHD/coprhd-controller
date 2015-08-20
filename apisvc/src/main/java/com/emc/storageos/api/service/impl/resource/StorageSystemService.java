@@ -112,8 +112,8 @@ import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.google.common.base.Function;
 
 @Path("/vdc/storage-systems")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class StorageSystemService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(StorageSystemService.class);

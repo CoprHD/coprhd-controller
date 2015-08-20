@@ -47,8 +47,8 @@ import static com.emc.storageos.api.mapper.UserGroupMapper.map;
  */
 
 @Path("/vdc/admin/user-groups")
-@DefaultPermissions(read_roles = { Role.SECURITY_ADMIN },
-        write_roles = { Role.SECURITY_ADMIN })
+@DefaultPermissions(readRoles = { Role.SECURITY_ADMIN },
+        writeRoles = { Role.SECURITY_ADMIN })
 public class UserGroupService extends TaggedResource {
     private static String EXPECTED_GEO_VERSION = "2.3";
     private static String FEATURE_NAME = "Attributes Based Role and ACL Assignments";

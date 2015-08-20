@@ -511,9 +511,15 @@ public class SystemHealth extends Controller {
 
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void nodeReboot(@Required String nodeId) {
-        new RebootNodeJob(getSysClient(), nodeId).in(3);
-        flash.success(Messages.get("adminDashboard.nodeRebooting", nodeId));
-        Maintenance.maintenance(Common.reverseRoute(SystemHealth.class, "systemHealth"));
+        NodeHealth nodeHealth = MonitorUtils.getNodeHealth(nodeId);
+        if(nodeHealth!=null && nodeHealth.getStatus().equals("Good")){
+            new RebootNodeJob(getSysClient(), nodeId).in(3);
+            flash.success(Messages.get("adminDashboard.nodeRebooting", nodeId));
+            Maintenance.maintenance(Common.reverseRoute(SystemHealth.class, "systemHealth"));
+        }else{
+            flash.error("systemHealth.message.reboot.unavailable", nodeId);
+            systemHealth();
+        }
     }
 
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })

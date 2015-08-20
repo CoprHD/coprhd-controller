@@ -15,7 +15,7 @@ _get_coordinator_var() {
         echo "network_${i}_ipaddr_service=${!var}"
     done
 
-    _get_props node_name node_index
+    _get_props node_id node_index
 }
 
 _get_coordinator_jmx_props() {
@@ -29,7 +29,7 @@ _get_addrmap_props() {
         var="${var}6"
         echo "network_${index}_ipaddr6=${!var}"
     done
-    _get_props node_name network_ipaddr network_ipaddr6
+    _get_props node_id network_ipaddr network_ipaddr6
 }
 
 _get_coordinatorclient_var() {

@@ -82,12 +82,13 @@ public interface NetworkController extends Controller {
      * @param fabricWwn = the WWN assigned by the principal switch for the fabric
      * @param zoneName - only returns zone which has zone name matched with given name. Return all zones, if not specified.
      * @param excludeMembers - true, do not include members with zone. Include members, if not specified.
+     * @param excludeAliases - true, do not include aliases with zone. Include aliases, if not specified.
      * @return List<Zoneset> zonesets within that fabric. If zoneName is specified, and there is a match, then only one zone is returned.
      *         If excludeMembers is true, then only zone name is present.
      * @throws InternalException
      */
-    public List<Zoneset> getZonesets(URI network, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers)
-            throws InternalException;
+    public List<Zoneset> getZonesets(URI network, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers,
+    		 boolean excludeAliases) throws InternalException;
 
     /**
      * Asynchronous call to add SAN zones.

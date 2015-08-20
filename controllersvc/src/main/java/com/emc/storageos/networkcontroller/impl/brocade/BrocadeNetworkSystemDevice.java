@@ -128,11 +128,11 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
     }
 
     @Override
-    public List<Zoneset> getZonesets(NetworkSystem network, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers)
-            throws Exception {
+    public List<Zoneset> getZonesets(NetworkSystem network, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers,
+    		boolean excludeAliases) throws Exception {
         try {
             validateFabric(network, fabricWwn, fabricId);
-            return _smisHelper.getZoneSets(getNetworkDeviceClient(network), fabricId, fabricWwn, zoneName, excludeMembers);
+            return _smisHelper.getZoneSets(getNetworkDeviceClient(network), fabricId, fabricWwn, zoneName, excludeMembers, excludeAliases);
         } catch (Exception ex) {
             _log.error("Cannot get zonesets for fabricId " + fabricId
                     + " on network device  " + network.getLabel() + ": "
@@ -473,7 +473,7 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
         boolean added = false;
         _log.info("Starting create zone with name " + zone.getName());
         // check if an active zone with the same name exists
-        Zone zoneInFabric = _smisHelper.getZone(client, zone.getName(), fabricWwn, true, true);
+        Zone zoneInFabric = _smisHelper.getZone(client, zone.getName(), fabricWwn, true, true, true);
         if (zoneInFabric != null) {
             _log.info("Found an active zone with the name " + zone.getName());
             // I have a active zone with the same name but it does not have all the members we
@@ -484,7 +484,7 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
             }
         } else {
             // check if an inactive zone with the same name exists
-            zoneInFabric = _smisHelper.getZone(client, zone.getName(), fabricWwn, false, true);
+            zoneInFabric = _smisHelper.getZone(client, zone.getName(), fabricWwn, false, true, true);
             if (zoneInFabric != null) {
                 _log.info("Found an inactive zone with the name " + zone.getName());
                 if (activateZones) {
@@ -628,7 +628,7 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
 
             // The actual work should be done on an inactive
             shadowZonsetPath = _smisHelper.getShadowZonesetPath(client, fabricId, fabricWwn, activeZonesetIns);
-            Map<String, Zone> zonesInFabric = _smisHelper.getZones(client, getZoneNames(zones), fabricWwn, false, true);
+            Map<String, Zone> zonesInFabric = _smisHelper.getZones(client, getZoneNames(zones), fabricWwn, false, true, true);
 
             // Find the set of zones to be actually deleted.
             // We don't attempt to delete zones that are already gone.
@@ -822,7 +822,7 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
                 zonesetPath = _smisHelper.getShadowZonesetPath(client, fabricId, fabricWwn, activeZonesetIns);
             }
 
-            Map<String, Zone> zonesInFabric = _smisHelper.getZones(client, getZoneNames(zones), fabricWwn, false, true);
+            Map<String, Zone> zonesInFabric = _smisHelper.getZones(client, getZoneNames(zones), fabricWwn, false, true, true);
             for (ZoneUpdate zone : zones) {
                 try {
                     if (checkAndUpdateZone(client, zoneServiceIns, fabricId, fabricWwn, zonesetPath, zonesInFabric, zone)) {
@@ -999,7 +999,7 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
             String name, CIMObjectPath path) throws WBEMException {
         Map<String, ZoneMember> map = new HashMap<String, ZoneMember>();
         try {
-            List<ZoneMember> members = _smisHelper.getZoneMembers(client, path);
+            List<ZoneMember> members = _smisHelper.getZoneMembers(client, path, true);
             for (ZoneMember member : members) {
                 if (member.hasAlias()) {
                     map.put(member.getAlias(), member);

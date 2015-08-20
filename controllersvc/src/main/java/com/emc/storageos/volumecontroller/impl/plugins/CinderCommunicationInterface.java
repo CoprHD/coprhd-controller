@@ -184,17 +184,20 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
                         String parameter = splits[0].trim();
                         String value = splits[1].trim();
                         if (auth_section) {
-                            if (parameter.equalsIgnoreCase("admin_user")) {
+                            if (parameter.equalsIgnoreCase("admin_user") || 
+                                    parameter.equalsIgnoreCase("username")) {
                                 updateKeyInProvider(providerKeys,
                                         CinderConstants.KEY_CINDER_REST_USER, value);
                                 _logger.debug("REST user name = {}", value);
                             }
-                            else if (parameter.equalsIgnoreCase("admin_password")) {
+                            else if (parameter.equalsIgnoreCase("admin_password") ||
+                                    parameter.equalsIgnoreCase("password")) {
                                 updateKeyInProvider(providerKeys,
                                         CinderConstants.KEY_CINDER_REST_PASS_WORD, value);
                                 _logger.debug("REST password = {}", value);
                             }
-                            else if (parameter.equalsIgnoreCase("admin_tenant_name")) {
+                            else if (parameter.equalsIgnoreCase("admin_tenant_name") ||
+                                    parameter.equalsIgnoreCase("project_name")) {
                                 updateKeyInProvider(providerKeys,
                                         CinderConstants.KEY_CINDER_TENANT_NAME, value);
                                 _logger.debug("Tenant name = {}", value);

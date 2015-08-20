@@ -1229,7 +1229,7 @@
             reconfigRequired : false,
             rebootRequired : false,
             controlNodeOnly : true,
-            value : "1.21.0.20",
+            value : "1.32.0.0",
         },
         {
             key : "controller_xtremio_firmware_version",

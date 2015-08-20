@@ -270,7 +270,7 @@ public class FileStorageScheduler {
 	                            .equalsIgnoreCase(virtualNAS.getRegistrationStatus()) ||
 	                    !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
 	                            .equals(virtualNAS.getCompatibilityStatus()) ||
-	                    !vNasState.LOADED.name().equals(virtualNAS.getVNasState()) ||
+	                    !vNasState.LOADED.getNasState().equals(virtualNAS.getVNasState()) ||
 	                    !DiscoveryStatus.VISIBLE.name().equals(virtualNAS.getDiscoveryStatus())) {
 					iterator.remove();
 	            }

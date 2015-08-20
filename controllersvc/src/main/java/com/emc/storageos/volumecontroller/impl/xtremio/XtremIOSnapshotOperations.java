@@ -161,7 +161,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
         }
         snapObj.setDeviceLabel(xioSnap.getVolInfo().get(1));
         snapObj.setNativeId(xioSnap.getVolInfo().get(0));
-        String nativeGuid = NativeGUIDGenerator.getNativeGuidforSnapshot(storage, storage.getSerialNumber(), snapObj.getNativeId());
+        String nativeGuid = NativeGUIDGenerator.generateNativeGuid(storage, snapObj);
         snapObj.setNativeGuid(nativeGuid);
         boolean isReadOnly = XtremIOConstants.XTREMIO_READ_ONLY_TYPE.equals(xioSnap.getSnapshotType()) ? Boolean.TRUE : Boolean.FALSE;
         snapObj.setIsReadOnly(isReadOnly);

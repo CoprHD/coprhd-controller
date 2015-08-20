@@ -7,6 +7,8 @@ package com.emc.storageos.vplex.api;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.cassandra.cli.CliParser.getCondition_return;
+
 import com.emc.storageos.vplex.api.VPlexDirectorInfo.DirectorAttribute;
 
 /**
@@ -72,6 +74,17 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
      * @return The device cluster id.
      */
     public String getCluster() {
+        if (null == cluster) {
+            // attempt to parse it from the contextPath
+            // formatted like: /clusters/cluster-1/devices/device_*
+            String[] contextParts = getPath().split("/");
+            // first token will be empty string, 
+            // then "clusters", then cluster id at index 2
+            if (contextParts != null && contextParts.length >= 2) {
+                cluster = contextParts[2];
+            }
+        }
+        
         return cluster;
     }
 

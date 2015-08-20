@@ -567,6 +567,9 @@
 	<property name="dbClient" ref="dbclient"/>
     </bean>
 
+    <bean id="objectapifactory" class="com.emc.storageos.object.restapi.ObjectApiFactory"
+          init-method="init"/>
+
     <bean id="datadomainfactory" class="com.emc.storageos.datadomain.restapi.DataDomainClientFactory"
           init-method="init" destroy-method="shutdown">
         <property name="connectionTimeoutMs" value="30000"/>
@@ -717,6 +720,11 @@
         <property name="auditLogManager" ref="auditLogManager"/>
     </bean>
 
+    <bean id="objectDeviceController" class="com.emc.storageos.volumecontroller.impl.ObjectDeviceController">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="objectApiFactory" ref="objectapifactory"/>
+    </bean>
+
     <bean id="computeSystemController" class="com.emc.storageos.computesystemcontroller.impl.ComputeSystemControllerImpl">
         <property name="workflowService" ref="workflowService" />
         <property name="dbClient" ref="dbclient"/>
@@ -826,6 +834,7 @@
                 <ref bean="imageservercontroller"/>
                 <ref bean="ucsDevice"/>
                 <ref bean="vcenterController"/>
+                <ref bean="objectDeviceController"/>
             </set>
         </property>
         <property name="deviceMaxConnectionMap">
@@ -879,6 +888,16 @@
         <property name="deviceImpl">
             <set>
                 <ref bean="fileDeviceController"/>
+            </set>
+        </property>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="objectcontroller" class="com.emc.storageos.volumecontroller.impl.ObjectControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="deviceImpl">
+            <set>
+                <ref bean="objectDeviceController"/>
             </set>
         </property>
         <property name="dbClient" ref="dbclient"/>
@@ -994,6 +1013,14 @@
         <property name="serviceName" value="FileController"/>
         <property name="service" ref="filecontroller"/>
         <property name="serviceInterface" value="com.emc.storageos.volumecontroller.FileController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="ObjectController"/>
+        <property name="service" ref="objectcontroller"/>
+        <property name="serviceInterface" value="com.emc.storageos.volumecontroller.ObjectController"/>
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
     </bean>

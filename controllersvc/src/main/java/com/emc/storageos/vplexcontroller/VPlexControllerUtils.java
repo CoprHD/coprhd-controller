@@ -27,6 +27,8 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
+import com.emc.storageos.vplex.api.VPlexDeviceInfo;
+import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 
 public class VPlexControllerUtils {
@@ -224,7 +226,27 @@ public class VPlexControllerUtils {
         return clusterName;
     }
 
-    public static Set<String> getStorageVolumeInfoForDevice(String deviceName, String locality, URI vplexUri, DbClient dbClient) {
+    public static VPlexResourceInfo getSupportingDeviceInfo(String deviceName, String locality, 
+            URI vplexUri, DbClient dbClient) throws VPlexApiException {
+        VPlexResourceInfo device = null;
+        VPlexApiClient client = null;
+
+        try {
+            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
+            client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
+        } catch (URISyntaxException e) {
+            log.error("cannot load vplex api client", e);
+        }
+
+        if (null != client) {
+            device = client.getDeviceStructure(deviceName, locality);
+        }
+        
+        return device;
+    }
+    
+    public static Set<String> getStorageVolumeInfoForDevice(String deviceName, String locality, 
+            Map<String, Map<String, VPlexDeviceInfo>> mirrorMap, URI vplexUri, DbClient dbClient) {
 
         Set<String> storageVolumeInfo = null;
         VPlexApiClient client = null;
@@ -237,7 +259,7 @@ public class VPlexControllerUtils {
         }
 
         if (null != client) {
-            storageVolumeInfo = client.getStorageVolumeInfoForDevice(deviceName, locality);
+            storageVolumeInfo = client.getStorageVolumeInfoForDevice(deviceName, locality, mirrorMap);
         }
         
         log.info("Backend storage volume wwns for {} are {}", deviceName, storageVolumeInfo);

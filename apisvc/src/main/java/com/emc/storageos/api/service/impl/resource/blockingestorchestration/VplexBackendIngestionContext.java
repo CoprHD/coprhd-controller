@@ -2,6 +2,7 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +26,11 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
+import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
+import com.emc.storageos.vplex.api.VPlexDeviceInfo;
+import com.emc.storageos.vplex.api.VPlexDistributedDeviceInfo;
+import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 
 public class VplexBackendIngestionContext {
@@ -33,11 +39,13 @@ public class VplexBackendIngestionContext {
     private DbClient _dbClient;
     private UnManagedVolume _unmanagedVirtualVolume;
     
+    private VPlexResourceInfo topLevelDevice;
     private List<UnManagedVolume> unmanagedBackendVolumes;
     private List<UnManagedVolume> unmanagedSnapshots;
     private Map<UnManagedVolume, UnManagedVolume> unmanagedFullClones;
     private Map<UnManagedVolume, Set<UnManagedVolume>> unmanagedBackendOnlyClones;
     private List<UnManagedVolume> unmanagedMirrors;
+    private Map<String, Map<String, VPlexDeviceInfo>> mirrorMap;
     
     Map<String, UnManagedVolume> processedUnManagedVolumeMap = new HashMap<String, UnManagedVolume>();
     Map<String, BlockObject> createdObjectMap = new HashMap<String, BlockObject>();
@@ -48,6 +56,74 @@ public class VplexBackendIngestionContext {
         this._unmanagedVirtualVolume = unManagedVolume;
         this._dbClient = dbClient;
     }
+    
+    public VPlexResourceInfo getTopLevelDevice() {
+        if (null != topLevelDevice) {
+            return topLevelDevice;
+        }
+        
+        topLevelDevice = VPlexControllerUtils.getSupportingDeviceInfo(
+                getSupportingDeviceName(), getLocality(), 
+                getUnmanagedVirtualVolume().getStorageSystemUri(), 
+                _dbClient);
+        
+        return topLevelDevice;
+    }
+    
+    public String getSupportingDeviceName() {
+        String deviceName = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.VPLEX_SUPPORTING_DEVICE_NAME.toString(),
+                _unmanagedVirtualVolume.getVolumeInformation());
+        return deviceName;
+    }
+    
+    public String getLocality() {
+        String locality = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.VPLEX_LOCALITY.toString(),
+                _unmanagedVirtualVolume.getVolumeInformation());
+        return locality;
+    }
+    
+    public boolean isLocal() {
+        return VPlexApiConstants.LOCAL_VIRTUAL_VOLUME.equals(getLocality());
+    }
+    
+    // map of cluster id to sorted map of slot number to VPlexDeviceInfo 
+    public Map<String, Map<String, VPlexDeviceInfo>> getMirrorMap() {
+        if (null != mirrorMap) {
+            return mirrorMap;
+        }
+        
+        Map<String, Map<String, VPlexDeviceInfo>> mirrorMap = 
+                new HashMap<String, Map<String, VPlexDeviceInfo>>();
+        VPlexResourceInfo device = getTopLevelDevice();
+        if (isLocal() && (device instanceof VPlexDeviceInfo)) {
+            VPlexDeviceInfo localDevice = ((VPlexDeviceInfo) device);
+            if (VPlexApiConstants.ARG_GEOMETRY_RAID1.equals(
+                    ((VPlexDeviceInfo) device).getGeometry())) {
+                mirrorMap.put(localDevice.getCluster(), mapDevices(localDevice));
+            }
+        } else {
+            for (VPlexDeviceInfo localDevice : 
+                ((VPlexDistributedDeviceInfo) device).getLocalDeviceInfo()) {
+                if (VPlexApiConstants.ARG_GEOMETRY_RAID1.equals(
+                        ((VPlexDeviceInfo) device).getGeometry())) {
+                    mirrorMap.put(localDevice.getCluster(), mapDevices(localDevice));
+                }
+            }
+        }
+        
+        return mirrorMap;
+    }
+    
+    private Map<String, VPlexDeviceInfo> mapDevices( VPlexDeviceInfo parentDevice ) {
+        Map<String, VPlexDeviceInfo> mirrorDevices = new TreeMap<String, VPlexDeviceInfo>();
+        for (VPlexDeviceInfo dev : parentDevice.getChildDeviceInfo()) {
+            mirrorDevices.put(dev.getSlotNumber(), dev);
+        }
+        return mirrorDevices;
+    }
+
     
     public UnManagedVolume getUnmanagedVirtualVolume() {
         return this._unmanagedVirtualVolume;
@@ -73,23 +149,19 @@ public class VplexBackendIngestionContext {
         
         unmanagedBackendVolumes = new ArrayList<UnManagedVolume>();
         List<URI> associatedVolumeUris = new ArrayList<URI>();
-        String deviceName = PropertySetterUtil.extractValueFromStringSet(
-                SupportedVolumeInformation.VPLEX_SUPPORTING_DEVICE_NAME.toString(),
-                _unmanagedVirtualVolume.getVolumeInformation());
-        
-        String locality = PropertySetterUtil.extractValueFromStringSet(
-                SupportedVolumeInformation.VPLEX_LOCALITY.toString(),
-                _unmanagedVirtualVolume.getVolumeInformation());
         
         Set<String> backendVolumeWwns = null;
         try {
             backendVolumeWwns = 
                     VPlexControllerUtils.getStorageVolumeInfoForDevice(
-                            deviceName, locality, 
+                            getSupportingDeviceName(), getLocality(), getMirrorMap(),
                             _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
         } catch (VPlexApiException ex) {
-            _logger.error("could not determine backend storage volumes for {}: ", _unmanagedVirtualVolume.getLabel(), ex);
-            throw IngestionException.exceptions.failedToGetStorageVolumeInfoForDevice(deviceName, ex.getLocalizedMessage());
+            _logger.error("could not determine backend storage volumes for {}: ", 
+                    _unmanagedVirtualVolume.getLabel(), ex);
+            throw IngestionException.exceptions.failedToGetStorageVolumeInfoForDevice(
+                    getSupportingDeviceName(), 
+                    ex.getLocalizedMessage());
         }
         
         if (null != backendVolumeWwns) {

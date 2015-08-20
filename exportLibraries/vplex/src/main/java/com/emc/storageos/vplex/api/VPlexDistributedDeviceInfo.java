@@ -41,7 +41,7 @@ public class VPlexDistributedDeviceInfo extends VPlexResourceInfo {
      */
     public String getClusterId() throws VPlexApiException {
         if (!localDeviceInfoList.isEmpty()) {
-            return localDeviceInfoList.get(0).getClusterId();
+            return localDeviceInfoList.get(0).getCluster();
         } else {
             throw new VPlexApiException(String.format(
                     "Can't find cluster id for distributed device %s", getName()));

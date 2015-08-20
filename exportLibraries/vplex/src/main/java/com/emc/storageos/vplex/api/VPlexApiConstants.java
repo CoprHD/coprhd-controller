@@ -160,6 +160,8 @@ public class VPlexApiConstants {
     public static final String ARG_PAUSED = "--paused";
     public static final String ARG_DISCARD = "--discard";
     public static final String ARG_GEOMETRY_RAID0 = "raid-0";
+    public static final String ARG_GEOMETRY_RAID1 = "raid-1";
+    public static final String ARG_GEOMETRY_RAIDC = "raid-C";
     public static final String ARG_UNCLAIM = "--unclaim-storage-volumes";
     public static final String ARG_APPC = "--appc";
     public static final String ARG_THIN_REBUILD = "--thin-rebuild";

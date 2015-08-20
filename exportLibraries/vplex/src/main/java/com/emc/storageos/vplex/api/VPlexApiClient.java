@@ -1531,7 +1531,29 @@ public class VPlexApiClient {
         }
     }
 
-    public Set<String> getStorageVolumeInfoForDevice(String deviceName, String locality) throws VPlexApiException {
+    public VPlexResourceInfo getDeviceStructure(String deviceName, String locality) throws VPlexApiException {
+        if (null == deviceName || null == locality) {
+            String reason = "deviceName was " + deviceName + " and locality was " + locality;
+            throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(reason);
+        }
+        
+        s_logger.info("Request to find device structure for {} on VPLEX at {}",
+                deviceName, _baseURI);
+        
+        VPlexResourceInfo device = null;
+
+        switch (locality) {
+            case VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME:
+                device = getDiscoveryManager().getDeviceStructureForDistributedIngestion(deviceName, locality);
+            case VPlexApiConstants.LOCAL_VIRTUAL_VOLUME:
+                device = getDiscoveryManager().getDeviceStructureForLocalIngestion(deviceName, locality);
+        }
+        
+        return device;
+    }
+    
+    public Set<String> getStorageVolumeInfoForDevice(String deviceName, String locality, 
+            Map<String, Map<String, VPlexDeviceInfo>> mirrorMap) throws VPlexApiException {
         if (null == deviceName || null == locality) {
             String reason = "deviceName was " + deviceName + " and locality was " + locality;
             throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(reason);
@@ -1540,22 +1562,8 @@ public class VPlexApiClient {
         s_logger.info("Request to find storage volume wwns for {} on VPLEX at {}",
                 deviceName, _baseURI);
         
-        
-        
-        // if local
-        // get top level device
-        // check raid level / geometry
-        //  if raid-0, proceed as normal
-        //  if raid-1, then it has child devices in a mirror configuration
-        //      recurse one more level to set child devices
-        //      if devices have raid-0 geometry, they are okay, get their wwns
-        //  if raid-C, then it has child devices expanded via concatenation, reject
-        // 
-        
-        
-        
         List<VPlexStorageVolumeInfo> storageVolumes = getDiscoveryManager()
-                .getStorageVolumesForDevice(deviceName, locality, false);
+                .getStorageVolumesForDevice(deviceName, locality, !mirrorMap.isEmpty());
         
         Set<String> storageVolumeWwns = new HashSet<String>();
         for (VPlexStorageVolumeInfo info : storageVolumes) {

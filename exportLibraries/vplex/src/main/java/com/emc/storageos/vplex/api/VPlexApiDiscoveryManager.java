@@ -685,7 +685,7 @@ public class VPlexApiDiscoveryManager {
                             List<VPlexExtentInfo> deviceExtentInfoList = new ArrayList<VPlexExtentInfo>();
                             deviceExtentInfoList.add(extentInfo);
                             deviceInfo.setExtentInfo(deviceExtentInfoList);
-                            deviceInfo.setClusterId(storageVolumeInfo.getClusterId());
+                            deviceInfo.setCluster(storageVolumeInfo.getClusterId());
                             deviceInfoList.add(deviceInfo);
                             break;
                         }
@@ -747,7 +747,7 @@ public class VPlexApiDiscoveryManager {
             for (VPlexDeviceInfo clusterDeviceInfo : deviceInfoList) {
                 if (clusterDeviceInfo.getName().equals(deviceName)) {
                     deviceInfo = clusterDeviceInfo;
-                    deviceInfo.setClusterId(clusterName);
+                    deviceInfo.setCluster(clusterName);
                     break;
                 }
             }
@@ -2879,7 +2879,7 @@ public class VPlexApiDiscoveryManager {
             for (VPlexDeviceInfo deviceInfo : deviceInfoList) {
                 String deviceName = deviceInfo.getName();
                 if (localVirtualVolumesMap.containsKey(deviceName)) {
-                    deviceInfo.setClusterId(clusterId);
+                    deviceInfo.setCluster(clusterId);
                     VPlexVirtualVolumeInfo virtualVolumeForDevice = localVirtualVolumesMap.get(deviceName);
                     virtualVolumeName = virtualVolumeForDevice.getName();
                     virtualVolumeForDevice.setSupportingDeviceInfo(deviceInfo);
@@ -2947,7 +2947,7 @@ public class VPlexApiDiscoveryManager {
             childDeviceInfo.setName(componentInfo.getName());
             childDeviceInfo.setPath(componentInfo.getPath());
             childDeviceInfo.setType(VPlexResourceInfo.ResourceType.LOCAL_DEVICE.getResourceType());
-            childDeviceInfo.setClusterId(componentInfo.getCluster());
+            childDeviceInfo.setCluster(componentInfo.getCluster());
             childDeviceInfoList.add(childDeviceInfo);
             setSupportingComponentsForLocalDevice(childDeviceInfo);
         }
@@ -3054,7 +3054,7 @@ public class VPlexApiDiscoveryManager {
                 extentInfo.setName(componentInfo.getName());
                 extentInfo.setPath(componentInfo.getPath());
                 extentInfo.setType(componentType);
-                extentInfo.setClusterId(deviceInfo.getClusterId());
+                extentInfo.setClusterId(deviceInfo.getCluster());
                 extentInfoList.add(extentInfo);
                 setSupportingComponentsForExtent(extentInfo);
             } else {
@@ -3062,7 +3062,7 @@ public class VPlexApiDiscoveryManager {
                 childDeviceInfo.setName(componentInfo.getName());
                 childDeviceInfo.setPath(componentInfo.getPath());
                 childDeviceInfo.setType(componentType);
-                childDeviceInfo.setClusterId(deviceInfo.getClusterId());
+                childDeviceInfo.setCluster(deviceInfo.getCluster());
                 childDeviceInfoList.add(childDeviceInfo);
                 setSupportingComponentsForLocalDevice(childDeviceInfo);
             }
@@ -3308,7 +3308,7 @@ public class VPlexApiDiscoveryManager {
     }
 
     public List<VPlexStorageVolumeInfo> getStorageVolumesForDevice(
-            String deviceName, String locality, boolean goDeeper) throws VPlexApiException {
+            String deviceName, String locality, boolean hasMirror) throws VPlexApiException {
         
         long timer = new Date().getTime();
         s_logger.info("Getting backend storage volume wwn info for {} volume {} from VPLEX at " 
@@ -3326,8 +3326,7 @@ public class VPlexApiDiscoveryManager {
             uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
             uriBuilder.append(VPlexApiConstants.URI_COMPONENTS.toString());
             uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
-            // TODO: this is a wee bit too hacky
-            if (goDeeper) {
+            if (hasMirror) {
                 uriBuilder.append(VPlexApiConstants.URI_COMPONENTS.toString());
                 uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
             }
@@ -3337,13 +3336,11 @@ public class VPlexApiDiscoveryManager {
             uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICES.toString());
             uriBuilder.append(deviceName);
             uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICE_COMP.toString());
-            uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
             uriBuilder.append(VPlexApiConstants.URI_COMPONENTS.toString());
             uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
             uriBuilder.append(VPlexApiConstants.URI_COMPONENTS.toString());
             uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
-            // TODO: this is a wee bit too hacky
-            if (goDeeper) {
+            if (hasMirror) {
                 uriBuilder.append(VPlexApiConstants.URI_COMPONENTS.toString());
                 uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
             }
@@ -3372,14 +3369,6 @@ public class VPlexApiDiscoveryManager {
                 responseStr, VPlexStorageVolumeInfo.class);
             for (VPlexStorageVolumeInfo info : storageVolumeInfoList) {
                 s_logger.warn("info.getWwn is " + info.getWwn());
-                if (null == info.getWwn() || "null".equals(info.getWwn())) {
-                    // TODO: this is a weeeeee bit too hacky
-                    s_logger.warn("failed to get storage volumes at " + uriBuilder.toString());
-                    if (!goDeeper) { // first time only
-                        storageVolumeInfoList = getStorageVolumesForDevice(deviceName, locality, true);
-                        return storageVolumeInfoList;
-                    }
-                }
             }
         } catch (Exception e) {
             throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(e.getLocalizedMessage());
@@ -3485,5 +3474,211 @@ public class VPlexApiDiscoveryManager {
         s_logger.info("returning device name: " + deviceName);
         return deviceName;
     }
-    
+
+
+    public VPlexDistributedDeviceInfo getDeviceStructureForDistributedIngestion(
+            String deviceName, String locality) throws VPlexApiException {
+        
+        long timer = new Date().getTime();
+        s_logger.info("Getting device structure info for local device {} from VPLEX at " 
+                    + _vplexApiClient.getBaseURI().toString(), locality, deviceName);
+        
+        StringBuilder uriBuilder = new StringBuilder();
+        // format /vplex/distributed-storage/distributed-devices
+        //        /DEVICE_NAME/distributed-device-components/*/components/*/components/*
+        uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICES.toString());
+        uriBuilder.append(deviceName);
+        uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICE_COMP.toString());
+        uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+
+        
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
+        s_logger.info("Device Info Request URI is {}", requestURI.toString());
+        
+        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+        String responseStr = response.getEntity(String.class);
+        int status = response.getStatus();
+        response.close();
+        
+        if (status != VPlexApiConstants.SUCCESS_STATUS) {
+            // TODO update exception
+            throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(String.valueOf(status));
+        }
+
+        VPlexDistributedDeviceInfo parentDevice = new VPlexDistributedDeviceInfo();
+        parentDevice.setName(deviceName);
+
+        // Successful Response
+        List<VPlexDeviceInfo> deviceInfoList = new ArrayList<VPlexDeviceInfo>();
+        try {
+            deviceInfoList = VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
+                responseStr, VPlexDeviceInfo.class);
+            
+            for (VPlexDeviceInfo componentDevice : deviceInfoList) {
+                switch (componentDevice.getGeometry().toLowerCase()) {
+                    case VPlexApiConstants.ARG_GEOMETRY_RAID0:
+                        s_logger.info("top-level device geometry is raid-0, no further info needed");
+                        break;
+                    case VPlexApiConstants.ARG_GEOMETRY_RAID1:
+                        s_logger.info("top-level device geometry is raid-1, need to find mirror info");
+                        List<VPlexDeviceInfo> childDeviceInfos = 
+                                getDeviceComponentInfoForIngestion(componentDevice);
+                        componentDevice.setChildDeviceInfo(childDeviceInfos);
+                        break;
+                    case VPlexApiConstants.ARG_GEOMETRY_RAIDC:
+                    default:
+                        String message = "invalid component device geometry " + componentDevice.getGeometry();
+                        s_logger.error(message);
+                        // TODO update exception
+                        throw new Exception(message);
+                }
+            }
+        } catch (Exception e) {
+            // TODO update exception
+            throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(e.getLocalizedMessage());
+        }
+        
+        parentDevice.setLocalDeviceInfo(deviceInfoList);
+
+        s_logger.info("found these distributed component devices for VPLEX device {}:", parentDevice.getName());
+        for (VPlexDeviceInfo info : deviceInfoList) {
+            s_logger.info(info.toString()); 
+        }
+        s_logger.info("fetching device info took {}ms", new Date().getTime() - timer);
+        
+        return parentDevice;
+    }
+
+    public VPlexDeviceInfo getDeviceStructureForLocalIngestion(
+            String deviceName, String locality) throws VPlexApiException {
+        
+        long timer = new Date().getTime();
+        s_logger.info("Getting device structure info for local device {} from VPLEX at " 
+                    + _vplexApiClient.getBaseURI().toString(), locality, deviceName);
+        
+        StringBuilder uriBuilder = new StringBuilder();
+        // format /vplex/clusters/*/devices/DEVICE_NAME
+        uriBuilder.append(VPlexApiConstants.URI_CLUSTERS.toString());
+        uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+        uriBuilder.append(VPlexApiConstants.URI_DEVICES.toString());
+        uriBuilder.append(deviceName);
+        
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
+        s_logger.info("Device Info Request URI is {}", requestURI.toString());
+        
+        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+        String responseStr = response.getEntity(String.class);
+        int status = response.getStatus();
+        response.close();
+        
+        if (status != VPlexApiConstants.SUCCESS_STATUS) {
+            // TODO update exception
+            throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(String.valueOf(status));
+        }
+
+        VPlexDeviceInfo device = null;
+        
+        // Successful Response
+        List<VPlexDeviceInfo> deviceInfoList = new ArrayList<VPlexDeviceInfo>();
+        try {
+            deviceInfoList = VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
+                responseStr, VPlexDeviceInfo.class);
+            if (deviceInfoList.size() == 1) {
+                device = deviceInfoList.get(0);
+                
+                switch (device.getGeometry().toLowerCase()) {
+                    case VPlexApiConstants.ARG_GEOMETRY_RAID0:
+                        s_logger.info("top-level device geometry is raid-0, no further info needed");
+                        break;
+                    case VPlexApiConstants.ARG_GEOMETRY_RAID1:
+                        s_logger.info("top-level device geometry is raid-1, finding children");
+                        List<VPlexDeviceInfo> componentDeviceInfoList = 
+                                getDeviceComponentInfoForIngestion(device);
+                        
+                        device.setChildDeviceInfo(componentDeviceInfoList);
+                        break;
+                    case VPlexApiConstants.ARG_GEOMETRY_RAIDC:
+                    default:
+                        String message = "invalid top level device geometry " + device.getGeometry();
+                        s_logger.error(message);
+                        // TODO update exception
+                        throw new Exception(message);
+                }
+            } else {
+                // TODO update exception
+                throw new Exception("invalid top level device configuration");
+            }
+        } catch (Exception e) {
+            // TODO update exception
+            throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(e.getLocalizedMessage());
+        }
+
+        s_logger.info("found this device info for VPLEX device {}:", deviceName);
+        for (VPlexDeviceInfo info : deviceInfoList) {
+            s_logger.info(info.toString()); 
+        }
+        s_logger.info("fetching device info took {}ms", new Date().getTime() - timer);
+        
+        return device;
+    }
+
+    public List<VPlexDeviceInfo> getDeviceComponentInfoForIngestion(
+            VPlexDeviceInfo parentDevice ) throws VPlexApiException {
+        
+        long timer = new Date().getTime();
+        s_logger.info("Getting device component info for {} from VPLEX at " 
+                    + _vplexApiClient.getBaseURI().toString(), parentDevice.getName());
+        
+        StringBuilder uriBuilder = new StringBuilder();
+        uriBuilder.append(VPlexApiConstants.VPLEX_PATH);
+        uriBuilder.append(parentDevice.getPath());
+        uriBuilder.append(VPlexApiConstants.URI_COMPONENTS.toString());
+        uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+        
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
+        s_logger.info("Device Info Request URI is {}", requestURI.toString());
+        
+        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+        String responseStr = response.getEntity(String.class);
+        int status = response.getStatus();
+        response.close();
+        
+        if (status != VPlexApiConstants.SUCCESS_STATUS) {
+            // TODO update exception
+            throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(String.valueOf(status));
+        }
+
+        // Successful Response
+        List<VPlexDeviceInfo> deviceInfoList = new ArrayList<VPlexDeviceInfo>();
+        try {
+            deviceInfoList = VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
+                responseStr, VPlexDeviceInfo.class);
+            
+            for (VPlexDeviceInfo device : deviceInfoList) {
+                switch (device.getGeometry().toLowerCase()) {
+                    case VPlexApiConstants.ARG_GEOMETRY_RAID0:
+                        s_logger.info("top-level device geometry is raid-0, no further info needed");
+                        break;
+                    case VPlexApiConstants.ARG_GEOMETRY_RAID1:
+                    case VPlexApiConstants.ARG_GEOMETRY_RAIDC:
+                    default:
+                        String message = "invalid component device geometry " + device.getGeometry();
+                        s_logger.error(message);
+                        // TODO update exception
+                        throw new Exception(message);
+                }
+            }
+        } catch (Exception e) {
+            // TODO update exception
+            throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(e.getLocalizedMessage());
+        }
+
+        s_logger.info("found these child devices for VPLEX device {}:", parentDevice.getName());
+        for (VPlexDeviceInfo info : deviceInfoList) {
+            s_logger.info(info.toString()); 
+        }
+        s_logger.info("fetching device info took {}ms", new Date().getTime() - timer);
+        
+        return deviceInfoList;
+    }
 }

@@ -22,7 +22,7 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
     private List<VPlexDeviceInfo> childDeviceInfoList = new ArrayList<VPlexDeviceInfo>();
 
     // The cluster id.
-    private String clusterId = null;
+    private String cluster = null;
 
     // The device geometry (RAID level).
     private String geometry = null;
@@ -30,51 +30,6 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
     // The device slot number.
     private String slotNumber = null;
     
-    public static enum DeviceAttribute {
-        GEOMETRY("geometry"),
-        SLOT_NUMBER("slot-number");
-
-        // The VPlex name for the attribute.
-        private String _name;
-
-        /**
-         * Constructor.
-         * 
-         * @param name The VPlex attribute name.
-         */
-        DeviceAttribute(String name) {
-            _name = name;
-        }
-
-        /**
-         * Getter for the VPlex name for the attribute.
-         * 
-         * @return The VPlex name for the attribute.
-         */
-        public String getAttributeName() {
-            return _name;
-        }
-
-        /**
-         * Returns the enum whose name matches the passed name, else null when
-         * not found.
-         * 
-         * @param name The name to match.
-         * 
-         * @return The enum whose name matches the passed name, else null when
-         *         not found.
-         */
-        public static DeviceAttribute valueOfAttribute(String name) {
-            DeviceAttribute[] directorAtts = values();
-            for (int i = 0; i < directorAtts.length; i++) {
-                if (directorAtts[i].getAttributeName().equals(name)) {
-                    return directorAtts[i];
-                }
-            }
-            return null;
-        }
-    };
-
     /**
      * Getter for the extent info for the device.
      * 
@@ -116,8 +71,8 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
      * 
      * @return The device cluster id.
      */
-    public String getClusterId() {
-        return clusterId;
+    public String getCluster() {
+        return cluster;
     }
 
     /**
@@ -125,8 +80,8 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
      * 
      * @param id The device cluster id.
      */
-    public void setClusterId(String id) {
-        clusterId = id;
+    public void setCluster(String id) {
+        cluster = id;
     }
 
     /**
@@ -169,23 +124,11 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
      * {@inheritDoc}
      */
     @Override
-    public List<String> getAttributeFilters() {
-        List<String> attFilters = new ArrayList<String>();
-        for (DeviceAttribute att : DeviceAttribute.values()) {
-            attFilters.add(att.getAttributeName());
-        }
-        return attFilters;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
         str.append("DeviceInfo ( ");
         str.append(super.toString());
-        str.append(", clusterId: " + clusterId);
+        str.append(", cluster: " + cluster);
         str.append(", geometry: " + geometry);
         str.append(", slotNumber: " + slotNumber);
         for (VPlexExtentInfo extentInfo : extentInfoList) {

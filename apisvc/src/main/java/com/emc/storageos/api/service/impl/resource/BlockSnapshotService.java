@@ -44,12 +44,12 @@ import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.BulkRestRep;
@@ -88,6 +88,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 public class BlockSnapshotService extends TaskResourceService {
     private static final String EVENT_SERVICE_TYPE = "BlockSnapshot";
 
+    @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
     }
@@ -284,11 +285,10 @@ public class BlockSnapshotService extends TaskResourceService {
                     String.format("Snapshot restore is not possible on third-party storage systems"));
         }
 
-        // restore for XtremIO storage system type is not supported
-        if (Type.xtremio.name().equalsIgnoreCase(storage.getSystemType()))
+        // restore for XtremIO storage system type is not supported from regular snapshots. They have to be read only.
+        if (Type.xtremio.name().equalsIgnoreCase(storage.getSystemType()) && !snapshot.getIsReadOnly())
         {
-            throw APIException.methodNotAllowed.notSupportedWithReason(
-                    "Snapshot restore is not supported on XtremIO storage systems");
+            throw APIException.badRequests.cantRestoreFromRegularSnapshot(snapshot.getLabel(), snapshot.getDeviceLabel());
         }
 
         BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(volume, _dbClient);
@@ -383,7 +383,7 @@ public class BlockSnapshotService extends TaskResourceService {
 
         return toTask(snapshot, taskId, op);
     }
-    
+
     /**
      * Call will activate this snapshot, essentially establishing the synchronization
      * between the source and target. The "heavy lifting" of getting the snapshot

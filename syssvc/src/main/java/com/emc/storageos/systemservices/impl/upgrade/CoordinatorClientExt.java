@@ -76,9 +76,9 @@ public class CoordinatorClientExt {
     private InterProcessLock _remoteDownloadLock = null;
     private volatile InterProcessLock _targetLock = null;
     private InterProcessLock _newVersionLock = null;
-    // Node name used for external display/query purpose.
+    // Node id used for external display/query purpose.
     // EX: vipr1, vipr2, dataservice-10_247_100_15
-    private String _myNodeName = null;
+    private String _myNodeId= null;
     // Service id is for internal use to talk to coordinator.
     // EX: syssvc-1, syssvc-2, syssvc-10_247_100_15
     private String mySvcId = null;
@@ -99,7 +99,7 @@ public class CoordinatorClientExt {
 
     public void setService(ServiceImpl service) {
         _svc = service;
-        _myNodeName = _svc.getNodeName();
+        _myNodeId= _svc.getNodeId();
         mySvcId = _svc.getId();
     }
 
@@ -533,16 +533,16 @@ public class CoordinatorClientExt {
     }
 
     /**
-     * Get node endpoint from node name
+     * Get node endpoint from node id
      * 
-     * @param nodeName
+     * @param nodeId
      * @return
      */
-    public URI getNodeEndpoint(String nodeName) {
+    public URI getNodeEndpoint(String nodeId) {
         try {
             List<Service> svcs = _coordinator.locateAllServices(_svc.getName(), _svc.getVersion(), (String) null, null);
             for (Service svc : svcs) {
-                if (svc.getNodeName().equals(nodeName)) {
+                if (svc.getNodeId().equals(nodeId)) {
                     return svc.getEndpoint();
                 }
             }
@@ -931,8 +931,8 @@ public class CoordinatorClientExt {
     /**
      * Get id for "this" node
      */
-    public String getMyNodeName() {
-        return _myNodeName;
+    public String getMyNodeId() {
+        return _myNodeId;
     }
 
     /**

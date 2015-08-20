@@ -11,7 +11,7 @@ import com.emc.vipr.model.sys.healthmonitor.NodeHealth;
 public class NodesDataTable extends DataTable {
 
     public NodesDataTable() {
-        addColumn("name").setRenderFunction("renderLink");
+        addColumn("id").setRenderFunction("renderLink");
         addColumn("ip");
         addColumn("status").setRenderFunction("render.status");
         addColumn("type");
@@ -21,13 +21,13 @@ public class NodesDataTable extends DataTable {
     }
 
     public static class Nodes {
-        String name;
+        String id;
         String ip;
         String status;
         String type;
 
         public Nodes(NodeHealth node, String type) {
-            this.name = node.getNodeId();
+            this.id = node.getNodeId();
             this.ip = node.getIp();
             this.status = node.getStatus();
             this.type = type;

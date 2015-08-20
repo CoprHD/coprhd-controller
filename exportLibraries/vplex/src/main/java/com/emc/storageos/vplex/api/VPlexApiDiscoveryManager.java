@@ -3310,7 +3310,7 @@ public class VPlexApiDiscoveryManager {
     public List<VPlexStorageVolumeInfo> getStorageVolumesForDevice(
             String deviceName, String locality, boolean hasMirror) throws VPlexApiException {
         
-        long timer = new Date().getTime();
+        long start = System.currentTimeMillis();
         s_logger.info("Getting backend storage volume wwn info for {} volume {} from VPLEX at " 
                     + _vplexApiClient.getBaseURI().toString(), locality, deviceName);
         
@@ -3378,7 +3378,9 @@ public class VPlexApiDiscoveryManager {
         for (VPlexStorageVolumeInfo info : storageVolumeInfoList) {
             s_logger.info("   name: {} wwn: {}", info.getName(), info.getWwn()); 
         }
-        s_logger.info("fetching storage volume info took {}ms", new Date().getTime() - timer);
+        
+        s_logger.info("TIMER: getStorageVolumesForDevice took {}ms", 
+                System.currentTimeMillis() - start);
         
         return storageVolumeInfoList;
     }
@@ -3414,7 +3416,7 @@ public class VPlexApiDiscoveryManager {
     public String getDeviceForStorageVolume(String volumeNativeId, 
             String wwn, String backendArraySerialNum) throws VPlexApiException {
         
-        long timer = new Date().getTime();
+        long start = System.currentTimeMillis();
         s_logger.info("Getting device name for array {} volume {} (wwn: {}) from VPLEX at " 
                     + _vplexApiClient.getBaseURI().toString(), backendArraySerialNum, volumeNativeId);
         
@@ -3472,6 +3474,10 @@ public class VPlexApiDiscoveryManager {
         String[] subLines = lines[0].split("/");
         String deviceName = subLines[subLines.length - 1];
         s_logger.info("returning device name: " + deviceName);
+        
+        s_logger.info("TIMER: getDeviceForStorageVolume took {}ms", 
+                System.currentTimeMillis() - start);
+
         return deviceName;
     }
 
@@ -3479,7 +3485,7 @@ public class VPlexApiDiscoveryManager {
     public VPlexDistributedDeviceInfo getDeviceStructureForDistributedIngestion(
             String deviceName, String locality) throws VPlexApiException {
         
-        long timer = new Date().getTime();
+        long start = System.currentTimeMillis();
         s_logger.info("Getting device structure info for local device {} from VPLEX at " 
                     + _vplexApiClient.getBaseURI().toString(), locality, deviceName);
         
@@ -3544,7 +3550,8 @@ public class VPlexApiDiscoveryManager {
         for (VPlexDeviceInfo info : deviceInfoList) {
             s_logger.info(info.toString()); 
         }
-        s_logger.info("fetching device info took {}ms", new Date().getTime() - timer);
+        s_logger.info("TIMER: getDeviceStructureForDistributedIngestion took {}ms", 
+                System.currentTimeMillis() - start);
         
         return parentDevice;
     }
@@ -3552,7 +3559,7 @@ public class VPlexApiDiscoveryManager {
     public VPlexDeviceInfo getDeviceStructureForLocalIngestion(
             String deviceName, String locality) throws VPlexApiException {
         
-        long timer = new Date().getTime();
+        long start = System.currentTimeMillis();
         s_logger.info("Getting device structure info for local device {} from VPLEX at " 
                     + _vplexApiClient.getBaseURI().toString(), locality, deviceName);
         
@@ -3617,7 +3624,8 @@ public class VPlexApiDiscoveryManager {
         for (VPlexDeviceInfo info : deviceInfoList) {
             s_logger.info(info.toString()); 
         }
-        s_logger.info("fetching device info took {}ms", new Date().getTime() - timer);
+        s_logger.info("TIMER: getDeviceStructureForLocalIngestion took {}ms", 
+                System.currentTimeMillis() - start);
         
         return device;
     }
@@ -3625,7 +3633,7 @@ public class VPlexApiDiscoveryManager {
     public List<VPlexDeviceInfo> getDeviceComponentInfoForIngestion(
             VPlexDeviceInfo parentDevice ) throws VPlexApiException {
         
-        long timer = new Date().getTime();
+        long start = System.currentTimeMillis();
         s_logger.info("Getting device component info for {} from VPLEX at " 
                     + _vplexApiClient.getBaseURI().toString(), parentDevice.getName());
         
@@ -3677,7 +3685,9 @@ public class VPlexApiDiscoveryManager {
         for (VPlexDeviceInfo info : deviceInfoList) {
             s_logger.info(info.toString()); 
         }
-        s_logger.info("fetching device info took {}ms", new Date().getTime() - timer);
+        
+        s_logger.info("TIMER: getDeviceComponentInfoForIngestion took {}ms", 
+                System.currentTimeMillis() - start);
         
         return deviceInfoList;
     }

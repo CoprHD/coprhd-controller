@@ -10,7 +10,6 @@
 		<property name="namespaces" ref="namespaces" />
 		<property name="partitionManager" ref="partitionManager"/>
 		<property name="xmlDumpGenerator" ref="fileXMLDumpgenerator"/>
-		<property name="xmlDumpGenerator" ref="fileXMLDumpgenerator"/>
 	</bean>
 
 	<bean id="vnxfileexecutor"

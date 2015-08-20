@@ -1,14 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2012-2013 EMC Corporation All Rights Reserved
- * 
- * This software contains the intellectual property of EMC Corporation or is licensed to EMC
- * Corporation from third parties. Use of this software and the intellectual property contained
- * therein is expressly limited to the terms and conditions of the License Agreement under which it
- * is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -103,8 +95,8 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 @Path("/block/consistency-groups")
-@DefaultPermissions(read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, read_acls = { ACL.OWN,
-        ACL.ALL }, write_roles = { Role.TENANT_ADMIN }, write_acls = { ACL.OWN, ACL.ALL })
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN,
+        ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = { ACL.OWN, ACL.ALL })
 public class BlockConsistencyGroupService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(BlockConsistencyGroupService.class);
@@ -190,7 +182,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @param param
      * 
      * @brief Create consistency group
-     * @return
+     * @return Consistency group created
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

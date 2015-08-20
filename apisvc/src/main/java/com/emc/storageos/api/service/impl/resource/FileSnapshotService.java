@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.resource;
@@ -110,10 +100,10 @@ import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 
 @Path("/file/snapshots")
-@DefaultPermissions(read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        read_acls = { ACL.ANY },
-        write_roles = { Role.TENANT_ADMIN },
-        write_acls = { ACL.ANY })
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
+        readAcls = { ACL.ANY },
+        writeRoles = { Role.TENANT_ADMIN },
+        writeAcls = { ACL.ANY })
 public class FileSnapshotService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(FileService.class);
@@ -346,7 +336,7 @@ public class FileSnapshotService extends TaskResourceService {
      * @Deprecated use {id}/export instead
      *             Get file share snapshots exports
      * @param id the URN of a ViPR Snapshot
-     * @brief List file snapshot exports
+     * @brief List file snapshot exports.This method is deprecated.<p> Use /file/snapshots/{id}/export instead.
      * @return List of file share snapshot exports
      */
     @Deprecated

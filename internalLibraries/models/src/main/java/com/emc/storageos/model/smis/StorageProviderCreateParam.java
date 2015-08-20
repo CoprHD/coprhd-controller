@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.smis;
@@ -143,7 +143,7 @@ public class StorageProviderCreateParam {
      * and is only applicable for a ScaleIO StorageProvider.
      * 
      * @valid none
-     * @return
+     * @return ScaleIO CLI
      */
     @XmlElement(required = false, name = "sio_cli")
     public String getSioCLI() {

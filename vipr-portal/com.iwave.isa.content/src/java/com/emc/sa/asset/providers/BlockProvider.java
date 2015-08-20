@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.asset.providers;
@@ -223,6 +223,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
+    @Asset("vplexMigrationChangeOperation")
+    public List<AssetOption> getVplexMigrationChangeOperations(AssetOptionsContext ctx) {
+        List<AssetOption> options = Lists.newArrayList();
+        options.add(newAssetOption(VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION.name(), "virtualPoolChange.operation." + VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION.name()));
+        options.add(newAssetOption(VirtualPoolChangeOperationEnum.VPLEX_LOCAL_TO_DISTRIBUTED.name(), "virtualPoolChange.operation." + VirtualPoolChangeOperationEnum.VPLEX_LOCAL_TO_DISTRIBUTED.name()));
+        return options;
+    }
+    
     @Asset("virtualPoolChangeOperation")
     public List<AssetOption> getVirtualPoolchangeOperations(AssetOptionsContext ctx) {
         List<AssetOption> options = Lists.newArrayList();
@@ -256,6 +264,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             targets.add(createBaseResourceOption(varray));
         }
         return targets;
+    }
+    
+    @Asset("migrationTargetVirtualPool")
+    @AssetDependencies({"project", "blockVirtualPool", "vplexMigrationChangeOperation"})
+    public List<AssetOption> getMigrationTargetVirtualPools(AssetOptionsContext ctx, URI projectId, URI virtualPoolId, String vpoolChangeOperation) {
+        return getTargetVirtualPoolsForVpool(ctx, projectId, virtualPoolId, vpoolChangeOperation);
     }
 
     @Asset("targetVirtualPool")

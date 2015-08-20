@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block;
@@ -115,7 +115,7 @@ public class Copy {
      * 
      * @valid SOURCE_TO_TARGET
      * @valid TARGET_TO_SOURCE
-     * @return
+     * @return User provided direction for sync
      */
     @XmlElement(name = "syncDirection", required = false)
     public String getSyncDirection() {

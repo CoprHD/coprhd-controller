@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.resource;
@@ -168,10 +158,10 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
 @Path("/block/volumes")
-@DefaultPermissions(read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        read_acls = { ACL.OWN, ACL.ALL },
-        write_roles = { Role.TENANT_ADMIN },
-        write_acls = { ACL.OWN, ACL.ALL })
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
+        readAcls = { ACL.OWN, ACL.ALL },
+        writeRoles = { Role.TENANT_ADMIN },
+        writeAcls = { ACL.OWN, ACL.ALL })
 @SuppressWarnings({ "unchecked", "deprecation", "rawtypes" })
 public class BlockService extends TaskResourceService {
     private static final String SEARCH_VARRAY = "virtual_array";
@@ -549,13 +539,14 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Activate a full copy.
-     * 
+     * <p>
+     * This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy URI id 
      * @prereq Create full copy as inactive
      * 
      * @param id the URN of a ViPR Source volume
      * @param fullCopyId Full copy URI
      * 
-     * @brief Activate full copy
+     * @brief Activate full copy. This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy URI id
      * 
      * @return TaskResourceRep
      */
@@ -571,7 +562,8 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Show synchronization progress for a full copy.
-     * 
+     * <p>
+     * This method is deprecated. Use /block/full-copies/{id}/check-progress instead with {id} representing full copy URI id
      * @prereq none
      * 
      * @param id the URN of a ViPR Source volume
@@ -593,7 +585,8 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Detach a full copy from its source volume.
-     * 
+     * <p>
+     * This method is deprecated. Use /block/full-copies/{id}/detach instead with {id} representing full copy URI id
      * @prereq Create full copy as inactive
      * @prereq Activate full copy
      * 
@@ -1224,7 +1217,8 @@ public class BlockService extends TaskResourceService {
      * 
      * NOTE: This is an asynchronous operation.
      * 
-     * If volume is srdf protected, then invoking failover-test ends in no-op
+     * If volume is srdf protected, then invoking failover-test ends in no-op.
+     * failoverTest is being replaced by failover
      * 
      * @prereq none
      * 
@@ -1373,7 +1367,8 @@ public class BlockService extends TaskResourceService {
      * NOTE: This is an asynchronous operation.
      * 
      * If volume is srdf protected, then its a no-op
-     * 
+     * <p>
+     * This method is deprecated. Use /block/volumes/{id}/protection/continuous-copies/failover-cancel instead.
      * @prereq none
      * 
      * @param id the URN of a ViPR Source volume
@@ -2720,7 +2715,7 @@ public class BlockService extends TaskResourceService {
      * 
      * Change the virtual pool of a VMAX and VNX volume to allow change of Auto-tiering policy
      * associated with it.
-     * 
+     * Since this method has been deprecated use POST /block/volumes/vpool-change
      * @brief Change the virtual pool for a volume.
      * 
      * @prereq none
@@ -3100,7 +3095,7 @@ public class BlockService extends TaskResourceService {
      * 
      * @param projectURI
      * @param varrayURI
-     * @return
+     * @return Get Volume for Virtual Array Change
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -3170,7 +3165,8 @@ public class BlockService extends TaskResourceService {
      * Allows the caller to change the virtual array of the passed volume. Currently,
      * this is only possible for a local VPlex virtual volumes. Additionally, the
      * volume must not be exported. The volume can be migrated to the other cluster
-     * in the VPlex Metro configuration or a new varray in the same cluster.
+     * in the VPlex Metro configuration or a new varray in the same cluster. Since this method has been
+     * deprecated use POST /block/volumes/varray-change
      * 
      * @prereq Volume must not be exported
      * 
@@ -3377,7 +3373,7 @@ public class BlockService extends TaskResourceService {
                     resourceTask.setMessage(errorMsg);
                     _dbClient.error(Volume.class, resourceTask.getResource().getId(), taskId,
                             InternalServerErrorException.internalServerErrors
-                                    .UnexpectedErrorDuringVarrayChange(e));
+                                    .unexpectedErrorDuringVarrayChange(e));
                 }
             }
         } else {
@@ -3408,7 +3404,7 @@ public class BlockService extends TaskResourceService {
                             resourceTask.setMessage(errorMsg);
                             _dbClient.error(Volume.class, resourceTask.getResource().getId(), taskId,
                                     InternalServerErrorException.internalServerErrors
-                                            .UnexpectedErrorDuringVarrayChange(e));
+                                            .unexpectedErrorDuringVarrayChange(e));
                         }
                     }
                 }

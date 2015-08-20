@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.model;
 
@@ -153,8 +143,8 @@ public class StorageProvider extends DataObject {
         ddmc,
         vplex,
         cinder,
-        scaleio,
-        ibmxiv;
+        ibmxiv,
+        scaleioapi;
 
         /**
          * Gets the supported system types for the given interface type.
@@ -170,12 +160,12 @@ public class StorageProvider extends DataObject {
                 systemTypes.add(Type.vplex.name());
             } else if (cinder.equals(interfaceType)) {
                 systemTypes.add(Type.openstack.name());
-            } else if (scaleio.equals(interfaceType)) {
-                systemTypes.add(Type.scaleio.name());
             } else if (ibmxiv.equals(interfaceType)) {
                 systemTypes.add(Type.ibmxiv.name());
             } else if (ddmc.equals(interfaceType)) {
                 systemTypes.add(Type.datadomain.name());
+            } else if (scaleioapi.equals(interfaceType)) {
+                systemTypes.add(Type.scaleio.name());
             }
             return systemTypes;
         }
@@ -524,17 +514,17 @@ public class StorageProvider extends DataObject {
         if (storage.getActiveProviderURI().equals(getId())) {
             if (null != storage.getProviders() && !storage.getProviders().isEmpty()) {
                 Iterator<String> iter = storage.getProviders().iterator();
-                if (iter.hasNext()) {
-                    try {
-                        storage.setActiveProviderURI(new URI(iter.next()));
-                    } catch (URISyntaxException ex) {
-                        logger.error("URISyntaxException occurred: {}", ex.getMessage());
-                    }
-                }
-                else {
-                    storage.setActiveProviderURI(null);
-                }
-            }
+	            if (iter.hasNext())  {
+	                try {
+	                    storage.setActiveProviderURI(new URI(iter.next()));
+	                } catch (URISyntaxException ex) {
+	                	logger.error("URISyntaxException occurred: {}", ex.getMessage());
+	                }
+	            }
+	            else {
+	                storage.setActiveProviderURI(null);
+	            }
+        	}
         }
         dbClient.persistObject(storage);
 

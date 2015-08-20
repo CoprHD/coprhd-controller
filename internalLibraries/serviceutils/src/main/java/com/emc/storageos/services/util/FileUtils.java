@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.services.util;
@@ -60,7 +60,7 @@ public class FileUtils {
             fop.flush();
             fop.close();
         } catch (IOException e) {
-            e.printStackTrace();
+        	log.error(e.getMessage(), e);
         }
     }
 

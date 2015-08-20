@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.services.util;
@@ -12,10 +12,14 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class EnvConfig {
 
-    private static String properties_location = System.getenv("PROP_FILE_LOC");
-    private static Map<String, Properties> properties = null;
+    private static volatile String properties_location = System.getenv("PROP_FILE_LOC");
+    private static volatile Map<String, Properties> properties = null;
+    private static final Logger logger = LoggerFactory.getLogger(EnvConfig.class);
 
     private static void readConfig(String propertyFile) throws Exception {
         Properties props = new Properties();
@@ -38,12 +42,12 @@ public class EnvConfig {
             }
 
         } catch (FileNotFoundException e) {
-            System.out.println("Could not locate the file " + propertyFile + " at " + properties_location);
-            e.printStackTrace();
+            logger.error(String.format("Could not locate the file %s at %s", propertyFile, properties_location));
+            logger.error(e.getMessage(), e);
             throw e;
         } catch (IOException ex) {
-            System.out.println("Could not read the file " + propertyFile + " at " + properties_location);
-            ex.printStackTrace();
+            logger.error(String.format("Could not read the file %s at %s", propertyFile, properties_location));
+            logger.error(ex.getMessage(), ex);
             throw ex;
         } finally {
             try {
@@ -51,8 +55,8 @@ public class EnvConfig {
                     in.close();
                 }
             } catch (IOException e) {
-                System.out.println("Failed while closing inputstream");
-                e.printStackTrace();
+                logger.error("Failed while closing inputstream");
+                logger.error(e.getMessage(),e);
             }
         }
     }
@@ -61,11 +65,11 @@ public class EnvConfig {
         String propertyValue = "";
         try {
             if (propertyName == null || propertyName.isEmpty()) {
-                System.out.println("Property name is not supplied. Please provide a property Name");
+            	logger.error("Property name is not supplied. Please provide a property Name");
                 return "";
             }
             if (propertyFile == null || propertyFile.isEmpty()) {
-                System.out.println("Property file name is not supplied. Please provide a property file name");
+            	logger.error("Property file name is not supplied. Please provide a property file name");
                 return "";
             }
             if (!propertyFile.endsWith(".properties")) {
@@ -76,15 +80,15 @@ public class EnvConfig {
             if (property != null) {
                 propertyValue = property.getProperty(propertyName);
                 if (propertyValue == null) {
-                    System.out.println("Property " + propertyName + " not found in the properties file "
-                            + propertyFile + " at " + properties_location);
+                    logger.error(String.format("Property %s not found in the properties file %s at %s"
+                            ,propertyName,propertyFile,properties_location));
                 }
             } else {
-                System.out.println("Failed while loading property file " + propertyFile);
+                logger.error("Failed while loading property file {}",propertyFile);
             }
         } catch (Exception e) {
-            System.out.println("Failed while getting the property " + propertyName + " at " + propertyFile);
-            e.printStackTrace();
+            logger.error(String.format("Failed while getting the property %s at %s ", propertyName, propertyFile));
+            logger.error(e.getMessage(),e);
         }
         return propertyValue;
     }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.common;
@@ -56,4 +46,6 @@ public abstract class DbConfigConstants {
 
     // we change the token number from 256 to 16 in jedi, this will reduce db repair time.
     public static final Integer DEFUALT_NUM_TOKENS = 16;
+    public static final String DEFAULT_VDC_DB_VERSION = "2.2";
+    public static final String VERSION_PART_SEPERATOR = ".";
 }

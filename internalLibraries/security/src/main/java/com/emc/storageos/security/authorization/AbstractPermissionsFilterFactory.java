@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.authorization;
 
@@ -121,7 +111,7 @@ public abstract class AbstractPermissionsFilterFactory implements com.sun.jersey
             CheckPermission perms = am.getAnnotation(CheckPermission.class);
             if (perms != null) {
                 filters.add(getPermissionsFilter(perms.roles(),
-                        perms.acls(), perms.block_proxies(), am.getResource().getResourceClass()));
+                        perms.acls(), perms.blockProxies(), am.getResource().getResourceClass()));
             } else {
                 InheritCheckPermission inherit = am.getAnnotation(InheritCheckPermission.class);
                 if (inherit != null) {
@@ -131,12 +121,12 @@ public abstract class AbstractPermissionsFilterFactory implements com.sun.jersey
                         throw new RuntimeException(String.format("%s does not have default permissions defined",
                                 am.getResource().getResourceClass()));
                     }
-                    if (inherit.write_access()) {
-                        filters.add(getPermissionsFilter(defaults.write_roles(),
-                                defaults.write_acls(), false, am.getResource().getResourceClass()));
+                    if (inherit.writeAccess()) {
+                        filters.add(getPermissionsFilter(defaults.writeRoles(),
+                                defaults.writeAcls(), false, am.getResource().getResourceClass()));
                     } else {
-                        filters.add(getPermissionsFilter(defaults.read_roles(),
-                                defaults.read_acls(), false, am.getResource().getResourceClass()));
+                        filters.add(getPermissionsFilter(defaults.readRoles(),
+                                defaults.readAcls(), false, am.getResource().getResourceClass()));
                     }
                 }
             }

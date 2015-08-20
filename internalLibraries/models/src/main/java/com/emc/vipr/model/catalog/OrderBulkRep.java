@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -29,7 +29,7 @@ public class OrderBulkRep extends BulkRestRep {
      * List of projects
      * 
      * @valid none
-     * @return
+     * @return List of projects
      */
     @XmlElement(name = "order")
     public List<OrderRestRep> getOrders() {

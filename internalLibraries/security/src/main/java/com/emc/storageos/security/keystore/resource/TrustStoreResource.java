@@ -1,14 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2014 EMC Corporation All Rights Reserved
- * 
- * This software contains the intellectual property of EMC Corporation or is licensed to
- * EMC Corporation from third parties. Use of this software and the intellectual property
- * contained therein is expressly limited to the terms and conditions of the License
- * Agreement under which it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.keystore.resource;
 
@@ -92,7 +84,7 @@ public class TrustStoreResource {
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public TrustedCertificates getTrustedCertificates() {
 
         List<TrustedCertificate> trustedCertsList = new ArrayList<TrustedCertificate>();
@@ -129,7 +121,7 @@ public class TrustStoreResource {
     @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public TrustedCertificates addOrRemoveTrustedCertificate(
             TrustedCertificateChanges changes) {
         if (!coordinator.isClusterUpgradable()) {
@@ -252,7 +244,7 @@ public class TrustStoreResource {
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     @Path("/settings")
     public TruststoreSettings getTruststoreSettings() {
         TruststoreSettings settings = new TruststoreSettings();
@@ -263,7 +255,7 @@ public class TrustStoreResource {
     @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     @Path("/settings")
     public TruststoreSettings updateTruststoreSettings(TruststoreSettingsChanges changes) {
         changeSettingInternal(changes);

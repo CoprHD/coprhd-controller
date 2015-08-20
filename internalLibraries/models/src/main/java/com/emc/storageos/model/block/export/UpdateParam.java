@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block.export;
@@ -17,11 +17,11 @@ public abstract class UpdateParam {
     public abstract Set<URI> getRemove();
 
     public boolean hasAdded() {
-        return getAdd() != null && getAdd().size() > 0;
+        return (getAdd() != null && !getAdd().isEmpty());
     }
 
     public boolean hasRemoved() {
-        return getRemove() != null && getRemove().size() > 0;
+        return (getRemove() != null && !getRemove().isEmpty());
     }
 
     public boolean hasUpdates() {

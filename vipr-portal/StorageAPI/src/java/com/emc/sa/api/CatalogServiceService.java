@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.api;
@@ -68,9 +68,9 @@ import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceUpdateParam;
 
 @DefaultPermissions(
-        read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
-        write_roles = { Role.TENANT_ADMIN },
-        read_acls = { ACL.ANY })
+        readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
+        writeRoles = { Role.TENANT_ADMIN },
+        readAcls = { ACL.ANY })
 @Path("/catalog/services")
 public class CatalogServiceService extends CatalogTaggedResourceService {
 
@@ -261,7 +261,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
     @PUT
     @Path("/{id}/acl")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN }, acls = { ACL.OWN }, block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN }, acls = { ACL.OWN }, blockProxies = true)
     public ACLAssignments updateRoleAssignments(@PathParam("id") URI id,
             ACLAssignmentChanges changes) {
         CatalogService catalogService = catalogServiceManager.getCatalogServiceById(id);

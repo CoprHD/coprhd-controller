@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.impl.resource;
@@ -67,9 +67,9 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  * Service providing APIs for host ipinterfaces.
  */
 @Path("/compute/ip-interfaces")
-@DefaultPermissions(read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
-        write_roles = { Role.TENANT_ADMIN },
-        read_acls = { ACL.OWN, ACL.ALL })
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
+        writeRoles = { Role.TENANT_ADMIN },
+        readAcls = { ACL.OWN, ACL.ALL })
 public class IpInterfaceService extends TaskResourceService {
 
     private static Logger _log = LoggerFactory.getLogger(IpInterfaceService.class);

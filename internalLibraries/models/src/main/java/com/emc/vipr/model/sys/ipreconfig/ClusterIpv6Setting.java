@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.vipr.model.sys.ipreconfig;
 
@@ -20,6 +10,7 @@ import com.google.common.net.InetAddresses;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
+
 import java.io.Serializable;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -75,6 +66,27 @@ public class ClusterIpv6Setting implements Serializable {
     public void setNetworkGateway6(String network_gateway6) {
         this.network_gateway6 = network_gateway6;
     }
+    
+    /* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result
+				+ ((network_addrs == null) ? 0 : network_addrs.hashCode());
+		result = prime
+				* result
+				+ ((network_gateway6 == null) ? 0 : network_gateway6.hashCode());
+		result = prime
+				* result
+				+ ((network_prefix_length == null) ? 0 : network_prefix_length
+						.hashCode());
+		result = prime * result
+				+ ((network_vip6 == null) ? 0 : network_vip6.hashCode());
+		return result;
+	}
 
     @Override
     public boolean equals(Object obj) {
@@ -102,7 +114,9 @@ public class ClusterIpv6Setting implements Serializable {
         return true;
     }
 
-    @Override
+    
+
+	@Override
     public String toString() {
         StringBuffer propStrBuf = new StringBuffer();
         propStrBuf.append(PropertyConstants.IPV6_VIP_KEY).append(PropertyConstants.DELIMITER).append(network_vip6).append("\n");
@@ -234,7 +248,7 @@ public class ClusterIpv6Setting implements Serializable {
                 }
 
                 // check if all values are same (on the same subnet)
-                if (values.size() == 0) {
+                if (values.isEmpty()) {
                     return true;
                 }
                 int checkValue = values.get(0);

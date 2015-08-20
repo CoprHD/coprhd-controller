@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.usermanagement.setup;
@@ -34,7 +34,7 @@ public class ADMode extends LocalUserMode {
     protected static ViPRCoreClient superUserClient;
 
     @BeforeClass
-    public synchronized static void setup_ADModeBaseClass() throws Exception {
+    public synchronized static void setupADModeBaseClass() throws Exception {
 
         // get super user from parameter, better be AD user
         superUser = System.getProperty("SUPER_USER");
@@ -70,7 +70,7 @@ public class ADMode extends LocalUserMode {
     }
 
     @AfterClass
-    public synchronized static void teardown_ADModeBaseClass() throws Exception {
+    public synchronized static void teardownADModeBaseClass() throws Exception {
         adClient = null;
 
         if (!bAuthnProviderExisted) {

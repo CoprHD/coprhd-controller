@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.text;
@@ -262,8 +262,8 @@ public class TextParserTest {
         try {
             IOUtils.copy(diskUtilFile, writer);
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            // This is a test class, it is ok to do a exception printStackTrace()
+            e.printStackTrace(); // NOSONAR (Throwable.printStackTrace(...) should not be called)
             throw new RuntimeException(e);
         }
         String text = writer.toString();

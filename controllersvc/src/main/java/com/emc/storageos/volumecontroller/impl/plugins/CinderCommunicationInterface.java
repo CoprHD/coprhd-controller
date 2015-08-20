@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins;
 
@@ -194,17 +184,20 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
                         String parameter = splits[0].trim();
                         String value = splits[1].trim();
                         if (auth_section) {
-                            if (parameter.equalsIgnoreCase("admin_user")) {
+                            if (parameter.equalsIgnoreCase("admin_user") || 
+                                    parameter.equalsIgnoreCase("username")) {
                                 updateKeyInProvider(providerKeys,
                                         CinderConstants.KEY_CINDER_REST_USER, value);
                                 _logger.debug("REST user name = {}", value);
                             }
-                            else if (parameter.equalsIgnoreCase("admin_password")) {
+                            else if (parameter.equalsIgnoreCase("admin_password") ||
+                                    parameter.equalsIgnoreCase("password")) {
                                 updateKeyInProvider(providerKeys,
                                         CinderConstants.KEY_CINDER_REST_PASS_WORD, value);
                                 _logger.debug("REST password = {}", value);
                             }
-                            else if (parameter.equalsIgnoreCase("admin_tenant_name")) {
+                            else if (parameter.equalsIgnoreCase("admin_tenant_name") ||
+                                    parameter.equalsIgnoreCase("project_name")) {
                                 updateKeyInProvider(providerKeys,
                                         CinderConstants.KEY_CINDER_TENANT_NAME, value);
                                 _logger.debug("Tenant name = {}", value);

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -82,8 +72,8 @@ import static com.emc.storageos.api.mapper.HostMapper.map;
  */
 
 @Path("/tenants")
-@DefaultPermissions(read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR },
-        write_roles = { Role.TENANT_ADMIN })
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.TENANT_ADMIN })
 public class TenantsService extends TaggedResource {
     private static final String EVENT_SERVICE_TYPE = "tenant";
     private static final String EVENT_SERVICE_SOURCE = "TenantManager";
@@ -509,7 +499,7 @@ public class TenantsService extends TaggedResource {
     @Path("/{id}/role-assignments")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN },
-            block_proxies = true)
+            blockProxies = true)
     public RoleAssignments updateRoleAssignments(@PathParam("id") URI id,
             RoleAssignmentChanges changes) {
         TenantOrg tenant = getTenantById(id, true);
@@ -831,6 +821,8 @@ public class TenantsService extends TaggedResource {
     /**
      * Creates a new host for the tenant organization. Discovery is initiated
      * after the host is created.
+     * <p>
+     * This method is deprecated. Use /compute/hosts instead
      * 
      * @param tid
      *            the tenant organization id
@@ -866,6 +858,8 @@ public class TenantsService extends TaggedResource {
 
     /**
      * Lists the id and name for all the hosts that belong to the given tenant organization.
+     * <p>
+     * This method is deprecated. Use /compute/hosts instead
      * 
      * @param id the URN of a ViPR tenant organization
      * @prereq none
@@ -1366,10 +1360,10 @@ public class TenantsService extends TaggedResource {
 
             if (CollectionUtils.isEmpty(userTenants)) {
                 _log.error("User {} will not match any tenant after this user mapping change", user);
-                throw APIException.badRequests.UserMappingNotAllowed(user);
+                throw APIException.badRequests.userMappingNotAllowed(user);
             } else if (userTenants.size() > 1) {
                 _log.error("User {} will map to multiple tenants {} after this user mapping change", user, userTenants.toArray());
-                throw APIException.badRequests.UserMappingNotAllowed(user);
+                throw APIException.badRequests.userMappingNotAllowed(user);
             } else {
                 String tenantUri = userTenants.get(0)._id.toString();
                 String providerTenantId = _permissionsHelper.getRootTenant().getId().toString();
@@ -1378,7 +1372,7 @@ public class TenantsService extends TaggedResource {
 
                 if (!providerTenantId.equalsIgnoreCase(tenantUri)) {
                     _log.error("User {} will map to tenant {}, which is not provider tenant", user, tenant.getLabel());
-                    throw APIException.badRequests.UserMappingNotAllowed(user);
+                    throw APIException.badRequests.userMappingNotAllowed(user);
                 }
             }
 

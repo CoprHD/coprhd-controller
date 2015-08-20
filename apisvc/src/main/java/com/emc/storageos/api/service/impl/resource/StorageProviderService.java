@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -87,8 +77,8 @@ import com.emc.storageos.vplexcontroller.VPlexController;
  * 
  */
 @Path("/vdc/storage-providers")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class StorageProviderService extends TaskResourceService {
     private static final Logger log = LoggerFactory.getLogger(StorageProviderService.class);
     private static final String EVENT_SERVICE_TYPE = "provider";
@@ -451,8 +441,8 @@ public class StorageProviderService extends TaskResourceService {
 
             if (param.getInterfaceType() != null) {
                 ArgValidator.checkFieldValueFromEnum(param.getInterfaceType(), "interface_type", EnumSet.of(
-                        StorageProvider.InterfaceType.hicommand, StorageProvider.InterfaceType.smis, StorageProvider.InterfaceType.scaleio,
-                        StorageProvider.InterfaceType.ibmxiv));
+                        StorageProvider.InterfaceType.hicommand, StorageProvider.InterfaceType.smis,
+                        StorageProvider.InterfaceType.ibmxiv, StorageProvider.InterfaceType.scaleioapi));
                 storageProvider.setInterfaceType(param.getInterfaceType());
             }
 

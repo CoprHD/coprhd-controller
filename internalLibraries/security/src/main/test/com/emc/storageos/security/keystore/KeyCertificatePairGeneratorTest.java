@@ -1,14 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2013-2014 EMC Corporation All Rights Reserved
- * 
- * This software contains the intellectual property of EMC Corporation or is licensed to
- * EMC Corporation from third parties. Use of this software and the intellectual property
- * contained therein is expressly limited to the terms and conditions of the License
- * Agreement under which it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.keystore;
 
@@ -174,7 +166,7 @@ public class KeyCertificatePairGeneratorTest {
         KeyCertificatePairGenerator gen = new KeyCertificatePairGenerator();
         gen.setKeyCertificateAlgorithmValuesHolder(defaultValues);
         KeyCertificateEntry pair = gen.generateKeyCertificatePair();
-        AssertCertInformation((X509Certificate) pair.getCertificateChain()[0],
+        assertCertInformation((X509Certificate) pair.getCertificateChain()[0],
                 defaultValues);
     }
 
@@ -339,7 +331,7 @@ public class KeyCertificatePairGeneratorTest {
     /**
      * @param x509Certificate
      */
-    private void AssertCertInformation(X509Certificate x509Certificate, KeyCertificateAlgorithmValuesHolder valuesHolder) {
+    private void assertCertInformation(X509Certificate x509Certificate, KeyCertificateAlgorithmValuesHolder valuesHolder) {
         try {
             x509Certificate.checkValidity();
         } catch (CertificateExpiredException e) {

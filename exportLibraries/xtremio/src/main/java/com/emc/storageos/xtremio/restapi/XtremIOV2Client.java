@@ -51,7 +51,7 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 
 public class XtremIOV2Client extends XtremIOClient {
-    
+
     private static Logger log = LoggerFactory.getLogger(XtremIOV2Client.class);
 
     public XtremIOV2Client(URI baseURI, String username, String password, Client client) {
@@ -121,7 +121,7 @@ public class XtremIOV2Client extends XtremIOClient {
         XtremIOVolumesInfo volumeLinks = getResponseObject(XtremIOVolumesInfo.class, response);
         log.info("Returned Volume Links size : {}", volumeLinks.getVolumeInfo().length);
         List<XtremIOVolume> volumeList = getXtremIOVolumesForLinks(Arrays.asList(volumeLinks.getVolumeInfo()), clusterName);
-        
+
         return volumeList;
     }
 
@@ -180,7 +180,7 @@ public class XtremIOV2Client extends XtremIOClient {
         for (XtremIOObjectInfo objectInfo : responseObjs.getTagsInfo()) {
             tagNames.add(objectInfo.getName());
         }
-        
+
         return tagNames;
     }
 
@@ -190,7 +190,7 @@ public class XtremIOV2Client extends XtremIOClient {
         volCreate.setName(volumeName);
         volCreate.setSize(size);
         volCreate.setClusterName(clusterName);
-        
+
         log.info("Calling Volume Create with: {}", volCreate.toString());
 
         ClientResponse response = post(XtremIOConstants.XTREMIO_V2_VOLUMES_URI, getJsonForEntity(volCreate));
@@ -210,13 +210,13 @@ public class XtremIOV2Client extends XtremIOClient {
         log.info("Calling Snapshot Create URI: {} and paramaters: {}", XtremIOConstants.XTREMIO_V2_SNAPS_URI.toString(),
                 snapCreate.toString());
         ClientResponse response = post(XtremIOConstants.XTREMIO_V2_SNAPS_URI, getJsonForEntity(snapCreate));
-        
+
         return getResponseObject(XtremIOResponse.class, response);
     }
-    
+
     @Override
     public void tagObject(String tagName, String entityType, String entity, String clusterName) throws Exception {
-        //No need to throw exception if we are not able to tag objects. 
+        // No need to throw exception if we are not able to tag objects.
         try {
             String uriString = XtremIOConstants.XTREMIO_V2_TAGS_STR.concat(XtremIOConstants.getInputNameString(tagName));
             XtremIOTagRequest tagRequest = new XtremIOTagRequest();
@@ -382,7 +382,7 @@ public class XtremIOV2Client extends XtremIOClient {
         log.info("Calling Get on Consistency Group URI : {}", uriString);
         ClientResponse response = get(URI.create(uriString));
         XtremIOCGResponse cgResponse = getResponseObject(XtremIOCGResponse.class, response);
-        
+
         return cgResponse.getContent();
     }
 
@@ -436,11 +436,11 @@ public class XtremIOV2Client extends XtremIOClient {
         cgVolumeRequest.setCgName(cgName);
         cgVolumeRequest.setVolName(volName);
         cgVolumeRequest.setClusterName(clusterName);
-        
+
         log.info("Calling Add Volume to Consistency Group with: {}", cgVolumeRequest.toString());
         ClientResponse response = post(XtremIOConstants.XTREMIO_V2_CONSISTENCY_GROUP_VOLUMES_URI,
                 getJsonForEntity(cgVolumeRequest));
-        
+
         return getResponseObject(XtremIOResponse.class, response);
     }
 
@@ -450,7 +450,7 @@ public class XtremIOV2Client extends XtremIOClient {
         cgVolumeRequest.setCgName(cgName);
         cgVolumeRequest.setVolName(volName);
         cgVolumeRequest.setClusterName(clusterName);
-        
+
         String uriString = XtremIOConstants.XTREMIO_V2_CONSISTENCY_GROUP_VOLUMES_STR
                 .concat(XtremIOConstants.getInputNameString(cgName));
         log.info("Calling Remove Volume from Consistency Group with: {} and parameters {}", uriString, cgVolumeRequest.toString());
@@ -460,8 +460,8 @@ public class XtremIOV2Client extends XtremIOClient {
     @Override
     public void deleteSnapshotSet(String snapshotSetName, String clusterName) throws Exception {
         String uriString = XtremIOConstants.XTREMIO_V2_SNAPSHOT_SET_STR
-                    .concat(XtremIOConstants.getInputNameForClusterString(snapshotSetName, clusterName));
-        
+                .concat(XtremIOConstants.getInputNameForClusterString(snapshotSetName, clusterName));
+
         URI deleteURI = URI.create(uriString);
         log.info("Calling Snapshot Set Delete with: {}", deleteURI.toString());
         delete(deleteURI);
@@ -471,16 +471,16 @@ public class XtremIOV2Client extends XtremIOClient {
     public XtremIOResponse restoreVolumeFromSnapshot(String clusterName, String volName, String snapshotName) throws Exception {
         XtremIOSnapCreateAndReassign restoreParam = new XtremIOSnapCreateAndReassign();
         restoreParam.setClusterId(clusterName);
-        //If no-backup is false, then snapshot of snapshot to restore from is created. 
-        //We don't support ingestion of such snaps. So mark it as true
+        // If no-backup is false, then snapshot of snapshot to restore from is created.
+        // We don't support ingestion of such snaps. So mark it as true
         restoreParam.setNoBackup(Boolean.TRUE.toString());
         restoreParam.setToVolumeId(volName);
         restoreParam.setFromSnapshotSetId(snapshotName);
-        
+
         log.info("Calling restore Volume from snapshot with: {}", restoreParam.toString());
         ClientResponse response = post(XtremIOConstants.XTREMIO_V2_SNAPS_URI,
                 getJsonForEntity(restoreParam));
-        
+
         return getResponseObject(XtremIOResponse.class, response);
     }
 
@@ -488,16 +488,16 @@ public class XtremIOV2Client extends XtremIOClient {
     public XtremIOResponse refreshSnapshotFromVolume(String clusterName, String volName, String snapshotName) throws Exception {
         XtremIOSnapCreateAndReassign refreshParam = new XtremIOSnapCreateAndReassign();
         refreshParam.setClusterId(clusterName);
-        //If no-backup is false, then snapshot of snapshot to refresh is created. 
-        //We don't support ingestion of such snaps. So mark it as true
+        // If no-backup is false, then snapshot of snapshot to refresh is created.
+        // We don't support ingestion of such snaps. So mark it as true
         refreshParam.setNoBackup(Boolean.TRUE.toString());
-        refreshParam.setToVolumeId(volName);
-        refreshParam.setFromSnapshotSetId(snapshotName);
-        
+        refreshParam.setFromVolumeId(volName);
+        refreshParam.setToSnapshotSetId(snapshotName);
+
         log.info("Calling refresh snapshot with: {}", refreshParam.toString());
         ClientResponse response = post(XtremIOConstants.XTREMIO_V2_SNAPS_URI,
                 getJsonForEntity(refreshParam));
-        
+
         return getResponseObject(XtremIOResponse.class, response);
     }
 
@@ -505,16 +505,16 @@ public class XtremIOV2Client extends XtremIOClient {
     public XtremIOResponse restoreCGFromSnapshot(String clusterName, String cgName, String snapshotName) throws Exception {
         XtremIOSnapCreateAndReassign restoreParam = new XtremIOSnapCreateAndReassign();
         restoreParam.setClusterId(clusterName);
-        //If no-backup is false, then snapshot of snapshot to restore from is created. 
-        //We don't support ingestion of such snaps. So mark it as true
+        // If no-backup is false, then snapshot of snapshot to restore from is created.
+        // We don't support ingestion of such snaps. So mark it as true
         restoreParam.setNoBackup(Boolean.TRUE.toString());
         restoreParam.setToConsistencyGroupId(cgName);
         restoreParam.setFromSnapshotSetId(snapshotName);
-        
+
         log.info("Calling restore CG from snapshot with: {}", restoreParam.toString());
         ClientResponse response = post(XtremIOConstants.XTREMIO_V2_SNAPS_URI,
                 getJsonForEntity(restoreParam));
-        
+
         return getResponseObject(XtremIOResponse.class, response);
     }
 
@@ -522,24 +522,24 @@ public class XtremIOV2Client extends XtremIOClient {
     public XtremIOResponse refreshSnapshotFromCG(String clusterName, String cgName, String snapshotName) throws Exception {
         XtremIOSnapCreateAndReassign refreshParam = new XtremIOSnapCreateAndReassign();
         refreshParam.setClusterId(clusterName);
-        //If no-backup is false, then  a snapshot of snapshot to refresh is created. 
-        //We don't support ingestion of such snaps. So mark it as true
+        // If no-backup is false, then a snapshot of snapshot to refresh is created.
+        // We don't support ingestion of such snaps. So mark it as true
         refreshParam.setNoBackup(Boolean.TRUE.toString());
         refreshParam.setFromConsistencyGroupId(cgName);
         refreshParam.setToSnapshotSetId(snapshotName);
-        
+
         log.info("Calling refresh snapshot with: {}", refreshParam.toString());
         ClientResponse response = post(XtremIOConstants.XTREMIO_V2_SNAPS_URI,
                 getJsonForEntity(refreshParam));
-        
+
         return getResponseObject(XtremIOResponse.class, response);
     }
-    
+
     @Override
     public String getXtremIOXMSVersion() throws Exception {
         ClientResponse response = get(XtremIOConstants.XTREMIO_V2_XMS_URI);
         XtremIOXMSsInfo xmssInfo = getResponseObject(XtremIOXMSsInfo.class, response);
-        for(XtremIOObjectInfo xmsInfo : xmssInfo.getXmssInfo()) {
+        for (XtremIOObjectInfo xmsInfo : xmssInfo.getXmssInfo()) {
             URI xmsURI = URI.create(xmsInfo.getHref());
             response = get(xmsURI);
             XtremIOXMSResponse xmsResponse = getResponseObject(XtremIOXMSResponse.class, response);
@@ -564,9 +564,9 @@ public class XtremIOV2Client extends XtremIOClient {
             log.info("System {}", xioSystem.getContent().getName() + "-"
                     + xioSystem.getContent().getSerialNumber() + "-"
                     + xioSystem.getContent().getVersion());
-             return xioSystem.getContent();
+            return xioSystem.getContent();
         }
-        
+
         return null;
     }
 
@@ -576,7 +576,7 @@ public class XtremIOV2Client extends XtremIOClient {
         String xioTagName = rootFolder.concat(tagName);
         String uriString = XtremIOConstants.XTREMIO_V2_TAGS_STR
                 .concat(XtremIOConstants.getInputNameForClusterString(xioTagName, clusterName));
-    
+
         URI deleteURI = URI.create(uriString);
         log.info("Calling Tag Delete with: {}", deleteURI.toString());
         delete(deleteURI);
@@ -588,19 +588,19 @@ public class XtremIOV2Client extends XtremIOClient {
             String rootFolder = XtremIOConstants.getRootFolderForEntityType(tagEntityType);
             String xioTagName = rootFolder.concat(tagName);
             String uriString = XtremIOConstants.XTREMIO_V2_TAGS_STR
-                    .concat(XtremIOConstants.getInputNameForClusterString(xioTagName, clusterName)); 
+                    .concat(XtremIOConstants.getInputNameForClusterString(xioTagName, clusterName));
             log.info("Calling get tag details with: {}", uriString);
             ClientResponse response = get(URI.create(uriString));
             log.info(response.toString());
             XtremIOTags tags = getResponseObject(XtremIOTags.class, response);
-            
+
             return tags.getContent();
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
         log.info("Tag not available on Array with name : {}",
                 tagName);
-        
+
         return null;
     }
 
@@ -611,7 +611,7 @@ public class XtremIOV2Client extends XtremIOClient {
         ClientResponse response = get(URI.create(uriString));
         log.info(response.toString());
         XtremIOCGResponse cgResponse = getResponseObject(XtremIOCGResponse.class, response);
-        
+
         return cgResponse.getContent();
     }
 

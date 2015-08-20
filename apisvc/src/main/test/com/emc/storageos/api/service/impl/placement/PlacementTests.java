@@ -1524,8 +1524,7 @@ public class PlacementTests extends DbsvcTestBase {
             assertNotNull(rec.getSourceJournalRecommendation());
             assertNotNull(rec.getSourceJournalRecommendation().getInternalSiteName());
             assertNotNull(rec.getSourceJournalRecommendation().getSourceDevice());
-            assertNotNull(rec.getSourceJournalRecommendation().getSourcePool());
-            assertNotNull(rec.getSourceJournalRecommendation().getHaRecommendation());
+            assertNotNull(rec.getSourceJournalRecommendation().getSourcePool());          
             assertTrue("vplex1".equals(rec.getSourceJournalRecommendation().getVirtualVolumeRecommendation().getVPlexStorageSystem().toString()));
             assertTrue("site1".equals(rec.getSourceJournalRecommendation().getInternalSiteName().toString()));            
             assertTrue(("pool5".equals(rec.getSourceJournalRecommendation().getSourcePool().toString())) || ("pool4".equals(rec.getSourceJournalRecommendation().getSourcePool().toString())));
@@ -1712,17 +1711,17 @@ public class PlacementTests extends DbsvcTestBase {
 	
 	    // Create a storage pool for vmax1
 	    StoragePool pool1 = PlacementTestUtils.createStoragePool(_dbClient, varray1, storageSystem1, "pool1", "Pool1",
-	            Long.valueOf(1024 * 1024 * 10), Long.valueOf(1024 * 1024 * 10), 300, 300,
+	            Long.valueOf(1024 * 1024 * 10), Long.valueOf(1024 * 1024 * 100), 300, 300,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	
 	    // Create a storage pool for vmax1
 	    StoragePool pool2 = PlacementTestUtils.createStoragePool(_dbClient, varray1, storageSystem1, "pool2", "Pool2",
-	            Long.valueOf(1024 * 1024 * 10), Long.valueOf(1024 * 1024 * 10), 300, 300,
+	            Long.valueOf(1024 * 1024 * 10), Long.valueOf(1024 * 1024 * 100), 300, 300,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	
 	    // Create a storage pool for vmax1
 	    StoragePool pool3 = PlacementTestUtils.createStoragePool(_dbClient, varray1, storageSystem1, "pool3", "Pool3",
-	            Long.valueOf(1024 * 1024 * 1), Long.valueOf(1024 * 1024 * 1), 100, 100,
+	            Long.valueOf(1024 * 1024 * 1), Long.valueOf(1024 * 1024 * 10), 100, 100,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	
 	    // Create a storage pool for vmax2
@@ -1732,12 +1731,12 @@ public class PlacementTests extends DbsvcTestBase {
 	
 	    // Create a storage pool for vmax2
 	    StoragePool pool5 = PlacementTestUtils.createStoragePool(_dbClient, varray2, storageSystem2, "pool5", "Pool5",
-	            Long.valueOf(1024 * 1024 * 10), Long.valueOf(1024 * 1024 * 10), 300, 300,
+	            Long.valueOf(1024 * 1024 * 10), Long.valueOf(1024 * 1024 * 100), 300, 300,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	
 	    // Create a storage pool for vmax2
 	    StoragePool pool6 = PlacementTestUtils.createStoragePool(_dbClient, varray2, storageSystem2, "pool6", "Pool6",
-	            Long.valueOf(1024 * 1024 * 1), Long.valueOf(1024 * 1024 * 1), 100, 100,
+	            Long.valueOf(1024 * 1024 * 1), Long.valueOf(1024 * 1024 * 1024), 100, 100,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	
 	    // Create a storage pool for vmax3
@@ -1747,7 +1746,7 @@ public class PlacementTests extends DbsvcTestBase {
 	
 	    // Create a storage pool for vmax3
 	    StoragePool pool8 = PlacementTestUtils.createStoragePool(_dbClient, varray3, storageSystem3, "pool8", "Pool8",
-	            Long.valueOf(1024 * 1024 * 10), Long.valueOf(1024 * 1024 * 10), 300, 300,
+	            Long.valueOf(1024 * 1024 * 10), Long.valueOf(1024 * 1024 * 1024), 300, 300,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	
 	    // Create a storage pool for vmax3
@@ -1846,7 +1845,7 @@ public class PlacementTests extends DbsvcTestBase {
 	    _dbClient.createObject(cg);
 	
 	    // Create capabilities
-	    VirtualPoolCapabilityValuesWrapper capabilities = PlacementTestUtils.createCapabilities("2GB", 1, cg);
+	    VirtualPoolCapabilityValuesWrapper capabilities = PlacementTestUtils.createCapabilities("2GB", 2, cg);
 	
 	    // Run single volume placement: Run 10 times to make sure pool6 never comes up for source and pool9 for target.
 	    for (int i = 0; i < 10; i++) {
@@ -2235,12 +2234,12 @@ public class PlacementTests extends DbsvcTestBase {
 	
 	    // Create a storage pool for vnx1
 	    StoragePool hajPool10 = PlacementTestUtils.createStoragePool(_dbClient, haJournalVarray, vnxStorageSystem2, "HaJpool10", "HaJPool10",
-	            Long.valueOf(1024 * 1024 * 1), Long.valueOf(1024 * 1024 * 1024 * 1), 100, 100,
+	            Long.valueOf(1024 * 1024 * 1024), Long.valueOf(1024 * 1024 * 1024 * 1), 100, 100,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	    
 	    // Create a storage pool for vnx1
 	    StoragePool tjPool11 = PlacementTestUtils.createStoragePool(_dbClient, tgtJournalVarray, vnxStorageSystem3, "Tjpool11", "TjPool11",
-	            Long.valueOf(1024 * 1024 * 1), Long.valueOf(1024 * 1024 * 1024 *1), 100, 100,
+	            Long.valueOf(1024 * 1024 * 1024 * 1), Long.valueOf(1024 * 1024 * 1024 *1), 100, 100,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	
 	    //Create HA vpool
@@ -2508,7 +2507,7 @@ public class PlacementTests extends DbsvcTestBase {
 	    _log.info("### PASS ###");
 	} 
 	
-	
+		
 	/**
 	 * RP VPLEX placement -- placement decision based on RP array visibility
 	 */

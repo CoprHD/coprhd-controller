@@ -35,6 +35,7 @@ public class SnapshotSessionUnlinkTargetsParam {
         this.linkedTargets = linkedTargets;
     }
 
+    @XmlElementWrapper(name = "linked_targets", required = true)
     /**
      * Gets the list of targets to be unlinked.
      * 
@@ -42,7 +43,6 @@ public class SnapshotSessionUnlinkTargetsParam {
      * 
      * @return The list of targets to be unlinked.
      */
-    @XmlElementWrapper(name = "linked_targets", required = true)
     @XmlElement(name = "linked_target", required = true)
     public List<UnlinkSnapshotSessionTargetParam> getLinkedTargets() {
         return linkedTargets;

@@ -21,26 +21,33 @@ import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 /**
- * 
+ * ViPR Job created when an underlying CIM job is created to create
+ * a new array snapshot point-in-time copy represented in ViPR by a
+ * BlockSnapshotSession instance.
  */
 @SuppressWarnings("serial")
 public class SmisBlockCreateSnapshotSessionJob extends SmisJob {
 
+    // The unique job name.
     private static final String JOB_NAME = "SmisBlockCreateSnapshotSessionJob";
 
-    //
+    // Reference to a logger.
     private static final Logger s_logger = LoggerFactory.getLogger(SmisBlockCreateSnapshotSessionJob.class);
 
     /**
+     * Constructor.
      * 
-     * @param cimJob
-     * @param systemURI
-     * @param taskCompleter
+     * @param cimJob The CIM object path of the underlying CIM Job.
+     * @param systemURI The URI of the storage system.
+     * @param taskCompleter A reference to the task completer.
      */
     public SmisBlockCreateSnapshotSessionJob(CIMObjectPath cimJob, URI systemURI, TaskCompleter taskCompleter) {
         super(cimJob, systemURI, taskCompleter, JOB_NAME);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void updateStatus(JobContext jobContext) throws Exception {
         JobStatus jobStatus = getJobStatus();

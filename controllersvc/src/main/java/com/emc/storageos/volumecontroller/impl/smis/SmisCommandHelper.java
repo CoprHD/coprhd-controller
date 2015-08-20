@@ -826,33 +826,6 @@ public class SmisCommandHelper implements SmisConstants {
         };
     }
 
-    public CIMArgument[] getCreateSynchronizationAspectInput(CIMObjectPath sourcePath, String name) {
-        return new CIMArgument[] {
-                _cimArgument.string(CP_NAME, name),
-                _cimArgument.uint16(CP_MODE, MODE_SYNCHRONOUS),
-                _cimArgument.uint16(CP_SYNC_TYPE, SNAPSHOT_VALUE),
-                _cimArgument.reference(CP_SOURCE_ELEMENT, sourcePath)
-        };
-    }
-
-    /**
-     * 
-     * @param settingsStatePath
-     * @param targetDevicePath
-     * @param copyMode
-     * @return
-     */
-    public CIMArgument[] getModifySettingsDefinedStateForLinkTargets(CIMObjectPath settingsStatePath,
-            CIMObjectPath targetDevicePath, String copyMode) {
-        int operation = (copyMode.equals(BlockSnapshotSession.CopyMode.copy.name()) ?
-                COPY_TO_TARGET_VALUE : ATTACH_TO_TARGET_VALUE);
-        return new CIMArgument[] {
-                _cimArgument.uint16(CP_OPERATION, operation),
-                _cimArgument.reference(CP_TARGET_ELEMENT, targetDevicePath),
-                _cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath)
-        };
-    }
-
     public CIMArgument[] getCreateGroupSynchronizationAspectInput(CIMObjectPath cgPath) {
         return new CIMArgument[] {
                 _cimArgument.bool(CP_EMC_SKIP_REFRESH, true),
@@ -6124,5 +6097,72 @@ public class SmisCommandHelper implements SmisConstants {
             volumeIter.close();
         }
         return result;
+    }
+
+    /**
+     * Get the SMI-S input arguments when creating a CIM_SynchronizedAspectForSource, i.e,
+     * an array snapshot point-in-time copy, for the source with the passed path.
+     * 
+     * @param sourcePath The CIM object path for the array snapshot source.
+     * @param name The name for the array snapshot.
+     * 
+     * @return An array of CIMArgument
+     */
+    public CIMArgument[] getCreateSynchronizationAspectInput(CIMObjectPath sourcePath, String name) {
+        return new CIMArgument[] {
+                _cimArgument.string(CP_NAME, name),
+                _cimArgument.uint16(CP_MODE, MODE_SYNCHRONOUS),
+                _cimArgument.uint16(CP_SYNC_TYPE, SNAPSHOT_VALUE),
+                _cimArgument.reference(CP_SOURCE_ELEMENT, sourcePath)
+        };
+    }
+
+    /**
+     * Get the SMI-S input arguments when linking a target to an array snapshot.
+     * 
+     * @param settingsStatePath The CIM object path of the CIM_SettingsDefineState for the array snapshot.
+     * @param targetDevicePath The CIM object path of the target volume.
+     * @param copyMode Specifies if the array snapshot should simply be attached to the target
+     *            (i.e., no data copy), or the array snapshot should actually be copied to the target.
+     * 
+     * @return An array of CIMArgument
+     */
+    public CIMArgument[] getModifySettingsDefinedStateForLinkTargets(CIMObjectPath settingsStatePath,
+            CIMObjectPath targetDevicePath, String copyMode) {
+        int operation = (copyMode.equals(BlockSnapshotSession.CopyMode.copy.name()) ?
+                COPY_TO_TARGET_VALUE : ATTACH_TO_TARGET_VALUE);
+        return new CIMArgument[] {
+                _cimArgument.uint16(CP_OPERATION, operation),
+                _cimArgument.reference(CP_TARGET_ELEMENT, targetDevicePath),
+                _cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath)
+        };
+    }
+
+    /**
+     * Get the SMI-S input arguments when unlinking a target from an array snapshot.
+     * 
+     * @param storageSystem A reference to the storage system.
+     * @param snapshot A reference to the BlockSnapshot instance representing the target to be unlinked.
+     * @param deleteTarget True if the target should not only be detached, but also deleted.
+     * 
+     * @return An array of CIMArgument
+     */
+    public CIMArgument[] getUnlinkBlockSnapshotSessionTargetInputArguments(StorageSystem storageSystem, BlockSnapshot snapshot,
+            Boolean deleteTarget) {
+        // Get the CIM object path of the CIM_StorageSynchronized representing the
+        // association of a target to a source for a given array snapshot.
+        CIMObjectPath syncObject;
+        try {
+            syncObject = _cimPath.getSyncObject(storageSystem, snapshot);
+        } catch (Exception e) {
+            throw new IllegalStateException(String.format("Problem constructing StorageSynchronized path for BlockSnapshot %s",
+                    snapshot.getId()));
+        }
+        int operation = (deleteTarget ? RETURN_TO_RESOURCE_POOL : DETACH_VALUE);
+        List<CIMArgument> argsList = new ArrayList<CIMArgument>();
+        argsList.add(_cimArgument.uint16(CP_OPERATION, operation));
+        argsList.add(_cimArgument.reference(CP_SYNCHRONIZATION, syncObject));
+        CIMArgument[] result = {};
+        return argsList.toArray(result);
     }
 }

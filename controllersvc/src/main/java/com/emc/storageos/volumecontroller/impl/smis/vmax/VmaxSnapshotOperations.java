@@ -77,6 +77,7 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotS
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockLinkSnapshotSessionTargetJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResumeSnapshotJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockUnlinkSnapshotSessionTargetJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
 import com.google.common.base.Predicate;
@@ -1216,23 +1217,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     inArgs = _helper.getCreateSynchronizationAspectInput(sourceVolumePath, snapSessionLabelToUse);
                     _helper.invokeMethod(system, replicationSvcPath, SmisConstants.CREATE_SYNCHRONIZATION_ASPECT, inArgs, outArgs);
                     CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
-                    if (jobPath != null) {
-                        _log.info("Create snapshot session being completed in job {}", jobPath.getKey(SmisConstants.CP_INSTANCE_ID)
-                                .getValue());
-                        ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockCreateSnapshotSessionJob(jobPath, system.getId(),
-                                completer)));
-                    } else {
-                        // TBD - Need to resolve how parameter is used in snapshot session and block snapshot,
-                        // which keeps the instance Id of the SettingsData of the SettingsState.
-                        // TBD - Need to verify this code path. Testing always returned job, which
-                        // is likely the case.
-                        CIMObjectPath settingsStatePath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.CP_SETTINGS_STATE);
-                        String instanceId = (String) settingsStatePath.getKey(SmisConstants.CP_INSTANCE_ID).getValue();
-                        _log.info("SettingsState instance id is {}", instanceId);
-                        snapSession.setSessionInstance(instanceId);
-                        _dbClient.persistObject(snapSession);
-                        completer.ready(_dbClient);
-                    }
+                    ControllerServiceImpl
+                            .enqueueJob(new QueueJob(new SmisBlockCreateSnapshotSessionJob(jobPath, system.getId(), completer)));
                 } else {
                     // TBD - Not currently supported when the source is a BlockSnapshot.
                     throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
@@ -1273,7 +1259,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
         if (system.checkIfVmax3()) {
             // Only supported for VMAX3 storage systems.
             try {
-                _log.info("Link new targets to snapshot session {} START", snapSessionURI);
+                _log.info("Link new target {} to snapshot session {} START", snapshotURI, snapSessionURI);
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
                 URI sourceObjURI = snapshot.getParent().getURI();
                 if (URIUtil.isType(sourceObjURI, Volume.class)) {
@@ -1299,21 +1285,42 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                             targetDevicePath, copyMode);
                     _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
                     CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
-                    if (jobPath != null) {
-                        _log.info("Link snapshot session target being completed in job {}", jobPath.getKey(SmisConstants.CP_INSTANCE_ID)
-                                .getValue());
-                        ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockLinkSnapshotSessionTargetJob(jobPath, system.getId(),
-                                copyMode, completer)));
-                    } else {
-                        // TBD - Need to verify this code path. Testing always returned job, which
-                        // is likely the case.
-                    }
+                    ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockLinkSnapshotSessionTargetJob(jobPath,
+                            system.getId(), copyMode, completer)));
                 } else {
                     // TBD - Not currently supported when the source is a BlockSnapshot.
                     throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
                 }
             } catch (Exception e) {
-                _log.info("Exception creating snapshot session ", e);
+                _log.info("Exception creating and linking snapshot session target", e);
+                ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
+                completer.error(_dbClient, error);
+            }
+        } else {
+            throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @SuppressWarnings("rawtypes")
+    @Override
+    public void doUnlinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
+            Boolean deleteTarget, TaskCompleter completer) throws DeviceControllerException {
+        if (system.checkIfVmax3()) {
+            // Only supported for VMAX3 storage systems.
+            try {
+                _log.info("Unlink target {} from snapshot session {} START", snapshotURI, snapSessionURI);
+                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+                CIMArgument[] inArgs = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(system, snapshot, deleteTarget);
+                CIMArgument[] outArgs = new CIMArgument[5];
+                _helper.callModifyReplica(system, inArgs, outArgs);
+                CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
+                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockUnlinkSnapshotSessionTargetJob(jobPath,
+                        system.getId(), deleteTarget, completer)));
+            } catch (Exception e) {
+                _log.info("Exception unlinking snapshot session target", e);
                 ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
                 completer.error(_dbClient, error);
             }

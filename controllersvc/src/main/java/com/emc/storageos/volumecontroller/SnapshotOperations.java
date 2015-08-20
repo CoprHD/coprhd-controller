@@ -195,16 +195,35 @@ public interface SnapshotOperations {
             throws DeviceControllerException;
 
     /**
+     * Creates a new target volume and links it to an array snapshot on the passed storage system.
      * 
-     * @param system
-     * @param snapSessionURI
-     * @param snapshotURI
-     * @param copyMode
-     * @param completer
+     * @param system A reference to the storage system.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance in ViPR
+     *            that represents the array snapshot.
+     * @param snapshotURI The URI of the BlockSnapshot instance in ViPR that will represent
+     *            the new target volume.
+     * @param copyMode The copy mode in which the target is linked to the snapshot.
+     * @param completer A reference to the task completer.
      * 
      * @throws DeviceControllerException
      */
     public void linkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             String copyMode, TaskCompleter completer)
             throws DeviceControllerException;
+
+    /**
+     * Creates a new target volume and links it to an array snapshot on the passed storage system.
+     * 
+     * @param system A reference to the storage system.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance in ViPR
+     *            that represents the array snapshot.
+     * @param snapshotURI The URI of the BlockSnapshot instance in ViPR that represents
+     *            the target volume.
+     * @param deleteTarget True if the target should also be deleted.
+     * @param completer A reference to the task completer.
+     * 
+     * @throws DeviceControllerException
+     */
+    public void doUnlinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
+            Boolean deleteTarget, TaskCompleter completer) throws DeviceControllerException;
 }

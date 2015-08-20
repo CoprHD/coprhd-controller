@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2012 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
 import java.net.URI;
@@ -23,29 +27,34 @@ import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 /**
+ * ViPR Job created when an underlying CIM job is created to create
+ * and link a new target volume to an array array snapshot point-in-time
+ * copy represented in ViPR by a BlockSnapshotSession instance.
+ * 
  * TBD - Maybe use or inherit from SmisCreateBlockSnapshotJob
  * Issues
- * - How does copyMode play with createInactive.
  * - Different completer.
  */
 @SuppressWarnings("serial")
 public class SmisBlockLinkSnapshotSessionTargetJob extends SmisSnapShotJob {
 
+    // The unique job name.
     private static final String JOB_NAME = "SmisBlockLinkSnapshotSessionTargetJob";
 
-    //
+    // The copy mode in which the target is linked to the snapshot.
     @SuppressWarnings("unused")
     private final String _copyMode;
 
-    //
-    private static final Logger s_logger = LoggerFactory.getLogger(SmisBlockCreateSnapshotSessionJob.class);
+    // Reference to a logger.
+    private static final Logger s_logger = LoggerFactory.getLogger(SmisBlockLinkSnapshotSessionTargetJob.class);
 
     /**
+     * Constructor.
      * 
-     * @param cimJob
-     * @param systemURI
-     * @param copyMode
-     * @param taskCompleter
+     * @param cimJob The CIM object path of the underlying CIM Job.
+     * @param systemURI The URI of the storage system.
+     * @param copyMode The copy mode in which the target is linked to the snapshot.
+     * @param taskCompleter A reference to the task completer.
      */
     public SmisBlockLinkSnapshotSessionTargetJob(CIMObjectPath cimJob, URI systemURI, String copyMode,
             TaskCompleter taskCompleter) {
@@ -53,6 +62,9 @@ public class SmisBlockLinkSnapshotSessionTargetJob extends SmisSnapShotJob {
         _copyMode = copyMode;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void updateStatus(JobContext jobContext) throws Exception {
         JobStatus jobStatus = getJobStatus();

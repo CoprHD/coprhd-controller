@@ -20,11 +20,14 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 
 /**
- * 
+ * Task completer invoked when a workflow linking target volumes to a
+ * BlockSnapshotSession completes.
  */
 @SuppressWarnings("serial")
 public class LinkBlockSnapshotSessionTargetsWorkflowCompleter extends TaskCompleter {
 
+    // The URIs of the BlockSnapshot instances representing the target volumes
+    // to be linked to the session
     private final List<URI> _snapshotURIs;
 
     // A logger.
@@ -63,6 +66,7 @@ public class LinkBlockSnapshotSessionTargetsWorkflowCompleter extends TaskComple
                         dbClient.persistObject(snapshot);
                     }
                     break;
+                case ready:
                 default:
                     setReadyOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI);
 

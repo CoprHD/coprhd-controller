@@ -2120,12 +2120,27 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             _snapshotOperations.linkBlockSnapshotSessionTarget(system, snapSessionURI, snapshotURI, copyMode, completer);
         } catch (Exception e) {
-            _log.error(String.format("Exception trying to link new targets to block snapshot session %s on array %s",
+            _log.error(String.format("Exception trying to create and link new target to block snapshot session %s on array %s",
                     snapSessionURI, system.getSerialNumber()), e);
-            ServiceError error = DeviceControllerErrors.smis.methodFailed("doLinkBlockSnapshotSessionTargets", e.getMessage());
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doLinkBlockSnapshotSessionTarget", e.getMessage());
             completer.error(_dbClient, error);
         }
+    }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void doUnlinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
+            Boolean deleteTarget, TaskCompleter completer) throws DeviceControllerException {
+        try {
+            _snapshotOperations.doUnlinkBlockSnapshotSessionTarget(system, snapSessionURI, snapshotURI, deleteTarget, completer);
+        } catch (Exception e) {
+            _log.error(String.format("Exception trying to unlink target from block snapshot session %s on array %s",
+                    snapSessionURI, system.getSerialNumber()), e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doUnlinkBlockSnapshotSessionTarget", e.getMessage());
+            completer.error(_dbClient, error);
+        }
     }
 
     /**

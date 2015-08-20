@@ -253,6 +253,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
                     // set current version in zk
                     schemaUtil.setCurrentVersion(targetVersion);
                     log.info("current schema version is updated to {}", targetVersion);
+                    schemaUtil.dropUnusedCfsIfExists();
                 }
                 schemaUtil.setMigrationStatus(MigrationStatus.DONE);
                 // Remove migration checkpoint after done
@@ -281,7 +282,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
         return false;
     }
 
-    private void markMigrationFail(String currentSchemaVersion, Exception e) {
+	private void markMigrationFail(String currentSchemaVersion, Exception e) {
         schemaUtil.setMigrationStatus(MigrationStatus.FAILED);
 
         String errMsg =

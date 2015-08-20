@@ -228,7 +228,6 @@ public class PersistingChangesTest extends DbsvcTestBase {
         testSet(this.dbClient, VirtualPool.class);
         testSet(this.dbClient, VirtualArray.class);
         testSet(this.dbClient, Network.class);
-        testSet(this.dbClient, ObjectNetwork.class);
         testSet(this.dbClient, FileShare.class);
         testSet(this.dbClient, Project.class);
         testSet(this.dbClient, Snapshot.class);

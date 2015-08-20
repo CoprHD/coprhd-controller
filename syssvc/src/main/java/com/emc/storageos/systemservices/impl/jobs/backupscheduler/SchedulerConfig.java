@@ -225,6 +225,7 @@ public class SchedulerConfig {
         params.put("errorMessage", errMsg);
 
         String subject = getEmailSubject("Failed to Upload Backups: ", tags);
+        log.info("Error message: {}", subject);
         sendEmailToRoot(subject, "UploadFailedEmail.html", params);
     }
 
@@ -251,9 +252,12 @@ public class SchedulerConfig {
             if (to == null) {
                 log.warn("Cannot find email configuration for user root, no alert email can be sent.");
                 return;
+            } else {
+                log.info("The mail address of user root is: {}", to);
             }
 
             this.mailHelper.sendMailMessage(to, subject, html);
+            log.info("Send email to root user done");
         } catch (Exception e) {
             log.error("Failed to send email to root", e);
         }
@@ -354,4 +358,25 @@ public class SchedulerConfig {
 	public void setSoftwareVersion(String softwareVersion) {
 		this.softwareVersion = softwareVersion;
 	}
+	
+	private void getSofttwareWithRetry() throws Exception, InterruptedException {
+        int retryTimes = 0;
+        RepositoryInfo targetInfo = null;
+        while (retryTimes <= MAX_VERSION_RETRY_TIMES) {
+            retryTimes++;
+            targetInfo = this.coordinatorClient.getTargetInfo(RepositoryInfo.class);
+            if (targetInfo == null){
+                log.info("can't get version, try {} seconds later", MAX_VERSION_RETRY_INTERVAL/1000);
+                Thread.sleep(MAX_VERSION_RETRY_INTERVAL);
+                continue;
+            }
+            this.softwareVersion = targetInfo.getCurrentVersion().toString();
+            log.info("Version: {}", softwareVersion);
+            break;
+        }
+        
+        if (targetInfo == null) {
+            throw new Exception("Can't get version information from coordinator client");
+        }
+    }
 }

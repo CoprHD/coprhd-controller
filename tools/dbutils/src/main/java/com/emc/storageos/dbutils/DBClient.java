@@ -279,10 +279,11 @@ public class DBClient {
             Column<CompositeColumnName> latestField = _dbClient
                     .getLatestModifiedField(TypeMap.getDoType(clazz),
                             object.getId());
-            System.out.println(String.format(
-                    "The latest modified time is %s on Field(%s).\n", new Date(
-                            latestField.getTimestamp() / 1000), latestField
-                            .getName().getOne()));
+            if (latestField != null)
+                System.out.println(String.format(
+                        "The latest modified time is %s on Field(%s).\n", new Date(
+                                latestField.getTimestamp() / 1000), latestField.getName()
+                                .getOne()));
         }
     }
 

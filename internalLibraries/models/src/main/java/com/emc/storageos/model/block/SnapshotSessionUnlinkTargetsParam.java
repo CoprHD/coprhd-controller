@@ -7,6 +7,7 @@ package com.emc.storageos.model.block;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
@@ -41,6 +42,7 @@ public class SnapshotSessionUnlinkTargetsParam {
      * 
      * @return The list of targets to be unlinked.
      */
+    @XmlElementWrapper(name = "linked_targets", required = true)
     @XmlElement(name = "linked_target", required = true)
     public List<UnlinkSnapshotSessionTargetParam> getLinkedTargets() {
         return linkedTargets;

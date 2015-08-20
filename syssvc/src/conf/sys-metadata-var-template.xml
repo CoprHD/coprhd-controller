@@ -2310,9 +2310,9 @@
 	</bean>
 	<bean id="password_lowercase_alphabet" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Lowercase Character Number" />
-		<property name="description" value="Minimum number of lowercase alphabetic characters that a local user password must contain. (0 means no minimum number is required.)" />
+		<property name="description" value="Minimum number of lowercase alphabetic characters that a local user password must contain." />
 		<property name="type" value="uint8" />
-		<property name="allowedValues" value="0,1,2,3,4,5" />
+		<property name="allowedValues" value="1,2,3,4,5" />
 		<property name="tag" value="Controller" />
 		<property name="hidden" value="false" />
 		<property name="advanced" value="false" />
@@ -2325,9 +2325,9 @@
 	</bean>
 	<bean id="password_uppercase_alphabet" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Uppercase Character Number" />
-		<property name="description" value="Minimum number of uppercase alphabetic characters that a local user password must contain. (0 means no minimum number is required.)" />
+		<property name="description" value="Minimum number of uppercase alphabetic characters that a local user password must contain." />
 		<property name="type" value="uint8" />
-		<property name="allowedValues" value="0,1,2,3,4,5" />
+		<property name="allowedValues" value="1,2,3,4,5" />
 		<property name="tag" value="Controller" />
 		<property name="hidden" value="false" />
 		<property name="advanced" value="false" />
@@ -2340,9 +2340,9 @@
 	</bean>
 	<bean id="password_numeric_character" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Numeric Character Number" />
-		<property name="description" value="Minimum number of numeric characters that a local user password must contain. (0 means no minimum number is required.)" />
+		<property name="description" value="Minimum number of numeric characters that a local user password must contain." />
 		<property name="type" value="uint8" />
-		<property name="allowedValues" value="0,1,2,3,4,5" />
+		<property name="allowedValues" value="1,2,3,4,5" />
 		<property name="tag" value="Controller" />
 		<property name="hidden" value="false" />
 		<property name="advanced" value="false" />
@@ -2355,9 +2355,9 @@
 	</bean>
 	<bean id="password_special_character" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Special Character Number" />
-		<property name="description" value="Minimum number of special characters that a local user password must contain. (0 means no minimum number is required.)" />
+		<property name="description" value="Minimum number of special characters that a local user password must contain." />
 		<property name="type" value="uint8" />
-		<property name="allowedValues" value="0,1,2,3,4,5" />
+		<property name="allowedValues" value="1,2,3,4,5" />
 		<property name="tag" value="Controller" />
 		<property name="hidden" value="false" />
 		<property name="advanced" value="false" />

@@ -197,8 +197,8 @@ fi
 %config %attr(400,storageos,storageos) /etc/config.defaults
 %config %attr(400,storageos,storageos) /etc/.ovfenv.properties
 %config %attr(400,storageos,storageos) /etc/.iterable.properties
-%config %attr(-,storageos,storageos) /data/db
-%config %attr(-,storageos,storageos) /data/geodb
+%config %attr(750,storageos,storageos) /data/db
+%config %attr(750,storageos,storageos) /data/geodb
 %config %attr(-,storageos,storageos) /data/zk
 %config %attr(-,storageos,storageos) /object/rmt
 %attr(-,storageos,storageos) /opt/connectemc/*

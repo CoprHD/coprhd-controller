@@ -73,4 +73,12 @@ public class XtremIOBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSess
             Set<URI> snapshotURIs, UriInfo uriInfo) {
         throw APIException.methodNotAllowed.notSupportedForExtremeIO();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
+        throw APIException.methodNotAllowed.notSupportedForExtremeIO();
+    }
 }

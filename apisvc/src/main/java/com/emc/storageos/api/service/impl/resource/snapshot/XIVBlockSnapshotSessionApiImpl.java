@@ -73,4 +73,12 @@ public class XIVBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionA
             Set<URI> snapshotURIs, UriInfo uriInfo) {
         throw APIException.methodNotAllowed.notSupportedForXIV();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
+        throw APIException.methodNotAllowed.notSupportedForXIV();
+    }
 }

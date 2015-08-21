@@ -72,4 +72,12 @@ public class OpenstackBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSe
             Set<URI> snapshotURIs, UriInfo uriInfo) {
         throw APIException.methodNotAllowed.notSupportedForOpenstack();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
+        throw APIException.methodNotAllowed.notSupportedForOpenstack();
+    }
 }

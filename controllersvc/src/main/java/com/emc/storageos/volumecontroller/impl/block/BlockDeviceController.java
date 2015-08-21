@@ -3782,4 +3782,33 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
         }
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void restoreSnapshotSession(URI systemURI, URI snapSessionURI, String opId) {
+        /*
+         * TaskCompleter completer = new SimpleTaskCompleter(BlockSnapshotSession.class, snapSessionURI, opId);
+         * try {
+         * // Get a new workflow to unlinking of the targets from session.
+         * Workflow workflow = _workflowService.getNewWorkflow(this, RESTORE_SNAPSHOT_SESSION_WF_NAME, false, opId);
+         * _log.info("Created new workflow to restore snapshot session {} with operation id {}",
+         * snapSessionURI, opId);
+         * 
+         * // We need to split the SRDF link for R2 snap restore if it is not paused already.
+         * // Refer OPT#476788.
+         * // TBD - This likely needs to be done.
+         * workflow.createStep(RESTORE_SNAPSHOT_SESSION_STEP_GROUP, String.format("Restore snapshot session %s", snapSessionURI),
+         * null, systemURI, getDeviceType(systemURI), getClass(),
+         * restoreBlockSnapshotSessionMethod(systemURI, snapSessionURI),
+         * rollbackMethodNullMethod(), null);
+         * workflow.executePlan(completer, "Restore block snapshot session successful");
+         * } catch (Exception e) {
+         * _log.error("Restore block snapshot session failed", e);
+         * ServiceCoded serviceException = DeviceControllerException.exceptions.restBlockSnapshotSessionFailed(e);
+         * completer.error(_dbClient, serviceException);
+         * }
+         */
+    }
 }

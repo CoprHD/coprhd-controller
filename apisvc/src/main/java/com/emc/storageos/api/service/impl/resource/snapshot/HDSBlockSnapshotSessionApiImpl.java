@@ -75,4 +75,12 @@ public class HDSBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionA
             Set<URI> snapshotURIs, UriInfo uriInfo) {
         throw APIException.methodNotAllowed.notSupportedForHDS();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
+        throw APIException.methodNotAllowed.notSupportedForHDS();
+    }
 }

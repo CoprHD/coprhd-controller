@@ -38,6 +38,7 @@ import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation.VolumeType;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
@@ -50,13 +51,12 @@ import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -65,6 +65,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -2881,6 +2882,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      *            activated, false otherwise.
      * @param taskId The unique task identifier.
      */
+    @Override
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
             String snapshotType, Boolean createInactive, String taskId) {
 
@@ -2956,6 +2958,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param snapshot The snapshot to restore.
      * @param parent The parent of the snapshot
      */
+    @Override
     public void validateRestoreSnapshot(BlockSnapshot snapshot, Volume parentVolume) {
         if (!snapshot.getIsSyncActive()) {
             throw APIException.badRequests.snapshotNotActivated(snapshot.getLabel());
@@ -3000,9 +3003,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param volume Volume to check for mirrors against
      * @return List of active VplexMirror URI's
      */
+    @Override
     protected List<URI> getActiveMirrorsForVolume(Volume volume) {
         List<URI> activeMirrorURIs = new ArrayList<>();
-        if (hasMirrors(volume)) {
+        if (BlockServiceUtils.hasMirrors(volume)) {
             List<VplexMirror> mirrors = _dbClient.queryObject(VplexMirror.class, StringSetUtil.stringSetToUriList(volume.getMirrors()));
             for (VplexMirror mirror : mirrors) {
                 if (!mirror.getInactive()) {
@@ -3102,6 +3106,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * {@inheritDoc}
      */
+    @Override
     public int getMaxVolumesForConsistencyGroup(BlockConsistencyGroup consistencyGroup) {
         return MAX_VOLUMES_IN_CG;
     }
@@ -3109,6 +3114,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * {@inheritDoc}
      */
+    @Override
     public void validateConsistencyGroupName(BlockConsistencyGroup consistencyGroup) {
         // VPLEX CG names cannot start with a number only "_" or a letter.
         // Note that when a CG is created in ViPR there are already restrictions

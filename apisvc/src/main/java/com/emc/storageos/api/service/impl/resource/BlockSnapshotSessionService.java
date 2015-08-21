@@ -104,32 +104,33 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     }
 
     /**
+     * Restores the data on the array snapshot point-in-time copy represented by the
+     * BlockSnapshotSession instance with the passed id, to the snapshot session source
+     * object.
      * 
+     * @brief Restore snapshot session to source
      * 
-     * @brief
+     * @prereq None
      * 
-     * @prereq
+     * @param id The URI of the BlockSnapshotSession instance to be restored.
      * 
-     * @param id
-     * 
-     * @return
+     * @return TaskResourceRep representing the snapshot session task.
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/restore")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskList restoreSnapshotSession(@PathParam("id") URI id) {
-        return null;
+    public TaskResourceRep restoreSnapshotSession(@PathParam("id") URI id) {
+        return getSnapshotSessionManager().restoreSnapshotSession(id);
     }
 
     /**
-     * 
      * 
      * @brief
      * 
      * @prereq
      * 
-     * @param id
+     * @param
      * 
      * @return
      */

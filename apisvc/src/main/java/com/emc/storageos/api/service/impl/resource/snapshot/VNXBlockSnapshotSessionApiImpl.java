@@ -72,4 +72,12 @@ public class VNXBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionA
             Set<URI> snapshotURIs, UriInfo uriInfo) {
         throw APIException.methodNotAllowed.notSupportedForVNX();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
+        throw APIException.methodNotAllowed.notSupportedForVNX();
+    }
 }

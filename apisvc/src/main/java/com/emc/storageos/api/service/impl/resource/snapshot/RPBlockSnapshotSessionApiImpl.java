@@ -133,4 +133,12 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
             Set<URI> snapshotURIs, UriInfo uriInfo) {
         throw APIException.methodNotAllowed.notSupportedForRP();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
+        throw APIException.methodNotAllowed.notSupportedForRP();
+    }
 }

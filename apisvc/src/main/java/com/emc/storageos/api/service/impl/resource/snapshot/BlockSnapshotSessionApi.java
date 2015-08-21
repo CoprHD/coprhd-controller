@@ -137,4 +137,22 @@ public interface BlockSnapshotSessionApi {
      */
     public void unlinkTargetVolumesFromSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
             Map<URI, Boolean> snapshotDeletionMap, String taskId);
+
+    /**
+     * Validates a restore snapshot session request.
+     * 
+     * @param snapSessionSourceObj A reference to the snapshot session source.
+     * @param project A reference to the source project.
+     */
+    public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project);
+
+    /**
+     * Restores the source with the data from the array snapshot point-in-time
+     * copy represented by the passed BlockSnapshotSession instance.
+     * 
+     * @param snapSession A reference to a BlockSnapshotSessioninstance.
+     * @param snapSessionSourceObj A reference to the snapshot session source.
+     * @param taskId A unique task identifier.
+     */
+    public void restoreSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId);
 }

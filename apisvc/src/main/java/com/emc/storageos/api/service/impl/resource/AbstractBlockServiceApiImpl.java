@@ -6,9 +6,6 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.toVirtualPoolChangeRep;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
-import static com.emc.storageos.db.client.model.BlockMirror.SynchronizationState.FRACTURED;
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
-import static com.google.common.collect.Collections2.transform;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 
 import java.net.URI;
@@ -30,6 +27,7 @@ import com.emc.storageos.Controller;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
@@ -41,10 +39,9 @@ import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -61,6 +58,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
@@ -787,7 +785,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      *         false otherwise.
      */
     protected boolean isMetaVolumeWithMirrors(Volume volume) {
-        return ((isMeta(volume)) && (hasMirrors(volume)));
+        return ((isMeta(volume)) && (BlockServiceUtils.hasMirrors(volume)));
     }
 
     /**
@@ -851,7 +849,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
         return ((!(StoragePool.PoolClassNames.Clar_UnifiedStoragePool.name()
                 .equalsIgnoreCase(storagePool.getPoolClassName()) || isHitachiThinVolume(volume))))
-                && (hasMirrors(volume));
+                && (BlockServiceUtils.hasMirrors(volume));
     }
 
     /**
@@ -875,17 +873,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 volume.getStorageController(), StorageSystem.class);
         return DiscoveredDataObject.Type.hds.name().equalsIgnoreCase(
                 system.getSystemType());
-    }
-
-    /**
-     * Determines if the passed volume has attached mirrors.
-     * 
-     * @param volume A reference to a Volume.
-     * 
-     * @return true if passed volume has attached mirrors, false otherwise.
-     */
-    protected boolean hasMirrors(Volume volume) {
-        return volume.getMirrors() != null && !volume.getMirrors().isEmpty();
     }
 
     /**
@@ -1177,7 +1164,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
             String snapshotType, Boolean createInactive, String taskId) {
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, reqVolume.getStorageController());
-        BlockController controller = (BlockController) getController(BlockController.class, storageSystem.getSystemType());
+        BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
         controller.createSnapshot(storageSystem.getId(), snapshotURIs, createInactive, taskId);
     }
 
@@ -1216,6 +1203,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @param snapshot The snapshot to restore.
      * @param parent The parent of the snapshot
      */
+    @Override
     public void validateRestoreSnapshot(BlockSnapshot snapshot, Volume parent) {
         if (!snapshot.getIsSyncActive()) {
             throw APIException.badRequests.snapshotNotActivated(snapshot.getLabel());
@@ -1385,6 +1373,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     /**
      * {@inheritDoc}
      */
+    @Override
     public int getMaxVolumesForConsistencyGroup(BlockConsistencyGroup consistencyGroup) {
         return Integer.MAX_VALUE;
     }
@@ -1392,6 +1381,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     /**
      * {@inheritDoc}
      */
+    @Override
     public void validateConsistencyGroupName(BlockConsistencyGroup consistencyGroup) {
         // No-OP by default.
     }
@@ -1403,17 +1393,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @return List of active BlockMirror URI's
      */
     protected List<URI> getActiveMirrorsForVolume(Volume volume) {
-        List<URI> activeMirrorURIs = new ArrayList<>();
-        if (hasMirrors(volume)) {
-            Collection<URI> mirrorUris = transform(volume.getMirrors(), FCTN_STRING_TO_URI);
-            List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorUris);
-            for (BlockMirror mirror : mirrors) {
-                if (!FRACTURED.toString().equalsIgnoreCase(mirror.getSyncState())) {
-                    activeMirrorURIs.add(mirror.getId());
-                }
-            }
-        }
-        return activeMirrorURIs;
+        return BlockServiceUtils.getActiveMirrorsForVolume(volume, _dbClient);
     }
 
     /**

@@ -2355,4 +2355,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException targetIsNotLinkedToSnapshotSession(final String targetId, final String snapSessionIdd);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotSessionSourceHasActiveMirrors(final String sourceId, final int mirrorCount);
 }

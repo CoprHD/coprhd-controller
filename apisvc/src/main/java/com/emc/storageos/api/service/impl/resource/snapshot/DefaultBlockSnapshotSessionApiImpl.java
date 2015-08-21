@@ -174,7 +174,9 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
 
     /**
      * Counts and returns the number of arrays snapshots for
-     * the passed volume.
+     * the passed volume. Should be overridden when the number
+     * of native snapshots are determined in a different manner
+     * for the platform.
      * 
      * TBD - Reconcile with implementation in AbstractBlockServiceApiImpl,
      * which needs to be updated to look at sessions instances.
@@ -201,7 +203,9 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * the volumes snapshot sessions because the actual session names can have
      * an appended suffix when the volume is in a CG with multiple volumes.
      * Also, we need to run the name through the generator, which is done
-     * prior to setting the session label for a snapshot session.
+     * prior to setting the session label for a snapshot session. Should be overridden
+     * when the manner in which duplicate names are checked is determined in a
+     * different manner for the platform.
      * 
      * TBD - Reconcile with implementation in AbstractBlockServiceApiImpl.
      * 
@@ -221,7 +225,8 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
 
     /**
      * Verifies that the number of targets to be linked to a snapshot session
-     * is valid for the specified source.
+     * is valid for the specified source. Should be overridden when there are
+     * different or additional platform restrictions.
      * 
      * @param sourceObj A reference to the snapshot session source
      * @param newTargetsCount The number of new targets to be linked to a session.
@@ -287,7 +292,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * 
      * @return
      */
-    protected BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel,
+    private BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel,
             String taskId) {
         BlockSnapshotSession snapSession = new BlockSnapshotSession();
         snapSession.setId(URIUtil.createId(BlockSnapshotSession.class));
@@ -412,6 +417,62 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     @Override
     public void unlinkTargetVolumesFromSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
             Map<URI, Boolean> snapshotDeletionMap, String taskId) {
+        APIException.methodNotAllowed.notSupported();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
+        // Validate the project tenant.
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+        ArgValidator.checkEntity(tenant, project.getTenantOrg().getURI(), false);
+
+        // Verify the user is authorized.
+        BlockServiceUtils.verifyUserIsAuthorizedForRequest(project,
+                BlockServiceUtils.getUserFromContext(_securityContext), _permissionsHelper);
+
+        // On some platforms it is not possible to restore an array snapshot
+        // point-in-time copy to a source volume if the volume has active mirrors.
+        if (URIUtil.isType(snapSessionSourceObj.getId(), Volume.class)) {
+            verifyActiveMirrors((Volume) snapSessionSourceObj);
+        }
+    }
+
+    /**
+     * Verifies there are no active mirrors for the snapshot session source volume.
+     * Should be overridden when there are additional or different platform restrictions.
+     * 
+     * @param snapSessionSourceVolume A reference to the snapshot session source.
+     */
+    protected void verifyActiveMirrors(Volume snapSessionSourceVolume) {
+        // By default, disallow if there are active mirrors on the volume.
+        List<URI> activeMirrorsForSource = getActiveMirrorsForSnapSessionSourceVolume(snapSessionSourceVolume);
+        if (!activeMirrorsForSource.isEmpty()) {
+            throw APIException.badRequests.snapshotSessionSourceHasActiveMirrors(
+                    snapSessionSourceVolume.getLabel(), activeMirrorsForSource.size());
+        }
+    }
+
+    /**
+     * Get a list of the URIs of the active mirrors for the passed snapshot
+     * session source volume. Should be overridden when the active mirrors
+     * are determined in a different manner for the platform.
+     * 
+     * @param snapSessionSourceVolume A reference to a source volume for a snapshot session.
+     * 
+     * @return List of the URIs of the active mirrors for the volume.
+     */
+    protected List<URI> getActiveMirrorsForSnapSessionSourceVolume(Volume snapSessionSourceVolume) {
+        return BlockServiceUtils.getActiveMirrorsForVolume(snapSessionSourceVolume, _dbClient);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void restoreSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId) {
         APIException.methodNotAllowed.notSupported();
     }
 

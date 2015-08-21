@@ -4,11 +4,17 @@
  */
 package com.emc.storageos.api.service.impl.resource.utils;
 
+import static com.emc.storageos.db.client.model.BlockMirror.SynchronizationState.FRACTURED;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
+import static com.google.common.collect.Collections2.transform;
+
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
@@ -18,11 +24,13 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
@@ -182,4 +190,37 @@ public class BlockServiceUtils {
         }
     }
 
+    /**
+     * Return a list of active BlockMirror URI's that are known to be active
+     * (in Synchronized state).
+     * 
+     * @param volume Volume to check for mirrors against
+     * @param dbClient A reference to a database client.
+     * 
+     * @return List of active BlockMirror URI's
+     */
+    public static List<URI> getActiveMirrorsForVolume(Volume volume, DbClient dbClient) {
+        List<URI> activeMirrorURIs = new ArrayList<>();
+        if (hasMirrors(volume)) {
+            Collection<URI> mirrorUris = transform(volume.getMirrors(), FCTN_STRING_TO_URI);
+            List<BlockMirror> mirrors = dbClient.queryObject(BlockMirror.class, mirrorUris);
+            for (BlockMirror mirror : mirrors) {
+                if (!FRACTURED.toString().equalsIgnoreCase(mirror.getSyncState())) {
+                    activeMirrorURIs.add(mirror.getId());
+                }
+            }
+        }
+        return activeMirrorURIs;
+    }
+
+    /**
+     * Determines if the passed volume has attached mirrors.
+     * 
+     * @param volume A reference to a Volume.
+     * 
+     * @return true if passed volume has attached mirrors, false otherwise.
+     */
+    public static boolean hasMirrors(Volume volume) {
+        return volume.getMirrors() != null && !volume.getMirrors().isEmpty();
+    }
 }

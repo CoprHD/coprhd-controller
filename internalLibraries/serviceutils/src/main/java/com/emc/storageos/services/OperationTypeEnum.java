@@ -43,7 +43,6 @@ public enum OperationTypeEnum {
     EXPAND_BLOCK_VOLUME("VolumeExpanded", "VolumeExpandFailed", "Volume expand"),
 
     CREATE_VOLUME_SNAPSHOT("VolumeSnapshotCreated", "VolumeSnapshotCreateFailed", "VolumeSnapshot Create"),
-    CREATE_SNAPSHOT_SESSION("BlockSnapshotSessionCreated", "BlockSnapshotSessionCreateFailed", "BlockSnapshotSession Create"),
     ASSIGN_VOLUME_TAG("ASSIGN VOLUME TAG", "", "operation to tag a volume"),
     DELETE_VOLUME_SNAPSHOT("VolumeSnapshotDeleted", "VolumeSnapshotDeleteFailed", "VolumeSnapshot Delete"),
     RESTORE_VOLUME_SNAPSHOT("VolumeSnapshotRestored", "VolumeSnapshotRestoreFailed", "VolumeSnapshot Restore"),
@@ -381,6 +380,10 @@ public enum OperationTypeEnum {
     CREATE_USERGROUP("CREATE USER GROUP", "", "operation to create a user group."),
     UPDATE_USERGROUP("UPDATE USER GROUP", "", "operation to update a user group."),
     DELETE_USERGROUP("DELETE USER GROUP", "", "operation to delete a user group."),
+
+    CREATE_SNAPSHOT_SESSION("BlockSnapshotSessionCreated", "BlockSnapshotSessionCreateFailed", "BlockSnapshotSession Create"),
+    RESTORE_SNAPSHOT_SESSION("SnapshotSessionRestored", "SnapshotSessionRestoreFailed", "BlockSnapshotSession Restore"),
+
     ArrayGeneric("", "", "");
 
     private final String _evType;

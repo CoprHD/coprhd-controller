@@ -455,4 +455,12 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
             Map<URI, Boolean> snapshotDeletionMap, String opId) {
         blockRMI("unlinkTargetsFromSnapshotSession", systemURI, snapSessionURI, snapshotDeletionMap, opId);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void restoreSnapshotSession(URI systemURI, URI snapSessionURI, String opId) {
+        blockRMI("restoreSnapshotSession", systemURI, snapSessionURI, opId);
+    }
 }

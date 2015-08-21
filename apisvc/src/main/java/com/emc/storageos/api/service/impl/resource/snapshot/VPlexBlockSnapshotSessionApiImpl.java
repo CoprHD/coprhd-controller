@@ -76,4 +76,12 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             Set<URI> snapshotURIs, UriInfo uriInfo) {
         throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
+        throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
+    }
 }

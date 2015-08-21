@@ -29,6 +29,7 @@ import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.BlockSnapshotSession.CopyMode;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -332,6 +333,54 @@ public class BlockSnapshotSessionManager {
 
         s_logger.info("FINISH unlink targets from snapshot session {}", snapSessionURI);
         return response;
+    }
+
+    /**
+     * Restores the data on the array snapshot point-in-time copy represented by the
+     * BlockSnapshotSession instance with the passed URI, to the snapshot session source
+     * object.
+     * 
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance to be restored.
+     * 
+     * @return TaskResourceRep representing the snapshot session task.
+     */
+    public TaskResourceRep restoreSnapshotSession(URI snapSessionURI) {
+        s_logger.info("START restore snapshot session {}", snapSessionURI);
+
+        // Get the snapshot session.
+        BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, true);
+
+        // Get the snapshot session source object.
+        URI snapSessionSourceURI = snapSession.getParent().getURI();
+        BlockObject snapSessionSourceObj = BlockObject.fetch(_dbClient, snapSessionSourceURI);
+
+        // Get the project for the snapshot session source object.
+        Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObj, _dbClient);
+
+        // Get the platform specific block snapshot session implementation.
+        BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObj);
+
+        // Validate that the requested new targets can be linked to the snapshot session.
+        snapSessionApiImpl.validateRestoreSnapshotSession(snapSessionSourceObj, project);
+
+        // Create the task identifier.
+        String taskId = UUID.randomUUID().toString();
+
+        // Create the operation status entry in the status map for the snapshot.
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.RESTORE_SNAPSHOT_SESSION);
+        _dbClient.createTaskOpStatus(BlockSnapshot.class, snapSession.getId(), taskId, op);
+        snapSession.getOpStatus().put(taskId, op);
+
+        // Restore the snapshot.
+        snapSessionApiImpl.restoreSnapshotSession(snapSession, snapSessionSourceObj, taskId);
+
+        // Create the audit log entry.
+        auditOp(OperationTypeEnum.RESTORE_SNAPSHOT_SESSION, true, AuditLogManager.AUDITOP_BEGIN,
+                snapSessionURI.toString(), snapSessionSourceURI.toString(), snapSessionSourceObj.getStorageController().toString());
+
+        s_logger.info("FINISH restore snapshot session {}", snapSessionURI);
+        return toTask(snapSession, taskId, op);
     }
 
     /**

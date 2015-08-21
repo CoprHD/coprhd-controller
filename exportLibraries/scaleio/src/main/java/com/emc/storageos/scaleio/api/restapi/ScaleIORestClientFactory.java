@@ -16,7 +16,7 @@ public class ScaleIORestClientFactory extends RestClientFactory {
     @Override
     protected RestClientItf createNewRestClient(URI endpoint, String username,
             String password, Client client) {
-        return new ScaleIORestClient(this, endpoint, username, password, client);
+        return new ScaleIORestClient(endpoint, username, password, client);
     }
 
 }

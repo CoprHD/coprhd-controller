@@ -6,7 +6,7 @@
     <bean id="serviceinfo" class="com.emc.storageos.coordinator.common.impl.ServiceImpl">
         <property name="name" value="geosvc"/>
         <property name="id" value="geosvc-${node_index}"/>
-        <property name="endpoint" value="http://${node_name}:8180/"/>
+        <property name="endpoint" value="http://${node_id}:8180/"/>
         <property name="version" value="1"/>
     </bean>
     

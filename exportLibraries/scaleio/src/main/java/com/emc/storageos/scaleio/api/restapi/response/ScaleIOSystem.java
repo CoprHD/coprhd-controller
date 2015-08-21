@@ -35,27 +35,27 @@ public class ScaleIOSystem {
     }
 
     public String[] getPrimaryMdmActorIpList() {
-        return primaryMdmActorIpList;
+        return primaryMdmActorIpList.clone();
     }
 
     public void setPrimaryMdmActorIpList(String[] primaryMdmActorIpList) {
-        this.primaryMdmActorIpList = primaryMdmActorIpList;
+        this.primaryMdmActorIpList = primaryMdmActorIpList.clone();
     }
 
     public String[] getSecondaryMdmActorIpList() {
-        return secondaryMdmActorIpList;
+        return secondaryMdmActorIpList.clone();
     }
 
     public void setSecondaryMdmActorIpList(String[] secondaryMdmActorIpList) {
-        this.secondaryMdmActorIpList = secondaryMdmActorIpList;
+        this.secondaryMdmActorIpList = secondaryMdmActorIpList.clone();
     }
 
     public String[] getTiebreakerMdmIpList() {
-        return tiebreakerMdmIpList;
+        return tiebreakerMdmIpList.clone();
     }
 
     public void setTiebreakerMdmIpList(String[] tiebreakerMdmIpList) {
-        this.tiebreakerMdmIpList = tiebreakerMdmIpList;
+        this.tiebreakerMdmIpList = tiebreakerMdmIpList.clone();
     }
 
     public String getSystemVersionName() {
@@ -94,7 +94,7 @@ public class ScaleIOSystem {
         String result = null;
         ParsePattern parse = new ParsePattern("EMC ScaleIO Version:\\s+[a-zA-Z](.*?)", ScaleIOConstants.SCALEIO_VERSION);
         List<String> versions = parse.isMatch(systemVersionName);
-        if (versions != null && versions.size() > 0) {
+        if (versions != null && !versions.isEmpty()) {
             result = versions.get(0);
         }
         return result;

@@ -148,15 +148,24 @@ _mount_ovfenv() {
     echo "${ovfenv_mnt}"
 }
 
+# Parse ovf-env.xml for system properties
+#
+# Node_id is parsed from oe:id (vm name) first and added to hold space
+# If node_id "per VM" property is found then it replaces node_id in hold space
+# Finally node_id is printed from hold space before finishing
 _parse_ovfenv_xml() {
-    sed -n '
-       /<Entity / q
+       sed -n '
+       /<Entity / {g; p; q}
        /oe:id=/ {
-           s/.*oe:id="\([^"][^"]*\)".*/node_id=\1/p
+           s/.*oe:id="\([^"][^"]*\)".*/node_id=\1/
+           h
        }
        /<Property / {
            :P
            /\/>/ {
+               /oe:key="node_id"/ {
+                    s/.*oe:value="\([^"]*\)".*/node_id=\1/;h;d
+               }
                s/.*oe:key="\([^"]*\)".*oe:value="\([^"]*\)".*/\1=\2/
                s/vami\.DNS\..*=/network_nameservers=/
                s/vami\.ip0.*=/network_standalone_ipaddr=/
@@ -165,7 +174,7 @@ _parse_ovfenv_xml() {
 
                # Recode newlines in values
                s/\n/\\n/g
-    
+
                # Print only network and node keys
                # New files only contain network and node
                # Old xml file may contain keys for properties that need to be ignored post upgrade

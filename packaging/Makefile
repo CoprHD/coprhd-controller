@@ -112,7 +112,7 @@ OVFBUILD_CONTROLLER_S_MEMORY_MB := 8192
 
                     LICENSE_FILE = $(SOURCE_BASE)/packaging/storageos-license.txt
        OVFBUILD_CONFIG_FILE_SIZE = 4096
-             OVFBUILD_DISK4_SIZE = 1069547
+             OVFBUILD_DISK4_SIZE = 2097152
              OVFBUILD_HYPERV_ZIP = $(OVFBUILD_OVAS_DIR)/$(PRODUCT)-controller-hyperv.zip
 
             OVFBUILD_HYPERV_DIR  = $(OBJDIR)/$(PRODUCT)-controller-hyperv

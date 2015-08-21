@@ -852,8 +852,7 @@ function CalculateChecksumForOVFTemplateAndDisk4($ovfFileName, $disk4FileName, $
 
 function GenerateOVFFileTemplateForEachNode($disk4FileName, $currentNodeId) {
     $ovfTemplate='${include="storageos-vsphere-template.xml"}'
-    $vSphereOnly="</Item>
-      <Item>
+    $vSphereOnly="<Item>
         <rasd:Address>0</rasd:Address>
         <rasd:Description>SCSI Controller</rasd:Description>
         <rasd:ElementName>SCSI Controller 0</rasd:ElementName>
@@ -861,14 +860,15 @@ function GenerateOVFFileTemplateForEachNode($disk4FileName, $currentNodeId) {
         <rasd:ResourceSubType>VirtualSCSI</rasd:ResourceSubType>
         <rasd:ResourceType>6</rasd:ResourceType>
       </Item>"
-	
+    if ($Script:isVMX -eq $true) {
+        $vSphereOnly=""
+	}
+
     $ovfTemplate=$ovfTemplate.Replace('${vmdk_dir}', $scriptPath)
 	$ovfTemplate=$ovfTemplate.Replace('${cpu_count}', $Script:cpuCount)
 	$ovfTemplate=$ovfTemplate.Replace('${memory}', $Script:memory)
-    $ovfContent=$ovfTemplate.Replace('${2}', $disk4FileName)
-	if ($Script:isVMX -eq $true) {
-		$ovfContent=$ovfContent.Replace($vSphereOnly, "</Item>")
-	}
+    $ovfTemplate=$ovfTemplate.Replace('${2}', $disk4FileName)
+	$ovfContent=$ovfTemplate.Replace('${vsphere_only}', $vSphereOnly)
     $outputFilePath=$scriptPath+"\${product_name}-$releaseVersion-controller-$currentNodeId.ovf"
     [io.file]::WriteAllText($outputFilePath, $ovfContent)
 }

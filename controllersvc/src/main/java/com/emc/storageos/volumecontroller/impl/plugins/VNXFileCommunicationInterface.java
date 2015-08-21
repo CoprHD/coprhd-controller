@@ -487,11 +487,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         tempSet.add(vdm.getProtocol());
         vNas.setProtocols(tempSet);
         vNas.setId(URIUtil.createId(VirtualNAS.class));
-        vNas.setNasState(vNasState.LOADED.getNasState());
         String vnasState = this.storgeHADomainState.get(vdm.getId().toString());
         
         if(!vnasState.isEmpty()){
-            vNas.setNasState(vNasState.getNasState(vnasState));
+            vNas.setVNasState(vNasState.getNasState(vnasState));
         }
         //clean up the vdm state entry
         this.storgeHADomainState.remove(vdm.getId().toString());

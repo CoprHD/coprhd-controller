@@ -79,7 +79,7 @@ public class VirtualNAS extends NASServer {
         return this.getNasState();
     }
 
-    public void setNasState(String nasState) {
+    public void setVNasState(String nasState) {
         this.setNasState(nasState);
         setChanged("vNasState");
     }

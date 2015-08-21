@@ -1307,7 +1307,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      */
     @SuppressWarnings("rawtypes")
     @Override
-    public void doUnlinkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
+    public void unlinkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             Boolean deleteTarget, TaskCompleter completer) throws DeviceControllerException {
         if (system.checkIfVmax3()) {
             // Only supported for VMAX3 storage systems.
@@ -1337,15 +1337,17 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     /**
      * {@inheritDoc}
      */
+    @SuppressWarnings("rawtypes")
     @Override
-    public void doRestoreSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+    public void restoreSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
             throws DeviceControllerException {
         if (system.checkIfVmax3()) {
             // Only supported for VMAX3 storage systems.
             try {
                 _log.info("Restore snapshot session {} START", snapSessionURI);
-                CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
                 BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+                terminateAnyRestoreSessions(system, null, snapSession.getParent().getURI(), completer);
+                CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
                 String settingsStateInstanceId = snapSession.getSessionInstance();
                 CIMObjectPath settingsStatePath = _cimPath.objectPath(settingsStateInstanceId);
                 CIMArgument[] inArgs = null;

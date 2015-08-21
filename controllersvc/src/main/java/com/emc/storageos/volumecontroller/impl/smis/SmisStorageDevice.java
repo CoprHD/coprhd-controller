@@ -2134,7 +2134,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     public void doUnlinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             Boolean deleteTarget, TaskCompleter completer) throws DeviceControllerException {
         try {
-            _snapshotOperations.doUnlinkSnapshotSessionTarget(system, snapSessionURI, snapshotURI, deleteTarget, completer);
+            _snapshotOperations.unlinkSnapshotSessionTarget(system, snapSessionURI, snapshotURI, deleteTarget, completer);
         } catch (Exception e) {
             _log.error(String.format("Exception trying to unlink target from block snapshot session %s on array %s",
                     snapSessionURI, system.getSerialNumber()), e);
@@ -2151,7 +2151,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             throws DeviceControllerException {
         try {
             // TBD - Determine group operation.
-            _snapshotOperations.doRestoreSnapshotSession(system, snapSessionURI, completer);
+            _snapshotOperations.restoreSnapshotSession(system, snapSessionURI, completer);
         } catch (Exception e) {
             _log.error(String.format("Exception trying to restore block snapshot session %s on array %s",
                     snapSessionURI, system.getSerialNumber()), e);

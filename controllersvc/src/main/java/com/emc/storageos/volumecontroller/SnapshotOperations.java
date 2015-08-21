@@ -224,7 +224,7 @@ public interface SnapshotOperations {
      * 
      * @throws DeviceControllerException
      */
-    public void doUnlinkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
+    public void unlinkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             Boolean deleteTarget, TaskCompleter completer) throws DeviceControllerException;
 
     /**
@@ -237,6 +237,6 @@ public interface SnapshotOperations {
      * 
      * @throws DeviceControllerException
      */
-    public void doRestoreSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+    public void restoreSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
             throws DeviceControllerException;
 }

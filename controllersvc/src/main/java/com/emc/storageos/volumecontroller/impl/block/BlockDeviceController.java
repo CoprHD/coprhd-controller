@@ -3808,7 +3808,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     String.format("Restore snapshot session %s", snapSessionURI),
                     null, systemURI, getDeviceType(systemURI), getClass(),
                     restoreBlockSnapshotSessionMethod(systemURI, snapSessionURI),
-                    rollbackMethodNullMethod(), null);
+                    null, null);
 
             // Execute the workflow.
             workflow.executePlan(completer, "Restore block snapshot session successful");

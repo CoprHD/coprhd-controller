@@ -233,8 +233,8 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
     }
 
     @Override
-    public boolean isLockAvailable(String lockName) throws Exception {
-        return coordinator.isLockAvailable(getLockDataPath(lockName));
+    public boolean isDistributedOwnerLockAvailable(String lockName) throws Exception {
+        return coordinator.isDistributedOwnerLockAvailable(getLockDataPath(lockName));
     }
 
     /**

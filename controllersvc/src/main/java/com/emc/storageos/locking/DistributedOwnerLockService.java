@@ -88,6 +88,6 @@ public interface DistributedOwnerLockService {
 	 * @return true, if the lock is available.
 	 * @throws Exception
 	 */
-	boolean isLockAvailable(String lockName) throws Exception;
+	boolean isDistributedOwnerLockAvailable(String lockName) throws Exception;
 
 }

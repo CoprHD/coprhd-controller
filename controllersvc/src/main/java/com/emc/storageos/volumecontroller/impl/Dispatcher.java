@@ -306,7 +306,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
         try {
             _log.info(String.format("Dispatcher processing LockRetryException key %s remaining time %s",
                     lockEx.getLockPath(), lockEx.getRemainingWaitTimeSeconds()));
-            return !_coordinator.isLockAvailable(lockEx.getLockPath()) &&
+            return !_coordinator.isDistributedOwnerLockAvailable(lockEx.getLockPath()) &&
                     _lockQueueManager.queue(lockEx.getLockIdentifier(), item);
         } catch (Exception e) {
             return false;

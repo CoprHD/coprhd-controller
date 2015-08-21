@@ -26,7 +26,7 @@ public class OwnerLockValidator extends DistributedLockQueueScheduler.DequeueVal
     public boolean validate(String lockKey) {
         try {
             log.info("Checking availability of lock: {}", lockKey);
-            return ownerLockService.isLockAvailable(lockKey);
+            return ownerLockService.isDistributedOwnerLockAvailable(lockKey);
         } catch (Exception e) {
             log.warn("Caught exception whilst validating owner lock availability: {}", lockKey, e);
         }

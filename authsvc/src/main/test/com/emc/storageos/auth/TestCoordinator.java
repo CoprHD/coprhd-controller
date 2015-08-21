@@ -219,7 +219,7 @@ public class TestCoordinator implements CoordinatorClient {
     }
 
     @Override
-    public boolean isLockAvailable(String lockPath) throws Exception {
+    public boolean isDistributedOwnerLockAvailable(String lockPath) throws Exception {
         throw new UnsupportedOperationException();
     }
 

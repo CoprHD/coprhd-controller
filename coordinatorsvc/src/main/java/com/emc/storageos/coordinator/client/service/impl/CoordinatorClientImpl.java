@@ -1302,7 +1302,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
-    public boolean isLockAvailable(String lockPath) throws Exception {
+    public boolean isDistributedOwnerLockAvailable(String lockPath) throws Exception {
         Stat stat = _zkConnection.curator().checkExists().forPath(lockPath);
         return stat == null;
     }

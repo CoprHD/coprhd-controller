@@ -505,5 +505,5 @@ public interface CoordinatorClient {
      * @return true if the lock is available
      * @throws Exception
      */
-    boolean isLockAvailable(String lockPath) throws Exception;
+    boolean isDistributedOwnerLockAvailable(String lockPath) throws Exception;
 }

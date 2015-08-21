@@ -3227,4 +3227,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
+            String snapshotType, String snapshotName, BlockFullCopyManager fcManager) {
+        super.validateCreateSnapshot(reqVolume, volumesToSnap, snapshotType, snapshotName, fcManager);
+        //if there are more than one volume in the consistency group, and they are on different backend storage system, return error.
+        if (volumesToSnap.size()>1 && !VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(volumesToSnap, _dbClient)) {
+            throw APIException.badRequests.snapshotNotAllowedWhenCGAcrossMultipleSystems();
+        }
+    }
 }

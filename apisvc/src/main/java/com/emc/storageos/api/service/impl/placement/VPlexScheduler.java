@@ -407,7 +407,7 @@ public class VPlexScheduler implements Scheduler {
             URI cgURI = capabilities.getBlockConsistencyGroup();
             BlockConsistencyGroup cg = (cgURI == null ? null : _dbClient.queryObject(BlockConsistencyGroup.class, cgURI));
             if (cg != null) {
-                storageSystem = getCGStorageSystemForBackendPlacement(cg, varray.getId(), null);
+                //storageSystem = getCGStorageSystemForBackendPlacement(cg, varray.getId(), null);
             }
         }
 

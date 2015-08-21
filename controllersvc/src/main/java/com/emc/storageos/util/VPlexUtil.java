@@ -716,4 +716,44 @@ public class VPlexUtil {
 
         return initiators;
     }
+    
+    /**
+     * Check if the backend volumes for the vplex volumes in a consistency group are in the same storage system.
+     * 
+     * @param vplexVolume A reference to the VPLEX volume.
+     * @param dbClient an instance of {@link DbClient}
+     * 
+     * @return true or false
+     * 
+     */
+    public static boolean isVPLEXCGBackendVolumesInSameStorage(List<Volume> vplexVolumes, DbClient dbClient) {
+        Set<String> backendSystems = new HashSet<String> ();
+        Set<String> haBackendSystems = new HashSet<String>();
+        boolean result = true;
+        for (Volume vplexVolume : vplexVolumes) {
+            String vplexVolumeId = vplexVolume.getId().toString();
+            StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
+            if (associatedVolumeIds == null) {
+                throw InternalServerErrorException.internalServerErrors
+                            .noAssociatedVolumesForVPLEXVolume(vplexVolumeId);
+            }
+            
+            for (String associatedVolumeId : associatedVolumeIds) {
+                Volume associatedVolume = dbClient.queryObject(Volume.class,
+                        URI.create(associatedVolumeId));
+                if (associatedVolume != null) {
+                    if (associatedVolume.getVirtualArray().equals(vplexVolume.getVirtualArray())) {
+                        backendSystems.add(associatedVolume.getStorageController().toString());
+                    }
+                    if (!(associatedVolume.getVirtualArray().equals(vplexVolume.getVirtualArray()))) {
+                        haBackendSystems.add(associatedVolume.getStorageController().toString());
+                    }
+                }
+            }
+        }
+        if (backendSystems.size()>1 || haBackendSystems.size() >1) {
+            result = false;
+        }
+        return result;
+    }
 }

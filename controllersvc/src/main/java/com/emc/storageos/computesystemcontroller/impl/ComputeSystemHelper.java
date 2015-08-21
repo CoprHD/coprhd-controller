@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.URIUtil;
+import org.apache.commons.lang.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -375,7 +377,7 @@ public class ComputeSystemHelper {
         if (!NullColumnValueGetter.isNullURI(host.getProject())) {
             fileShares = CustomQueryUtility.queryActiveResourcesByRelation(
                     dbClient, host.getProject(), FileShare.class, "project");
-        } else {
+        } else if (!NullColumnValueGetter.isNullURI(host.getTenant())){
             fileShares = CustomQueryUtility.queryActiveResourcesByRelation(
                     dbClient, host.getTenant(), FileShare.class, "tenant");
         }
@@ -420,10 +422,11 @@ public class ComputeSystemHelper {
         if (!NullColumnValueGetter.isNullURI(host.getProject())) {
             return CustomQueryUtility.queryActiveResourcesByRelation(
                     dbClient, host.getProject(), FileShare.class, "project");
-        } else {
+        } else if (!NullColumnValueGetter.isNullURI(host.getProject())) {
             return CustomQueryUtility.queryActiveResourcesByRelation(
                     dbClient, host.getTenant(), FileShare.class, "tenant");
         }
+        return new ArrayList<FileShare>();
     }
 
     /**
@@ -548,5 +551,69 @@ public class ComputeSystemHelper {
             initiator.setHostName(host.getHostName());
         }
         dbClient.persistObject(initiators);
+    }
+
+    /**
+     * Updates the vCenterDataCenter and its Clusters and Hosts to the new tenantId.
+     *
+     * @param dbClient dbClient to make the DB queries.
+     * @param dataCenter vCenterDataCenter to be updated.
+     * @param tenantId new tenantId to be updated to the vCenterDataCenter.
+     */
+    public static void updateVcenterDataCenterTenant(DbClient dbClient, VcenterDataCenter dataCenter, URI tenantId) {
+        if (dataCenter == null || dataCenter.getInactive()) {
+            return;
+        }
+
+        if(!NullColumnValueGetter.isNullURI(dataCenter.getTenant()) &&
+                isDataCenterInUse(dbClient, dataCenter.getId())) {
+            //Since vCenterDataCenter contains some exports,
+            //dont allow the update.
+            Set<String> tenants = new HashSet<String>();
+            tenants.add(tenantId.toString());
+            throw APIException.badRequests.cannotRemoveTenant("vCenterDataCenter", dataCenter.getLabel(), tenants);
+        }
+
+        List<NamedElementQueryResultList.NamedElement> hostUris = listChildren(dbClient, dataCenter.getId(),
+                Host.class, "label", "vcenterDataCenter");
+        for (NamedElementQueryResultList.NamedElement hostUri : hostUris) {
+            Host host = dbClient.queryObject(Host.class, hostUri.getId());
+            if (host != null) {
+                host.setTenant(tenantId);
+                dbClient.persistObject(host);
+            }
+        }
+        List<NamedElementQueryResultList.NamedElement> clustersUris = listChildren(dbClient, dataCenter.getId(),
+                Cluster.class, "label", "vcenterDataCenter");
+        for (NamedElementQueryResultList.NamedElement clusterUri : clustersUris) {
+            Cluster cluster = dbClient.queryObject(Cluster.class, clusterUri.getId());
+            if (cluster != null) {
+                cluster.setTenant(tenantId);
+                dbClient.persistObject(cluster);
+            }
+        }
+        dataCenter.setTenant(tenantId);
+    }
+
+    /**
+     * Checks if an vCenter with respect to the tenant is in use by an export groups
+     *
+     * @param dbClient
+     * @param vcenterURI the vcenter URI
+     * @return true if the vcenter is in used by an export group.
+     */
+    public static boolean isVcenterInUseForTheTenant(DbClient dbClient, URI vcenterURI, URI tenantId) {
+        List<NamedElementQueryResultList.NamedElement> datacenterUris = listChildren(dbClient, vcenterURI,
+                VcenterDataCenter.class, "label", "vcenter");
+        for (NamedElementQueryResultList.NamedElement datacenterUri : datacenterUris) {
+            VcenterDataCenter vcenterDataCenter = dbClient.queryObject(VcenterDataCenter.class, datacenterUri.getId());
+            if (vcenterDataCenter != null) {
+                if (URIUtil.identical(tenantId, vcenterDataCenter.getTenant()) &&
+                        isDataCenterInUse(dbClient, datacenterUri.getId())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

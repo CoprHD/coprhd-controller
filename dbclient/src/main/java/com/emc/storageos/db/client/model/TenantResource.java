@@ -8,6 +8,9 @@ import java.net.URI;
 
 public interface TenantResource {
 
+    public String ALL_TENANT_RESOURCES = "ALL";
+    public String TENANT_RESOURCES_WITH_NO_TENANTS = "NONE";
+
     /**
      * The tenant organization owner of this resource.
      * 

@@ -1245,7 +1245,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     protected BlockVirtualPoolBulkRep queryFilteredBulkResourceReps(
             List<URI> ids) {
 
-        if (isSystemAdmin()) {
+        if (isSystemOrRestrictedSystemAdmin()) {
             return queryBulkResourceReps(ids);
         }
 

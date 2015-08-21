@@ -23,9 +23,18 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getViprClient;
 
 public class TenantUtils {
+    //To represent the two additional options in the
+    //tenant selector.
+    public static String ALL_TENANT_RESOURCES = "ALL";
+    public static String TENANT_RESOURCES_WITH_NO_TENANTS = "NONE";
 
     public static boolean canReadAllTenants() {
         return Security.hasAnyRole(Security.ROOT_TENANT_ADMIN, Security.SECURITY_ADMIN, Security.SYSTEM_MONITOR);
+    }
+
+    public static boolean canReadAllTenantsForVcenters() {
+        return Security.hasAnyRole(Security.ROOT_TENANT_ADMIN, Security.SECURITY_ADMIN,
+                Security.SYSTEM_MONITOR, Security.SYSTEM_ADMIN, Security.RESTRICTED_SYSTEM_ADMIN);
     }
 
     public static List<TenantOrgRestRep> getAllTenants() {
@@ -152,5 +161,39 @@ public class TenantUtils {
 
     private static StringOption createTenantOption(TenantOrgRestRep tenant) {
         return new StringOption(tenant.getId().toString(), tenant.getName());
+    }
+
+    private static StringOption createTenantOption(String tenantId, String name) {
+        return new StringOption(tenantId, name);
+    }
+
+    /**
+     * Creates a list tenant selector options. But these options are
+     * not the actual tenants. They are just added to filter the
+     * vCenters, Clusters and Hosts in the UI.
+     *
+     * @return list of additional tenant selector options.
+     */
+    public static List<StringOption> getAdditionalTenantOptions() {
+        List<StringOption> options = Lists.newArrayList();
+        options.add(createTenantOption(ALL_TENANT_RESOURCES, ALL_TENANT_RESOURCES));
+        options.add(createTenantOption(TENANT_RESOURCES_WITH_NO_TENANTS, TENANT_RESOURCES_WITH_NO_TENANTS));
+
+        Collections.sort(options);
+
+        return options;
+    }
+
+    /**
+     * Creates a list tenant selector options. This includes both
+     * the actual tenants an the additional tenant options.
+     *
+     * @return list of tenant with additional tenant selector options.
+     */
+    public static List<StringOption> getSubTenantOptionsWithAdditionalTenants() {
+        List<StringOption> options = getAdditionalTenantOptions();
+        options.addAll(getSubTenantOptions());
+
+        return options;
     }
 }

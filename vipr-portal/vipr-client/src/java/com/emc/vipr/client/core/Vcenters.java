@@ -5,6 +5,7 @@
 package com.emc.vipr.client.core;
 
 import static com.emc.vipr.client.core.impl.SearchConstants.VALIDATE_CONNECTION_PARAM;
+import static com.emc.vipr.client.core.util.ResourceUtils.NULL_URI;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
 import java.net.URI;
@@ -14,6 +15,9 @@ import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.auth.ACLAssignmentChanges;
+import com.emc.storageos.model.auth.ACLAssignments;
+import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.host.vcenter.VcenterBulkRep;
 import com.emc.storageos.model.host.vcenter.VcenterCreateParam;
 import com.emc.storageos.model.host.vcenter.VcenterList;
@@ -217,5 +221,88 @@ public class Vcenters extends AbstractCoreBulkResources<VcenterRestRep> implemen
      */
     public Task<VcenterRestRep> discover(URI id) {
         return postTask(getIdUrl() + "/discover", id);
+    }
+
+    /**
+     * Get the ACLs of the vCenter by ID.
+     * <p>
+     * API Call: <tt>GET /compute/vcenters/{id}/acl</tt>
+     *
+     * @param vCenterId vCenter ID.
+     * @return the ACL list of vCenter.
+     */
+    public List<ACLEntry> getAcls(URI vCenterId) {
+        return doGetACLs(vCenterId);
+    }
+
+    /**
+     * Creates the vCenter.
+     * <p>
+     * API Call: <tt>POST /compute/vcenters/</tt>
+     *
+     * @param input vCenter create payload.
+     * @param validateConnection flag to indicate whether to validate the vCenter connection or not.
+     * @return the vCenter discovery async task.
+     */
+    public Task<VcenterRestRep> create(VcenterCreateParam input, Boolean validateConnection) {
+        UriBuilder uriBuilder = client.uriBuilder(baseUrl);
+        if (validateConnection) {
+            uriBuilder.queryParam(VALIDATE_CONNECTION_PARAM, Boolean.TRUE);
+        }
+        return postTaskURI(input, uriBuilder.build());
+    }
+
+    /**
+     * Upates the acls of the vCenter by ID.
+     * <p>
+     * API Call: <tt>PUT /compute/vcenters/{id}/acl</tt>
+     *
+     * @param input vCenter create payload.
+     * @param input acl assignment changes to update in the vCenter.
+     * @return the vCenter discovery async task.
+     */
+    public Task<VcenterRestRep> updateAcls(URI id, ACLAssignmentChanges input) {
+        UriBuilder uriBuilder = client.uriBuilder(getAclUrl());
+        return putTaskURI(input, uriBuilder.build(id));
+    }
+
+    /**
+     * Get the list of vCenter by tenantId.
+     * <p>
+     * API Call: <tt>PUT /compute/vcenters?tenant={tenantId}</tt>
+     *
+     * @param tenantId the tenant id to filter the vCenters.
+     * @return the list of vCenters filtered by the tenant.
+     */
+    public List<VcenterRestRep> getVcenters(URI tenantId) {
+        List<NamedRelatedResourceRep> refs = listVcenters(tenantId);
+        return getByRefs(refs, null);
+    }
+
+    /**
+     * Get the list of vCenter by tenantId.
+     * <p>
+     * API Call: <tt>PUT /compute/vcenters?tenant={tenantId}</tt>
+     *
+     * @param tenantId the tenant id to filter the vCenters.
+     * @return the list of vCenters filtered by the tenant.
+     */
+    public List<NamedRelatedResourceRep> listVcenters(URI tenantId) {
+        UriBuilder uriBuilder = client.uriBuilder(baseUrl);
+        if (tenantId != null) {
+            uriBuilder.queryParam("tenant", tenantId);
+        }
+        return getList(uriBuilder.build());
+    }
+
+    /**
+     * Get the name related resources.
+     *
+     * @param uri URI to send send the request.
+     * @return the list of name resources based on the uri.
+     */
+    protected List<NamedRelatedResourceRep> getList(URI uri) {
+        VcenterList response = client.getURI(VcenterList.class, uri);
+        return ResourceUtils.defaultList(response.getVcenters());
     }
 }

@@ -8,11 +8,10 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.rmi.RemoteException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
+import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
@@ -21,15 +20,9 @@ import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControl
 import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Host.HostType;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.Vcenter;
-import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.google.common.collect.Collections2;
@@ -45,6 +38,7 @@ import com.vmware.vim25.InvalidLogin;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.Datacenter;
 import com.vmware.vim25.mo.HostSystem;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Discovery adapter for vCenters.
@@ -249,7 +243,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             if (hosts != null) {
                 for (HostSystem host : hosts) {
                     HostHardwareInfo hw = host.getHardware();
-                    if (hw != null && hw.systemInfo != null && hw.systemInfo.uuid != null) {
+                    if (hw != null && hw.systemInfo != null && StringUtils.isNotBlank(hw.systemInfo.uuid)) {
                         hostUuid = hw.systemInfo.uuid;
                         break;
                     }
@@ -278,7 +272,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 List<URI> deletedClusters) {
             info("processing datacenter %s", source.getName());
             target.setVcenter(vcenter.getId());
-            target.setTenant(vcenter.getTenant());
+            setVcenterDataCenterTenant(target);
             target.setExternalId(source.getMOR().getVal());
             target.setLabel(source.getName());
             save(target);
@@ -286,7 +280,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             List<Cluster> oldClusters = new ArrayList<Cluster>();
             Iterables.addAll(oldClusters, getClusters(target));
             List<Cluster> newClusters = Lists.newArrayList();
-            reconcileClusters(source, target, oldClusters, newClusters, vcenter.getTenant());
+            reconcileClusters(source, target, oldClusters, newClusters, vcenter);
 
             List<Host> oldHosts = new ArrayList<Host>();
             Iterables.addAll(oldHosts, getHosts(target));
@@ -294,7 +288,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 Host targetHost = null;
                 HostHardwareInfo hw = sourceHost.getHardware();
                 String uuid = null;
-                if (hw != null && hw.systemInfo != null && hw.systemInfo.uuid != null) {
+                if (hw != null && hw.systemInfo != null && StringUtils.isNotBlank(hw.systemInfo.uuid)) {
                     // try finding host by UUID
                     uuid = hw.systemInfo.uuid;
                     targetHost = findHostByUuid(uuid);
@@ -349,7 +343,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
          * If not found create new cluster.
          */
         private void reconcileClusters(Datacenter source, VcenterDataCenter target, List<Cluster> oldClusters,
-                List<Cluster> newClusters, URI tenant) {
+                List<Cluster> newClusters, Vcenter vcenter) {
             List<ClusterHolder> allClusters = new ArrayList<>();
             // get all clusters
             List<ClusterComputeResource> vcClusters = vcenterAPI.listClusters(source);
@@ -367,7 +361,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 info("processing cluster %s %s", vcCluster.getName(), vcenterClusterId);
 
                 // find this cluster
-                Cluster targetCluster = findCluster(oldClusters, vcCluster, tenant);
+                Cluster targetCluster = findCluster(oldClusters, vcCluster, target.getId());
 
                 if (targetCluster == null) {
                     // did not find it, have to create a new one
@@ -375,7 +369,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                     targetCluster = getOrCreateCluster(oldClusters, vcCluster.getName());
                 }
                 targetCluster.setLabel(vcCluster.getName());
-                targetCluster.setTenant(tenant);
+                targetCluster.setTenant(target.getTenant());
                 targetCluster.setVcenterDataCenter(target.getId());
                 targetCluster.setExternalId(vcenterClusterId);
 
@@ -395,7 +389,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
          * c) Find Cluster that host is in.
          * d) Return that Cluster if its externalId is null - because otherwise it is related to another cluster.
          */
-        private Cluster findCluster(List<Cluster> oldClusters, ClusterComputeResource vcCluster, URI tenant) {
+        private Cluster findCluster(List<Cluster> oldClusters, ClusterComputeResource vcCluster, URI vCenterDataCenterId) {
             // 1) find cluster by vcenter cluster id
             Cluster targetCluster = findClusterByExternalId(oldClusters, vcCluster.getMOR().getVal());
             info("find by vcenter cluster id %s", targetCluster == null ? "NULL" : targetCluster.getLabel());
@@ -413,7 +407,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
             if (targetCluster == null) {
                 // 3) try finding by name in the tenant, must not belong to any datacenter
-                targetCluster = findClusterByName(tenant, vcCluster.getName());
+                targetCluster = getModelClient().clusters().findClusterByNameAndDatacenter(vCenterDataCenterId, vcCluster.getName(), true);
                 info("find by name in tenant %s", targetCluster == null ? "NULL" : targetCluster.getLabel());
                 if (targetCluster != null && !NullColumnValueGetter.isNullURI(targetCluster.getVcenterDataCenter())) {
                     // can't use this one
@@ -575,6 +569,34 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 return arg.hostCount - this.hostCount;
             }
         }
+
+        /**
+         * Sets the vCenterDataCenter's tenant based on the vCenter's tenant.
+         * If the vCenter is created by the tenant admin and if vCenter is shared
+         * with only one tenant and vCenterDataCenter does not belong to any tenant
+         * already then set the vCenter's tenant to the vCenterDataCenter and set to
+         * null if vCenter is shared with multiple tenants.
+         * If the vCenterDataCenter is already assigned to a tenant but the vCenter
+         * is shared with that tenant anymore then reset the vCenterDataCenters tenant
+         * to null.
+         *
+         * @param target vCenterDataCenter to be updated with the new tenant information.
+         */
+        private void setVcenterDataCenterTenant(VcenterDataCenter target) {
+            if (NullColumnValueGetter.isNullURI(target.getTenant())) {
+                if (vcenter.getTenantCreated()) {
+                    target.setTenant(BasePermissionsHelper.getTenant(vcenter.getAcls()));
+                } else {
+                    target.setTenant(NullColumnValueGetter.getNullURI());
+                }
+            } else {
+                Set<URI> vCenterTenants = BasePermissionsHelper.getUsageURIsFromAcls(vcenter.getAcls());
+                if (CollectionUtils.isEmpty(vCenterTenants) ||
+                        !vCenterTenants.contains(target.getTenant())) {
+                    target.setTenant(NullColumnValueGetter.getNullURI());
+                }
+            }
+        }
     }
 
     public void setDbCLient(DbClient dbClient) {
@@ -616,5 +638,4 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             return null;
         }
     }
-
 }

@@ -106,4 +106,10 @@ public interface ForbiddenExceptions {
 
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException userBelongsToMultiTenancy(String userName, List<String> strings);
+
+    @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
+    public ForbiddenException resourceDoesNotBelongToAnyTenant(final String resource, final String name);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException tenantAdminCannotDeleteVcenter(final String tenantAdminName, final String vCenterName);
 }

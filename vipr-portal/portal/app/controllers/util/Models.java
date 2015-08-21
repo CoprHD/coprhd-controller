@@ -185,4 +185,44 @@ public class Models extends Controller {
         return role != null && role.getRoleName().equalsIgnoreCase(value);
     }
 
+    @Util
+    public static boolean canSelectTenantForVcenters(String tenantId) {
+        UserInfo info = Security.getUserInfo();
+        if ((info.getTenant().equals(tenantId) && isAdministrator()) ||
+                Security.isSecurityAdmin() || Security.isSystemAdminOrRestrictedSystemAdmin()) {
+            return true;
+        }
+        return info.hasSubTenantRole(tenantId, Security.TENANT_ADMIN);
+    }
+
+    @Util
+    public static String currentAdminTenantForVcenter() {
+        String sessionTenant = session.get(TENANT_ID);
+        if (sessionTenant != null && canSelectTenantForVcenters(sessionTenant)) {
+            return sessionTenant;
+        } else {
+            session.remove(TENANT_ID);
+            UserInfo info = Security.getUserInfo();
+            if (Security.isTenantAdmin() && !Security.isHomeTenantAdmin()) {
+                for (URI tenant : info.getSubTenants()) {
+                    String tenantId = tenant.toString();
+                    if (info.hasSubTenantRole(tenantId, Security.TENANT_ADMIN)) {
+                        return tenantId;
+                    }
+                }
+            }
+            // fallback to the home tenant if nothing else matches
+            return info.getTenant();
+        }
+    }
+
+    @Util
+    public static void setVcenterAdminTenantId(String tenantId) {
+        if (Models.canSelectTenantForVcenters(tenantId)) {
+            session.put(TENANT_ID, tenantId);
+        } else {
+            Logger.error("ACCESS-DENIED: User %s attempt to switch to tenant %s", Security.getUserInfo()
+                    .getCommonName(), tenantId);
+        }
+    }
 }

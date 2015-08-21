@@ -601,6 +601,15 @@ vCenter.ipInterfaces=IP Interfaces
 vCenter.errorDetails=Error Details
 vCenter.statusMessage=Details
 vCenter.error.notVCenter=%s is not a vCenter (Type: %s)
+vCenter.enableTenants=Grant Access to Tenants
+vCenter.tenant=Tenant
+vCenter.tenant.description=Exclusive access to the selected tenant only
+vCenter.tenants=Tenants
+vCenter.tenants.description=Shared access to all the selected tenants
+vCenter.dataCenter.updateTenant=Update vCenterDataCenter Tenant
+vCenter.dataCenter.updateTenant.description=Updates the vCenterDataCenter tenant. If the vCenterDataCenter or its clusters or hosts is in use (contains any exports) the update will not be successful.
+vCenter.dataCenter.updateTenant.help=Update tenant for Datacenter
+vCenter.shared=Share Across Tenants
 
 VCenters.list.title=vCenters
 VCenters.edit.title=Edit vCenter
@@ -1278,6 +1287,7 @@ security.accessControlList.access=Access
 security.tenantControlList=Tenant Access
 security.tenantControlList.description.varray=Controls which tenants have access to the virtual array (default all)
 security.tenantControlList.description.vpool=Controls which tenants have access to the virtual pool (default all)
+security.tenantControlList.description.vcenter=Controls which tenants have access to the vCenter
 security.accessControlList.button.remove=Remove
 security.accessControlList.button.addAcl=Add ACL
 

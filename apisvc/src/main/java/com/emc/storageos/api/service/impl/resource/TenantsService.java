@@ -107,7 +107,8 @@ public class TenantsService extends TaggedResource {
     @GET
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN, Role.SECURITY_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN, Role.SECURITY_ADMIN,
+            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TenantOrgRestRep getTenant(@PathParam("id") URI id) {
         return map(getTenantById(id, false));
     }
@@ -391,7 +392,8 @@ public class TenantsService extends TaggedResource {
         }
         NamedElementQueryResultList subtenants = new NamedElementQueryResultList();
         if (_permissionsHelper.userHasGivenRole(user, tenant.getId(),
-                Role.SYSTEM_MONITOR, Role.TENANT_ADMIN, Role.SECURITY_ADMIN)) {
+                Role.SYSTEM_MONITOR, Role.TENANT_ADMIN, Role.SECURITY_ADMIN,
+                Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
             _dbClient.queryByConstraint(ContainmentConstraint.Factory
                     .getTenantOrgSubTenantConstraint(tenant.getId()), subtenants);
         } else {
@@ -934,8 +936,9 @@ public class TenantsService extends TaggedResource {
         verifyAuthorizedInTenantOrg(id, getUserFromContext());
         // get all children vcenters
         VcenterList list = new VcenterList();
-        list.setVcenters(map(ResourceTypeEnum.VCENTER,
-                listChildren(id, Vcenter.class, "label", "tenant")));
+
+        list.setVcenters(map(ResourceTypeEnum.VCENTER, listChildrenWithAcls(id, Vcenter.class, "label")));
+
         return list;
     }
 

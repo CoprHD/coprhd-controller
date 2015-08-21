@@ -202,13 +202,8 @@ _generate_disk4() {
 }
 
 _generate_ovf_file() {
-    cat > "${1}" <<EOF
-${include="storageos-vsphere-template.xml"}
-EOF
-    local ovf_template_content="$(cat ${1})"
-    if [ "${isvmx}" = true ] ; then
-        echo "-> start to remove vsphere only infomation"
-        local vsphere_only="<Item>
+    if [ "${isvmx}" = false ] ; then
+        vsphere_only="<Item>
         <rasd:Address>0</rasd:Address>
         <rasd:Description>SCSI Controller</rasd:Description>
         <rasd:ElementName>SCSI Controller 0</rasd:ElementName>
@@ -216,10 +211,11 @@ EOF
         <rasd:ResourceSubType>VirtualSCSI</rasd:ResourceSubType>
         <rasd:ResourceType>6</rasd:ResourceType>
       </Item>"
-        ovf_template_content="${ovf_template_content/${vsphere_only}/<!-- VirtualSCSI info has been removed -->}"
+    else
+        vsphere_only=""
     fi
     cat > "${1}" <<EOF
-${ovf_template_content}
+${include="storageos-vsphere-template.xml"}
 EOF
 }
 
@@ -328,14 +324,14 @@ _deploy_vm_to_workstation() {
     local acc_eulas="--acceptAllEulas "
     echo -e "\n****** Deploying ${vmname} to workstation ******\n"
 
-    echo "-> start to convert ovf to vmx"
+    # convert OVF file to VMX file
     local vipr_vmx_file="${vmdk_dir}/${vmname}/${vmname}.vmx"
     eval ovftool ${acc_eulas} ${vipr_ovf_file} ${vipr_vmx_file}
     if [ $? -ne 0 ] ; then
         _fatal "Failed to convert ${vipr_ovf_file} to ${vipr_vmx_file}"
     fi
 
-    echo "-> start to append disk info to vmx"
+    # append disk infos to VMX file
     local vmx_content="$(cat ${vipr_vmx_file})"
     vmx_content="${vmx_content}
 scsi0:0.present = \"TRUE\"
@@ -356,20 +352,20 @@ scsi0.present = \"TRUE\"
 vmci0.unrestricted = \"false\""
 
     if [ "${net}" == "nat" ] ; then
-        echo '-> substitute ethernet0.connectionType = "bridged" with ethernet0.connectionType = "nat"'
+        # change connectionType to nat
         origin_con_type='ethernet0.connectionType = "bridged"'
         new_con_type='ethernet0.connectionType = "nat"'
         vmx_content="${vmx_content/${origin_con_type}/${new_con_type}}"
     fi
     echo -e "${vmx_content}" > ${vipr_vmx_file}
 
-    echo "-> start to convert vmx to ovf, postion: ${tmpdir}, it may take several minutes"
+    # Deploy VMX
     eval ovftool ${acc_eulas} ${vipr_vmx_file} ${tmpdir}
     if [ $? -ne 0 ] ; then
         _fatal "Failed to convert ${vipr_vmx_file} to ${tmpdir}/${vmname}/${vmname}.ovf"
     fi
 
-    echo "-> star to deploy ovf to detination folder: ${vm_folder}"
+    # Deploy OVF
     eval ovftool ${acc_eulas} "${tmpdir}/${vmname}/${vmname}.ovf" ${vm_folder}
     ret=$?
     if [ $? -ne 0 ] ; then

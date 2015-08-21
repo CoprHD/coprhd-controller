@@ -12,6 +12,13 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.BulkRestRep;
 
+/**
+ * VirtualNASBulkRep will contain the list of Virtual NAS servers and return the bulk response.
+ * 
+ * @author prasaa9
+ * 
+ */
+
 @XmlRootElement(name = "bulk_vnas_servers")
 public class VirtualNASBulkRep extends BulkRestRep {
     private List<VirtualNASRestRep> vnasServers;

@@ -19,8 +19,6 @@ public class Project extends DataObjectWithACLs {
     private Boolean _quotaEnabled;
     private StringSet assignedVNasServers;
 
-    // private List<URI> assignedVNAS;
-
     @NamedRelationIndex(cf = "NamedRelation", type = TenantOrg.class)
     @Name("tenantOrg")
     public NamedURI getTenantOrg() {

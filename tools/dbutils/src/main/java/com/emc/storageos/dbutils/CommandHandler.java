@@ -61,8 +61,8 @@ public abstract class CommandHandler {
     }
 
     public static class CountHandler extends CommandHandler {
-        private static final String COUNT_ACTIVE = "-activeonly";
-        private boolean isActiveOnly = false;
+        private static final String COUNT_INACTIVE = "-inactive";
+        private boolean isActiveOnly = true;
 
         public CountHandler(String args[]) {
             if (args.length < 2) {
@@ -70,10 +70,10 @@ public abstract class CommandHandler {
             }
             if (args.length == 3) {
                 String isActiveOnlyStr = args[1];
-                if (!isActiveOnlyStr.equalsIgnoreCase(COUNT_ACTIVE)) {
+                if (!isActiveOnlyStr.equalsIgnoreCase(COUNT_INACTIVE)) {
                     throw new IllegalArgumentException("Invalid command option: " + isActiveOnlyStr);
                 }
-                isActiveOnly = true;
+                isActiveOnly = false;
                 cfName = args[2];
             } else {
                 cfName = args[1];
@@ -175,7 +175,7 @@ public abstract class CommandHandler {
         private static final String TYPE_EVENTS = "events";
         private static final String TYPE_STATS = "stats";
         private static final String TYPE_AUDITS = "audits";
-        private static final String LIST_ACTIVE = "-activeonly";
+        private static final String LIST_INACTIVE = "-inactive";
         private static final String LIST_LIMIT = "-limit";
         private static final String REGEX_NUMBERS = "\\d+";
 
@@ -189,7 +189,7 @@ public abstract class CommandHandler {
                 processTimeSeriesReq(args, _client);
                 return;
             }
-            if (args[1].equalsIgnoreCase(LIST_ACTIVE) ||
+            if (args[1].equalsIgnoreCase(LIST_INACTIVE) ||
                     args[1].equalsIgnoreCase(LIST_LIMIT)) {
                 processListArgs(args, _client);
             }
@@ -282,14 +282,14 @@ public abstract class CommandHandler {
 
         private static void processListArgs(String[] args, DBClient _client) {
             if (args[args.length - 1].equalsIgnoreCase(LIST_LIMIT)
-                    || args[args.length - 1].equalsIgnoreCase(LIST_ACTIVE)
+                    || args[args.length - 1].equalsIgnoreCase(LIST_INACTIVE)
                     || args[args.length - 1].matches(REGEX_NUMBERS)) {
                 System.err.println("The Column Family Name is missing");
                 throw new IllegalArgumentException("The Column Family Name is missing");
             }
             for (int i = 1; i < args.length - 1; i++) {
-                if (args[i].equalsIgnoreCase(LIST_ACTIVE)) {
-                    _client.setActiveOnly(true);
+                if (args[i].equalsIgnoreCase(LIST_INACTIVE)) {
+                    _client.setActiveOnly(false);
                 }
                 if (args[i].equalsIgnoreCase(LIST_LIMIT)) {
                     _client.setTurnOnLimit(true);

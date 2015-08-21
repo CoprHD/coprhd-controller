@@ -70,7 +70,7 @@ public class DBClient {
     private static final String QUITCHAR = "q";
     private int listLimit = 100;
     private boolean turnOnLimit = false;
-    private boolean activeOnly = false;
+    private boolean activeOnly = true;
 
     private static final String PRINT_COUNT_RESULT = "Column Family %s's row count is: %s";
     private static final String REGEN_RECOVER_FILE_MSG = "Please regenerate the recovery " +

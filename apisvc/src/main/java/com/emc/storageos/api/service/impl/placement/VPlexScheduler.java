@@ -398,19 +398,6 @@ public class VPlexScheduler implements Scheduler {
         // Initialize the list of recommendations.
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
 
-        // Take into account the VPLEX CG when specified. We need to limit
-        // placement to the backend system where the corresponding backend CG
-        // resides in cases where there is a corresponding backend CG. There
-        // will be no backend CG for ingested CGs and in CGs created prior to
-        // release 2.2.
-        if (storageSystem == null) {
-            URI cgURI = capabilities.getBlockConsistencyGroup();
-            BlockConsistencyGroup cg = (cgURI == null ? null : _dbClient.queryObject(BlockConsistencyGroup.class, cgURI));
-            if (cg != null) {
-                //storageSystem = getCGStorageSystemForBackendPlacement(cg, varray.getId(), null);
-            }
-        }
-
         // Get all storage pools that match the passed VirtualPool params,
         // and virtual array. In addition, the pool must have enough
         // capacity to hold at least one resource of the requested size.

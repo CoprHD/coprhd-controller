@@ -168,7 +168,7 @@ public class MulticastUtil {
         try {
             MulticastUtil.create().publish(serviceName, nodeId, clusterConfig, 10000);
         } catch (Exception e) {
-            e.printStackTrace();
+        	_log.error(e.getMessage(), e);
             System.exit(1);
         }
     }
@@ -179,7 +179,7 @@ public class MulticastUtil {
         try {
             MulticastUtil.create().list(serviceName);
         } catch (Exception e) {
-            e.printStackTrace();
+        	_log.error(e.getMessage(), e);
             System.exit(1);
         }
     }

@@ -58,4 +58,7 @@ public interface CustomConfigControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_CUSTOMCONFIG_ERROR)
     public CustomConfigControllerException invalidValueType(final String type, final String value, final String configName);
+    
+    @DeclareServiceCode(ServiceCode.CONTROLLER_CUSTOMCONFIG_ERROR)
+    public CustomConfigControllerException predefinedValueConstraintViolated(final String val, final String validValues);
 }

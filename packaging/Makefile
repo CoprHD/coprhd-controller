@@ -48,7 +48,8 @@ include ../Makefile.common
                                     --define "product_brand $(PRODUCT_BRAND)" \
                                     --define "product_version $(PRODUCT_VERSION).$(PRODUCT_RELEASE)" \
                                     --define "product_release $(RPM_REVISION)"
-            RPMBUILD_CONTENT_MD5_FILE  = $(OBJDIR)/rpmcontent.md5
+       RPMBUILD_CONTENT_MD5_FILE  = $(OBJDIR)/rpmcontent.md5
+                 DOCKER_BUILDDIR  = $(OBJDIR)/dockerbuild
 
  OVFBUILD_CONTROLLER_L_VCPU_CNT := 4
 OVFBUILD_CONTROLLER_L_MEMORY_MB := 16384
@@ -111,7 +112,7 @@ OVFBUILD_CONTROLLER_S_MEMORY_MB := 8192
 
                     LICENSE_FILE = $(SOURCE_BASE)/packaging/storageos-license.txt
        OVFBUILD_CONFIG_FILE_SIZE = 4096
-             OVFBUILD_DISK4_SIZE = 1069547
+             OVFBUILD_DISK4_SIZE = 2097152
              OVFBUILD_HYPERV_ZIP = $(OVFBUILD_OVAS_DIR)/$(PRODUCT)-controller-hyperv.zip
 
             OVFBUILD_HYPERV_DIR  = $(OBJDIR)/$(PRODUCT)-controller-hyperv
@@ -589,6 +590,22 @@ $(OVFBUILD_NATIVE_IMG):
 	$(ATECHO) native
 	$(ATSIGN)$(SUDO) ./mkiso.sh $(@) $(OVFBUILD_ROOTIMG_FILE) $(TEEOUT) $(@D)/mkiso.log
 
+# Docker image that has the rpm installed
+#
+.PHONY: docker clean-docker
+
+docker: Dockerfile $(RPMBUILD_RPM_FILE)
+ifeq ($(BUILD_TYPE),emc)
+	$(ATECHO) Cannot generate docker image in emc mode, specify BUILD_TYPE=oss instead
+else
+	$(ATSIGN)$(MKDIR) $(DOCKER_BUILDDIR)
+	$(ATSIGN)$(CP) Dockerfile $(DOCKER_BUILDDIR)
+	$(ATSIGN)$(CP) $(RPMBUILD_RPM_FILE) $(DOCKER_BUILDDIR)
+	$(ATSIGN)docker build -t coprhd-devkit $(DOCKER_BUILDDIR)
+endif
+
+clean-docker:
+	$(ATSIGN)$(RM) -r $(DOCKER_BUILDDIR)
 
 # Stream-optimized bootfs VMDK
 #
@@ -893,6 +910,8 @@ endif
 	$(ATSIGN)$(ECHO) "$(OVFBUILD_BASE_NAME)"                                 >$(INSTALL_PREFIX)/opt/storageos/etc/productbase
 	$(ATSIGN)$(CHMOD) 444 $(INSTALL_PREFIX)/opt/storageos/etc/{gitrevision,gitrepo,gitbranch,product,productbase}
 	$(ATSIGN)$(CHMOD) 770 $(INSTALL_PREFIX)/opt/storageos/play/play
+	$(ATSIGN)$(CHMOD) 750 $(INSTALL_PREFIX)/data/db
+	$(ATSIGN)$(CHMOD) 750 $(INSTALL_PREFIX)/data/geodb
 
 _uninstall:
 	@echo "Uninstalling $(INSTALL_PREFIX)$(PRODUCT_PREFIX)"
@@ -916,7 +935,7 @@ clobber::
 #
 .PHONY: clean-most
 
-clean-most: clean-ovfs clean-bootfs clean-bootfs-flat clean-rootimg clean-rpm clean-native
+clean-most: clean-ovfs clean-bootfs clean-bootfs-flat clean-rootimg clean-rpm clean-native clean-docker
 
 
 # On clober remove Makefile.svnversion

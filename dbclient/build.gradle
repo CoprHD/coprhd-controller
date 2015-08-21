@@ -16,7 +16,7 @@ test {
     exclude "com/emc/storageos/db/client/model/TimeConstraintTest.class"
 }
 
-// To change the type of schema lock, run with ./gradlew <project>:<task> -PschemaLock=VALUE
+// To change the type of schema lock, modify the following schemaLock ext.
 // VALUE must be NONE, GEO or ALL, default is NONE.
 ext {
     schemaLock = "NONE"

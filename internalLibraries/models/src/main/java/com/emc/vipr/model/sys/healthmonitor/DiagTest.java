@@ -71,7 +71,7 @@ public class DiagTest {
 
     @Override
     public String toString() {
-        if (name.equals("EMC upgrade repository") && status.equals("CONFIGURED,UNREACHABLE") && testParams != null && testParams.size() > 0) {
+        if (name.equals("EMC upgrade repository") && status.equals("CONFIGURED,UNREACHABLE") && testParams != null && !testParams.isEmpty()) {
             return name
                     + ": ["
                     + status
@@ -80,7 +80,7 @@ public class DiagTest {
                     + testParams.get(0).getValue() + " is correct.";
         }
         StringBuffer sb = new StringBuffer();
-        if (testParams != null && testParams.size() > 0) {
+        if (testParams != null && !testParams.isEmpty()) {
             for (TestParam param : testParams) {
                 sb.append(param + ", ");
             }

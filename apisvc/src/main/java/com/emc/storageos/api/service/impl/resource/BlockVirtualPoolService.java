@@ -89,9 +89,9 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 import com.google.common.base.Function;
 
 @Path("/block/vpools")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        read_acls = { ACL.USE },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        readAcls = { ACL.USE },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class BlockVirtualPoolService extends VirtualPoolService {
 
     private static final Logger _log = LoggerFactory.getLogger(BlockVirtualPoolService.class);
@@ -318,7 +318,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     @PUT
     @Path("/{id}/acl")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, blockProxies = true)
     public ACLAssignments updateAcls(@PathParam("id") URI id,
             ACLAssignmentChanges changes) {
         return updateAclsOnVirtualPool(VirtualPool.Type.block, id, changes);

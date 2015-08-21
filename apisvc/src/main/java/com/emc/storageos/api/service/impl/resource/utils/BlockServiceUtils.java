@@ -177,7 +177,7 @@ public class BlockServiceUtils {
         while (queryResultsIter.hasNext()) {
             BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, queryResultsIter.next());
             if ((snapshot != null) && (!snapshot.getInactive()) && (snapshot.getIsSyncActive())) {
-                throw APIException.badRequests.NoFullCopiesForVMAX3VolumeWithActiveSnapshot(replicaType);
+                throw APIException.badRequests.noFullCopiesForVMAX3VolumeWithActiveSnapshot(replicaType);
             }
         }
     }

@@ -47,8 +47,6 @@ public class VdcUtil {
      */
     private static final Map<String, URI> vdcIdMap = new HashMap<String, URI>();
     private static volatile boolean rebuildVdcIdMap = true;
-    public static final String DEFAULT_VDC_DB_VERSION = "2.2";
-    public static final String VERSION_PART_SEPERATOR = ".";
 
     private VdcUtil() {
         // no instances
@@ -180,12 +178,12 @@ public class VdcUtil {
 
         if (!hasAnyGeoVersion(geoVersions)) {
             log.info("GeoVersion doesn't exist, return default version");
-            return VdcUtil.DEFAULT_VDC_DB_VERSION;
+            return DbConfigConstants.DEFAULT_VDC_DB_VERSION;
         }
 
         if (missVersionFor(vdcIds, geoVersions)) {
             log.info("GeoVersion not exist for vdcs, return default version");
-            return VdcUtil.DEFAULT_VDC_DB_VERSION;
+            return DbConfigConstants.DEFAULT_VDC_DB_VERSION;
         }
 
         String minimalVersion = null;
@@ -224,8 +222,8 @@ public class VdcUtil {
             if (version1.equals(version2)) {
                 return 0;
             }
-            String[] parts1 = StringUtils.split(version1, VERSION_PART_SEPERATOR);
-            String[] parts2 = StringUtils.split(version2, VERSION_PART_SEPERATOR);
+            String[] parts1 = StringUtils.split(version1, DbConfigConstants.VERSION_PART_SEPERATOR);
+            String[] parts2 = StringUtils.split(version2, DbConfigConstants.VERSION_PART_SEPERATOR);
 
             int index = 0;
             while (index < parts1.length && index < parts2.length) {

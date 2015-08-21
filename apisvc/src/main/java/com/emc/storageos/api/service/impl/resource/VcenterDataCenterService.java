@@ -65,9 +65,9 @@ import org.springframework.util.CollectionUtils;
  * Service providing APIs for vcenterdatacenter.
  */
 @Path("/compute/vcenter-data-centers")
-@DefaultPermissions(read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN,
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN,
         Role.RESTRICTED_SYSTEM_ADMIN, Role.SECURITY_ADMIN },
-        write_roles = { Role.TENANT_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SECURITY_ADMIN })
+        writeRoles = { Role.TENANT_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SECURITY_ADMIN })
 public class VcenterDataCenterService extends TaskResourceService {
     private static Logger _log = LoggerFactory.getLogger(VcenterDataCenter.class);
 

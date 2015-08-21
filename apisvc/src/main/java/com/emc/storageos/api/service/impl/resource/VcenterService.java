@@ -66,9 +66,9 @@ import org.springframework.util.CollectionUtils;
  * data centers.
  * 
  */
-@DefaultPermissions(read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN,
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN,
         Role.RESTRICTED_SYSTEM_ADMIN, Role.SECURITY_ADMIN },
-        write_roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
+        writeRoles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
 @Path("/compute/vcenters")
 public class VcenterService extends TaskResourceService {
 

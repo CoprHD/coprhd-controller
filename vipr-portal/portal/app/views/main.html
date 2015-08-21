@@ -65,6 +65,7 @@
               #{if controllers.SystemHealth.isNodeRecoveryEnabled()}
                 #{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecovery()/}
               #{/if}
+              #{nav.item 'dbHealthDashboard', href: @SystemHealth.dbHealth()/}
               #{nav.item 'systemHealthLogs', href: @SystemHealth.logs()/}
             #{/deadbolt.restrict}
             #{deadbolt.restrict roles:[['SYSTEM_AUDITOR']]}

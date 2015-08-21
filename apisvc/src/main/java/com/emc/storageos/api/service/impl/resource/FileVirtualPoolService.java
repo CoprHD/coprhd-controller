@@ -52,9 +52,9 @@ import com.emc.storageos.volumecontroller.impl.utils.ImplicitUnManagedObjectsMat
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 @Path("/file/vpools")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        read_acls = { ACL.USE },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        readAcls = { ACL.USE },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class FileVirtualPoolService extends VirtualPoolService {
 
     private static final Logger _log = LoggerFactory.getLogger(FileVirtualPoolService.class);
@@ -200,7 +200,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
     @PUT
     @Path("/{id}/acl")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public ACLAssignments updateAcls(@PathParam("id") URI id,
             ACLAssignmentChanges changes) {
         return updateAclsOnVirtualPool(VirtualPool.Type.file, id, changes);

@@ -426,4 +426,10 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException linkBlockSnapshotSessionTargetsFailed(final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException unlinkBlockSnapshotSessionTargetsFailed(final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException restoreBlockSnapshotSessionFailed(final Throwable cause);
 }

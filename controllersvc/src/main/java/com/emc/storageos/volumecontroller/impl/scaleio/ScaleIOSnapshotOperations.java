@@ -292,7 +292,7 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
      * {@inheritDoc}
      */
     @Override
-    public void linkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
+    public void linkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             String copyMode, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
@@ -302,8 +302,17 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
      * {@inheritDoc}
      */
     @Override
-    public void doUnlinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
+    public void doUnlinkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             Boolean deleteTarget, TaskCompleter completer) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void doRestoreSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

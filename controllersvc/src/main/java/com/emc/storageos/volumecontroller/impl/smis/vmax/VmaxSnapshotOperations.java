@@ -76,6 +76,7 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotJ
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotSessionJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockLinkSnapshotSessionTargetJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotSessionJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResumeSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockUnlinkSnapshotSessionTargetJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
@@ -1253,7 +1254,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      */
     @SuppressWarnings("rawtypes")
     @Override
-    public void linkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
+    public void linkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             String copyMode, TaskCompleter completer)
             throws DeviceControllerException {
         if (system.checkIfVmax3()) {
@@ -1306,7 +1307,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      */
     @SuppressWarnings("rawtypes")
     @Override
-    public void doUnlinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
+    public void doUnlinkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             Boolean deleteTarget, TaskCompleter completer) throws DeviceControllerException {
         if (system.checkIfVmax3()) {
             // Only supported for VMAX3 storage systems.
@@ -1325,6 +1326,37 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                         system.getId(), deleteTarget, completer)));
             } catch (Exception e) {
                 _log.info("Exception unlinking snapshot session target", e);
+                ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
+                completer.error(_dbClient, error);
+            }
+        } else {
+            throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void doRestoreSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+            throws DeviceControllerException {
+        if (system.checkIfVmax3()) {
+            // Only supported for VMAX3 storage systems.
+            try {
+                _log.info("Restore snapshot session {} START", snapSessionURI);
+                CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
+                BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+                String settingsStateInstanceId = snapSession.getSessionInstance();
+                CIMObjectPath settingsStatePath = _cimPath.objectPath(settingsStateInstanceId);
+                CIMArgument[] inArgs = null;
+                CIMArgument[] outArgs = new CIMArgument[5];
+                inArgs = _helper.getModifySettingsDefinedStateForRestoreSession(settingsStatePath);
+                _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
+                CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
+                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockRestoreSnapshotSessionJob(jobPath,
+                        system.getId(), completer)));
+            } catch (Exception e) {
+                _log.info("Exception restoring snapshot session", e);
                 ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
                 completer.error(_dbClient, error);
             }

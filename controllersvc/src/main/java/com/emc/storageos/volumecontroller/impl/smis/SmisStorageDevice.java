@@ -2118,7 +2118,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             String copyMode, TaskCompleter completer) throws DeviceControllerException {
 
         try {
-            _snapshotOperations.linkBlockSnapshotSessionTarget(system, snapSessionURI, snapshotURI, copyMode, completer);
+            _snapshotOperations.linkSnapshotSessionTarget(system, snapSessionURI, snapshotURI, copyMode, completer);
         } catch (Exception e) {
             _log.error(String.format("Exception trying to create and link new target to block snapshot session %s on array %s",
                     snapSessionURI, system.getSerialNumber()), e);
@@ -2134,11 +2134,28 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     public void doUnlinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             Boolean deleteTarget, TaskCompleter completer) throws DeviceControllerException {
         try {
-            _snapshotOperations.doUnlinkBlockSnapshotSessionTarget(system, snapSessionURI, snapshotURI, deleteTarget, completer);
+            _snapshotOperations.doUnlinkSnapshotSessionTarget(system, snapSessionURI, snapshotURI, deleteTarget, completer);
         } catch (Exception e) {
             _log.error(String.format("Exception trying to unlink target from block snapshot session %s on array %s",
                     snapSessionURI, system.getSerialNumber()), e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed("doUnlinkBlockSnapshotSessionTarget", e.getMessage());
+            completer.error(_dbClient, error);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void doRestoreBlockSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+            throws DeviceControllerException {
+        try {
+            // TBD - Determine group operation.
+            _snapshotOperations.doRestoreSnapshotSession(system, snapSessionURI, completer);
+        } catch (Exception e) {
+            _log.error(String.format("Exception trying to restore block snapshot session %s on array %s",
+                    snapSessionURI, system.getSerialNumber()), e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doRestoreBlockSnapshotSession", e.getMessage());
             completer.error(_dbClient, error);
         }
     }

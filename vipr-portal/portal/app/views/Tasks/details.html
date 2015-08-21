@@ -59,6 +59,14 @@
       <dt>&{'tasks.elapsed'}:</dt>
       <dd>{{task.elapsedTime | timeAgoInWords}}&nbsp;</dd>
 
+      <span ng-show="task.queueName">
+        <dt>&{'tasks.queueName'}:</dt>
+        <dd>{{task.queueName}}&nbsp;</dd>
+
+        <dt>&{'tasks.queuedElapsed'}:</dt>
+        <dd>{{task.queuedElapsedTime | timeAgoInWords}}&nbsp;</dd>
+      </span>
+
       <span ng-if="task.workflowId">
           <dt>&{'tasks.workflowId'}:</dt>
           <dd>{{task.workflowId}}&nbsp;</dd>

@@ -5,11 +5,13 @@ import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueMan
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.util.TaskUtils;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.List;
 
@@ -69,7 +71,7 @@ public class ControlRequestLockQueueListener implements DistributedLockQueueEven
         }
 
         List<Task> tasks = TaskUtils.findTasksForRequestId(dbClient, id);
-        updateTasks(tasks, pendingTasksPredicate(), Task.Status.queued, request.getTimestamp());
+        updateTasks(tasks, pendingTasksPredicate(), Task.Status.queued, request);
     }
 
     public void nodeRemoved(ControlRequest request) {
@@ -85,41 +87,38 @@ public class ControlRequestLockQueueListener implements DistributedLockQueueEven
             log.warn("Updating task statuses for queued workflow steps is not yet supported");
         }
 
+        request.setLockGroup(NullColumnValueGetter.getNullStr());
         List<Task> tasks = TaskUtils.findTasksForRequestId(dbClient, id);
-        updateTasks(tasks, queuedTasksPredicate(), Task.Status.pending);
+        updateTasks(tasks, queuedTasksPredicate(), Task.Status.pending, request);
     }
 
     private String getLastArg(Object[] args) {
         return (String) args[args.length-1];
     }
 
-    private void updateTasks(List<Task> tasks, Predicate<Task> filter, Task.Status status) {
-        updateTasks(tasks, filter, status, null);
-    }
-
     /**
-     * Updates tasks of a given status with queueing information.  If a timestamp is provided, the message
-     * property is updated to include the time a task was first queued.
+     * Updates tasks of a given status with queueing information.
      *
      * @param tasks     List of tasks.
      * @param filter    Filter to act only on tasks of a specific status.
      * @param status    New task status to update with.
-     * @param timestamp Timestamp of when these tasks were first queued (optional).
+     * @param request   ControlRequest instance.
      */
-    private void updateTasks(List<Task> tasks, Predicate<Task> filter, Task.Status status, Long timestamp) {
+    private void updateTasks(List<Task> tasks, Predicate<Task> filter, Task.Status status, ControlRequest request) {
         Collection<Task> filteredTasks = Collections2.filter(tasks, filter);
 
         for (Task task : filteredTasks) {
             log.info("Found task {} with status {}", task.getId(), task.getStatus());
             task.setStatus(status.toString());
 
-            if (timestamp != null) {
-                String msg = task.getMessage();
-                if (isBlank(msg)) {
-                    task.setMessage(String.format("Queued at %d", timestamp));
-                } else {
-                    task.setMessage(String.format("%s (Queued at %d)", msg, timestamp));
-                }
+            if (NullColumnValueGetter.isNotNullValue(request.getLockGroup())) {
+                Calendar cal = Calendar.getInstance();
+                cal.setTimeInMillis(request.getTimestamp());
+                task.setQueuedStartTime(cal);
+                task.setQueueName(request.getLockGroup());
+            } else {
+                task.setQueueName(NullColumnValueGetter.getNullStr());
+                task.setQueuedStartTime(null);
             }
         }
         dbClient.persistObject(tasks);

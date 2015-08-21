@@ -265,6 +265,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
                 Throwable cause = e.getCause();
                 if (cause instanceof LockRetryException) {
                     LockRetryException lockEx = (LockRetryException) cause;
+                    _item.setLockGroup(lockEx.getLockIdentifier());
                     if (!addRequestToLockQueue(lockEx, _item)) {
                         _log.warn("Rescheduling task {}: {}", _method.getName(), _args);
                         _queue.getMethodPoolExecutor().schedule(this, LOCK_RETRY_WAIT_TIME_SECONDS, TimeUnit.SECONDS);

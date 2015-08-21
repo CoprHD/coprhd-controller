@@ -40,6 +40,8 @@ public class Task extends DataObject {
     private URI tenant;
     private boolean completedFlag;
     private URI workflow;
+    private Calendar queuedStartTime;
+    private String queueName;
 
     // enumeration of status value
     public enum Status {
@@ -159,6 +161,26 @@ public class Task extends DataObject {
         if (endTime != null) {
             setCompletedFlag(true);
         }
+    }
+
+    @Name("queuedStartTime")
+    public Calendar getQueuedStartTime() {
+        return queuedStartTime;
+    }
+
+    public void setQueuedStartTime(Calendar queuedStartTime) {
+        this.queuedStartTime = queuedStartTime;
+        setChanged("queuedStartTime");
+    }
+
+    @Name("queueName")
+    public String getQueueName() {
+        return queueName;
+    }
+
+    public void setQueueName(String queueName) {
+        this.queueName = queueName;
+        setChanged("queueName");
     }
 
     /**

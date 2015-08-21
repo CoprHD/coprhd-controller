@@ -1565,8 +1565,4 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private String generateRDFGroupLock(StorageSystem sourceSystem, RemoteDirectorGroup rdfGroup) {
         return sourceSystem.getSerialNumber() + "-rdfg-" + rdfGroup.getSourceGroupId();
     }
-
-    private String generateStoragePoolLock(StorageSystem sourceSystem, StoragePool sourcePool) {
-        return sourceSystem.getSerialNumber() + "-pool-" + sourcePool.getPoolName();
-    }
 }

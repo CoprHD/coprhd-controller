@@ -36,6 +36,9 @@ public class TaskResourceRep extends DataObjectRestRep {
     private Calendar endTime;
     private Calendar lastUpdatedTime;
     private Integer progress;
+    private Calendar queuedStartTime;
+    private String queueName;
+
     private RelatedResourceRep workflow;
 
     public TaskResourceRep() {
@@ -234,4 +237,23 @@ public class TaskResourceRep extends DataObjectRestRep {
     public void setWorkflow(RelatedResourceRep workflow) {
         this.workflow = workflow;
     }
+
+    @XmlElement(name = "queuedStartTime")
+    public Calendar getQueuedStartTime() {
+        return queuedStartTime;
+    }
+
+    public void setQueuedStartTime(Calendar queuedStartTime) {
+        this.queuedStartTime = queuedStartTime;
+    }
+
+    @XmlElement(name = "queueName")
+    public String getQueueName() {
+        return queueName;
+    }
+
+    public void setQueueName(String queueName) {
+        this.queueName = queueName;
+    }
+
 }

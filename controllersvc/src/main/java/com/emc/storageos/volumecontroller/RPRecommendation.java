@@ -95,6 +95,22 @@ public class RPRecommendation extends Recommendation {
 		this.protectionType = protectionType;
 	}
 	
+	
+	/**
+	 * @param destInternalSiteName
+	 * @return
+	 */
+	public boolean containsTargetInternalSiteName(String destInternalSiteName) {
+		if (this.getTargetRecommendations() != null) {
+		for (RPRecommendation targetRec : this.getTargetRecommendations()) {																
+				if (targetRec.getInternalSiteName().equals(destInternalSiteName)) {
+						return true;
+				}
+			}					
+		}
+		return false;
+	}
+	
 	public String toString(DbClient dbClient, ProtectionSystem ps) {
 		StringBuffer buff = new StringBuffer();
 		final String SPACE = " ";

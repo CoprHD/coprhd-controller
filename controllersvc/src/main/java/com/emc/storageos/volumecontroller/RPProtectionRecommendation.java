@@ -341,25 +341,6 @@ public class RPProtectionRecommendation extends Recommendation {
     	
     	return metroPointType;    	
 	}
-	
-	/**
-	 * @param destInternalSiteName
-	 * @return
-	 */
-	public boolean containsTargetInternalSiteName(String destInternalSiteName) {
-		if (this.getSourceRecommendations() != null && !this.getSourceRecommendations().isEmpty()) {
-		for (RPRecommendation sourceRec : this.getSourceRecommendations()) {
-			if (sourceRec.getTargetRecommendations() != null) {
-				for (RPRecommendation targetRec : sourceRec.getTargetRecommendations()) {																
-						if (targetRec.getInternalSiteName().equals(destInternalSiteName)) {
-								return true;
-						}
-					}
-				}
-			}
-		}		
-		return false;
-	}
 }
 
 

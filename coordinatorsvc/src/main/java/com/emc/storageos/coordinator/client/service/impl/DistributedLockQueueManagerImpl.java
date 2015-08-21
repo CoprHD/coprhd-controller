@@ -85,8 +85,10 @@ public class DistributedLockQueueManagerImpl<T> implements DistributedLockQueueM
             treeCache.start();
             log.info("Curator TreeCache has started");
 
-            addCacheEventListener();
-            log.info("Curator TreeCache event listener added");
+            if (log.isDebugEnabled()) {
+                addLoggingCacheEventListener();
+                log.info("Curator TreeCache event listener for logging added");
+            }
         } catch (Exception e) {
             throw CoordinatorException.fatals.failedToStartDistributedQueue(e);
         }
@@ -245,19 +247,22 @@ public class DistributedLockQueueManagerImpl<T> implements DistributedLockQueueM
         }
     }
 
-    private void addCacheEventListener() {
+    /**
+     * For logging purposes only, this will cause all nodes to log received TreeCache events.
+     */
+    private void addLoggingCacheEventListener() {
         TreeCacheListener listener = new TreeCacheListener() {
             @Override
             public void childEvent(CuratorFramework client, TreeCacheEvent event) throws Exception {
                 switch (event.getType()) {
                     case NODE_ADDED:
-                        log.info("Node added: " + ZKPaths.getNodeFromPath(event.getData().getPath()));
+                        log.debug("Node added: " + ZKPaths.getNodeFromPath(event.getData().getPath()));
                         break;
                     case NODE_UPDATED:
-                        log.info("Node changed: " + ZKPaths.getNodeFromPath(event.getData().getPath()));
+                        log.debug("Node changed: " + ZKPaths.getNodeFromPath(event.getData().getPath()));
                         break;
                     case NODE_REMOVED:
-                        log.info("Node removed: " + ZKPaths.getNodeFromPath(event.getData().getPath()));
+                        log.debug("Node removed: " + ZKPaths.getNodeFromPath(event.getData().getPath()));
                         break;
                 }
             }

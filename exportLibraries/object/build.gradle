@@ -1,0 +1,6 @@
+dependencies {
+	compile project(":errorhandling")
+	compile project(":serviceutils")
+
+    testCompile library(commons_logging)
+}

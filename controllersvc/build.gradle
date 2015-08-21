@@ -42,7 +42,7 @@ dependencies {
             project(":cinder"),
             project(":hds"),
             project(":scaleio"),
-            project(":xtremio")
+            project(":xtremio"),
             project(":object")
             
     testCompile library(easymock)

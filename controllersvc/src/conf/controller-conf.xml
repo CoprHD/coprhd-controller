@@ -567,7 +567,7 @@
 	<property name="dbClient" ref="dbclient"/>
     </bean>
 
-    <bean id="objectapifactory" class="com.emc.storageos.object.restapi.ObjectApiFactory"
+    <bean id="objectapifactory" class="com.emc.storageos.object.api.ObjectApiFactory"
           init-method="init"/>
 
     <bean id="datadomainfactory" class="com.emc.storageos.datadomain.restapi.DataDomainClientFactory"

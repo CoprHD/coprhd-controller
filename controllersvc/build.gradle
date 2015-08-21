@@ -43,6 +43,7 @@ dependencies {
             project(":hds"),
             project(":scaleio"),
             project(":xtremio")
+            project(":object")
             
     testCompile library(easymock)
 }

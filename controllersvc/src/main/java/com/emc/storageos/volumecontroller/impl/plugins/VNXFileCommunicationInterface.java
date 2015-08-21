@@ -915,16 +915,16 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             
             VirtualNAS vNas = findvNasByNativeId(nativeId);
             
-            _logger.info("VirtualNAS : {} : NativeID : {} ",vNas.getId(), nativeId);
-            _logger.info("StoragePort : {} ",tempList);
             
             if(vNas != null && tempList != null ){
+               _logger.info("VirtualNAS : {} : NativeID : {} ",vNas.getId(), nativeId);
+               _logger.info("StoragePort : {} ",tempList);
                 vNas.setStoragePorts(tempList);
+		    _dbClient.persistObject(vNas);
             }else{
                  _logger.info("Nas value is null");
             }
             
-            _dbClient.persistObject(vNas);
         }
         
 

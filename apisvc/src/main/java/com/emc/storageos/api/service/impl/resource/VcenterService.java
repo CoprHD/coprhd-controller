@@ -77,6 +77,8 @@ public class VcenterService extends TaskResourceService {
 
     private static final String EVENT_SERVICE_TYPE = "vcenter";
 
+    private static final String DATAOBJECT_NAME_FIELD = "label";
+
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
     }
@@ -239,14 +241,14 @@ public class VcenterService extends TaskResourceService {
         URI tenantId = URI.create(getUserFromContext().getTenantId());
 
         List<NamedElementQueryResultList.NamedElement> vCentersDataCenters = filterTenantResourcesByTenant(tenantId,
-                VcenterDataCenter.class, listChildren(id, VcenterDataCenter.class, "label", "vcenter"));
+                VcenterDataCenter.class, listChildren(id, VcenterDataCenter.class, DATAOBJECT_NAME_FIELD, "vcenter"));
 
         HostList list = new HostList();
         Iterator<NamedElementQueryResultList.NamedElement> dataCentersIterator = vCentersDataCenters.iterator();
         while (dataCentersIterator.hasNext()) {
             NamedElementQueryResultList.NamedElement dataCenterElement = dataCentersIterator.next();
             list.getHosts().addAll(map(ResourceTypeEnum.HOST, listChildren(dataCenterElement.getId(), Host.class,
-                    "label", "vcenterDataCenter")));
+                    DATAOBJECT_NAME_FIELD, "vcenterDataCenter")));
         }
 
         return list;
@@ -274,14 +276,14 @@ public class VcenterService extends TaskResourceService {
         URI tenantId = URI.create(getUserFromContext().getTenantId());
 
         List<NamedElementQueryResultList.NamedElement> vCentersDataCenters = filterTenantResourcesByTenant(tenantId,
-                VcenterDataCenter.class, listChildren(id, VcenterDataCenter.class, "label", "vcenter"));
+                VcenterDataCenter.class, listChildren(id, VcenterDataCenter.class, DATAOBJECT_NAME_FIELD, "vcenter"));
 
         ClusterList list = new ClusterList();
         Iterator<NamedElementQueryResultList.NamedElement> dataCentersIterator = vCentersDataCenters.iterator();
         while (dataCentersIterator.hasNext()) {
             NamedElementQueryResultList.NamedElement dataCenterElement = dataCentersIterator.next();
             list.getClusters().addAll(map(ResourceTypeEnum.CLUSTER, listChildren(dataCenterElement.getId(), Cluster.class,
-                    "label", "vcenterDataCenter")));
+                    DATAOBJECT_NAME_FIELD, "vcenterDataCenter")));
         }
 
         return list;
@@ -367,7 +369,7 @@ public class VcenterService extends TaskResourceService {
     public VcenterDataCenterRestRep createVcenterDataCenter(@PathParam("id") URI id,
             VcenterDataCenterCreate createParam) throws DatabaseException {
         Vcenter vcenter = queryObject(Vcenter.class, id, false);
-        checkDuplicateChildName(id, VcenterDataCenter.class, "label",
+        checkDuplicateChildName(id, VcenterDataCenter.class, DATAOBJECT_NAME_FIELD,
                 "vcenter", createParam.getName(), _dbClient);
         VcenterDataCenter datacenter = new VcenterDataCenter();
         datacenter.setId(URIUtil.createId(VcenterDataCenter.class));
@@ -414,7 +416,7 @@ public class VcenterService extends TaskResourceService {
         // get the vcenters
         VcenterDataCenterList list = new VcenterDataCenterList();
         List<NamedElementQueryResultList.NamedElement> elements = listChildren(id,
-                VcenterDataCenter.class, "label", "vcenter");
+                VcenterDataCenter.class, DATAOBJECT_NAME_FIELD, "vcenter");
 
         //Filter the vCenterDataCenters based on the tenant.
         list.setDataCenters(map(ResourceTypeEnum.VCENTERDATACENTER, id,
@@ -610,19 +612,18 @@ public class VcenterService extends TaskResourceService {
     public VcenterList listVcenters(@QueryParam("tenant") final URI tid) throws DatabaseException {
         VcenterList list = new VcenterList();
         List<Vcenter> vcenters = null;
-        final String nameField = "label";
 
         if (isSecurityAdmin() || isSystemOrRestrictedSystemAdmin()) {
             if ( NullColumnValueGetter.isNullURI(tid)||
                     Vcenter.ALL_TENANT_RESOURCES.equalsIgnoreCase(tid.toString())) {
                 vcenters = getDataObjects(Vcenter.class);
-                list.setVcenters(map(ResourceTypeEnum.VCENTER, getNamedElementsList(Vcenter.class, nameField, vcenters)));
+                list.setVcenters(map(ResourceTypeEnum.VCENTER, getNamedElementsList(Vcenter.class, DATAOBJECT_NAME_FIELD, vcenters)));
             } else if (Vcenter.TENANT_RESOURCES_WITH_NO_TENANTS.equalsIgnoreCase(tid.toString())) {
                 vcenters = getDataObjects(Vcenter.class);
-                list.setVcenters(map(ResourceTypeEnum.VCENTER, getNamedElementsWithNoAcls(Vcenter.class, nameField, vcenters)));
+                list.setVcenters(map(ResourceTypeEnum.VCENTER, getNamedElementsWithNoAcls(Vcenter.class, DATAOBJECT_NAME_FIELD, vcenters)));
             } else {
                 ArgValidator.checkEntity(_dbClient.queryObject(tid), tid, isIdEmbeddedInURL(tid));
-                list.setVcenters(map(ResourceTypeEnum.VCENTER, listChildrenWithAcls(tid, Vcenter.class, nameField)));
+                list.setVcenters(map(ResourceTypeEnum.VCENTER, listChildrenWithAcls(tid, Vcenter.class, DATAOBJECT_NAME_FIELD)));
             }
             return list;
         }
@@ -632,7 +633,7 @@ public class VcenterService extends TaskResourceService {
             //Get the vCenters based on the User's tenant org. If the user is not a tenant admin, insufficient
             //permission exception will be thrown.
             List<Vcenter> tenantVcenterList = filterVcentersByTenant(vcenters, NullColumnValueGetter.getNullURI());
-            list.setVcenters(map(ResourceTypeEnum.VCENTER, getNamedElementsList(Vcenter.class, nameField, tenantVcenterList)));
+            list.setVcenters(map(ResourceTypeEnum.VCENTER, getNamedElementsList(Vcenter.class, DATAOBJECT_NAME_FIELD, tenantVcenterList)));
         }
         return list;
     }

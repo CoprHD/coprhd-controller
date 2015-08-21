@@ -5,12 +5,12 @@ parentCID=ffffffff
 createType="monolithicFlat"
 
 # Extent description
-RW 2088 FLAT "${1}" 0
+RW 4096 FLAT "${1}" 0
 
 # The Disk Data Base
 # DDB
 ddb.virtualHWVersion = "4"
-ddb.geometry.cylinders = "2"
+ddb.geometry.cylinders = "4"
 ddb.geometry.heads = "16"
 ddb.geometry.sectors = "63"
 ddb.adapterType = "ide"

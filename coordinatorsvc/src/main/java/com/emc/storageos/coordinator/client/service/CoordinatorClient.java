@@ -506,4 +506,19 @@ public interface CoordinatorClient {
      * @throws Exception
      */
     boolean isDistributedOwnerLockAvailable(String lockPath) throws Exception;
+
+    /**
+     * Set an instance of {@link DistributedAroundHook} that exposes the ability to wrap arbitrary code
+     * with before and after hooks that lock and unlock the owner locks "globalLock", respectively.
+     *
+     * @param ownerLockAroundHook An instance to help with owner lock management.
+     */
+    void setDistributedOwnerLockAroundHook(DistributedAroundHook ownerLockAroundHook);
+
+    /**
+     * Gets the instance of {@link DistributedAroundHook} for owner lock management.
+     *
+     * @return An instance to help with owner lock management.
+     */
+    DistributedAroundHook getDistributedOwnerLockAroundHook();
 }

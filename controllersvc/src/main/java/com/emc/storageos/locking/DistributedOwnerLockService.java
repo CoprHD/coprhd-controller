@@ -5,6 +5,8 @@
 
 package com.emc.storageos.locking;
 
+import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
+
 import java.util.List;
 
 public interface DistributedOwnerLockService {
@@ -89,5 +91,15 @@ public interface DistributedOwnerLockService {
 	 * @throws Exception
 	 */
 	boolean isDistributedOwnerLockAvailable(String lockName) throws Exception;
+
+    /**
+     * Returns a concrete implementation of the {@link DistributedAroundHook} class.
+     *
+     * This allows users of this instance to wrap arbitrary code with before and after hooks that lock and unlock
+     * the "globalLock" IPL, respectively.
+     *
+     * @return A DistributedAroundHook instance.
+     */
+    DistributedAroundHook getDistributedOwnerLockAroundHook();
 
 }

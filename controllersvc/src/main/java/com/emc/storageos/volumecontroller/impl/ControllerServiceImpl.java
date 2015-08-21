@@ -547,6 +547,9 @@ public class ControllerServiceImpl implements ControllerService {
     }
 
     private void startLockQueueService() {
+        DistributedAroundHook aroundHook = _distributedOwnerLockService.getDistributedOwnerLockAroundHook();
+        _coordinator.setDistributedOwnerLockAroundHook(aroundHook);
+
         _controlRequestTaskConsumer.start();
         _lockQueueManager = _coordinator.getLockQueue(_controlRequestTaskConsumer);
 

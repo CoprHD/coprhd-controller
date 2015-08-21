@@ -1,6 +1,7 @@
 package com.emc.storageos.coordinator.client.service.impl;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
 import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import com.emc.storageos.coordinator.client.service.LeaderSelectorListenerForPeriodicTask;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
@@ -79,17 +80,28 @@ public class DistributedLockQueueScheduler {
                 }
 
                 log.info("Number of locks to process: {}", lockKeys.size());
-                for (String lockKey : lockKeys) {
+                for (final String lockKey : lockKeys) {
                     try {
                         log.info("Dequeueing HEAD from lock group: {}", lockKey);
-                        if (getValidator().validate(lockKey)) {
-                            if (!lockQueue.dequeue(lockKey)) {
-                                // Nothing was de-queued (empty) so try and remove it
-                                lockQueue.removeLockKey(lockKey);
+                        DistributedAroundHook aroundHook = coordinator.getDistributedOwnerLockAroundHook();
+
+                        aroundHook.run(new DistributedAroundHook.Action<Void>() {
+                            @Override
+                            public Void run() {
+                                // Before this method runs, the globalLock will be acquired
+                                if (getValidator().validate(lockKey)) {
+                                    if (!lockQueue.dequeue(lockKey)) {
+                                        // Nothing was de-queued (empty) so try and remove it
+                                        lockQueue.removeLockKey(lockKey);
+                                    }
+                                } else {
+                                    log.info("Skipping as lock is unavailable");
+                                }
+                                // After this method runs, the globalLock will be released
+                                return null;
                             }
-                        } else {
-                            log.info("Skipping as lock is unavailable");
-                        }
+                        });
+
                     } catch (Exception e) {
                         log.error("Error occurred whilst processing locks", e);
                     }

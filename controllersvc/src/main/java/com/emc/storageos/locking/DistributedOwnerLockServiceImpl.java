@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
 import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
@@ -237,6 +238,32 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
     @Override
     public boolean isDistributedOwnerLockAvailable(String lockName) throws Exception {
         return coordinator.isDistributedOwnerLockAvailable(getLockDataPath(lockName));
+    }
+
+    /**
+     * Returns a concrete implementation of the {@link DistributedAroundHook} class.
+     *
+     * This allows users of this instance to wrap arbitrary code with before and after hooks that lock and unlock
+     * the "globalLock" IPL, respectively.
+     *
+     * @return A DistributedAroundHook instance.
+     */
+    @Override
+    public DistributedAroundHook getDistributedOwnerLockAroundHook() {
+        return new DistributedAroundHook() {
+
+            private InterProcessLock lock;
+
+            @Override
+            public void before() {
+                lock = lockIPL(null);
+            }
+
+            @Override
+            public void after() {
+                unlockIPL(lock);
+            }
+        };
     }
 
     /**

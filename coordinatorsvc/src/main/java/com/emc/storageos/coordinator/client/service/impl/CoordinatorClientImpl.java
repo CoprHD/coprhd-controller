@@ -85,6 +85,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private NodeCacheWatcher nodeWatcher = new NodeCacheWatcher();
 
+    private DistributedAroundHook ownerLockAroundHook;
+
     /**
      * Set ZK cluster connection. Connection must be built but not connected when this method is
      * called
@@ -1435,5 +1437,26 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
             log.info("Removed the listener {}", listener.getPath());
         }
+    }
+
+    /**
+     * Set an instance of {@link DistributedAroundHook} that exposes the ability to wrap arbitrary code
+     * with before and after hooks that lock and unlock the owner locks "globalLock", respectively.
+     *
+     * @param ownerLockAroundHook An instance to help with owner lock management.
+     */
+    @Override
+    public void setDistributedOwnerLockAroundHook(DistributedAroundHook ownerLockAroundHook) {
+        this.ownerLockAroundHook = ownerLockAroundHook;
+    }
+
+    /**
+     * Gets the instance of {@link DistributedAroundHook} for owner lock management.
+     *
+     * @return An instance to help with owner lock management.
+     */
+    @Override
+    public DistributedAroundHook getDistributedOwnerLockAroundHook() {
+        return ownerLockAroundHook;
     }
 }

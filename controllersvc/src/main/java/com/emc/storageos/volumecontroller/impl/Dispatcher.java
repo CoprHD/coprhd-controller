@@ -302,12 +302,28 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
      * @param item Item to queue
      * @return true if the lock is not available and queueing was successful
      */
-    private boolean addRequestToLockQueue(LockRetryException lockEx, ControlRequest item) {
+    private boolean addRequestToLockQueue(final LockRetryException lockEx, final ControlRequest item) {
         try {
             _log.info(String.format("Dispatcher processing LockRetryException key %s remaining time %s",
                     lockEx.getLockPath(), lockEx.getRemainingWaitTimeSeconds()));
-            return !_coordinator.isDistributedOwnerLockAvailable(lockEx.getLockPath()) &&
-                    _lockQueueManager.queue(lockEx.getLockIdentifier(), item);
+
+            DistributedAroundHook<Boolean> aroundHook = _coordinator.getDistributedOwnerLockAroundHook();
+            Boolean result = aroundHook.run(new DistributedAroundHook.Action<Boolean>() {
+
+                @Override
+                public Boolean run() {
+                    // Before this method runs, the globalLock will be acquired
+                    try {
+                        return !_coordinator.isDistributedOwnerLockAvailable(lockEx.getLockPath()) &&
+                                _lockQueueManager.queue(lockEx.getLockIdentifier(), item);
+                    } catch (Exception e) {
+                        return false;
+                    }
+                    // After this method runs, the globalLock will be released
+                }
+            });
+
+            return result.booleanValue();
         } catch (Exception e) {
             return false;
         }

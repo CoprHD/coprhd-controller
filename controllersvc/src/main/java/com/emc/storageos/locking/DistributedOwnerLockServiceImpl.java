@@ -108,7 +108,6 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
             log.info(String.format("releasing locks %s", StringUtils.join(lockKeys.toArray())));
             released = releaseLocks(lockKeys, owner);
         }
-        checkLockQueueAndDequeue(lockKeys);
         return released;
     }
 
@@ -226,6 +225,9 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
                 log.info(String.format("unable to unlock lockname: %s owner: %s lock not found in zk", lockName, owner));
             }
             retval = true;
+
+            // Trigger a dequeue event for any items on the DistributedLockQueue waiting for this particular lock
+            checkLockQueueAndDequeue(lockName);
         } finally {
             unlockIPL(lock);
         }
@@ -409,14 +411,13 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
         }
     }
 
-    private void checkLockQueueAndDequeue(List<String> lockKeys) {
-        if (lockKeys == null || lockKeys.isEmpty()) {
+    private void checkLockQueueAndDequeue(String lockKey) {
+        if (lockKey == null) {
             return;
         }
-        String first = lockKeys.get(0);
-        boolean wasDequeued = lockQueueManager.dequeue(first);
+        boolean wasDequeued = lockQueueManager.dequeue(lockKey);
         if (wasDequeued) {
-            log.info("A task from lock group {} was dequeued.", first);
+            log.info("A task from lock group {} was dequeued.", lockKey);
         }
     }
 

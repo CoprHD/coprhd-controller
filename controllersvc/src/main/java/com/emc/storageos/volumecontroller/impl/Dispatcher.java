@@ -466,6 +466,15 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
         _log.info("Queued task {}: {} ", method, args);
     }
 
+    /**
+     * Place back onto the Dispatcher an existing ControlRequest instance that would
+     * have been held in a lock queue.
+     *
+     * @See {@link DistributedLockQueueManager}
+     *
+     * @param item          An existing ControlRequest.
+     * @throws Exception
+     */
     public void queue(ControlRequest item) throws Exception {
         try {
             if (QueueName.controller.toString().equalsIgnoreCase(item.getQueueName())) {

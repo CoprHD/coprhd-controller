@@ -165,6 +165,12 @@ public class DistributedLockQueueManagerImpl<T> implements DistributedLockQueueM
     @Override
     public Set<String> getLockKeys() {
         log.info("Getting Lock keys at path {}", rootPath);
+        /*
+         * This call to TreeCache#getCurrentChildren with the root path aims to
+         * return only the immediate znode children, i.e. the lock keys.
+         * Since a Map is returned (child-name -> child-data), we need only return
+         * the keys.
+         */
         Map<String, ChildData> children = treeCache.getCurrentChildren(rootPath);
         if (children == null) {
             log.info("Lock children was null");

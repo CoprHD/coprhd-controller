@@ -97,6 +97,7 @@ public class ExportMaskPlacementDescriptor {
         descriptor.setTenant(tenantURI);
         descriptor.setProject(projectURI);
         descriptor.setVplex(vplex);
+        descriptor.setVirtualArray(virtualArrayURI);
         descriptor.setBackendArray(array);
         descriptor.setInitiators(initiators);
         return descriptor;
@@ -370,7 +371,7 @@ public class ExportMaskPlacementDescriptor {
      * @return true, IFF there are unplaced volumes list is not empty
      */
     public boolean hasUnPlacedVolumes() {
-        return unplacedVolumes != null && unplacedVolumes.isEmpty();
+        return unplacedVolumes != null && !unplacedVolumes.isEmpty();
     }
 
     /**
@@ -382,6 +383,16 @@ public class ExportMaskPlacementDescriptor {
         return new HashMap<>(unplacedVolumes);
     }
 
+    /**
+     * Returns set of ExportMask URIs that have been matched and have associated Volumes
+     *
+     * @return Set of ExportMask URIs
+     */
+    public Set<URI> getPlacedMasks() {
+        return (maskToVolumes != null && !maskToVolumes.isEmpty()) ? Collections.unmodifiableSet(maskToVolumes.keySet())
+                : Collections.EMPTY_SET;
+    }
+    
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();

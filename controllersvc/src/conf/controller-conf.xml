@@ -568,8 +568,6 @@
     </bean>
         
 	<bean id="ecsDevice" class="com.emc.storageos.volumecontroller.impl.ecs.ECSObjectStorageDevice">
-		<property name="ecsApiFactory" ref="ecsapifactory">
-		</property>
 	</bean>
   
     <bean id="ecsapifactory" class="com.emc.storageos.ecs.api.ECSApiFactory"

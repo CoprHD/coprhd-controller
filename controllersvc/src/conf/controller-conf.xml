@@ -566,12 +566,15 @@
 	</property>  
 	<property name="dbClient" ref="dbclient"/>
     </bean>
-        
-	<bean id="ecsDevice" class="com.emc.storageos.volumecontroller.impl.ecs.ECSObjectStorageDevice">
-	</bean>
   
     <bean id="ecsapifactory" class="com.emc.storageos.ecs.api.ECSApiFactory"
           init-method="init"/>
+
+	<bean id="ecsDevice" class="com.emc.storageos.volumecontroller.impl.ecs.ECSObjectStorageDevice">
+		<property name="ecsApiFactory" ref="ecsapifactory">
+		</property>
+	<property name="dbClient" ref="dbclient"/>
+	</bean>
   
     <bean id="datadomainfactory" class="com.emc.storageos.datadomain.restapi.DataDomainClientFactory"
           init-method="init" destroy-method="shutdown">

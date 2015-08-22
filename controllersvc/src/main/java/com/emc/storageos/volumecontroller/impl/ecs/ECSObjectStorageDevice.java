@@ -20,7 +20,7 @@ import com.sun.jersey.client.apache.ApacheHttpClientHandler;
 
 public class ECSObjectStorageDevice implements ObjectStorageDevice {
 	  private Logger _log = LoggerFactory.getLogger(ECSObjectStorageDevice.class);
-	  private ECSApiFactory _factory;
+	  private ECSApiFactory ecsApiFactory;
 	  private DbClient _dbClient;
 
 	    /**
@@ -29,7 +29,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 	     * @param factory
 	     */
 	    public void setECSApiFactory(ECSApiFactory factory) {
-	        _factory = factory;
+	    	ecsApiFactory = factory;
 	    }
 
 	    public void setDbClient(DbClient dbc) {

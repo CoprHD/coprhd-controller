@@ -12,4 +12,10 @@ public class ECSApiFactory {
     public void init() {
         _log.info(" ECSApi factory initialized");
     }
+    
+    /**
+     * shutdown http connection manager.
+     */
+    protected void shutdown() {
+    }
 }

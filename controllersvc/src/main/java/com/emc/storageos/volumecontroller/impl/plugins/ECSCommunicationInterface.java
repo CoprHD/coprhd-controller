@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.ecs.api.ECSApiFactory;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.metering.smis.SMIPluginException;
@@ -22,7 +23,16 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 	URI storageSystemURI = null;
 	private static final Logger _logger = LoggerFactory
             .getLogger(ECSCommunicationInterface.class);
-
+	
+	private ECSApiFactory ecsApiFactory;
+	
+	
+    /**
+     * @param ecsApiFactory the ecsApiFactory to set
+     */
+    public void setEcsApiFactory(ECSApiFactory ecsApiFactory) {
+        this.ecsApiFactory = ecsApiFactory;
+    }
 	
 	@Override
 	public void collectStatisticsInformation(AccessProfile accessProfile)

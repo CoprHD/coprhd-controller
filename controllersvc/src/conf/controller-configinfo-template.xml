@@ -64,7 +64,7 @@
         <entry key="Metering-vplex" value="metering-block-context.xml" />
         <entry key="Metering-datadomain" value="discovery-datadomain-context.xml" />
 
-        <entry key="Discovery-object-all" value="discovery-object-context.xml" />
+        <entry key="Discovery-ecs-all" value="discovery-ecs-context.xml" />
 
         <!-- in seconds -->
         <!-- how often the job should be scheduled automatically -->

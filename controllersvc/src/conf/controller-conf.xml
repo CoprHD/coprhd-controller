@@ -566,10 +566,15 @@
 	</property>  
 	<property name="dbClient" ref="dbclient"/>
     </bean>
-
-    <bean id="objectapifactory" class="com.emc.storageos.object.api.ObjectApiFactory"
+        
+	<bean id="ecsDevice" class="com.emc.storageos.volumecontroller.impl.ecs.ECSObjectStorageDevice">
+		<property name="ecsApiFactory" ref="escapifactory">
+		</property>
+	</bean>
+  
+    <bean id="ecsapifactory" class="com.emc.storageos.ecs.api.ECSApiFactory"
           init-method="init"/>
-
+  
     <bean id="datadomainfactory" class="com.emc.storageos.datadomain.restapi.DataDomainClientFactory"
           init-method="init" destroy-method="shutdown">
         <property name="connectionTimeoutMs" value="30000"/>
@@ -721,8 +726,12 @@
     </bean>
 
     <bean id="objectDeviceController" class="com.emc.storageos.volumecontroller.impl.ObjectDeviceController">
+        <property name="devices">
+            <map>
+                <entry key="ecs" value-ref="ecsDevice"/>
+            </map>
+         </property>
         <property name="dbClient" ref="dbclient"/>
-        <property name="objectApiFactory" ref="objectapifactory"/>
     </bean>
 
     <bean id="computeSystemController" class="com.emc.storageos.computesystemcontroller.impl.ComputeSystemControllerImpl">

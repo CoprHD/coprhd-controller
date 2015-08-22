@@ -3,12 +3,13 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <bean id="objectapifactory" class="com.emc.storageos.object.api.ObjectApiFactory"
+    <bean id="ecs"
+        class="com.emc.storageos.volumecontroller.impl.plugins.ECSCommunicationInterface">
+        <property name="ecsApiFactory" ref="ecsapifactory" />
+    </bean>
+    
+    <bean id="ecsapifactory" class="com.emc.storageos.ecs.api.ECSApiFactory"
         init-method="init" >
     </bean>
 
-    <bean id="object"
-        class="com.emc.storageos.volumecontroller.impl.plugins.ObjectCommunicationInterface">
-        <property name="ObjectApiFactory" ref="objectapifactory" />
-    </bean>
 </beans>

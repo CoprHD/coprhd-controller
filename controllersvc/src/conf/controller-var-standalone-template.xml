@@ -14,6 +14,7 @@
                        value="rmi://${node_name}:10099/BlockExportController"/>
                 <entry key="BlockOrchestrationController" value="rmi://${node_name}:10099/BlockOrchestrationController"/>
                 <entry key="ComputeSystemController" value="rmi://localhost:10099/ComputeSystemController"/>
+                <entry key="ObjectController" value="rmi://${node_name}:10099/ObjectController"/>
             </map>
         </property>
         <property name="version" value="1"/>
@@ -43,6 +44,7 @@
                 <value>vcenter</value>
                 <value>scaleio</value>
                 <value>xtremio</value>
+                <value>ecs</value>
             </set>
         </property>
     </bean>

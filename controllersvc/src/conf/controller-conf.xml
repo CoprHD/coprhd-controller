@@ -568,7 +568,7 @@
     </bean>
         
 	<bean id="ecsDevice" class="com.emc.storageos.volumecontroller.impl.ecs.ECSObjectStorageDevice">
-		<property name="ecsApiFactory" ref="escapifactory">
+		<property name="ecsApiFactory" ref="ecsapifactory">
 		</property>
 	</bean>
   

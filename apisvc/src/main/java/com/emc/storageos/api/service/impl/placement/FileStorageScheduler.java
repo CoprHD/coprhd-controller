@@ -13,30 +13,30 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.StorageProtocol;
-import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.vNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * StorageScheduler service for block and file storage. StorageScheduler is done based on desired
@@ -92,192 +92,194 @@ public class FileStorageScheduler {
     }
 
     private List<FileRecommendation> getRecommendedStoragePortsForVNAS(VirtualPool vPool,
-			List<Recommendation> poolRecommendations, Project project) {
-    	
+            List<Recommendation> poolRecommendations, Project project) {
+
         List<FileRecommendation> result = new ArrayList<FileRecommendation>();
-        
+
         _log.debug("Get matching recommendations based on assigned VNAS in project {}", project);
-        
+
         for (Recommendation recommendation : poolRecommendations) {
             FileRecommendation rec = new FileRecommendation(recommendation);
             URI storageUri = recommendation.getSourceDevice();
-            
+
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageUri);
-            
-            if(Type.vnxfile.toString().equals(storage.getSystemType())) {
-            	
-            	_log.debug("Getting the storage ports of VNAS servers assigned to the project");
-            	List<StoragePort> storagePortList = getStoragePortsOfHAvNAS(project, vPool.getProtocols());
-            	
-            	if(storagePortList !=null && !storagePortList.isEmpty()) {
-            		
-            		List<URI> spURIList = new ArrayList<URI>();
-            		
-            		for(StoragePort sp: storagePortList) {
-            			spURIList.add(sp.getId());
-            		}
-            		rec.setStoragePorts(spURIList);
-            		result.add(rec);
-            	}
+
+            if (Type.vnxfile.toString().equals(storage.getSystemType())) {
+
+                _log.debug("Getting the storage ports of VNAS servers assigned to the project");
+                List<StoragePort> storagePortList = getStoragePortsOfHAvNAS(project, vPool.getProtocols());
+
+                if (storagePortList != null && !storagePortList.isEmpty()) {
+
+                    List<URI> spURIList = new ArrayList<URI>();
+
+                    for (StoragePort sp : storagePortList) {
+                        spURIList.add(sp.getId());
+                    }
+                    rec.setStoragePorts(spURIList);
+                    result.add(rec);
+                }
             } else {
-            	result.add(rec);
+                result.add(rec);
             }
-        
+
         }
-		return result;
-	}
+        return result;
+    }
 
-	private List<StoragePort> getStoragePortsOfHAvNAS(Project project, StringSet protocols) {
-		
-		List<StoragePort> portList = new ArrayList<StoragePort>();
-		
-		List<VirtualNAS> vNASList = getActiveVNASList(project);
-		
-		if(vNASList!=null && !vNASList.isEmpty()) {
-			
-			for (Iterator<VirtualNAS> iterator = vNASList.iterator(); iterator.hasNext();) {
-				VirtualNAS virtualNAS = iterator.next();
-				StringSet supportedProtocols = virtualNAS.getProtocols();
-				if (supportedProtocols == null || !supportedProtocols.contains(protocols)) {
-					_log.debug("Removing vNAS {} as it not supporting protocol(s) {}",
-							virtualNAS.getNasName(), protocols);
-					iterator.remove();
-				}
-	        }
-			
-			if(!vNASList.isEmpty()) {
-				
-				/* Get average percentage busy values of vNAS servers. 
-				* Choose the one which is least busy */
-				
-				VirtualNAS bestPerformingVNAS = getTheLeastUsedVNAS(vNASList);
-				
-				portList =  getAssociatedStoragePorts(bestPerformingVNAS);
-				Collections.sort(portList, new Comparator<StoragePort>() {
-	
-					@Override
-					public int compare(StoragePort sp1, StoragePort sp2) {
-						final String PORT_USED_PERCENTAGE = "PORT_USED_PERCENTAGE";
-						if(sp1.getMetrics()!=null && sp2.getMetrics()!=null) {
-							
-							String sp1UsedPercent = sp1.getMetrics().get(PORT_USED_PERCENTAGE);
-							String sp2UsedPercent = sp2.getMetrics().get(PORT_USED_PERCENTAGE);
-							
-							if(sp1UsedPercent != null && sp2UsedPercent != null) {
-								return Double.valueOf(sp1UsedPercent)
-										.compareTo(Double.valueOf(sp2UsedPercent));
-							}
-						}
-						return 0;
-					}
-				});
-			}
-		}
-		return portList;
-	}
-	
-	private List<StoragePort> getAssociatedStoragePorts(
-			VirtualNAS vNAS) {
-		StringSet spIdSet = vNAS.getStoragePorts();
-		
-		List<URI> spURIList = new ArrayList<URI>();
-		if(spIdSet!=null && !spIdSet.isEmpty()) {
-			for(String id: spIdSet) {
-				spURIList.add(URI.create(id));
-			}
-		}
-		
-		List<StoragePort> spList = _dbClient.queryObject(StoragePort.class, spURIList);
-		
-		if(spIdSet!=null && !spList.isEmpty()) {
-			for (Iterator<StoragePort> iterator = spList.iterator(); iterator.hasNext();) {
-				StoragePort storagePort = iterator.next();
-				
-				if (storagePort.getInactive() ||
-						storagePort.getTaggedVirtualArrays() == null ||
-	                    !RegistrationStatus.REGISTERED.toString()
-	                            .equalsIgnoreCase(storagePort.getRegistrationStatus()) ||
-	                    (StoragePort.OperationalStatus.valueOf(storagePort.getOperationalStatus()))
-	                            .equals(StoragePort.OperationalStatus.NOT_OK) ||
-	                    !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
-	                            .equals(storagePort.getCompatibilityStatus()) ||
-	                    !DiscoveryStatus.VISIBLE.name().equals(storagePort.getDiscoveryStatus())) {
-					
-					iterator.remove();
-	            }
-				
-			}
-		}
-		
-		return spList;
-		
-	}
+    private List<StoragePort> getStoragePortsOfHAvNAS(Project project, StringSet protocols) {
 
-	private VirtualNAS getTheLeastUsedVNAS(List<VirtualNAS> vNASList) {
-		
-		//Uses value of AVG_PERCENATAGE_USED
-		
-		final String AVG_PERCENATAGE_USED_PARAM = "AVG_PERCENATAGE_USED";
-		
-		Collections.sort(vNASList, new Comparator<VirtualNAS>() {
+        List<StoragePort> portList = new ArrayList<StoragePort>();
 
-			@Override
-			public int compare(VirtualNAS v1, VirtualNAS v2) {
-				
-				Double avgPercentUsedV1 = Double.valueOf(v1.getMetrics().get(AVG_PERCENATAGE_USED_PARAM));
-				Double avgPercentUsedV2 = Double.valueOf(v2.getMetrics().get(AVG_PERCENATAGE_USED_PARAM));
-				return avgPercentUsedV1.compareTo(avgPercentUsedV2);
-			}
-		});
-		
-		return vNASList.get(0);
-	}
+        List<VirtualNAS> vNASList = getActiveVNASList(project);
 
-	private List<VirtualNAS> getActiveVNASList(Project project) {
-		
-		List<VirtualNAS> vNASList = null;
-		
-		_log.debug("Get VNAS servers assigned to project {}", project);
-		
-		StringSet vNASServerIdSet = project.getAssignedVNasServers();
-		
-		if(vNASServerIdSet!=null && !vNASServerIdSet.isEmpty()) {
-			
-			_log.debug("Number of vNAS servers assigned to this project: {}", 
-					vNASServerIdSet.size());
-			
-			List<URI> vNASURIList = new ArrayList<URI>(); 
-			for(String vNASId : vNASServerIdSet) {
-				vNASURIList.add(URI.create(vNASId));
-			}
-			
-			vNASList = _dbClient.queryObject(VirtualNAS.class, vNASURIList);
-			
-			for (Iterator<VirtualNAS> iterator = vNASList.iterator(); iterator.hasNext();) {
-				VirtualNAS virtualNAS = iterator.next();
-				
-				// Remove inactive, incompatible, invisible vNAS 
-				
-				if (virtualNAS.getInactive() ||
-						virtualNAS.getTaggedVirtualArrays() == null ||
-	                    !RegistrationStatus.REGISTERED.toString()
-	                            .equalsIgnoreCase(virtualNAS.getRegistrationStatus()) ||
-	                    !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
-	                            .equals(virtualNAS.getCompatibilityStatus()) ||
-	                    !vNasState.LOADED.getNasState().equals(virtualNAS.getVNasState()) ||
-	                    !DiscoveryStatus.VISIBLE.name().equals(virtualNAS.getDiscoveryStatus())) {
-					iterator.remove();
-	            }
-				
-			}
-			
-		}
-		
-		return vNASList;
-		
-	}
+        if (vNASList != null && !vNASList.isEmpty()) {
 
-	/**
+            for (Iterator<VirtualNAS> iterator = vNASList.iterator(); iterator.hasNext();) {
+                VirtualNAS virtualNAS = iterator.next();
+                StringSet supportedProtocols = virtualNAS.getProtocols();
+                if (supportedProtocols == null || !supportedProtocols.contains(protocols)) {
+                    _log.debug("Removing vNAS {} as it not supporting protocol(s) {}",
+                            virtualNAS.getNasName(), protocols);
+                    iterator.remove();
+                }
+            }
+
+            if (!vNASList.isEmpty()) {
+
+                /*
+                 * Get average percentage busy values of vNAS servers.
+                 * Choose the one which is least busy
+                 */
+
+                VirtualNAS bestPerformingVNAS = getTheLeastUsedVNAS(vNASList);
+
+                portList = getAssociatedStoragePorts(bestPerformingVNAS);
+                Collections.sort(portList, new Comparator<StoragePort>() {
+
+                    @Override
+                    public int compare(StoragePort sp1, StoragePort sp2) {
+                        final String PORT_USED_PERCENTAGE = "PORT_USED_PERCENTAGE";
+                        if (sp1.getMetrics() != null && sp2.getMetrics() != null) {
+
+                            String sp1UsedPercent = sp1.getMetrics().get(PORT_USED_PERCENTAGE);
+                            String sp2UsedPercent = sp2.getMetrics().get(PORT_USED_PERCENTAGE);
+
+                            if (sp1UsedPercent != null && sp2UsedPercent != null) {
+                                return Double.valueOf(sp1UsedPercent)
+                                        .compareTo(Double.valueOf(sp2UsedPercent));
+                            }
+                        }
+                        return 0;
+                    }
+                });
+            }
+        }
+        return portList;
+    }
+
+    private List<StoragePort> getAssociatedStoragePorts(
+            VirtualNAS vNAS) {
+        StringSet spIdSet = vNAS.getStoragePorts();
+
+        List<URI> spURIList = new ArrayList<URI>();
+        if (spIdSet != null && !spIdSet.isEmpty()) {
+            for (String id : spIdSet) {
+                spURIList.add(URI.create(id));
+            }
+        }
+
+        List<StoragePort> spList = _dbClient.queryObject(StoragePort.class, spURIList);
+
+        if (spIdSet != null && !spList.isEmpty()) {
+            for (Iterator<StoragePort> iterator = spList.iterator(); iterator.hasNext();) {
+                StoragePort storagePort = iterator.next();
+
+                if (storagePort.getInactive() ||
+                        storagePort.getTaggedVirtualArrays() == null ||
+                        !RegistrationStatus.REGISTERED.toString()
+                                .equalsIgnoreCase(storagePort.getRegistrationStatus()) ||
+                        (StoragePort.OperationalStatus.valueOf(storagePort.getOperationalStatus()))
+                                .equals(StoragePort.OperationalStatus.NOT_OK) ||
+                        !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
+                                .equals(storagePort.getCompatibilityStatus()) ||
+                        !DiscoveryStatus.VISIBLE.name().equals(storagePort.getDiscoveryStatus())) {
+
+                    iterator.remove();
+                }
+
+            }
+        }
+
+        return spList;
+
+    }
+
+    private VirtualNAS getTheLeastUsedVNAS(List<VirtualNAS> vNASList) {
+
+        // Uses value of AVG_PERCENATAGE_USED
+
+        final String AVG_PERCENATAGE_USED_PARAM = "AVG_PERCENATAGE_USED";
+
+        Collections.sort(vNASList, new Comparator<VirtualNAS>() {
+
+            @Override
+            public int compare(VirtualNAS v1, VirtualNAS v2) {
+
+                Double avgPercentUsedV1 = Double.valueOf(v1.getMetrics().get(AVG_PERCENATAGE_USED_PARAM));
+                Double avgPercentUsedV2 = Double.valueOf(v2.getMetrics().get(AVG_PERCENATAGE_USED_PARAM));
+                return avgPercentUsedV1.compareTo(avgPercentUsedV2);
+            }
+        });
+
+        return vNASList.get(0);
+    }
+
+    private List<VirtualNAS> getActiveVNASList(Project project) {
+
+        List<VirtualNAS> vNASList = null;
+
+        _log.debug("Get VNAS servers assigned to project {}", project);
+
+        StringSet vNASServerIdSet = project.getAssignedVNasServers();
+
+        if (vNASServerIdSet != null && !vNASServerIdSet.isEmpty()) {
+
+            _log.debug("Number of vNAS servers assigned to this project: {}",
+                    vNASServerIdSet.size());
+
+            List<URI> vNASURIList = new ArrayList<URI>();
+            for (String vNASId : vNASServerIdSet) {
+                vNASURIList.add(URI.create(vNASId));
+            }
+
+            vNASList = _dbClient.queryObject(VirtualNAS.class, vNASURIList);
+
+            for (Iterator<VirtualNAS> iterator = vNASList.iterator(); iterator.hasNext();) {
+                VirtualNAS virtualNAS = iterator.next();
+
+                // Remove inactive, incompatible, invisible vNAS
+
+                if (virtualNAS.getInactive() ||
+                        virtualNAS.getTaggedVirtualArrays() == null ||
+                        !RegistrationStatus.REGISTERED.toString()
+                                .equalsIgnoreCase(virtualNAS.getRegistrationStatus()) ||
+                        !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
+                                .equals(virtualNAS.getCompatibilityStatus()) ||
+                        !vNasState.LOADED.getNasState().equals(virtualNAS.getVNasState()) ||
+                        !DiscoveryStatus.VISIBLE.name().equals(virtualNAS.getDiscoveryStatus())) {
+                    iterator.remove();
+                }
+
+            }
+
+        }
+
+        return vNASList;
+
+    }
+
+    /**
      * Select storage port for exporting file share to the given client.
      * One IP transport zone per varray.
      * Selects only one storage port for all exports of a file share

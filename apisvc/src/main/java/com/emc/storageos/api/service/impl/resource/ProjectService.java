@@ -825,18 +825,14 @@ public class ProjectService extends TaggedResource {
                 URI vnasURI = URI.create(id);
                 VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
 
-                // Check list of VNAS servers are part of varray
-//                if (vnas.getTaggedVirtualArrays() != null && !vnas.getTaggedVirtualArrays().isEmpty()) {
-
-                    // Check list of vNAS servers are not tagged with any project
-                    // Check list of vNAS servers are in loaded state
-                    if (vnas.getProject() == null && vnas.getVNasState().equalsIgnoreCase(vNasState.LOADED.getNasState())) {
-                        validNas.add(id);
-                        vnas.setProject(project.getId());
-                        _dbClient.persistObject(vnas);
-                        _log.info("VNAS server {} successfully assigned to project {} ", vnas.getLabel(), project.getLabel());
-                    }
-//                }
+                // Check list of vNAS servers are not tagged with any project
+                // Check list of vNAS servers are in loaded state
+                if (vnas.getProject() == null && vnas.getVNasState().equalsIgnoreCase(vNasState.LOADED.getNasState())) {
+                    validNas.add(id);
+                    vnas.setProject(project.getId());
+                    _dbClient.persistObject(vnas);
+                    _log.info("VNAS server {} successfully assigned to project {} ", vnas.getLabel(), project.getLabel());
+                }
             }
         }
 

@@ -29,9 +29,9 @@ import java.util.*;
 
 /**
  * 
- * ApiTest_UserGroup class to exercise the core api functionality of User Group.
+ * ApiTestUserGroup class to exercise the core api functionality of User Group.
  */
-public class ApiTest_UserGroup extends ApiTestBase {
+public class ApiTestUserGroup extends ApiTestBase {
     private final String TEST_API = "/vdc/admin/user-groups";
     private final String TEST_EDIT_API = TEST_API + "/%s";
     private final String TEST_BULK_API = TEST_API + "/bulk";
@@ -48,8 +48,8 @@ public class ApiTest_UserGroup extends ApiTestBase {
     private final String[] TEST_DEFAULT_ACLS = { "ALL", "BACKUP", "USE", "OWN" };
 
     private String authnProviderDomain = null;
-    private ApiTest_AuthnProviderUtils apiTestAuthnProviderUtils = new ApiTest_AuthnProviderUtils();;
-    private ApiTest_Tenants apiTestTenants = new ApiTest_Tenants();
+    private ApiTestAuthnProviderUtils apiTestAuthnProviderUtils = new ApiTestAuthnProviderUtils();;
+    private ApiTestTenants apiTestTenants = new ApiTestTenants();
     private LinkedList<CleanupResource> _cleanupResourceList = null;
 
     @Before
@@ -57,8 +57,8 @@ public class ApiTest_UserGroup extends ApiTestBase {
         setupHttpsResources();
         _cleanupResourceList = new LinkedList<CleanupResource>();
 
-        apiTestAuthnProviderUtils = new ApiTest_AuthnProviderUtils();
-        apiTestTenants = new ApiTest_Tenants();
+        apiTestAuthnProviderUtils = new ApiTestAuthnProviderUtils();
+        apiTestTenants = new ApiTestTenants();
         apiTestTenants.rootTenantId = rootTenantId;
     }
 

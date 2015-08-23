@@ -18,11 +18,11 @@ import java.util.Set;
 
 /**
  * 
- * ApiTest_AuthnProviderUtils an utility class to create the
+ * ApiTestAuthnProviderUtils an utility class to create the
  * default authnprovider config that can be used by all the
  * other tests.
  */
-public class ApiTest_AuthnProviderUtils {
+public class ApiTestAuthnProviderUtils {
     private final String AUTHN_PROVIDER_BASE_URL = "/vdc/admin/authnproviders";
     private final String AUTHN_PROVIDER_EDIT_URL = AUTHN_PROVIDER_BASE_URL + "/%s";
 

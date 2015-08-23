@@ -21,17 +21,17 @@ import java.util.*;
 
 /**
  * 
- * ApiTest_AuthnProviders class to exercise the core api functionality of Authentication Providers.
+ * ApiTestAuthnProviders class to exercise the core api functionality of Authentication Providers.
  */
-public class ApiTest_AuthnProviders extends ApiTestBase {
+public class ApiTestAuthnProviders extends ApiTestBase {
     private LinkedList<CleanupResource> _cleanupResourceList = null;
-    ApiTest_AuthnProviderUtils apiTestAuthnProviderUtils = new ApiTest_AuthnProviderUtils();;
+    ApiTestAuthnProviderUtils apiTestAuthnProviderUtils = new ApiTestAuthnProviderUtils();;
 
     @Before
     public void setUp() throws Exception {
         setupHttpsResources();
         _cleanupResourceList = new LinkedList<CleanupResource>();
-        apiTestAuthnProviderUtils = new ApiTest_AuthnProviderUtils();
+        apiTestAuthnProviderUtils = new ApiTestAuthnProviderUtils();
     }
 
     @After

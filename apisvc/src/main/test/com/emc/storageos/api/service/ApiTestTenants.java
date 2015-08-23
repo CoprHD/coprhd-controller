@@ -29,9 +29,9 @@ import java.util.List;
 
 /**
  * 
- * ApiTest_Tenants class to exercise the core api functionality of Tenants Service.
+ * ApiTestTenants class to exercise the core api functionality of Tenants Service.
  */
-public class ApiTest_Tenants extends ApiTestBase {
+public class ApiTestTenants extends ApiTestBase {
     private final String TEST_ROOT_TENANT_BASEURL = "/tenants/" + "%s";
     private final String TEST_API = "%s" + "/subtenants";
     private final String TEST_EDIT_API = TEST_ROOT_TENANT_BASEURL;
@@ -51,14 +51,14 @@ public class ApiTest_Tenants extends ApiTestBase {
     private final static String[] DEFAULT_TEST_TENANT_ROLES = { "TENANT_ADMIN", "PROJECT_ADMIN", "TENANT_APPROVER" };
 
     private LinkedList<CleanupResource> _cleanupResourceList = null;
-    private ApiTest_AuthnProviderUtils apiTestAuthnProviderUtils = new ApiTest_AuthnProviderUtils();
+    private ApiTestAuthnProviderUtils apiTestAuthnProviderUtils = new ApiTestAuthnProviderUtils();
 
     @Before
     public void setUp() throws Exception {
         setupHttpsResources();
 
         _cleanupResourceList = new LinkedList<CleanupResource>();
-        apiTestAuthnProviderUtils = new ApiTest_AuthnProviderUtils();
+        apiTestAuthnProviderUtils = new ApiTestAuthnProviderUtils();
     }
 
     @After

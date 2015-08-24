@@ -7,14 +7,16 @@ package controllers.arrays;
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
+import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import models.BlockProtocols;
 import models.PoolTypes;
 import models.RegistrationStatus;
@@ -26,6 +28,8 @@ import models.datatable.StoragePortDataTable;
 import models.datatable.StoragePortDataTable.StoragePortInfo;
 import models.datatable.StorageSystemDataTable;
 import models.datatable.StorageSystemDataTable.StorageSystemInfo;
+import models.datatable.VirtualNasServerDataTable;
+import models.datatable.VirtualNasServerDataTable.VirtualNasServerInfo;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -47,6 +51,7 @@ import util.StringOption;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
@@ -54,12 +59,16 @@ import com.emc.storageos.model.pools.StoragePoolUpdate;
 import com.emc.storageos.model.ports.StoragePortRequestParam;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.ports.StoragePortUpdate;
+import com.emc.storageos.model.project.AssignVNASParam;
+import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.smis.StorageProviderRestRep;
 import com.emc.storageos.model.systems.StorageSystemRequestParam;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.systems.StorageSystemUpdateRequestParam;
 import com.emc.storageos.model.valid.Endpoint;
+import com.emc.storageos.model.vnas.VirtualNASRestRep;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.google.common.collect.Lists;
 
 import controllers.Common;
@@ -67,6 +76,7 @@ import controllers.arrays.StorageProviders.StorageProviderForm;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
+import controllers.util.Models;
 import controllers.util.ViprResourceController;
 
 @With(Common.class)
@@ -249,6 +259,7 @@ public class StorageSystems extends ViprResourceController {
         }
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
+    
 
     public static void metricDetails(String id) {
         StoragePortRestRep port = StoragePortUtils.getStoragePort(id);
@@ -353,6 +364,64 @@ public class StorageSystems extends ViprResourceController {
             dataTable.configureForFile();
         }
         render("@listPools", storageSystem, dataTable);
+    }
+    public static void virtualNasServers(String id) {
+        addReferenceData();
+
+        StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(id);
+        VirtualNasServerDataTable dataTable = new VirtualNasServerDataTable();
+        
+        render("@listVirtualNasServers", storageSystem, dataTable);
+    }
+    
+    public static void associateProject(String nasIds, String projectId, String storageId ){
+       String proj = projectId;
+       Set<String> vnasServers = new TreeSet<String>();
+       if(nasIds!=null && !nasIds.isEmpty()){
+          String[] nasArray = nasIds.split(",");
+          Collections.addAll(vnasServers,nasArray);
+       }
+       AssignVNASParam vNasParam = new AssignVNASParam();
+       vNasParam.setVnasServers(vnasServers);
+       
+       try {
+    	   Task<VirtualNASRestRep> resp = getViprClient().virtualNasServers().assignVnasServers(uri(projectId), vNasParam);
+	} catch (Exception e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+       //virtualNasServers(storageId);
+    }
+    
+    public static void virtualNasServersJson(String storageId) {
+        List<VirtualNasServerInfo> results = Lists.newArrayList();
+        List<VirtualNASRestRep> vNasServers = getViprClient().virtualNasServers().getByStorageSystem(uri(storageId));
+        for (VirtualNASRestRep vNasServer : vNasServers) {
+            results.add(new VirtualNasServerInfo(vNasServer));
+        }
+        renderArgs.put("storageId", storageId);
+        renderJSON(DataTablesSupport.createJSON(results, params));
+    }
+    
+    public static void getProjectsForNas(){
+        String tenantId = Models.currentAdminTenant();
+        List<ProjectRestRep> projects = getViprClient().projects().getByTenant(uri(tenantId));
+        List<StringOption> projectOptions = Lists.newArrayList();
+        for(ProjectRestRep project : projects){
+            projectOptions.add(new StringOption(project.getId().toString(), project.getName()));
+        }
+        renderJSON(projectOptions);
+    }
+   
+    public static void vNasMoreDetails(String id){
+        List<URI> ids = Lists.newArrayList();
+        ids.add(uri(id));
+        List<VirtualNASRestRep> vNasRep = getViprClient().virtualNasServers().getByIds(ids);
+        VirtualNASRestRep vNas = new VirtualNASRestRep();
+        if (!vNasRep.isEmpty()){
+           vNas = vNasRep.get(0);
+        }
+        render(vNas);
     }
 
     public static void editPool(String id, String poolId) {

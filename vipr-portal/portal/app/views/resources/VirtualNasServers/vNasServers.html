@@ -1,0 +1,10 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.storage', 'nav.file.vnasservers'] /}
+
+#{Resources.projectsControl projects:projects /}
+
+#{DataTable.header titleKey:'nav.file.vnasservers' /}
+#{DataTable.table id:'vNasServers', 
+                  dataTable:dataTable,
+                  source:@virtualNasServersJson(session.activeProjectId)}
+#{/DataTable.table}     

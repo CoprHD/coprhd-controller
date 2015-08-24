@@ -1,0 +1,26 @@
+<div class="metricDetails">
+	<div class="col-md-2 col-sm-3 col-xs-6">
+	  <dl>
+		  <dt>&{'vNasServers.dynamicLoad'}</dt>
+		  <dd>${vNas?.parentNASURI != null? vNas?.parentNASURI : messages.get('StoragePortDataTable.notApplicable') }</dd>
+	  </dl>
+	</div>
+	<div class="col-md-2 col-sm-3 col-xs-6">
+	  <dl>
+		  <dt>&{'vNasServers.staticLoad'}</dt>
+		  <dd>${vNas?.storageDomain != null? vNas?.storageDomain : messages.get('StoragePortDataTable.notApplicable') }</dd>
+	  </dl>
+	</div>
+	<div class="col-md-2 col-sm-3 col-xs-6">
+	  <dl>
+		  <!-- <dt>&{'vNasServers.vNasType'}</dt>
+		  <dd>${vNas?.vNasType != null? vNas?.vNasType : messages.get('StoragePortDataTable.notApplicable') }</dd> -->
+	  </dl>
+	</div>
+	<div class="col-md-2 col-sm-3 col-xs-6">
+	  <dl>
+		  <!-- <dt>&{'vNasServers.compatibilityStatus'}</dt>
+		  <dd>${vNas?.compatibilityStatus != null? vNas?.compatibilityStatus : messages.get('StoragePortDataTable.notApplicable') }</dd> -->
+	  </dl>
+	</div>
+</div>

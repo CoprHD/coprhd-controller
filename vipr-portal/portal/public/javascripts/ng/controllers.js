@@ -392,6 +392,16 @@ angular.module("portalApp").controller({
     	    $scope.$apply();
        }
     },
+    AssociateProjectCtrl: function($scope, $http, $window, translate) {
+    	$scope.populateModal = function(ids) {
+    		$scope.nasIds = ids;
+            $http.get(routes.StorageSystems_getProjectsForNas()).success(function(data) {
+            	$scope.projectOptions = data;
+            });
+            
+    	    $scope.$apply();
+       }
+    },
     FileQuotaCtrl: function($scope, $http, $filter, translate) {
         $scope.securityOptions = [{id:"unix", name:translate('resources.filesystem.quota.security.unix')}, 
                                   {id:"ntfs", name:translate('resources.filesystem.quota.security.ntfs')},

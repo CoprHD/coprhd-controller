@@ -157,8 +157,8 @@ public class MailHelper {
         Properties javaMailProperties = new Properties();
         javaMailProperties.setProperty("mail.smtp.host", smtpServer);
         javaMailProperties.setProperty("mail.smtp.connectiontimeout", SMTP_CONNECTION_TIMEOUT);
-        javaMailProperties.setProperty("mail.smtp.timeout", SMTP_WRITE_TIMEOUT);
-        javaMailProperties.setProperty("mail.smtp.writetimeout", SMTP_READ_TIMEOUT);
+        javaMailProperties.setProperty("mail.smtp.timeout", SMTP_READ_TIMEOUT);
+        javaMailProperties.setProperty("mail.smtp.writetimeout", SMTP_WRITE_TIMEOUT);
 
         if (enableTls) {
             javaMailProperties.setProperty("mail.smtp.channel", "starttls");

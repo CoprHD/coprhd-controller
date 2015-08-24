@@ -40,6 +40,7 @@
                 <bean class="com.emc.storageos.auth.service.impl.resource.AuthenticationResource" />
                 <bean class="com.emc.storageos.auth.service.impl.resource.PrincipalValidatorResource" />
                 <bean class="com.emc.storageos.auth.service.impl.resource.ReloadProviderResource" />
+                <bean class="com.emc.storageos.auth.service.impl.resource.ReloadAuthsvcPropertyResource" />
                 <bean class="com.emc.storageos.auth.service.impl.resource.UserTenantResource" />
                 <bean class="com.emc.storageos.svcs.errorhandling.mappers.ServiceCodeExceptionMapper"/>
                 <bean class="com.emc.storageos.auth.service.impl.resource.AuthnProviderValidatorResource">

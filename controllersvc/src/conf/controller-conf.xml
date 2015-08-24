@@ -571,7 +571,7 @@
     	  init-method="init" destroy-method="shutdown"/>
 
 	<bean id="ecsDevice" class="com.emc.storageos.volumecontroller.impl.ecs.ECSObjectStorageDevice">
-		<property name="ecsApiFactory" ref="ecsapifactory">
+		<property name="ECSApiFactory" ref="ecsapifactory">
 		</property>
 	<property name="dbClient" ref="dbclient"/>
 	</bean>

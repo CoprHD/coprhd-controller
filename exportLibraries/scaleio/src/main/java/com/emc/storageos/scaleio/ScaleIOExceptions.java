@@ -29,4 +29,13 @@ public interface ScaleIOExceptions {
 
     @DeclareServiceCode(ServiceCode.SCALEIO_CLI_INIT_WAS_NOT_CALLED)
     public ScaleIOException initWasNotCalled();
+    
+    @DeclareServiceCode(ServiceCode.SCALEIO_API_FAILURE)
+    public ScaleIOException authenticationFailure(String uri) ;
+    
+    @DeclareServiceCode(ServiceCode.SCALEIO_API_FAILURE)
+    public ScaleIOException resourceNotFound(String uri);
+    
+    @DeclareServiceCode(ServiceCode.SCALEIO_API_FAILURE)
+    public ScaleIOException internalError(String uri, String error);
 }

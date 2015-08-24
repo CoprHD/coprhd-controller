@@ -37,7 +37,7 @@ public class TestDBClientUtils {
         addresses.put("localhost", dualInetAddress);
 
         CoordinatorClientInetAddressMap map = new CoordinatorClientInetAddressMap();
-        map.setNodeName("standalone");
+        map.setNodeId("standalone");
         map.setDualInetAddress(dualInetAddress);
         map.setControllerNodeIPLookupMap(addresses);
 

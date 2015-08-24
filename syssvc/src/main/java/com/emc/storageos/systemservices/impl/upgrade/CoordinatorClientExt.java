@@ -164,7 +164,7 @@ public class CoordinatorClientExt {
 
         try {
             String attr = state.getCoordinatorClassInfo().attribute;
-            _svc.setAttribute(attr,state.encodeAsString());
+            _svc.setAttribute(attr, state.encodeAsString());
             _beacon.publish();
         } catch (Exception e) {
             _log.error("set node scope info error:", e);
@@ -966,6 +966,31 @@ public class CoordinatorClientExt {
         }
 
         return nodeId;
+    }
+
+    /**
+     * The utility method to combine list of nodeIds and list of nodeNames into a single list of nodeIds
+     * Duplicate nodes are removed.
+     *
+     * @return nodeIds for mathing nodeNames and nodeIds combined
+     */
+    public List<String> combineNodeNamesWithNodeIds(List<String> nodeNames, List<String> nodeIds) {
+        if (!nodeNames.isEmpty()) {
+            //get nodeIds for node names
+            List<String> matchedIds = getMatchingNodeIds(nodeNames);
+
+            if (matchedIds.size() != nodeNames.size()){
+                throw APIException.badRequests.parameterIsNotValid("node name");
+            }
+
+            //join list with nodeIds passed
+            for (String id : matchedIds){
+                if (!nodeIds.contains(id))
+                    nodeIds.add(id);
+            }
+        }
+
+        return nodeIds;
     }
 
     /**

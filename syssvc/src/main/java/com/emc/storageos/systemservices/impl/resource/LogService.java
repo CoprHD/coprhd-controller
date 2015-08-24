@@ -156,17 +156,7 @@ public class LogService extends BaseLogSvcResource {
         final MediaType mediaType = getMediaType();
         _log.info("Logs request media type {}",mediaType);
 
-        //get nodeIds for node names
-        List<String> matchedIds = _coordinatorClientExt.getMatchingNodeIds(nodeNames);
-        if (matchedIds.size() != nodeNames.size()){
-            throw APIException.badRequests.parameterIsNotValid("node name");
-        }
-
-        //join list with nodeIds passed
-        for (String id : matchedIds){
-            if (!nodeIds.contains(id))
-                nodeIds.add(id);
-        }
+        nodeIds=_coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames,nodeIds);
 
         // Validate the passed node ids.
         validateNodeIds(nodeIds);
@@ -351,17 +341,7 @@ public class LogService extends BaseLogSvcResource {
         MediaType mediaType = getMediaType();
         _log.debug("Get MediaType in header");
 
-        //get nodeIds for node names
-        List<String> matchedIds = _coordinatorClientExt.getMatchingNodeIds(nodeNames);
-        if (matchedIds.size() != nodeNames.size()){
-            throw APIException.badRequests.parameterIsNotValid("node name");
-        }
-
-        //join list with nodeIds passed
-        for (String id : matchedIds){
-            if (!nodeIds.contains(id))
-                nodeIds.add(id);
-        }
+        nodeIds=_coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames,nodeIds);
 
         // Validate the passed node ids.
         validateNodeIds(nodeIds);
@@ -424,17 +404,7 @@ public class LogService extends BaseLogSvcResource {
         _log.debug("Get MediaType {} in header", mediaType);
 
         //get nodeIds for node names
-        List<String> nodeIds=param.getNodeIds();
-        List<String> matchedIds = _coordinatorClientExt.getMatchingNodeIds(param.getNodeNames());
-        if (matchedIds.size() != param.getNodeNames().size()){
-            throw APIException.badRequests.parameterIsNotValid("node name");
-        }
-
-        //join list with nodeIds passed
-        for (String id : matchedIds){
-            if (!nodeIds.contains(id))
-                nodeIds.add(id);
-        }
+        List<String> nodeIds=_coordinatorClientExt.combineNodeNamesWithNodeIds(param.getNodeNames(),param.getNodeIds());
         param.setNodeIds(nodeIds);
 
         // Validate the passed node ids.

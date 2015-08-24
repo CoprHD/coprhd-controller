@@ -129,16 +129,7 @@ public class HealthMonitorService extends BaseLogSvcResource {
                                  @QueryParam("interval") int interval,
                                  @QueryParam("node_name") List<String> nodeNames) {
 
-        if (!nodeNames.isEmpty()) {
-            //get nodeIds for node names
-            List<String> matchedIds = _coordinatorClientExt.getMatchingNodeIds(nodeNames);
-
-            //join list with nodeIds passed
-            for (String id : matchedIds){
-                if (!nodeIds.contains(id))
-                    nodeIds.add(id);
-            }
-        }
+        nodeIds=_coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames,nodeIds);
 
         _log.info("Retrieving stats for nodes. Requested node ids: {}", nodeIds);
 
@@ -197,16 +188,7 @@ public class HealthMonitorService extends BaseLogSvcResource {
         HealthRestRep healthRestRep = new HealthRestRep();
         List<NodeHealth> nodehealthList = healthRestRep.getNodeHealthList();
 
-        if (!nodeNames.isEmpty()) {
-            //get nodeIds for node names
-            List<String> matchedIds = _coordinatorClientExt.getMatchingNodeIds(nodeNames);
-
-            //join list with nodeIds passed
-            for (String id : matchedIds){
-                if (!nodeIds.contains(id))
-                    nodeIds.add(id);
-            }
-        }
+        nodeIds=_coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames,nodeIds);
 
         //Collecting data from all nodes
         List<NodeInfo> nodeInfoList = ClusterNodesUtil.getClusterNodeInfo(nodeIds);
@@ -271,16 +253,7 @@ public class HealthMonitorService extends BaseLogSvcResource {
                                              @QueryParam("node_name") List<String> nodeNames) {
         _log.info("Initiating diagnostics test for nodes");
 
-        if (!nodeNames.isEmpty()) {
-            //get nodeIds for node names
-            List<String> matchedIds = _coordinatorClientExt.getMatchingNodeIds(nodeNames);
-
-            //join list with nodeIds passed
-            for (String id : matchedIds){
-                if (!nodeIds.contains(id))
-                    nodeIds.add(id);
-            }
-        }
+        nodeIds=_coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames,nodeIds);
 
         boolean isVerbose = ("1".equals(verbose)) ? true : false;
         DiagRequestParams diagRequestParams = new DiagRequestParams(isVerbose);

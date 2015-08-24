@@ -37,13 +37,13 @@ public class UniqueNodeNameHandler implements UpdateHandler{
     public void before(PropertyInfoRestRep oldProps,PropertyInfoRestRep newProps){
         Map<String, String> propInfo = _coordinator.getPropertyInfo().getProperties();
 
-        //get all node name properties (# of these change depending on deployment)
+        // get all node name properties (# of these change depending on deployment)
         ArrayList<String> nodeNameProperties = getNodeNameProperties(propInfo);
 
         ArrayList<String> changedProperties = new ArrayList<String>();
         String uniqueShortNameValue = getLatestValue(USE_SHORT_NODE_NAME,newProps,propInfo);
 
-        //if unique short name is changed to true check all node name properties, otherwise check only changed
+        // if unique short name is changed to true check all node name properties, otherwise check only changed
         if (isProprotyChanged(oldProps,newProps,USE_SHORT_NODE_NAME) && uniqueShortNameValue.equalsIgnoreCase("true")) {
             changedProperties.addAll(nodeNameProperties);
         } else {
@@ -53,13 +53,32 @@ public class UniqueNodeNameHandler implements UpdateHandler{
                 }
             }
         }
-        //no changed node name properties then return
+        // no changed node name properties then return
         if (changedProperties.isEmpty()){
             return;
         }
 
+        // check that node names can't be confused with node id of other nodes
+        // ex: node name of vipr1 cannot be vipr2 but can be vipr1
+        // ex: standalone can have any name
+        for(String changedProp : changedProperties){
+            String changedValue=getLatestValue(changedProp,newProps,propInfo).toLowerCase();
+
+            // get node number from property (empty for standalone)
+            String nodeNum=changedProp.replaceAll("\\D+","");
+
+            // check if new value has name similar to node id and is not on standalone
+            if (changedValue.matches("vipr\\d+") && !nodeNum.isEmpty()){
+
+                // check that node name is not the same as it's node id (which would be ok)
+                if (!changedValue.equals("vipr"+nodeNum)){
+                    throw BadRequestException.badRequests.invalidNodeNameIsIdOfAnotherNode(changedProp,changedValue);
+                }
+            }
+        }
+
         if (uniqueShortNameValue.equalsIgnoreCase("true")){
-            //validates short names are unique (implies full hostname is unique as well)
+            // validates short names are unique (implies full hostname is unique as well)
             for(String changedProp : changedProperties){
                 String changedValue=getLatestValue(changedProp,newProps,propInfo).split("\\.")[0];
                 for(String prop : nodeNameProperties){
@@ -71,7 +90,7 @@ public class UniqueNodeNameHandler implements UpdateHandler{
                 }
             }
         } else {
-            //validates that full hostname is unique
+            // validates that full hostname is unique
             for(String changedProp : changedProperties){
                 String changedValue=getLatestValue(changedProp,newProps,propInfo);
                 for(String prop : nodeNameProperties){
@@ -126,7 +145,7 @@ public class UniqueNodeNameHandler implements UpdateHandler{
     private ArrayList<String> getNodeNameProperties(Map<String, String> propInfo) {
         ArrayList<String> nodeNameProperties = new ArrayList<String>();
 
-        //check if standalone otherwise generate properties based on node count
+        // check if standalone otherwise generate properties based on node count
         if (propInfo.containsKey(NODE_STANDALONE_NAME)) {
             nodeNameProperties.add(NODE_STANDALONE_NAME);
             return nodeNameProperties;

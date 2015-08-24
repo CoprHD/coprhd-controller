@@ -11,21 +11,20 @@ import org.apache.commons.httpclient.methods.PostMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.nas.vnxfile.xmlapi.LogicalDeviceType;
 import com.emc.nas.vnxfile.xmlapi.LogicalNetworkDevice;
-import com.emc.nas.vnxfile.xmlapi.MoverNetStats;
 import com.emc.nas.vnxfile.xmlapi.NameList;
 import com.emc.nas.vnxfile.xmlapi.NetworkDeviceSpeed;
 import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
 import com.emc.nas.vnxfile.xmlapi.Status;
-import com.emc.storageos.db.client.model.Stat;
-import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
 
-public class VNXDataMoverInterfaceProcessor extends VNXFileProcessor{
+public class VNXDataMoverInterfaceProcessor extends VNXFileProcessor {
     private final Logger _logger = LoggerFactory.getLogger(VNXDataMoverInterfaceProcessor.class);
+
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap) throws BaseCollectionException {
         // TODO Auto-generated method stub
@@ -34,47 +33,50 @@ public class VNXDataMoverInterfaceProcessor extends VNXFileProcessor{
         try {
             ResponsePacket responsePacket = (ResponsePacket) _unmarshaller
                     .unmarshal(result.getResponseBodyAsStream());
-            
+
             if (null != responsePacket.getPacketFault()) {
                 Status status = responsePacket.getPacketFault();
                 processErrorStatus(status, keyMap);
             } else {
-                
+
                 List<Object> queryResponse = getQueryResponse(responsePacket);
                 Iterator<Object> queryRespItr = queryResponse.iterator();
-                
+
                 LogicalNetworkDevice logicalNetworkDevice = null;
                 // this interface to pysical port map.
                 Map<String, List<String>> interPortMap = null;
-                
-                //this is mover to interportMap 
+
+                // this is mover to interportMap
                 Map<String, Map<String, List<String>>> moverInterMap = new HashMap<String, Map<String, List<String>>>();
                 Map<String, Map<String, String>> portSpeedMap = new HashMap<String, Map<String, String>>();
                 while (queryRespItr.hasNext()) {
                     Object responseObj = queryRespItr.next();
                     if (responseObj instanceof LogicalNetworkDevice) {
-                                                
+
                         logicalNetworkDevice = (LogicalNetworkDevice) responseObj;
-                                                
-                        //get logical device map
+
+                        // get logical device map
                         interPortMap = moverInterMap.get(logicalNetworkDevice.getMover());
-                                                           
-                        //process logical network device
+
+                        if (interPortMap == null) {
+                            interPortMap = new HashMap<String, List<String>>();
+                        }
+
+                        // process logical network device
                         processNetworkDevice(logicalNetworkDevice, interPortMap);
-                        
-                        //add to map <movername, Map<interfaceIP, List<physicalport>>
-                        if(!interPortMap.isEmpty()) {
+
+                        // add to map <movername, Map<interfaceIP, List<physicalport>>
+                        if (!interPortMap.isEmpty()) {
                             moverInterMap.put(logicalNetworkDevice.getMover(), interPortMap);
                         }
-                        
-                        //process logical network device speed
-                        //TDO
-                        
-                        
+
+                        // process logical network device speed
+                        // TDO
+
                     }
                 }
                 keyMap.put(VNXFileConstants.INTREFACE_PORT_MAP, moverInterMap);
-                //STORAGE_PORT_SPEED_MAP
+                // STORAGE_PORT_SPEED_MAP
                 keyMap.put(VNXFileConstants.LOGICAL_NETWORK_SPEED_MAP, portSpeedMap);
                 Header[] headers = result
                         .getResponseHeaders(VNXFileConstants.CELERRA_SESSION);
@@ -91,60 +93,57 @@ public class VNXDataMoverInterfaceProcessor extends VNXFileProcessor{
         } finally {
             result.releaseConnection();
         }
-        
+
     }
-    
-    //process the results
-    void processNetworkDevice(LogicalNetworkDevice logicalNetworkDevice, 
-                                    Map<String, List<String>> interfacePortMap) {
-        
-        if(interfacePortMap == null) {
-            interfacePortMap = new HashMap<String, List<String>>();
-        }
-        
-        //get logical interfaces
+
+    // process the results
+    void processNetworkDevice(LogicalNetworkDevice logicalNetworkDevice,
+            Map<String, List<String>> interfacePortMap) {
+
+        // get logical interfaces
         List<String> logicalNetworkList = logicalNetworkDevice.getInterfaces();
-        if(logicalNetworkList != null != logicalNetworkList.isEmpty()) {
+        if (logicalNetworkList != null && !logicalNetworkList.isEmpty()) {
             List<String> portList = null;
-            for(String interfaceIP: logicalNetworkList) {
-                
-                //check interface existing in interfacePortMap
+            for (String interfaceIP : logicalNetworkList) {
+
+                // check interface existing in interfacePortMap
                 portList = interfacePortMap.get(interfaceIP);
-                if(portList == null) {
+                if (portList == null) {
                     portList = new ArrayList<String>();
                 }
-                
-                //if virtual device for logicalNetwork device
-                if(logicalNetworkDevice.getType().equals("physical-ethernet") != true) {
-                    //virtual device list
+
+                // if virtual device for logicalNetwork device
+
+                if (logicalNetworkDevice.getType() != LogicalDeviceType.PHYSICAL_ETHERNET) {
+                    // virtual device list
                     NameList nameList = logicalNetworkDevice.getVirtualDeviceData().getDevices();
-                    if(nameList != null) {
-                        //physical port for virtual device list
+                    if (nameList != null) {
+                        // physical port for virtual device list
                         List<String> deviceList = nameList.getLi();
-                        if(deviceList.isEmpty()) {
+                        if (deviceList.isEmpty()) {
                             portList.addAll(new ArrayList<>(deviceList));
                             interfacePortMap.put(interfaceIP, portList);
                         }
                     }
                 } else {
-                    //physical port on LogicalNetworkdevice
+                    // physical port on LogicalNetworkdevice
                     String networkName = logicalNetworkDevice.getName();
-                    if( networkName != null) {
+                    if (networkName != null) {
                         portList.add(new String(networkName));
                         interfacePortMap.put(interfaceIP, portList);
                     }
                 }
-             }
+            }
         }
     }
-    
-    //TDO
+
+    // TDO
     void processPortSpeed(LogicalNetworkDevice logicalNetworkDevice, Map<String, String> portSpeedMap) {
-        
+
         NetworkDeviceSpeed networkDeviceSpeed = logicalNetworkDevice.getSpeed();
         String deviceSpeed = networkDeviceSpeed.value();
         _logger.info(
                 " logical device port{} and speed : {}", logicalNetworkDevice.getName(), deviceSpeed);
-        
+
     }
 }

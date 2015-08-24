@@ -14,7 +14,7 @@ import com.emc.storageos.model.valid.EnumType;
  * It will hold information about the Ip interfaces, cifs Server & NFS servers mapped to NasServer
  * 
  * @author ganeso
- *
+ * 
  */
 
 @Cf("VirtualNAS")
@@ -62,7 +62,6 @@ public class VirtualNAS extends NASServer {
         setChanged("baseDirPath");
     }
 
-
     @Name("parentNASURI")
     public URI getParentPhysicalNAS() {
         return parentNASURI;
@@ -79,20 +78,20 @@ public class VirtualNAS extends NASServer {
         return this.getNasState();
     }
 
-    public void setNasState(String nasState) {
+    public void setVNasState(String nasState) {
         this.setNasState(nasState);
         setChanged("vNasState");
     }
 
     // Defines different States of the NAS server.
     public static enum vNasState {
-        LOADED("loded"),
+        LOADED("loaded"),
         MOUNTED("mounted"),
         TEMP_LOADED("tempunloaded"),
         PERM_UNLOADED("permunloaded"),
         UNKNOWN("N/A");
 
-        private String vNasState;
+        private final String vNasState;
 
         private vNasState(String state) {
             vNasState = state;
@@ -116,11 +115,11 @@ public class VirtualNAS extends NASServer {
 
     // Defines different vNAS types.
     public static enum vNasType {
-        Local("Local"),
-        Domain("Domain"),
+        LOCAL("local"),
+        DOMAIN("domain"),
         UNKNOWN("N/A");
 
-        private String vNasType;
+        private final String vNasType;
 
         private vNasType(String state) {
             vNasType = state;

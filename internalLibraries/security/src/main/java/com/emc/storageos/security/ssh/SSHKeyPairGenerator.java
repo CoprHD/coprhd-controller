@@ -42,7 +42,7 @@ public class SSHKeyPairGenerator {
             case RSA:
                 return generatePairForRSA();
             default:
-                throw SecurityException.fatals.NotSupportAlgorithm(algo.name());
+                throw SecurityException.fatals.notSupportAlgorithm(algo.name());
         }
     }
 

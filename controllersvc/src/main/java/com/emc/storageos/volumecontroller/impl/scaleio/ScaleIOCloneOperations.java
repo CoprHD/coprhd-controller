@@ -12,12 +12,9 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
-import com.emc.storageos.scaleio.api.ScaleIOAttributes;
-import com.emc.storageos.scaleio.api.ScaleIOCLI;
-import com.emc.storageos.scaleio.api.ScaleIOQueryAllCommand;
-import com.emc.storageos.scaleio.api.ScaleIOQueryAllResult;
-import com.emc.storageos.scaleio.api.ScaleIOQueryAllVolumesResult;
-import com.emc.storageos.scaleio.api.ScaleIOSnapshotVolumeResult;
+import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSnapshotVolumeResponse;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.CloneOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -27,48 +24,38 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.util.List;
 
-import static com.emc.storageos.scaleio.api.ScaleIOQueryAllVolumesResult.VOLUME_SIZE_BYTES;
-
 public class ScaleIOCloneOperations implements CloneOperations {
 
     private static Logger log = LoggerFactory.getLogger(ScaleIOCloneOperations.class);
     private DbClient dbClient;
-    private ScaleIOCLIFactory scaleIOCLIFactory;
+    private ScaleIOHandleFactory scaleIOHandleFactory;
 
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
 
     @SuppressWarnings("UnusedDeclaration")
-    public void setScaleIOCLIFactory(ScaleIOCLIFactory scaleIOCLIFactory) {
-        this.scaleIOCLIFactory = scaleIOCLIFactory;
+    public void setScaleIOHandleFactory(ScaleIOHandleFactory scaleIOHandleFactory) {
+        this.scaleIOHandleFactory = scaleIOHandleFactory;
     }
 
     @Override
     public void createSingleClone(StorageSystem storageSystem, URI sourceVolume, URI cloneVolume, Boolean createInactive,
             TaskCompleter taskCompleter) {
         try {
-            ScaleIOCLI scaleIOCLI = scaleIOCLIFactory.using(dbClient).getCLI(storageSystem);
-
+            ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storageSystem);
             Volume cloneObj = dbClient.queryObject(Volume.class, cloneVolume);
             BlockObject parent = BlockObject.fetch(dbClient, sourceVolume);
-
-            String systemId = getScaleIOCustomerId(scaleIOCLI);
+            String systemId = scaleIOHandle.getSystemId();
             // Note: ScaleIO snapshots can be treated as full copies, hence re-use of #snapshotVolume here.
-            ScaleIOSnapshotVolumeResult result = scaleIOCLI.snapshotVolume(parent.getNativeId(), cloneObj.getLabel());
-
-            if (result.isSuccess()) {
-                ScaleIOCLIHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, cloneObj, systemId, result);
-                // Snapshots result does not provide capacity info, so we need to perform a --query_all_volumes
-                updateCloneFromQueryAllVolumes(scaleIOCLI, cloneObj);
-                dbClient.persistObject(cloneObj);
-                ScaleIOCLIHelper.updateStoragePoolCapacity(dbClient, scaleIOCLI, cloneObj);
-                taskCompleter.ready(dbClient);
-            } else {
-                ServiceCoded code = DeviceControllerErrors.scaleio.createFullCopyError(parent.getLabel(),
-                        cloneObj.getLabel(), result.getErrorString());
-                taskCompleter.error(dbClient, code);
-            }
+            ScaleIOSnapshotVolumeResponse result = scaleIOHandle.snapshotVolume(parent.getNativeId(), cloneObj.getLabel(), systemId);
+            String nativeId = result.getVolumeIdList().get(0);
+            ScaleIOHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, cloneObj, systemId, nativeId);
+            // Snapshots result does not provide capacity info, so we need to perform a queryVolume
+            updateCloneFromQueryVolume(scaleIOHandle, cloneObj);
+            dbClient.persistObject(cloneObj);
+            ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, cloneObj);
+            taskCompleter.ready(dbClient);
         } catch (Exception e) {
             Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
             if (clone != null) {
@@ -99,36 +86,30 @@ public class ScaleIOCloneOperations implements CloneOperations {
         // Not supported
     }
 
-    private void updateCloneFromQueryAllVolumes(ScaleIOCLI scaleIOCLI, Volume cloneObj) {
-        ScaleIOQueryAllVolumesResult result = scaleIOCLI.queryAllVolumes();
+    private void updateCloneFromQueryVolume(ScaleIORestClient scaleIOHandle, Volume cloneObj) throws Exception {
 
         try {
-            ScaleIOAttributes attributes = result.getScaleIOAttributesOfVolume(cloneObj.getNativeId());
-            long l = Long.parseLong(attributes.get(VOLUME_SIZE_BYTES));
-            cloneObj.setAllocatedCapacity(l);
-            cloneObj.setProvisionedCapacity(l);
+            ScaleIOVolume vol = scaleIOHandle.queryVolume(cloneObj.getNativeId());
+            long size = Long.parseLong(vol.getSizeInKb()) * 1024L;
+            cloneObj.setAllocatedCapacity(size);
+            cloneObj.setProvisionedCapacity(size);
         } catch (Exception e) {
             log.warn("Failed to update full copy {} with size information: {}", cloneObj.getId(),
-                    result.getErrorString());
+                    e.getMessage());
             throw e;
         }
     }
 
-    private String getScaleIOCustomerId(ScaleIOCLI scaleIOCLI) {
-        ScaleIOQueryAllResult scaleIOQueryAllResult = scaleIOCLI.queryAll();
-        return scaleIOQueryAllResult.getProperty(ScaleIOQueryAllCommand.SCALEIO_CUSTOMER_ID);
-    }
-
     @Override
     public void restoreFromSingleClone(StorageSystem storageSystem, URI clone, TaskCompleter completer) {
-        // no support
+        throw new UnsupportedOperationException("Not yet implemented");
 
     }
 
     @Override
     public void fractureSingleClone(StorageSystem storageSystem, URI sourceVolume,
             URI clone, TaskCompleter completer) {
-        // no support
+        throw new UnsupportedOperationException("Not yet implemented");
     }
 
     @Override
@@ -139,35 +120,36 @@ public class ScaleIOCloneOperations implements CloneOperations {
     @Override
     public void createGroupClone(StorageSystem storage, List<URI> cloneList,
             Boolean createInactive, TaskCompleter taskCompleter) {
+        throw new UnsupportedOperationException("Not yet implemented");
     }
 
     @Override
     public void activateGroupClones(StorageSystem storage, List<URI> clone, TaskCompleter taskCompleter) {
-        // no support
+        throw new UnsupportedOperationException("Not yet implemented");
 
     }
 
     @Override
     public void restoreGroupClones(StorageSystem storageSystem, List<URI> clones, TaskCompleter completer) {
-        // no support
+        throw new UnsupportedOperationException("Not yet implemented");
 
     }
 
     @Override
     public void fractureGroupClones(StorageSystem storageSystem, List<URI> clones, TaskCompleter completer) {
-        // no support
+        throw new UnsupportedOperationException("Not yet implemented");
 
     }
 
     @Override
     public void resyncGroupClones(StorageSystem storageSystem, List<URI> clones, TaskCompleter completer) {
-        // no support
+        throw new UnsupportedOperationException("Not yet implemented");
 
     }
 
     @Override
     public void detachGroupClones(StorageSystem storageSystem, List<URI> clones, TaskCompleter completer) {
-        // no support
+        throw new UnsupportedOperationException("Not yet implemented");
 
     }
 

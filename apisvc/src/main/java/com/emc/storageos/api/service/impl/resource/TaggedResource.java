@@ -71,7 +71,7 @@ public abstract class TaggedResource extends ResourceService {
     @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/tags")
-    @InheritCheckPermission(write_access = true)
+    @InheritCheckPermission(writeAccess = true)
     public Tags assignTags(@PathParam("id") URI id, TagAssignment assignment) {
         DataObject object = queryResource(id);
         ArgValidator.checkEntityNotNull(object, id, isIdEmbeddedInURL(id));

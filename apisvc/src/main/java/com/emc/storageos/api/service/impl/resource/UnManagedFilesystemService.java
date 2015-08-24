@@ -82,8 +82,8 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 
 @Path("/vdc/unmanaged/filesystems")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class UnManagedFilesystemService extends TaggedResource {
     private static final String EVENT_SERVICE_TYPE = "file";
     private static final String EVENT_SERVICE_SOURCE = "UnManagedFilesystemService";

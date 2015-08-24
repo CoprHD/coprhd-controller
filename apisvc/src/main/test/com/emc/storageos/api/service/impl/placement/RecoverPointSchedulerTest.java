@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.placement;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,6 +23,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.volumecontroller.Protection;
 import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
+import com.emc.storageos.volumecontroller.RPRecommendation;
 
 public class RecoverPointSchedulerTest extends Assert {
 
@@ -216,17 +218,40 @@ public class RecoverPointSchedulerTest extends Assert {
 		return ps;
 	}
 	
-	public void fillRecommendationObject(RPProtectionRecommendation rec, ProtectionSystem ps, String sourceInternalSiteName, String destInternalSiteName, VirtualArray sourceVarray, VirtualArray destVarray, StoragePool sourceStoragePool, StoragePool destStoragePool, int resourceCount) {
+	public void fillRecommendationObject(RPProtectionRecommendation rec, ProtectionSystem ps, String sourceInternalSiteName, String destInternalSiteName, 
+					VirtualArray sourceVarray, VirtualArray destVarray, StoragePool sourceStoragePool, StoragePool destStoragePool, int resourceCount) {
 		rec.setProtectionDevice(ps.getId());
-		rec.setSourceInternalSiteName(sourceInternalSiteName);
-		rec.setSourcePool(sourceStoragePool.getId());
+		
+		//fill the source
+		RPRecommendation sourceRec = new RPRecommendation();
+		sourceRec.setInternalSiteName(sourceInternalSiteName);
+		sourceRec.setSourceStoragePool(sourceStoragePool.getId());
 		rec.setResourceCount(resourceCount);
-		Protection protection = new Protection();
-		protection.setTargetInternalSiteName(destInternalSiteName);
-		protection.setTargetJournalStoragePool(destStoragePool.getId());
-		Map<URI, Protection> varrayProtectionMap = new HashMap<URI, Protection>();
-		varrayProtectionMap.put(destVarray.getId(), protection);
-		rec.setVirtualArrayProtectionMap(varrayProtectionMap);
+		
+		//fill source journal
+		RPRecommendation sourceJournalRec = new RPRecommendation();
+		sourceJournalRec.setSourceStoragePool(sourceStoragePool.getId());
+		sourceJournalRec.setInternalSiteName(sourceInternalSiteName);
+		sourceJournalRec.setResourceCount(resourceCount);
+		
+		//fill target
+		RPRecommendation targetRec = new RPRecommendation();
+		targetRec.setInternalSiteName(destInternalSiteName);		
+		targetRec.setSourceStoragePool(sourceStoragePool.getId());
+		sourceRec.setTargetRecommendations(new ArrayList<RPRecommendation>());
+		sourceRec.getTargetRecommendations().add(targetRec);
+		
+		//fill targetJournal
+		RPRecommendation targetJournalRec = new RPRecommendation();
+		targetJournalRec.setSourceStoragePool(destStoragePool.getId());
+		targetJournalRec.setInternalSiteName(destInternalSiteName);
+				
+		//populate the protection recommendation object with all the recommendation
+		rec.setSourceRecommendations(new ArrayList<RPRecommendation>());
+		rec.getSourceRecommendations().add(sourceRec);
+		rec.setSourceJournalRecommendation(sourceJournalRec);
+		rec.setTargetJournalRecommendations(new ArrayList<RPRecommendation>());
+		rec.getTargetJournalRecommendations().add(targetJournalRec);			
 	}
 
 	@Test

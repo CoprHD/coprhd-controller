@@ -417,10 +417,10 @@ public class SRDFScheduler implements Scheduler {
         			// pools to one storage system.
         			Map<VirtualArray, Set<StorageSystem>> varrayTargetDeviceMap = new HashMap<VirtualArray, Set<StorageSystem>>();
         			for (VirtualArray targetVarray1 : targetVarrayPoolMap.keySet()) {
-        				if (rec.getSourcePool() == null) {
-        					rec.setSourcePool(recommendedPool.getId());
+        				if (rec.getSourceStoragePool() == null) {
+        					rec.setSourceStoragePool(recommendedPool.getId());
         					rec.setResourceCount(currentCount);
-        					rec.setSourceDevice(recommendedPool.getStorageDevice());
+        					rec.setSourceStorageSystem(recommendedPool.getStorageDevice());
         					rec.setVirtualArrayTargetMap(new HashMap<URI, Target>());
         					rec.setVpoolChangeVolume(vpoolChangeVolume != null ? vpoolChangeVolume
         							.getId() : null);

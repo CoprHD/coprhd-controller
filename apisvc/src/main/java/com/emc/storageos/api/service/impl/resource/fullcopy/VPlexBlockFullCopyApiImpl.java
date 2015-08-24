@@ -477,7 +477,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 // Prepare the volume.
                 Volume volume = VPlexBlockServiceApiImpl.prepareVolumeForRequest(size,
                     vplexSystemProject, haVarray, haVpool,
-                    haRecommendation.getSourceDevice(), haRecommendation.getSourcePool(),
+                    haRecommendation.getSourceStorageSystem(), haRecommendation.getSourceStoragePool(),
                     nameBuilder.toString(), null, taskId, _dbClient);
                 volume.addInternalFlags(Flag.INTERNAL_OBJECT);
                 _dbClient.persistObject(volume);

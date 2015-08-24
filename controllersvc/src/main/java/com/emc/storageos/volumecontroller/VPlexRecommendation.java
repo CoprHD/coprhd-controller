@@ -16,8 +16,6 @@ package com.emc.storageos.volumecontroller;
 
 import java.net.URI;
 
-import com.emc.storageos.db.client.model.VirtualPool;
-
 /**
  * Derived Recommendation that adds information about the VPlex storage system
  * associated with the recommendation as well as the VirtualArray for the
@@ -29,22 +27,13 @@ public class VPlexRecommendation extends Recommendation {
     // The VPlex storage system.
     private URI _vplexStorageSystem;
     
-    // The virtual array for the recommendation.
-    private URI _varray;
-    
-    // The vpool used to get the recommendation
-    private VirtualPool _vpool;
-    
     @Override
 	public String toString() {
     	StringBuffer ret = new StringBuffer();
-    	//if (super.getSourceInternalSiteName() != null) {
-    		//ret.append(super.toString());
-    	//}
-    	
+ 
     	ret.append("VPlexRecommendation [_vplexStorageSystem=" + getVPlexStorageSystem()
-						+ ", _varray=" + _varray
-						+ ", _vpool=" + _vpool
+						+ ", _varray=" + getVirtualArray()
+						+ ", _vpool=" + getVirtualPool()
 						+ "]");
     	
 		return ret.toString();
@@ -71,40 +60,4 @@ public class VPlexRecommendation extends Recommendation {
      
         _vplexStorageSystem = vplexStorageSystem;
     }
-    
-    /**
-     * Getter for the varray for this recommendation.
-     * 
-     * @return The varray for this recommendation.
-     */
-    public URI getVirtualArray() {
-        return _varray;
-    }
-    
-    /**
-     * Setter for the varray for this recommendation.
-     * 
-     * @param varray The varray for this recommendation.
-     */
-    public void setVirtualArray(URI varray) {
-        _varray = varray;
-    }
-    
-    /**
-     * Getter for the VirtualPool for this recommendation.
-     * 
-     * @return The VirtualPool for this recommendation.
-     */
-    public VirtualPool getVirtualPool() {
-        return _vpool;
-    }
-    
-    /**
-     * Setter for the VirtualPool for this recommendation.
-     * 
-     * @param vpool The VirtualPool for this recommendation.
-     */
-    public void setVirtualPool(VirtualPool vpool) {
-        _vpool = vpool;
-    }	
 }

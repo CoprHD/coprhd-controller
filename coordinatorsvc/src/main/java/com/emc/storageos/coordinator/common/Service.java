@@ -41,7 +41,7 @@ public interface Service {
     public String getId();
 
     /**
-     * Node id as seen in SSH login.
+     * Node id
      */
     public String getNodeId();
 

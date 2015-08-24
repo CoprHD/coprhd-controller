@@ -883,10 +883,10 @@ public class PlacementTests extends DbsvcTestBase {
     }
 
     /**
-     * Simple XIO placement with RP
+     * RP placement tests with XIO (no VPLEX)
      */
     @Test
-    public void testPlacementRpXIO() {
+    public void testPlacementRpXIONoVplex() {
         String[] xio1FE = {"50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01"};
         String[] xio2FE = {"51:FE:FE:FE:FE:FE:FE:00", "51:FE:FE:FE:FE:FE:FE:01"};
         String[] xio3FE = {"52:FE:FE:FE:FE:FE:FE:00", "52:FE:FE:FE:FE:FE:FE:01"};
@@ -1190,7 +1190,8 @@ public class PlacementTests extends DbsvcTestBase {
                 _log.info(rec.toString(_dbClient));
         }
     }
-
+  
+    
     /**
      * RP VPLEX placement
      */

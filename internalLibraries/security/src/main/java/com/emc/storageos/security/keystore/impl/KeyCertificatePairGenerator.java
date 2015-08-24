@@ -139,32 +139,24 @@ public class KeyCertificatePairGenerator {
         ext.set(AuthorityKeyIdentifierExtension.NAME,
                 new AuthorityKeyIdentifierExtension(new KeyIdentifier(pubKey), null, null));
 
-        GeneralNames names = new GeneralNames();
-        IPAddressName ipName;
-        GeneralName generalName;
-        DNSName dnsName;
-        Set<String> alreadyAddedHostNames = new HashSet<String>();
-        for (InetAddress entry : valuesHolder.getAddresses()) {
-            String currCannonicalName = entry.getCanonicalHostName().trim();
-            if (!entry.getCanonicalHostName().equals(entry.getHostAddress())
-                    && !alreadyAddedHostNames.contains(currCannonicalName)) {
-                dnsName = new DNSName(currCannonicalName);
-                generalName = new GeneralName(dnsName);
-                names.add(generalName);
-                alreadyAddedHostNames.add(currCannonicalName);
-            }
-            ipName = new IPAddressName(entry.getHostAddress());
-            generalName = new GeneralName(ipName);
-            names.add(generalName);
-        }
+        ext.set(SubjectAlternativeNameExtension.NAME, new SubjectAlternativeNameExtension(subjectAltNames()));
 
-        ext.set(SubjectAlternativeNameExtension.NAME, new SubjectAlternativeNameExtension(names));
         info.set(X509CertInfo.EXTENSIONS, ext);
 
         X509CertImpl cert = new X509CertImpl(info);
         cert.sign(privkey, valuesHolder.getSigningAlgorithm());
 
         return cert;
+    }
+
+    private GeneralNames subjectAltNames() throws IOException{
+        // Consists of VIP and internal node's IPs (IPv4 and IPV6 if have) but no DNS/Host name.
+        GeneralNames subAltNames = new GeneralNames();
+
+        for (InetAddress entry : valuesHolder.getAddresses()) {
+            subAltNames.add(new GeneralName(new IPAddressName(entry.getHostAddress())));
+        }
+        return subAltNames;
     }
 
     /**

@@ -56,8 +56,8 @@ public class RPProtectionRecommendation extends Recommendation {
     
     public RPProtectionRecommendation(RPProtectionRecommendation copy) {
     	// properties of Recommendation
-    	this.setSourcePool(copy.getSourcePool());
-    	this.setSourceDevice(copy.getSourceDevice());
+    	this.setSourceStoragePool(copy.getSourceStoragePool());
+    	this.setSourceStorageSystem(copy.getSourceStorageSystem());
     	this.setDeviceType(copy.getDeviceType());
     	this.setResourceCount(copy.getResourceCount());
     	// properties of RPProtectionRecommendation

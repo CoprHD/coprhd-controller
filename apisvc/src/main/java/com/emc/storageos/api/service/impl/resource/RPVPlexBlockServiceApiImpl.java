@@ -426,9 +426,9 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Reco
                     	if (VirtualPool.vPoolSpecifiesHighAvailability(journalVpool)) {
     	                	 _log.info("Create VPLEX Source Journal");
     	                	primarySourceJournalVolume = createJournalVolume(primaryRecommendation, task, taskList, param, project, 
-    														                			primaryRecommendation.getSourceDevice(), journalVarray, journalVpool, 
+    														                			primaryRecommendation.getSourceStorageSystem(), journalVarray, journalVpool, 
     														                			sourceJournalVolumeName, capabilities, descriptors, consistencyGroup, metroPointEnabled ? activeSourceCopyName : srcCopyName, 
-    														                			sourceInternalSiteName, primaryRecommendation.getSourceDevice(), 
+    														                			sourceInternalSiteName, primaryRecommendation.getSourceStorageSystem(), 
     														                			journalStoragePoolUri, journalSize);
     		            		        				      
                     	} else {
@@ -477,9 +477,9 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Reco
 		                    	if (VirtualPool.vPoolSpecifiesHighAvailability(standbyJournalVpool)) {
 		                    		_log.info("Create VPLEX Source Journal For Standby");
 		                    		secondarySourceJournalVolume = createJournalVolume(secondaryRecommendation, task, taskList, param, project, 
-	   	                															   secondaryRecommendation.getSourceDevice(), standbyJournalVarray, standbyJournalVpool, 
+	   	                															   secondaryRecommendation.getSourceStorageSystem(), standbyJournalVarray, standbyJournalVpool, 
 	   														                		   secondarySourceJournalVolumeName, capabilities, descriptors, consistencyGroup, metroPointEnabled ? standbySourceCopyName : srcCopyName, 
-	   														                		   secondarySourceJournalInternalSiteName, secondaryRecommendation.getSourceDevice(), 
+	   														                		   secondarySourceJournalInternalSiteName, secondaryRecommendation.getSourceStorageSystem(), 
 	   														                		   journalStoragePoolUri, journalSize);			   	
 		                    	} else {
 		   		        	    	_log.info("Create non-VPLEX Source Journal for Standby");				   		        	    	
@@ -1026,11 +1026,11 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Reco
 																URI storagePoolId) {
     	
     	RPProtectionRecommendation newRecommendation = new RPProtectionRecommendation(recommendation);    	
-    	newRecommendation.setSourceDevice(vplexId);
+    	newRecommendation.setSourceStorageSystem(vplexId);
     	//newRecommendation.setVirtualArray(varrayId);
     	//newRecommendation.setVirtualPool(vpool);				        
-    	newRecommendation.setSourceDevice(storageSystemId);
-    	newRecommendation.setSourcePool(storagePoolId);
+    	newRecommendation.setSourceStorageSystem(storageSystemId);
+    	newRecommendation.setSourceStoragePool(storagePoolId);
     	newRecommendation.setResourceCount(1);		
 		return newRecommendation;
 	}

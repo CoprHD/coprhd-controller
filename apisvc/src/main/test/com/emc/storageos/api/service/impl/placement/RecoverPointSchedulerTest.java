@@ -201,25 +201,25 @@ public class RecoverPointSchedulerTest extends Assert {
 		//fill the source
 		RPRecommendation sourceRec = new RPRecommendation();
 		sourceRec.setInternalSiteName(sourceInternalSiteName);
-		sourceRec.setSourcePool(sourceStoragePool.getId());
+		sourceRec.setSourceStoragePool(sourceStoragePool.getId());
 		rec.setResourceCount(resourceCount);
 		
 		//fill source journal
 		RPRecommendation sourceJournalRec = new RPRecommendation();
-		sourceJournalRec.setSourcePool(sourceStoragePool.getId());
+		sourceJournalRec.setSourceStoragePool(sourceStoragePool.getId());
 		sourceJournalRec.setInternalSiteName(sourceInternalSiteName);
 		sourceJournalRec.setResourceCount(resourceCount);
 		
 		//fill target
 		RPRecommendation targetRec = new RPRecommendation();
 		targetRec.setInternalSiteName(destInternalSiteName);		
-		targetRec.setSourcePool(sourceStoragePool.getId());
+		targetRec.setSourceStoragePool(sourceStoragePool.getId());
 		sourceRec.setTargetRecommendations(new ArrayList<RPRecommendation>());
 		sourceRec.getTargetRecommendations().add(targetRec);
 		
 		//fill targetJournal
 		RPRecommendation targetJournalRec = new RPRecommendation();
-		targetJournalRec.setSourcePool(destStoragePool.getId());
+		targetJournalRec.setSourceStoragePool(destStoragePool.getId());
 		targetJournalRec.setInternalSiteName(destInternalSiteName);
 				
 		//populate the protection recommendation object with all the recommendation

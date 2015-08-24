@@ -967,8 +967,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
          volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
          volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
          
-         if (null != recommendation.getSourcePool()) {
-             StoragePool pool = _dbClient.queryObject(StoragePool.class, recommendation.getSourcePool());
+         if (null != recommendation.getSourceStoragePool()) {
+             StoragePool pool = _dbClient.queryObject(StoragePool.class, recommendation.getSourceStoragePool());
              if (null != pool) {
                  volume.setProtocol(new StringSet());
                  volume.getProtocol().addAll(

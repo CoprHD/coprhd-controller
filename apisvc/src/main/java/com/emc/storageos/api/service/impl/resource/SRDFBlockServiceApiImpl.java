@@ -199,7 +199,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         Iterator<Recommendation> recommendationsIter = recommendations.iterator();
         while (recommendationsIter.hasNext()) {
             SRDFRecommendation recommendation = (SRDFRecommendation) recommendationsIter.next();
-            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceDevice());
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
             // Prepare the Bourne Volumes to be created and associated
             // with the actual storage system volumes created. Also create
             // a BlockTaskList containing the list of task resources to be
@@ -426,8 +426,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         volume.setVirtualArray(varray.getId());
         volume.setSrdfGroup(raGroupURI);
         volume.setSrdfCopyMode(copyMode);
-        if (null != placement.getSourcePool()) {
-            StoragePool pool = _dbClient.queryObject(StoragePool.class, placement.getSourcePool());
+        if (null != placement.getSourceStoragePool()) {
+            StoragePool pool = _dbClient.queryObject(StoragePool.class, placement.getSourceStoragePool());
             if (null != pool) {
                 volume.setProtocol(new StringSet());
                 volume.getProtocol().addAll(
@@ -444,8 +444,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         }
 
         if (!remote) {
-            volume.setStorageController(placement.getSourceDevice());
-            volume.setPool(placement.getSourcePool());
+            volume.setStorageController(placement.getSourceStorageSystem());
+            volume.setPool(placement.getSourceStoragePool());
         } else {
             volume.setStorageController(((SRDFRecommendation) placement).getVirtualArrayTargetMap()
                     .get(varray.getId()).getTargetStorageDevice());

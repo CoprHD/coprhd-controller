@@ -186,8 +186,8 @@ public class MigrationService extends TaskResourceService {
         
         // There should be a single recommendation.
         Recommendation recommendation = recommendations.get(0);
-        URI recommendedSystem = recommendation.getSourceDevice();
-        URI recommendedPool = recommendation.getSourcePool();
+        URI recommendedSystem = recommendation.getSourceStorageSystem();
+        URI recommendedPool = recommendation.getSourceStoragePool();
         s_logger.debug("Recommendation storage system is {}", recommendedSystem);
         s_logger.debug("Recommendation storage pool is {}", recommendedPool);
 

@@ -117,8 +117,8 @@ public class Protection implements Serializable {
 	 
 	public String toString(DbClient dbClient) {
     	StringBuffer buff = new StringBuffer();
-    	StoragePool journalPool = dbClient.queryObject(StoragePool.class, getTargetJournalRecommendation().getSourcePool());
-    	StorageSystem journalStorage = dbClient.queryObject(StorageSystem.class, getTargetJournalRecommendation().getSourceDevice());
+    	StoragePool journalPool = dbClient.queryObject(StoragePool.class, getTargetJournalRecommendation().getSourceStoragePool());
+    	StorageSystem journalStorage = dbClient.queryObject(StorageSystem.class, getTargetJournalRecommendation().getSourceStorageSystem());
     	buff.append("\tProtecting to Site : " + targetInternalSiteName + "\n");
     	buff.append("\tTarget Virtual Array :" + dbClient.queryObject(VirtualArray.class, this.getTargetVarray()).getLabel() + "\n");
     	buff.append("\tTarget VirtualPool : " + this.getTargetVpool().getLabel() + "\n");

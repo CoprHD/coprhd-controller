@@ -177,8 +177,8 @@ public class StorageScheduler implements Scheduler{
             while (count > 0) {
                 VolumeRecommendation volumeRecommendation = new VolumeRecommendation(VolumeRecommendation.VolumeType.BLOCK_VOLUME,
                         capabilities.getSize(), cos, neighborhood.getId());
-                volumeRecommendation.addStoragePool(recommendation.getSourcePool());
-                volumeRecommendation.addStorageSystem(recommendation.getSourceDevice());
+                volumeRecommendation.addStoragePool(recommendation.getSourceStoragePool());
+                volumeRecommendation.addStorageSystem(recommendation.getSourceStorageSystem());
                 volumeRecommendations.add(volumeRecommendation);
                 if (capabilities.getBlockConsistencyGroup() != null) {
                     volumeRecommendation.setParameter(VolumeRecommendation.ARRAY_CG, capabilities.getBlockConsistencyGroup());
@@ -308,8 +308,8 @@ public class StorageScheduler implements Scheduler{
             while (count > 0) {
                 VolumeRecommendation volumeRecommendation = new VolumeRecommendation(VolumeRecommendation.VolumeType.BLOCK_COPY,
                         capabilities.getSize(), vPool, vArray.getId());
-                volumeRecommendation.addStoragePool(recommendation.getSourcePool());
-                volumeRecommendation.addStorageSystem(recommendation.getSourceDevice());
+                volumeRecommendation.addStoragePool(recommendation.getSourceStoragePool());
+                volumeRecommendation.addStorageSystem(recommendation.getSourceStorageSystem());
                 volumeRecommendations.add(volumeRecommendation);
                 if (capabilities.getBlockConsistencyGroup() != null) {
                     volumeRecommendation.setParameter(VolumeRecommendation.ARRAY_CG, capabilities.getBlockConsistencyGroup());
@@ -760,9 +760,9 @@ public class StorageScheduler implements Scheduler{
                 _log.debug("Recommending storage pool {} for {} resources.",
                         recommendedPool.getId(), currentCount);
                 Recommendation recommendation = new Recommendation();
-                recommendation.setSourcePool(recommendedPool.getId());
+                recommendation.setSourceStoragePool(recommendedPool.getId());
                 recommendation.setResourceCount(currentCount);
-                recommendation.setSourceDevice(recommendedPool.getStorageDevice());
+                recommendation.setSourceStorageSystem(recommendedPool.getStorageDevice());
                 recommendations.add(recommendation);
 
                 // Update the count of resources for which we have created

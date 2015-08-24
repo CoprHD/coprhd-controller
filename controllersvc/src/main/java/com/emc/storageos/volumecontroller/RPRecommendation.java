@@ -120,8 +120,8 @@ public class RPRecommendation extends Recommendation {
 		final String SPACE = " ";
 		VirtualArray varray = dbClient.queryObject(VirtualArray.class, getVirtualArray());
 		VirtualPool vpool = getVirtualPool();
-		StoragePool storagePool = dbClient.queryObject(StoragePool.class, getSourcePool());
-		StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, getSourceDevice());		
+		StoragePool storagePool = dbClient.queryObject(StoragePool.class, getSourceStoragePool());
+		StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, getSourceStorageSystem());		
 		buff.append("\tResource Count	: " + this.getResourceCount() + "\n");
 		String siteName = ((ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(this.getInternalSiteName()) : "");
 		buff.append("\tInternal Site	: " + siteName + SPACE + this.getInternalSiteName() + "\n");

@@ -55,20 +55,20 @@ public class Recommendation implements Serializable {
         this.resourceCount = resourceCount;
     }
 
-    public URI getSourcePool() {
+    public URI getSourceStoragePool() {
         return sourceStoragePool;
     }
 
-    public void setSourcePool(URI _sourcePool) {
-        this.sourceStoragePool = _sourcePool;
+    public void setSourceStoragePool(URI _sourceStoragePool) {
+        this.sourceStoragePool = _sourceStoragePool;
     }
 
-    public URI getSourceDevice() {
+    public URI getSourceStorageSystem() {
         return sourceStorageSystem;
     }
 
-    public void setSourceDevice(URI _sourceDevice) {
-        this.sourceStorageSystem = _sourceDevice;
+    public void setSourceStorageSystem(URI _sourceStorageSystem) {
+        this.sourceStorageSystem = _sourceStorageSystem;
     }
 
 	public String getDeviceType() {
@@ -82,8 +82,8 @@ public class Recommendation implements Serializable {
 	public String toString() {
 		StringBuffer buffer = new StringBuffer();
 		buffer.append("Recommendation results: \n");
-		buffer.append("Source Storage System : " + getSourceDevice().toString() + "\n");
-		buffer.append("Source Storage Pool : " + getSourcePool().toString() + "\n");
+		buffer.append("Source Storage System : " + getSourceStorageSystem().toString() + "\n");
+		buffer.append("Source Storage Pool : " + getSourceStoragePool().toString() + "\n");
 		buffer.append("Device Type : " + getDeviceType() + "\n");
 		buffer.append("Resource Count : " + getResourceCount() + "\n");
 		buffer.append("--------------------------------------------\n");

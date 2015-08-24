@@ -204,7 +204,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             Iterator<VPlexRecommendation> recommendationsIter = nhRecomendationsMap.get(nhId).iterator();
             while (recommendationsIter.hasNext()) {
                 VPlexRecommendation recommendation = recommendationsIter.next();
-                URI storagePoolURI = recommendation.getSourcePool();
+                URI storagePoolURI = recommendation.getSourceStoragePool();
                 VirtualPool volumeCos = recommendation.getVirtualPool();
                 s_logger.info("Volume Cos is {}", volumeCos.getId().toString());
                 vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, volumeCos.getAutoTierPolicyName());
@@ -352,8 +352,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 .iterator();
             while (recommendationsIter.hasNext()) {
                 VPlexRecommendation recommendation = recommendationsIter.next();
-                URI storageDeviceURI = recommendation.getSourceDevice();
-                URI storagePoolURI = recommendation.getSourcePool();
+                URI storageDeviceURI = recommendation.getSourceStorageSystem();
+                URI storagePoolURI = recommendation.getSourceStoragePool();
                 VirtualPool vpool = recommendation.getVirtualPool();
                 s_logger.info("Virtual Pool is {}", vpool.getId().toString());
                 vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, 
@@ -847,8 +847,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VirtualArray haVirtualArray = _dbClient.queryObject(VirtualArray.class, 
                                 vplexRecommendation.getVirtualArray());
             createVolume = prepareVolumeForRequest(getVolumeCapacity(importVolume),
-                vplexProject, haVirtualArray, vpool, vplexRecommendation.getSourceDevice(),
-                vplexRecommendation.getSourcePool(), importVolume.getLabel() + "-1", 
+                vplexProject, haVirtualArray, vpool, vplexRecommendation.getSourceStorageSystem(),
+                vplexRecommendation.getSourceStoragePool(), importVolume.getLabel() + "-1", 
                 ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
             createVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
             _dbClient.persistObject(createVolume);
@@ -972,8 +972,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VirtualArray haVirtualArray = _dbClient.queryObject(VirtualArray.class, 
                     vplexRecommendation.getVirtualArray());
             createVolume = prepareVolumeForRequest(getVolumeCapacity(existingVolume), vplexProject, 
-                    haVirtualArray, vpool, vplexRecommendation.getSourceDevice(),
-                    vplexRecommendation.getSourcePool(), vplexVolume.getLabel() + "-1", 
+                    haVirtualArray, vpool, vplexRecommendation.getSourceStorageSystem(),
+                    vplexRecommendation.getSourceStoragePool(), vplexVolume.getLabel() + "-1", 
                     ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
             createVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
             _dbClient.persistObject(createVolume);
@@ -1530,8 +1530,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         // Create a volume for the new backend volume to which
         // data will be migrated.
-        URI targetStorageSystem = recommendations.get(0).getSourceDevice();
-        URI targetStoragePool = recommendations.get(0).getSourcePool();        
+        URI targetStorageSystem = recommendations.get(0).getSourceStorageSystem();
+        URI targetStoragePool = recommendations.get(0).getSourceStoragePool();        
         Volume targetVolume = prepareVolumeForRequest(capacity,
             targetProject, varray, vpool, targetStorageSystem, targetStoragePool,
             targetLabel, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, 
@@ -1675,8 +1675,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
               
         // Create a volume for the new backend volume to which
         // data will be migrated.               
-        URI targetStorageSystem = recommendations.get(recIndex).getSourceDevice();
-        URI targetStoragePool = recommendations.get(recIndex).getSourcePool();        
+        URI targetStorageSystem = recommendations.get(recIndex).getSourceStorageSystem();
+        URI targetStoragePool = recommendations.get(recIndex).getSourceStoragePool();        
         Volume targetVolume = prepareVolumeForRequest(capacity,
             targetProject, varray, vpool, targetStorageSystem, targetStoragePool,
             targetLabel, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, 
@@ -2435,8 +2435,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         		descriptors.add(descriptor);
 
         		// Create backend volume object and add it to the VplexMirror created above.
-        		Volume volume = prepareVolume(createdMirror, backendVolume, mirrorVpool, varray, vplexRecommendation.getSourceDevice(), 
-        				vplexRecommendation.getSourcePool(), mirrorLabelBuilder.toString(), thinVolumePreAllocationSize, capabilities, _dbClient);
+        		Volume volume = prepareVolume(createdMirror, backendVolume, mirrorVpool, varray, vplexRecommendation.getSourceStorageSystem(), 
+        				vplexRecommendation.getSourceStoragePool(), mirrorLabelBuilder.toString(), thinVolumePreAllocationSize, capabilities, _dbClient);
         		op = new Operation();
         		op.setResourceType(ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
         		_dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId, op);
@@ -2447,7 +2447,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         		// Add descriptor for the backend volume
         		descriptor = new VolumeDescriptor(
         				VolumeDescriptor.Type.BLOCK_DATA, 
-        				vplexRecommendation.getSourceDevice(), volumeId, vplexRecommendation.getSourcePool(), capabilities);
+        				vplexRecommendation.getSourceStorageSystem(), volumeId, vplexRecommendation.getSourceStoragePool(), capabilities);
         		descriptors.add(descriptor);
 
         	}

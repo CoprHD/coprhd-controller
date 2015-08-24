@@ -11,6 +11,8 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -28,6 +30,7 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolUpdateParam;
+import com.emc.storageos.model.vpool.ObjectVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.StoragePoolAssignmentChanges;
 import com.emc.storageos.model.vpool.StoragePoolAssignments;
 import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
@@ -124,7 +127,7 @@ public class VirtualPoolUtils {
     public static List<FileVirtualPoolRestRep> getFileVirtualPools() {
         return getViprClient().fileVpools().getAll();
     }
-
+   
     public static List<FileVirtualPoolRestRep> getFileVirtualPools(ResourceFilter<FileVirtualPoolRestRep> filter) {
         return getViprClient().fileVpools().getAll(filter);
     }
@@ -133,6 +136,25 @@ public class VirtualPoolUtils {
         return getViprClient().fileVpools().getByIds(ids);
     }
 
+    public static List<ObjectVirtualPoolRestRep> getObjectVirtualPools() {
+    	List<ObjectVirtualPoolRestRep> test = new ArrayList<ObjectVirtualPoolRestRep>();
+    	ObjectVirtualPoolRestRep resp = new ObjectVirtualPoolRestRep();
+    	try {
+			resp.setId(new URI("testuri"));
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	resp.setName("TestObjectVpool");
+    	resp.setWriteTraffic("testWriteTrafic");
+    	resp.setReadTraffic("readTraffic");
+    	resp.setUserDataPendingRepl("userDataPendingRepl");
+    	resp.setMetaDataPendingRepl("metaDataPendingRepl");
+    	resp.setDataPendingXor("dataPendingXor");
+    	test.add(resp);
+    	return test;
+       //return getViprClient().objectVpools().getAll();
+    }
     public static VirtualPoolCommonRestRep getVirtualPool(String id) {
         try {
             BlockVirtualPoolRestRep virtualPool = getBlockVirtualPool(id);

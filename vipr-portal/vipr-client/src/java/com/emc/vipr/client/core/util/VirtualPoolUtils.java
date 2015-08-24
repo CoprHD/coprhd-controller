@@ -13,6 +13,7 @@ import com.emc.storageos.model.vpool.VirtualPoolHighAvailabilityParam;
 public class VirtualPoolUtils {
     public static final String FILE = "file";
     public static final String BLOCK = "block";
+    public static final String OBJECT = "object";
     public static final String VPLEX_LOCAL = "vplex_local";
     public static final String VPLEX_DISTRIBUTED = "vplex_distributed";
 
@@ -30,6 +31,10 @@ public class VirtualPoolUtils {
 
     public static List<NamedRelatedVirtualPoolRep> fileVpools(List<NamedRelatedVirtualPoolRep> pools) {
         return byType(pools, FILE);
+    }
+
+    public static List<NamedRelatedVirtualPoolRep> objectVpools(List<NamedRelatedVirtualPoolRep> pools) {
+        return byType(pools, OBJECT);
     }
 
     public static List<NamedRelatedVirtualPoolRep> blockVpools(List<NamedRelatedVirtualPoolRep> pools) {

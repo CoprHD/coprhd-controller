@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -919,7 +920,7 @@ public class RecoverPointClient {
             needsScan = false;
 
             if ((MAX_SCAN_WAIT_TOTAL_TRIES - rescanTries) != 1) {
-                logger.info("RecoverPointClient: Briefly sleeping to accomodate export group latencies (Attempt #{} / {})",
+                logger.info("RecoverPointClient: Briefly sleeping to accommodate export group latencies (Attempt #{} / {})",
                         MAX_SCAN_WAIT_TOTAL_TRIES - rescanTries, MAX_SCAN_WAIT_TOTAL_TRIES);
                 try {
                     Thread.sleep(MAX_SCAN_WAIT_RETRY_MILLISECONDS);

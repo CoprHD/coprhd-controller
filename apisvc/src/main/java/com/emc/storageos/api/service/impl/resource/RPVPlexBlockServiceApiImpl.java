@@ -652,14 +652,15 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 
                         // If the target is not RP+VPLEX/MetroPoint leverage the regular RP Block Service
                         // to create the target volume
-                        targetVolume = rpBlockServiceApiImpl.prepareVolume(project, tgtVirtualArray, targetVirtualPool,
-                                param.getSize(), primaryRecommendation,
-                                targetVolumeName,
-                                consistencyGroup, task, true,
+                        // WJEIV -- review this use case
+                        targetVolume = rpBlockServiceApiImpl.prepareVolume(null, project, tgtVirtualArray,
+                                targetVirtualPool, param.getSize(),
+                                primaryRecommendation,
+                                targetVolumeName, consistencyGroup, task,
+                                true,
                                 primaryRecommendation.getProtectionDevice(),
-                                Volume.PersonalityTypes.TARGET,
-                                rsetName, protection.getTargetInternalSiteName(),
-                                targetCopyName, sourceVolume.getId(), null);
+                                Volume.PersonalityTypes.TARGET, rsetName,
+                                protection.getTargetInternalSiteName(), targetCopyName, sourceVolume.getId(), null);
 
                     }
 
@@ -842,14 +843,15 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 
                             // If the target is not RP+VPLEX/MetroPoint we treat leverage the regular RP Block Service
                             // to create the target volume
-                            targetVolume = rpBlockServiceApiImpl.prepareVolume(project, tgtVirtualArray, targetVirtualPool,
-                                    param.getSize(), secondaryRecommendation,
-                                    targetVolumeName,
-                                    consistencyGroup, task, true,
+                            // WJEIV -- Review this use case
+                            targetVolume = rpBlockServiceApiImpl.prepareVolume(null, project, tgtVirtualArray,
+                                    targetVirtualPool, param.getSize(),
+                                    secondaryRecommendation,
+                                    targetVolumeName, consistencyGroup, task,
+                                    true,
                                     secondaryRecommendation.getProtectionDevice(),
-                                    Volume.PersonalityTypes.TARGET,
-                                    rsetName, protection.getTargetInternalSiteName(),
-                                    targetCopyName, sourceVolume.getId(), settings);
+                                    Volume.PersonalityTypes.TARGET, rsetName,
+                                    protection.getTargetInternalSiteName(), targetCopyName, sourceVolume.getId(), settings);
                         }
 
                         volumeURIs.add(targetVolume.getId());

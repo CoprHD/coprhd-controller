@@ -940,8 +940,9 @@ public class BlockService extends TaskResourceService {
         TaskList taskList = new TaskList();
         
         // For each volume requested, pre-create a volume object/task object
+        long lsize = SizeUtil.translateSize(size);
         for (int i = 1 ; i <= volumeCount ; i++) {
-            Volume volume = StorageScheduler.prepareEmptyVolume(_dbClient, Long.valueOf(size), project, varray, vpool, label, i);
+            Volume volume = StorageScheduler.prepareEmptyVolume(_dbClient, lsize, project, varray, vpool, label, i);
             Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
                     task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
             volume.getOpStatus().put(task, op);
@@ -991,36 +992,32 @@ public class BlockService extends TaskResourceService {
         public void run() {
             _log.info("Starting scheduling/placement thread...");
             // Call out placementManager to get the recommendation for placement.
-            List recommendations = _placementManager.getRecommendationsForVolumeCreateRequest(
-                    varray, project, vpool, capabilities);
-
-            if (recommendations.isEmpty()) {
-                for (TaskResourceRep taskObj : taskList.getTaskList()) {
-                    APIException ex = APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
-                    _dbClient.error(Volume.class, taskObj.getResource().getId(), taskObj.getOpId(), ex);
-                    _log.error(ex.getMessage(), ex);
-                    taskObj.setMessage(ex.getMessage());
-                    // Set the volumes to inactive
-                    Volume volume = _dbClient.queryObject(Volume.class, taskObj.getResource().getId());
-                    volume.setInactive(true);
-                    _dbClient.updateAndReindexObject(volume);
-                }
-            }
-
-            // At this point we are committed to initiating the request.
-            if (consistencyGroup != null) {
-                consistencyGroup.addRequestedTypes(requestedTypes);
-                _dbClient.updateAndReindexObject(consistencyGroup);
-            }
-
             try {
+                List recommendations = _placementManager.getRecommendationsForVolumeCreateRequest(
+                        varray, project, vpool, capabilities);
+
+                if (recommendations.isEmpty()) {
+                    for (TaskResourceRep taskObj : taskList.getTaskList()) {
+                        APIException ex = APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
+                        _dbClient.error(Volume.class, taskObj.getResource().getId(), taskObj.getOpId(), ex);
+                        _log.error(ex.getMessage(), ex);
+                        taskObj.setMessage(ex.getMessage());
+                        // Set the volumes to inactive
+                        Volume volume = _dbClient.queryObject(Volume.class, taskObj.getResource().getId());
+                        volume.setInactive(true);
+                        _dbClient.updateAndReindexObject(volume);
+                    }
+                }
+
+                // At this point we are committed to initiating the request.
+                if (consistencyGroup != null) {
+                    consistencyGroup.addRequestedTypes(requestedTypes);
+                    _dbClient.updateAndReindexObject(consistencyGroup);
+                }
+
                 // Call out to the respective block service implementation to prepare
                 // and create the volumes based on the recommendations.
                 blockServiceImpl.createVolumes(param, project, varray, vpool, recommendations, taskList, task, capabilities);
-                for (TaskResourceRep taskObj : taskList.getTaskList()) {
-                    // I think this is redundant.  Remove while testing to make sure.
-                    _dbClient.ready(Volume.class, taskObj.getResource().getId(), taskObj.getOpId());
-                }
             } catch (Exception ex) {
                 for (TaskResourceRep taskObj : taskList.getTaskList()) {
                     APIException ex1 = APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());

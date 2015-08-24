@@ -22,6 +22,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.AbstractBlockServiceApiImpl;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -885,17 +886,13 @@ public class StorageScheduler implements Scheduler {
             // prepare block volume
             if (recommendation.getType().toString().equals(VolumeRecommendation.VolumeType.BLOCK_VOLUME.toString())) {
                 // Grab the existing volume and task object from the incoming task list
-                Volume volume = getPrecreatedVolume(taskList, volumeLabel, volumeCounter);
+                Volume volume = getPrecreatedVolume(_dbClient, taskList, volumeLabel, volumeCounter);
                 boolean volumePrecreated = false;
                 if (volume != null) {
                     volumePrecreated = true;
                 }
+                String newVolumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, volumeCounter, volumeCount);
                 
-                StringBuilder volumeLabelBuilder = new StringBuilder(volumeLabel);
-                if (volumeCount > 1) {
-                    volumeLabelBuilder.append("-");
-                    volumeLabelBuilder.append(volumeCounter++);
-                }
                 long size = SizeUtil.translateSize(param.getSize());
                 long thinVolumePreAllocationSize = 0;
                 if (null != vPool.getThinVolumePreAllocationPercentage()) {
@@ -904,7 +901,7 @@ public class StorageScheduler implements Scheduler {
                 }
 
                 volume = prepareVolume(_dbClient, volume, size, thinVolumePreAllocationSize, project,
-                        neighborhood, vPool, recommendation, volumeLabelBuilder.toString(), consistencyGroup, cosCapabilities, createInactive);
+                        neighborhood, vPool, recommendation, newVolumeLabel, consistencyGroup, cosCapabilities, createInactive);
                 // set volume id in recommendation
                 recommendation.setId(volume.getId());
                 // add volume to reserved capacity map of storage pool
@@ -949,20 +946,21 @@ public class StorageScheduler implements Scheduler {
 
     /**
      * Convenience method to return a volume from a task list with a pre-labeled volume number.
-     * 
+     * @param dbClient dbclient 
      * @param taskList task list
      * @param label base label
      * @param volumeCounter number of volume
+     * 
      * @return Volume object
      */
-    private Volume getPrecreatedVolume(TaskList taskList, String label, int volumeCounter) {
+    public static Volume getPrecreatedVolume(DbClient dbClient, TaskList taskList, String label, int volumeCounter) {
         StringBuilder volumeLabelBuilder = new StringBuilder(label);
         if (volumeCounter > 1) {
             volumeLabelBuilder.append("-");
             volumeLabelBuilder.append(volumeCounter++);
         }
         for (TaskResourceRep task : taskList.getTaskList()) {
-            Volume volume = _dbClient.queryObject(Volume.class, task.getResource().getId());
+            Volume volume = dbClient.queryObject(Volume.class, task.getResource().getId());
             if (volume.getLabel().equalsIgnoreCase(volumeLabelBuilder.toString())) {
                 return volume;
             }
@@ -1160,8 +1158,7 @@ public class StorageScheduler implements Scheduler {
         } else {
             // Reload volume object from DB
             volume = dbClient.queryObject(Volume.class, volume.getId());
-            dbClient.updateAndReindexObject(volume);
-        }
+        }        
 
         volume.setSyncActive(!Boolean.valueOf(createInactive));
         volume.setLabel(label);

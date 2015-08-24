@@ -1545,8 +1545,10 @@ public class VPlexApiClient {
         switch (locality) {
             case VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME:
                 device = getDiscoveryManager().getDeviceStructureForDistributedIngestion(deviceName, locality);
+                break;
             case VPlexApiConstants.LOCAL_VIRTUAL_VOLUME:
                 device = getDiscoveryManager().getDeviceStructureForLocalIngestion(deviceName, locality);
+                break;
         }
         
         return device;

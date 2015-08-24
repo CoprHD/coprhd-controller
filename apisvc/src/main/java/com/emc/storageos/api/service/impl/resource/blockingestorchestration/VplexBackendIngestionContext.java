@@ -2,14 +2,13 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.slf4j.Logger;
@@ -81,6 +80,7 @@ public class VplexBackendIngestionContext {
             allVolumes.addAll(backendClones);
         }
         allVolumes.addAll(getUnmanagedMirrors());
+        _logger.info("collected all unmanaged volumes: " + allVolumes);
         return allVolumes;
     }
     
@@ -89,6 +89,7 @@ public class VplexBackendIngestionContext {
             return unmanagedBackendVolumes;
         }
         
+        _logger.info("getting unmanaged backend volumes");
         unmanagedBackendVolumes = new ArrayList<UnManagedVolume>();
         List<URI> associatedVolumeUris = new ArrayList<URI>();
         
@@ -103,6 +104,7 @@ public class VplexBackendIngestionContext {
                                 BlockObject.normalizeWWN(backendWwn)), results);
                 if (results.iterator() != null) {
                     for (URI uri : results) {
+                        _logger.info("found backend volume " + uri);
                         associatedVolumeUris.add(uri);
                     }
                 }
@@ -120,6 +122,7 @@ public class VplexBackendIngestionContext {
             return backendVolumeWwnToInfoMap;
         }
         
+        _logger.info("getting backend volume wwn to api info map");
         try {
             backendVolumeWwnToInfoMap = 
                     VPlexControllerUtils.getStorageVolumeInfoForDevice(
@@ -133,6 +136,7 @@ public class VplexBackendIngestionContext {
                     ex.getLocalizedMessage());
         }
         
+        _logger.info("backend volume wwn to api info map: " + backendVolumeWwnToInfoMap);
         return backendVolumeWwnToInfoMap;
     }
     
@@ -145,6 +149,7 @@ public class VplexBackendIngestionContext {
                     VolumeIngestionUtil.VOLUME));
         }
         
+        _logger.info("associated volume guids: " + associatedVolumeGuids);
         return associatedVolumeGuids;
     }
 
@@ -153,6 +158,7 @@ public class VplexBackendIngestionContext {
             return unmanagedSnapshots;
         }
         
+        _logger.info("getting unmanaged snapshots");
         unmanagedSnapshots = new ArrayList<UnManagedVolume>();
         
         for (UnManagedVolume sourceVolume : this.getUnmanagedBackendVolumes()) {
@@ -169,6 +175,7 @@ public class VplexBackendIngestionContext {
             return unmanagedFullClones;
         }
         
+        _logger.info("getting unmanaged full clones");
         unmanagedFullClones = new HashMap<UnManagedVolume, UnManagedVolume>();
         
         List<UnManagedVolume> backendClonesFound = new ArrayList<UnManagedVolume>();
@@ -223,6 +230,7 @@ public class VplexBackendIngestionContext {
             }
         }
         
+        _logger.info("unmanaged full clones found: " + unmanagedFullClones);
         return unmanagedFullClones;
     }
 
@@ -232,6 +240,7 @@ public class VplexBackendIngestionContext {
             return unmanagedBackendOnlyClones;
         }
         
+        _logger.info("getting unmanaged backend-only clones");
         unmanagedBackendOnlyClones = new HashMap<UnManagedVolume, Set<UnManagedVolume>>();
         
         for (UnManagedVolume sourceVolume : getUnmanagedBackendVolumes()) {
@@ -242,6 +251,7 @@ public class VplexBackendIngestionContext {
             }
         }
         
+        _logger.info("unmanaged backend-only clones found: " + unmanagedFullClones);
         return unmanagedBackendOnlyClones;
     }
     
@@ -250,6 +260,7 @@ public class VplexBackendIngestionContext {
             return unmanagedMirrors;
         }
         
+        _logger.info("getting unmanaged mirrors");
         unmanagedMirrors = new ArrayList<UnManagedVolume>();
         
         if (!getMirrorMap().isEmpty()) {
@@ -291,12 +302,13 @@ public class VplexBackendIngestionContext {
             }
         }
 
+        _logger.info("unmanaged mirrors found: " + unmanagedMirrors);
         return unmanagedMirrors;
     }
 
     private UnManagedVolume getAssociatedVolumeForComponentDevice( VPlexDeviceInfo device ) {
         String devicePath = device.getPath();
-        _logger.info("devicePath: " + devicePath);
+        _logger.info("associated volume device context path: " + devicePath);
         for (Entry<String, VPlexStorageVolumeInfo> entry : getBackendVolumeWwnToInfoMap().entrySet()) {
             String storageVolumePath = entry.getValue().getPath();
             _logger.info("   storage volume context path: " + storageVolumePath);
@@ -322,6 +334,7 @@ public class VplexBackendIngestionContext {
             return mirrorMap;
         }
         
+        _logger.info("assembling mirror map");
         mirrorMap = new HashMap<String, Map<String, VPlexDeviceInfo>>();
         VPlexResourceInfo device = getTopLevelDevice();
         if (isLocal() && (device instanceof VPlexDeviceInfo)) {
@@ -334,16 +347,18 @@ public class VplexBackendIngestionContext {
             for (VPlexDeviceInfo localDevice : 
                 ((VPlexDistributedDeviceInfo) device).getLocalDeviceInfo()) {
                 if (VPlexApiConstants.ARG_GEOMETRY_RAID1.equals(
-                        ((VPlexDeviceInfo) device).getGeometry())) {
+                        ((VPlexDistributedDeviceInfo) device).getGeometry())) {
                     mirrorMap.put(localDevice.getCluster(), mapDevices(localDevice));
                 }
             }
         }
         
+        _logger.info("mirror map is: " + mirrorMap);
         return mirrorMap;
     }
     
     private Map<String, VPlexDeviceInfo> mapDevices( VPlexDeviceInfo parentDevice ) {
+        _logger.info("   mapping device " + parentDevice.getName());
         Map<String, VPlexDeviceInfo> mirrorDevices = new TreeMap<String, VPlexDeviceInfo>();
         for (VPlexDeviceInfo dev : parentDevice.getChildDeviceInfo()) {
             mirrorDevices.put(dev.getSlotNumber(), dev);
@@ -356,6 +371,7 @@ public class VplexBackendIngestionContext {
             return topLevelDevice;
         }
         
+        _logger.info("getting top level device");
         long start = System.currentTimeMillis();
         topLevelDevice = VPlexControllerUtils.getSupportingDeviceInfo(
                 getSupportingDeviceName(), getLocality(), 
@@ -364,6 +380,7 @@ public class VplexBackendIngestionContext {
         _logger.info("TIMER: fetching top level device took {}ms", 
                 System.currentTimeMillis() - start);
         
+        _logger.info("top level device is: " + topLevelDevice);
         return topLevelDevice;
     }
 
@@ -437,6 +454,7 @@ public class VplexBackendIngestionContext {
             s.append("processed unmanaged volumes: ").append(this.getProcessedUnManagedVolumeMap());
             return s.toString();
         } catch (Exception ex) {
+            _logger.error("exception: ", ex);
             return "couldn't generate debug string for VplexBackendIngestionContext";
         }
     }

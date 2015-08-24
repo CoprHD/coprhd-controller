@@ -3336,6 +3336,7 @@ public class VPlexApiDiscoveryManager {
             uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICES.toString());
             uriBuilder.append(deviceName);
             uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICE_COMP.toString());
+            uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
             uriBuilder.append(VPlexApiConstants.URI_COMPONENTS.toString());
             uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
             uriBuilder.append(VPlexApiConstants.URI_COMPONENTS.toString());
@@ -3560,7 +3561,7 @@ public class VPlexApiDiscoveryManager {
             String deviceName, String locality) throws VPlexApiException {
         
         long start = System.currentTimeMillis();
-        s_logger.info("Getting device structure info for local device {} from VPLEX at " 
+        s_logger.info("Getting device structure info for {} device {} from VPLEX at " 
                     + _vplexApiClient.getBaseURI().toString(), locality, deviceName);
         
         StringBuilder uriBuilder = new StringBuilder();

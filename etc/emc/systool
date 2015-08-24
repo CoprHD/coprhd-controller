@@ -493,12 +493,12 @@ _props_append() {
 
 _expand_iterable_props() {
     while read line ; do
-            for nodeid in $(_get_node_ids "${2}") ; do
-                if [ "${nodeid}" == "standalone" ]; then
-                    line="${line/vipr/}"
-                fi
-                echo "${line//\$\{iter\}/${nodeid}}"
-            done
+        for nodeid in $(_get_node_ids "${2}") ; do
+            if [ "${nodeid}" == "standalone" ]; then
+                line="${line/vipr/}"
+            fi
+            echo "${line//\$\{iter\}/${nodeid}}"
+        done
     done < "${1}"
 }
 

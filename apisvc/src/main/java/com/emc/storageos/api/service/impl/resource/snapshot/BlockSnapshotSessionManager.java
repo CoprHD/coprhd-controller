@@ -29,7 +29,6 @@ import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.BlockSnapshotSession.CopyMode;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -369,7 +368,7 @@ public class BlockSnapshotSessionManager {
         // Create the operation status entry in the status map for the snapshot.
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.RESTORE_SNAPSHOT_SESSION);
-        _dbClient.createTaskOpStatus(BlockSnapshot.class, snapSession.getId(), taskId, op);
+        _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSession.getId(), taskId, op);
         snapSession.getOpStatus().put(taskId, op);
 
         // Restore the snapshot.

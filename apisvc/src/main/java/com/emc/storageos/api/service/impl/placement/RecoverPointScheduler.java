@@ -74,6 +74,7 @@ import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatche
 import com.google.common.base.Joiner;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Lists;
+import com.sun.tools.javac.code.TargetType;
 
 /**
  * Advanced RecoverPoint based scheduling function for block storage.  StorageScheduler is done based on desired
@@ -2304,6 +2305,14 @@ public class RecoverPointScheduler implements Scheduler {
 		//Represents the journal storage system
 		 URI storageSystemURI = null;
 		 
+		 //First Determine if journal recommendation need to be computed. It might have already been done.		
+			for(RPRecommendation targetJournalRec : rpProtectionRecommendation.getTargetJournalRecommendations()) {
+				if (targetJournalRec.getVirtualArray().equals(journalVarray.getId())){
+					return null;
+				}
+			}	   
+		 
+		 
 		//Primary source journal remains what it was before the change Vpool operation.  			
 		if (vpoolChangeVolume != null 
 			        && !NullColumnValueGetter.isNullURI(vpoolChangeVolume.getRpJournalVolume()) 
@@ -3359,7 +3368,7 @@ public class RecoverPointScheduler implements Scheduler {
 			int requestedCount, boolean isMetroPoint, RPRecommendation primaryRecommendation, Project project) {
 			
 		if (protectionVarrays.isEmpty()) {
-			_log.info("Could not find target solution because there are no protection virtual arrays specified.");
+			_log.info("RP Placement : Could not find target solution because there are no protection virtual arrays specified.");
 			return false;
 		}
     	// Find the virtual pool that applies to this protection virtual array		
@@ -3374,7 +3383,7 @@ public class RecoverPointScheduler implements Scheduler {
             protectionVpool = dbClient.queryObject(VirtualPool.class, protectionSettings.getVirtualPool());          
         }
 
-        _log.info("Determing placement on protection varray : " + protectionVarray.getLabel());        
+        _log.info("RP Placement : Determing placement on protection varray : " + protectionVarray.getLabel());        
         // Find matching pools for the protection varray
         VirtualPoolCapabilityValuesWrapper newCapabilities = new VirtualPoolCapabilityValuesWrapper(capabilities);
         newCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, requestedCount);       
@@ -3419,7 +3428,7 @@ public class RecoverPointScheduler implements Scheduler {
 	        	                                                                                VirtualPool.vPoolSpecifiesHighAvailability(protectionVpool));
 	        	
 	        	if (associatedStorageSystems.isEmpty()) {
-	        		_log.info("Solution cannot be found using target pool " + candidateTargetPool.getLabel() + " there is no connectivity to rp cluster sites.");
+	        		_log.info("RP Placement : Solution cannot be found using target pool " + candidateTargetPool.getLabel() + " there is no connectivity to rp cluster sites.");
 	        		//updatePoolList(candidateTargetPools, candidateTargetPool);
 	        		continue;
 	        	}
@@ -3503,22 +3512,15 @@ public class RecoverPointScheduler implements Scheduler {
 	    			if (rpRecommendation.getTargetRecommendations() == null) {	    				
 	    				rpRecommendation.setTargetRecommendations(new ArrayList<RPRecommendation>());;
     				}	
-	    			rpRecommendation.getTargetRecommendations().add(targetRecommendation);	    				
+	    			rpRecommendation.getTargetRecommendations().add(targetRecommendation);	 
 	    			
-	    			boolean addTgtJournal = true;
-	    			for(RPRecommendation targetJournalRec : rpProtectionRecommendation.getTargetJournalRecommendations()) {
-	    				if (targetJournalRec.getVirtualArray().equals(targetJournalVarray.getId())){
-	    					addTgtJournal = false;
-	    				}
-	    			}	    	
-	    			
-	    			if (addTgtJournal){
-	    				ProtectionSystem ps = dbClient.queryObject(ProtectionSystem.class, psUri);
-	    				RPRecommendation targetJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation, targetInternalSiteName,
-	    						protectionSettings.getJournalSize(), targetJournalVarray, targetJournalVpool, ps, newCapabilities, newCapabilities.getResourceCount(), null, false);
-
-	    				_log.info(String.format("Setting recommendation for TARGET: Journal-varray [%s] -- Journal-vpool [%s]", targetJournalVarray.getLabel(), 
-	    						targetJournalVpool.getLabel()));	    			    	
+	    			ProtectionSystem ps = dbClient.queryObject(ProtectionSystem.class, psUri);
+	    			_log.info(String.format("RP Placement : Target Recommendation \n %s", targetRecommendation.toString(dbClient, ps)));
+	    				    			 		    			
+	    			RPRecommendation targetJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation, targetInternalSiteName,
+    						protectionSettings.getJournalSize(), targetJournalVarray, targetJournalVpool, ps, newCapabilities, newCapabilities.getResourceCount(), null, false);
+	    			if (targetJournalRecommendation != null){	    				    			
+	    				_log.info(String.format("RP Placement : Journal Recommendation \n %s", targetJournalRecommendation.toString(dbClient, ps)));
 	    				rpProtectionRecommendation.getTargetJournalRecommendations().add(targetJournalRecommendation);
 	    			}        			    				    				    			    
         	
@@ -3555,7 +3557,7 @@ public class RecoverPointScheduler implements Scheduler {
 				if (!remainingVarrays.isEmpty()) {
 					_log.info("RP placement: Calling find solution on the next virtual array : " + remainingVarrays.get(0).getLabel() + " Current virtual array: " + protectionVarray.getLabel());
 				} else {
-					_log.info("Solution cannot be found, will try again with different pool combination");
+					_log.info("RP Placement : Solution cannot be found, will try again with different pool combination");
 					return false;
 				}
 
@@ -3574,7 +3576,7 @@ public class RecoverPointScheduler implements Scheduler {
  
     	}     
         // If we get here, the recommendation object never got a new protection object, and we just return false, which will move onto the next possibility (in the case of a recursive call)
-        _log.info("Solution cannot be found, will try again with different pool combination");
+        _log.info("RP Placement : Solution cannot be found, will try again with different pool combination");
 		return false;
 	}
 	

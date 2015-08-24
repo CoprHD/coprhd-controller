@@ -56,6 +56,11 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 public class PlacementTests extends DbsvcTestBase {
 
     private static final Logger _log = LoggerFactory.getLogger(PlacementTests.class);
+    final String haVpoolUrn = "urn:storageos:VirtualPool:11111111-2222-3333-4444-555555555555:vdc1";
+
+    
+    //Pool Sizes
+    public final long SIZE_GB = (1024 * 1024 * 1024); //GB in bytes
 
     @Autowired
     private ApplicationContext _context;
@@ -3130,8 +3135,7 @@ public class PlacementTests extends DbsvcTestBase {
 	
 	/**
 	 * RP VPLEX placement -- placement decision based on RP array visibility
-	 */
-    /* 
+	 */   
 	@Test
 	public void testPlacementRpVplexAdvancedSite1toSite2() {
 	
@@ -3274,7 +3278,7 @@ public class PlacementTests extends DbsvcTestBase {
 	    siteVolCnt.put("site1", "10");
 	    siteVolCnt.put("site2", "10");
 	
-	    ProtectionSystem rpSystem = PlacementTestUtils.createProtectionSystem(_dbClient, "rp", "rp1", "site1", "site2", "IP", initiatorsSiteMap, storSystems, rpVisibleSystems, Long.valueOf("3221225472"), Long.valueOf("2"), siteVolCap, siteVolCnt);
+	    ProtectionSystem rpSystem = PlacementTestUtils.createProtectionSystem(_dbClient, "rp", "rp1", "site1", "site2", null, "IP", initiatorsSiteMap, storSystems, rpVisibleSystems, Long.valueOf("3221225472"), Long.valueOf("2"), siteVolCap, siteVolCnt);
 	    
 	    // RP Site Array objects
 	    RPSiteArray rpSiteArray1 = new RPSiteArray();
@@ -3308,12 +3312,12 @@ public class PlacementTests extends DbsvcTestBase {
 	
 	    // Create a storage pool for vmax2
 	    StoragePool pool4 = PlacementTestUtils.createStoragePool(_dbClient, varray2, storageSystem2, "pool4", "Pool4",
-	            Long.valueOf(1024 * 1024 * 10), Long.valueOf(1024 * 1024 * 10), 300, 300,
+	            Long.valueOf(SIZE_GB * 10), Long.valueOf(SIZE_GB * 10), 300, 300,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	
 	    // Create a storage pool for vmax2
 	    StoragePool pool5 = PlacementTestUtils.createStoragePool(_dbClient, varray2, storageSystem2, "pool5", "Pool5",
-	            Long.valueOf(1024 * 1024 * 10), Long.valueOf(1024 * 1024 * 10), 300, 300,
+	            Long.valueOf(SIZE_GB * 10), Long.valueOf(SIZE_GB * 50), 300, 300,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	
 	    // Create a storage pool for vmax2
@@ -3337,56 +3341,56 @@ public class PlacementTests extends DbsvcTestBase {
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	
 	
-	    // Create a base HA virtual pool
-	    VirtualPool vpoolHA = new VirtualPool();
-	    vpoolHA.setId(URI.create("urn:storageos:vpool:1:2"));
-	    vpoolHA.setLabel("vpoolHA");
-	    vpoolHA.setType("block");
-	    vpoolHA.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
-	    vpoolHA.setDriveType(SupportedDriveTypes.FC.name());
+	    // Create HA virtual pool
+	    VirtualPool haVpool = new VirtualPool();
+		haVpool.setId(URI.create(haVpoolUrn));
+	    haVpool.setLabel("haVpool");
+	    haVpool.setType("block");
+	    haVpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
+	    haVpool.setDriveType(SupportedDriveTypes.FC.name());
 	    StringSet matchedPools = new StringSet();
 	    matchedPools.add(pool1.getId().toString());
 	    matchedPools.add(pool2.getId().toString());
 	    matchedPools.add(pool3.getId().toString());
-	    vpoolHA.setMatchedStoragePools(matchedPools);
+	    haVpool.setMatchedStoragePools(matchedPools);
 	    StringSet virtualArrays1 = new StringSet();
 	    virtualArrays1.add(varray1.getId().toString());
-	    vpoolHA.setVirtualArrays(virtualArrays1);
-	    vpoolHA.setUseMatchedPools(true);
-	    _dbClient.createObject(vpoolHA);
+	    haVpool.setVirtualArrays(virtualArrays1);
+	    haVpool.setUseMatchedPools(true);
+	    _dbClient.createObject(haVpool);
 	
 	
-	    // Create a base RP virtual pool
-	    VirtualPool vpoolRP = new VirtualPool();
-	    vpoolRP.setId(URI.create("vpoolRP"));
-	    vpoolRP.setLabel("vpoolRP");
-	    vpoolRP.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
-	    vpoolRP.setDriveType(SupportedDriveTypes.FC.name());
-	    vpoolRP.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_local.name());
+	    // Create RP target vpool
+	    VirtualPool rpTgtVpool = new VirtualPool();
+	    rpTgtVpool.setId(URI.create("rpTgtVpool"));
+	    rpTgtVpool.setLabel("rpTgtVpool");
+	    rpTgtVpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
+	    rpTgtVpool.setDriveType(SupportedDriveTypes.FC.name());
+	    rpTgtVpool.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_local.name());
 	    matchedPools = new StringSet();
 	    matchedPools.add(pool7.getId().toString());
 	    matchedPools.add(pool8.getId().toString());
 	    matchedPools.add(pool9.getId().toString());
-	    vpoolRP.setMatchedStoragePools(matchedPools);
-	    vpoolRP.setUseMatchedPools(true);
+	    rpTgtVpool.setMatchedStoragePools(matchedPools);
+	    rpTgtVpool.setUseMatchedPools(true);
 	    StringSet virtualArrays3 = new StringSet();
 	    virtualArrays3.add(varray3.getId().toString());
-	    vpoolRP.setVirtualArrays(virtualArrays3);
-	    _dbClient.createObject(vpoolRP);
+	    rpTgtVpool.setVirtualArrays(virtualArrays3);
+	    _dbClient.createObject(rpTgtVpool);
 	
 	
-	    // Create a RP VPLEX virtual pool
-	    VirtualPool rpVplexVpool = new VirtualPool();
-	    rpVplexVpool.setId(URI.create("rpVplexVpool"));
-	    rpVplexVpool.setLabel("rpVplexVpool");
-	    rpVplexVpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
-	    rpVplexVpool.setDriveType(SupportedDriveTypes.FC.name());
-	    rpVplexVpool.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_distributed.name());
+	    // Create a RP VPLEX source virtual pool
+	    VirtualPool rpVplexSrcVpool = new VirtualPool();
+	    rpVplexSrcVpool.setId(URI.create("rpVplexSrcVpool"));
+	    rpVplexSrcVpool.setLabel("rpVplexSrcVpool");
+	    rpVplexSrcVpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
+	    rpVplexSrcVpool.setDriveType(SupportedDriveTypes.FC.name());
+	    rpVplexSrcVpool.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_distributed.name());
 	    StringMap vavpMap = new StringMap();
-	    vavpMap.put(varray1.getId().toString(), vpoolHA.getId().toString());
-	    rpVplexVpool.setHaVarrayVpoolMap(vavpMap);
+	    vavpMap.put(varray1.getId().toString(), haVpool.getId().toString());
+	    rpVplexSrcVpool.setHaVarrayVpoolMap(vavpMap);
 	    VpoolProtectionVarraySettings protectionSettings = new VpoolProtectionVarraySettings();
-	    protectionSettings.setVirtualPool(vpoolRP.getId());
+	    protectionSettings.setVirtualPool(rpTgtVpool.getId());
 	    protectionSettings.setId(URI.create("protectionSettings"));
 	    _dbClient.createObject(protectionSettings);
 	
@@ -3395,22 +3399,21 @@ public class PlacementTests extends DbsvcTestBase {
 	    StringMap protectionVarray = new StringMap();
 	
 	    protectionVarray.put(varray3.getId().toString(), protectionSettingsList.get(0).getId().toString());
-	    rpVplexVpool.setProtectionVarraySettings(protectionVarray);
-	    rpVplexVpool.setRpCopyMode("SYNCHRONOUS");
-	    rpVplexVpool.setRpRpoType("MINUTES");
-	    rpVplexVpool.setRpRpoValue(Long.valueOf("5"));
+	    rpVplexSrcVpool.setProtectionVarraySettings(protectionVarray);
+	    rpVplexSrcVpool.setRpCopyMode("SYNCHRONOUS");
+	    rpVplexSrcVpool.setRpRpoType("MINUTES");
+	    rpVplexSrcVpool.setRpRpoValue(Long.valueOf("5"));
 	    matchedPools = new StringSet();
 	    matchedPools.add(pool4.getId().toString());
 	    matchedPools.add(pool5.getId().toString());
 	    matchedPools.add(pool6.getId().toString());
-	    rpVplexVpool.setMatchedStoragePools(matchedPools);
-	    rpVplexVpool.setUseMatchedPools(true);
+	    rpVplexSrcVpool.setMatchedStoragePools(matchedPools);
+	    rpVplexSrcVpool.setUseMatchedPools(true);
 	    StringSet virtualArrays2 = new StringSet();
 	    virtualArrays2.add(varray2.getId().toString());
-	    rpVplexVpool.setVirtualArrays(virtualArrays2);
-	    _dbClient.createObject(rpVplexVpool);
-	
-	
+	    rpVplexSrcVpool.setVirtualArrays(virtualArrays2);
+	    _dbClient.createObject(rpVplexSrcVpool);
+		
 	    // Create Tenant
 	    TenantOrg tenant = new TenantOrg();
 	    tenant.setId(URI.create("tenant"));
@@ -3434,66 +3437,134 @@ public class PlacementTests extends DbsvcTestBase {
 	
 	    // Run single volume placement: Run 10 times to make sure pool6 never comes up for source and pool9 for target.
 	    for (int i = 0; i < 10; i++) {
-	        List recommendations = PlacementTestUtils.invokePlacement(_dbClient, _coordinator, varray2, project, rpVplexVpool, capabilities);
-	
+	        List recommendations = PlacementTestUtils.invokePlacement(_dbClient, _coordinator, varray2, project, rpVplexSrcVpool, capabilities);
 	        assertNotNull(recommendations);
 	        assertTrue(recommendations.size() > 0);
 	        assertNotNull(recommendations.get(0));
-	        RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
-	        RPProtectionRecommendation recVplexProt = (RPProtectionRecommendation) recommendations.get(0);
-	        VPlexRecommendation recVplex = (RPProtectionRecommendation) ((RPProtectionRecommendation) recommendations.get(0)).getSourceVPlexHaRecommendations().get(0);
-	
-	        assertNotNull(rec.getInternalSiteName());
-	        assertNotNull(rec.getSourceDevice());
-	        assertNotNull(rec.getSourcePool());
-	        assertNotNull(rec.getSourceJournalStoragePool());
+	        RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);	              
+	        assertNotNull(rec.getSourceRecommendations());
+	        assertNotNull(rec.getSourceRecommendations().size() > 0);   
 	        assertNotNull(rec.getProtectionDevice());
-	        assertNotNull(rec.getVirtualArrayProtectionMap());
-	        assertTrue(rec.getVirtualArrayProtectionMap().size() == 0);
-	
-	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap());
-	        assertNotNull(recVplexProt.getSourceVPlexHaRecommendations());
-	        assertTrue(recVplexProt.getVirtualArrayProtectionMap().size() > 0);
-	        assertTrue(recVplexProt.getSourceVPlexHaRecommendations().size() > 0);
-	
-	        //assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVplexDevice());
-	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStorageSystem());
-	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalDevice());
-	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVarray());
-	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVpool());
-	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetInternalSiteName());
-	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool());
-	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalStoragePool());
-	
-	        assertNotNull(recVplex.getVPlexStorageSystem());
-	        assertNotNull(recVplex.getVirtualArray());
-	        assertNotNull(recVplex.getVirtualPool());
-	        assertNotNull(recVplex.getSourceDevice());
-	        assertNotNull(recVplex.getSourcePool());
-	
-	        assertTrue("site1".equals(rec.getInternalSiteName()));
-	        assertTrue("vmax2".equals(rec.getSourceDevice().toString()));
-	        assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
-	        assertTrue(("pool5".equals(rec.getSourcePool().toString())) || ("pool4".equals(rec.getSourcePool().toString())));
-	        assertTrue(("pool5".equals(rec.getSourceJournalStoragePool().toString())) || ("pool4".equals(rec.getSourceJournalStoragePool().toString())));
+	        assertTrue("rp1".equals(rec.getProtectionDevice()));
+	        
+	        for (RPRecommendation sourceRec : rec.getSourceRecommendations()) {
+	        	assertNotNull(sourceRec.getInternalSiteName());
+	        	assertNotNull(sourceRec.getVirtualArray());
+	        	assertNotNull(sourceRec.getVirtualPool());
+	        	assertNotNull(sourceRec.getVirtualVolumeRecommendation());
+	        	assertNotNull(sourceRec.getHaRecommendation());
+	        	assertNotNull(sourceRec.getTargetRecommendations());
+	        	assertNotNull(sourceRec.getTargetRecommendations().size() > 0);
+	        	
+	        	assertTrue("site1".equals(sourceRec.getInternalSiteName()));
+	        	assertTrue("vmax2".equals(sourceRec.getSourceDevice().toString()));
+	        	assertTrue(("pool5".equals(sourceRec.getSourcePool().toString())) || ("pool4".equals(sourceRec.getSourcePool().toString())));
+	        	if (VirtualPool.vPoolSpecifiesHighAvailability(sourceRec.getVirtualPool())) {
+	        		assertNotNull(sourceRec.getVirtualVolumeRecommendation());
+	        	}
+	        	
+	        	assertNotNull(sourceRec.getHaRecommendation().getVirtualVolumeRecommendation());
+	        	assertTrue("vplex1".equals(sourceRec.getHaRecommendation().getVirtualVolumeRecommendation().getVPlexStorageSystem().toString()));
+		        assertTrue("varray1".equals(sourceRec.getHaRecommendation().getVirtualArray().toString()));
+		        assertTrue(haVpoolUrn.equals(sourceRec.getHaRecommendation().getVirtualPool().getId().toString()));
+		        assertTrue("vmax1".equals(sourceRec.getHaRecommendation().getSourceDevice().toString()));
+		        assertTrue(("pool2".equals(sourceRec.getHaRecommendation().getSourcePool().toString())) || ("pool1".equals(sourceRec.getHaRecommendation().getSourcePool().toString())));
+	        	
+	        	assertNotNull(sourceRec.getTargetRecommendations());
+	        	assertNotNull(sourceRec.getTargetRecommendations().size() > 0);
+	        	for(RPRecommendation targetRec : sourceRec.getTargetRecommendations()) {
+	        		assertNotNull(targetRec.getInternalSiteName());
+	        		assertNotNull(targetRec.getVirtualArray());
+	        		assertNotNull(targetRec.getVirtualPool());
+	        		
+	        		if (VirtualPool.vPoolSpecifiesHighAvailability(targetRec.getVirtualPool())) {
+	        			assertNotNull(targetRec.getVirtualVolumeRecommendation());
+	        		}
+	        		
+	        		assertTrue("varray3".equals(targetRec.getVirtualArray().toString()));
+	        		assertTrue("vpoolRP".equals(targetRec.getVirtualPool().getId().toString()));
+	        		assertTrue("site2".equals(targetRec.getInternalSiteName()));
+	        		assertTrue("vmax3".equals(targetRec.getSourceDevice().toString()));
+	    	        assertTrue(("pool8".equals(targetRec.getSourcePool().toString())) || ("pool7".equals(targetRec.getSourcePool().toString())));	        	
+	        	}	 	        
+	        }
+	        
+	        //source journal
+	        assertNotNull(rec.getSourceJournalRecommendation());
+	        RPRecommendation sourceJournalRec = rec.getSourceJournalRecommendation();
+	        if (VirtualPool.vPoolSpecifiesHighAvailability(sourceJournalRec.getVirtualPool())) {
+	        	assertNotNull(sourceJournalRec.getVirtualVolumeRecommendation());
+	        }
+	        assertTrue(("pool5".equals(sourceJournalRec.getSourcePool().toString())) || ("pool4".equals(sourceJournalRec.getSourcePool().toString())));
+	        
+	        //target journals
+	        assertNotNull(rec.getTargetJournalRecommendations());
+	        assertNotNull(rec.getTargetJournalRecommendations().size() > 0);
+	        for(RPRecommendation targetJournalRec : rec.getTargetJournalRecommendations()) {
+	        	assertNotNull(targetJournalRec.getInternalSiteName());
+	        	assertNotNull(targetJournalRec.getVirtualArray());
+	        	assertNotNull(targetJournalRec.getVirtualPool());
+	        	if (VirtualPool.vPoolSpecifiesHighAvailability(targetJournalRec.getVirtualPool())) {
+		        	assertNotNull(targetJournalRec.getVirtualVolumeRecommendation());
+		        }
+	        	
+		        assertTrue("vmax3".equals(targetJournalRec.getSourceDevice().toString()));
+		        assertTrue(("pool8".equals(targetJournalRec.getSourcePool().toString())) || ("pool7".equals(targetJournalRec.getSourcePool().toString())));
+	        }
+	        
 
-	        //assertTrue("vplex2".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVplexDevice().toString()));
-	        assertTrue("vmax3".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStorageSystem().toString()));
-	        assertTrue("vmax3".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalDevice().toString()));
-	        assertTrue("varray3".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVarray().toString()));
-	        assertTrue("site2".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetInternalSiteName()));
-	        assertTrue("vpoolRP".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVpool().getId().toString()));
-	        assertTrue(("pool8".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool().toString())) || ("pool7".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool().toString())));
-	        assertTrue(("pool8".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalStoragePool().toString())) || ("pool7".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalStoragePool().toString())));
+//	        VPlexRecommendation recVplex = (RPProtectionRecommendation) ((RPProtectionRecommendation) recommendations.get(0)).getSourceVPlexHaRecommendations().get(0);
+//	
+//	        assertNotNull(rec.getInternalSiteName());
+//	        assertNotNull(rec.getSourceDevice());
+//	        assertNotNull(rec.getSourcePool());
+//	        assertNotNull(rec.getSourceJournalStoragePool());
+//	        assertNotNull(rec.getProtectionDevice());
+//	        assertNotNull(rec.getVirtualArrayProtectionMap());
+//	        assertTrue(rec.getVirtualArrayProtectionMap().size() == 0);
+//	
+//	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap());
+//	        assertNotNull(recVplexProt.getSourceVPlexHaRecommendations());
+//	        assertTrue(recVplexProt.getVirtualArrayProtectionMap().size() > 0);
+//	        assertTrue(recVplexProt.getSourceVPlexHaRecommendations().size() > 0);
+//	
+//	        //assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVplexDevice());
+//	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStorageSystem());
+//	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalDevice());
+//	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVarray());
+//	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVpool());
+//	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetInternalSiteName());
+//	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool());
+//	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalStoragePool());
+//	
+//	        assertNotNull(recVplex.getVPlexStorageSystem());
+//	        assertNotNull(recVplex.getVirtualArray());
+//	        assertNotNull(recVplex.getVirtualPool());
+//	        assertNotNull(recVplex.getSourceDevice());
+//	        assertNotNull(recVplex.getSourcePool());
+//	
+//	        assertTrue("site1".equals(rec.getInternalSiteName()));
+//	        assertTrue("vmax2".equals(rec.getSourceDevice().toString()));
+//	        assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
+//	       
+//
+//	        //assertTrue("vplex2".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVplexDevice().toString()));
+//	        assertTrue("vmax3".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStorageSystem().toString()));
+//	        assertTrue("vmax3".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalDevice().toString()));
+//	        assertTrue("varray3".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVarray().toString()));
+//	        assertTrue("site2".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetInternalSiteName()));
+//	        assertTrue("vpoolRP".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVpool().getId().toString()));
+//	        assertTrue(("pool8".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool().toString())) || ("pool7".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool().toString())));
+//	        assertTrue(("pool8".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalStoragePool().toString())) || ("pool7".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalStoragePool().toString())));
+//	
+//	        assertTrue("vplex1".equals(recVplex.getVPlexStorageSystem().toString()));
+//	        assertTrue("varray1".equals(recVplex.getVirtualArray().toString()));
+//	        assertTrue("urn:storageos:vpool:1:2".equals(recVplex.getVirtualPool().getId().toString()));
+//	        assertTrue("vmax1".equals(recVplex.getSourceDevice().toString()));
+//	        assertTrue(("pool2".equals(recVplex.getSourcePool().toString())) || ("pool1".equals(recVplex.getSourcePool().toString())));
 	
-	        assertTrue("vplex1".equals(recVplex.getVPlexStorageSystem().toString()));
-	        assertTrue("varray1".equals(recVplex.getVirtualArray().toString()));
-	        assertTrue("urn:storageos:vpool:1:2".equals(recVplex.getVirtualPool().getId().toString()));
-	        assertTrue("vmax1".equals(recVplex.getSourceDevice().toString()));
-	        assertTrue(("pool2".equals(recVplex.getSourcePool().toString())) || ("pool1".equals(recVplex.getSourcePool().toString())));
-	
-	        _log.info("Recommendation " + i + ": " + recommendations.size() + ", Source Pool Chosen: " + rec.getSourcePool().toString() + ", Target Pool Chosen: " + recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool().toString());
+	       //_log.info("Recommendation " + i + ": " + recommendations.size() + ", Source Pool Chosen: " + rec.getSourcePool().toString() + ", Target Pool Chosen: " + recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool().toString());
+	        _log.info("Recommendation : " + rec.toString(_dbClient));
 	    }
-	} */
-
+	} 
 }

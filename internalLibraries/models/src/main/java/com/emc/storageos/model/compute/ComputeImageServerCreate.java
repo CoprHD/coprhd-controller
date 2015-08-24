@@ -6,24 +6,22 @@ package com.emc.storageos.model.compute;
 
 import javax.xml.bind.annotation.XmlElement;
 
-
 public class ComputeImageServerCreate {
-	
+
 	private String imageServerAddress;
-	
+
 	private String osInstallAddress;
-	
+
 	private String username;
-	
+
 	private String password;
-	
+
 	private String bootDir;
-	
+
 	private long installTimeout;
-	
-	public ComputeImageServerCreate()
-	{
-		
+
+	public ComputeImageServerCreate() {
+
 	}
 
 	public ComputeImageServerCreate(String imageServerAddress,
@@ -47,7 +45,8 @@ public class ComputeImageServerCreate {
 	}
 
 	/**
-	 * @param imageServerAddress the imageServerAddress to set
+	 * @param imageServerAddress
+	 *            the imageServerAddress to set
 	 */
 	public void setImageServerAddress(String imageServerAddress) {
 		this.imageServerAddress = imageServerAddress;
@@ -62,7 +61,8 @@ public class ComputeImageServerCreate {
 	}
 
 	/**
-	 * @param osInstallAddress the osInstallAddress to set
+	 * @param osInstallAddress
+	 *            the osInstallAddress to set
 	 */
 	public void setOsInstallAddress(String osInstallAddress) {
 		this.osInstallAddress = osInstallAddress;
@@ -77,7 +77,8 @@ public class ComputeImageServerCreate {
 	}
 
 	/**
-	 * @param username the username to set
+	 * @param username
+	 *            the username to set
 	 */
 	public void setUsername(String username) {
 		this.username = username;
@@ -92,7 +93,8 @@ public class ComputeImageServerCreate {
 	}
 
 	/**
-	 * @param password the password to set
+	 * @param password
+	 *            the password to set
 	 */
 	public void setPassword(String password) {
 		this.password = password;
@@ -107,7 +109,8 @@ public class ComputeImageServerCreate {
 	}
 
 	/**
-	 * @param bootDir the bootDir to set
+	 * @param bootDir
+	 *            the bootDir to set
 	 */
 	public void setBootDir(String bootDir) {
 		this.bootDir = bootDir;
@@ -122,11 +125,11 @@ public class ComputeImageServerCreate {
 	}
 
 	/**
-	 * @param installTimeout the installTimeout to set
+	 * @param installTimeout
+	 *            the installTimeout to set
 	 */
 	public void setInstallTimeout(long installTimeout) {
 		this.installTimeout = installTimeout;
 	}
-
 
 }

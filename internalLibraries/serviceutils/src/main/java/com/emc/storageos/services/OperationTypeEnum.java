@@ -380,7 +380,10 @@ public enum OperationTypeEnum {
     CREATE_USERGROUP("CREATE USER GROUP", "", "operation to create a user group."),
     UPDATE_USERGROUP("UPDATE USER GROUP", "", "operation to update a user group."),
     DELETE_USERGROUP("DELETE USER GROUP", "", "operation to delete a user group."),
-    ArrayGeneric("", "", "");
+    ArrayGeneric("", "", ""),
+    CREATE_COMPUTE_IMAGESERVER("CREATE COMPUTE IMAGE SERVER", "", "operation to create a compute image server."),
+    UPDATE_COMPUTE_IMAGESERVER("UPDATE COMPUTE IMAGE SERVER", "", "operation to update a compute image server."),
+    DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),;
 
     private final String _evType;
     private final String _fail_evType;

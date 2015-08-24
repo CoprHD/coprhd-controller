@@ -11,7 +11,7 @@ package com.emc.storageos.db.client.model;
  *
  */
 @Cf("ComputeImageServer")
-public class ComputeImageServer extends DataObject{
+public class ComputeImageServer extends DataObject {
 
 	/**
 	 * 
@@ -19,19 +19,19 @@ public class ComputeImageServer extends DataObject{
 	private static final long serialVersionUID = 1L;
 
 	private String imageServerAddress;
-	
+
 	private String osInstallAddress;
-	
+
 	private String username;
-	
+
 	private String password;
-	
+
 	private String bootDir;
-	
+
 	private long installTimeout;
 
 	private StringSet computeImage;
-	
+
 	/**
 	 * @return the osInstallAddress
 	 */
@@ -41,7 +41,8 @@ public class ComputeImageServer extends DataObject{
 	}
 
 	/**
-	 * @param osInstallAddress the osInstallAddress to set
+	 * @param osInstallAddress
+	 *            the osInstallAddress to set
 	 */
 	public void setOsInstallAddress(String osInstallAddress) {
 		this.osInstallAddress = osInstallAddress;
@@ -56,7 +57,8 @@ public class ComputeImageServer extends DataObject{
 	}
 
 	/**
-	 * @param username the username to set
+	 * @param username
+	 *            the username to set
 	 */
 	public void setUsername(String username) {
 		this.username = username;
@@ -71,7 +73,8 @@ public class ComputeImageServer extends DataObject{
 	}
 
 	/**
-	 * @param password the password to set
+	 * @param password
+	 *            the password to set
 	 */
 	public void setPassword(String password) {
 		this.password = password;
@@ -86,7 +89,8 @@ public class ComputeImageServer extends DataObject{
 	}
 
 	/**
-	 * @param bootDir the bootDir to set
+	 * @param bootDir
+	 *            the bootDir to set
 	 */
 	public void setBootDir(String bootDir) {
 		this.bootDir = bootDir;
@@ -101,7 +105,8 @@ public class ComputeImageServer extends DataObject{
 	}
 
 	/**
-	 * @param installTimeout the installTimeout to set
+	 * @param installTimeout
+	 *            the installTimeout to set
 	 */
 	public void setInstallTimeout(long installTimeout) {
 		this.installTimeout = installTimeout;
@@ -116,7 +121,8 @@ public class ComputeImageServer extends DataObject{
 	}
 
 	/**
-	 * @param imageServerAddress the imageServerAddress to set
+	 * @param imageServerAddress
+	 *            the imageServerAddress to set
 	 */
 	public void setImageServerAddress(String imageServerAddress) {
 		this.imageServerAddress = imageServerAddress;
@@ -132,12 +138,11 @@ public class ComputeImageServer extends DataObject{
 	}
 
 	/**
-	 * @param computeImage the computeImageUri to set
+	 * @param computeImage
+	 *            the computeImageUri to set
 	 */
 	public void setComputeImage(StringSet computeImageUri) {
 		this.computeImage = computeImageUri;
 	}
-	
-	
 
 }

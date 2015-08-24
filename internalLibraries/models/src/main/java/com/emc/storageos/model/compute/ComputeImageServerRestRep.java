@@ -18,19 +18,18 @@ import com.emc.storageos.model.RelatedResourceRep;
 
 @XmlRootElement(name = "compute_imageserver")
 @XmlAccessorType(XmlAccessType.PROPERTY)
-public class ComputeImageServerRestRep extends DataObjectRestRep{
-	
+public class ComputeImageServerRestRep extends DataObjectRestRep {
+
 	private String imageServerAddress;
-	
+
 	private String osInstallAddress;
-	
+
 	private String bootDir;
 
 	private List<RelatedResourceRep> computeImage;
-		
-	public ComputeImageServerRestRep()
-	{
-		
+
+	public ComputeImageServerRestRep() {
+
 	}
 
 	/**
@@ -42,12 +41,12 @@ public class ComputeImageServerRestRep extends DataObjectRestRep{
 	}
 
 	/**
-	 * @param imageServerAddress the imageServerAddress to set
+	 * @param imageServerAddress
+	 *            the imageServerAddress to set
 	 */
 	public void setImageServerAddress(String imageServerAddress) {
 		this.imageServerAddress = imageServerAddress;
 	}
-
 
 	/**
 	 * @return the osInstallAddress
@@ -57,14 +56,13 @@ public class ComputeImageServerRestRep extends DataObjectRestRep{
 		return osInstallAddress;
 	}
 
-
 	/**
-	 * @param osInstallAddress the osInstallAddress to set
+	 * @param osInstallAddress
+	 *            the osInstallAddress to set
 	 */
 	public void setOsInstallAddress(String osInstallAddress) {
 		this.osInstallAddress = osInstallAddress;
 	}
-
 
 	/**
 	 * @return the bootDir
@@ -74,30 +72,29 @@ public class ComputeImageServerRestRep extends DataObjectRestRep{
 		return bootDir;
 	}
 
-
 	/**
-	 * @param bootDir the bootDir to set
+	 * @param bootDir
+	 *            the bootDir to set
 	 */
 	public void setBootDir(String bootDir) {
 		this.bootDir = bootDir;
 	}
 
-
 	/**
 	 * @return the computeImage
 	 */
 	@XmlElementWrapper(name = "compute_image")
-    @XmlElement(name = "compute_image")
+	@XmlElement(name = "compute_image")
 	public List<RelatedResourceRep> getComputeImage() {
 		if (null == computeImage) {
 			computeImage = new ArrayList<RelatedResourceRep>();
-        }
+		}
 		return computeImage;
 	}
 
-
 	/**
-	 * @param computeImage the computeImage to set
+	 * @param computeImage
+	 *            the computeImage to set
 	 */
 	public void setComputeImage(List<RelatedResourceRep> computeImage) {
 		this.computeImage = computeImage;

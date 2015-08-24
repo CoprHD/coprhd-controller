@@ -1068,11 +1068,11 @@ public class StorageScheduler implements Scheduler {
 
     }
 
-    public static Volume prepareVolume(DbClient dbClient, long size, long thinVolumePreAllocationSize, Project project,
-            VirtualArray neighborhood, VirtualPool vpool, VolumeRecommendation placement,
-            String label, BlockConsistencyGroup consistencyGroup,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
-        return prepareVolume(dbClient, null, size, thinVolumePreAllocationSize, project, neighborhood, vpool,
+    public static Volume prepareVolume(DbClient dbClient, Volume volume, long size, long thinVolumePreAllocationSize,
+            Project project, VirtualArray neighborhood, VirtualPool vpool,
+            VolumeRecommendation placement, String label,
+            BlockConsistencyGroup consistencyGroup, VirtualPoolCapabilityValuesWrapper capabilities) {
+        return prepareVolume(dbClient, volume, size, thinVolumePreAllocationSize, project, neighborhood, vpool,
                 placement, label, consistencyGroup, capabilities, false);
     }
 

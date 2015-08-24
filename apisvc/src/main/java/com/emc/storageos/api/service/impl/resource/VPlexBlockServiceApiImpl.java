@@ -372,10 +372,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                                         vpool.getThinVolumePreAllocationPercentage(), size);
                     }
 
-                    Volume volume = prepareVolume(VolumeType.BLOCK_VOLUME, size,
-                            thinVolumePreAllocationSize, vplexProject, varray,
-                            vpool, storageDeviceURI, storagePoolURI,
-                            newVolumeLabel, backendCG, vPoolCapabilities);
+                    Volume volume = prepareVolume(VolumeType.BLOCK_VOLUME, null,
+                            size, thinVolumePreAllocationSize, vplexProject,
+                            varray, vpool, storageDeviceURI,
+                            storagePoolURI, newVolumeLabel, backendCG, vPoolCapabilities);
 
                     volume.addInternalFlags(Flag.INTERNAL_OBJECT);
                     _dbClient.persistObject(volume);
@@ -416,6 +416,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             }
             s_logger.info("Volume label is {}", volumeLabelBuilder.toString());
 
+            Volume volume = StorageScheduler.getPrecreatedVolume(_dbClient, taskList, volumeLabelBuilder.toString(), i);
+            boolean volumePrecreated = false;
+            if (volume != null) {
+                volumePrecreated = true;
+            }
+            
             long thinVolumePreAllocationSize = 0;
             if (null != vPool.getThinVolumePreAllocationPercentage()) {
                 thinVolumePreAllocationSize = VirtualPoolUtil
@@ -423,10 +429,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                                 vPool.getThinVolumePreAllocationPercentage(), size);
             }
 
-            Volume volume = prepareVolume(VolumeType.VPLEX_VIRTUAL_VOLUME, size,
-                    thinVolumePreAllocationSize, project, vArray, vPool,
-                    vplexStorageSystemURI, nullPoolURI, volumeLabelBuilder.toString(),
-                    consistencyGroup, vPoolCapabilities);
+            volume = prepareVolume(VolumeType.VPLEX_VIRTUAL_VOLUME, volume,
+                    size, thinVolumePreAllocationSize, project, vArray,
+                    vPool, vplexStorageSystemURI, nullPoolURI,
+                    volumeLabelBuilder.toString(), consistencyGroup, vPoolCapabilities);
             Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
                     task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
 
@@ -449,8 +455,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     ||
                     (vPoolCapabilities.getPersonality() != null && vPoolCapabilities.getPersonality().equals(
                             Volume.PersonalityTypes.SOURCE.name()))) {
-                TaskResourceRep volumeTask = toTask(volume, task, op);
-                taskList.getTaskList().add(volumeTask);
+                if (!volumePrecreated) {
+                    TaskResourceRep volumeTask = toTask(volume, task, op);
+                    taskList.getTaskList().add(volumeTask);
+                }
             }
             VolumeDescriptor descriptor = new VolumeDescriptor(
                     VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, vplexStorageSystemURI, volumeId,
@@ -579,7 +587,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
     /**
      * Prepare a new Bourne Volume.
-     * 
+     * @param volume pre-created volume (optional)
      * @param size The volume capacity.
      * @param thinVolumePreAllocationSize preallocation size for thin provisioning or 0.
      * @param project A reference to the project.
@@ -593,11 +601,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * 
      * @return A reference to the newly persisted Volume.
      */
-    private Volume prepareVolume(VolumeType volType, long size,
-            long thinVolumePreAllocationSize, Project project, VirtualArray vArray,
-            VirtualPool vPool, URI storageSystemURI, URI storagePoolURI,
-            String label, BlockConsistencyGroup consistencyGroup,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+    private Volume prepareVolume(VolumeType volType, Volume volume,
+            long size, long thinVolumePreAllocationSize, Project project,
+            VirtualArray vArray, VirtualPool vPool, URI storageSystemURI,
+            URI storagePoolURI, String label,
+            BlockConsistencyGroup consistencyGroup, VirtualPoolCapabilityValuesWrapper capabilities) {
 
         // Encapsulate the storage system and storage pool in a
         // volume recommendation and use the default implementation.
@@ -605,9 +613,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 vPool, vArray.getId());
         volRecomendation.addStorageSystem(storageSystemURI);
         volRecomendation.addStoragePool(storagePoolURI);
-        Volume volume = StorageScheduler.prepareVolume(_dbClient,
-                size, thinVolumePreAllocationSize, project, vArray, vPool,
-                volRecomendation, label, consistencyGroup, capabilities);
+        volume = StorageScheduler.prepareVolume(_dbClient,
+                volume, size, thinVolumePreAllocationSize, project, vArray,
+                vPool, volRecomendation, label, consistencyGroup, capabilities);
 
         // For VPLEX volumes, the protocol will not be set when the
         // storage scheduler is invoked to prepare the volume because
@@ -688,9 +696,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         volRecomendation.addStoragePool(recommendedPoolURI);
 
         // Create volume object
-        Volume volume = StorageScheduler.prepareVolume(dbClient, backendVolume.getProvisionedCapacity(),
-                thinVolumePreAllocationSize, project, varray, vPool, volRecomendation, mirrorLabel, null,
-                capabilities);
+        Volume volume = StorageScheduler.prepareVolume(dbClient, null,
+                backendVolume.getProvisionedCapacity(), thinVolumePreAllocationSize, project, varray, vPool, volRecomendation, mirrorLabel,
+                null, capabilities);
 
         // Add INTERNAL_OBJECT flag to the volume created
         volume.addInternalFlags(Flag.INTERNAL_OBJECT);

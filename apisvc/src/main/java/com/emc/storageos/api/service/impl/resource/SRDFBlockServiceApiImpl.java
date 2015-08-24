@@ -186,6 +186,14 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             while (recommendationsIter.hasNext()) {
                 SRDFRecommendation recommendation = (SRDFRecommendation) recommendationsIter.next();
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceDevice());
+
+                // Grab the existing volume and task object from the incoming task list
+                Volume srcVolume = StorageScheduler.getPrecreatedVolume(_dbClient, taskList, volumeLabel, volumeCounter);
+                boolean volumePrecreated = false;
+                if (srcVolume != null) {
+                    volumePrecreated = true;
+                }
+                
                 // Prepare the Bourne Volumes to be created and associated
                 // with the actual storage system volumes created. Also create
                 // a BlockTaskList containing the list of task resources to be
@@ -197,13 +205,14 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
                     // Assemble a Replication Set; A Collection of volumes. One production, and any
                     // number of targets.
-                    Volume srcVolume = null;
                     if (recommendation.getVpoolChangeVolume() == null) {
-                        srcVolume = prepareVolume(param, project, varray, vpool, param.getSize(),
-                                recommendation, newVolumeLabel, consistencyGroup, task,
-                                false, Volume.PersonalityTypes.SOURCE, null, null, null);
+                        srcVolume = prepareVolume(srcVolume, param, project, varray, vpool,
+                                param.getSize(), recommendation, newVolumeLabel, consistencyGroup,
+                                task, false, Volume.PersonalityTypes.SOURCE, null, null, null);
                         volumeURIs.add(srcVolume.getId());
-                        taskList.getTaskList().add(toTask(srcVolume, task));
+                        if (!volumePrecreated) {
+                            taskList.getTaskList().add(toTask(srcVolume, task));
+                        }
                     } else {
                         srcVolume = _dbClient.queryObject(Volume.class,
                                 recommendation.getVpoolChangeVolume());
@@ -357,7 +366,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
     /**
      * Prepare Volume for an SRDF protected volume
-     * 
+     * @param volume 
+     *            pre-created volume from the api service
      * @param param
      *            volume request
      * @param project
@@ -386,20 +396,28 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      *            RDF Group of the source array to use
      * @param copyMode
      *            copy policy, like async or sync
+     * 
      * @return a persisted volume
      */
-    private Volume prepareVolume(final VolumeCreate param, final Project project,
-            final VirtualArray varray, final VirtualPool vpool, final String size,
-            final Recommendation placement, final String label,
-            final BlockConsistencyGroup consistencyGroup, final String token, final boolean remote,
-            final Volume.PersonalityTypes personality, final URI srcVolumeId, final URI raGroupURI,
-            final String copyMode) {
+    private Volume prepareVolume(Volume volume, final VolumeCreate param,
+            final Project project, final VirtualArray varray, final VirtualPool vpool,
+            final String size, final Recommendation placement,
+            final String label, final BlockConsistencyGroup consistencyGroup, final String token,
+            final boolean remote, final Volume.PersonalityTypes personality, final URI srcVolumeId,
+            final URI raGroupURI, final String copyMode) {
+        boolean newVolume = false;
+        
+        if (volume == null) {
+            // check for duplicate label
+            validateVolumeLabel(label, project);
 
-        // check for duplicate label
-        validateVolumeLabel(label, project);
-
-        Volume volume = new Volume();
-        volume.setId(URIUtil.createId(Volume.class));
+            newVolume = true;
+            volume = new Volume();
+            volume.setId(URIUtil.createId(Volume.class));
+            volume.setOpStatus(new OpStatusMap());
+        } else {
+            volume = _dbClient.queryObject(Volume.class, volume.getId());
+        }
 
         volume.setLabel(label);
         volume.setCapacity(SizeUtil.translateSize(size));
@@ -470,7 +488,11 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             computeCapacityforSRDFV3ToV2(volume);
         }
 
-        _dbClient.createObject(volume);
+        if (newVolume) {
+            _dbClient.createObject(volume);
+        } else {
+            _dbClient.updateAndReindexObject(volume);
+        }
 
         return volume;
     }
@@ -517,17 +539,17 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
         // Target volume in a varray
         volume = prepareVolume(
+                srcVolume,
                 param,
                 project,
                 targetVirtualArray,
                 targetVpool,
                 param.getSize(),
-                recommendation,
-                new StringBuilder(volumeLabelBuilder.toString()).append(
-                        "-target-" + targetVirtualArray.getLabel()).toString(), consistencyGroup,
-                task, true, Volume.PersonalityTypes.TARGET, srcVolume.getId(), recommendation
-                        .getVirtualArrayTargetMap().get(targetVirtualArray.getId())
-                        .getSourceRAGroup(), settings.getCopyMode());
+                recommendation, new StringBuilder(volumeLabelBuilder.toString()).append(
+                                "-target-" + targetVirtualArray.getLabel()).toString(),
+                consistencyGroup, task, true, Volume.PersonalityTypes.TARGET, srcVolume.getId(), recommendation
+                                .getVirtualArrayTargetMap().get(targetVirtualArray.getId())
+                                .getSourceRAGroup(), settings.getCopyMode());
         volumeURIs.add(volume.getId());
         // add target only during vpool change.
         if (recommendation.getVpoolChangeVolume() != null) {

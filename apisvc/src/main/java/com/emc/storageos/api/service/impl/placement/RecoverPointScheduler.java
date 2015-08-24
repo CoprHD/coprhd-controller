@@ -74,7 +74,6 @@ import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatche
 import com.google.common.base.Joiner;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Lists;
-import com.sun.tools.javac.code.TargetType;
 
 /**
  * Advanced RecoverPoint based scheduling function for block storage.  StorageScheduler is done based on desired

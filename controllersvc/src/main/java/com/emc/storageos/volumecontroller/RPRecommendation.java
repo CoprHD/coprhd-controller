@@ -94,8 +94,7 @@ public class RPRecommendation extends Recommendation {
 	public void setProtectionType(ProtectionType protectionType) {
 		this.protectionType = protectionType;
 	}
-	
-	
+		
 	/**
 	 * @param destInternalSiteName
 	 * @return
@@ -111,6 +110,11 @@ public class RPRecommendation extends Recommendation {
 		return false;
 	}
 	
+	/**
+	 * @param dbClient
+	 * @param ps
+	 * @return
+	 */
 	public String toString(DbClient dbClient, ProtectionSystem ps) {
 		StringBuffer buff = new StringBuffer();
 		final String SPACE = " ";
@@ -136,9 +140,9 @@ public class RPRecommendation extends Recommendation {
 			buff.append(getHaRecommendation().toString(dbClient, ps));
 			buff.append("----------------------\n");
 			if (this.getHaRecommendation().getTargetRecommendations() != null && !this.getHaRecommendation().getTargetRecommendations().isEmpty()){
-				buff.append("\tHA protection" + "\n");
+				buff.append("\tHA target :" + "\n");
 				buff.append(this.getHaRecommendation().getTargetRecommendations().get(0).toString(dbClient, ps));
-				buff.append("\t-------------------\n");
+				buff.append("----------------------\n");
 			}
 		}
 		return buff.toString();

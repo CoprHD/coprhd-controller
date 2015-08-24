@@ -47,7 +47,7 @@ public class PropertiesConfigurationValidator {
             + "[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$";
 
     // valid pattern for an individual label in a full hostname string.
-    private static String VALID_HOST_NAME_LABEL_PATTERN = "^[A-Za-z0-9-]+";
+    private static String VALID_HOST_NAME_LABEL_PATTERN = "^[a-z0-9-]+";
 
     static {
         pattern = Pattern.compile(EMAIL_PATTERN);

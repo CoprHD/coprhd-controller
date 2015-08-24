@@ -228,13 +228,7 @@ public class SystemHealth extends Controller {
                 render(nodeId);
             }
             else {
-                String nodeError = nodeId;
-                try {
-                    nodeError = nodeHealth.getNodeName();
-                }catch (NullPointerException e){
-                    Logger.warn("Could not determine node name.");
-                }
-                flash.error(Messages.get("system.node.services.error", nodeError));
+                flash.error(Messages.get("system.node.services.error", nodeHealth.getNodeName()));
             }
         } else {
             Logger.warn("Could not determine node name.");

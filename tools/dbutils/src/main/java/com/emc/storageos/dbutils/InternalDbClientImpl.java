@@ -86,7 +86,8 @@ public class InternalDbClientImpl extends InternalDbClient {
             return recordCount;
         } catch (ConnectionException e) {
             System.err.println(String.format("Exception=%s", e));
-            throw DatabaseException.retryables.connectionFailed(e);
+        	String ip=e.getHost().getIpAddress();
+            throw DatabaseException.retryables.connectionFailed(e,ip);
         }
     }
 
@@ -134,7 +135,8 @@ public class InternalDbClientImpl extends InternalDbClient {
                 }
 
             } catch (ConnectionException e) {
-                throw DatabaseException.retryables.connectionFailed(e);
+            	String ip=e.getHost().getIpAddress();
+                throw DatabaseException.retryables.connectionFailed(e,ip);
             }
         }
 

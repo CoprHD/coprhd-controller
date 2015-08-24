@@ -937,7 +937,8 @@ public class SchemaUtil {
         } catch (final OperationException e) {
             throw DatabaseException.retryables.operationFailed(e);
         } catch (final ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
+        	String ip=e.getHost().getIpAddress();
+            throw DatabaseException.retryables.connectionFailed(e,ip);
         }
     }
 
@@ -968,7 +969,8 @@ public class SchemaUtil {
         } catch (final OperationException e) {
             throw DatabaseException.retryables.operationFailed(e);
         } catch (final ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
+        	String ip=e.getHost().getIpAddress();
+            throw DatabaseException.retryables.connectionFailed(e,ip);
         }
     }
 
@@ -998,7 +1000,8 @@ public class SchemaUtil {
         } catch (final OperationException e) {
             throw DatabaseException.retryables.operationFailed(e);
         } catch (final ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
+        	String ip=e.getHost().getIpAddress();
+            throw DatabaseException.retryables.connectionFailed(e,ip);
         }
     }
 
@@ -1016,7 +1019,8 @@ public class SchemaUtil {
             try {
                 versions = cluster.describeSchemaVersions();
             } catch (final ConnectionException e) {
-                throw DatabaseException.retryables.connectionFailed(e);
+            	String ip=e.getHost().getIpAddress();
+                throw DatabaseException.retryables.connectionFailed(e,ip);
             }
 
             _log.info("schema version to sync to: {}", schemaVersion);
@@ -1073,7 +1077,8 @@ public class SchemaUtil {
                     }
                 }
             } catch (final ConnectionException e) {
-                throw DatabaseException.retryables.connectionFailed(e);
+            	String ip=e.getHost().getIpAddress();
+                throw DatabaseException.retryables.connectionFailed(e,ip);
             } finally {
                 if (clusterContext != null) {
                     clusterContext.shutdown();

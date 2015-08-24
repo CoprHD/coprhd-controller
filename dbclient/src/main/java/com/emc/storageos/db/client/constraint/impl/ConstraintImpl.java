@@ -102,7 +102,8 @@ public abstract class ConstraintImpl implements Constraint {
             }
         } catch (ConnectionException e) {
             log.info("Query failed e=", e);
-            throw DatabaseException.retryables.connectionFailed(e);
+            String ip=e.getHost().getIpAddress();
+            throw DatabaseException.retryables.connectionFailed(e,ip);
         }
 
         queryWithAutoPaginate(genQuery(), result, this);

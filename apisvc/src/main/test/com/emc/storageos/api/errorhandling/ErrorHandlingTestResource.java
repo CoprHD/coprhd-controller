@@ -75,7 +75,9 @@ public class ErrorHandlingTestResource {
     @GET
     @Path("connectionException")
     public Response connectionException() {
-        throw DatabaseException.retryables.connectionFailed(new UnknownException(EXCEPTION_MESSAGE));
+    	UnknownException e=new UnknownException(EXCEPTION_MESSAGE);
+    	String ip=e.getHost().getIpAddress();
+        throw DatabaseException.retryables.connectionFailed(e,ip);
     }
 
     @GET

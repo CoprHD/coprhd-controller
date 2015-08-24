@@ -32,7 +32,7 @@ public interface RetryableDatabaseExceptions {
 
     // Database connection failed
     @DeclareServiceCode(ServiceCode.DBSVC_CONNECTION_ERROR)
-    RetryableDatabaseException connectionFailed(ConnectionException e);
+    RetryableDatabaseException connectionFailed(ConnectionException e,String ip);
 
     // Database connection failed, Overload connectionFailed(ConnectionException);
     // Netflix astynanx ConnectionException is not serializable and thus

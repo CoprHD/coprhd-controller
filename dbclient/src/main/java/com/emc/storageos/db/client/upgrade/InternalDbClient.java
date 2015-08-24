@@ -137,7 +137,8 @@ public class InternalDbClient extends DbClientImpl {
             SchemaRecordType type = TypeMap.getSchemaRecordType();
             type.serialize(batch, record);
         } catch (ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
+        	String ip=e.getHost().getIpAddress();
+            throw DatabaseException.retryables.connectionFailed(e,ip);
         }
     }
 
@@ -153,7 +154,8 @@ public class InternalDbClient extends DbClientImpl {
             }
             return type.deserialize(rows.iterator().next());
         } catch (ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
+        	String ip=e.getHost().getIpAddress();
+            throw DatabaseException.retryables.connectionFailed(e,ip);
         }
     }
 
@@ -303,7 +305,7 @@ public class InternalDbClient extends DbClientImpl {
             waitForSchemaChange(createCFResult);
         } catch (ConnectionException connEx) {
             log.error("Failed to recreate columnFamily : " + cf);
-            DatabaseException.retryables.connectionFailed(connEx);
+            DatabaseException.retryables.connectionFailed(connEx,connEx.getHost().getIpAddress());
         }
     }
 
@@ -374,7 +376,8 @@ public class InternalDbClient extends DbClientImpl {
                 persistObject(objects);
             }
         } catch (ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
+        	String ip=e.getHost().getIpAddress();
+            throw DatabaseException.retryables.connectionFailed(e,ip);
         } catch (final InstantiationException e) {
             throw DatabaseException.fatals.queryFailed(e);
         } catch (final IllegalAccessException e) {
@@ -391,7 +394,8 @@ public class InternalDbClient extends DbClientImpl {
             try {
                 versions = getLocalKeyspace().describeSchemaVersions();
             } catch (final ConnectionException e) {
-                throw DatabaseException.retryables.connectionFailed(e);
+            	String ip=e.getHost().getIpAddress();
+                throw DatabaseException.retryables.connectionFailed(e,ip);
             }
             if (versions.size() == 1 && versions.containsKey(schemaVersion)) {
                 log.info("schema version sync to: {} done", schemaVersion);

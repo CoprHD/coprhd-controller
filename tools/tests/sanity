@@ -1192,7 +1192,7 @@ srdf_cos_setup()
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \
-			 --provisionType 'Thin'		          \
+			 --provisionType 'Thick'	          \
 			 --neighborhoods $NH                      \
                          --multiVolumeConsistency                  \
                          --system_type vmax			
@@ -1207,7 +1207,7 @@ srdf_cos_setup()
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
-	                 --provisionType 'Thin'		        \
+	                 --provisionType 'Thick'	        \
                          --system_type vmax                     \
 			 --neighborhoods $NH                    \
 			 --srdf "${NH}:${COS_VMAXBLOCK_SRDF_TARGET}:SYNCHRONOUS"
@@ -1222,7 +1222,7 @@ srdf_cos_setup()
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
-	                 --provisionType 'Thin'		        \
+	                 --provisionType 'Thick'	        \
                          --system_type vmax                     \
 			 --neighborhoods $NH                    \
                          --multiVolumeConsistency               \
@@ -1241,7 +1241,7 @@ srdf_cos_matcher_test()
     run cos match block true --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
-	                 --provisionType 'Thin'		        \
+	                 --provisionType 'Thick'	        \
 			 --neighborhoods $NH                    \
                          --multiVolumeConsistency               \
 			 --srdf "${NH}:${COS_VMAXBLOCK_SRDF_TARGET}:ASYNCHRONOUS"
@@ -1391,8 +1391,8 @@ recoverpoint_common_setup() {
     neighborhood allow $NH $TENANT
 
     recoverpoint_cos_setup
-    cos update block $COS_RP --storage $RP_NATIVE_GUID
     cos update block $COS_RP_BASE --storage $RP_NATIVE_GUID
+    cos update block $COS_RP --storage $RP_NATIVE_GUID
     cos allow $COS_RP block $TENANT
     cos allow $COS_RP_BASE block $TENANT
 
@@ -1404,17 +1404,17 @@ recoverpoint_cos_setup()
 {
     cos show $COS_RP_BASE block &> /dev/null && return $?
     cos create block $COS_RP_BASE		                  \
-			 --description 'Base CoS for RP Protection' true \
+			 --description 'Base Virtual Pool for RP Protection' false \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
 	                 --provisionType 'Thin'		        \
                          --expandable true                      \
 			 --neighborhoods $NH
-
+    
     cos show $COS_RP block &> /dev/null && return $?
     cos create block $COS_RP					  \
-			 --description 'CoS for RP FC+ISCSI' true \
+			 --description 'Virtual Pool for RP' false \
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \

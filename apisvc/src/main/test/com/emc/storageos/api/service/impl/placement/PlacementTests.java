@@ -429,7 +429,7 @@ public class PlacementTests extends DbsvcTestBase {
 
         // Create a virtual pool
         VirtualPool vpool = new VirtualPool();
-        vpool.setId(URI.create("urn:storageos:vpool:1:2"));
+        vpool.setId(URI.create(haVpoolUrn));
         vpool.setLabel("vpool");
         vpool.setType("block");
         vpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
@@ -509,7 +509,7 @@ public class PlacementTests extends DbsvcTestBase {
             assertTrue("vmax2".equals(HARec.getSourceStorageSystem().toString()));
             assertTrue("vplex1".equals(HARec.getVPlexStorageSystem().toString()));
             assertTrue("varray2".equals(HARec.getVirtualArray().toString()));
-            assertTrue("urn:storageos:vpool:1:2".equals(HARec.getVirtualPool().getId().toString()));
+            assertTrue(haVpoolUrn.equals(HARec.getVirtualPool().getId().toString()));
             _log.info("Recommendation " + i + ": " + recommendations.size() + ", Src Pool Chosen: " + srcRec.getSourceStoragePool().toString() + ", HA Pool Chosen: " + HARec.getSourceStoragePool().toString());
         }
     }
@@ -605,6 +605,8 @@ public class PlacementTests extends DbsvcTestBase {
         vplexVpool.setId(URI.create("vplexVpool"));
         vplexVpool.setLabel("vplexVpool");
         vplexVpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
+        vplexVpool.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_local.name());
+
         vplexVpool.setDriveType(SupportedDriveTypes.FC.name());        //
         matchedPools = new StringSet();
         matchedPools.add(pool1.getId().toString());
@@ -1154,17 +1156,17 @@ public class PlacementTests extends DbsvcTestBase {
                     assertNotNull(sourceRec.getSourceStoragePool());
                     assertTrue(sourceRec.getVirtualArray().toString().equals("varray1"));
                     assertTrue("site1".equals(sourceRec.getInternalSiteName()));
-                    assertTrue("xtremeio2".equals(sourceRec.getSourceStorageSystem().toString()));
+                    assertTrue("xtremio2".equals(sourceRec.getSourceStorageSystem().toString()));
                     assertTrue(("pool2".equals(sourceRec.getSourceStoragePool().toString())) || ("pool1".equals(sourceRec.getSourceStoragePool().toString())));
                     
                     assertNotNull(sourceRec.getTargetRecommendations());
                     assertTrue(sourceRec.getTargetRecommendations().size() > 0);
                     for(RPRecommendation targetRec : sourceRec.getTargetRecommendations()) {
                     	assertNotNull(targetRec.getSourceStoragePool());
-                    	assertTrue("vmax2".equals(targetRec.getSourceStorageSystem().toString())); 
+                    	assertTrue("xtremio4".equals(targetRec.getSourceStorageSystem().toString())); 
                     	assertTrue("site2".equals(targetRec.getInternalSiteName()));
                     	assertTrue(targetRec.getVirtualArray().toString().equals("varray2"));
-                    	assertTrue("xtremeio4".equals(targetRec.getSourceStoragePool().toString()) || "xtremeio5".equals(targetRec.getSourceStoragePool().toString()));
+                    	assertTrue("pool4".equals(targetRec.getSourceStoragePool().toString()) || "pool5".equals(targetRec.getSourceStoragePool().toString()));
                     }                               
                 }
                             
@@ -1181,7 +1183,7 @@ public class PlacementTests extends DbsvcTestBase {
                 	assertTrue(targetJournalRec.getVirtualArray().toString().equals("varray2"));
                 	assertTrue("pool5".equals(targetJournalRec.getSourceStoragePool().toString()) || "pool4".equals(targetJournalRec.getSourceStoragePool().toString()));
                 	assertTrue("site2".equals(targetJournalRec.getInternalSiteName()));
-                	assertTrue("vmax2".equals(targetJournalRec.getSourceStorageSystem().toString()));
+                	assertTrue("xtremio5".equals(targetJournalRec.getSourceStorageSystem().toString()));
                 	
                 }
                 
@@ -3445,7 +3447,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        assertNotNull(rec.getSourceRecommendations());
 	        assertNotNull(rec.getSourceRecommendations().size() > 0);   
 	        assertNotNull(rec.getProtectionDevice());
-	        assertTrue("rp1".equals(rec.getProtectionDevice()));
+	        assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
 	        
 	        for (RPRecommendation sourceRec : rec.getSourceRecommendations()) {
 	        	assertNotNull(sourceRec.getInternalSiteName());
@@ -3482,7 +3484,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        		}
 	        		
 	        		assertTrue("varray3".equals(targetRec.getVirtualArray().toString()));
-	        		assertTrue("vpoolRP".equals(targetRec.getVirtualPool().getId().toString()));
+	        		assertTrue(rpTgtVpool.getId().toString().equals(targetRec.getVirtualPool().getId().toString()));
 	        		assertTrue("site2".equals(targetRec.getInternalSiteName()));
 	        		assertTrue("vmax3".equals(targetRec.getSourceStorageSystem().toString()));
 	    	        assertTrue(("pool8".equals(targetRec.getSourceStoragePool().toString())) || ("pool7".equals(targetRec.getSourceStoragePool().toString())));	        	

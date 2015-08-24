@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @XmlRootElement(name = "block-ips")
-public class InvalidLoginsList {
+public class LoginFailedIPList {
 
     private int maxLoginAttempts;
     private int lockoutTimeInMinutes;

@@ -2460,7 +2460,6 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : true,
-        notifiers : ( "authsvc" ),
         value : "10",
     },
     {
@@ -2476,7 +2475,6 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : true,
-        notifiers : ( "authsvc" ),
         value : "10",
     },
     {

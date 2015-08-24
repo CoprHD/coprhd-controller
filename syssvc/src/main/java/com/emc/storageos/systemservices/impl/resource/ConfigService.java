@@ -22,7 +22,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
 import com.emc.storageos.security.password.InvalidLoginManager;
-import com.emc.storageos.model.auth.InvalidLoginsList;
+import com.emc.storageos.model.auth.LoginFailedIPList;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -902,13 +902,13 @@ public class ConfigService {
 
 
     /**
-     * remove specified IP from block-ip list.
+     * remove specified IP from login-failed-ip list.
      *
      * @param ip
      * @return
      */
     @DELETE
-    @Path("/block-ips/{ip}")
+    @Path("/login-failed-ips/{ip}")
     @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
     public Response removeBlockedIP(@PathParam("ip") String ip) {
         if (StringUtils.isEmpty(ip)) {
@@ -926,10 +926,10 @@ public class ConfigService {
      * @return
      */
     @GET
-    @Path("/block-ips")
+    @Path("/login-failed-ips")
     @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
-    public InvalidLoginsList getBlockedIPs() {
-        InvalidLoginsList response = new InvalidLoginsList();
+    public LoginFailedIPList getBlockedIPs() {
+        LoginFailedIPList response = new LoginFailedIPList();
         response.setLockoutTimeInMinutes(_invLoginManager.getMaxAuthnLoginAttemtsLifeTimeInMins());
         response.setMaxLoginAttempts(_invLoginManager.getMaxAuthnLoginAttemtsCount());
         response.setInvalidLoginsList(_invLoginManager.listBlockedIPs());

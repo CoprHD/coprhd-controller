@@ -9,6 +9,7 @@ package com.emc.storageos.systemservices.impl.propertyhandler;
 import com.emc.storageos.model.property.PropertyInfoRestRep;
 import com.emc.storageos.security.password.Constants;
 import com.emc.storageos.security.password.InvalidLoginManager;
+import com.emc.storageos.systemservices.impl.property.APINotifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +27,12 @@ public class AuthLoginAttemptsHandler extends DefaultUpdateHandler {
      */
     public void setInvalidLoginManager(InvalidLoginManager invalidLoginManager) {
         this._invalidLoginManager = invalidLoginManager;
+    }
+
+    private APINotifier _apiNotifier;
+
+    public void setApiNotifier(APINotifier apiNotifier) {
+        this._apiNotifier = apiNotifier;
     }
 
     /**
@@ -60,5 +67,8 @@ public class AuthLoginAttemptsHandler extends DefaultUpdateHandler {
         // reload invalidLoginManage in syssvc, clear block-ip list.
         _invalidLoginManager.loadParameterFromZK();
         _invalidLoginManager.invLoginCleanup(true);
+
+        // notify authsvc to reload properties
+        _apiNotifier.notifyChangeToAuthsvc();
     }
 }

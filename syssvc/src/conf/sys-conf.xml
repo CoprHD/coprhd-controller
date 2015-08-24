@@ -256,9 +256,11 @@
     </bean>
     <bean id="authLoginAttemptsHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.AuthLoginAttemptsHandler">
         <property name="invalidLoginManager" ref="invalidLoginManager"/>
+        <property name="apiNotifier" ref="apiNotifier"/>
     </bean>
     <bean id="authLockoutTimeHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.AuthLockoutTimeHandler">
         <property name="invalidLoginManager" ref="invalidLoginManager"/>
+        <property name="apiNotifier" ref="apiNotifier"/>
     </bean>
 
     <bean id="notificationManager" class="com.emc.storageos.security.password.NotificationManager" init-method="init">
@@ -367,5 +369,9 @@
 
     <bean id="IpReconfigManager" class="com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager" init-method="init">
         <property name="ovfProperties" ref="ovfProperties"/>
+    </bean>
+
+    <bean id="apiNotifier" class="com.emc.storageos.systemservices.impl.property.APINotifier">
+        <property name="coordinator" ref="coordinator"/>
     </bean>
 </beans>

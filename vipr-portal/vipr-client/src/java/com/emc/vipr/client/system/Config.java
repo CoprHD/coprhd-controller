@@ -9,7 +9,7 @@ import static com.emc.vipr.client.system.impl.PathConstants.*;
 
 import javax.ws.rs.core.UriBuilder;
 
-import com.emc.storageos.model.auth.InvalidLoginsList;
+import com.emc.storageos.model.auth.LoginFailedIPList;
 import com.emc.storageos.model.property.PropertiesMetadata;
 import com.emc.storageos.model.property.PropertyInfoRestRep;
 import com.emc.storageos.model.property.PropertyInfoUpdate;
@@ -18,8 +18,6 @@ import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.eventhandler.ConnectEmcEmail;
 import com.emc.vipr.model.sys.eventhandler.ConnectEmcFtps;
-
-import java.net.URI;
 
 public class Config {
     private static final String PROPERTY_CATEGORY = "category";
@@ -155,7 +153,7 @@ public class Config {
 	 *
 	 * @return
 	 */
-	public InvalidLoginsList listBlockIPs() {
-		return client.get(InvalidLoginsList.class, CONFIG_LIST_BLOCK_IPS);
+	public LoginFailedIPList listBlockIPs() {
+		return client.get(LoginFailedIPList.class, CONFIG_LIST_BLOCK_IPS);
 	}
 }

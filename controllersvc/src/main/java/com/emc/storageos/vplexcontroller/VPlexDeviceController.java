@@ -2331,7 +2331,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // add the initiators to the map for the exportMask that do not exist
         // already in the storage view as to create steps to add those initiators
         if (initsToAdd.size() != 0) {
-            exportMasksToUpdateOnDeviceWithInitiators.put(sharedVplexExportMask.getId(), initsToAdd);
+            if (exportMasksToUpdateOnDeviceWithInitiators.get(sharedVplexExportMask.getId()) == null) {
+                exportMasksToUpdateOnDeviceWithInitiators.put(sharedVplexExportMask.getId(), new ArrayList<Initiator>());
+            }
+            exportMasksToUpdateOnDeviceWithInitiators.get(sharedVplexExportMask.getId()).addAll(initsToAdd);
         }
 
         // Storage ports that needs to be added will be calculated in the
@@ -3586,7 +3589,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             exportGroup.getGeneratedName());
             ExportMask sharedExportMask = VPlexUtil.getSharedExportMasksInViPR(exportGroup, vplexURI, _dbClient, null);
             boolean shared = false;
-            if (sharedExportMask.getId().equals(exportMask.getId())) {
+            if (null != sharedExportMask && sharedExportMask.getId().equals(exportMask.getId())) {
                 shared = true;
             }
             Workflow.Method addToViewMethod =
@@ -7918,7 +7921,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             exportGroup.getGeneratedName());
             ExportMask sharedExportMask = VPlexUtil.getSharedExportMasksInViPR(exportGroup, vplex.getId(), _dbClient, null);
             boolean shared = false;
-            if (sharedExportMask.getId().equals(exportMask.getId())) {
+            if (null != sharedExportMask && sharedExportMask.getId().equals(exportMask.getId())) {
                 shared = true;
             }
             Workflow.Method addToViewMethod =

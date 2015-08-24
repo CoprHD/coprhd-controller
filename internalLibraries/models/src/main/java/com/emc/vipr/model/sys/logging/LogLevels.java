@@ -63,7 +63,7 @@ public class LogLevels {
          * 
          * @return The Bourne node identifier on which the message was logged.
          */
-        @XmlElement(name = "node_id")
+        @XmlElement(name = "node")
         public String getNodeId() {
             return nodeId;
         }

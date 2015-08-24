@@ -30,7 +30,7 @@ public class LogMessage {
     private String message = "";
 
     // The Bourne node identifier.
-    @JsonProperty("node_id")
+    @JsonProperty("node")
     private String nodeId;
 
     // The Bourne node identifier.

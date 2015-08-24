@@ -128,7 +128,7 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
         if (sc instanceof Exception) {
             _log.info("Setting operation to error due to an exception {}",
                     ExceptionUtils.getExceptionMessage((Exception) sc));
-            _log.debug("Caused by: {} ", (Exception) sc);
+            _log.info("Caused by: {} ", (Exception) sc);
         }
     }
 

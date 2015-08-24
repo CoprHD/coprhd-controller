@@ -76,6 +76,7 @@ public class Project extends DataObjectWithACLs {
      */
     public void setAssignedVNasServers(StringSet assignedVNasServers) {
         this.assignedVNasServers = assignedVNasServers;
+        setChanged("vnasServers");
     }
 
 }

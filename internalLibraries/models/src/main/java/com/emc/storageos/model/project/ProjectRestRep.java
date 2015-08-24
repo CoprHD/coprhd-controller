@@ -10,6 +10,7 @@ import java.util.Set;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
@@ -63,12 +64,19 @@ public class ProjectRestRep extends DataObjectRestRep {
     }
 
     /**
+     * Keywords and labels that can be added by a user to a resource
+     * to make it easy to find when doing a search.
+     * 
+     * @valid none
+     */
+    @XmlElementWrapper(name = "vnas_servers")
+    /**
      * 
      * List of VNAS Servers associated with this project.
      * 
      * @valid none
      */
-    @XmlElement(name = "assignedVNAS")
+    @XmlElement(name = "vnas_server")
     public Set<String> getAssignedVNasServers() {
         return assignedVNasServers;
     }

@@ -86,7 +86,7 @@ QUICK=0
 
 SS=${3}
 if [ ${SS} = "recoverpoint" ]; then
-        PARAM=${4:-'quick'}
+        RP_QUICK_PARAM=${4:-'quick'}
         AUTH=ldap
 elif [ ${SS} = "vdc" ]; then
         VDC_DEFAULT_ENDPOINT=vdc_dummy_endpoint
@@ -103,13 +103,13 @@ else
 	# By default, we're not running quick sanity
 	if [ ${SS} = "quick" ]; then
  	    QUICK=1
-        else
-            QUICK=0
-        fi
-        echo "QUICK: " $QUICK 
+    else
+        QUICK=0
+    fi
+    echo "QUICK: " $QUICK
 
-        AUTH=${4:-ldap}
-        EXTRA_PARAM=${5}
+    AUTH=${4:-ldap}
+    EXTRA_PARAM=${5}
 fi
 
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
@@ -2009,26 +2009,33 @@ rp_smis_setup()
 {
     echo '*** Recoverpoint SMIS setup ***'
 
-    if [ "$RECOVERPOINT_XIO" = "1" ]; then
-        echo 'Using XTremeIO'
+    for var in A B C D
+    do
+        provider='RECOVERPOINT_SMIS_PROVIDER_'$var
+        provider=${!provider}
 
-        discoveredsystem show $XTREMIO_NATIVEGUID &> /dev/null && return $?
-        discoveredsystem create $XTREMIO xtremio $XTREMIO_IP 443 $XTREMIO_USER $XTREMIO_PASSWD --serialno=$XTREMIO_SN
+        provider_ip='RECOVERPOINT_SMIS_PROVIDER_'$var'_IP'
+        provider_ip=${!provider_ip}
 
-        discoveredsystem show $XTREMIO2_NATIVEGUID &> /dev/null && return $?
-        discoveredsystem create $XTREMIO2 xtremio $XTREMIO2_IP 443 $XTREMIO_USER $XTREMIO_PASSWD --serialno=$XTREMIO2_SN
-    else
-        smisprovider create $RECOVERPOINT_SMIS_PROVIDER_A $RECOVERPOINT_SMIS_PROVIDER_A_IP $SMIS_PORT $SMIS_USER $SMIS_PASSWORD false
-        smisprovider create $RECOVERPOINT_SMIS_PROVIDER_B $RECOVERPOINT_SMIS_PROVIDER_B_IP $SMIS_PORT $SMIS_USER $SMIS_PASSWORD false
-    fi
+        array_guid='RECOVERPOINT_STORAGE_ARRAY_'$var'_GUID'
+        array_guid=${!array_guid}
 
-    smisprovider create $RECOVERPOINT_SMIS_PROVIDER_C $RECOVERPOINT_SMIS_PROVIDER_C_IP $SMIS_PORT $SMIS_USER $SMIS_PASSWORD false
-    smisprovider create $RECOVERPOINT_SMIS_PROVIDER_D $RECOVERPOINT_SMIS_PROVIDER_D_IP $SMIS_PORT $SMIS_USER $SMIS_PASSWORD false
+        if [ "$array_guid" != "NONE" ]; then
+            if [ "$RECOVERPOINT_XIO" = "1" ]; then
+                echo 'Using XTremeIO'
+
+                discoveredsystem show $XTREMIO_NATIVEGUID &> /dev/null && return $?
+                discoveredsystem create $XTREMIO xtremio $XTREMIO_IP 443 $XTREMIO_USER $XTREMIO_PASSWD --serialno=$XTREMIO_SN
+            else
+                smisprovider create $provider $provider_ip $SMIS_PORT $SMIS_USER $SMIS_PASSWORD false
+            fi
+        fi
+    done
 
     rp_vplex_setup
 
     echo '*** Recoverpoint discover storage systems ***'
-    storagedevice discover_all --ignore_error
+    run storagedevice discover_all
     storagedevice list
 }
 
@@ -2037,71 +2044,66 @@ rp_vplex_setup()
     echo '*** Recoverpoint VPLEX setup ***'
 
     # Create VPLEX
-    storageprovider create $RECOVERPOINT_VPLEX_A $RECOVERPOINT_VPLEX_A_IP $RECOVERPOINT_VPLEX_A_PORT $RECOVERPOINT_VPLEX_A_USER $RECOVERPOINT_VPLEX_A_PASSWORD vplex
-    storageprovider create $RECOVERPOINT_VPLEX_B $RECOVERPOINT_VPLEX_B_IP $RECOVERPOINT_VPLEX_B_PORT $RECOVERPOINT_VPLEX_B_USER $RECOVERPOINT_VPLEX_B_PASSWORD vplex
+    if [ "$RECOVERPOINT_VPLEX_A" != "NONE" ]; then
+        storageprovider create $RECOVERPOINT_VPLEX_A $RECOVERPOINT_VPLEX_A_IP $RECOVERPOINT_VPLEX_A_PORT $RECOVERPOINT_VPLEX_A_USER $RECOVERPOINT_VPLEX_A_PASSWORD vplex
+    fi
+
+    if [ "$RECOVERPOINT_VPLEX_B" != "NONE" ]; then
+        storageprovider create $RECOVERPOINT_VPLEX_B $RECOVERPOINT_VPLEX_B_IP $RECOVERPOINT_VPLEX_B_PORT $RECOVERPOINT_VPLEX_B_USER $RECOVERPOINT_VPLEX_B_PASSWORD vplex
+    fi
 }
 
 rp_port_setup()
 {
     echo '*** Recoverpoint port setup ***'
 
-    storageport update $RECOVERPOINT_STORAGE_ARRAY_A_GUID FC --addvarrays $RECOVERPOINT_VARRAY1
-    storageport update $RECOVERPOINT_STORAGE_ARRAY_B_GUID FC --addvarrays $RECOVERPOINT_VARRAY2
-    storageport update $RECOVERPOINT_STORAGE_ARRAY_C_GUID FC --addvarrays $RECOVERPOINT_VARRAY3
-    storageport update $RECOVERPOINT_STORAGE_ARRAY_D_GUID FC --addvarrays $RECOVERPOINT_VARRAY4
+    if [ "$RECOVERPOINT_STORAGE_ARRAY_A_GUID" != "NONE" ]; then
+        storageport update $RECOVERPOINT_STORAGE_ARRAY_A_GUID FC --addvarrays $RECOVERPOINT_VARRAY1
+    fi
+
+    if [ "$RECOVERPOINT_STORAGE_ARRAY_B_GUID" != "NONE" ]; then
+        storageport update $RECOVERPOINT_STORAGE_ARRAY_B_GUID FC --addvarrays $RECOVERPOINT_VARRAY2
+    fi
+
+    if [ "$RECOVERPOINT_STORAGE_ARRAY_C_GUID" != "NONE" ]; then
+        storageport update $RECOVERPOINT_STORAGE_ARRAY_C_GUID FC --addvarrays $RECOVERPOINT_VARRAY3
+    fi
+
+    if [ "$RECOVERPOINT_STORAGE_ARRAY_D_GUID" != "NONE" ]; then
+        storageport update $RECOVERPOINT_STORAGE_ARRAY_D_GUID FC --addvarrays $RECOVERPOINT_VARRAY4
+    fi
 
     #VPLEX
     # Override port to varray assigments for VPLEX clusters to prevent port mixing in clusters
     # Source Site
     # Cluster 1
-    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-1-1-A --addvarrays $RECOVERPOINT_VARRAY1
-    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-1-1-B --addvarrays $RECOVERPOINT_VARRAY1
+    if [ "$RECOVERPOINT_VPLEX_A" != "NONE" ] && [ "$RECOVERPOINT_STORAGE_ARRAY_A_GUID" != "NONE" ]; then
+        storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-1-1-A --addvarrays $RECOVERPOINT_VARRAY1
+        storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-1-1-B --addvarrays $RECOVERPOINT_VARRAY1
+    fi
     # Cluster 2
-    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-2-1-A --addvarrays $RECOVERPOINT_VARRAY2
-    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-2-1-B --addvarrays $RECOVERPOINT_VARRAY2
+    if [ "$RECOVERPOINT_VPLEX_A" != "NONE" ] && [ "$RECOVERPOINT_STORAGE_ARRAY_B_GUID" != "NONE" ]; then
+        storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-2-1-A --addvarrays $RECOVERPOINT_VARRAY2
+        storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-2-1-B --addvarrays $RECOVERPOINT_VARRAY2
+    fi
 
     # Target Site
     # Cluster 1
-    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-A --addvarrays $RECOVERPOINT_VARRAY3
-    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-B --addvarrays $RECOVERPOINT_VARRAY3
-    # Cluster 2
-    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-A --addvarrays $RECOVERPOINT_VARRAY4
-    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-B --addvarrays $RECOVERPOINT_VARRAY4
-}
+    if [ "$RECOVERPOINT_VPLEX_B" != "NONE" ] && [ "$RECOVERPOINT_STORAGE_ARRAY_C_GUID" != "NONE" ]; then
+        storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-A --addvarrays $RECOVERPOINT_VARRAY3
+        storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-B --addvarrays $RECOVERPOINT_VARRAY3
+    fi
 
-# Simulator setup not working yet
-#recoverpoint_simulator_setup()
-#{
-#    syssvc $CONFIG_FILE localhost set_prop controller_discovery_refresh_interval 5
-#    elif [ "$PARAM" = "simulator" ]; then
-#        # simulators being used
-#        echo 'Using simulators in recoverpoint_setup_once'
-#        smisprovider show $PROVIDER_SIMULATOR &> /dev/null && return $?
-#        smisprovider create $PROVIDER_SIMULATOR $RP_PROVIDER_SIMULATOR_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
-#        networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS_IP --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
-#
-#        # VPLEX
-#        VPLEX_DEV_NAME=$VPLEX_SIMULATOR
-#        VPLEX_IP=$SIMULATOR_IP
-#        storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
-#        run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-#        run storagedevice discover_all
-#        transportzone assign ${SIMULATOR_VSAN_11} $NH
-#
-#        # simulators being used
-#        RECOVERPOINT=$RP_SIMULATOR
-#        RP_IP=$RP_SIMULATOR_IP
-#
-#        # simulators being used
-#        echo 'Using simulators in recoverpoint_common_setup'
-#        transportzone assign ${SIMULATOR_VSAN_11} $NH
-#        RP_NATIVE_GUID=$VMAX1_SIMULATOR_NATIVEGUID
-#    fi
-#}
+    # Cluster 2
+    if [ "$RECOVERPOINT_VPLEX_B" != "NONE" ] && [ "$RECOVERPOINT_STORAGE_ARRAY_D_GUID" != "NONE" ]; then
+        storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-A --addvarrays $RECOVERPOINT_VARRAY4
+        storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-B --addvarrays $RECOVERPOINT_VARRAY4
+    fi
+}
 
 rp_protection_system_setup()
 {
-     echo '*** Recoverpoint protection system setup ***'
+    echo '*** Recoverpoint protection system setup ***'
 
     protectionsystem show $RECOVERPOINT &> /dev/null && return $?
 
@@ -2125,14 +2127,16 @@ rp_cg_setup()
 
 rp_isolate_rpa_clusters()
 {
-    echo '*** Recoverpoint isolate RPA clusters ***'
+    if [ "$RP_USE_RPA_ISOLATION" = "1" ]; then
+        echo '*** Recoverpoint isolate RPA clusters ***'
 
-    run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER1_IP --addvarrays $RECOVERPOINT_VARRAY1
-    run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3_IP --addvarrays $RECOVERPOINT_VARRAY2
-    run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER4_IP --addvarrays $RECOVERPOINT_VARRAY3
+        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER1_IP --addvarrays $RECOVERPOINT_VARRAY1
+        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3_IP --addvarrays $RECOVERPOINT_VARRAY2
+        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER4_IP --addvarrays $RECOVERPOINT_VARRAY3
+    fi
 }
 
-recoverpoint_exports()
+recoverpoint_exports_tests()
 {
     rpsnap=rpsnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
     blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
@@ -2323,6 +2327,58 @@ recoverpoint_vpool_change_test()
     run volume change_cos ${PROJECT}/${base_volume}-1 ${rp_vpool}
 }
 
+
+# Simulator setup
+recoverpoint_simulator_setup()
+{
+    echo 'Sim running'
+#    project_setup
+#    rp_varray_setup
+
+
+    #    syssvc $CONFIG_FILE localhost set_prop controller_discovery_refresh_interval 5
+    #    elif [ "$PARAM" = "simulator" ]; then
+
+    # Simulators being used
+#    echo 'Using simulators in recoverpoint_setup_once'
+#    smisprovider show $PROVIDER_SIMULATOR &> /dev/null && return $?
+#    smisprovider create $PROVIDER_SIMULATOR $RP_PROVIDER_SIMULATOR_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+#    networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS_IP --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
+#
+#    transportzone listall
+#    echo 'sleeping 30s after network system create to allow for discovery'
+#    sleep 30
+#    transportzone assign ${SIMULATOR_VSAN_11} $RECOVERPOINT_VARRAY1
+#
+#    storagedevice discover_all
+#    storagedevice list
+#
+#    rp_vpool_setup
+
+    RECOVERPOINT=$RP_SIMULATOR
+    RECOVERPOINT_IP=$RP_SIMULATOR_IP
+    rp_protection_system_setup
+
+#
+#        # VPLEX
+#        VPLEX_DEV_NAME=$VPLEX_SIMULATOR
+#        VPLEX_IP=$SIMULATOR_IP
+#        storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
+#        run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+#        run storagedevice discover_all
+#        transportzone assign ${SIMULATOR_VSAN_11} $NH
+#
+#        # simulators being used
+
+#
+#        # simulators being used
+#        echo 'Using simulators in recoverpoint_common_setup'
+#        transportzone assign ${SIMULATOR_VSAN_11} $NH
+#        RP_NATIVE_GUID=$VMAX1_SIMULATOR_NATIVEGUID
+#    fi
+}
+
+
 recoverpoint_common_setup()
 {
     project_setup
@@ -2339,8 +2395,13 @@ recoverpoint_common_setup()
 recoverpoint_setup()
 {
     if [ "$RP_RUN_SETUP" = "1" ]; then
-        echo '*** RecoverPoint setup ***'
-        recoverpoint_common_setup
+        if [ "$RP_QUICK_PARAM" = "quick" ]; then
+            echo '*** RecoverPoint Simulator setup ***'
+            recoverpoint_simulator_setup
+        else
+            echo '*** RecoverPoint setup ***'
+            recoverpoint_common_setup
+        fi
     fi
 }
 
@@ -2376,11 +2437,34 @@ recoverpoint_tests()
         # Setup CGs
         rp_cg_setup
 
-        rp_type='cdp'
+        rp_src_varray=$RECOVERPOINT_VARRAY1
+        rpvplex_src_varray=$RECOVERPOINT_VARRAY1
+        mp_src_varray=$RECOVERPOINT_VARRAY1
+
+        rp_type=''
 
         if [ "$RP_CDP" = "1" ]; then
             echo 'RP CDP Tests'
             rp_type='cdp'
+
+            # RP
+            rp_src_vpool='rp_'$rp_type
+            rp_tgt_varray=$RECOVERPOINT_VARRAY1
+            rp_tgt_vpool='rp_targets'
+            rp_base_cvp='rp_regular'
+
+            # RP+VPLEX
+            rpvplex_src_vpool='rpvplex_'$rp_type
+            rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
+            rpvplex_tgt_vpool='rpvplex_targets'
+            rpvplex_base_cvp1='rpvplex_local_regular'
+            rpvplex_base_cvp2='rpvplex_dist_regular'
+
+            # MP
+            mp_src_vpool='mp_'$rp_type
+            mp_active_tgt_varray=$RECOVERPOINT_VARRAY1
+            mp_standby_tgt_varray=$RECOVERPOINT_VARRAY2
+            mp_tgt_vpool='rp_targets'
         fi
 
         if [ "$RP_CRR" = "1" ]; then
@@ -2394,35 +2478,18 @@ recoverpoint_tests()
         fi
 
         # RP
-        rp_src_varray=$RECOVERPOINT_VARRAY1
-        rp_src_vpool='rp_'$rp_type
-        rp_tgt_varray=$RECOVERPOINT_VARRAY1
-        rp_tgt_vpool='rp_targets'
-        rp_base_cvp='rp_regular'
-
         rpvolume=${RP_VOLUME}
         rpvolumetarget=${rpvolume}'-target-'${rp_tgt_varray}
 
         # RP+VPLEX
-        rpvplex_src_varray=$RECOVERPOINT_VARRAY1
-        rpvplex_src_vpool='rpvplex_'$rp_type
-        rpvplex_tgt_varray=$RECOVERPOINT_VARRAY3
-        rpvplex_tgt_vpool='rpvplex_targets'
-        rpvplex_base_cvp1='rpvplex_local_regular'
-        rpvplex_base_cvp2='rpvplex_dist_regular'
-
         rpvplexvolume=${RP_VPLEX_VOLUME}
         rpvplexvolumetarget=${rpvplexvolume}'-target-'${rpvplex_tgt_varray}
 
         # MP
-        mp_src_varray=$RECOVERPOINT_VARRAY1
-        mp_src_vpool='mp_'$rp_type
-        mp_tgt_varray=$RECOVERPOINT_VARRAY3
-        mp_tgt_vpool='rp_targets'
-
         mpvolume=${MP_VOLUME}
         mpvolumetarget=${mpvolume}'-target-'${mp_tgt_varray}
 
+        # Setup test volumes...
         # Either use volumes that have gone through the change vpool process or
         # use straight up created RP volumes.
         if [ "$RP_CHANGE_VPOOL" = "1" ]; then
@@ -2461,11 +2528,51 @@ recoverpoint_tests()
             fi
         fi
 
-        # Snapshot/Bookmark Test
-        recoverpoint_auto_snapshot_cleanup_test ${rpvolume}-1 ${rpvolumetarget}-1 ${rp_src_varray}
+        # Have to account for "-1" being added to volume name if
+        # volume count is greater than 1.
+        volume_name_modifier=''
+        if [ "$RP_VOLUME_COUNT" = "1" ]; then
+            volume_name_modifier=''
+        else
+            volume_name_modifier='-1'
+        fi
 
-        # Failover Test
-        recoverpoint_failover_test ${rpvolume}-1 ${rpvolumetarget}-1
+        ### Begin Recoverpoint test cases ###
+
+        # RP test cases
+        # Run these test cases unless specified to only run create/delete tests
+        if [ "$RP_RUN_VOLUME_CREATE_ONLY" = "0" ]; then
+            if [ "$RP_TESTS" = "1" ]; then
+                echo 'RP tests...'
+                # Snapshot/Bookmark Test
+                recoverpoint_auto_snapshot_cleanup_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier} ${rp_src_varray}
+
+                # Failover Test
+                recoverpoint_failover_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier}
+            fi
+
+            # RP+VPLEX test cases
+            if [ "$RPVPLEX_TESTS" = "1" ]; then
+                echo 'RP+VPLEX tests...'
+                # Snapshot/Bookmark Test
+                recoverpoint_auto_snapshot_cleanup_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier} ${rpvplex_src_varray}
+
+                # Failover Test
+                recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
+            fi
+
+            # MP test cases
+            if [ "$MP_TESTS" = "1" ]; then
+                echo 'MetroPoint tests...'
+                # Snapshot/Bookmark Test
+                recoverpoint_auto_snapshot_cleanup_test ${mpvolume}${volume_name_modifier} ${mpvolumetarget}${volume_name_modifier} ${mp_src_varray}
+
+                # Failover Test
+                recoverpoint_failover_test ${mpvolume}${volume_name_modifier} ${mpvolumetarget}${volume_name_modifier}
+            fi
+        fi
+
+        ### End Recoverpoint test cases ###
 
         echo '*** RP cleanup ***'
 

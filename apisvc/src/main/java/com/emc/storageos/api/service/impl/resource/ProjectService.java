@@ -42,6 +42,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualNAS.vNasState;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -785,12 +786,12 @@ public class ProjectService extends TaggedResource {
     }
 
     /**
-     * Assign VNASServer to a project
+     * Assign VNAS Servers to a project
      * 
      * @param id the URN of a ViPR Project
      * @param vnasParam Assign virtual NAS server parameters
      * @prereq none
-     * @brief Assign VNASServer to a project
+     * @brief Assign VNAS Servers to a project
      * @return No data returned in response body
      */
     @PUT
@@ -798,13 +799,20 @@ public class ProjectService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/assign-vnas-servers")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ALL, ACL.OWN })
-    public Response assignVNASServerToProject(@PathParam("id") URI id, AssignVNASParam vnasParam) {
+    public Response assignVNasServersToProject(@PathParam("id") URI id, AssignVNASParam vnasParam) {
         Project project = getProjectById(id, true);
-        StringSet validVNASServers = validateVNASServers(project, vnasParam);
+        StringSet validVNasServers = validateVNasServers(project, vnasParam);
         if (vnasParam.getVnasServers() != null && !vnasParam.getVnasServers().isEmpty()) {
-            if (validVNASServers != null && !validVNASServers.isEmpty()) {
-                project.getAssignedVNasServers().addAll(validVNASServers);
-                project.setAssignedVNasServers(validVNASServers);
+            if (validVNasServers != null && !validVNasServers.isEmpty()) {
+                for (String validNas : validVNasServers) {
+                    URI vnasURI = URI.create(validNas);
+                    VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
+                    vnas.setProject(project.getId());
+                    _dbClient.persistObject(vnas);
+                    _log.info("VNAS server {} successfully assigned to project {} ", vnas.getLabel(), project.getLabel());
+                }
+                project.getAssignedVNasServers().addAll(validVNasServers);
+                project.setAssignedVNasServers(validVNasServers);
                 _dbClient.persistObject(project);
                 _log.info("Successfully assigned the virtual NAS Servers to the project ", project.getLabel());
             } else {
@@ -816,25 +824,26 @@ public class ProjectService extends TaggedResource {
         return Response.ok().build();
     }
 
-    public StringSet validateVNASServers(Project project, AssignVNASParam param) {
-        Set<String> vNasId = param.getVnasServers();
+    /**
+     * Validate VNAS Servers before assign to a project
+     * 
+     * @param project to which VANS servers will be assigned
+     * @param param Assign virtual NAS server parameters
+     * @brief Validate VNAS Servers
+     * @return List of valid NAS servers
+     */
+    public StringSet validateVNasServers(Project project, AssignVNASParam param) {
+        Set<String> vNasIds = param.getVnasServers();
         StringSet validNas = new StringSet();
-        if (vNasId != null && !vNasId.isEmpty()) {
-            for (String id : vNasId) {
+        if (vNasIds != null && !vNasIds.isEmpty()) {
+            for (String id : vNasIds) {
                 URI vnasURI = URI.create(id);
                 VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
 
-                // Check list of VNAS servers are part of varray
-                if (vnas.getTaggedVirtualArrays() != null && !vnas.getTaggedVirtualArrays().isEmpty()) {
-
-                    // Check list of vNAS servers are not tagged with any project
-                    // Check list of vNAS servers are in loaded state
-                    if (vnas.getProject() == null && vnas.getVNasState().equalsIgnoreCase(VirtualNAS.vNasState.LOADED.name())) {
-                        validNas.add(id);
-                        vnas.setProject(project.getId());
-                        _dbClient.persistObject(vnas);
-                        _log.info("VNAS server {} successfully assigned to project {} ", vnas.getLabel(), project.getLabel());
-                    }
+                // Check list of vNAS servers are not tagged with any project
+                // Check list of vNAS servers are in loaded state
+                if (vnas.getProject() == null && vnas.getVNasState().equalsIgnoreCase(vNasState.LOADED.getNasState())) {
+                    validNas.add(id);
                 }
             }
         }
@@ -851,6 +860,38 @@ public class ProjectService extends TaggedResource {
          * }
          */
         return validNas;
+    }
+
+    /**
+     * Unassigns VNAS server from project.
+     * 
+     * @param id the URN of a ViPR Project
+     * @param param Assign virtual NAS server parameters
+     * @prereq none
+     * @brief Unassigns VNAS servers from project
+     * @return No data returned in response body
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/unassign-vnas-servers")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ALL, ACL.OWN })
+    public Response unassignVNasServersFromProject(@PathParam("id") URI id, AssignVNASParam param) {
+        Project project = getProjectById(id, true);
+        Set<String> vNasIds = param.getVnasServers();
+        if (vNasIds != null && !vNasIds.isEmpty()) {
+            for (String vId : vNasIds) {
+                URI vnasURI = URI.create(vId);
+                VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
+                vnas.setProject(null);
+                _dbClient.persistObject(vnas);
+            }
+            project.setAssignedVNasServers(null);
+            _dbClient.persistObject(project);
+            _log.info("Successfully unassigned the VNAS servers from project : ", project.getLabel());
+        } else {
+            _log.info("No VNAS Server is selected to unassigned from project : ", project.getLabel());
+        }
+        return Response.ok().build();
     }
 
 }

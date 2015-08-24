@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.project;
@@ -10,6 +10,13 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import org.codehaus.jackson.annotate.JsonProperty;
+
+/**
+ * AssignVNASParam will contain the list of Virtual NAS parameters assign to a project.
+ * 
+ * @author prasaa9
+ * 
+ */
 
 @XmlRootElement(name = "assign_vnas_servers")
 public class AssignVNASParam {

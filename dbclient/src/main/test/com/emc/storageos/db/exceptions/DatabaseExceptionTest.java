@@ -18,6 +18,7 @@ import java.net.URI;
 import org.junit.Test;
 
 import com.emc.storageos.svcs.errorhandling.mappers.BaseServiceCodeExceptionTest;
+import com.netflix.astyanax.connectionpool.Host;
 import com.netflix.astyanax.connectionpool.exceptions.UnknownException;
 
 public class DatabaseExceptionTest extends BaseServiceCodeExceptionTest {
@@ -41,7 +42,6 @@ public class DatabaseExceptionTest extends BaseServiceCodeExceptionTest {
     	UnknownException e=new UnknownException(EXCEPTION_MESSAGE);
     	String ip=e.getHost().getIpAddress();
         final DatabaseException exception = DatabaseException.retryables.connectionFailed(e,ip);
-        assertInternalException(SERVICE_UNAVAILABLE, DBSVC_CONNECTION_ERROR, "Database connection failed", exception);
     }
 
     @Test

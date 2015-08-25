@@ -253,7 +253,9 @@ public class DBClient {
             if (isEmptyStr(objValue)) {
                 continue;
             }
-            System.out.print("\t" + pd.getName() + " = ");
+            
+            Name nameAnnotation = pd.getReadMethod().getAnnotation(Name.class);
+            System.out.print("\t" + nameAnnotation.value() + " = ");
 
             Encrypt encryptAnnotation = pd.getReadMethod().getAnnotation(Encrypt.class);
             if (encryptAnnotation != null) {

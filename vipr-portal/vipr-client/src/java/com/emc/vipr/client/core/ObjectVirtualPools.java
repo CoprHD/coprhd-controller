@@ -23,7 +23,10 @@ import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
 import com.emc.storageos.model.vpool.CapacityResponse;
+import com.emc.storageos.model.vpool.FileVirtualPoolBulkRep;
+import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.NamedRelatedVirtualPoolRep;
+import com.emc.storageos.model.vpool.ObjectVirtualPoolBulkRep;
 import com.emc.storageos.model.vpool.ObjectVirtualPoolParam;
 import com.emc.storageos.model.vpool.ObjectVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.ObjectVirtualPoolUpdateParam;
@@ -61,9 +64,8 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
 
     @Override
     protected List<ObjectVirtualPoolRestRep> getBulkResources(BulkIdParam input) {
-    	ObjectVirtualPoolRestRep response = client.post(ObjectVirtualPoolRestRep.class, input, getBulkUrl());
-        List l = new ArrayList<ObjectVirtualPoolRestRep>();
-        return l;
+    	ObjectVirtualPoolBulkRep response = client.post(ObjectVirtualPoolBulkRep.class, input, getBulkUrl());
+        return defaultList(response.getVirtualPools());
     }
 
     /**
@@ -134,7 +136,7 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
     }
 
     /**
-     * Creates a file virtual pool.
+     * Creates a object virtual pool.
      * <p>
      * API Call: <tt>POST /object/vpools</tt>
      * 

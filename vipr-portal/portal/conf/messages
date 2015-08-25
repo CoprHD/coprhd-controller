@@ -311,6 +311,10 @@ FileStorageProtocol.NFS=NFS
 FileStorageProtocol.NFSv4=NFSv4
 FileStorageProtocol.CIFS=CIFS
 
+ObjectStorageProtocol.SWIFT=SWIFT
+ObjectStorageProtocol.ATMOS=ATMOS
+ObjectStorageProtocol.S3=S3
+
 CoSType.block=Block
 CoSType.file=File
 CoSType.object=Object
@@ -1871,6 +1875,9 @@ vpool.protocols.help=Matching storage pools will be limited to those that can su
 vpool.systemType=System Type
 vpool.poolAssignment=Pool Assignment
 vpool.poolAssignment.help=Choosing manual pool assignment allows selection of a subset of the storage pools matching the criteria
+
+#Object Specefic
+vpool.maxRetention=Maximum Retention (Days)
 
 # Block Specific
 vpool.minPaths=Minimum Paths

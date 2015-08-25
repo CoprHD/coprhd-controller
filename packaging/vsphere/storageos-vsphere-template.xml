@@ -5,7 +5,7 @@
     <File ovf:href="${vmdk_dir}/${disk1}" ovf:id="file1" ovf:size="${disk1_size}" />
     <File ovf:href="${vmdk_dir}/${disk2}" ovf:id="file2" ovf:size="${disk2_size}" />
     <File ovf:href="${vmdk_dir}/${disk3}" ovf:id="file3" ovf:size="${disk3_size}" />
-	<File ovf:href="${2}" ovf:id="file4" ovf:size="1017344" />
+	<File ovf:href="${2}" ovf:id="file4" ovf:size="2053120" />
   </References>
   <DiskSection>
     <Info>Virtual disk information</Info>

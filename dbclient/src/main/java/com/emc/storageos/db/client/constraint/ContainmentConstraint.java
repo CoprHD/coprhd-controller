@@ -198,6 +198,12 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(portGroup, StoragePort.class, field);
         }
 
+        public static ContainmentConstraint getStorageDeviceVirtualNasConstraint(URI device) {
+            DataObjectType doType = TypeMap.getDoType(VirtualNAS.class);
+            ColumnField field = doType.getColumnField(STORAGE_DEVICE);
+            return new ContainmentConstraintImpl(device, VirtualNAS.class, field);
+        }
+        
         public static ContainmentConstraint getVirtualArrayStorageDeviceConstraint(URI varray) {
             DataObjectType doType = TypeMap.getDoType(StorageSystem.class);
             ColumnField field = doType.getColumnField("varray");

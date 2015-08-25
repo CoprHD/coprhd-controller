@@ -74,6 +74,10 @@ public class NativeGUIDGenerator {
     private static final String REMOTE_GROUP = "REMOTEGROUP";
 
     private static final String UN_MANAGED_FILE_SHARE = "UNMANAGEDFILESHARE";
+    
+    private static final String PHYSICAL_NAS = "PHYSICALNAS";
+    
+    private static final String VIRTUAL_NAS = "VIRTUALNAS";
 
     static {
         OBJECT_TYPE_SET.add(POOL);
@@ -619,6 +623,14 @@ public class NativeGUIDGenerator {
     public static String generateNativeGuidForInitiator(String initiatorId) {
         return String.format(INITIATOR + "+%s", initiatorId);
 
+    }
+    
+    public static String generateNativeGuidForVirtualNAS(String systemNativeGuid, String vNasName) {
+        return String.format("%s"+VIRTUAL_NAS+ "+%s", systemNativeGuid,vNasName);
+    }
+    
+    public static String generateNativeGuidForPhysicalNAS(String systemNativeGuid, String pNasName) {
+        return String.format("%s"+PHYSICAL_NAS+ "+%s",systemNativeGuid,pNasName);
     }
 
     /**

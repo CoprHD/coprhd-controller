@@ -5,22 +5,28 @@
 
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
 
-import com.emc.nas.vnxfile.xmlapi.Mover;
-import com.emc.nas.vnxfile.xmlapi.MoverRole;
-import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
-import com.emc.nas.vnxfile.xmlapi.Severity;
-import com.emc.nas.vnxfile.xmlapi.Status;
-import com.emc.storageos.plugins.BaseCollectionException;
-import com.emc.storageos.plugins.common.domainmodel.Operation;
-import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
-import com.emc.storageos.plugins.metering.vnxfile.VNXFilePluginException;
-import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import com.emc.nas.vnxfile.xmlapi.Mover;
+import com.emc.nas.vnxfile.xmlapi.MoverRole;
+import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
+import com.emc.nas.vnxfile.xmlapi.Severity;
+import com.emc.nas.vnxfile.xmlapi.Status;
+import com.emc.nas.vnxfile.xmlapi.Vdm;
+import com.emc.storageos.plugins.BaseCollectionException;
+import com.emc.storageos.plugins.common.domainmodel.Operation;
+import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
+import com.emc.storageos.plugins.metering.vnxfile.VNXFilePluginException;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
 
 /**
  * Returns the sets of data mover names and ids.
@@ -79,7 +85,7 @@ public class VNXDataMoverIdProcessor extends VNXFileProcessor {
                     if (dm.getRole() == MoverRole.STANDBY) {
                         continue;
                     }
-
+                    
                     moverIds.add(dm.getMover());
                     moverNames.add(dm.getName());
                 }

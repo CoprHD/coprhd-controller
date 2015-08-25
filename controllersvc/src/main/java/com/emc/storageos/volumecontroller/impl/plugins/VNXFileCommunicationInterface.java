@@ -31,18 +31,21 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.PhysicalNAS;
+import com.emc.storageos.db.client.model.ShareACL;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
-import com.emc.storageos.db.client.model.ShareACL;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject;
+import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualNAS.vNasState;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
@@ -60,12 +63,12 @@ import com.emc.storageos.plugins.common.domainmodel.NamespaceList;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileCollectionException;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
 import com.emc.storageos.util.VersionChecker;
-import com.emc.storageos.vnx.xmlapi.VNXControlStation;
 import com.emc.storageos.vnx.xmlapi.VNXCifsServer;
+import com.emc.storageos.vnx.xmlapi.VNXControlStation;
 import com.emc.storageos.vnx.xmlapi.VNXDataMover;
 import com.emc.storageos.vnx.xmlapi.VNXDataMoverIntf;
-import com.emc.storageos.vnx.xmlapi.VNXFileSshApi;
 import com.emc.storageos.vnx.xmlapi.VNXException;
+import com.emc.storageos.vnx.xmlapi.VNXFileSshApi;
 import com.emc.storageos.vnx.xmlapi.VNXFileSystem;
 import com.emc.storageos.vnx.xmlapi.VNXStoragePool;
 import com.emc.storageos.vnx.xmlapi.VNXVdm;
@@ -102,6 +105,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     private static final String PHYSICAL = "PHYSICAL";
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String UNMANAGED_EXPORT_RULE = "UnManagedExportRule";
+    private final Map<String, String> virtualNasState = new HashMap<String, String>();
 
     private static int BYTESCONV = 1024;  // VNX defaults to M and apparently Bourne wants K.
 
@@ -294,6 +298,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 _logger.info("Existing DataMovers in database {}", activeDM.getName());
             }
 
+            List<PhysicalNAS> physicalNas = new ArrayList();
+
             // Discover port groups (data movers)
             StringSet fileSharingProtocols = new StringSet();
             Map<String, List<StorageHADomain>> groups = discoverPortGroups(storageSystem, fileSharingProtocols);
@@ -303,7 +309,13 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 _dbClient.createObject(groups.get(NEW));
                 for (StorageHADomain newDm : groups.get(NEW)) {
                     _logger.info("New DM {} ", newDm.getAdapterName());
+                    if (newDm.getVirtual()) {
+
+                    } else {
+                        physicalNas.add(createPhysicalNas(newDm));
+                    }
                 }
+                _dbClient.createObject(physicalNas);
             }
 
             if (!groups.get(EXISTING).isEmpty()) {
@@ -367,6 +379,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 _logger.info("Existing DataMovers in the Database {}", activeVDM.getName());
             }
 
+            List<VirtualNAS> virtualNas = new ArrayList();
             Map<String, List<StorageHADomain>> vdms = discoverVdmPortGroups(storageSystem, activeDataMovers);
             _logger.info("No of newly Vdm discovered groups {}", vdms.get(NEW).size());
             _logger.info("No of existing vdm discovered groups {}", vdms.get(EXISTING).size());
@@ -374,7 +387,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 _dbClient.createObject(vdms.get(NEW));
                 for (StorageHADomain newVdm : vdms.get(NEW)) {
                     _logger.info("New VDM {} ", newVdm.getAdapterName());
+                    virtualNas.add(createVirtualNas(newVdm));
                 }
+                _dbClient.createObject(virtualNas);
             }
 
             if (!vdms.get(EXISTING).isEmpty()) {
@@ -417,6 +432,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     _logger.info("EXISTING VDM Port : {}", port.getPortName());
                 }
             }
+
             List<StoragePort> allExistingPorts = new ArrayList<StoragePort>(ports.get(EXISTING));
             allExistingPorts.addAll(vdmPorts.get(EXISTING));
             List<StoragePort> allNewPorts = new ArrayList<StoragePort>(ports.get(NEW));
@@ -453,6 +469,49 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 }
             }
         }
+    }
+
+    private VirtualNAS createVirtualNas(StorageHADomain vdm) throws VNXFileCollectionException {
+
+        VirtualNAS vNas = new VirtualNAS();
+        vNas.setNasName(vdm.getName());
+        vNas.setStorageDeviceURI(vdm.getStorageDeviceURI());
+        vNas.setParentNAS(vdm.getParentHADomainURI());
+
+        String storageSystemNativeGuid = _dbClient.queryObject(StorageSystem.class, vdm.getStorageDeviceURI()).getNativeGuid();
+        String vNasNativeGuid = NativeGUIDGenerator.generateNativeGuidForVirtualNAS(storageSystemNativeGuid, vdm.getName());
+
+        vNas.setNativeGuid(vNasNativeGuid);
+
+        StringSet tempSet = new StringSet();
+        tempSet.add(vdm.getProtocol());
+        vNas.setProtocols(tempSet);
+        vNas.setId(URIUtil.createId(VirtualNAS.class));
+        String vnasState = this.virtualNasState.get(vdm.getId().toString());
+
+        if (!vnasState.isEmpty()) {
+            vNas.setVNasState(vNasState.getNasState(vnasState));
+        }
+        // clean up the vdm state entry
+        this.virtualNasState.remove(vdm.getId().toString());
+
+        return vNas;
+
+    }
+
+    private PhysicalNAS createPhysicalNas(StorageHADomain dm) throws VNXFileCollectionException {
+
+        PhysicalNAS pNas = new PhysicalNAS();
+        pNas.setStorageDeviceURI(dm.getStorageDeviceURI());
+        pNas.setNasName(dm.getName());
+        pNas.setStorageDeviceURI(dm.getStorageDeviceURI());
+        pNas.setId(URIUtil.createId(PhysicalNAS.class));
+        String storageSystemNativeGuid = _dbClient.queryObject(StorageSystem.class, dm.getStorageDeviceURI()).getNativeGuid();
+        String pNasNativeGuid = NativeGUIDGenerator.generateNativeGuidForPhysicalNAS(storageSystemNativeGuid, dm.getName());
+        pNas.setNativeGuid(pNasNativeGuid);
+
+        return pNas;
+
     }
 
     @Override
@@ -779,6 +838,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         _logger.info("Number unfiltered mover interfaces found: {}", allDmIntfs.size());
         _logger.info("Number mover interfaces found: {}", dmIntfs.size());
 
+        Map<String, List<String>> vnasPortList = new HashMap<String, List<String>>();
+
         // Create the list of storage ports.
         for (VNXDataMoverIntf intf : dmIntfs) {
             StoragePort port = null;
@@ -831,6 +892,33 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             }
             port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
             port.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
+
+            String vnasGuid = NativeGUIDGenerator.generateNativeGuidForVirtualNAS(system.getNativeGuid(), matchingHADomain.getName());
+
+            if (vnasPortList.containsKey(vnasGuid)) {
+                vnasPortList.get(vnasGuid).add(port.getId().toString());
+            } else {
+                ArrayList<String> tempList = new ArrayList<String>();
+                tempList.add(port.getId().toString());
+                vnasPortList.put(vnasGuid, tempList);
+            }
+        }
+
+        Set<String> nativeIdKeys = vnasPortList.keySet();
+
+        for (String nativeId : nativeIdKeys) {
+            StringSet tempList = new StringSet(vnasPortList.get(nativeId));
+
+            VirtualNAS vNas = findvNasByNativeId(nativeId);
+
+            if (vNas != null && tempList != null) {
+                _logger.info("VirtualNAS : {} : NativeID : {} ", vNas.getId(), nativeId);
+                _logger.info("StoragePort : {} ", tempList);
+                vNas.setStoragePorts(tempList);
+                _dbClient.persistObject(vNas);
+            } else {
+                _logger.info("Nas value is null");
+            }
         }
 
         _logger.info("Storage port discovery for storage system {} complete", system.getId());
@@ -843,6 +931,27 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         storagePorts.put(NEW, newStoragePorts);
         storagePorts.put(EXISTING, existingStoragePorts);
         return storagePorts;
+    }
+
+    private VirtualNAS findvNasByNativeId(String nativeId) {
+        URIQueryResultList results = new URIQueryResultList();
+        VirtualNAS vNas = null;
+
+        _dbClient.queryByConstraint(
+                AlternateIdConstraint.Factory.getVirtualNASByNativeGuidConstraint(nativeId),
+                results);
+        Iterator<URI> iter = results.iterator();
+        while (iter.hasNext()) {
+            VirtualNAS tmpVnas = _dbClient.queryObject(VirtualNAS.class, iter.next());
+
+            if (tmpVnas != null && !tmpVnas.getInactive()) {
+                vNas = tmpVnas;
+                _logger.info("found port {}", tmpVnas.getNativeGuid() + ":" + tmpVnas.getNasName());
+                break;
+            }
+        }
+        return vNas;
+
     }
 
     /**
@@ -951,7 +1060,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 portGroup.setFileSharingProtocols(protocols);
                 portGroup.setVirtual(true);
                 portGroup.setAdapterType(StorageHADomain.HADomainType.VIRTUAL.toString());
-
                 // Get parent Data Mover
                 StorageHADomain matchingParentMover = getMatchingMoverById(movers, vdm.getMoverId());
                 // Check for valid data mover
@@ -968,6 +1076,12 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 portGroup.setFileSharingProtocols(protocols);
                 existingPortGroups.add(portGroup);
             }
+
+            /* Store the fresh Vdm state for each storageHADomain */
+            if (this.virtualNasState.containsKey(portGroup.getId().toString())) {
+                this.virtualNasState.remove(portGroup.getId().toString());
+            }
+            this.virtualNasState.put(portGroup.getId().toString(), vdm.getState());
         }
 
         _logger.info("Vdm Port group discovery for storage system {} complete.", system.getId());

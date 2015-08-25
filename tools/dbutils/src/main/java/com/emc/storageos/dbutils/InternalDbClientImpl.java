@@ -307,8 +307,11 @@ public class InternalDbClientImpl extends InternalDbClient {
             log.warn("Can not find the latest modified field of {}", id);
             return latestField;
         }
+        
+        long latestTimeStampe = 0;
         for (Column<CompositeColumnName> column : rows.iterator().next().getColumns()) {
-            if (latestField == null || column.getTimestamp() > latestField.getTimestamp()) {
+            if (latestField == null || column.getTimestamp() > latestTimeStampe) {
+                latestTimeStampe = column.getTimestamp();
                 latestField = column;
             }
         }

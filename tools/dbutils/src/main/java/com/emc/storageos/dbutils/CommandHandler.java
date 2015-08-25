@@ -178,7 +178,6 @@ public abstract class CommandHandler {
         private static final String LIST_ACTIVE = "-activeonly";
         private static final String LIST_LIMIT = "-limit";
         private static final String REGEX_NUMBERS = "\\d+";
-        private static final String MODIFICATION_TIME = "-mf";
 
         public ListHandler(String[] args, DBClient _client) {
             if (args[1].equalsIgnoreCase(TYPE_EVENTS) ||
@@ -193,7 +192,7 @@ public abstract class CommandHandler {
             
             if (args[1].equalsIgnoreCase(LIST_ACTIVE)
                     || args[1].equalsIgnoreCase(LIST_LIMIT)
-                    || args[1].equalsIgnoreCase(MODIFICATION_TIME)) {
+                    || args[1].equalsIgnoreCase(Main.MODIFICATION_TIME)) {
                 processListArgs(args, _client);
             }
             cfName = args[args.length - 1];
@@ -300,7 +299,7 @@ public abstract class CommandHandler {
                         _client.setListLimit(Integer.valueOf(args[i + 1]));
                     }
                 }
-                if (args[i].equalsIgnoreCase(MODIFICATION_TIME)) {
+                if (args[i].equalsIgnoreCase(Main.MODIFICATION_TIME)) {
                     _client.setShowModificationTime(true);
                 }
             }
@@ -308,7 +307,6 @@ public abstract class CommandHandler {
     }
 
     public static class QueryHandler extends CommandHandler {
-        private static final String MODIFICATION_TIME = "-mf";
         String id = null;
 
         public QueryHandler(String[] args, DBClient _client) {
@@ -316,7 +314,7 @@ public abstract class CommandHandler {
                 throw new IllegalArgumentException("Invalid query command ");
             }
 
-            if (args[1].equalsIgnoreCase(MODIFICATION_TIME)) {
+            if (args[1].equalsIgnoreCase(Main.MODIFICATION_TIME)) {
                 _client.setShowModificationTime(true);
             }
 

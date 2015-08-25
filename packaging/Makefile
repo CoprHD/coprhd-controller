@@ -210,11 +210,13 @@ OVFBUILD_VSPHERE_BASH_LICENSE_FILE = $(OVFBUILD_VSPHERE_DIR)/storageos-license-s
                                    $(OVFBUILD_OVF_BUILDDIR)/storageos-license.txt \
                                    $(OVFBUILD_OVF_PROPERTY_INCLUDES)
 CONTROLLER_OVF_DEFINITIONS       := storageos-properties-ovfenv.def
-CONTROLLER_PROPERTY_DEFINITIONS  := $(CONTROLLER_OVF_DEFINITIONS) storageos-properties-config.def
+               ITER_DEFINITIONS  := storageos-properties-iterable.def
+CONTROLLER_PROPERTY_DEFINITIONS  := $(ITER_DEFINITIONS) $(CONTROLLER_OVF_DEFINITIONS) storageos-properties-config.def
     OVF_PROPERTY_METADATA_BEANS   = $(SOURCE_BASE)/syssvc/src/conf/sys-metadata-var.xml \
                                     $(SOURCE_BASE)/syssvc/src/conf/sys-metadata-var-template.xml
                  CONFIG_DEFAULTS  = $(BUILD_BASE)/etc/config.defaults
           OVF_CONTROLLER_DEFAULTS = $(BUILD_BASE)/etc/.ovfenv.properties
+                    ITER_DEFAULTS = $(BUILD_BASE)/etc/.iterable.properties
                          GENTMPL  = $(SOURCE_BASE)/etc/gentmpl
                       SED_SCRIPT  = $(SED) \
                                    -e 's,@product_brand@,$(PRODUCT_BRAND),g'   \
@@ -817,7 +819,14 @@ $(OVF_CONTROLLER_DEFAULTS): ./genprops.py $(CONTROLLER_PROPERTY_DEFINITIONS)
 	$(ATSIGN)$(RM) $(@) $(@).temp
 	$(ATSIGN)$(MKDIR) $(@D)
 	$(ATECHO) genprops.py $(@F)
-	$(ATSIGN)./genprops.py --ovf-controller-defaults $(CONTROLLER_OVF_DEFINITIONS) - node_count='1' >$(@).temp
+	$(ATSIGN)./genprops.py --ovf-controller-defaults - $(CONTROLLER_OVF_DEFINITIONS) - node_count='1' >$(@).temp
+	$(ATSIGN)$(MV) $(@).temp $(@)
+
+$(ITER_DEFAULTS): ./genprops.py $(CONTROLLER_PROPERTY_DEFINITIONS)
+	$(ATSIGN)$(RM) $(@) $(@).temp
+	$(ATSIGN)$(MKDIR) $(@D)
+	$(ATECHO) genprops.py $(@F)
+	$(ATSIGN)./genprops.py --iter-defaults $(CONTROLLER_PROPERTY_DEFINITIONS) node_count='1' >$(@).temp
 	$(ATSIGN)$(MV) $(@).temp $(@)
 
 # Rule for $(OVFBUILD_OVF_PROPERTY_INCLUDES)
@@ -830,10 +839,10 @@ $(OBJDIR)/ovfbuild/storageos-%-properties.xml: ./genprops.py $(CONTROLLER_PROPER
 
 all:: properties
 
-properties: $(OVF_PROPERTY_METADATA_BEANS) $(CONFIG_DEFAULTS) $(OVF_CONTROLLER_DEFAULTS) $(OVFBUILD_OVF_PROPERTY_INCLUDES)
+properties: $(OVF_PROPERTY_METADATA_BEANS) $(CONFIG_DEFAULTS) $(OVF_CONTROLLER_DEFAULTS) $(ITER_DEFAULTS) $(OVFBUILD_OVF_PROPERTY_INCLUDES)
 
 clean-properties:
-	$(ATSIGN)$(RM) $(OVFBUILD_OVF_PROPERTY_INCLUDES) $(CONFIG_DEFAULTS) $(OVF_CONTROLLER_DEFAULTS)
+	$(ATSIGN)$(RM) $(OVFBUILD_OVF_PROPERTY_INCLUDES) $(CONFIG_DEFAULTS) $(OVF_CONTROLLER_DEFAULTS) $(ITER_DEFAULTS)
 
 clobber-properties:
 	$(ATSIGN)$(RM) $(OVF_PROPERTY_METADATA_BEANS)

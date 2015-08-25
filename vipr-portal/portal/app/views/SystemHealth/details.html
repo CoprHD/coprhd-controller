@@ -3,11 +3,11 @@
 
 <breadcrumb-container>
   <breadcrumb url="@{SystemHealth.systemHealth()}" title-key="system.healthdashboard.title"></breadcrumb>
-  <breadcrumb active="true" title-key="{{nodeId}}"></breadcrumb>
+  <breadcrumb active="true" title-key="{{nodeName}}"></breadcrumb>
 </breadcrumb-container>
 
 <div class="page-header">
-  <h1>{{nodeId}} ({{nodeIp}}) <small>{{nodeType}}</small></h1>
+  <h1>{{nodeName}} ({{nodeIp}}) <small>{{nodeType}}</small></h1>
 </div>
 
 #{alerts/}

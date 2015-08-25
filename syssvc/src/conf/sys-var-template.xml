@@ -13,6 +13,7 @@
         <property name="name" value="${syssvc.name}"/>
         <property name="id" value="syssvc-${node_suffix}"/>
         <property name="nodeId" value="${node_id}" />
+        <property name="nodeName" value="${node_name}" />
         <property name="endpoint" value="http://${node_id}:9998/"/>
         <property name="version" value="${syssvc.version}"/>
     </bean>

@@ -167,6 +167,10 @@ public class ViPRCoreClient {
         return new FileVirtualPools(this, client);
     }
 
+    public ObjectVirtualPools objectVpools() {
+        return new ObjectVirtualPools(this, client);
+    }
+    
     public ComputeVirtualPools computeVpools() {
         return new ComputeVirtualPools(this, client);
     }

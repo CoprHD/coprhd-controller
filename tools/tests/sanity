@@ -14,7 +14,7 @@ CONFIG_FILE=${1}
 
 Usage()
 {
-    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | isilon | vplex | vplexexport | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | rpvplex | xtremio | srdf |
+    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | isilon | vplex | vplexexport | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
  errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore} [local|ldap] [<timeslot>]'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
@@ -36,11 +36,11 @@ toUpper()
 }
 
 if [ -f $CONFIG_FILE ]; then
-echo "Using Configuration file $CONFIG_FILE for sanity"
-source ${1}
-else 
-echo "Configuration file $CONFIG_FILE not found"
-Usage
+    echo "Using Configuration file $CONFIG_FILE for sanity"
+    source ${1}
+else
+    echo "Configuration file $CONFIG_FILE not found"
+    Usage
 fi
 
 
@@ -86,10 +86,7 @@ QUICK=0
 
 SS=${3}
 if [ ${SS} = "recoverpoint" ]; then
-        PARAM=${4:-'quick'}
-        AUTH=ldap
-elif  [ ${SS} = "rpvplex" ]; then
-	PARAM=${4}
+        RP_QUICK_PARAM=${4:-'quick'}
         AUTH=ldap
 elif [ ${SS} = "vdc" ]; then
         VDC_DEFAULT_ENDPOINT=vdc_dummy_endpoint
@@ -106,19 +103,19 @@ else
 	# By default, we're not running quick sanity
 	if [ ${SS} = "quick" ]; then
  	    QUICK=1
-        else
-            QUICK=0
-        fi
-        echo "QUICK: " $QUICK 
+    else
+        QUICK=0
+    fi
+    echo "QUICK: " $QUICK
 
-        AUTH=${4:-ldap}
-        EXTRA_PARAM=${5}
+    AUTH=${4:-ldap}
+    EXTRA_PARAM=${5}
 fi
 
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
 
 case $SS in
-    all|isilon|vplex|vplexexport|netapp|netappc|recoverpoint|rpvplex|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore)
+    all|isilon|vplex|vplexexport|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -317,13 +314,6 @@ COS_VNXEBLOCK_CG=cosvnxe_cg
 COS_VNXEBLOCK_FC=cosvnxe_fc
 COS_VNXEBLOCK_ISCSI=cosvnxe_iscsi
 
-
-#
-# RP Protection System
-#
-
-RP_PROTECTION_SYSTEM=rp_protection_system
-
 #
 # Isilon configuration
 #
@@ -403,31 +393,24 @@ SRDF_VOLUME=srdfSanity-${HOSTNAME}-${RANDOM}
 # RecoverPoint configuration
 #
 RP_SYSTEM_TYPE=rp
-RP_VOLUME=rpSanity-${HOSTNAME}-${RANDOM}
-RP_CONSISTENCY_GROUP=rpSanity-${HOSTNAME}-${RANDOM}-CG
-RP_EXPORT_GROUP=rpSanity-${HOSTNAME}-${RANDOM}
+RP_MODIFIED_HOSTNAME=${HOSTNAME:0:8}
+RP_SANITY_RANDOM=$((RANDOM % 999))
+
+RP_VOLUME=rpSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-vol
+RP_CONSISTENCY_GROUP=rpSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-cg
+
+RP_VPLEX_VOLUME=rpvpSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-vol
+RP_VPLEX_CONSISTENCY_GROUP=rpvplexSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-cg
+
+RP_METROPOINT_VOLUME=mpSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-vol
+RP_METROPOINT_CONSISTENCY_GROUP=mpSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-cg
+
+RP_EXPORT_GROUP=rpSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}
 RP_EXPORT_GROUP_HOST=host${hostseed}.sanity.com
-
-#
-# RecoverPoint Configuration for VNX
-#
-RP_VNX_SMIS_DEV=RP-VNX-PROVIDER
-RP_VNX_SMIS_IP=$RP_USE_VNX_SMIS_IP
-RP_VNXB_NATIVEGUID=$RP_USE_VNXB_NATIVEGUID
-RP_VNXB_VSAN=$RP_VSAN
-
-#
-# RecoverPoint Configuration for VMAX
-#
-RP_VMAXB_SMIS_DEV=RP-VMAX-PROVIDER
-RP_VMAXB_SMIS_IP=$RP_USE_VMAXB_SMIS_IP
-RP_VMAXB_NATIVEGUID=$RP_USE_VMAXB_NATIVEGUID
-RP_VMAXB_VSAN=$RP_VSAN
 
 #
 # Configuration for Simulator
 #
-
 RP_PROVIDER_SIMULATOR_IP=$SIMULATOR_IP
 SIMULATOR_CISCO_MDS_IP=$SIMULATOR_IP
 RP_SIMULATOR_IP=$SIMULATOR_IP
@@ -439,12 +422,6 @@ SIMULATOR_VSAN_12=VSAN_12
 VPLEX_PROVIDER_SIMULATOR=$PROVIDER_SIMULATOR
 VPLEX_PROVIDER_SIMULATOR_IP=$SIMULATOR_IP
 VPLEX_SIMULATOR=vplex-sim
-
-#
-# RP+VPLEX configuration
-#
-RPVPLEX_VOLUME=rpvplexSanity-${HOSTNAME}-${RANDOM}
-RPVPLEX_CONSISTENCY_GROUP=RPVP${RANDOM}CG
 
 #
 # Full copy configuration
@@ -1335,306 +1312,6 @@ srdf_tests()
    echo 'Done Running SRDF tests'
 }
 
-#
-# RecoverPoint
-#
-recoverpoint_setup_once()
-{ 
-    syssvc $CONFIG_FILE localhost set_prop controller_discovery_refresh_interval 5
-	
-    if [ "$PARAM" = "vmaxblock" ]; then
-        smisprovider show $RP_VMAXB_SMIS_DEV &> /dev/null && return $?
-        smisprovider create $RP_VMAXB_SMIS_DEV $RP_VMAXB_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
-	networksystem create $RP_BROCADE_NETWORK brocade --smisip $RP_BROCADE_NETWORK_PROVIDER --smisport 5988 --smisuser $RP_BROCADE_NETWORK_PROVIDER_USERNAME --smispw "$RP_BROCADE_NETWORK_PROVIDER_PASSWORD" --smisssl false
-    elif [ "$PARAM" = "vnxblock" ]; then
-	smisprovider show $RP_VNX_SMIS_DEV &> /dev/null && return $?
-	smisprovider create $RP_VNX_SMIS_DEV $RP_VNX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
-	networksystem create $RP_BROCADE_NETWORK brocade --smisip $RP_BROCADE_NETWORK_PROVIDER --smisport 5988 --smisuser $RP_BROCADE_NETWORK_PROVIDER_USERNAME --smispw "$RP_BROCADE_NETWORK_PROVIDER_PASSWORD" --smisssl false
-    else
-	# simulators being used
-	echo 'Using simulators in recoverpoint_setup_once'
-	smisprovider show $PROVIDER_SIMULATOR &> /dev/null && return $?
-	smisprovider create $PROVIDER_SIMULATOR $RP_PROVIDER_SIMULATOR_IP 5988 $SMIS_USER "$SMIS_PASSWD" false	
-	networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS_IP --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
-    fi
-    
-    # Wait a minute until get the network data
-    transportzone listall
-    echo 'sleeping 30s after network system create to allow for discovery'
-    sleep 30
-    storagedevice discover_all --ignore_error
-    storagedevice list
-    echo 'Protection system setup'
-    protection_system_setup
-}
-
-recoverpoint_common_setup() {
-
-    if [ "$PARAM" = "vmaxblock" ]; then
-        echo 'Adding endpoints to transport zone'
-	transportzone assign ${RP_VMAXB_VSAN} $NH
-        echo 'Done adding endpoint to TZ'
-        RP_NATIVE_GUID=$RP_VMAXB_NATIVEGUID
-    elif [ "$PARAM" = "vnxblock" ]; then
-	transportzone assign ${RP_VNXB_VSAN} $NH
-        RP_NATIVE_GUID=$RP_VNXB_NATIVEGUID
-    else
-	# simulators being used
-	echo 'Using simulators in recoverpoint_common_setup'
-	transportzone assign ${SIMULATOR_VSAN_11} $NH		
-	RP_NATIVE_GUID=$VMAX1_SIMULATOR_NATIVEGUID
-    fi
-
-    project_setup
-
-    echo "Setup ACLs on neighborhood for $TENANT"
-    neighborhood allow $NH $TENANT
-
-    recoverpoint_cos_setup
-    cos update block $COS_RP --storage $RP_NATIVE_GUID
-    cos update block $COS_RP_BASE --storage $RP_NATIVE_GUID
-    cos allow $COS_RP block $TENANT
-    cos allow $COS_RP_BASE block $TENANT
-
-    # Create the ViPR-RP consistency group
-    run blockconsistencygroup create $PROJECT $RP_CONSISTENCY_GROUP
-}
-
-recoverpoint_cos_setup()
-{
-    cos show $COS_RP_BASE block &> /dev/null && return $?
-    cos create block $COS_RP_BASE		                  \
-			 --description 'Base CoS for RP Protection' true \
-			 --protocols FC 		        \
-			 --numpaths 1				\
-			 --max_snapshots 10			\
-	                 --provisionType 'Thin'		        \
-                         --expandable true                      \
-			 --neighborhoods $NH
-
-    cos show $COS_RP block &> /dev/null && return $?
-    cos create block $COS_RP					  \
-			 --description 'CoS for RP FC+ISCSI' true \
-			 --protocols FC 		          \
-			 --numpaths 1				  \
-			 --max_snapshots 10 			  \
-			 --provisionType 'Thin'		          \
-                         --expandable true                        \
-			 --neighborhoods $NH                      \
-	                 --sourceJournalSize min                  \
-			 --protectionCoS "${NH}:${COS_RP_BASE}:min" \
-                         --multiVolumeConsistency 
-}
-	
-
-protection_system_setup()
-{
-   if [ "$PARAM" = "quick" ]; then
-	# simulators being used
-	RP_PROTECTION_SYSTEM=$RP_SIMULATOR
-	RP_IP=$RP_SIMULATOR_IP	
-   fi
-
-   protectionsystem show $RP_PROTECTION_SYSTEM &> /dev/null && return $?
-
-   run protectionsystem create $RP_PROTECTION_SYSTEM 	\
-			    $RP_SYSTEM_TYPE  	 	\
-			    $RP_IP            	 	\
-			    $RP_PORT         	 	\
-			    $RP_USER           		\
-			    $RP_PASSWORD       		\
-			    SYSTEM 
-
-}
-
-recoverpoint_setup()
-{
-    echo 'RecoverPoint setup'
-    recoverpoint_setup_once
-    recoverpoint_common_setup
-}
-
-recoverpoint_exports()
-{
-   rpsnap=rpsnap-${HOSTNAME}-${RANDOM}
-   blocksnap=blocksnap-${HOSTNAME}-${RANDOM}
-   rpexport=$PROJECT/$RP_EXPORT_GROUP
-
-   #Create RP/Block snapshots
-   echo 'Create snapshots'
-   run blocksnapshot create ${PROJECT}/${rpvolume} ${rpsnap} --type rp
-   run blocksnapshot create ${PROJECT}/${rpvolume} ${blocksnap}
-   run blocksnapshot activate ${PROJECT}/${rpvolume}/${blocksnap}
-   run blocksnapshot delete ${PROJECT}/${rpvolume}/${blocksnap}
-   run blocksnapshot create ${PROJECT}/${rpvolume}-target-${NH} ${blocksnap}-${NH}
-   run blocksnapshot delete ${PROJECT}/${rpvolume}-target-${NH}/${blocksnap}-${NH}-${NH}
-
-   PWWN1=`pwwn 6F`;
-   NWWN1=`pwwn 7F`;
-   run hosts create ${RP_EXPORT_GROUP_HOST} $TENANT Windows ${RP_EXPORT_GROUP_HOST} --port 8111 --username $RP_HOST_USER --password '$RP_HOST_PW' --osversion 1.0
-   run initiator create ${RP_EXPORT_GROUP_HOST} FC $PWWN1 --node $NWWN1
-
-   if [ "$PARAM" = "vmaxblock" ]; then
-       run transportzone add $NH/${RP_VMAXB_VSAN} $PWWN1
-   elif [ "$PARAM" = "vnxblock" ]; then
-       run transportzone add $NH/${RP_VNXB_VSAN} $PWWN1
-   else
-	# simulators being used
-	run transportzone add $NH/${SIMULATOR_VSAN_11} $PWWN1
-   fi
-
-   sleep 20
-	
-   echo 'recoverpoint exports'
-   run export_group create $PROJECT ${RP_EXPORT_GROUP} $NH --volspec ${PROJECT}/${rpvolume}/${rpsnap}-${NH} --inits "${RP_EXPORT_GROUP_HOST}/$PWWN1"
-   run export_group show ${rpexport}
-   run export_group update ${rpexport} --remVol ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
-   run export_group update ${rpexport} --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
-   run export_group show ${rpexport}
-   # CTRL-4638: --remInits will not call RP device controller to disable bookmark.
-   #run export_group update ${rpexport} --remInits "${RP_EXPORT_GROUP_HOST}/$PWWN1"
-   #run export_group update ${rpexport} --addInits "${RP_EXPORT_GROUP_HOST}/$PWWN1"
-   run export_group show ${rpexport}
-   run export_group delete ${rpexport}
-
-   # currently having a volume and an RP snap in the same export group and deleting that export group doesn't work (CTRL?)
-   #echo 'Running export of RP snapshot when volume already exists in mask'
-   #run export_group create $PROJECT ${RP_EXPORT_GROUP}2 $NH --volspec ${PROJECT}/${rpvolume} --inits "${RP_EXPORT_GROUP_HOST}/$PWWN1"
-   #run export_group update ${rpexport}2 --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
-   #run export_group update ${rpexport}2 --remVol ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
-   #run export_group update ${rpexport}2 --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
-   #run export_group delete ${rpexport}2
-   
-   echo 'done with RP exports, cleaning up'
-   run blocksnapshot delete ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
-   run hosts delete ${RP_EXPORT_GROUP_HOST}
-   echo 'done with recoverpoint exports cleanup'
-}
-
-recoverpoint_auto_snapshot_cleanup()
-{
-   rpsnap=rpsnap_for_cleanup-${HOSTNAME}-${RANDOM}
-   blocksnap=blocksnap-${HOSTNAME}-${RANDOM}
-
-   # Create RP/Block snapshot
-   echo 'Create snapshot for cleanup'
-   run blocksnapshot create ${PROJECT}/${rpvolume} ${rpsnap} --type rp
-   run blocksnapshot show ${PROJECT}/${rpvolume}/${rpsnap}-${NH} | grep inactive | grep false
-   run protectionsystem discover $RP_PROTECTION_SYSTEM
-   echo "Unaffected RP bookmark is being checked after RP discovery to ensure it is still active"
-   run blocksnapshot show ${PROJECT}/${rpvolume}/${rpsnap}-${NH} | grep inactive | grep false
-   run volume change_link ${PROJECT}/${rpvolume} stop ${PROJECT}/${rpvolumetarget} rp
-   sleep 15
-   run volume change_link ${PROJECT}/${rpvolume} start ${PROJECT}/${rpvolumetarget} rp
-   echo "Have to wait for 10 second to go by so discover will be accepted"
-   sleep 10
-   run protectionsystem discover $RP_PROTECTION_SYSTEM
-   echo "Removed RP bookmark is being checked after RP discovery to ensure it is no longer active"
-   # Use "fail" instead of run because we expect this bookmark to fail.
-   fail blocksnapshot show ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
-}
-
-recoverpoint_failover_test()
-{
-   # Create a multi-volume CG, fail it over, expand a volume, delete it
-
-   # First check the current states of the source and target vols
-   run volume verify ${PROJECT}/${rpvolume} personality SOURCE
-   run volume verify ${PROJECT}/${rpvolume} access_state READWRITE
-   run volume verify ${PROJECT}/${rpvolume} link_status IN_SYNC
-   run volume verify ${PROJECT}/${rpvolumetarget} personality TARGET
-   run volume verify ${PROJECT}/${rpvolumetarget} access_state NOT_READY
-   run volume verify ${PROJECT}/${rpvolumetarget} link_status IN_SYNC
-
-   run volume change_link ${PROJECT}/${rpvolume} failover ${PROJECT}/${rpvolumetarget} rp
-
-   # Post failover
-   run volume verify ${PROJECT}/${rpvolume} personality SOURCE
-   run volume verify ${PROJECT}/${rpvolume} access_state READWRITE
-   run volume verify ${PROJECT}/${rpvolume} link_status FAILED_OVER
-   run volume verify ${PROJECT}/${rpvolumetarget} personality TARGET
-   run volume verify ${PROJECT}/${rpvolumetarget} access_state READWRITE
-   run volume verify ${PROJECT}/${rpvolumetarget} link_status FAILED_OVER
-
-   # Cancel the failover
-   run volume change_link ${PROJECT}/${rpvolume} failover-cancel ${PROJECT}/${rpvolumetarget} rp
-
-   # Cancel the failover, should be back to the start
-   run volume verify ${PROJECT}/${rpvolume} personality SOURCE
-   run volume verify ${PROJECT}/${rpvolume} access_state READWRITE
-   run volume verify ${PROJECT}/${rpvolume} link_status IN_SYNC
-   run volume verify ${PROJECT}/${rpvolumetarget} personality TARGET
-   run volume verify ${PROJECT}/${rpvolumetarget} access_state NOT_READY
-   run volume verify ${PROJECT}/${rpvolumetarget} link_status IN_SYNC
-
-   run volume change_link ${PROJECT}/${rpvolume} failover ${PROJECT}/${rpvolumetarget} rp
-
-   # Post failover
-   run volume verify ${PROJECT}/${rpvolume} personality SOURCE
-   run volume verify ${PROJECT}/${rpvolume} access_state READWRITE
-   run volume verify ${PROJECT}/${rpvolume} link_status FAILED_OVER
-   run volume verify ${PROJECT}/${rpvolumetarget} personality TARGET
-   run volume verify ${PROJECT}/${rpvolumetarget} access_state READWRITE
-   run volume verify ${PROJECT}/${rpvolumetarget} link_status FAILED_OVER
-
-   run volume change_link ${PROJECT}/${rpvolume} swap ${PROJECT}/${rpvolumetarget} rp
-
-   # Post swap
-   run volume verify ${PROJECT}/${rpvolume} personality TARGET
-   run volume verify ${PROJECT}/${rpvolume} access_state NOT_READY
-   run volume verify ${PROJECT}/${rpvolume} link_status IN_SYNC
-   run volume verify ${PROJECT}/${rpvolumetarget} personality SOURCE
-   run volume verify ${PROJECT}/${rpvolumetarget} access_state READWRITE
-   run volume verify ${PROJECT}/${rpvolumetarget} link_status IN_SYNC
-
-   run volume expand ${PROJECT}/${rpvolumetarget} 2GB
-
-   run volume change_link ${PROJECT}/${rpvolumetarget} failover ${PROJECT}/${rpvolume} rp
-
-   # Post failover, pre-swap
-   run volume verify ${PROJECT}/${rpvolume} personality TARGET
-   run volume verify ${PROJECT}/${rpvolume} access_state READWRITE
-   run volume verify ${PROJECT}/${rpvolume} link_status FAILED_OVER
-   run volume verify ${PROJECT}/${rpvolumetarget} personality SOURCE
-   run volume verify ${PROJECT}/${rpvolumetarget} access_state READWRITE
-   run volume verify ${PROJECT}/${rpvolumetarget} link_status FAILED_OVER
-
-   run volume change_link ${PROJECT}/${rpvolumetarget} swap ${PROJECT}/${rpvolume} rp
-
-   # Post swap, should be back to normal
-   run volume verify ${PROJECT}/${rpvolume} personality SOURCE
-   run volume verify ${PROJECT}/${rpvolume} access_state READWRITE
-   run volume verify ${PROJECT}/${rpvolume} link_status IN_SYNC
-   run volume verify ${PROJECT}/${rpvolumetarget} personality TARGET
-   run volume verify ${PROJECT}/${rpvolumetarget} access_state NOT_READY
-   run volume verify ${PROJECT}/${rpvolumetarget} link_status IN_SYNC
-}
-
-recoverpoint_cos_change()
-{
-   # Create non-protected volume, then move it to a cos that has protection
-   rpvolumecc="${RP_VOLUME}-coschange"
-   run volume create ${rpvolumecc} $PROJECT $NH $COS_RP_BASE 1GB
-   run volume change_cos $PROJECT/${rpvolumecc} $COS_RP
-   run volume delete $PROJECT/${rpvolumecc} --wait
-}
-
-recoverpoint_tests()
-{
-   #create volume setup, only for CDP
-   echo 'Run RP tests'
-   rpvolume="${RP_VOLUME}"
-   rpvolumetarget="${rpvolume}-target-${NH}"
-   run volume create ${rpvolume} $PROJECT $NH $COS_RP 1GB --consistencyGroup $RP_CONSISTENCY_GROUP
-   recoverpoint_auto_snapshot_cleanup
-   #recoverpoint_exports
-   recoverpoint_failover_test
-   run volume delete $PROJECT/${rpvolume} --wait
-
-   #Requires a new volume, separate test
-   recoverpoint_cos_change
-}
-
 vmax_cos_setup()
 {
     if [ $QUICK -eq 0 ]; then
@@ -2032,141 +1709,899 @@ vplexexport_tests() {
     run export-tests/vplexexport.sh test1
 }
 
+######################### Start of RecoverPoint ############################
 #
-# RP+VPLEX
+# RecoverPoint can be run in a simulated and physical environment.
 #
 
-rpvplex_setup_once()
-{
-    echo "Running rpvplex_setup_once"
-    if [ "$PARAM" = "quick" ]; then
-	echo 'Using simulators for rp vplex testing'
-        smisprovider show $PROVIDER_SIMULATOR &> /dev/null && return $?
-        smisprovider create $PROVIDER_SIMULATOR $RP_PROVIDER_SIMULATOR_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
-        networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS_IP --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
-        VPLEX_DEV_NAME=$VPLEX_SIMULATOR
-        VPLEX_IP=$SIMULATOR_IP
-	storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
-        run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-	run storagedevice discover_all
-	transportzone assign ${SIMULATOR_VSAN_11} $NH
-    elif [ "$PARAM" = "xtremio" ]; then
-	echo "Discovering brocade ..."
-	networksystem create $RP_BROCADE_NETWORK brocade --smisip $RP_BROCADE_NETWORK_PROVIDER --smisport 5988 --smisuser $RP_BROCADE_NETWORK_PROVIDER_USERNAME --smispw "$RP_BROCADE_NETWORK_PROVIDER_PASSWORD" --smisssl false
-        sleep 30
-	echo "Adding Storage Assets"
-		
-	discoveredsystem show $XTREMIO_NATIVEGUID &> /dev/null && return $?
-	discoveredsystem create $XTREMIO xtremio $XTREMIO_IP 443 $XTREMIO_USER $XTREMIO_PASSWD --serialno=$XTREMIO_SN
-	
-	discoveredsystem show $XTREMIO2_NATIVEGUID &> /dev/null && return $?
-	discoveredsystem create $XTREMIO2 xtremio $XTREMIO2_IP 443 $XTREMIO_USER $XTREMIO_PASSWD --serialno=$XTREMIO2_SN
-	
-	storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
-        run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-	run storagedevice discover_all
-	sleep 90	
-	
-	run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
-	run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH	
-	run storageport update $XTREMIO_NATIVEGUID FC --addvarrays $NH			
-	run storageport update $XTREMIO2_NATIVEGUID FC --addvarrays $NH2	
-	#~ for storageport in ${XTREMIO_INI}
-	#~ do
-		#~ run transportzone add $NH/${SRDF_VMAXA_VSAN} ${storageport}
-	#~ done
-	
-	#~ for porta in ${XTREMIO_STORAGE_PORTS}
-	#~ do
-		#~ storageport update $XTREMIO_NATIVEGUID FC --addvarrays $NH
-	#~ done			
-    else
-	echo "Discovering brocade ..."
-	networksystem create $RP_BROCADE_NETWORK brocade --smisip $RP_BROCADE_NETWORK_PROVIDER --smisport 5988 --smisuser $RP_BROCADE_NETWORK_PROVIDER_USERNAME --smispw "$RP_BROCADE_NETWORK_PROVIDER_PASSWORD" --smisssl false
-        sleep 30
- 	echo "Adding Storage Assets"
-	run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP 5988 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" false
-	storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
-        run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-	run storagedevice discover_all
-	sleep 90
-	run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
-	run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH	
-	run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
-    fi       
-    protection_system_setup
-    rpvplex_vpools_setup    
-}
+#########################
+# RecoverPoint Vpool create
+#########################
 
-rpvplex_common_setup()
+# All varrays for regular targets
+rp_targets()
 {
-    echo 'Running rpvplex_common_setup'
-    project_setup
-    neighborhood allow $NH $TENANT    
-    neighborhood allow $NH2 $TENANT    
-    run blockconsistencygroup create $PROJECT $RPVPLEX_CONSISTENCY_GROUP
-}
-
-rpvplex_setup()
-{
-    echo '**** RP+VPLEX setup'
-    rpvplex_common_setup    
-    rpvplex_setup_once
-}
-
-rpvplex_vpools_setup()
-{
-    # Create RP CDP vpools with VPLEX
-    cos show rpvplex_tgt_cdp block &> /dev/null && return $?
-    cos create block rpvplex_tgt_cdp true \
-        --description 'RP Target / VPLEX / CDP' \
+    cos create block rp_targets$1 true \
+        --description 'RP Targets' \
         --protocols FC \
-        --numpaths 1 \
+        --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods $NH \
+        --neighborhoods $RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3 $RECOVERPOINT_VARRAY4 \
+        --max_snapshots 10
+}
+
+# All varrays for RP+VPLEX targets
+rpvplex_targets()
+{
+    cos create block rpvplex_targets$1 true \
+        --description 'RP+VPLEX Targets' \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3 $RECOVERPOINT_VARRAY4 \
         --max_snapshots 10 \
         --highavailability vplex_local
+}
 
-    cos create block rpvplex_src_cdp true \
-        --description 'RP Source / VPLEX / CDP'  \
+# All varrays for HA
+rpvplex_ha()
+{
+    cos create block rpvplex_ha$1 true \
+        --description 'HA' \
         --protocols FC \
-        --numpaths 1 \
+        --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods $NH \
+        --neighborhoods $RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3 $RECOVERPOINT_VARRAY4 \
+        --highavailability vplex_local
+}
+
+# Regular vpool used as base for change vpool tests
+rp_regular()
+{
+    cos create block rp_regular$1 true \
+        --description 'Regular vpool used as base for change vpool tests' \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --max_snapshots 10
+}
+
+# Regular VPLEX local vpool used as base for change vpool tests
+rpvplex_local_regular()
+{
+    cos create block rpvplex_local_regular$1 true \
+        --description 'Regular VPLEX local vpool used as base for change vpool tests' \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --highavailability vplex_local
+}
+
+# Regular VPLEX dist vpool used as base for change vpool tests
+rpvplex_dist_regular()
+{
+    cos create block rpvplex_dist_regular$1 true \
+        --description 'Regular VPLEX dist vpool used as base for change vpool tests' \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --highavailability vplex_distributed \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
+        --haCos rpvplex_ha
+}
+
+# RP CDP
+rp_cdp()
+{
+    cos create block rp_cdp$1 true \
+        --description 'RP Source - CDP'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS $NH':rpvplex_tgt_cdp:min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
+        --rp_copy_mode SYNCHRONOUS \
+        --rp_rpo_value 5 \
+        --rp_rpo_type MINUTES
+}
+
+# RP CRR
+rp_crr()
+{
+    cos create block rp_crr$1 true \
+        --description 'RP Source - CRR'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --rp_copy_mode SYNCHRONOUS \
+        --rp_rpo_value 5 \
+        --rp_rpo_type MINUTES
+}
+
+# RP CLR
+rp_clr()
+{
+    cos create block rp_clr$1 true \
+        --description 'RP Source - CLR'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --rp_copy_mode SYNCHRONOUS \
+        --rp_rpo_value 5 \
+        --rp_rpo_type MINUTES
+}
+
+# RP+VPLEX CDP
+rpvplex_cdp()
+{
+    cos create block rpvplex_cdp$1 true \
+        --description 'RP+VPLEX Source - CDP'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_local
 }
 
-rpvplex_volume_cdp()
+# RP+VPLEX CRR
+rpvplex_crr()
 {
-    echo "**** Creating RP+VPLEX CDP volumes"    
-    run volume create $RPVPLEX_VOLUME $PROJECT $NH rpvplex_src_cdp 1GB --consistencyGroup $RPVPLEX_CONSISTENCY_GROUP
+    cos create block rpvplex_crr$1 true \
+        --description 'RP+VPLEX Source - CRR'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --rp_copy_mode SYNCHRONOUS \
+        --rp_rpo_value 5 \
+        --rp_rpo_type MINUTES \
+        --highavailability vplex_distributed \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
+        --haCos rpvplex_ha
 }
 
-rpvplex_volume_distributed()
+# RP+VPLEX CLR
+rpvplex_clr()
 {
-    echo "**** Creating RP+VPLEX Distributed volumes"    
-    #run volume create $RPVPLEX_VOLUME $PROJECT $NH rpvplex_src_cdp 1GB --consistencyGroup $RPVPLEX_CONSISTENCY_GROUP
+    cos create block rpvplex_clr$1 true \
+        --description 'RP+VPLEX Source - CLR'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --rp_copy_mode SYNCHRONOUS \
+        --rp_rpo_value 5 \
+        --rp_rpo_type MINUTES \
+        --highavailability vplex_distributed \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
+        --haCos rpvplex_ha
 }
 
-rpvplex_cleanup()
+# MetroPoint CDP
+mp_cdp()
 {
-    echo "**** Deleting RP+VPLEX volumes"
-    #run volume delete $PROJECT/$RPVPLEX_VOLUME --wait
+    cos create block mp_cdp$1 true \
+        --description 'MetroPoint Source - CDP'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min' \
+        --rp_copy_mode SYNCHRONOUS \
+        --rp_rpo_value 5 \
+        --rp_rpo_type MINUTES \
+        --highavailability vplex_distributed \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
+        --haCos rpvplex_ha \
+        --metropoint true \
+        --activeProtectionAtHASite false
 }
 
-rpvplex_tests()
+# MetroPoint CRR
+mp_crr()
 {
-    echo '**** RP+VPLEX tests begin'
-    rpvplex_volume_cdp
-    rpvplex_volume_distributed
-    rpvplex_cleanup
-    echo '**** RP+VPLEX tests end'
+    cos create block mp_crr$1 true \
+        --description 'MetroPoint Source - CRR'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --rp_copy_mode SYNCHRONOUS \
+        --rp_rpo_value 5 \
+        --rp_rpo_type MINUTES \
+        --highavailability vplex_distributed \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
+        --haCos rpvplex_ha \
+        --metropoint true \
+        --activeProtectionAtHASite false
 }
+
+# MetroPoint CLR
+mp_clr()
+{
+    cos create block mp_clr$1 true \
+        --description 'MetroPoint - CLR'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --rp_copy_mode SYNCHRONOUS \
+        --rp_rpo_value 5 \
+        --rp_rpo_type MINUTES \
+        --highavailability vplex_distributed \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
+        --haCos rpvplex_ha \
+        --metropoint true \
+        --activeProtectionAtHASite false
+}
+
+rp_vpool_setup()
+{
+    rp_targets
+    rpvplex_targets
+    rpvplex_ha
+    rp_regular
+    rpvplex_local_regular
+    rpvplex_dist_regular
+    rp_cdp
+    rp_crr
+    rp_clr
+    rpvplex_cdp
+    rpvplex_crr
+    rpvplex_clr
+    mp_cdp
+    mp_crr
+    mp_clr
+}
+
+rp_varray_setup()
+{
+    echo '*** Recoverpoint varray setup ***'
+
+    # Create Virtual Array
+    run neighborhood create $RECOVERPOINT_VARRAY1
+    run neighborhood allow $RECOVERPOINT_VARRAY1 $TENANT
+
+    run neighborhood create $RECOVERPOINT_VARRAY2
+    run neighborhood allow $RECOVERPOINT_VARRAY2 $TENANT
+
+    run neighborhood create $RECOVERPOINT_VARRAY3
+    run neighborhood allow $RECOVERPOINT_VARRAY3 $TENANT
+
+    run neighborhood create $RECOVERPOINT_VARRAY4
+    run neighborhood allow $RECOVERPOINT_VARRAY4 $TENANT
+}
+
+rp_network_setup()
+{
+    echo '*** Recoverpoint network setup ***'
+
+    networksystem create $RECOVERPOINT_BROCADE_NETWORK brocade --smisip $RECOVERPOINT_BROCADE_NETWORK_PROVIDER --smisport 5988 --smisuser $RECOVERPOINT_BROCADE_NETWORK_PROVIDER_USERNAME --smispw "$RECOVERPOINT_BROCADE_NETWORK_PROVIDER_PASSWORD" --smisssl false
+    sleep 20
+    transportzone listall
+}
+
+rp_smis_setup()
+{
+    echo '*** Recoverpoint SMIS setup ***'
+
+    for var in A B C D
+    do
+        provider='RECOVERPOINT_SMIS_PROVIDER_'$var
+        provider=${!provider}
+
+        provider_ip='RECOVERPOINT_SMIS_PROVIDER_'$var'_IP'
+        provider_ip=${!provider_ip}
+
+        array_guid='RECOVERPOINT_STORAGE_ARRAY_'$var'_GUID'
+        array_guid=${!array_guid}
+
+        if [ "$array_guid" != "NONE" ]; then
+            if [ "$RECOVERPOINT_XIO" = "1" ]; then
+                echo 'Using XTremeIO'
+
+                discoveredsystem show $XTREMIO_NATIVEGUID &> /dev/null && return $?
+                discoveredsystem create $XTREMIO xtremio $XTREMIO_IP 443 $XTREMIO_USER $XTREMIO_PASSWD --serialno=$XTREMIO_SN
+            else
+                smisprovider create $provider $provider_ip $SMIS_PORT $SMIS_USER $SMIS_PASSWORD false
+            fi
+        fi
+    done
+
+    rp_vplex_setup
+
+    echo '*** Recoverpoint discover storage systems ***'
+    run storagedevice discover_all
+    storagedevice list
+}
+
+rp_vplex_setup()
+{
+    echo '*** Recoverpoint VPLEX setup ***'
+
+    # Create VPLEX
+    if [ "$RECOVERPOINT_VPLEX_A" != "NONE" ]; then
+        storageprovider create $RECOVERPOINT_VPLEX_A $RECOVERPOINT_VPLEX_A_IP $RECOVERPOINT_VPLEX_A_PORT $RECOVERPOINT_VPLEX_A_USER $RECOVERPOINT_VPLEX_A_PASSWORD vplex
+    fi
+
+    if [ "$RECOVERPOINT_VPLEX_B" != "NONE" ]; then
+        storageprovider create $RECOVERPOINT_VPLEX_B $RECOVERPOINT_VPLEX_B_IP $RECOVERPOINT_VPLEX_B_PORT $RECOVERPOINT_VPLEX_B_USER $RECOVERPOINT_VPLEX_B_PASSWORD vplex
+    fi
+}
+
+rp_port_setup()
+{
+    echo '*** Recoverpoint port setup ***'
+
+    if [ "$RECOVERPOINT_STORAGE_ARRAY_A_GUID" != "NONE" ]; then
+        storageport update $RECOVERPOINT_STORAGE_ARRAY_A_GUID FC --addvarrays $RECOVERPOINT_VARRAY1
+    fi
+
+    if [ "$RECOVERPOINT_STORAGE_ARRAY_B_GUID" != "NONE" ]; then
+        storageport update $RECOVERPOINT_STORAGE_ARRAY_B_GUID FC --addvarrays $RECOVERPOINT_VARRAY2
+    fi
+
+    if [ "$RECOVERPOINT_STORAGE_ARRAY_C_GUID" != "NONE" ]; then
+        storageport update $RECOVERPOINT_STORAGE_ARRAY_C_GUID FC --addvarrays $RECOVERPOINT_VARRAY3
+    fi
+
+    if [ "$RECOVERPOINT_STORAGE_ARRAY_D_GUID" != "NONE" ]; then
+        storageport update $RECOVERPOINT_STORAGE_ARRAY_D_GUID FC --addvarrays $RECOVERPOINT_VARRAY4
+    fi
+
+    #VPLEX
+    # Override port to varray assigments for VPLEX clusters to prevent port mixing in clusters
+    # Source Site
+    # Cluster 1
+    if [ "$RECOVERPOINT_VPLEX_A" != "NONE" ] && [ "$RECOVERPOINT_STORAGE_ARRAY_A_GUID" != "NONE" ]; then
+        storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-1-1-A --addvarrays $RECOVERPOINT_VARRAY1
+        storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-1-1-B --addvarrays $RECOVERPOINT_VARRAY1
+    fi
+    # Cluster 2
+    if [ "$RECOVERPOINT_VPLEX_A" != "NONE" ] && [ "$RECOVERPOINT_STORAGE_ARRAY_B_GUID" != "NONE" ]; then
+        storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-2-1-A --addvarrays $RECOVERPOINT_VARRAY2
+        storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-2-1-B --addvarrays $RECOVERPOINT_VARRAY2
+    fi
+
+    # Target Site
+    # Cluster 1
+    if [ "$RECOVERPOINT_VPLEX_B" != "NONE" ] && [ "$RECOVERPOINT_STORAGE_ARRAY_C_GUID" != "NONE" ]; then
+        storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-A --addvarrays $RECOVERPOINT_VARRAY3
+        storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-B --addvarrays $RECOVERPOINT_VARRAY3
+    fi
+
+    # Cluster 2
+    if [ "$RECOVERPOINT_VPLEX_B" != "NONE" ] && [ "$RECOVERPOINT_STORAGE_ARRAY_D_GUID" != "NONE" ]; then
+        storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-A --addvarrays $RECOVERPOINT_VARRAY4
+        storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-B --addvarrays $RECOVERPOINT_VARRAY4
+    fi
+}
+
+rp_protection_system_setup()
+{
+    echo '*** Recoverpoint protection system setup ***'
+
+    protectionsystem show $RECOVERPOINT &> /dev/null && return $?
+
+    run protectionsystem create $RECOVERPOINT \
+    $RP_SYSTEM_TYPE \
+    $RECOVERPOINT_IP \
+    $RECOVERPOINT_PORT \
+    $RECOVERPOINT_USER \
+    $RECOVERPOINT_PASSWORD \
+    1
+}
+
+rp_cg_setup()
+{
+    echo '*** Recoverpoint CG setup ***'
+
+    run blockconsistencygroup create $PROJECT $RP_CONSISTENCY_GROUP
+    run blockconsistencygroup create $PROJECT $RP_VPLEX_CONSISTENCY_GROUP
+    run blockconsistencygroup create $PROJECT $RP_METROPOINT_CONSISTENCY_GROUP
+}
+
+rp_isolate_rpa_clusters()
+{
+    if [ "$RP_USE_RPA_ISOLATION" = "1" ]; then
+        echo '*** Recoverpoint isolate RPA clusters ***'
+
+        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER1_IP --addvarrays $RECOVERPOINT_VARRAY1
+        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3_IP --addvarrays $RECOVERPOINT_VARRAY2
+        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER4_IP --addvarrays $RECOVERPOINT_VARRAY3
+    fi
+}
+
+recoverpoint_exports_tests()
+{
+    rpsnap=rpsnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+    blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+    rpexport=$PROJECT/$RP_EXPORT_GROUP
+
+    #Create RP/Block snapshots
+    echo 'Create snapshots'
+    run blocksnapshot create ${PROJECT}/${rpvolume} ${rpsnap} --type rp
+    run blocksnapshot create ${PROJECT}/${rpvolume} ${blocksnap}
+    run blocksnapshot activate ${PROJECT}/${rpvolume}/${blocksnap}
+    run blocksnapshot delete ${PROJECT}/${rpvolume}/${blocksnap}
+    run blocksnapshot create ${PROJECT}/${rpvolume}-target-${rp_src_varray} ${blocksnap}-${rp_src_varray}
+    run blocksnapshot delete ${PROJECT}/${rpvolume}-target-${rp_src_varray}/${blocksnap}-${rp_src_varray}-${rp_src_varray}
+
+    PWWN1=`pwwn 6F`;
+    NWWN1=`pwwn 7F`;
+    run hosts create ${RP_EXPORT_GROUP_HOST} $TENANT Windows ${RP_EXPORT_GROUP_HOST} --port 8111 --username $RP_HOST_USER --password '$RP_HOST_PW' --osversion 1.0
+    run initiator create ${RP_EXPORT_GROUP_HOST} FC $PWWN1 --node $NWWN1
+
+    if [ "$PARAM" = "vmaxblock" ]; then
+        run transportzone add ${rp_src_varray}/${RP_VMAXB_VSAN} $PWWN1
+    elif [ "$PARAM" = "vnxblock" ]; then
+        run transportzone add ${rp_src_varray}/${RP_VNXB_VSAN} $PWWN1
+    else
+        # simulators being used
+        run transportzone add ${rp_src_varray}/${SIMULATOR_VSAN_11} $PWWN1
+    fi
+
+    sleep 20
+
+    echo 'recoverpoint exports'
+    run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --volspec ${PROJECT}/${rpvolume}/${rpsnap}-${rp_src_varray} --inits "${RP_EXPORT_GROUP_HOST}/$PWWN1"
+    run export_group show ${rpexport}
+    run export_group update ${rpexport} --remVol ${PROJECT}/${rpvolume}/${rpsnap}-${rp_src_varray}
+    run export_group update ${rpexport} --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-${rp_src_varray}
+    run export_group show ${rpexport}
+    # CTRL-4638: --remInits will not call RP device controller to disable bookmark.
+    #run export_group update ${rpexport} --remInits "${RP_EXPORT_GROUP_HOST}/$PWWN1"
+    #run export_group update ${rpexport} --addInits "${RP_EXPORT_GROUP_HOST}/$PWWN1"
+    run export_group show ${rpexport}
+    run export_group delete ${rpexport}
+
+    # currently having a volume and an RP snap in the same export group and deleting that export group doesn't work (CTRL?)
+    #echo 'Running export of RP snapshot when volume already exists in mask'
+    #run export_group create $PROJECT ${RP_EXPORT_GROUP}2 $NH --volspec ${PROJECT}/${rpvolume} --inits "${RP_EXPORT_GROUP_HOST}/$PWWN1"
+    #run export_group update ${rpexport}2 --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
+    #run export_group update ${rpexport}2 --remVol ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
+    #run export_group update ${rpexport}2 --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
+    #run export_group delete ${rpexport}2
+
+    echo 'done with RP exports, cleaning up'
+    run blocksnapshot delete ${PROJECT}/${rpvolume}/${rpsnap}-${NH}
+    run hosts delete ${RP_EXPORT_GROUP_HOST}
+    echo 'done with recoverpoint exports cleanup'
+}
+
+recoverpoint_auto_snapshot_cleanup_test()
+{
+    echo '*** RP snapshot tests ***'
+    rpsnap=rpsnap_for_cleanup-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+    blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+
+    src_volume=${1}
+    tgt_volume=${2}
+    src_varray=${3}
+
+    # Create RP/Block snapshot
+    echo 'Create snapshot'
+    run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
+    run blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${src_varray} | grep inactive | grep false
+    run protectionsystem discover $RECOVERPOINT
+
+    echo 'Unaffected RP bookmark is being checked after RP discovery to ensure it is still active'
+    run blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${src_varray} | grep inactive | grep false
+
+    echo 'Stopping protection for the copy and then re-enabling'
+    run volume change_link ${PROJECT}/${src_volume} stop ${PROJECT}/${tgt_volume} rp
+    sleep 15
+    run volume change_link ${PROJECT}/${src_volume} start ${PROJECT}/${tgt_volume} rp
+
+    echo 'Re-run discovery, RP bookmark should be cleaned up automatically'
+    sleep 10
+    run protectionsystem discover $RECOVERPOINT
+
+    echo 'Removed RP bookmark is being checked after RP discovery to ensure it is no longer active'
+    # Use "fail" instead of run because we expect this bookmark to fail.
+    fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${src_varray}
+}
+
+recoverpoint_failover_test()
+{
+    echo '*** RP failover tests ***'
+
+    src_volume=${1}
+    tgt_volume=${2}
+
+    echo 'Verify the current state of the source and target vols'
+    run volume verify ${PROJECT}/${src_volume} personality SOURCE
+    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+    run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+    run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+
+    echo 'Failover'
+    run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${tgt_volume} rp
+
+    echo 'Verify post failover'
+    run volume verify ${PROJECT}/${src_volume} personality SOURCE
+    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+    run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+    run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+
+    echo 'Cancel the failover'
+    run volume change_link ${PROJECT}/${src_volume} failover-cancel ${PROJECT}/${tgt_volume} rp
+
+    echo 'Verify post cancel, everything should be back to the start'
+    run volume verify ${PROJECT}/${src_volume} personality SOURCE
+    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+    run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+    run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+
+    echo 'Failover again'
+    run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${tgt_volume} rp
+
+    echo 'Verify post failover'
+    run volume verify ${PROJECT}/${src_volume} personality SOURCE
+    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+    run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+    run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+
+    echo 'Swap'
+    run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp
+
+    echo 'Verify post swap'
+    run volume verify ${PROJECT}/${src_volume} personality TARGET
+    run volume verify ${PROJECT}/${src_volume} access_state NOT_READY
+    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+    run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+    run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+
+# Expand not working yet, might make separate test for just expand
+#run volume expand ${PROJECT}/${tgt_volume} ${RP_SIZE_EXPAND}
+
+    echo 'Failover once again, post swap'
+    run volume change_link ${PROJECT}/${tgt_volume} failover ${PROJECT}/${src_volume} rp
+
+    echo 'Verify post failover, post swap'
+    run volume verify ${PROJECT}/${src_volume} personality TARGET
+    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+    run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+    run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+    run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+
+    echo 'Swap back'
+    run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp
+
+    echo 'Verify post swap back, everything should be back to normal'
+    run volume verify ${PROJECT}/${src_volume} personality SOURCE
+    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+    run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+    run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+}
+
+recoverpoint_vpool_change_test()
+{
+    base_volume=${1}
+    base_vpool=${2}
+    base_varray=${3}
+
+    rp_vpool=${4}
+    rp_cg=${5}
+
+    echo 'Create base volume'
+    run volume create ${base_volume} $PROJECT ${base_varray} ${base_vpool} 1GB --count=2
+
+    echo 'Change vpool of base volume to RP'
+    run volume change_cos ${PROJECT}/${base_volume}-1 ${rp_vpool}
+}
+
+
+# Simulator setup
+recoverpoint_simulator_setup()
+{
+    echo 'Sim running'
+#    project_setup
+#    rp_varray_setup
+
+
+    #    syssvc $CONFIG_FILE localhost set_prop controller_discovery_refresh_interval 5
+    #    elif [ "$PARAM" = "simulator" ]; then
+
+    # Simulators being used
+#    echo 'Using simulators in recoverpoint_setup_once'
+#    smisprovider show $PROVIDER_SIMULATOR &> /dev/null && return $?
+#    smisprovider create $PROVIDER_SIMULATOR $RP_PROVIDER_SIMULATOR_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+#    networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS_IP --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
+#
+#    transportzone listall
+#    echo 'sleeping 30s after network system create to allow for discovery'
+#    sleep 30
+#    transportzone assign ${SIMULATOR_VSAN_11} $RECOVERPOINT_VARRAY1
+#
+#    storagedevice discover_all
+#    storagedevice list
+#
+#    rp_vpool_setup
+
+    RECOVERPOINT=$RP_SIMULATOR
+    RECOVERPOINT_IP=$RP_SIMULATOR_IP
+    rp_protection_system_setup
+
+#
+#        # VPLEX
+#        VPLEX_DEV_NAME=$VPLEX_SIMULATOR
+#        VPLEX_IP=$SIMULATOR_IP
+#        storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
+#        run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+#        run storagedevice discover_all
+#        transportzone assign ${SIMULATOR_VSAN_11} $NH
+#
+#        # simulators being used
+
+#
+#        # simulators being used
+#        echo 'Using simulators in recoverpoint_common_setup'
+#        transportzone assign ${SIMULATOR_VSAN_11} $NH
+#        RP_NATIVE_GUID=$VMAX1_SIMULATOR_NATIVEGUID
+#    fi
+}
+
+
+recoverpoint_common_setup()
+{
+    project_setup
+    rp_varray_setup
+    rp_network_setup
+    rp_smis_setup
+    rp_port_setup
+    rp_protection_system_setup
+    sleep 30
+    rp_isolate_rpa_clusters
+    rp_vpool_setup
+}
+
+recoverpoint_setup()
+{
+    if [ "$RP_RUN_SETUP" = "1" ]; then
+        if [ "$RP_QUICK_PARAM" = "quick" ]; then
+            echo '*** RecoverPoint Simulator setup ***'
+            recoverpoint_simulator_setup
+        else
+            echo '*** RecoverPoint setup ***'
+            recoverpoint_common_setup
+        fi
+    fi
+}
+
+recoverpoint_cleanup_volumes()
+{
+    vol=${1}
+    volcount=${2}
+
+    # Cleanup volumes
+    if [ "$volcount" = "1" ]; then
+        run volume delete $PROJECT/${vol} --wait
+    else
+        for (( i=1; i<=$volcount; i++ ))
+        do
+            run volume delete $PROJECT/${vol}-$i --wait
+        done
+    fi
+}
+
+recoverpoint_cleanup_cgs()
+{
+    # Cleanup CGs
+    run blockconsistencygroup delete $RP_CONSISTENCY_GROUP
+    run blockconsistencygroup delete $RP_VPLEX_CONSISTENCY_GROUP
+    run blockconsistencygroup delete $RP_METROPOINT_CONSISTENCY_GROUP
+}
+
+recoverpoint_tests()
+{
+    if [ "$RP_RUN_TESTS" = "1" ]; then
+        echo '*** Run RP tests ***'
+
+        # Setup CGs
+        rp_cg_setup
+
+        rp_src_varray=$RECOVERPOINT_VARRAY1
+        rpvplex_src_varray=$RECOVERPOINT_VARRAY1
+        mp_src_varray=$RECOVERPOINT_VARRAY1
+
+        rp_type=''
+
+        if [ "$RP_CDP" = "1" ]; then
+            echo 'RP CDP Tests'
+            rp_type='cdp'
+
+            # RP
+            rp_src_vpool='rp_'$rp_type
+            rp_tgt_varray=$RECOVERPOINT_VARRAY1
+            rp_tgt_vpool='rp_targets'
+            rp_base_cvp='rp_regular'
+
+            # RP+VPLEX
+            rpvplex_src_vpool='rpvplex_'$rp_type
+            rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
+            rpvplex_tgt_vpool='rpvplex_targets'
+            rpvplex_base_cvp1='rpvplex_local_regular'
+            rpvplex_base_cvp2='rpvplex_dist_regular'
+
+            # MP
+            mp_src_vpool='mp_'$rp_type
+            mp_active_tgt_varray=$RECOVERPOINT_VARRAY1
+            mp_standby_tgt_varray=$RECOVERPOINT_VARRAY2
+            mp_tgt_vpool='rp_targets'
+        fi
+
+        if [ "$RP_CRR" = "1" ]; then
+            echo 'RP CRR Tests'
+            rp_type='crr'
+        fi
+
+        if [ "$RP_CLR" = "1" ]; then
+            echo 'RP CLR Tests'
+            rp_type='clr'
+        fi
+
+        # RP
+        rpvolume=${RP_VOLUME}
+        rpvolumetarget=${rpvolume}'-target-'${rp_tgt_varray}
+
+        # RP+VPLEX
+        rpvplexvolume=${RP_VPLEX_VOLUME}
+        rpvplexvolumetarget=${rpvplexvolume}'-target-'${rpvplex_tgt_varray}
+
+        # MP
+        mpvolume=${MP_VOLUME}
+        mpvolumetarget=${mpvolume}'-target-'${mp_tgt_varray}
+
+        # Setup test volumes...
+        # Either use volumes that have gone through the change vpool process or
+        # use straight up created RP volumes.
+        if [ "$RP_CHANGE_VPOOL" = "1" ]; then
+            echo '*** RP change vpool volumes ***'
+
+            if [ "$RP_TESTS" = "1" ]; then
+                echo 'RP change vpool...'
+                recoverpoint_vpool_change_test ${rpvolume} ${rp_base_cvp} ${rp_src_varray} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP}
+            fi
+
+            if [ "$RPVPLEX_TESTS" = "1" ]; then
+                echo 'RP+VPLEX change vpool...NOT SUPPORTED YET!!'
+                #recoverpoint_vpool_change_test ${rpvplexvolume} ${rpvplex_base_cvp1} ${rpvplex_src_varray} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
+            fi
+
+            if [ "$MP_TESTS" = "1" ]; then
+                echo 'MP change vpool...NOT SUPPORTED YET!!'
+            fi
+
+        else
+            echo '*** RP create volumes ***'
+
+            if [ "$RP_TESTS" = "1" ]; then
+                echo 'RP volume create...'
+                run volume create ${rpvolume} $PROJECT ${rp_src_varray} ${rp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
+            fi
+
+            if [ "$RPVPLEX_TESTS" = "1" ]; then
+                echo 'RP+VPLEX volume create...'
+                run volume create ${rpvplexvolume} $PROJECT ${rpvplex_src_varray} ${rpvplex_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_VPLEX_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
+            fi
+
+            if [ "$MP_TESTS" = "1" ]; then
+                echo 'MetroPoint volume create...'
+                run volume create ${mpvolume} $PROJECT ${mp_src_varray} ${mp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_METROPOINT_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
+            fi
+        fi
+
+        # Have to account for "-1" being added to volume name if
+        # volume count is greater than 1.
+        volume_name_modifier=''
+        if [ "$RP_VOLUME_COUNT" = "1" ]; then
+            volume_name_modifier=''
+        else
+            volume_name_modifier='-1'
+        fi
+
+        ### Begin Recoverpoint test cases ###
+
+        # RP test cases
+        # Run these test cases unless specified to only run create/delete tests
+        if [ "$RP_RUN_VOLUME_CREATE_ONLY" = "0" ]; then
+            if [ "$RP_TESTS" = "1" ]; then
+                echo 'RP tests...'
+                # Snapshot/Bookmark Test
+                recoverpoint_auto_snapshot_cleanup_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier} ${rp_src_varray}
+
+                # Failover Test
+                recoverpoint_failover_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier}
+            fi
+
+            # RP+VPLEX test cases
+            if [ "$RPVPLEX_TESTS" = "1" ]; then
+                echo 'RP+VPLEX tests...'
+                # Snapshot/Bookmark Test
+                recoverpoint_auto_snapshot_cleanup_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier} ${rpvplex_src_varray}
+
+                # Failover Test
+                recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
+            fi
+
+            # MP test cases
+            if [ "$MP_TESTS" = "1" ]; then
+                echo 'MetroPoint tests...'
+                # Snapshot/Bookmark Test
+                recoverpoint_auto_snapshot_cleanup_test ${mpvolume}${volume_name_modifier} ${mpvolumetarget}${volume_name_modifier} ${mp_src_varray}
+
+                # Failover Test
+                recoverpoint_failover_test ${mpvolume}${volume_name_modifier} ${mpvolumetarget}${volume_name_modifier}
+            fi
+        fi
+
+        ### End Recoverpoint test cases ###
+
+        echo '*** RP cleanup ***'
+
+        if [ "$RP_TESTS" = "1" ]; then
+            echo 'RP volume cleanup...'
+            recoverpoint_cleanup_volumes ${rpvolume} $RP_VOLUME_COUNT
+        fi
+
+        if [ "$RPVPLEX_TESTS" = "1" ]; then
+            echo 'RP+VPLEX volume cleanup...'
+            recoverpoint_cleanup_volumes ${rpvplexvolume} $RP_VOLUME_COUNT
+        fi
+
+        if [ "$MP_TESTS" = "1" ]; then
+            echo 'MP volume cleanup...'
+            recoverpoint_cleanup_volumes ${mpvolume} $RP_VOLUME_COUNT
+        fi
+
+        echo 'CG cleanup...'
+        recoverpoint_cleanup_cgs
+
+        echo '*** RP tests done ***'
+    fi
+}
+
+#
+#
+#
+######################### End of RecoverPoint ############################
 
 hds_cos_setup()
 {
@@ -5977,7 +6412,7 @@ fail(){
 
 trap _failure ERR INT
 set -E
-if [ "$2" != "recoverpoint" ] && [ "$2" != "rpvplex" ] && [ "$2" != "vdc" ]; then
+if [ "$2" != "recoverpoint" ] && [ "$2" != "vdc" ]; then
 	common_setup	
 fi
 

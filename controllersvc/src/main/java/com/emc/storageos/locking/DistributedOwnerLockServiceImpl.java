@@ -255,8 +255,9 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
             private InterProcessLock lock;
 
             @Override
-            public void before() {
+            public boolean before() {
                 lock = lockIPL(null);
+                return lock != null;
             }
 
             @Override

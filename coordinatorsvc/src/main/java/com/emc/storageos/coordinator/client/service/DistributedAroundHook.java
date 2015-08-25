@@ -25,7 +25,7 @@ public abstract class DistributedAroundHook<T> {
     /**
      * Override this method to provide before hook logic.
      */
-    public abstract void before();
+    public abstract boolean before();
 
     /**
      * Override this method to provide after hook logic.
@@ -53,8 +53,10 @@ public abstract class DistributedAroundHook<T> {
         }
 
         try {
-            before();
-            return action.run();
+            if (before()) {
+                return action.run();
+            }
+            return null;
         } finally {
             after();
         }

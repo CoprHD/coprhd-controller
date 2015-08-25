@@ -16,6 +16,9 @@ import java.io.FileReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
@@ -190,7 +193,7 @@ public class FileUtils {
      * @param regEx the regular expression of file name
      * @throws IOException
      */
-    public static File getFileByRegEx(File dir, String regEx) {
+    public static List<File> getFileByRegEx(File dir, String regEx) {
         final Pattern pattern = Pattern.compile(regEx);
         File[] files = dir.listFiles(new FilenameFilter() {
 
@@ -201,11 +204,6 @@ public class FileUtils {
 
         });
 
-        if (files == null || files.length == 0) {
-            log.error("can't find {} pid file", regEx);
-            throw new IllegalStateException("can't find pid file, please check service status");
-        }
-
-        return files[0];
+        return Collections.unmodifiableList(Arrays.asList(files));
     }
 }

@@ -42,6 +42,20 @@ titleKey = 'tenants.' + (tenant?.id ? 'edit' : 'create') + '.title';
         #{Form.inputTextControlGroup field:field /}
     #{/field}
 
+	#{field 'tenant.enableNamespace'}
+       #{Form.booleanCheckBoxControlGroup field:field /}
+    #{/field}
+	#{field 'tenant.namespace'}
+        #{Form.controlGroup field:field, width:3}
+          <div class="input-group">
+            #{Form.inputText field:field/}
+            <span class="input-group-addon"></span>
+          </div>
+          %{
+			field.helpText = messages.get("${field.name}.help")
+          %}
+        #{/Form.controlGroup}
+      #{/field}
 
     <legend>&{'tenant.quota'}<small>&{'tenant.quota.description'}</small></legend>
     #{field 'tenant.enableQuota'}
@@ -114,6 +128,18 @@ titleKey = 'tenants.' + (tenant?.id ? 'edit' : 'create') + '.title';
                 $('#tenant_quotaControlGroup').hide();
             }
         }).trigger('change');
+
+
+        $('#tenant_enableNamespace').on('change', function() {
+            var enabled = $(this).prop('checked');
+            if (enabled) {
+                $('#tenant_namespaceControlGroup').show();
+            }
+            else {
+                $('#tenant_namespaceControlGroup').hide();
+            }
+        }).trigger('change');
+
     });
 
     function handleListRoleAssignments() {

@@ -59,7 +59,7 @@ import com.emc.storageos.model.pools.StoragePoolUpdate;
 import com.emc.storageos.model.ports.StoragePortRequestParam;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.ports.StoragePortUpdate;
-import com.emc.storageos.model.project.AssignVNASParam;
+import com.emc.storageos.model.project.VirtualNasParam;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.smis.StorageProviderRestRep;
 import com.emc.storageos.model.systems.StorageSystemRequestParam;
@@ -381,7 +381,7 @@ public class StorageSystems extends ViprResourceController {
           String[] nasArray = nasIds.split(",");
           Collections.addAll(vnasServers,nasArray);
        }
-       AssignVNASParam vNasParam = new AssignVNASParam();
+       VirtualNasParam vNasParam = new VirtualNasParam();
        vNasParam.setVnasServers(vnasServers);
        
        try {

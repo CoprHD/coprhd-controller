@@ -9,7 +9,7 @@ import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.project.AssignVNASParam;
+import com.emc.storageos.model.project.VirtualNasParam;
 import com.emc.storageos.model.vnas.VirtualNASBulkRep;
 import com.emc.storageos.model.vnas.VirtualNASList;
 import com.emc.storageos.model.vnas.VirtualNASRestRep;
@@ -232,7 +232,7 @@ public class VirtualNasServers extends AbstractCoreBulkResources<VirtualNASRestR
      * @param projectId
      * @param vNasParam
      */
-    public Task<VirtualNASRestRep> assignVnasServers(URI projectId, AssignVNASParam vNasParam){
+    public Task<VirtualNASRestRep> assignVnasServers(URI projectId, VirtualNasParam vNasParam){
         UriBuilder builder = client.uriBuilder(getVnasAssignUrl());
         URI targetUri = builder.build(projectId);
         return putTaskURI(vNasParam, targetUri);

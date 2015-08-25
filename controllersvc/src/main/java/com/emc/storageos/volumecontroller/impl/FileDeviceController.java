@@ -1243,6 +1243,7 @@ public class FileDeviceController implements FileController {
     @Override
     public void connectStorage(URI storage) throws ControllerException {
         // Retrieve the storage device info from the database.
+    	_log.info("FIle connectStorage connect storage");
         StorageSystem storageObj = null;
         try {
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);

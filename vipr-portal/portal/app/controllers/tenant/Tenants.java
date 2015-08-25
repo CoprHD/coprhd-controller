@@ -118,6 +118,7 @@ public class Tenants extends ViprResourceController {
                     tenant.usermapping);
             TenantCreateParam createParam = new TenantCreateParam(tenant.name, tempMappings);
             createParam.setDescription(tenant.description);
+            createParam.setNamespace(tenant.namespace);
             tenant.id = stringId(TenantUtils.create(createParam));
             saveTenantQuota(tenant);
         }
@@ -133,6 +134,7 @@ public class Tenants extends ViprResourceController {
 
                 TenantUpdateParam updateParam = new TenantUpdateParam(tenant.name, mappingChanges);
                 updateParam.setDescription(tenant.description);
+                updateParam.setNamespace(tenant.namespace);
                 TenantUtils.update(tenant.id, updateParam);
                 // only SecurityAdmin and SystemAdmin has the permission to update Quota
                 if (Security.isSecurityAdmin() || Security.isSystemAdmin()) {
@@ -340,10 +342,18 @@ public class Tenants extends ViprResourceController {
         public Boolean enableQuota = Boolean.FALSE;
         public Long quota;
 
+        public Boolean enableNamespace = Boolean.FALSE;
+        public String namespace;
+
         public TenantForm from(TenantOrgRestRep from, QuotaInfo quota) {
             this.id = from.getId().toString();
             this.name = from.getName();
             this.description = from.getDescription();
+            this.namespace = from.getNamespace();
+            if (null != from.getNamespace()) {
+                this.enableNamespace = Boolean.TRUE;
+            }
+
             this.enableQuota = quota.getEnabled();
             this.quota = quota.getQuotaInGb();
 

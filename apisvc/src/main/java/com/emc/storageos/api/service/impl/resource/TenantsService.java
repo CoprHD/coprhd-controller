@@ -352,6 +352,7 @@ public class TenantsService extends TaggedResource {
         subtenant.setParentTenant(new NamedURI(parent.getId(), param.getLabel()));
         subtenant.setLabel(param.getLabel());
         subtenant.setDescription(param.getDescription());
+        subtenant.setNamespace(param.getNamespace());
 
         if (null == param.getUserMappings() || param.getUserMappings().isEmpty()) {
             throw APIException.badRequests

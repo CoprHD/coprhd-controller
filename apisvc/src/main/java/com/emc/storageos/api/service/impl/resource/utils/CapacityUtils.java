@@ -412,8 +412,12 @@ public class CapacityUtils {
             capacity = CustomQueryUtility.aggregatedPrimitiveField(dbClient, Volume.class, "virtualPool",
                     cosId.toString(), PROVISIONED_CAPACITY_STR).
                     getValue();
-        }
-        else {
+        } else if (cosType == VirtualPool.Type.file) {
+            capacity = CustomQueryUtility.aggregatedPrimitiveField(dbClient, FileShare.class, "virtualPool",
+                    cosId.toString(), CAPACITY_STR).
+                    getValue();
+        } else {
+            //TODO change to Object
             capacity = CustomQueryUtility.aggregatedPrimitiveField(dbClient, FileShare.class, "virtualPool",
                     cosId.toString(), CAPACITY_STR).
                     getValue();

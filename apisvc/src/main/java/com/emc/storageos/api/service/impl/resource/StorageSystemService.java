@@ -98,6 +98,7 @@ import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileController;
+import com.emc.storageos.volumecontroller.ObjectController;
 import com.emc.storageos.volumecontroller.StorageController;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
@@ -258,6 +259,10 @@ public class StorageSystemService extends TaskResourceService {
         auditOp(OperationTypeEnum.CREATE_STORAGE_SYSTEM, true, null, param.getSerialNumber(),
                 param.getSystemType(), param.getIpAddress(), param.getPortNumber());
 
+        //Temp code to be removed: Sreenidhi
+        if (system.getSystemType() == "isilon")
+        	system.setSystemType("ecs");
+        	
         startStorageSystem(system);
 
         FileController controller = getController(FileController.class, param.getSystemType());
@@ -947,6 +952,11 @@ public class StorageSystemService extends TaskResourceService {
      */
     @SuppressWarnings("rawtypes")
     public static Class storageSystemClass(String systemType) {
+    	
+    	//Temp code sreenidhi
+    	if (systemType.equals(StorageSystem.Type.ecs.toString()))
+    			return ObjectController.class;
+    	
         if (systemType.equals(StorageSystem.Type.isilon.toString())
                 || systemType.equals(StorageSystem.Type.vnxfile.toString())
                 || systemType.equals(StorageSystem.Type.netapp.toString())

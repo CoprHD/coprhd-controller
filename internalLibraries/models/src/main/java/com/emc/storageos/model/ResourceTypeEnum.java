@@ -18,6 +18,7 @@ public enum ResourceTypeEnum {
     VPOOL("vpool", "/"),
     BLOCK_VPOOL("block_vpool", "/block/vpools"),
     FILE_VPOOL("file_vpool", "/file/vpools"),
+    OBJECT_VPOOL("object_vpool", "/object/vpools"),
     COMPUTE_VPOOL("compute_vpool", "/compute/vpools"),
     VARRAY("varray", "/vdc/varrays"),
     STORAGE_SYSTEM("storage_system", "/vdc/storage-systems"),

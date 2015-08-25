@@ -539,6 +539,8 @@ public class BlockMapper {
             return ResourceTypeEnum.BLOCK_VPOOL;
         } else if (VirtualPool.Type.file == cosType) {
             return ResourceTypeEnum.FILE_VPOOL;
+        } else if (VirtualPool.Type.object == cosType) {
+            return ResourceTypeEnum.OBJECT_VPOOL;
         } else {
             // impossible;
             return ResourceTypeEnum.BLOCK_VPOOL;

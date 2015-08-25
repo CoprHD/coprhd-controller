@@ -272,7 +272,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     }
 
     public static enum SystemType {
-        NONE, isilon, vnxblock, vnxfile, vmax, netapp, netappc, hds, openstack, vnxe, scaleio, datadomain, xtremio, ibmxiv;
+        NONE, isilon, vnxblock, vnxfile, vmax, netapp, netappc, hds, openstack, vnxe, scaleio, datadomain, xtremio, ibmxiv, ecs;
         private static final SystemType[] copyOfValues = values();
 
         public static SystemType lookup(final String name) {
@@ -292,13 +292,18 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
                     || vnxe.name().equalsIgnoreCase(name)
                     || datadomain.name().equalsIgnoreCase(name);
         }
-
+        
         public static boolean isBlockTypeSystem(final String name) {
             return vnxblock.name().equalsIgnoreCase(name) || vmax.name().equalsIgnoreCase(name)
                     || hds.name().equalsIgnoreCase(name) || openstack.name().equalsIgnoreCase(name)
                     || scaleio.name().equalsIgnoreCase(name) || xtremio.name().equalsIgnoreCase(name)
                     || ibmxiv.name().equalsIgnoreCase(name) || vnxe.name().equalsIgnoreCase(name);
         }
+        
+        public static boolean isObjectTypeSystem(final String name) {
+            return ecs.name().equalsIgnoreCase(name);
+        }
+
     }
 
     // flag tells whether to use recommended pools or not.

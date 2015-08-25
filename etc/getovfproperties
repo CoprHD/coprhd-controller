@@ -151,13 +151,15 @@ _mount_ovfenv() {
 # Parse ovf-env.xml for system properties
 #
 # Node_id is parsed from oe:id (vm name) first and added to hold space
+#     if oe:id is empty do not store anything (standalone,devkit)
 # If node_id "per VM" property is found then it replaces node_id in hold space
-# Finally node_id is printed from hold space before finishing
+# When end of property section found node_id is printed from hold space and sed quits
 _parse_ovfenv_xml() {
        sed -n '
-       /<Entity / {g; p; q}
+       /<\/PropertySection/ {g; p; q}
        /oe:id=/ {
            s/.*oe:id="\([^"][^"]*\)".*/node_id=\1/
+           /oe:id=/ d
            h
        }
        /<Property / {

@@ -108,15 +108,13 @@ public class SystemsMapper {
         to.setElementManagerURL(from.getElementManagerURL());
         return to;
     }
-    
-    
-    
-    public static VirtualNASRestRep map(VirtualNAS from){
-        if(from == null){
+
+    public static VirtualNASRestRep map(VirtualNAS from) {
+        if (from == null) {
             return null;
         }
-        
-        VirtualNASRestRep to= new VirtualNASRestRep();
+
+        VirtualNASRestRep to = new VirtualNASRestRep();
         mapDiscoveredDataObjectFields(from, to);
         to.setAssignedVirtualArrays(from.getAssignedVirtualArrays());
         to.setBaseDirPath(from.getBaseDirPath());
@@ -128,21 +126,21 @@ public class SystemsMapper {
         to.setMaxExports(from.getMaxExports());
         to.setMaxFSID(from.getMaxExports());
         to.setMaxProvisionedCapacity(from.getMaxProvisionedCapacity());
-        
+
         to.setNasName(from.getNasName());
         to.setNasState(from.getNasState());
         to.setNasTag(from.getNAStag());
-        
-        to.setParentNASURI(toRelatedResource(ResourceTypeEnum.VIRTUAL_NAS,from.getParentPhysicalNAS()));
-        
-        to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT,from.getProject()));
-       
+
+        to.setParentNASURI(toRelatedResource(ResourceTypeEnum.VIRTUAL_NAS, from.getParentPhysicalNAS()));
+
+        to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject()));
+
         to.setProtocols(from.getProtocols());
         to.setRegistrationStatus(from.getRegistrationStatus());
-        
-        to.setStorageDeviceURI(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM,from.getStorageDeviceURI()));
+
+        to.setStorageDeviceURI(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageDeviceURI()));
         to.setvNasType(from.getvNasType());
-                
+
         return to;
     }
 

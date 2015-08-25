@@ -474,7 +474,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     private VirtualNAS createVirtualNas(StorageHADomain vdm) throws VNXFileCollectionException {
 
         VirtualNAS vNas = new VirtualNAS();
-        vNas.setNasName(vdm.getName());
+        vNas.setNasName(vdm.getAdapterName());
         vNas.setStorageDeviceURI(vdm.getStorageDeviceURI());
         vNas.setParentNAS(vdm.getParentHADomainURI());
 
@@ -485,7 +485,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         StringSet tempSet = new StringSet();
         tempSet.add(vdm.getProtocol());
-        vNas.setProtocols(tempSet);
+        // vNas.setProtocols(tempSet);
         vNas.setId(URIUtil.createId(VirtualNAS.class));
         String vnasState = this.virtualNasState.get(vdm.getId().toString());
 
@@ -503,7 +503,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         PhysicalNAS pNas = new PhysicalNAS();
         pNas.setStorageDeviceURI(dm.getStorageDeviceURI());
-        pNas.setNasName(dm.getName());
+        pNas.setNasName(dm.getAdapterName());
         pNas.setStorageDeviceURI(dm.getStorageDeviceURI());
         pNas.setId(URIUtil.createId(PhysicalNAS.class));
         String storageSystemNativeGuid = _dbClient.queryObject(StorageSystem.class, dm.getStorageDeviceURI()).getNativeGuid();

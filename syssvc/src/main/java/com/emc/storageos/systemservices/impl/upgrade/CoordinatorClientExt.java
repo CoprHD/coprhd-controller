@@ -79,6 +79,7 @@ public class CoordinatorClientExt {
     // Node id used for external display/query purpose.
     // EX: vipr1, vipr2, dataservice-10_247_100_15
     private String _myNodeId= null;
+    private String _myNodeName= null;
     // Service id is for internal use to talk to coordinator.
     // EX: syssvc-1, syssvc-2, syssvc-10_247_100_15
     private String mySvcId = null;
@@ -100,6 +101,7 @@ public class CoordinatorClientExt {
     public void setService(ServiceImpl service) {
         _svc = service;
         _myNodeId= _svc.getNodeId();
+        _myNodeName= _svc.getNodeName();
         mySvcId = _svc.getId();
     }
 
@@ -401,7 +403,7 @@ public class CoordinatorClientExt {
      * @throws Exception
      */
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind) throws Exception {
-        return _coordinator.getTargetInfo(clazz, id, kind);
+        return _coordinator.getTargetInfo(clazz,id,kind);
     }
 
     /**
@@ -419,7 +421,7 @@ public class CoordinatorClientExt {
 
     public <T extends CoordinatorSerializable> T getNodeInfo(String node, Class<T> clazz) throws CoordinatorClientException {
         try {
-            T state = _coordinator.getNodeInfo(_svc, node, clazz);
+            T state = _coordinator.getNodeInfo(_svc,node,clazz);
             if (state != null) {
                 return state;
             }
@@ -513,7 +515,7 @@ public class CoordinatorClientExt {
      */
     public boolean verifyNodesPowerOffStateNotBefore(PowerOffState.State state, boolean checkNumOfControlNodes) {
         try {
-            Map<Service, PowerOffState> controlNodesPowerOffState = getAllNodeInfos(PowerOffState.class, CONTROL_NODE_SYSSVC_ID_PATTERN);
+            Map<Service, PowerOffState> controlNodesPowerOffState = getAllNodeInfos(PowerOffState.class,CONTROL_NODE_SYSSVC_ID_PATTERN);
 
             if (checkNumOfControlNodes && controlNodesPowerOffState.size() != getNodeCount()) {
                 return false;
@@ -534,13 +536,13 @@ public class CoordinatorClientExt {
 
     /**
      * Get node endpoint from node id
-     * 
+     *
      * @param nodeId
      * @return
      */
     public URI getNodeEndpoint(String nodeId) {
         try {
-            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(), _svc.getVersion(), (String) null, null);
+            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(),_svc.getVersion(),(String)null,null);
             for (Service svc : svcs) {
                 if (svc.getNodeId().equals(nodeId)) {
                     return svc.getEndpoint();
@@ -560,14 +562,14 @@ public class CoordinatorClientExt {
      */
     public URI getNodeEndpointForSvcId(String svcId) {
         try {
-            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(), _svc.getVersion(), (String) null, null);
+            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(),_svc.getVersion(),(String)null,null);
             for (Service svc : svcs) {
                 if (svc.getId().equals(svcId)) {
                     return svc.getEndpoint();
                 }
             }
         } catch (Exception e) {
-            _log.info("Fail to get the cluster information " + e.getMessage());
+            _log.info("Fail to get the cluster information "+e.getMessage());
         }
         return null;
     }
@@ -592,7 +594,7 @@ public class CoordinatorClientExt {
                 }
             }
         } catch (Exception e) {
-            _log.error("Can not get {} lock owner ", lockId);
+            _log.error("Can not get {} lock owner ",lockId);
         }
         return false;
     }
@@ -615,7 +617,7 @@ public class CoordinatorClientExt {
                 return true;
             }
         } catch (Exception e) {
-            _log.info("Can not get {} lock", lockId, e);
+            _log.info("Can not get {} lock",lockId,e);
         }
         return false;
     }
@@ -889,6 +891,141 @@ public class CoordinatorClientExt {
     }
 
     /**
+     * The utility method to find the corresponding nodeIds for the provided
+     * node names. When each node starts, the system management service on each
+     * node, registers themselves with the coordninator. This method iterates
+     * over that registration namespace to find the nodes in the cluster
+     *
+     * @return NodeHandle for mathing node in the cluster
+     */
+    public List<String> getMatchingNodeIds(List<String> nodeNames) {
+        List<String> nodeIds = new ArrayList<String>();
+
+        //if use short name is enabled allow matching short name to nodeId
+        boolean useShortName = Boolean.parseBoolean(getPropertyInfo().getProperty("use_short_node_name"));
+
+        try {
+            List<Service> svcs = getAllServices();
+            for (Service svc : svcs) {
+                if (useShortName){
+                    if(nodeNames.contains(svc.getNodeName()) ||
+                            nodeNames.contains(svc.getNodeName().split("\\.")[0])) {
+                        final String nodeId=svc.getNodeId();
+                        nodeIds.add(nodeId);
+                    }
+                } else {
+                    if (nodeNames.contains(svc.getNodeName())) {
+                        final String nodeId=svc.getNodeId();
+                        nodeIds.add(nodeId);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            _log.error("getMatchingNodeIds(): Failed to get all nodeIds for nodeNames {}: {}",nodeNames, e);
+        }
+        _log.info("getMatchingNodeIds(): Node Ids: {}", Strings.repr(nodeIds));
+        return nodeIds;
+    }
+
+    /**
+     * The utility method to find the corresponding nodeId for the provided
+     * node name. When each node starts, the system management service on each
+     * node, registers themselves with the coordninator. This method iterates
+     * over that registration namespace to find the node in the cluster
+     *
+     * @return NodeHandle for mathing node in the cluster
+     */
+    public String getMatchingNodeId(String nodeName) {
+        String nodeId = null;
+
+        //if use short name is enabled allow matching short name to nodeId
+        boolean useShortName = Boolean.parseBoolean(getPropertyInfo().getProperty("use_short_node_name"));
+
+        try {
+            List<Service> svcs = getAllServices();
+            for (Service svc : svcs) {
+                if (useShortName){
+                    if(nodeName.equals(svc.getNodeName()) ||
+                            nodeName.equals(svc.getNodeName().split("\\.")[0])) {
+                        nodeId =svc.getNodeId();
+                    }
+                } else {
+                    if (nodeName.equals(svc.getNodeName())) {
+                        nodeId =svc.getNodeId();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            _log.error("getMatchingNodeId(): Failed to get all nodes while searching for {}: {}",nodeName, e);
+        }
+
+        if (nodeId==null) {
+            _log.error("getMatchingNodeId(): Failed to get nodeId for nodeName {}",nodeName);
+        } else {
+            _log.info("getMatchingNodeId(): Node Id: {}", nodeId);
+        }
+
+        return nodeId;
+    }
+
+    /**
+     * The utility method to combine list of nodeIds and list of nodeNames into a single list of nodeIds
+     * Duplicate nodes are removed.
+     *
+     * @return nodeIds for mathing nodeNames and nodeIds combined
+     */
+    public List<String> combineNodeNamesWithNodeIds(List<String> nodeNames, List<String> nodeIds) {
+        if (!nodeNames.isEmpty()) {
+            //get nodeIds for node names
+            List<String> matchedIds = getMatchingNodeIds(nodeNames);
+
+            if (matchedIds.size() != nodeNames.size()){
+                throw APIException.badRequests.parameterIsNotValid("node name");
+            }
+
+            //join list with nodeIds passed
+            for (String id : matchedIds){
+                if (!nodeIds.contains(id))
+                    nodeIds.add(id);
+            }
+        }
+
+        return nodeIds;
+    }
+
+    /**
+     * The utility method to find the corresponding nodeId for the provided
+     * node name. When each node starts, the system management service on each
+     * node, registers themselves with the coordninator. This method iterates
+     * over that registration namespace to find the node in the cluster
+     *
+     * @return NodeHandle for mathing node in the cluster
+     */
+    public String getMatchingNodeName(String nodeId) {
+        String nodeName = null;
+        try {
+            List<Service> svcs = getAllServices();
+            for (Service svc : svcs) {
+                if (nodeId.equals(svc.getNodeId())){
+                    nodeName=svc.getNodeName();
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            _log.error("getMatchingNodeName(): Failed to get all nodes while searching for {}: {}",nodeId, e);
+        }
+
+        if (nodeId==null) {
+            _log.error("getMatchingNodeName(): Failed to get Node Name for Node Id {}",nodeId);
+        } else {
+            _log.info("getMatchingNodeName(): Node Name: {}", nodeName);
+        }
+
+        return nodeName;
+    }
+
+
+    /**
      * The utility method to find all the controller nodes which are not available in the
      * cluster(they might be powered off or the syssvc is off). When each node starts, the system management service on each
      * node, registers themselves with the coordninator. This method iterates
@@ -933,6 +1070,13 @@ public class CoordinatorClientExt {
      */
     public String getMyNodeId() {
         return _myNodeId;
+    }
+
+    /**
+     * Get name for "this" node
+     */
+    public String getMyNodeName() {
+        return _myNodeName;
     }
 
     /**

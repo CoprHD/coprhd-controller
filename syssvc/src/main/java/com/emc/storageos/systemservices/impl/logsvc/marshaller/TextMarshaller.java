@@ -27,6 +27,8 @@ public class TextMarshaller extends Marshaller {
     public void marshall(LogMessage logMessage) throws IOException {
         outputStream.write(logMessage.getNodeId());
         outputStream.write(SPACE);
+        outputStream.write(logMessage.getNodeName());
+        outputStream.write(SPACE);
         outputStream.write(logMessage.getService());
         outputStream.write(SPACE);
         outputStream.write(logMessage.getRawLogContent());

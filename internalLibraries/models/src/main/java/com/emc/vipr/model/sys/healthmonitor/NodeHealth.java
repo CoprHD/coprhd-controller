@@ -18,6 +18,7 @@ import java.util.List;
 public class NodeHealth {
 
     private String nodeId;
+    private String nodeName;
     private String ip;
     private String status;
     private List<ServiceHealth> serviceHealthList;
@@ -27,15 +28,17 @@ public class NodeHealth {
         this.nodeId = HealthMonitorConstants.UNKNOWN;
     }
 
-    public NodeHealth(String nodeId, String ip, String status) {
+    public NodeHealth(String nodeId, String nodeName, String ip, String status) {
         this.nodeId = nodeId;
+        this.nodeName = nodeName;
         this.ip = ip;
         this.status = status;
     }
 
-    public NodeHealth(String nodeId, String ip, String status,
-            List<ServiceHealth> serviceHealthList) {
+    public NodeHealth(String nodeId, String nodeName, String ip, String status,
+                      List<ServiceHealth> serviceHealthList) {
         this.nodeId = nodeId;
+        this.nodeName = nodeName;
         this.ip = ip;
         this.status = status;
         this.serviceHealthList = serviceHealthList;
@@ -44,6 +47,11 @@ public class NodeHealth {
     @XmlElement(name = "node_id")
     public String getNodeId() {
         return nodeId;
+    }
+
+    @XmlElement(name = "node_name")
+    public String getNodeName() {
+        return nodeName;
     }
 
     @XmlElement(name = "status")
@@ -67,6 +75,10 @@ public class NodeHealth {
 
     public void setNodeId(String nodeId) {
         this.nodeId = nodeId;
+    }
+
+    public void setNodeName(String nodeName) {
+        this.nodeName = nodeName;
     }
 
     public void setIp(String ip) {

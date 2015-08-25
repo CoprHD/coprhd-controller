@@ -186,6 +186,11 @@ public class Property {
                 Validation.addError(fieldName, "configProperties.error.hostname");
             }
         }
+        else if (STRICTHOSTNAME.equals(type)) {
+            if (!VALIDATOR.validateStrictHostName(value)) {
+                Validation.addError(fieldName, "configProperties.error.hostname");
+            }
+        }
         else if (IPADDR.equals(type)) {
             if (!VALIDATOR.validateIpv4Addr(value)) {
                 Validation.addError(fieldName, "configProperties.error.ipaddr");

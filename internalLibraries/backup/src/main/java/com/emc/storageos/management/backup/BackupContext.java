@@ -27,6 +27,7 @@ public class BackupContext {
     private static final Logger log = LoggerFactory.getLogger(BackupContext.class);
     private File backupDir;
     private String nodeId;
+    private String nodeName;
     private List<String> vdcList;
 
     /**
@@ -71,6 +72,16 @@ public class BackupContext {
 
     public String getNodeId() {
         return this.nodeId;
+    }
+
+    public void setNodeName(String nodeName) {
+        Preconditions.checkArgument(nodeName != null && !nodeName.trim().isEmpty(),
+                "ViPR node name is invalid");
+        this.nodeName = nodeName;
+    }
+
+    public String getNodeName() {
+        return this.nodeName;
     }
 
     public void setVdcList(List<String> vdcList) {

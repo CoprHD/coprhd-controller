@@ -13,10 +13,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 
 public class PlatformUtils {
     private static final Logger log = LoggerFactory.getLogger(PlatformUtils.class);
@@ -28,6 +31,9 @@ public class PlatformUtils {
     private static final String IS_APPLIANCE_OUTPUT = "Ok";
     private static final long CMD_TIMEOUT = 120 * 1000;
     private static final long CMD_PARTITION_TIMEOUT = 600 * 1000;    // 10 min
+    private static String PID_DIR = "/var/run/storageos/";
+    // matches <svcname>.pid, <svcname>-debug.pid, <svcname>-coverage.pid which contains pid
+    private static final String PID_FILENAME_PATTERN = "%s(-(coverage|debug))?.pid";
 
     private static volatile Boolean isVMwareVapp;
     private static volatile Boolean isAppliance;
@@ -279,5 +285,25 @@ public class PlatformUtils {
             isOssBuild = true;
         }
         return isOssBuild;
+    }
+    
+    /**
+     * Get service process ID by service name.
+     * 
+     * @param svcName service name 
+     * @return service process ID
+     */
+    public static int getServicePid(String svcName) throws FileNotFoundException {
+        String pidFileRegex = String.format(PID_FILENAME_PATTERN, svcName);
+        List<File> files = FileUtils.getFileByRegEx(new File(PID_DIR), pidFileRegex);
+        
+        if (files == null || files.isEmpty()) {
+            log.warn("could not find {} pid file , please check service status", svcName);
+            throw new IllegalStateException("can't find pid file, please check service status"); 
+        }
+        
+        try (Scanner scanner = new Scanner(files.get(0))) {
+            return scanner.nextInt();
+        }
     }
 }

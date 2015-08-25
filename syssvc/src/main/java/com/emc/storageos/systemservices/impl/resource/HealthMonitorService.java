@@ -84,7 +84,8 @@ public class HealthMonitorService extends BaseLogSvcResource {
     public NodeStats getNodeStats(RequestParams requestParams) {
         _log.info("Retrieving node stats");
         String nodeId = _coordinatorClientExt.getMyNodeId();
-        return getNodeStats(nodeId, getNodeIP(nodeId),
+        String nodeName = _coordinatorClientExt.getMyNodeName();
+        return getNodeStats(nodeId, nodeName, getNodeIP(nodeId),
                 requestParams.getInterval(),
                 ServicesMetadata.getRoleServiceNames(_coordinatorClientExt.getNodeRoles()));
     }
@@ -114,7 +115,8 @@ public class HealthMonitorService extends BaseLogSvcResource {
      * since system startup) and second report (stats collected during the interval since the first report).
      * 
      * @brief Show disk, memory, service statistics of all virtual machines
-     * @param nodeIds node ids for which stats are collected.
+     * @param nodeIds  node ids for which stats are collected.
+     * @param nodeNames node names for which stats are collected.
      * @param interval Specifies amount of time in seconds for differential stats.
      * @prereq none
      * @return Stats response
@@ -124,7 +126,11 @@ public class HealthMonitorService extends BaseLogSvcResource {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public StatsRestRep getStats(@QueryParam("node_id") List<String> nodeIds,
-            @QueryParam("interval") int interval) {
+                                 @QueryParam("interval") int interval,
+                                 @QueryParam("node_name") List<String> nodeNames) {
+
+        nodeIds=_coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames,nodeIds);
+
         _log.info("Retrieving stats for nodes. Requested node ids: {}", nodeIds);
 
         StatsRestRep statsRestRep = new StatsRestRep();
@@ -153,7 +159,8 @@ public class HealthMonitorService extends BaseLogSvcResource {
     public NodeHealth getNodeHealth() {
         _log.info("Retrieving node health");
         String nodeId = _coordinatorClientExt.getMyNodeId();
-        return getNodeHealth(nodeId, getNodeIP(nodeId),
+        String nodeName = _coordinatorClientExt.getMyNodeName();
+        return getNodeHealth(nodeId,nodeName, getNodeIP(nodeId),
                 ServicesMetadata.getRoleServiceNames(_coordinatorClientExt.getNodeRoles()));
     }
 
@@ -169,18 +176,21 @@ public class HealthMonitorService extends BaseLogSvcResource {
      * 
      * @brief Show service health of all virtual machines
      * @param nodeIds node ids for which health stats are collected.
+     * @param nodeNames node names for which health stats are collected.
      * @prereq none
      * @return Health response.
      */
     @GET
     @Path("/health")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public HealthRestRep getHealth(@QueryParam("node_id") List<String> nodeIds) {
+    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR})
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    public HealthRestRep getHealth(@QueryParam("node_id") List<String> nodeIds, @QueryParam("node_name") List<String> nodeNames) {
         HealthRestRep healthRestRep = new HealthRestRep();
         List<NodeHealth> nodehealthList = healthRestRep.getNodeHealthList();
 
-        // Collecting data from all nodes
+        nodeIds=_coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames,nodeIds);
+
+        //Collecting data from all nodes
         List<NodeInfo> nodeInfoList = ClusterNodesUtil.getClusterNodeInfo(nodeIds);
         Map<String, NodeHealth> nodesData = NodeDataCollector.getDataFromNodes
                 (nodeInfoList, INTERNAL_NODE_HEALTH_URI,
@@ -209,7 +219,8 @@ public class HealthMonitorService extends BaseLogSvcResource {
         for (String nodeId : nodeIds) {
             DualInetAddress ip = ipLookupTable.get(nodeId);
             if (!nodesData.containsKey(nodeId)) {
-                nodehealthList.add(new NodeHealth(nodeId, ip.toString(), Status.NODE_OR_SYSSVC_UNAVAILABLE.toString()));
+                String nodeName = _coordinatorClientExt.getPropertyInfo().getProperty("node_"+nodeId.replace("vipr","")+"_name");
+                nodehealthList.add(new NodeHealth(nodeId,nodeName,ip.toString(), Status.NODE_OR_SYSSVC_UNAVAILABLE.toString()));
             } else {
                 for (NodeHealth health : nodehealthList) {
                     if (health.getNodeId().equals(nodeId)) {
@@ -228,7 +239,8 @@ public class HealthMonitorService extends BaseLogSvcResource {
      * 
      * @brief Get diagtool script results
      * @param nodeIds node ids for which diagnostic results are collected.
-     * @param verbose when set to "1" will run command with -v option.
+     * @param nodeNames node names for which diagnostic results are collected.
+     * @param verbose when set to "1"  will run command with -v option.
      * @prereq none
      * @return Returns diagnostic test results.
      */
@@ -237,8 +249,11 @@ public class HealthMonitorService extends BaseLogSvcResource {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public DiagnosticsRestRep getDiagnostics(@QueryParam("node_id") List<String> nodeIds,
-            @QueryParam("verbose") String verbose) {
+                                             @QueryParam("verbose") String verbose,
+                                             @QueryParam("node_name") List<String> nodeNames) {
         _log.info("Initiating diagnostics test for nodes");
+
+        nodeIds=_coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames,nodeIds);
 
         boolean isVerbose = ("1".equals(verbose)) ? true : false;
         DiagRequestParams diagRequestParams = new DiagRequestParams(isVerbose);
@@ -271,8 +286,9 @@ public class HealthMonitorService extends BaseLogSvcResource {
     @Produces({ MediaType.APPLICATION_JSON })
     public NodeDiagnostics getNodeDiagnostics(DiagRequestParams requestParams) {
         String nodeId = _coordinatorClientExt.getMyNodeId();
+        String nodeName = _coordinatorClientExt.getMyNodeName();
         _log.info("Retrieving node diagnostics for node: {}", nodeId);
-        return new NodeDiagnostics(nodeId, getNodeIP(nodeId),
+        return new NodeDiagnostics(nodeId, nodeName, getNodeIP(nodeId),
                 DiagnosticsExec.getDiagToolResults(requestParams.isVerbose()
                         ? DiagConstants.VERBOSE : ""));
     }
@@ -330,11 +346,11 @@ public class HealthMonitorService extends BaseLogSvcResource {
      * 
      * @return NodeStats
      */
-    protected NodeStats getNodeStats(String nodeId, String nodeIP, int interval,
-            List<String> availableServices) {
+    protected NodeStats getNodeStats(String nodeId,String nodeName, String nodeIP, int interval,
+                                     List<String> availableServices) {
         try {
             _log.info("List of available services: {}", availableServices);
-            return new NodeStats(nodeId, nodeIP, ProcStats.getLoadAvgStats(),
+            return new NodeStats(nodeId, nodeName, nodeIP, ProcStats.getLoadAvgStats(),
                     ProcStats.getMemoryStats(), ProcStats.getDataDiskStats(),
                     NodeStatsExtractor.getServiceStats(availableServices),
                     NodeStatsExtractor.getDiskStats(interval));
@@ -350,8 +366,8 @@ public class HealthMonitorService extends BaseLogSvcResource {
      * 
      * @return NodeHealth
      */
-    protected NodeHealth getNodeHealth(String nodeId, String nodeIP,
-            List<String> availableServices) {
+    protected NodeHealth getNodeHealth(String nodeId, String nodeName, String nodeIP,
+                                       List<String> availableServices) {
         try {
             _log.info("List of available services: {}", availableServices);
             String nodeStatus = Status.GOOD.toString();
@@ -364,7 +380,7 @@ public class HealthMonitorService extends BaseLogSvcResource {
                     break;
                 }
             }
-            return new NodeHealth(nodeId, nodeIP, nodeStatus, serviceHealthList);
+            return new NodeHealth(nodeId, nodeName, nodeIP, nodeStatus, serviceHealthList);
         } catch (Exception e) {
             _log.error("Internal error occurred while getting node health. {}", e);
             _log.debug(ExceptionUtils.getStackTrace(e));
@@ -375,7 +391,7 @@ public class HealthMonitorService extends BaseLogSvcResource {
 
     /**
      * Get node hard ware info
-     * 
+     *
      * @param nodeId
      * @return
      */

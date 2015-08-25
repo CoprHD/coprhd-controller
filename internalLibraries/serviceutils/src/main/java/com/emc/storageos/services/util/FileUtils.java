@@ -187,7 +187,7 @@ public class FileUtils {
     }
 
     /**
-     * get file by regEx under dir.
+     * Get file by regEx under dir.
      * 
      * @param dir the directory which file resides in
      * @param regEx the regular expression of file name

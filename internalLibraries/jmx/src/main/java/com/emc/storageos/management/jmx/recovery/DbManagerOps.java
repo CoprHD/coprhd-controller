@@ -5,7 +5,6 @@
 package com.emc.storageos.management.jmx.recovery;
 
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
-import com.emc.storageos.services.util.FileUtils;
 import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.Strings;
 import com.sun.tools.attach.AgentInitializationException;
@@ -23,18 +22,14 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Map;
-import java.util.Scanner;
 import java.util.List;
 
 public class DbManagerOps implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(DbManagerOps.class);
     private static final Integer DB_REPAIR_MAX_RETRY_COUNT = 3;
     private static final String JMX_URL_PATTERN = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
-    // matches <svcname>.pid, <svcname>-debug.pid, <svcname>-coverage.pid which contains pid
-    private static final String PID_FILENAME_PATTERN = "%s(-(coverage|debug))?.pid";
     private static final String CONNECTOR_ADDRESS = "com.sun.management.jmxremote.localConnectorAddress";
     public final static String MBEAN_NAME = "com.emc.storageos.db.server.impl:name=DbManager";
 
@@ -75,8 +70,7 @@ public class DbManagerOps implements AutoCloseable {
 
     private JMXConnector initJMXConnector(String svcName) throws IOException, AttachNotSupportedException, AgentLoadException,
             AgentInitializationException {
-        String pidFileRegEx = String.format(PID_FILENAME_PATTERN, svcName);
-        int pid = PlatformUtils.getServicePid(pidFileRegEx);
+        int pid = PlatformUtils.getServicePid(svcName);
         log.info("{} service pid {}", svcName, pid);
 
         VirtualMachine vm = VirtualMachine.attach(String.valueOf(pid));

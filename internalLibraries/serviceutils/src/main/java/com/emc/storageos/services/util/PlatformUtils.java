@@ -32,6 +32,8 @@ public class PlatformUtils {
     private static final long CMD_TIMEOUT = 120 * 1000;
     private static final long CMD_PARTITION_TIMEOUT = 600 * 1000;    // 10 min
     private static String PID_DIR = "/var/run/storageos/";
+    // matches <svcname>.pid, <svcname>-debug.pid, <svcname>-coverage.pid which contains pid
+    private static final String PID_FILENAME_PATTERN = "%s(-(coverage|debug))?.pid";
 
     private static volatile Boolean isVMwareVapp;
     private static volatile Boolean isAppliance;
@@ -286,16 +288,17 @@ public class PlatformUtils {
     }
     
     /**
-     * Get Service Process ID from file.
+     * Get service process ID by service name.
      * 
-     * @param pidFileRegex regular expression of file contains process ID
+     * @param svcName service name 
      * @return service process ID
      */
-    public static int getServicePid(String pidFileRegex) throws FileNotFoundException {
+    public static int getServicePid(String svcName) throws FileNotFoundException {
+        String pidFileRegex = String.format(PID_FILENAME_PATTERN, svcName);
         List<File> files = FileUtils.getFileByRegEx(new File(PID_DIR), pidFileRegex);
         
         if (files == null || files.isEmpty()) {
-            log.warn("could not find pid file for {}, please check service status", pidFileRegex);
+            log.warn("could not find {} pid file , please check service status", svcName);
             throw new IllegalStateException("can't find pid file, please check service status"); 
         }
         

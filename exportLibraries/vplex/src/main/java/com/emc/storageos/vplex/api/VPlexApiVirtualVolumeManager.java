@@ -97,10 +97,10 @@ public class VPlexApiVirtualVolumeManager {
             clusterInfoList = new ArrayList<VPlexClusterInfo>();
         }
         
-        boolean isCinderStorage = VPlexApiUtils.isCinder(nativeVolumeInfoList);
+        boolean isITLFetch = VPlexApiUtils.isCinder(nativeVolumeInfoList);
         
         Map<VolumeInfo, T> storageVolumeInfoMap = null;
-        if (isCinderStorage) {
+        if (isITLFetch) {
             storageVolumeInfoMap = (Map<VolumeInfo, T>) findStorageVolumeITLs(nativeVolumeInfoList,
                     discoveryRequired,
                     clusterInfoList);
@@ -791,14 +791,14 @@ public class VPlexApiVirtualVolumeManager {
      * each cluster.
      * 
      * @param clusterInfoList
-     * @param isCinderStorage
+     * @param isITLFetch
      * @param discoveryMgr
      */
     private void getClusterInfo(List<VPlexClusterInfo> clusterInfoList,
-            boolean isCinderStorage) {
+            boolean isITLFetch) {
         // Get the cluster information.
         if (clusterInfoList.isEmpty()) {
-            clusterInfoList.addAll(_vplexApiClient.getDiscoveryManager().getClusterInfo(false, isCinderStorage));
+            clusterInfoList.addAll(_vplexApiClient.getDiscoveryManager().getClusterInfo(false, isITLFetch));
             s_logger.info("Retrieved storage volume info for VPlex clusters");
         } else {
             for (VPlexClusterInfo clusterInfo : clusterInfoList) {
@@ -821,7 +821,7 @@ public class VPlexApiVirtualVolumeManager {
     private void refreshStorageVolumes(List<VolumeInfo> nativeVolumeInfoList,
             List<VPlexClusterInfo> clusterInfoList,
             Map<VolumeInfo, VPlexStorageVolumeITLsInfo> storageVolumeInfoMap,
-            boolean isCinderStorage) {
+            boolean isITLFetch) {
         s_logger.info("Storage volume discovery is required.");
         int retryCount = 0;
         while (++retryCount <= VPlexApiConstants.FIND_STORAGE_VOLUME_RETRY_COUNT) {
@@ -840,7 +840,7 @@ public class VPlexApiVirtualVolumeManager {
                 _vplexApiClient.getDiscoveryManager().rediscoverStorageSystems(storageSystemGuids);
                 s_logger.info("Discovery completed");
 
-                getClusterInfo(clusterInfoList, isCinderStorage);
+                getClusterInfo(clusterInfoList, isITLFetch);
 
                 // Find the back-end storage volumes. If a volume cannot be
                 // found, an exception is thrown.

@@ -69,7 +69,7 @@ public class ApiTestAuthnProviderUtils {
     // ldapViPRUser6 - has attributes departmentNumber = [ENG, QE] and localityName = [New York].
     // ldapViPRUser7 - has attributes departmentNumber = [ENG, QE, MANAGE] and localityName = [Boston].
     private final static String[] DEFAULT_TEST_LDAP_USERS_UID = { "ldapViPRUser1", "ldapViPRUser2", "ldapViPRUser3", "ldapViPRUser4",
-            "ldapViPRUser5", "ldapViPRUser6", "ldapViPRUser7" };
+            "ldapViPRUser5", "ldapViPRUser6", "ldapViPRUser7", "ldapViPRUser8", "ldapViPRUser9" };
 
     private final static String DEFAULT_TEST_LDAP_SERVER_NON_MANAGER_BIND_DN = "uid=ldapViPRUser1,ou=Users,ou=ViPR,dc=maxcrc,dc=com";
 

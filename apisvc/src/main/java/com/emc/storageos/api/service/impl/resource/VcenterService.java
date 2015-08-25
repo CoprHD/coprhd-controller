@@ -131,6 +131,9 @@ public class VcenterService extends TaskResourceService {
         Vcenter vcenter = queryObject(Vcenter.class, id, true);
         validateVcenter(updateParam, vcenter, validateConnection);
 
+        // check the user permissions for this tenant org
+        verifyAuthorizedSystemOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()), getUserFromContext());
+
         populateVcenterData(vcenter, updateParam);
         _dbClient.persistObject(vcenter);
         auditOp(OperationTypeEnum.UPDATE_VCENTER, true, null,
@@ -309,6 +312,9 @@ public class VcenterService extends TaskResourceService {
         } else {
             Vcenter vcenter = queryObject(Vcenter.class, id, true);
 
+            // check the user permissions for this tenant org
+            verifyAuthorizedSystemOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()), getUserFromContext());
+
             checkIfOtherTenantsUsingTheVcenter(vcenter);
 
             String taskId = UUID.randomUUID().toString();
@@ -412,6 +418,7 @@ public class VcenterService extends TaskResourceService {
             // check the user permissions for this tenant org
             tenantId = URI.create(getUserFromContext().getTenantId());
         }
+        _log.debug("Fetching the vCenterDataCenters for the tenant {}", tenantId.toString());
 
         // get the vcenters
         VcenterDataCenterList list = new VcenterDataCenterList();
@@ -443,6 +450,7 @@ public class VcenterService extends TaskResourceService {
         } else {
             //Since the creating user is a TenantAdmin, dont make the vCenter
             //as a shared resource by default.
+            _log.debug("Tenant admin creates the vCenter {}", param.getName());
             vcenter.setTenantCreated(Boolean.TRUE);
         }
         return vcenter;
@@ -614,6 +622,7 @@ public class VcenterService extends TaskResourceService {
         List<Vcenter> vcenters = null;
 
         if (isSecurityAdmin() || isSystemOrRestrictedSystemAdmin()) {
+            _log.debug("Fetching vCenters for {}", tid);
             if ( NullColumnValueGetter.isNullURI(tid)||
                     Vcenter.ALL_TENANT_RESOURCES.equalsIgnoreCase(tid.toString())) {
                 vcenters = getDataObjects(Vcenter.class);
@@ -665,7 +674,7 @@ public class VcenterService extends TaskResourceService {
     @PUT
     @Path("/{id}/acl")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep updateAclAssignments(@PathParam("id") URI id,
                                                 ACLAssignmentChanges changes) {
         //Make sure the vCenter is a valid one.
@@ -764,10 +773,11 @@ public class VcenterService extends TaskResourceService {
         //If the User is an admin in the tenant org, allow the
         //operation otherwise, report the insufficient permission
         //exception.
-        if (verifyAuthorizedInTenantOrg(tenantId)) {
+        if (_permissionsHelper.userHasGivenRole(getUserFromContext(), tenantId, Role.TENANT_ADMIN)) {
             //Generate the acl entry and add to the vCenters acls.
             String aclKey = _permissionsHelper.getTenantUsePermissionKey(tenantId.toString());
             vcenter.addAcl(aclKey, ACL.USE.name());
+            _log.debug("Adding {} to the vCenter {} acls", aclKey, vcenter.getLabel());
         }
     }
 
@@ -786,13 +796,15 @@ public class VcenterService extends TaskResourceService {
         List<ACLEntry> existingAclEntries = _permissionsHelper.convertToACLEntries(vcenter.getAcls());
         if (CollectionUtils.isEmpty(existingAclEntries)) {
             //If there no existing acl entries for the vCenter
-            //there is nothing to validate if it is in user or oot.
+            //there is nothing to validate if it is in user or not.
+            _log.debug("vCenter {} does not have any existing acls", vcenter.getLabel());
             return;
         }
 
         //If there are no tenants to be removed from the vCenter acls,
         //there is nothing to check for usage.
         if (CollectionUtils.isEmpty(changes.getRemove())) {
+            _log.debug("There are not acls to remove from vCenter {}", vcenter.getLabel());
             return;
         }
 
@@ -937,6 +949,7 @@ public class VcenterService extends TaskResourceService {
             }
 
             if (user.getTenantId().toString().equals(aclEntry.getTenant()) ||
+                    isSystemAdminOrMonitorUser() ||
                     _permissionsHelper.userHasGivenRole(user, URI.create(aclEntry.getTenant()), Role.TENANT_ADMIN)) {
                 isUserAuthorized = true;
                 break;
@@ -959,7 +972,7 @@ public class VcenterService extends TaskResourceService {
      */
     protected boolean verifyAuthorizedInTenantOrg(URI tenantId) {
         StorageOSUser user = getUserFromContext();
-        if (tenantId.toString().equals(user.getTenantId()) && _permissionsHelper.userHasGivenRole(user,
+        if (tenantId.toString().equals(user.getTenantId()) || _permissionsHelper.userHasGivenRole(user,
                 tenantId, Role.TENANT_ADMIN)) {
             return true;
         }

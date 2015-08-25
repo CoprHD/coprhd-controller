@@ -344,7 +344,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
          */
         private void reconcileClusters(Datacenter source, VcenterDataCenter target, List<Cluster> oldClusters,
                 List<Cluster> newClusters, Vcenter vcenter) {
-            List<ClusterHolder> allClusters = new ArrayList<>();
+            List<ClusterHolder> allClusters = new ArrayList<ClusterHolder>();
             // get all clusters
             List<ClusterComputeResource> vcClusters = vcenterAPI.listClusters(source);
             // put clusters in a sortable list
@@ -596,6 +596,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                     target.setTenant(NullColumnValueGetter.getNullURI());
                 }
             }
+            getLog().debug("vCenterDataCenter {} is updated with tenant {}", target.getLabel(), target.getTenant());
         }
     }
 

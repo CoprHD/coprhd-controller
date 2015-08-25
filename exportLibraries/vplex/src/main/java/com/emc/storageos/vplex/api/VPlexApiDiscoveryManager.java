@@ -347,7 +347,7 @@ public class VPlexApiDiscoveryManager {
                     clusterInfo.setSystemVolumeInfo(getSystemVolumeInfoForCluster(clusterName));
                     clusterInfo.setStorageVolumeInfo(getStorageVolumeInfoForCluster(clusterName));
                     
-                    if(isItlsRequired)
+                    if (isItlsRequired)
                     {
                     	clusterInfo.setStorageVolumeITLsInfoList(getStorageVolumeITLInfoForCluster(clusterName));
                     }

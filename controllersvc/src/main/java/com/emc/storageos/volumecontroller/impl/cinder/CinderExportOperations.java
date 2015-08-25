@@ -695,9 +695,12 @@ public class CinderExportOperations implements ExportMaskOperations {
         List<String> targetPortListFromResponse = initiatorTargetMap.get(initiatorKey);
         for (String portWWN : targetPortListFromResponse)
         {
-            if (varrayTaggedPortWWNs.contains(portWWN))
+        	//Some of the drivers returns ( for e.g NetApp unified driver ) returns
+        	//the response in lower case, hence it is required to do both checks.
+            if (varrayTaggedPortWWNs.contains(portWWN)
+            		||varrayTaggedPortWWNs.contains(portWWN.toUpperCase()))
             {
-                filteredTargetList.add(portWWN);
+                filteredTargetList.add(portWWN.toUpperCase());
             }
         }
 

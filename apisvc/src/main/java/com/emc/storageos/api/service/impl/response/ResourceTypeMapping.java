@@ -31,6 +31,7 @@ public class ResourceTypeMapping {
         classMapping.put(VPOOL, VirtualPool.class);
         classMapping.put(BLOCK_VPOOL, VirtualPool.class);
         classMapping.put(FILE_VPOOL, VirtualPool.class);
+        classMapping.put(OBJECT_VPOOL, VirtualPool.class);
         classMapping.put(VARRAY, VirtualArray.class);
         classMapping.put(STORAGE_SYSTEM, StorageSystem.class);
         classMapping.put(STORAGE_POOL, StoragePool.class);

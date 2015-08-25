@@ -201,6 +201,8 @@ DefaultStorageArrayPortMap.scaleio=22
 DefaultStorageArrayPortMap.scaleio_useSSL=22
 DefaultStorageArrayPortMap.datadomain=3009
 DefaultStorageArrayPortMap.datadomain_useSSL=3009
+DefaultStorageArrayPortMap.ecs=8080
+DefaultStorageArrayPortMap.ecs_useSSL=8080
 
 DefaultStorageProviderPortMap.hicommand_useSSL=2001
 DefaultStorageProviderPortMap.hicommand=2001
@@ -266,6 +268,7 @@ StorageSystemType.scaleio=Block Storage Powered by ScaleIO
 StorageSystemType.xtremio=EMC XtremIO
 StorageSystemType.vnxe=EMC VNXe
 StorageSystemType.datadomain=Data Domain
+StorageSystemType.ecs=EMC Elastic Cloud Storage
 StorageSystemType.STORAGE_PROVIDER.vmax=Storage Provider for EMC VMAX, VNX Block
 StorageSystemType.STORAGE_PROVIDER.hds=Storage Provider for Hitachi storage systems
 StorageSystemType.STORAGE_PROVIDER.vplex=Storage Provider for EMC VPLEX
@@ -2287,6 +2290,7 @@ adminDashboard.confirm.poweroff=Are you sure you want to shutdown the ViPR Virtu
 adminDashboard.capacity=Arrays Capacity
 adminDashboard.fileCapacity=File
 adminDashboard.blockCapacity=Block
+adminDashboard.object=Object
 adminDashboard.blockFileFreeCapacity=Free Block/File
 
 license.model.ViPR_Controller=ViPR Controller

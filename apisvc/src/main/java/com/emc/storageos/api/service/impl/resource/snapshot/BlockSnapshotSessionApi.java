@@ -114,6 +114,34 @@ public interface BlockSnapshotSessionApi {
             List<URI> snapshotURIs, int newTargetsCount, String copyMode, String taskId);
 
     /**
+     * Validates a re-link targets to block snapshot session request.
+     * 
+     * @param tgtSnapSession A reference to the BlockSnapshotSession instance to which the
+     *            targets will be re-linked.
+     * @param snapSessionSourceObj A reference to the snapshot session source.
+     * @param project A reference to the source project.
+     * @param snapshotURIs The URI of the BlockSnapshot instances representing the targets
+     *            to be re-linked.
+     * @param uriInfo A reference to the URI information.
+     */
+    public void validateRelinkSnapshotSessionTargets(BlockSnapshotSession tgtSnapSession, Project project,
+            List<URI> snapshotURIs, UriInfo uriInfo);
+
+    /**
+     * Re-links the targets represented by the BlockSnapshot instances with the passed
+     * URIs to the passed BlockSnapshotSession.
+     * 
+     * @param snapSessionSourceObj A reference to the snapshot session source.
+     * @param tgtSnapSession A reference to the BlockSnapshotSession instance to which the targets
+     *            are to be re-linked.
+     * @param snapshotURIs The URI of the BlockSnapshot instances representing the targets
+     *            to be re-linked.
+     * @param taskId A unique task identifier.
+     */
+    public void relinkTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession tgtSnapSession,
+            List<URI> snapshotURIs, String taskId);
+
+    /**
      * Validates a link new targets to block snapshot session request.
      * 
      * @param snapSession A reference to the BlockSnapshotSession instance.

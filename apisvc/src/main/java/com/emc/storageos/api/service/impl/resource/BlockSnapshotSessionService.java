@@ -24,6 +24,7 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionBulkRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
+import com.emc.storageos.model.block.SnapshotSessionRelinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -42,7 +43,7 @@ public class BlockSnapshotSessionService extends TaskResourceService {
      * The method implements the API to create and link new target
      * volumes to an existing BlockSnapshotSession instance.
      * 
-     * @brief Link target volumes to snapshot session.
+     * @brief Link target volumes to a snapshot session.
      * 
      * @prereq The block snapshot session has been created and the maximum
      *         number of targets has not already been linked to the snapshot sessions
@@ -63,22 +64,25 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     }
 
     /**
+     * This method implements the API to re-link a target to either it's current
+     * snapshot session or to a different snapshot session of the same source.
      * 
+     * @brief Relink target volumes to snapshot sessions.
      * 
-     * @brief
+     * @prereq The target volumes are linked to a snapshot session of the same source object.
      * 
-     * @prereq
+     * @param id The URI of the BlockSnapshotSession instance to which the
+     *            the targets will be re-linked.
+     * @param param The linked target information.
      * 
-     * @param id
-     * 
-     * @return
+     * @return A TaskResourceRep representing the snapshot session task.
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/relink-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskList relinkTargetVolumes(@PathParam("id") URI id) {
-        return null;
+    public TaskResourceRep relinkTargetVolumes(@PathParam("id") URI id, SnapshotSessionRelinkTargetsParam param) {
+        return getSnapshotSessionManager().relinkTargetVolumesToSnapshotSession(id, param);
     }
 
     /**

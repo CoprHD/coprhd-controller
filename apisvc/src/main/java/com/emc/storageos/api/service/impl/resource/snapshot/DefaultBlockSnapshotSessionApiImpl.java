@@ -396,6 +396,65 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * {@inheritDoc}
      */
     @Override
+    public void validateRelinkSnapshotSessionTargets(BlockSnapshotSession tgtSnapSession, Project project,
+            List<URI> snapshotURIs, UriInfo uriInfo) {
+
+        // Validate the project tenant.
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+        ArgValidator.checkEntity(tenant, project.getTenantOrg().getURI(), false);
+
+        // Verify the user is authorized.
+        BlockServiceUtils.verifyUserIsAuthorizedForRequest(project,
+                BlockServiceUtils.getUserFromContext(_securityContext), _permissionsHelper);
+
+        // Verify that each target is currently linked to a block
+        // snapshot session of the same source.
+        URI currentSnapSessionSourceURI = null;
+        for (URI snapshotURI : snapshotURIs) {
+            BlockSnapshotSessionUtils.validateSnapshot(snapshotURI, uriInfo, _dbClient);
+            List<BlockSnapshotSession> snaphotSessionsList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                    BlockSnapshotSession.class, ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(snapshotURI));
+            if (snaphotSessionsList.isEmpty()) {
+                // The target is not linked to an active snapshot session.
+                throw APIException.badRequests.relinkTargetNotLinkedToActiveSnapshotSession(snapshotURI.toString());
+            }
+
+            // A target can only be linked to a single session.
+            BlockSnapshotSession snapshotSnapSession = snaphotSessionsList.get(0);
+
+            // Verify it the snapshot session for the target is the same
+            // as that for the other targets to be re-linked.
+            if (currentSnapSessionSourceURI == null) {
+                currentSnapSessionSourceURI = snapshotSnapSession.getParent().getURI();
+            } else if (!snapshotSnapSession.getParent().getURI().equals(currentSnapSessionSourceURI)) {
+                // Not all targets to be re-linked are linked to a block
+                // snapshot session of the same source.
+                throw APIException.badRequests.relinkSnapshotSessionsNotOfSameSource();
+            }
+        }
+
+        // All targets to be re-linked are linked to an active block snapshot
+        // session of the same source. Now make sure target snapshot session
+        // has this same source.
+        URI tgtSnapSessionSourceURI = tgtSnapSession.getParent().getURI();
+        if (!tgtSnapSessionSourceURI.equals(currentSnapSessionSourceURI)) {
+            throw APIException.badRequests.relinkTgtSnapshotSessionHasDifferentSource(currentSnapSessionSourceURI.toString());
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void relinkTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession TgtSnapSession,
+            List<URI> snapshotURIs, String taskId) {
+        APIException.methodNotAllowed.notSupported();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void validateUnlinkSnapshotSessionTargets(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, Project project,
             Set<URI> snapshotURIs, UriInfo uriInfo) {
 

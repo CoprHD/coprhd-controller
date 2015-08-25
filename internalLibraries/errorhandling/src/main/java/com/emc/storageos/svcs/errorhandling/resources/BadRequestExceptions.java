@@ -2358,4 +2358,13 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotSessionSourceHasActiveMirrors(final String sourceId, final int mirrorCount);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException relinkTargetNotLinkedToActiveSnapshotSession(final String snapshotId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException relinkSnapshotSessionsNotOfSameSource();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException relinkTgtSnapshotSessionHasDifferentSource(final String snapSessionSourceId);
 }

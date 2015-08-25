@@ -43,6 +43,7 @@ import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionNewTargetsParam;
+import com.emc.storageos.model.block.SnapshotSessionRelinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.UnlinkSnapshotSessionTargetParam;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -276,6 +277,53 @@ public class BlockSnapshotSessionManager {
                 newLinkedTargetsCount, newTargetsCopyMode, taskId);
 
         s_logger.info("FINISH link new targets for snapshot session {}", snapSessionURI);
+        return response;
+    }
+
+    /**
+     * Implements a request to unlink the passed targets from the
+     * BlockSnapshotSession instance with the passed URI.
+     * 
+     * @param snapSessionURI The URI of a BlockSnapshotSession instance.
+     * @param param The linked target information.
+     * 
+     * @return A TaskResourceRep.
+     */
+    public TaskResourceRep relinkTargetVolumesToSnapshotSession(URI snapSessionURI, SnapshotSessionRelinkTargetsParam param) {
+        s_logger.info("START relink targets to snapshot session {}", snapSessionURI);
+
+        // Get the snapshot session.
+        BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, true);
+
+        // Get the snapshot session source object.
+        BlockObject snapSessionSourceObj = BlockObject.fetch(_dbClient, snapSession.getParent().getURI());
+
+        // Get the project for the snapshot session source object.
+        Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObj, _dbClient);
+
+        // Get the target information.
+        List<URI> linkedTargetURIs = param.getLinkedTargetIds();
+
+        // Get the platform specific block snapshot session implementation.
+        BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObj);
+
+        // Validate that the requested new targets can be linked to the snapshot session.
+        snapSessionApiImpl.validateRelinkSnapshotSessionTargets(snapSession, snapSessionSourceObj, project, linkedTargetURIs, _uriInfo);
+
+        // Create a unique task identifier.
+        String taskId = UUID.randomUUID().toString();
+
+        // Create a task for the snapshot session.
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.RELINK_SNAPSHOT_SESSION_TARGETS);
+        _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSessionURI, taskId, op);
+        snapSession.getOpStatus().put(taskId, op);
+        TaskResourceRep response = toTask(snapSession, taskId);
+
+        // Unlink the targets from the snapshot session.
+        snapSessionApiImpl.relinkTargetVolumesToSnapshotSession(snapSessionSourceObj, snapSession, linkedTargetURIs, taskId);
+
+        s_logger.info("FINISH relink targets to snapshot session {}", snapSessionURI);
         return response;
     }
 

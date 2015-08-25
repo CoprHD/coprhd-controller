@@ -157,16 +157,30 @@ public class BlockSnapshotSessionUtils {
 
         Iterator<URI> snapshotURIsIter = snapshotURIs.iterator();
         while (snapshotURIsIter.hasNext()) {
-            URI snapshotURI = snapshotURIsIter.next();
-            ArgValidator.checkUri(snapshotURI);
             // Snapshot session targets are represented by BlockSnapshot instances in ViPR.
-            BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-            ArgValidator.checkEntity(snapshot, snapshotURI, BlockServiceUtils.isIdEmbeddedInURL(snapshotURI, uriInfo), true);
+            URI snapshotURI = snapshotURIsIter.next();
+            validateSnapshot(snapshotURI, uriInfo, dbClient);
             String snapshotId = snapshotURI.toString();
             if (!sessionTargets.contains(snapshotId)) {
                 // The target is not linked to the snapshot session.
                 throw APIException.badRequests.targetIsNotLinkedToSnapshotSession(snapshotId, snapSession.getId().toString());
             }
         }
+    }
+
+    /**
+     * Validate the BlockSnapshot instance with the passed URI.
+     * 
+     * @param snapshotURI The URI of the BlockSnapshot instance to verify.
+     * @param uriInfo A reference to the URI information.
+     * @param dbClient A reference to a database client.
+     * 
+     * @return A reference to the BlockSnapshot instance.
+     */
+    public static BlockSnapshot validateSnapshot(URI snapshotURI, UriInfo uriInfo, DbClient dbClient) {
+        ArgValidator.checkUri(snapshotURI);
+        BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+        ArgValidator.checkEntity(snapshot, snapshotURI, BlockServiceUtils.isIdEmbeddedInURL(snapshotURI, uriInfo), true);
+        return snapshot;
     }
 }

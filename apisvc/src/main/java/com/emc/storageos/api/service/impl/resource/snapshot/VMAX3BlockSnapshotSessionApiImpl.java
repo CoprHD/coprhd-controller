@@ -153,6 +153,14 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      * {@inheritDoc}
      */
     @Override
+    public void relinkTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession tgtSnapSession,
+            List<URI> snapshotURIs, String taskId) {
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void unlinkTargetVolumesFromSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
             Map<URI, Boolean> snapshotDeletionMap, String taskId) {
         // Invoke the BlockDeviceController to unlink the targets

@@ -7,20 +7,64 @@ package com.emc.storageos.db.client.constraint;
 
 import java.net.URI;
 import java.util.Date;
+
 import com.emc.storageos.db.client.constraint.impl.ContainmentConstraintImpl;
 import com.emc.storageos.db.client.constraint.impl.TimedContainmentConstraintImpl;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.*;
+import com.emc.storageos.db.client.model.AutoTieringPolicy;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.CifsShareACL;
+import com.emc.storageos.db.client.model.ComputeBootDef;
+import com.emc.storageos.db.client.model.ComputeBootPolicy;
+import com.emc.storageos.db.client.model.ComputeElement;
+import com.emc.storageos.db.client.model.ComputeElementHBA;
+import com.emc.storageos.db.client.model.ComputeFabricUplinkPort;
+import com.emc.storageos.db.client.model.ComputeFabricUplinkPortChannel;
+import com.emc.storageos.db.client.model.ComputeImageJob;
+import com.emc.storageos.db.client.model.ComputeLanBoot;
+import com.emc.storageos.db.client.model.ComputeLanBootImagePath;
+import com.emc.storageos.db.client.model.ComputeSanBoot;
+import com.emc.storageos.db.client.model.ComputeSanBootImage;
+import com.emc.storageos.db.client.model.ComputeSanBootImagePath;
+import com.emc.storageos.db.client.model.ComputeVirtualPool;
+import com.emc.storageos.db.client.model.ComputeVnic;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.FCEndpoint;
+import com.emc.storageos.db.client.model.FileExportRule;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ProtectionSet;
+import com.emc.storageos.db.client.model.ProxyToken;
+import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
+import com.emc.storageos.db.client.model.Snapshot;
+import com.emc.storageos.db.client.model.StorageHADomain;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StorageTier;
+import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.Token;
+import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
+import com.emc.storageos.db.client.model.UCSVhbaTemplate;
+import com.emc.storageos.db.client.model.UCSVnicTemplate;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.WorkflowStep;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.WorkflowStep;
 
 /**
  * Containment constraint. For example, relationship between StorageDevice and
@@ -221,6 +265,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
             ColumnField field = doType.getColumnField("parent");
             return new ContainmentConstraintImpl(parentURI, BlockSnapshotSession.class, field);
+        }
+
+        public static ContainmentConstraint getLinkedTargetSnapshotSessionConstraint(URI snapshotURI) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
+            ColumnField field = doType.getColumnField("linkedTargets");
+            return new ContainmentConstraintImpl(snapshotURI, BlockSnapshotSession.class, field);
         }
 
         public static ContainmentConstraint getProjectBlockSnapshotConstraint(

@@ -101,17 +101,14 @@ public class VPlexApiUtils {
             String baseResourcePath, String response, Class<T> clazz)
             throws VPlexApiException {
         List<T> children = new ArrayList<T>();
-        try
-        {
+        try {
             JSONObject jsonObj = new JSONObject(response);
             JSONObject respObj = jsonObj.getJSONObject(VPlexApiConstants.RESPONSE_JSON_KEY);
             JSONArray contextArray = respObj.getJSONArray(VPlexApiConstants.CONTEXT_JSON_KEY);
-            for (int i = 0; i < contextArray.length(); i++)
-            {
+            for (int i = 0; i < contextArray.length(); i++) {
                 JSONObject contextObj = contextArray.getJSONObject(i);
                 JSONArray childArray = contextObj.getJSONArray(VPlexApiConstants.CHILDREN_JSON_KEY);
-                for (int j = 0; j < childArray.length(); j++)
-                {
+                for (int j = 0; j < childArray.length(); j++) {
                     JSONObject childObj = childArray.getJSONObject(j);
                     T child = new Gson().fromJson(childObj.toString(), clazz);
                     child.setPath(baseResourcePath.substring(VPlexApiConstants.VPLEX_PATH
@@ -119,9 +116,7 @@ public class VPlexApiUtils {
                     children.add(child);
                 }
             }
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             throw VPlexApiException.exceptions.failedExtractingChildrenFromResponse(response, e);
         }
 
@@ -354,22 +349,20 @@ public class VPlexApiUtils {
      * array has populated the ITLs in the VolumeInfo
      * 
      * Note : Currently Cinder is using ITLs for volume lookup
-     *  
+     * 
      * @param volInfo
      * @return
      */
-    public static boolean isCinder(List<VolumeInfo> volInfos)
-    {
-    	boolean isFetch = false;
-    	VolumeInfo vi = volInfos.get(0);
-    	String backendSystemType = vi.getSystemType().getType().toString();
-    	List<String> itls = vi.getITLs();
-    	if(VPlexApiBackendSystemType.OPENSTACK.toString().equalsIgnoreCase(backendSystemType)
-    	   && !itls.isEmpty())
-    	{
-    		isFetch = true;
-    	}
-    	
-    	return isFetch;
+    public static boolean isCinder(List<VolumeInfo> volInfos) {
+        boolean isFetch = false;
+        VolumeInfo vi = volInfos.get(0);
+        String backendSystemType = vi.getSystemType().getType().toString();
+        List<String> itls = vi.getITLs();
+        if (VPlexApiBackendSystemType.OPENSTACK.toString().equalsIgnoreCase(backendSystemType)
+                && !itls.isEmpty()) {
+            isFetch = true;
+        }
+
+        return isFetch;
     }
 }

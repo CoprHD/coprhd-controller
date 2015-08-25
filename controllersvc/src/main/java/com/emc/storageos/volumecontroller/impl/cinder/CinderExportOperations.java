@@ -402,13 +402,11 @@ public class CinderExportOperations implements ExportMaskOperations {
                 targetLunId = attachResponse.connection_info.data.target_lun;
                 
                 Map<String, List<String>> initTargetMap = attachResponse.connection_info.data.initiator_target_map;
-                if(null!=initTargetMap && !initTargetMap.isEmpty())
-                {
-                	volumeToInitiatorTargetMap.put(volume,
-			                   attachResponse.connection_info.data.initiator_target_map);
-                }        	
-                
-                
+                if (null != initTargetMap && !initTargetMap.isEmpty()) {
+                    volumeToInitiatorTargetMap.put(volume,
+                            attachResponse.connection_info.data.initiator_target_map);
+                }      	
+                                
             }
 
             volumeToTargetLunMap.put(volume.getId(), Integer.valueOf(targetLunId));
@@ -498,27 +496,24 @@ public class CinderExportOperations implements ExportMaskOperations {
         }
     }
 
-    private Map<String, String[]> getFCInitiatorsArray(List<Initiator> fcInitiators) 
-    {
-    	Map<String, String[]> mapSettingVsValues = new HashMap<>();
+    private Map<String, String[]> getFCInitiatorsArray(List<Initiator> fcInitiators) {
+        Map<String, String[]> mapSettingVsValues = new HashMap<>();
         // form an array with all FC initiator wwpns
         // to put into attach request body
         String[] fcInitiatorsWwpns = new String[fcInitiators.size()];
         String[] fcInitiatorsWwnns = new String[fcInitiators.size()];
         int index = 0;
-        for (Initiator fcInitiator : fcInitiators) 
-        {
+        for (Initiator fcInitiator : fcInitiators) {
             // remove colons in initiator port
             fcInitiatorsWwpns[index] = fcInitiator.getInitiatorPort().replaceAll(CinderConstants.COLON, "");
             String wwnn = fcInitiator.getInitiatorNode();
-            if(null!=wwnn && wwnn.length()>0)
-            {
-            	fcInitiatorsWwnns[index] = wwnn.replaceAll(CinderConstants.COLON, "");
+            if (null != wwnn && wwnn.length() > 0) {
+                fcInitiatorsWwnns[index] = wwnn.replaceAll(CinderConstants.COLON, "");
             }
-            
+
             index++;
         }
-        
+
         mapSettingVsValues.put(WWPNS, fcInitiatorsWwpns);
         mapSettingVsValues.put(WWNNS, fcInitiatorsWwnns);
         return mapSettingVsValues;
@@ -565,8 +560,7 @@ public class CinderExportOperations implements ExportMaskOperations {
             Volume volume,
             Map<Volume, Map<String, List<String>>> volumeToInitiatorTargetMapFromAttachResponse,
             List<Initiator> fcInitiatorList, ExportMask exportMask)
-            throws Exception
-    {
+            throws Exception {
         log.debug("START - updateTargetsInExportMask");
         // ITLS for initiator URIs vs Target port URIs - This will be the final
         // filtered list to send for the zoning map update
@@ -595,16 +589,14 @@ public class CinderExportOperations implements ExportMaskOperations {
 
         // Process the attach response output
         Set<Volume> volumeKeysSet = volumeToInitiatorTargetMapFromAttachResponse.keySet();
-        for (Volume volumeRes : volumeKeysSet)
-        {
+        for (Volume volumeRes : volumeKeysSet) {
             log.info(String
                     .format("Processing attach response for the volume with URI %s and name %s",
                             volumeRes.getId(), volumeRes.getLabel()));
             Map<String, List<String>> initiatorTargetMap = volumeToInitiatorTargetMapFromAttachResponse
                     .get(volumeRes);
             Set<String> initiatorKeysSet = initiatorTargetMap.keySet();
-            for (String initiatorKey : initiatorKeysSet)
-            {
+            for (String initiatorKey : initiatorKeysSet) {
                 // The list of filtered target ports ( which are varray tagged )
                 // from the attach response
                 List<String> filteredTargetList = filterTargetsFromResponse(
@@ -615,8 +607,7 @@ public class CinderExportOperations implements ExportMaskOperations {
 
                 List<String> tmpTargetList = checkPathsPerInitiator(pathsPerInitiator, filteredTargetList);
 
-                if (null == tmpTargetList)
-                {
+                if (null == tmpTargetList) {
                     // Rollback case - throw the exception
                     throw new Exception(
                             String.format(
@@ -640,19 +631,16 @@ public class CinderExportOperations implements ExportMaskOperations {
 
         // Clean all existing targets in the export mask and add new targets
         List<URI> storagePortListFromMask = StringSetUtil.stringSetToUriList(exportMask.getStoragePorts());
-        for (URI removeUri : storagePortListFromMask)
-        {
+        for (URI removeUri : storagePortListFromMask) {
             exportMask.removeTarget(removeUri);
         }
         exportMask.setStoragePorts(null);
 
         // Now add new target ports
         Set<URI> initiatorURIKeys = mapFilteredInitiatorURIVsTargetURIList.keySet();
-        for (URI initiatorURI : initiatorURIKeys)
-        {
+        for (URI initiatorURI : initiatorURIKeys) {
             List<URI> storagePortURIList = mapFilteredInitiatorURIVsTargetURIList.get(initiatorURI);
-            for (URI portURI : storagePortURIList)
-            {
+            for (URI portURI : storagePortURIList) {
                 exportMask.addTarget(portURI);
             }
         }
@@ -662,12 +650,10 @@ public class CinderExportOperations implements ExportMaskOperations {
     }
 
     private Map<String, URI> getWWNvsURIFCInitiatorsMap(
-            List<Initiator> fcInitiatorList)
-    {
+            List<Initiator> fcInitiatorList) {
         log.debug("START - getWWNvsURIFCInitiatorsMap");
         Map<String, URI> initiatorsWWNVsURI = new HashMap<String, URI>();
-        for (Initiator init : fcInitiatorList)
-        {
+        for (Initiator init : fcInitiatorList) {
             String wwnNoColon = Initiator.normalizePort(init.getInitiatorPort());
             URI uri = init.getId();
             initiatorsWWNVsURI.put(wwnNoColon, uri);
@@ -687,19 +673,16 @@ public class CinderExportOperations implements ExportMaskOperations {
      */
     private List<String> filterTargetsFromResponse(
             Set<String> varrayTaggedPortWWNs,
-            Map<String, List<String>> initiatorTargetMap, String initiatorKey)
-    {
+            Map<String, List<String>> initiatorTargetMap, String initiatorKey) {
         log.debug("START - filterTargetsFromResponse");
         List<String> filteredTargetList = new ArrayList<String>();
 
         List<String> targetPortListFromResponse = initiatorTargetMap.get(initiatorKey);
-        for (String portWWN : targetPortListFromResponse)
-        {
-        	//Some of the drivers returns ( for e.g NetApp unified driver ) returns
-        	//the response in lower case, hence it is required to do both checks.
+        for (String portWWN : targetPortListFromResponse) {
+            // Some of the drivers returns ( for e.g NetApp unified driver ) returns
+            // the response in lower case, hence it is required to do both checks.
             if (varrayTaggedPortWWNs.contains(portWWN)
-            		||varrayTaggedPortWWNs.contains(portWWN.toUpperCase()))
-            {
+                    || varrayTaggedPortWWNs.contains(portWWN.toUpperCase())) {
                 filteredTargetList.add(portWWN.toUpperCase());
             }
         }
@@ -717,33 +700,27 @@ public class CinderExportOperations implements ExportMaskOperations {
      * @return
      */
     private List<String> checkPathsPerInitiator(int pathsPerInitiator,
-            List<String> targetPathsList)
-    {
+            List<String> targetPathsList) {
         log.debug("START - checkPathsPerInitiator");
 
         List<String> tmpTargetList = new ArrayList<String>();
         int targetPathsCount = targetPathsList.size();
 
-        if (targetPathsCount == pathsPerInitiator)
-        {
+        if (targetPathsCount == pathsPerInitiator) {
             // Happy path, just update the targets list
             tmpTargetList.addAll(targetPathsList);
         }
-        else if (targetPathsCount > pathsPerInitiator)
-        {
+        else if (targetPathsCount > pathsPerInitiator) {
             // Select the subset of ports
-            if (1 == pathsPerInitiator)
-            {
+            if (1 == pathsPerInitiator) {
                 tmpTargetList.add(targetPathsList.get(0));
             }
-            else
-            {
+            else {
                 tmpTargetList.addAll(targetPathsList.subList(0, pathsPerInitiator));
             }
 
         }
-        else
-        {
+        else {
             return null; // rollback case
         }
 
@@ -763,38 +740,31 @@ public class CinderExportOperations implements ExportMaskOperations {
             Map<URI, List<URI>> mapFilteredInitiatorURIVsTargetURIList,
             Map<String, URI> initiatorsWWNVsURI,
             Map<String, URI> mapVarrayTaggedPortWWNVsURI, String initiatorKey,
-            List<String> tmpTargetList)
-    {
+            List<String> tmpTargetList) {
         log.debug("START - populateInitiatorTargetURIMap");
         // Convert target storage port wwns to uris
         List<URI> tmpTargetPortURIList = new ArrayList<URI>();
-        for (String portWWN : tmpTargetList)
-        {
+        for (String portWWN : tmpTargetList) {
             tmpTargetPortURIList.add(mapVarrayTaggedPortWWNVsURI.get(portWWN));
         }
 
         boolean isUpdateMap = false;
         URI initatiatorURI = initiatorsWWNVsURI.get(initiatorKey);
-        if (mapFilteredInitiatorURIVsTargetURIList.containsKey(initatiatorURI))
-        {
+        if (mapFilteredInitiatorURIVsTargetURIList.containsKey(initatiatorURI)) {
             List<URI> existingTargetURIs = mapFilteredInitiatorURIVsTargetURIList.get(initatiatorURI);
-            for (URI targetPortURI : tmpTargetPortURIList)
-            {
-                if (!existingTargetURIs.contains(targetPortURI))
-                {
+            for (URI targetPortURI : tmpTargetPortURIList) {
+                if (!existingTargetURIs.contains(targetPortURI)) {
                     existingTargetURIs.add(targetPortURI);
                     isUpdateMap = true;
                 }
             }
 
-            if (isUpdateMap)
-            {
+            if (isUpdateMap) {
                 mapFilteredInitiatorURIVsTargetURIList.put(initatiatorURI, existingTargetURIs);
             }
 
         }
-        else
-        {
+        else {
             mapFilteredInitiatorURIVsTargetURIList.put(initatiatorURI, tmpTargetPortURIList);
         }
 
@@ -812,8 +782,7 @@ public class CinderExportOperations implements ExportMaskOperations {
      * @return
      */
     private Map<String, URI> getVarrayTaggedStoragePortWWNs(
-            StorageSystem storage, URI varrayURI)
-    {
+            StorageSystem storage, URI varrayURI) {
         log.debug("START - getVarrayTaggedStoragePortWWNs");
         // Get the list of storage ports of a storage system which are varray
         // tagged
@@ -824,11 +793,9 @@ public class CinderExportOperations implements ExportMaskOperations {
         Map<String, URI> varrayTaggedStoragePortWWNs = new HashMap<String, URI>();
 
         Set<URI> networkUriSet = networkUriVsStoragePorts.keySet();
-        for (URI nwUri : networkUriSet)
-        {
+        for (URI nwUri : networkUriSet) {
             List<StoragePort> ports = networkUriVsStoragePorts.get(nwUri);
-            for (StoragePort port : ports)
-            {
+            for (StoragePort port : ports) {
                 String wwnNoColon = port.getPortNetworkId().replaceAll(CinderConstants.COLON, "");
                 varrayTaggedStoragePortWWNs.put(wwnNoColon, port.getId());
             }
@@ -846,79 +813,71 @@ public class CinderExportOperations implements ExportMaskOperations {
      * @param exportMask - exportMask in which the volume is to be added
      * @param targetLunId - integer value of host LUN id on which volume is accessible.
      */
-    private void storeITLMappingInVolume(Map<URI, Integer> volumeToTargetLunMap, ExportMask exportMask)
-    {
-    	log.debug("START - createITLMappingInVolume");
-    	for (URI volumeURI : volumeToTargetLunMap.keySet())
-    	{
+    private void storeITLMappingInVolume(Map<URI, Integer> volumeToTargetLunMap, ExportMask exportMask) {
+        log.debug("START - createITLMappingInVolume");
+        for (URI volumeURI : volumeToTargetLunMap.keySet()) {
             Integer targetLunId = volumeToTargetLunMap.get(volumeURI);
             Volume volume = dbClient.queryObject(Volume.class, volumeURI);
-            
+
             StringSetMap zoningMap = exportMask.getZoningMap();
-        	Set<String> zoningMapKeys = zoningMap.keySet();
-        	int initiatorIndex = 0;
-        	for(String initiator : zoningMapKeys)
-        	{
-        		Initiator initiatorObj = dbClient.queryObject(Initiator.class, URI.create(initiator));
-        		String initiatorWWPN = initiatorObj.getInitiatorPort().replaceAll(CinderConstants.COLON, "");
-        		StringSet targetPorts = zoningMap.get(initiator);
-        		int targetIndex = 0;
-        		for(String target : targetPorts)
-        		{
-        			StoragePort targetPort = dbClient.queryObject(StoragePort.class, URI.create(target));
-        			String targetPortWWN = targetPort.getPortNetworkId().replaceAll(CinderConstants.COLON, "");
-        			
-        			//Format is - <InitiatorWWPN>-<TargetWWPN>-<LunId>
-        			String itl = initiatorWWPN +"-"+ targetPortWWN +"-"+ String.valueOf(targetLunId);
-        			
-        			//ITL keys will be formed as ITL-00, ITL-01, ITL-10, ITL-11 so on
-        			String itlKey = CinderConstants.PREFIX_ITL+String.valueOf(initiatorIndex)+String.valueOf(targetIndex);
-        			log.info(String.format("Adding ITL %s with key %s", itl, itlKey));
-        			StringMap extensionsMap = volume.getExtensions();        			
-        			if(null==extensionsMap)
-        			{
-        				extensionsMap = new StringMap();
-        				extensionsMap.put(itlKey, itl);
-        				volume.setExtensions(extensionsMap);
-        			}
-        			else
-        			{
-            			volume.getExtensions().put(itlKey, itl);
-        			}
-        			
-        			targetIndex++;
-        		}
-        		
-        		initiatorIndex++;
-        	}
-        	
-        	dbClient.updateAndReindexObject(volume);
-        	
+            Set<String> zoningMapKeys = zoningMap.keySet();
+            int initiatorIndex = 0;
+            for (String initiator : zoningMapKeys) {
+                Initiator initiatorObj = dbClient.queryObject(Initiator.class, URI.create(initiator));
+                String initiatorWWPN = initiatorObj.getInitiatorPort().replaceAll(CinderConstants.COLON, "");
+                StringSet targetPorts = zoningMap.get(initiator);
+                int targetIndex = 0;
+                for (String target : targetPorts) {
+                    StoragePort targetPort = dbClient.queryObject(StoragePort.class, URI.create(target));
+                    String targetPortWWN = targetPort.getPortNetworkId().replaceAll(CinderConstants.COLON, "");
+
+                    // Format is - <InitiatorWWPN>-<TargetWWPN>-<LunId>
+                    String itl = initiatorWWPN + "-" + targetPortWWN + "-" + String.valueOf(targetLunId);
+
+                    // ITL keys will be formed as ITL-00, ITL-01, ITL-10, ITL-11 so on
+                    String itlKey = CinderConstants.PREFIX_ITL + String.valueOf(initiatorIndex) + String.valueOf(targetIndex);
+                    log.info(String.format("Adding ITL %s with key %s", itl, itlKey));
+                    StringMap extensionsMap = volume.getExtensions();
+                    if (null == extensionsMap) {
+                        extensionsMap = new StringMap();
+                        extensionsMap.put(itlKey, itl);
+                        volume.setExtensions(extensionsMap);
+                    }
+                    else {
+                        volume.getExtensions().put(itlKey, itl);
+                    }
+
+                    targetIndex++;
+                }
+
+                initiatorIndex++;
+            }
+
+            dbClient.updateAndReindexObject(volume);
+
         }
-    	
-    	log.debug("END - createITLMappingInVolume");
-            
+
+        log.debug("END - createITLMappingInVolume");
+
     }
-    
-    
+
     /**
      * Remove the list of ITLs from the volume extensions
+     * 
      * @param volume
      * @return
      */
-    private void removeITLsFromVolume(Volume volume)
-    {    	
-    	StringMap extensions = volume.getExtensions();   
-    	Set<Map.Entry<String, String>> mapEntries = extensions.entrySet();
-    	for(Iterator<Map.Entry<String, String>> it = mapEntries.iterator(); it.hasNext(); )
-    	{
-    	      Map.Entry<String, String> entry = it.next();
-    	      if(entry.getKey().startsWith(CinderConstants.PREFIX_ITL))
-    	      {
-    	        it.remove();
-    	      }
-    	 }
-    	
+    private void removeITLsFromVolume(Volume volume) {
+        StringMap extensions = volume.getExtensions();
+        Set<Map.Entry<String, String>> mapEntries = extensions.entrySet();
+        for (Iterator<Map.Entry<String, String>> it = mapEntries.iterator(); it.hasNext();) {
+            Map.Entry<String, String> entry = it.next();
+            if (entry.getKey().startsWith(CinderConstants.PREFIX_ITL))
+            {
+                it.remove();
+            }
+        }
+
     }
     	
     	

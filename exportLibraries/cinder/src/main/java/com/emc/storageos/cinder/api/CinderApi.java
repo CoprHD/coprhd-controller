@@ -418,31 +418,26 @@ public class CinderApi {
      * @throws Exception the exception
      */
     public VolumeAttachResponse attachVolume(String volumeId, String initiator,
-            String[] wwpns, String[] wwnns, String host) throws Exception
-    {
+            String[] wwpns, String[] wwnns, String host) throws Exception {
         _log.info("CinderApi - start attachVolume");
 
         Gson gson = new Gson();
 
         VolumeAttachRequest volumeAttach = new VolumeAttachRequest();
-        if (initiator != null) 
-        {
+        if (initiator != null) {
             volumeAttach.initializeConnection.connector.initiator = initiator;
         }
-        else 
-        {
-        	if (wwpns != null)
-        	{
-        		volumeAttach.initializeConnection.connector.wwpns = Arrays.copyOf(wwpns, wwpns.length);
-        	}
-        	
-        	if(null != wwnns)
-        	{
-        		volumeAttach.initializeConnection.connector.wwnns = Arrays.copyOf(wwnns, wwnns.length);
-        	}
-            
+        else {
+            if (wwpns != null) {
+                volumeAttach.initializeConnection.connector.wwpns = Arrays.copyOf(wwpns, wwpns.length);
+            }
+
+            if (null != wwnns) {
+                volumeAttach.initializeConnection.connector.wwnns = Arrays.copyOf(wwnns, wwnns.length);
+            }
+
         }
-        
+
         volumeAttach.initializeConnection.connector.host = host;
 
         String volumeAttachmentUri = endPoint.getBaseUri()

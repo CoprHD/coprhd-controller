@@ -129,20 +129,18 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
      * 
      * @return
      */
-    public List<VPlexStorageVolumeITLsInfo> getStorageVolumeITLsInfoList()
-    {
-		return storageVolumeITLsInfoList;
-	}
+    public List<VPlexStorageVolumeITLsInfo> getStorageVolumeITLsInfoList() {
+        return storageVolumeITLsInfoList;
+    }
 
     /**
      * Setter for the storage volume ITL info for the cluster.
      * 
      * @param storageVolumeITLsInfoList
      */
-	public void setStorageVolumeITLsInfoList(List<VPlexStorageVolumeITLsInfo> storageVolumeITLsInfoList)
-	{
-		this.storageVolumeITLsInfoList = storageVolumeITLsInfoList;
-	}
+    public void setStorageVolumeITLsInfoList(List<VPlexStorageVolumeITLsInfo> storageVolumeITLsInfoList) {
+        this.storageVolumeITLsInfoList = storageVolumeITLsInfoList;
+    }
 
     /**
      * Gets the storage volume with the passed name.
@@ -171,9 +169,8 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
                     s_logger.info("Found volume {}", storageVolumeName);
                     return storageVolumeInfo;
                 }
-            } else if (storageVolumeName.equals(clusterVolumeName))
-            {
-            	//This matching means, the volume has been claimed already
+            } else if (storageVolumeName.equals(clusterVolumeName)) {
+                // This matching means, the volume has been claimed already
                 s_logger.info("Found volume {}", storageVolumeName);
                 return storageVolumeInfo;
             }
@@ -189,36 +186,29 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
      * 
      * @return A reference to the VPlexStorageVolumeITLsInfo for the requested volume or null if not found.
      */
-    public VPlexStorageVolumeITLsInfo getStorageVolumeITL(VolumeInfo volumeInfo)
-    {
+    public VPlexStorageVolumeITLsInfo getStorageVolumeITL(VolumeInfo volumeInfo) {
         String storageVolumeName = volumeInfo.getVolumeWWN().toLowerCase();
         List<String> backendVolumeItlsList = volumeInfo.getITLs();
-        
+
         s_logger.info("Find volume {} in cluster", storageVolumeName);
-        for (VPlexStorageVolumeITLsInfo storageVolumeInfo : storageVolumeITLsInfoList)
-        {
+        for (VPlexStorageVolumeITLsInfo storageVolumeInfo : storageVolumeITLsInfoList) {
             String clusterVolumeName = storageVolumeInfo.getName();
             s_logger.info("Cluster volume name is {}", clusterVolumeName);
             int startIndex = clusterVolumeName.indexOf(":") + 1;
-            if (startIndex != -1)
-            {
+            if (startIndex != -1) {
                 clusterVolumeName = clusterVolumeName.substring(startIndex);
                 s_logger.info("Trimmed cluster volume name is {}", clusterVolumeName);
-                
+
                 s_logger.info("Doing the ITLs lookup");
                 List<String> vplexVolItls = storageVolumeInfo.getItls();
-                if(null!=vplexVolItls && !vplexVolItls.isEmpty())
-                {
-                	if(vplexVolItls.contains(backendVolumeItlsList.get(0).trim().toLowerCase()))
-                	{
-                		s_logger.info("Found volume '{}' using ITL lookup", storageVolumeName);
-                		return storageVolumeInfo;
-                	}
-                }                
-            }
-            else if (storageVolumeName.equals(clusterVolumeName))
-            {
-            	//This matching means, the volume has been claimed already
+                if (null != vplexVolItls && !vplexVolItls.isEmpty()) {
+                    if (vplexVolItls.contains(backendVolumeItlsList.get(0).trim().toLowerCase())) {
+                        s_logger.info("Found volume '{}' using ITL lookup", storageVolumeName);
+                        return storageVolumeInfo;
+                    }
+                }
+            } else if (storageVolumeName.equals(clusterVolumeName)) {
+                // This matching means, the volume has been claimed already
                 s_logger.info("Found volume {}", storageVolumeName);
                 return storageVolumeInfo;
             }

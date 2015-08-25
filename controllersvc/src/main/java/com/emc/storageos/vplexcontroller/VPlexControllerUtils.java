@@ -230,27 +230,24 @@ public class VPlexControllerUtils {
     
     /**
      * Gets the list of ITLs from the volume extensions
+     * 
      * @param volume
      * @return
      */
-    public static List<String> getVolumeITLs(Volume volume)
-    {
-    	List<String> itlList = new ArrayList<>();
-    	
-    	StringMap extensions = volume.getExtensions();
-    	if(null!=extensions)
-    	{
-    		Set<String> keys = extensions.keySet();
-        	for(String key : keys)
-        	{
-        		if(key.startsWith(CinderConstants.PREFIX_ITL))
-        		{
-        			itlList.add(extensions.get(key));
-        		}
-        	}
-    	}
-    	
-    	
-    	return itlList;
+    public static List<String> getVolumeITLs(Volume volume) {
+        List<String> itlList = new ArrayList<>();
+
+        StringMap extensions = volume.getExtensions();
+        if (null != extensions) {
+            Set<String> keys = extensions.keySet();
+            for (String key : keys)
+            {
+                if (key.startsWith(CinderConstants.PREFIX_ITL)) {
+                    itlList.add(extensions.get(key));
+                }
+            }
+        }
+
+        return itlList;
     }
 }

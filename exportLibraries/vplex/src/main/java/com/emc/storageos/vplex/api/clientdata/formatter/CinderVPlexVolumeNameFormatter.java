@@ -16,14 +16,12 @@ import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 /**
  * @{inheritDoc
  */
-public class CinderVPlexVolumeNameFormatter extends DefaultVplexVolumeNameFormatter
-{
+public class CinderVPlexVolumeNameFormatter extends DefaultVplexVolumeNameFormatter {
 
     /**
      * @{inheritDoc
      */
-    public CinderVPlexVolumeNameFormatter(VolumeInfo volumeInfo)
-    {
+    public CinderVPlexVolumeNameFormatter(VolumeInfo volumeInfo) {
         super(volumeInfo);
     }
 
@@ -31,27 +29,23 @@ public class CinderVPlexVolumeNameFormatter extends DefaultVplexVolumeNameFormat
      * @{inheritDoc
      */
     @Override
-    protected String shortenName(int shortenBy) throws VPlexApiException
-    {
+    protected String shortenName(int shortenBy) throws VPlexApiException {
 
         s_logger.info("claimed volume name {} needs to be shortened by {} characters",
-                      _volumeInfo.getVolumeNativeId(), shortenBy);
+                _volumeInfo.getVolumeNativeId(), shortenBy);
 
         // in this case, lets shave off some of the front of the volume native id
-        if (_volumeNativeId.length() > shortenBy)
-        {
+        if (_volumeNativeId.length() > shortenBy) {
             return assembleDefaultName(_storageSystemSerialNumber, _volumeNativeId.substring(shortenBy));
-        } 
-        else
-        {
+        }
+        else {
             s_logger.warn("the volume native id {} is not long enough to be "
                     + "used for shortening the volume name by {} characters, so we "
                     + "are just going to truncate the end of the whole name",
                     _volumeNativeId, shortenBy);
             String volumeName = assembleDefaultName(_storageSystemSerialNumber, _volumeNativeId);
-            return volumeName.substring(0, volumeName.length()-shortenBy);
+            return volumeName.substring(0, volumeName.length() - shortenBy);
         }
     }
 
 }
-

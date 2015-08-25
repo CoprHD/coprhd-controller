@@ -47,7 +47,7 @@ public class VolumeInfo implements Serializable {
     private boolean _isThin = false;
     
     //ITL List
-    private List<String> ITLs = new ArrayList<String>();
+    private List<String> _itls = new ArrayList<String>();
 
     /**
      * Constructor.
@@ -59,27 +59,34 @@ public class VolumeInfo implements Serializable {
      * @param true if the volume is thin provisioned, false otherwise
      */
 
-    public VolumeInfo(String storageSystemNativeGuid, String storageSystemType, 
+    public VolumeInfo(String storageSystemNativeGuid, String storageSystemType,
             String volumeWWN, String volumeNativeId, boolean isThin,
-            List<String> itls)
-    {
+            List<String> itls) {
         _storageSystemNativeGuid = storageSystemNativeGuid;
         setSystemType(storageSystemType);
         _volumeWWN = volumeWWN;
         _volumeNativeId = volumeNativeId;
         _isThin = isThin;
-        ITLs = itls;
+        _itls = itls;
     }
-    
-    public List<String> getITLs()
-    {
-		return ITLs;
-	}
 
-	public void setITLs(List<String> iTLs)
-	{
-		ITLs = iTLs;
-	}
+    /**
+     * Getter for the ITL data
+     * ITL item is of the format <Initiator Port WWN>-<Target Port WWN>-<LUN ID>
+     * @return
+     */
+    public List<String> getITLs() {
+        return _itls;
+    }
+
+    /**
+     * Setter for the ITL data
+     * ITL item is of the format <Initiator Port WWN>-<Target Port WWN>-<LUN ID>
+     * @param iTLs
+     */
+    public void setITLs(List<String> iTLs) {
+        _itls = iTLs;
+    }
 
 	
 

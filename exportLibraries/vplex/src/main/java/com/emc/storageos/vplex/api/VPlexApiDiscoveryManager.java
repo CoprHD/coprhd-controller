@@ -415,33 +415,27 @@ public class VPlexApiDiscoveryManager {
      */
 
     Map<VolumeInfo, VPlexStorageVolumeInfo> findStorageVolumes(List<VolumeInfo> volumeInfoList,
-    		                                                   List<VPlexClusterInfo> clusterInfoList)
-    		                                                   throws VPlexApiException
-   {
+            List<VPlexClusterInfo> clusterInfoList)
+            throws VPlexApiException {
 
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = new HashMap<VolumeInfo, VPlexStorageVolumeInfo>();
         Iterator<VolumeInfo> volumeInfoIter = volumeInfoList.iterator();
-        while (volumeInfoIter.hasNext())
-        {
+        while (volumeInfoIter.hasNext()) {
             boolean volumeFound = false;
             VolumeInfo volumeInfo = volumeInfoIter.next();
             String storageSystemNativeGuid = volumeInfo.getStorageSystemNativeGuid();
             String volumeWWN = volumeInfo.getVolumeWWN().toLowerCase();
             s_logger.info("Volume WWN is {}", volumeWWN);
 
-            for (VPlexClusterInfo clusterInfo : clusterInfoList)
-            {
-                if (clusterInfo.containsStorageSystem(storageSystemNativeGuid))
-                {
+            for (VPlexClusterInfo clusterInfo : clusterInfoList) {
+                if (clusterInfo.containsStorageSystem(storageSystemNativeGuid)) {
                     s_logger.info("Found storage system {} in cluster {}", storageSystemNativeGuid, clusterInfo.getName());
                     VPlexStorageVolumeInfo storageVolumeInfo = clusterInfo.getStorageVolume(volumeInfo);
-                    if (storageVolumeInfo == null)
-                    {
+                    if (storageVolumeInfo == null) {
                         s_logger.info("Storage volume with WWN {} was not found in cluster {}", volumeWWN, clusterInfo.getName());
                         String volumeName = volumeInfo.getVolumeName();
                         storageVolumeInfo = clusterInfo.getStorageVolume(volumeInfo);
-                        if (storageVolumeInfo != null)
-                        {
+                        if (storageVolumeInfo != null) {
                             // The storage volume requested for an operation is
                             // already claimed. For now, we just log a warning so
                             // that stale VPLEX artifacts associated with this
@@ -458,10 +452,9 @@ public class VPlexApiDiscoveryManager {
                 }
             }
 
-            if (!volumeFound)
-            {
+            if (!volumeFound) {
                 throw new VPlexApiException(String.format("Could not find storage volume %s on array %s", volumeWWN,
-                		                    storageSystemNativeGuid));
+                        storageSystemNativeGuid));
             }
         }
 
@@ -483,22 +476,19 @@ public class VPlexApiDiscoveryManager {
      */
 
     Map<VolumeInfo, VPlexStorageVolumeITLsInfo> findStorageVolumeITLs(List<VolumeInfo> volumeInfoList,
-    		                                                   List<VPlexClusterInfo> clusterInfoList)
-    		                                                   throws VPlexApiException
-   {
+            List<VPlexClusterInfo> clusterInfoList)
+            throws VPlexApiException {
 
         Map<VolumeInfo, VPlexStorageVolumeITLsInfo> storageVolumeInfoMap = new HashMap<VolumeInfo, VPlexStorageVolumeITLsInfo>();
         Iterator<VolumeInfo> volumeInfoIter = volumeInfoList.iterator();
-        while (volumeInfoIter.hasNext())
-        {
+        while (volumeInfoIter.hasNext()) {
             boolean volumeFound = false;
             VolumeInfo volumeInfo = volumeInfoIter.next();
             String storageSystemNativeGuid = volumeInfo.getStorageSystemNativeGuid();
             String volumeITL = volumeInfo.getITLs().get(0);
             s_logger.info("One of the Volume ITL is {}", volumeITL);
 
-            for (VPlexClusterInfo clusterInfo : clusterInfoList)
-            {
+            for (VPlexClusterInfo clusterInfo : clusterInfoList) {
                 if (clusterInfo.containsStorageSystem(storageSystemNativeGuid))
                 {
                     s_logger.info("Found storage system {} in cluster {}", storageSystemNativeGuid, clusterInfo.getName());
@@ -526,8 +516,7 @@ public class VPlexApiDiscoveryManager {
                 }
             }
 
-            if (!volumeFound)
-            {
+            if (!volumeFound) {
                 throw VPlexApiException.exceptions.couldNotFindStorageVolumeMatchingITLs(volumeITL, storageSystemNativeGuid);
             }
         }
@@ -1329,9 +1318,8 @@ public class VPlexApiDiscoveryManager {
      *             an error occurs processing the response.
      */
     public List<VPlexStorageVolumeITLsInfo> getStorageVolumeITLInfoForCluster(String clusterName)
-            throws VPlexApiException
-    {
-    	// Get the URI for the storage volume details request and make the request.
+            throws VPlexApiException {
+        // Get the URI for the storage volume details request and make the request.
         StringBuilder uriBuilder = new StringBuilder();
         uriBuilder.append(VPlexApiConstants.URI_CLUSTERS.toString());
         uriBuilder.append(clusterName);
@@ -1343,25 +1331,21 @@ public class VPlexApiDiscoveryManager {
         s_logger.info("Response is {}", responseStr);
         int status = response.getStatus();
         response.close();
-        if (status != VPlexApiConstants.SUCCESS_STATUS)
-        {
-        	throw VPlexApiException.exceptions.
-        	      failedGettingStorageVolumeITLsInfo(clusterName, String.valueOf(status));
+        if (status != VPlexApiConstants.SUCCESS_STATUS) {
+            throw VPlexApiException.exceptions.
+                    failedGettingStorageVolumeITLsInfo(clusterName, String.valueOf(status));
         }
 
         // Successful Response
         List<VPlexStorageVolumeITLsInfo> storageVolumeInfoList = new ArrayList<VPlexStorageVolumeITLsInfo>();
-        try
-        {
+        try {
             storageVolumeInfoList = VPlexApiUtils.getResourcesFromResponseContext(
-            		                uriBuilder.toString(),
-            		                responseStr,
-            		                VPlexStorageVolumeITLsInfo.class);
-        }
-        catch (Exception e)
-        {
-        	throw VPlexApiException.exceptions.
-        	      failedProcessingStorageVolumeITLsResponse(e.getMessage(), e);
+                    uriBuilder.toString(),
+                    responseStr,
+                    VPlexStorageVolumeITLsInfo.class);
+        } catch (Exception e) {
+            throw VPlexApiException.exceptions.
+                    failedProcessingStorageVolumeITLsResponse(e.getMessage(), e);
         }
 
         return storageVolumeInfoList;

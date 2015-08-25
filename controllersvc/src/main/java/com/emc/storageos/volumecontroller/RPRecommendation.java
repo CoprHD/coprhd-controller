@@ -216,34 +216,46 @@ public class RPRecommendation extends Recommendation {
 	 * @param ps
 	 * @return
 	 */
-	public String toString(DbClient dbClient, ProtectionSystem ps) {
+	public String toString(DbClient dbClient, ProtectionSystem ps, int... noOfTabs) {
 		StringBuffer buff = new StringBuffer();
+		final String TAB = "\t";
+	
+		String printTabs = TAB;		   
+    	if (noOfTabs.length> 0 && noOfTabs[0] > 0) {
+    		for(int i=0;i<noOfTabs[0];i++) {
+    			printTabs += TAB;
+    		}
+    	}
+    	
 		final String SPACE = " ";
 		VirtualArray varray = dbClient.queryObject(VirtualArray.class, getVirtualArray());
 		VirtualPool vpool = getVirtualPool();
 		StoragePool storagePool = dbClient.queryObject(StoragePool.class, getSourceStoragePool());
 		StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, getSourceStorageSystem());		
-		buff.append("\tResource Count	: " + this.getResourceCount() + "\n");
-		String siteName = ((ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(this.getInternalSiteName()) : "");
-		buff.append("\tInternal Site	: " + siteName + SPACE + this.getInternalSiteName() + "\n");
-		buff.append("\tVirtual Array 	: " + varray.getLabel() + "\n");
-		buff.append("\tVirtual Pool  	: " + vpool.getLabel() + "\n");
+		buff.append(printTabs + "Resource Count	: " + this.getResourceCount() + "\n");
+		String siteName = ((ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(this.getInternalSiteName()) : "");	
+		String siteId =  this.getInternalSiteName();
+		if (this.getInternalSiteName() == null) {
+			siteName = "(no RP protection specified)";
+			siteId = "";
+		}
+		buff.append(printTabs +"Internal Site	: " + siteName + SPACE + siteId + "\n");
+		buff.append(printTabs + "Virtual Array 	: " + varray.getLabel() + "\n");
+		buff.append(printTabs + "Virtual Pool  	: " + vpool.getLabel() + "\n");
 		if (virtualVolumeRecommendation != null && virtualVolumeRecommendation.getVPlexStorageSystem() != null) {
 			StorageSystem vplexStorageSystem = dbClient.queryObject(StorageSystem.class, virtualVolumeRecommendation.getVPlexStorageSystem());
-			buff.append("\tVPLEX Storage	: " + vplexStorageSystem.getLabel() + "\n");
+			buff.append(printTabs + "VPLEX Storage	: " + vplexStorageSystem.getLabel() + "\n");
 		}
-		buff.append("\tStorage Pool 	: " + storagePool.getLabel() + "\n");
-		buff.append("\tStorage System	: " + storageSystem.getLabel() + "\n");				
+		buff.append(printTabs + "Storage Pool 	: " + storagePool.getLabel() + "\n");
+		buff.append(printTabs + "Storage System	: " + storageSystem.getLabel() + "\n");				
 		buff.append("----------------------\n");
 		
 		if (this.getHaRecommendation() != null) {
-			buff.append("\tHigh Availability Recommendation :" + "\n");
-			buff.append(getHaRecommendation().toString(dbClient, ps));
-			buff.append("----------------------\n");
+			buff.append(printTabs + "High Availability Recommendation :" + "\n");
+			buff.append(getHaRecommendation().toString(dbClient, ps, 1));
 			if (this.getHaRecommendation().getTargetRecommendations() != null && !this.getHaRecommendation().getTargetRecommendations().isEmpty()){
-				buff.append("\tHA target :" + "\n");
-				buff.append(this.getHaRecommendation().getTargetRecommendations().get(0).toString(dbClient, ps));
-				buff.append("----------------------\n");
+				buff.append(printTabs + "HA target :" + "\n");
+				buff.append(this.getHaRecommendation().getTargetRecommendations().get(0).toString(dbClient, ps, 1));
 			}
 		}
 		return buff.toString();

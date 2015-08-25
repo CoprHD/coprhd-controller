@@ -198,8 +198,11 @@ public class RPProtectionRecommendation extends Recommendation {
      * @return
      */
     public String toString(DbClient dbClient) {
-    	StringBuffer buff = new StringBuffer("\nPlacement Results : \n\n"); 
-    	RPRecommendation rpRecommendation = this.getSourceRecommendations().get(0);
+    	    	
+    	StringBuffer buff = new StringBuffer("\nRecoverPoint Placement Results : \n"); 
+    	buff.append("--------------------------------------\n");
+
+    	RPRecommendation rpRecommendation = this.getSourceRecommendations().get(0);    	
     	String protectionType = "Regular RP recommendation";
     	if (VirtualPool.vPoolSpecifiesMetroPoint(rpRecommendation.getVirtualPool())) {
     		protectionType = "Metropoint RP recommendation";
@@ -211,12 +214,12 @@ public class RPProtectionRecommendation extends Recommendation {
     	ProtectionSystem ps = dbClient.queryObject(ProtectionSystem.class, getProtectionDevice());
     	buff.append("Total volumes placed : " + this.getResourceCount() + "\n");
     	buff.append("Protection System Allocated : " + ps.getLabel() + "\n\n");
-    	    	
+   
     	for (RPRecommendation sourceRecommendation : this.getSourceRecommendations()) {	    	
-    		buff.append("Source : " + "\n");    		    		
+    		buff.append("Source Recommendation : " + "\n");    		    		
     		buff.append(sourceRecommendation.toString(dbClient, ps) + "\n");
     		for (RPRecommendation targetRecommendation : sourceRecommendation.getTargetRecommendations()) {
-    			buff.append("Target : " + "\n");
+    			buff.append("Target Recommendation : " + "\n");
     			buff.append(targetRecommendation.toString(dbClient, ps) + "\n");
     		}
     	}    

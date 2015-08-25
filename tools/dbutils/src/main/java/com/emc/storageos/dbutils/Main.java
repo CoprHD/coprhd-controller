@@ -48,6 +48,8 @@ public class Main {
 
     private static final String LIST_ACTIVE = "-activeonly";
     private static final String LIST_LIMIT = "-limit";
+    
+    public static final String MODIFICATION_TIME = "-mf";
 
     public static final String RECOVER_DUMP = "-dump";
     public static final String RECOVER_LOAD = "-recover";
@@ -69,12 +71,14 @@ public class Main {
      */
     private static void usage() {
         System.out.printf("Usage: %n");
-        System.out.printf("\t%s [%s <n>] [%s] <Column Family Name>%n",
-                Command.LIST.name().toLowerCase(), LIST_LIMIT, LIST_ACTIVE);
+        System.out.printf("\t%s [%s <n>] [%s] [%s] <Column Family Name>%n",
+                Command.LIST.name().toLowerCase(), LIST_LIMIT, LIST_ACTIVE, MODIFICATION_TIME);
         System.out.printf("\t\t%s <n>\t List paginated with a limit of <n>, "
                 + "if <n> is missing, default is 100.%n", LIST_LIMIT);
         System.out.printf("\t\t%s\t List exclude inactive object ids.%n", LIST_ACTIVE);
-        System.out.printf("\t%s <Column Family Name> <id>%n", Command.QUERY.name().toLowerCase());
+        System.out.printf("\t\t%s\t\t Show the latest modified field of each record.%n", MODIFICATION_TIME);
+        System.out.printf("\t%s [%s] <Column Family Name> <id>%n", Command.QUERY.name().toLowerCase(), MODIFICATION_TIME);
+        System.out.printf("\t\t%s\t\t Show the latest modified field of the record.%n", MODIFICATION_TIME);
         System.out.printf("\t%s <%s/%s/%s> <file_prefix> [<YEAR/MONTH/DAY/HOUR>]%n",
                 Command.LIST.name().toLowerCase(), TYPE_EVENTS, TYPE_STATS, TYPE_AUDITS);
         System.out.printf("\t%s [-force] <Column Family Name> <id/-file file_path>%n", Command.DELETE.name().toLowerCase());
@@ -199,7 +203,7 @@ public class Main {
                     break;
                 case QUERY:
                     _client.init();
-                    handler = new QueryHandler(args);
+                    handler = new QueryHandler(args, _client);
                     break;
                 case DELETE:
                     _client.init();

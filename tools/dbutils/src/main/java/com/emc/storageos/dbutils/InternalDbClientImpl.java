@@ -310,7 +310,7 @@ public class InternalDbClientImpl extends InternalDbClient {
         
         long latestTimeStampe = 0;
         for (Column<CompositeColumnName> column : rows.iterator().next().getColumns()) {
-            if (latestField == null || column.getTimestamp() > latestTimeStampe) {
+            if (column.getTimestamp() > latestTimeStampe) {
                 latestTimeStampe = column.getTimestamp();
                 latestField = column;
             }

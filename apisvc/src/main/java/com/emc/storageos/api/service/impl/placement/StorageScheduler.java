@@ -885,13 +885,14 @@ public class StorageScheduler implements Scheduler {
             }
             // prepare block volume
             if (recommendation.getType().toString().equals(VolumeRecommendation.VolumeType.BLOCK_VOLUME.toString())) {
+                String newVolumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, volumeCounter, volumeCount);
+
                 // Grab the existing volume and task object from the incoming task list
-                Volume volume = getPrecreatedVolume(_dbClient, taskList, volumeLabel, volumeCounter);
+                Volume volume = getPrecreatedVolume(_dbClient, taskList, newVolumeLabel, volumeCounter);
                 boolean volumePrecreated = false;
                 if (volume != null) {
                     volumePrecreated = true;
                 }
-                String newVolumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, volumeCounter, volumeCount);
                 
                 long size = SizeUtil.translateSize(param.getSize());
                 long thinVolumePreAllocationSize = 0;

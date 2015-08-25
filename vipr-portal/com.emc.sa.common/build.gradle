@@ -2,7 +2,7 @@ dependencies {
     compile project(":com.iwave.ext.windows"),
             project(":com.emc.sa.model"),
             project(":authsvc"),
-            "javax.mail:javax.mail-api:1.5.4"
+            "com.sun.mail:javax.mail:1.5.4"
 
     testCompile "org.javassist:javassist:3.15.0-GA"
 }

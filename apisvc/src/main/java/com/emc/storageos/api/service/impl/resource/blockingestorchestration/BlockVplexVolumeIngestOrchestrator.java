@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -106,32 +105,45 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         }
 
         VplexBackendIngestionContext context = new VplexBackendIngestionContext(unManagedVolume, _dbClient);
+        Project vplexProject = VPlexBlockServiceApiImpl.getVplexProject(system, _dbClient, _tenantsService);
+        context.setBackendProject(vplexProject);
+        context.setFrontendProject(project);
 
         try {
             
-            // context.test();
+            // TODO calling this will preload everything and log it for debug purposes.
+            // this is really just useful for testing, no need to call this first
+            // as everything will lazy load from the context as needed from this point
+            context.load();
             
             List<UnManagedVolume> unmanagedBackendVolumes = context.getUnmanagedBackendVolumes();
             if (null != unmanagedBackendVolumes && !unmanagedBackendVolumes.isEmpty()) {
 
-                Project vplexProject = VPlexBlockServiceApiImpl.getVplexProject(system, _dbClient, _tenantsService);
-                
-                validateContext(vPool, vplexProject, tenant, context);
+                // TODO make this context.validate(vpool, tenant);
+                validateContext(vPool, tenant, context);
                 
                 ingestBackendVolumes(systemCache, poolCache, vPool,
-                        virtualArray, vplexProject, tenant, unManagedVolumesToBeDeleted, 
+                        virtualArray, tenant, unManagedVolumesToBeDeleted, 
                         taskStatusMap, context);
 
-                ingestBackendExportMasks(system, vPool, virtualArray, vplexProject,
+                ingestBackendExportMasks(system, vPool, virtualArray, 
                         tenant, unManagedVolumesToBeDeleted, 
                         taskStatusMap, context);
 
-                createVplexMirrorObjects(context);
                 handleFinalDetails(context);
                 handlePersistence(context);
             }
         } catch (Exception ex) {
             _logger.error("error during VPLEX backend ingestion: ", ex);
+            
+            // remove unmanaged backend vols from ones to be deleted in case
+            // they were marked inactive during export mask ingestion
+            if (null != context.getUnmanagedBackendVolumes()) {
+                boolean removed = unManagedVolumesToBeDeleted.removeAll(context.getUnmanagedBackendVolumes());
+                _logger.info("were backend volumes prevented for deletion? " + removed);
+            }
+            // TODO: also need to rollback any new export group or export mask creation
+            
             throw IngestionException.exceptions.failedToIngestVplexBackend(ex.getLocalizedMessage());
         }
 
@@ -139,12 +151,24 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         T virtualVolume = super.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray, project, tenant,
                 unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz, taskStatusMap);
         
-        setAssociatedVolumes(context, (Volume) virtualVolume);
-        
+        try {
+            setAssociatedVolumes(context, (Volume) virtualVolume);
+            createVplexMirrorObjects(context, (Volume) virtualVolume);
+        } catch (Exception ex) {
+            _logger.error("error during VPLEX backend ingestion wrap up: ", ex);
+            
+            // remove unmanaged backend vols from ones to be deleted in case
+            // they were marked inactive during export mask ingestion
+            if (null != context.getUnmanagedBackendVolumes()) {
+                boolean removed = unManagedVolumesToBeDeleted.removeAll(context.getUnmanagedBackendVolumes());
+                _logger.info("were backend volumes prevented for deletion? " + removed);
+            }
+        }
+
         return virtualVolume;
     }
 
-    private void validateContext(VirtualPool vPool, Project project,
+    private void validateContext(VirtualPool vPool, 
             TenantOrg tenant, VplexBackendIngestionContext context) throws Exception {
         UnManagedVolume unManagedVirtualVolume = context.getUnmanagedVirtualVolume();
         List<UnManagedVolume> unManagedBackendVolumes = context.getUnmanagedBackendVolumes();
@@ -180,13 +204,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         // check for Quotas
         long unManagedVolumesCapacity = VolumeIngestionUtil.getTotalUnManagedVolumeCapacity(_dbClient, unManagedBackendVolumeUris);
         _logger.info("UnManagedVolume provisioning quota validation successful");
-        CapacityUtils.validateQuotasForProvisioning(_dbClient, vPool, project, tenant, unManagedVolumesCapacity, "volume");
+        CapacityUtils.validateQuotasForProvisioning(_dbClient, vPool, context.getBackendProject(), tenant, unManagedVolumesCapacity, "volume");
         VolumeIngestionUtil.checkIngestionRequestValidForUnManagedVolumes(unManagedBackendVolumeUris, vPool, _dbClient);
     }
 
     private void ingestBackendVolumes(List<URI> systemCache,
-            List<URI> poolCache, VirtualPool vPool, VirtualArray virtualArray,
-            Project vplexProject, TenantOrg tenant,
+            List<URI> poolCache, VirtualPool vPool, VirtualArray virtualArray, TenantOrg tenant,
             List<UnManagedVolume> unManagedVolumesToBeDeleted,
             Map<String, StringBuffer> taskStatusMap,
             VplexBackendIngestionContext context) throws Exception {
@@ -207,7 +230,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 @SuppressWarnings("unchecked")
                 BlockObject blockObject = ingestStrategy.ingestBlockObjects(systemCache, poolCache, 
                         associatedSystem, associatedVolume, vPool, virtualArray, 
-                        vplexProject, tenant, unManagedVolumesToBeDeleted, context.getCreatedObjectMap(), 
+                        context.getBackendProject(), tenant, unManagedVolumesToBeDeleted, context.getCreatedObjectMap(), 
                         context.getUpdatedObjectMap(), true, 
                         VolumeIngestionUtil.getBlockObjectClass(associatedVolume), taskStatusMap);
                 
@@ -232,7 +255,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     }
 
     private void ingestBackendExportMasks(StorageSystem system,
-            VirtualPool vPool, VirtualArray virtualArray, Project vplexProject,
+            VirtualPool vPool, VirtualArray virtualArray, 
             TenantOrg tenant,
             List<UnManagedVolume> unManagedVolumesToBeDeleted,
             Map<String, StringBuffer> taskStatusMap,
@@ -272,11 +295,11 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initUris);
                 
                 ExportGroup exportGroup = this.createExportGroup(system, associatedSystem, initiators, 
-                        virtualArray.getId(), vplexProject.getId(), tenant.getId(), 4, uem); 
+                        virtualArray.getId(), context.getBackendProject().getId(), tenant.getId(), 4, uem); 
                 boolean exportGroupCreated = exportGroup != null;
                 
                 VolumeExportIngestParam exportIngestParam = new VolumeExportIngestParam();
-                exportIngestParam.setProject(vplexProject.getId());
+                exportIngestParam.setProject(context.getBackendProject().getId());
                 exportIngestParam.setVarray(virtualArray.getId());
                 exportIngestParam.setVpool(vPool.getId());
                 
@@ -326,7 +349,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         }
     }
 
-    private void createVplexMirrorObjects(VplexBackendIngestionContext context) throws Exception {
+    private void createVplexMirrorObjects(VplexBackendIngestionContext context, Volume virtualVolume) {
         if (!context.getUnmanagedMirrors().isEmpty()) {
             _logger.info("creating VplexMirror object");
             for (UnManagedVolume umv : context.getUnmanagedMirrors()) {
@@ -338,6 +361,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     if (mirror instanceof Volume) {
                         Volume mirrorVolume = (Volume) mirror;
                         VplexMirror vplexMirror = new VplexMirror();
+                        vplexMirror.setId(URIUtil.createId(VplexMirror.class));
                         StringSet associatedVolumes = new StringSet();
                         associatedVolumes.add(mirrorVolume.getId().toString());
                         vplexMirror.setAssociatedVolumes(associatedVolumes);
@@ -348,10 +372,10 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         vplexMirror.setCapacity(mirrorVolume.getCapacity());
                         vplexMirror.setLabel(mirrorVolume.getLabel());
                         vplexMirror.setNativeId(umv.getNativeGuid());
-                        vplexMirror.setProject(mirrorVolume.getProject());
+                        vplexMirror.setProject(new NamedURI(
+                                context.getFrontendProject().getId(), mirrorVolume.getLabel()));
                         vplexMirror.setProvisionedCapacity(mirrorVolume.getProvisionedCapacity());
-                        // TODO figure out source
-                        // vplexMirror.setSource(virtualVolume.getId());
+                        vplexMirror.setSource(new NamedURI(virtualVolume.getId(), virtualVolume.getLabel()));
                         vplexMirror.setStorageController(mirrorVolume.getStorageController());
                         vplexMirror.setTenant(mirrorVolume.getTenant());
                         vplexMirror.setThinPreAllocationSize(mirrorVolume.getThinVolumePreAllocationSize());
@@ -382,9 +406,24 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     }
 
     private void handleFinalDetails(VplexBackendIngestionContext context) {
-        for (BlockObject o : context.getIngestedObjects()) {
+        for (BlockObject o : context.getCreatedObjectMap().values()) {
             if (o instanceof Volume) {
                 ((Volume) o).addInternalFlags(Flag.INTERNAL_OBJECT);
+            }
+        }
+        
+        for (UnManagedVolume vol : context.getUnmanagedFullClones().values()) {
+            // a full clone vvol is not an internal object, so make external
+            BlockObject bo = 
+                context.getCreatedObjectMap().get(vol.getNativeGuid().replace(
+                        VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME));
+            if (bo instanceof Volume) {
+                NamedURI namedUri = new NamedURI(
+                        context.getFrontendProject().getId(), ((Volume) bo).getLabel());
+                ((Volume) bo).setProject(namedUri);
+                _logger.info("set project named uri on {} to " 
+                            + namedUri.toString(), bo.getLabel());
+                ((Volume) bo).clearInternalFlags(Flag.INTERNAL_OBJECT);
             }
         }
         

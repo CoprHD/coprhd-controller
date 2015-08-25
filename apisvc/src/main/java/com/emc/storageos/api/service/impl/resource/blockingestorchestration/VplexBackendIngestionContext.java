@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -48,6 +49,9 @@ public class VplexBackendIngestionContext {
     private Map<String, Map<String, VPlexDeviceInfo>> mirrorMap;
     private Map<String, VPlexStorageVolumeInfo> backendVolumeWwnToInfoMap ;
     
+    private Project backendProject;
+    private Project frontendProject;
+    
     Map<String, UnManagedVolume> processedUnManagedVolumeMap = new HashMap<String, UnManagedVolume>();
     Map<String, BlockObject> createdObjectMap = new HashMap<String, BlockObject>();
     Map<String, List<DataObject>> updatedObjectMap = new HashMap<String, List<DataObject>>();
@@ -58,19 +62,19 @@ public class VplexBackendIngestionContext {
         this._dbClient = dbClient;
     }
 
-    public void test() throws Exception {
-        // TODO remove this
-        if (this._unmanagedVirtualVolume != null) {
-            _logger.error("ingestion context: " + this.toStringDebug());
-            throw new Exception("HALTING FOR TESTING ONLY");
-        }
+    public void load() {
+        String contextString = this.toStringDebug();
+        _logger.info("ingestion context: " + contextString);
+//        if (this._unmanagedVirtualVolume != null) {
+//             throw new Exception("HALTING FOR TESTING ONLY");
+//        }
     }
     
     public UnManagedVolume getUnmanagedVirtualVolume() {
         return this._unmanagedVirtualVolume;
     }
     
-    public List<UnManagedVolume> getAllUnmanagedVolumes() throws Exception {
+    public List<UnManagedVolume> getAllUnmanagedVolumes() {
         List<UnManagedVolume> allVolumes = new ArrayList<UnManagedVolume>();
         allVolumes.addAll(getUnmanagedBackendVolumes());
         allVolumes.addAll(getUnmanagedSnapshots());
@@ -247,7 +251,21 @@ public class VplexBackendIngestionContext {
             Set<UnManagedVolume> backendClonesFound = new HashSet<UnManagedVolume>();
             backendClonesFound.addAll(VolumeIngestionUtil.getUnManagedClones(sourceVolume, _dbClient));
             if (!backendClonesFound.isEmpty()) {
-                unmanagedBackendOnlyClones.put(sourceVolume, backendClonesFound);
+                for (UnManagedVolume foundClone : backendClonesFound) {
+                    boolean addIt = true;
+                    if (!getUnmanagedFullClones().isEmpty()) {
+                        for (UnManagedVolume knownClone : getUnmanagedFullClones().keySet()) {
+                            if (knownClone.getId().toString().equals(foundClone.getId().toString())) {
+                                _logger.info("clone {} is already part of a full clone, "
+                                        + "excluding it from backend-only clones", knownClone.getLabel());
+                                addIt = false;
+                            }
+                        }
+                    }
+                    if (addIt) {
+                        unmanagedBackendOnlyClones.put(sourceVolume, backendClonesFound);
+                    }
+                }
             }
         }
         
@@ -255,7 +273,7 @@ public class VplexBackendIngestionContext {
         return unmanagedBackendOnlyClones;
     }
     
-    public List<UnManagedVolume> getUnmanagedMirrors() throws Exception {
+    public List<UnManagedVolume> getUnmanagedMirrors() {
         if (null != unmanagedMirrors) {
             return unmanagedMirrors;
         }
@@ -271,10 +289,13 @@ public class VplexBackendIngestionContext {
                     UnManagedVolume associatedVolumeSource = null; 
                     UnManagedVolume associatedVolumeMirror = null; 
                     for (Entry<String, VPlexDeviceInfo> entry : slotToDeviceMap.entrySet()) {
+                        // TODO extract constants
                         if ("0".equals(entry.getKey())) {
+                            _logger.info("looking at slot-0");
                             associatedVolumeSource = getAssociatedVolumeForComponentDevice(entry.getValue());
                         }
                         if ("1".equals(entry.getKey())) {
+                            _logger.info("looking at slot-1");
                             associatedVolumeMirror = getAssociatedVolumeForComponentDevice(entry.getValue());
                         }
                     }
@@ -282,21 +303,18 @@ public class VplexBackendIngestionContext {
                         _logger.info("removing mirror volume {} from associated "
                                 + "vols and adding to mirrors", associatedVolumeMirror.getLabel());
                         getUnmanagedBackendVolumes().remove(associatedVolumeMirror);
-//                        Iterator<UnManagedVolume> itr = getUnmanagedBackendVolumes().iterator();
-//                        while (itr.hasNext()) {
-//                            if (itr.next().getId().toString().equals(associatedVolumeMirror.getId().toString())) {
-//                                itr.remove();
-//                            }
-//                        }
                         _logger.info("getUnmanagedBackendVolumes() is now: " + getUnmanagedBackendVolumes());
                         unmanagedMirrors.add(associatedVolumeMirror);
                         StringSet set = new StringSet();
                         set.add(associatedVolumeMirror.getNativeGuid());
                         _logger.info("adding mirror set {} to source unmanaged volume {}", set, associatedVolumeSource);
-                        associatedVolumeSource.getVolumeInformation().put(SupportedVolumeInformation.MIRRORS.toString(), set);
+                        associatedVolumeSource.putVolumeInfo(SupportedVolumeInformation.MIRRORS.toString(), set);
                     } else {
                         // TODO: create exception
-                        throw new Exception("couldn't fully getAssociatedVolumeForComponentDevice");
+                        String message = "couldn't find all associated device components in mirror device: ";
+                        message += " associatedVolumeSource is " + associatedVolumeSource;
+                        message += " and associatedVolumeMirror is " +  associatedVolumeMirror;
+                        throw IngestionException.exceptions.generalException(message);
                     }
                 }
             }
@@ -431,34 +449,62 @@ public class VplexBackendIngestionContext {
     }
     
     public String toStringDebug() {
-        try {
-            // gotta fetch all this stuff first to ensure the string build has the latest
-            this.getTopLevelDevice();
-            this.getUnmanagedMirrors();
-            this.getUnmanagedBackendVolumes();
-            this.getUnmanagedSnapshots();
-            this.getUnmanagedFullClones();
-            this.getUnmanagedBackendOnlyClones();
+        // gotta fetch all this stuff first to ensure the string build has the latest
+        this.getTopLevelDevice();
+        this.getUnmanagedMirrors();
+        this.getUnmanagedBackendVolumes();
+        this.getUnmanagedSnapshots();
+        this.getUnmanagedFullClones();
+        this.getUnmanagedBackendOnlyClones();
 
-            StringBuilder s = new StringBuilder("\n\t VplexBackendIngestionContext \n\t\t ");
-            s.append("unmanaged virtual volume: ").append(this._unmanagedVirtualVolume).append(" \n\t\t ");
-            s.append("top level device: ").append(this.getTopLevelDevice()).append(" \n\t\t ");
-            s.append("unmanaged backend volume(s): ").append(this.getUnmanagedBackendVolumes()).append(" \n\t\t ");
-            s.append("unmanaged snapshots: ").append(this.getUnmanagedSnapshots()).append(" \n\t\t ");
-            s.append("unmanaged full clones: ").append(this.getUnmanagedFullClones()).append(" \n\t\t ");
-            s.append("unmanaged backend only clones: ").append(this.getUnmanagedBackendOnlyClones()).append(" \n\t\t ");
-            s.append("unmanaged mirrors: ").append(this.getUnmanagedMirrors()).append(" \n\t\t ");
-            s.append("ingested objects: ").append(this.getIngestedObjects()).append(" \n\t\t ");
-            s.append("created objects map: ").append(this.getCreatedObjectMap()).append(" \n\t\t ");
-            s.append("updated objects map: ").append(this.getUpdatedObjectMap()).append(" \n\t\t ");
-            s.append("processed unmanaged volumes: ").append(this.getProcessedUnManagedVolumeMap());
-            return s.toString();
-        } catch (Exception ex) {
-            _logger.error("exception: ", ex);
-            return "couldn't generate debug string for VplexBackendIngestionContext";
+        StringBuilder s = new StringBuilder("\n\t VplexBackendIngestionContext \n\t\t ");
+        s.append("unmanaged virtual volume: ").append(this._unmanagedVirtualVolume).append(" \n\t\t ");
+        s.append("top level device: ").append(this.getTopLevelDevice()).append(" \n\t\t ");
+        s.append("unmanaged backend volume(s): ").append(this.getUnmanagedBackendVolumes()).append(" \n\t\t ");
+        s.append("unmanaged snapshots: ").append(this.getUnmanagedSnapshots()).append(" \n\t\t ");
+        s.append("unmanaged full clones: ").append(this.getUnmanagedFullClones()).append(" \n\t\t ");
+        s.append("unmanaged backend only clones: ").append(this.getUnmanagedBackendOnlyClones()).append(" \n\t\t ");
+        s.append("unmanaged mirrors: ").append(this.getUnmanagedMirrors()).append(" \n\t\t ");
+        s.append("ingested objects: ").append(this.getIngestedObjects()).append(" \n\t\t ");
+        s.append("created objects map: ").append(this.getCreatedObjectMap()).append(" \n\t\t ");
+        for (Entry<String, List<DataObject>> e : this.getUpdatedObjectMap().entrySet()) {
+            s.append(e.getKey()).append(": ").append(" \n\t\t\t ");
+            for (DataObject o : e.getValue()) {
+                s.append(o.getLabel()).append(" \n\t\t\t ");
+            }
         }
+        s.append("processed unmanaged volumes: ").append(this.getProcessedUnManagedVolumeMap());
+        return s.toString();
     }
     
+    /**
+     * @return the backendProject
+     */
+    public Project getBackendProject() {
+        return backendProject;
+    }
+
+    /**
+     * @param backendProject the backendProject to set
+     */
+    public void setBackendProject(Project backendProject) {
+        this.backendProject = backendProject;
+    }
+
+    /**
+     * @return the frontendProject
+     */
+    public Project getFrontendProject() {
+        return frontendProject;
+    }
+
+    /**
+     * @param frontendProject the frontendProject to set
+     */
+    public void setFrontendProject(Project frontendProject) {
+        this.frontendProject = frontendProject;
+    }
+
     @Override
     public String toString() {
         // TODO: probably remove this because it's an expensive call

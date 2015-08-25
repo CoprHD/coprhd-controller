@@ -67,6 +67,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             AtomicReference<BlockStorageDevice>();
     public static final String VMAX_SMIS_DEVICE = "vmaxSmisDevice";
     public static final HashSet<String> INITIATOR_FIELDS = new HashSet<String>();
+    private static final int MAX_VOLUME_COUNT_FOR_EXPORT = 4096;
 
     static {
         INITIATOR_FIELDS.add("clustername");
@@ -1831,7 +1832,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     @Override
     protected void suggestExportMasksForPlacement(StorageSystem storage, BlockStorageDevice device, List<Initiator> initiators,
             ExportMaskPlacementDescriptor descriptor) {
-        // VMAX can have multiple ExportMasks (MaskingViews) that have the same set of initiators.
+        // VMAX can have multiple ExportMasks (MaskingViews) that contain the same set of initiators.
         // So, it's up to this implementation to determine where to best place the volumes based
         // on volume and ExportMask characteristics. To that end, we will hint that the placement
         // will be separating the volumes per ExportMask
@@ -1860,7 +1861,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             URI exportMaskURI = entry.getKey();
             ExportMask exportMask = entry.getValue();
             // Get the ExportMaskPolicy, thereby saving it to the policyCache
-            getExportMaskPolicy(policyCache, device, storage, entry.getValue());
+            getExportMaskPolicy(policyCache, device, storage, exportMask);
             // Populate the mapping of Initiator portname (WWN/IQN) to the ExportMask URI
             for (String portName : portNames) {
                 Set<URI> masks = initiatorToExportMaskMap.get(portName);
@@ -1883,7 +1884,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             volumeMap.put(volumeURI, -1);
         }
 
-        // Mapping of ExportMask URI to Volume-HLU: the basic output that we're expecting to be filled in my the rules applicator
+        // Mapping of ExportMask URI to Volume-HLU: the basic output that we're expecting to be filled in by the rules applicator
         Map<URI, Map<URI, Integer>> maskToUpdateWithNewVolumes = new HashMap<>();
 
         // All data structures should have been filled in at this point; call the rules applicator
@@ -1901,15 +1902,32 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // Rules were run without errors, now process the results:
                 // Process each entry in the mapping of ExportMask to Volumes ...
                 for (Map.Entry<URI, Map<URI, Integer>> entry : maskToUpdateWithNewVolumes.entrySet()) {
+                    URI exportMaskURI = entry.getKey();
+                    Set<URI> volumeURIs = entry.getValue().keySet();
                     // Translate the Volume URI to Volume HLU map to a Volume URI to Volume object map:
                     Map<URI, Volume> volumes = new HashMap<>();
-                    List<Volume> queriedVols = cache.queryObject(Volume.class, entry.getValue().keySet());
+                    List<Volume> queriedVols = cache.queryObject(Volume.class, volumeURIs);
                     for (Volume volume : queriedVols) {
                         volumes.put(volume.getId(), volume);
                     }
 
+                    // Validate the number of volumes that will be in the ExportMask if 'volumes' were added to it.
+                    // If there are more the maximum number of volumes allowed, then we should not place these 'volumes'.
+                    // The volumes would show up in the descriptor as being unplaced. The VplexBackendManager would
+                    // to take care of this case by creating another ExportMask to contain these volumes.
+                    ExportMask exportMask = matchingMasks.get(exportMaskURI);
+                    int totalVolumesWhenAddedToExportMask = exportMask.returnTotalVolumeCount() + volumes.size();
+                    if (totalVolumesWhenAddedToExportMask > MAX_VOLUME_COUNT_FOR_EXPORT) {
+                        _log.info(String.format(
+                                "ExportMask %s (%s) is matching, but has %d volumes. " +
+                                        "Adding %d volumes to it will make it go over its limit, hence it will not be used for placement",
+                                exportMask.getMaskName(), exportMask.getId(),
+                                exportMask.returnTotalVolumeCount(), volumes.size()));
+                        continue;
+                    }
+
                     // Fill in the descriptor to be used for VPlex backend placement
-                    descriptor.placeVolumes(entry.getKey(), volumes);
+                    descriptor.placeVolumes(exportMaskURI, volumes);
                 }
             }
         } catch (Exception e) {

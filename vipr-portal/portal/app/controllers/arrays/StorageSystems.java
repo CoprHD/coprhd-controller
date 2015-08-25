@@ -370,7 +370,7 @@ public class StorageSystems extends ViprResourceController {
 
         StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(id);
         VirtualNasServerDataTable dataTable = new VirtualNasServerDataTable();
-        
+        renderArgs.put("storageId", id);
         render("@listVirtualNasServers", storageSystem, dataTable);
     }
     
@@ -383,14 +383,12 @@ public class StorageSystems extends ViprResourceController {
        }
        VirtualNasParam vNasParam = new VirtualNasParam();
        vNasParam.setVnasServers(vnasServers);
-       
        try {
-    	   Task<VirtualNASRestRep> resp = getViprClient().virtualNasServers().assignVnasServers(uri(projectId), vNasParam);
-	} catch (Exception e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-	}
-       //virtualNasServers(storageId);
+		  Task<VirtualNASRestRep> resp = getViprClient().virtualNasServers().assignVnasServers(uri(projectId), vNasParam);
+	   } catch (Exception e) {
+          e.printStackTrace();
+	   }
+	   virtualNasServers(storageId);
     }
     
     public static void virtualNasServersJson(String storageId) {

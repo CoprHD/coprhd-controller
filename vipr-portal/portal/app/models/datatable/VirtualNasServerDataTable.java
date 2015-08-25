@@ -1,10 +1,12 @@
 package models.datatable;
 
+import static util.BourneUtil.getViprClient;
+
 import java.util.Set;
 
 import util.datatable.DataTable;
 
-import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.vnas.VirtualNASRestRep;
 
 public class VirtualNasServerDataTable extends DataTable {
@@ -87,10 +89,11 @@ public class VirtualNasServerDataTable extends DataTable {
         
         public VirtualNasServerInfo(VirtualNASRestRep vNasRestRep){
            this.id = vNasRestRep.getId().toString();
-           this.nasName = "vNas_"+vNasRestRep.getNasName();
+           this.nasName = vNasRestRep.getNasName();
            this.storageDeviceURI = (vNasRestRep.getStorageDeviceURI() != null) ? vNasRestRep.getStorageDeviceURI().toString() : "";
            if(vNasRestRep.getProject() != null){
-               this.project = vNasRestRep.getProject().getLink().getLinkName();
+        	   ProjectRestRep projectRestRep = getViprClient().projects().get(vNasRestRep.getProject().getId());
+               this.project = projectRestRep.getName();
            }
            this.maxExports = vNasRestRep.getMaxExports();
            this.maxFSID = vNasRestRep.getMaxFSID();

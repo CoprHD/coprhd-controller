@@ -9,7 +9,7 @@
 #{DataTable.crudTable id:'storageArray',
                       dataTable:dataTable,
                       expandable: true,
-                      actions: ['StorageSystems.pools': @pools(':id'), 'StorageSystems.ports': @ports(':id')],
+                      actions: ['StorageSystems.pools': @pools(':id'), 'StorageSystems.ports': @ports(':id'),'StorageSystems.vnas':@virtualNasServers(':id')],
                       deleteConfirm:messages.get('StorageSystems.deleteConfirm')}
   #{Form.button name:'button.rediscover', class:'info', icon:'repeat', submit:'rediscoverForm',
                 data:['enabled':'selected', 'property':'discoveryStatus', 'not-value':'IN_PROGRESS']/}

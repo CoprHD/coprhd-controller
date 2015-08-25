@@ -75,6 +75,7 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateCGSnapsho
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotSessionJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockLinkSnapshotSessionTargetJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRelinkSnapshotSessionTargetJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotSessionJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResumeSnapshotJob;
@@ -1294,6 +1295,40 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 }
             } catch (Exception e) {
                 _log.info("Exception creating and linking snapshot session target", e);
+                ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
+                completer.error(_dbClient, error);
+            }
+        } else {
+            throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @SuppressWarnings("rawtypes")
+    @Override
+    public void relinkSnapshotSessionTarget(StorageSystem system, URI tgtSnapSessionURI, URI snapshotURI,
+            TaskCompleter completer) throws DeviceControllerException {
+        if (system.checkIfVmax3()) {
+            // Only supported for VMAX3 storage systems.
+            try {
+                _log.info("Re-link target {} to snapshot session {} START", snapshotURI, tgtSnapSessionURI);
+                BlockSnapshotSession tgtSnapSession = _dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
+                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+                CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
+                String settingsStateInstanceId = tgtSnapSession.getSessionInstance();
+                CIMObjectPath settingsStatePath = _cimPath.objectPath(settingsStateInstanceId);
+                CIMObjectPath targetDevicePath = _cimPath.getBlockObjectPath(system, snapshot);
+                CIMArgument[] inArgs = null;
+                CIMArgument[] outArgs = new CIMArgument[5];
+                inArgs = _helper.getModifySettingsDefinedStateForRelinkTargets(settingsStatePath, targetDevicePath);
+                _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
+                CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
+                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockRelinkSnapshotSessionTargetJob(jobPath,
+                        system.getId(), completer)));
+            } catch (Exception e) {
+                _log.info("Exception restoring snapshot session", e);
                 ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
                 completer.error(_dbClient, error);
             }

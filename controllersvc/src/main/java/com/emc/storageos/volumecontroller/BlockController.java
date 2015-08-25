@@ -423,6 +423,20 @@ public interface BlockController extends BlockStorageManagementController {
             String copyMode, String opId) throws InternalException;
 
     /**
+     * Re-link the linked targets represented the BlockSnapshot instances with the
+     * passed URIs to the BlockSnapshotSession instance with the passed URI.
+     * 
+     * @param systemURI The URI of the storage system.
+     * @param tgtSnapSessionURI The URI of the snapshot session to which the targets are re-linked.
+     * @param snapshotURIs The URIs of the snapshots representing the linked targets.
+     * @param opId The unique task identifier.
+     * 
+     * @throws InternalException
+     */
+    public void relinkTargetsToSnapshotSession(URI systemURI, URI tgtSnapSessionURI, List<URI> snapshotURIs,
+            String opId) throws InternalException;
+
+    /**
      * Unlinks the targets represented by the BlockSnapshot instances with the passed
      * URIs from the BlockSnapshotSession with the passed URI.
      * 

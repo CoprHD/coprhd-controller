@@ -155,6 +155,11 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
     @Override
     public void relinkTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession tgtSnapSession,
             List<URI> snapshotURIs, String taskId) {
+        // Invoke the BlockDeviceController to relink the targets
+        // to the passed target snapshot session.
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapSessionSourceObj.getStorageController());
+        BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
+        controller.relinkTargetsToSnapshotSession(storageSystem.getId(), tgtSnapSession.getId(), snapshotURIs, taskId);
     }
 
     /**

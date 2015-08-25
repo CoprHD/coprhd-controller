@@ -208,8 +208,22 @@ public interface SnapshotOperations {
      * @throws DeviceControllerException
      */
     public void linkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
-            String copyMode, TaskCompleter completer)
-            throws DeviceControllerException;
+            String copyMode, TaskCompleter completer) throws DeviceControllerException;
+
+    /**
+     * Re-links a target volume to an array snapshot on the passed storage system.
+     * 
+     * @param system A reference to the storage system.
+     * @param tgtSnapSessionURI The URI of the BlockSnapshotSession instance in ViPR
+     *            that represents the target array snapshot.
+     * @param snapshotURI The URI of the BlockSnapshot instance in ViPR that represents
+     *            the target volume.
+     * @param completer A reference to the task completer.
+     * 
+     * @throws DeviceControllerException
+     */
+    public void relinkSnapshotSessionTarget(StorageSystem system, URI tgtSnapSessionURI, URI snapshotURI,
+            TaskCompleter completer) throws DeviceControllerException;
 
     /**
      * Creates a new target volume and links it to an array snapshot on the passed storage system.

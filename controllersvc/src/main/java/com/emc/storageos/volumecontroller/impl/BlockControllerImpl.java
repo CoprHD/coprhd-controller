@@ -451,6 +451,15 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
      * {@inheritDoc}
      */
     @Override
+    public void relinkTargetsToSnapshotSession(URI systemURI, URI tgtSnapSessionURI, List<URI> snapshotURIs,
+            String opId) throws InternalException {
+        blockRMI("relinkTargetsToSnapshotSession", systemURI, tgtSnapSessionURI, snapshotURIs, opId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void unlinkTargetsFromSnapshotSession(URI systemURI, URI snapSessionURI,
             Map<URI, Boolean> snapshotDeletionMap, String opId) {
         blockRMI("unlinkTargetsFromSnapshotSession", systemURI, snapSessionURI, snapshotDeletionMap, opId);

@@ -108,6 +108,8 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CreateBlockSn
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.LinkBlockSnapshotSessionTargetCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.LinkBlockSnapshotSessionTargetsWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MultiVolumeTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RelinkBlockSnapshotSessionTargetCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RelinkBlockSnapshotSessionTargetsWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RestoreBlockSnapshotSessionCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SimpleTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.UnlinkBlockSnapshotSessionTargetCompleter;
@@ -167,6 +169,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String FRACTURE_CLONE_METHOD = "fractureClone";
     private static final String CREATE_SAPSHOT_SESSION_WF_NAME = "createSnapshotSessionWf";
     private static final String LINK_SNAPSHOT_SESSION_TARGETS_WF_NAME = "linkSnapshotSessionTargetsWF";
+    private static final String RELINK_SNAPSHOT_SESSION_TARGETS_WF_NAME = "relinkSnapshotSessionTargetsWF";
     private static final String UNLINK_SNAPSHOT_SESSION_TARGETS_WF_NAME = "unlinkSnapshotSessionTargetsWF";
     private static final String RESTORE_SNAPSHOT_SESSION_WF_NAME = "restoreSnapshotSessionWF";
     private static final String CREATE_SNAPSHOT_SESSION_STEP_GROUP = "createSnapshotSession";
@@ -174,6 +177,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP = "LinkSnapshotSessionTarget";
     private static final String LINK_SNAPSHOT_SESSION_TARGET_METHOD = "linkBlockSnapshotSessionTarget";
     private static final String RB_LINK_SNAPSHOT_SESSION_TARGET_METHOD = "rollbackLinkBlockSnapshotSessionTarget";
+    private static final String RELINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP = "RelinkSnapshotSessionTarget";
+    private static final String RELINK_SNAPSHOT_SESSION_TARGET_METHOD = "relinkBlockSnapshotSessionTarget";
     private static final String UNLINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP = "UnlinkSnapshotSessionTarget";
     private static final String UNLINK_SNAPSHOT_SESSION_TARGET_METHOD = "unlinkBlockSnapshotSessionTarget";
     private static final String RESTORE_SNAPSHOT_SESSION_STEP_GROUP = "RestoreSnapshotSession";
@@ -3708,6 +3713,78 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             _log.error("Create and link new target volumes for block snapshot session failed", e);
             ServiceCoded serviceException = DeviceControllerException.exceptions.linkBlockSnapshotSessionTargetsFailed(e);
             completer.error(_dbClient, serviceException);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void relinkTargetsToSnapshotSession(URI systemURI, URI tgtSnapSessionURI, List<URI> snapshotURIs,
+            String opId) throws InternalException {
+        TaskCompleter completer = new RelinkBlockSnapshotSessionTargetsWorkflowCompleter(tgtSnapSessionURI, snapshotURIs, opId);
+        try {
+            // Get a new workflow to execute the linking of the target volumes
+            // to the new session.
+            Workflow workflow = _workflowService.getNewWorkflow(this, RELINK_SNAPSHOT_SESSION_TARGETS_WF_NAME, false, opId);
+            _log.info("Created new workflow to re-link targets to snapshot session {} with operation id {}",
+                    tgtSnapSessionURI, opId);
+
+            for (URI snapshotURI : snapshotURIs) {
+                workflow.createStep(
+                        RELINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
+                        String.format("Re-linking target to snapshot session %s", tgtSnapSessionURI),
+                        null, systemURI, getDeviceType(systemURI), getClass(),
+                        relinkBlockSnapshotSessionTargetMethod(systemURI, tgtSnapSessionURI, snapshotURI),
+                        null, null);
+            }
+            workflow.executePlan(completer, "Re-link target volumes to block snapshot session successful");
+        } catch (Exception e) {
+            _log.error("Re-link target volumes to block snapshot session failed", e);
+            ServiceCoded serviceException = DeviceControllerException.exceptions.relinkBlockSnapshotSessionTargetsFailed(e);
+            completer.error(_dbClient, serviceException);
+        }
+    }
+
+    /**
+     * Create the workflow method that is invoked by the workflow service
+     * to re-link a target volume to the target array snapshot.
+     * 
+     * @param systemURI The URI of the storage system.
+     * @param tgtSnapSessionURI The URI of the target BlockSnapshotSession instance.
+     * @param snapshotURI The URI of the BlockSnapshot instance representing the linked target volume.
+     * 
+     * @return A reference to a Workflow.Method for re-linking a target volume to an array snapshot.
+     */
+    public static Workflow.Method relinkBlockSnapshotSessionTargetMethod(URI systemURI,
+            URI tgtSnapSessionURI, URI snapshotURI) {
+        return new Workflow.Method(RELINK_SNAPSHOT_SESSION_TARGET_METHOD, systemURI, tgtSnapSessionURI, snapshotURI);
+    }
+
+    /**
+     * Re-link a linked target volume to the target array snapshot on the storage
+     * system with the passed URI.
+     * 
+     * @param systemURI The URI of the storage system.
+     * @param tgtSnapSessionURI The URI of the target BlockSnapshotSession instance.
+     * @param snapshotURI The URI of the BlockSnapshot instance representing the linked target volume.
+     * @param stepId The unique id of the workflow step in which the target is re-linked.
+     */
+    public void relinkBlockSnapshotSessionTarget(URI systemURI, URI tgtSnapSessionURI,
+            URI snapshotURI, String stepId) {
+        TaskCompleter completer = null;
+        try {
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+            completer = new RelinkBlockSnapshotSessionTargetCompleter(tgtSnapSessionURI, snapshotURI, stepId);
+            getDevice(system.getSystemType()).doRelinkBlockSnapshotSessionTarget(system, tgtSnapSessionURI,
+                    snapshotURI, completer);
+        } catch (Exception e) {
+            if (completer != null) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+                completer.error(_dbClient, serviceError);
+            } else {
+                throw DeviceControllerException.exceptions.relinkBlockSnapshotSessionTargetsFailed(e);
+            }
         }
     }
 

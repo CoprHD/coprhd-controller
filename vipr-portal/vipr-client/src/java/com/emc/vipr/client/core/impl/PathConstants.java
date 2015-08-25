@@ -43,6 +43,7 @@ public class PathConstants {
     public static final String CLUSTER_BY_TENANT_URL = TENANT_URL + "/{tenantId}/clusters";
     public static final String BLOCK_VPOOL_URL = "/block/vpools";
     public static final String FILE_VPOOL_URL = "/file/vpools";
+    public static final String OBJECT_VPOOL_URL = "/object/vpools";
     public static final String COMPUTE_VPOOL_URL = "/compute/vpools";
     public static final String COMPUTE_SYSTEMS_URL = "/vdc/compute-systems";
     public static final String COMPUTE_ELEMENTS_URL = "/vdc/compute-elements";

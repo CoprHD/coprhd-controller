@@ -67,6 +67,7 @@ nav.file=File
 nav.file.filesystems=File Systems
 nav.file.snapshots=File Snapshots
 nav.file.virtualPools=File Virtual Pools
+nav.object.virtualPools=Object Virtual Pools
 nav.computeVirtualPools=Compute Virtual Pools
 nav.system=System
 nav.tenant=Tenant
@@ -1815,6 +1816,14 @@ BlockVirtualPools.edit.title=Edit Block Virtual Pool
 BlockVirtualPools.edit.description=Edit an existing block virtual pool.
 BlockVirtualPools.create.title=Create Block Virtual Pool
 BlockVirtualPools.create.description=Enter the information needed to create a Block Virtual Pool.
+
+# Object Virtual Pools
+ObjectVirtualPools.list.title=Object Virtual Pools
+ObjectVirtualPools.edit.title=Edit Object Virtual Pool
+ObjectVirtualPools.edit.description=Edit an existing object virtual pool.
+ObjectVirtualPools.create.title=Create Object Virtual Pool
+ObjectVirtualPools.create.description=Enter the information needed to create a Object Virtual Pool.
+ObjectVirtualPools.name=Object Virtual Pool
 
 VirtualPools.locked=This virtual pool has associated resources.  Only a limited number of fields may be changed.
 VirtualPools.save.success=Saved '%s'

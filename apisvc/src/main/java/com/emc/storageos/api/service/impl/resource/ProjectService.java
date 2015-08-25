@@ -53,11 +53,11 @@ import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLAssignments;
 import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.auth.PrincipalsToValidate;
-import com.emc.storageos.model.project.AssignVNASParam;
 import com.emc.storageos.model.project.ProjectBulkRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.project.ProjectUpdateParam;
 import com.emc.storageos.model.project.ResourceList;
+import com.emc.storageos.model.project.VirtualNasParam;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -799,7 +799,7 @@ public class ProjectService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/assign-vnas-servers")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ALL, ACL.OWN })
-    public Response assignVNasServersToProject(@PathParam("id") URI id, AssignVNASParam vnasParam) {
+    public Response assignVNasServersToProject(@PathParam("id") URI id, VirtualNasParam vnasParam) {
         Project project = getProjectById(id, true);
         StringSet validVNasServers = validateVNasServers(project, vnasParam);
         if (vnasParam.getVnasServers() != null && !vnasParam.getVnasServers().isEmpty()) {
@@ -809,17 +809,16 @@ public class ProjectService extends TaggedResource {
                     VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
                     vnas.setProject(project.getId());
                     _dbClient.persistObject(vnas);
-                    _log.info("VNAS server {} successfully assigned to project {} ", vnas.getLabel(), project.getLabel());
                 }
-                project.getAssignedVNasServers().addAll(validVNasServers);
+                // project.getAssignedVNasServers().addAll(validVNasServers);
                 project.setAssignedVNasServers(validVNasServers);
                 _dbClient.persistObject(project);
                 _log.info("Successfully assigned the virtual NAS Servers to project : {} ", project.getLabel());
             } else {
-                _log.info("vNASServer {} is already assigned to project : {}", project.getLabel());
+                _log.info("None of the VNAS servers are eligible to assign to project : {}", project.getLabel());
             }
         } else {
-            _log.info("No vnas server is selected to assign to project : {} ", project.getLabel());
+            _log.info("None of the VNAS servers are selected to assign to project : {} ", project.getLabel());
         }
         return Response.ok().build();
     }
@@ -832,10 +831,10 @@ public class ProjectService extends TaggedResource {
      * @brief Validate VNAS Servers
      * @return List of valid NAS servers
      */
-    public StringSet validateVNasServers(Project project, AssignVNASParam param) {
+    public StringSet validateVNasServers(Project project, VirtualNasParam param) {
         Set<String> vNasIds = param.getVnasServers();
         StringSet validNas = new StringSet();
-        if (vNasIds != null && !vNasIds.isEmpty()) {
+        if (vNasIds != null && !vNasIds.isEmpty() && project != null) {
             for (String id : vNasIds) {
                 URI vnasURI = URI.create(id);
                 VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
@@ -875,7 +874,7 @@ public class ProjectService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/unassign-vnas-servers")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ALL, ACL.OWN })
-    public Response unassignVNasServersFromProject(@PathParam("id") URI id, AssignVNASParam param) {
+    public Response unassignVNasServersFromProject(@PathParam("id") URI id, VirtualNasParam param) {
         Project project = getProjectById(id, true);
         StringSet vnasServers = project.getAssignedVNasServers();
         Set<String> vNasIds = param.getVnasServers();

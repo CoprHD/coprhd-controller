@@ -105,7 +105,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     private static final String PHYSICAL = "PHYSICAL";
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String UNMANAGED_EXPORT_RULE = "UnManagedExportRule";
-    private final Map<String, String> storgeHADomainState = new HashMap<String, String>();
+    private final Map<String, String> virtualNasState = new HashMap<String, String>();
 
     private static int BYTESCONV = 1024;  // VNX defaults to M and apparently Bourne wants K.
 
@@ -487,13 +487,13 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         tempSet.add(vdm.getProtocol());
         vNas.setProtocols(tempSet);
         vNas.setId(URIUtil.createId(VirtualNAS.class));
-        String vnasState = this.storgeHADomainState.get(vdm.getId().toString());
+        String vnasState = this.virtualNasState.get(vdm.getId().toString());
 
         if (!vnasState.isEmpty()) {
             vNas.setVNasState(vNasState.getNasState(vnasState));
         }
         // clean up the vdm state entry
-        this.storgeHADomainState.remove(vdm.getId().toString());
+        this.virtualNasState.remove(vdm.getId().toString());
 
         return vNas;
 
@@ -914,8 +914,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             if (vNas != null && tempList != null) {
                 _logger.info("VirtualNAS : {} : NativeID : {} ", vNas.getId(), nativeId);
                 _logger.info("StoragePort : {} ", tempList);
-               _logger.info("VirtualNAS : {} : NativeID : {} ",vNas.getId(), nativeId);
-               _logger.info("StoragePort : {} ",tempList);
                 vNas.setStoragePorts(tempList);
                 _dbClient.persistObject(vNas);
             } else {
@@ -1080,10 +1078,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             }
 
             /* Store the fresh Vdm state for each storageHADomain */
-            if (this.storgeHADomainState.containsKey(portGroup.getId().toString())) {
-                this.storgeHADomainState.remove(portGroup.getId().toString());
+            if (this.virtualNasState.containsKey(portGroup.getId().toString())) {
+                this.virtualNasState.remove(portGroup.getId().toString());
             }
-            this.storgeHADomainState.put(portGroup.getId().toString(), vdm.getState());
+            this.virtualNasState.put(portGroup.getId().toString(), vdm.getState());
         }
 
         _logger.info("Vdm Port group discovery for storage system {} complete.", system.getId());

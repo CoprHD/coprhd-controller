@@ -156,7 +156,7 @@ public class FileDeviceController implements FileController {
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                          // user ID TODO when AAA fixed
+                URI.create("ViPR-User"),                                           // user ID TODO when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -188,7 +188,7 @@ public class FileDeviceController implements FileController {
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                          // user ID TODO when AAA fixed
+                URI.create("ViPR-User"),                                           // user ID TODO when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -526,7 +526,7 @@ public class FileDeviceController implements FileController {
 
             if (result.getCommandPending()) {
                 return;
-            }                                                        // Set Mount path info for the exports
+            }                                                         // Set Mount path info for the exports
             FSExportMap fsExports = fsObj.getFsExports();
 
             // Per New model get the rules and see if any rules that are already saved and available.
@@ -2017,8 +2017,8 @@ public class FileDeviceController implements FileController {
                 deleteShareACLsFromDB(args);
                 _dbClient.persistObject(snapshot);
             }
-            args.setFileOperation(true);       // restoring back
         }
+        args.setFileOperation(true);       // restoring back
     }
 
     private void doCRUDExports(FileExportUpdateParams param, FileShare fs, FileDeviceInputOutput args) throws Exception {

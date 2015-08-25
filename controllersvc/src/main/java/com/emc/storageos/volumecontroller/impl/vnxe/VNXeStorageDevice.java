@@ -227,10 +227,11 @@ public class VNXeStorageDevice extends VNXeOperations
             VNXeFileSystem fs = apiClient.getFileSystemByFSName(name);
             if (fs != null && (fs.getName().equals(name))) {
                 isFSExists = true;
-            } else
+            } else {
                 isFSExists = false;
+            }
         } catch (Exception e) {
-            _logger.error("Qerying File System failed with exception:", e);
+            _logger.error("Querying File System failed with exception:", e);
         }
         return isFSExists;
     }

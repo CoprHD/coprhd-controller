@@ -260,10 +260,11 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
             List<String> fs = ncApi.listFileSystems();
             if (!fs.isEmpty() && fs.contains(args.getFsName())) {
                 isFSExists = true;
-            } else
+            } else {
                 isFSExists = false;
+            }
         } catch (NetAppException e) {
-            _log.error("NetAppFileStorageDevice::doCheckFSExists failed with an Exception", e);
+            _log.error("NetAppClusterModeDevice::doCheckFSExists failed with an Exception", e);
         }
         return isFSExists;
     }

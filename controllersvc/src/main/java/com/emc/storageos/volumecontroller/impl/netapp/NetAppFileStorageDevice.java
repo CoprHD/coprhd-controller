@@ -258,8 +258,9 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
             List<String> fs = nApi.listFileSystems();
             if (!fs.isEmpty() && fs.contains(args.getFsName())) {
                 isFSExists = true;
-            } else
+            } else {
                 isFSExists = false;
+            }
         } catch (NetAppException e) {
             _log.error("NetAppFileStorageDevice::doCheckFSExists failed with an Exception", e);
         }

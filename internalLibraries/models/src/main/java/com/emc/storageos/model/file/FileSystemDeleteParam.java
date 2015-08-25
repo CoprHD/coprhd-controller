@@ -20,9 +20,10 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement(name = "filesystem_deactivate")
 public class FileSystemDeleteParam {
+    private static final String DELETE_TYPE = "FULL";
 
     private boolean forceDelete;
-    private String deleteType;
+    private String deleteType = DELETE_TYPE;
 
     public FileSystemDeleteParam() {
     }
@@ -51,9 +52,6 @@ public class FileSystemDeleteParam {
     }
 
     public void setDeleteType(String deleteType) {
-        if (deleteType == null) {
-            deleteType = "FULL";
-        }
         this.deleteType = deleteType;
     }
 

@@ -202,16 +202,7 @@ _generate_disk4() {
 }
 
 _generate_ovf_file() {
-    if [ "${isvmx}" = false ] ; then
-        vsphere_only="<Item>
-        <rasd:Address>0</rasd:Address>
-        <rasd:Description>SCSI Controller</rasd:Description>
-        <rasd:ElementName>SCSI Controller 0</rasd:ElementName>
-        <rasd:InstanceID>3</rasd:InstanceID>
-        <rasd:ResourceSubType>VirtualSCSI</rasd:ResourceSubType>
-        <rasd:ResourceType>6</rasd:ResourceType>
-      </Item>"
-    else
+    if [ "${isvmx}" = true ] ; then
         vsphere_only=""
     fi
     cat > "${1}" <<EOF
@@ -333,7 +324,7 @@ _deploy_vm_to_workstation() {
 
     # append disk infos to VMX file
     local vmx_content="$(cat ${vipr_vmx_file})"
-    vmx_content="${vmx_content}
+    vmx_content+="
 scsi0:0.present = \"TRUE\"
 scsi0:0.deviceType = \"disk\"
 scsi0:0.fileName = \"${vmdk_dir}/vipr-${release}-disk1.vmdk\"\n
@@ -359,7 +350,7 @@ vmci0.unrestricted = \"false\""
     fi
     echo -e "${vmx_content}" > ${vipr_vmx_file}
 
-    # Deploy VMX
+    # convert VMX to OVF
     eval ovftool ${acc_eulas} ${vipr_vmx_file} ${tmpdir}
     if [ $? -ne 0 ] ; then
         _fatal "Failed to convert ${vipr_vmx_file} to ${tmpdir}/${vmname}/${vmname}.ovf"
@@ -368,7 +359,7 @@ vmci0.unrestricted = \"false\""
     # Deploy OVF
     eval ovftool ${acc_eulas} "${tmpdir}/${vmname}/${vmname}.ovf" ${vm_folder}
     ret=$?
-    if [ $? -ne 0 ] ; then
+    if [ "${ret}" -ne 0 ] ; then
         _fatal "Failed to deploy ${tmpdir}/${vmname}/${vmname}.ovf to ${vm_folder}"
     fi
 
@@ -512,9 +503,13 @@ _check_dm() {
 _check_ds() {
     if [ "${isvmx}" = true ] ; then
         return 0
-    else
-        _check_no_empty $1
     fi
+
+    if [ "$1" == "" ] ; then
+        error_message="Please enter a non empty value"
+        return 1
+    fi
+    return 0
 }
 
 _check_number() {
@@ -528,6 +523,10 @@ _check_number() {
 }
 
 _check_nodecount() {
+    if [ "${isvmx}" = true -a "$1" -ne 1 ] ; then
+        error_message="The node count should be 1 in install-vmx mode"
+        return 1
+    fi
     if [ "$1" -eq 3 -o "$1" -eq 5 -o "$1" -eq 1 ] ; then
         return 0
     fi
@@ -540,13 +539,16 @@ _check_target_uri() {
     return 0
 }
 
-_check_net_mode() {
-    if [ "$1" != "nat" -a "$1" != "bridged" ] ; then
+_check_net() {
+    if [ "${isvmx}" = false -a "$1" == "" ] ; then
+        error_message="Please enter a non empty value"
+        return 1
+    fi
+    if [ "${isvmx}" = true -a "$1" != "nat" -a "$1" != "bridged" ] ; then
         error_message="The valid values for option net is nat and bridged in install-vmx mode"
         return 1
-    else
-        return 0
     fi
+    return 0
 }
 
 # set a parameter
@@ -721,11 +723,8 @@ _set_vmname() {
 }
 
 _set_net() {
-    if [ "${isvmx}" = false ] ; then
-        _set_parameter "${net_label}" net _check_no_empty
-    else
-        _set_parameter "${net_mode_label}" net _check_net_mode
-    fi
+    _set_parameter "${net_label}" net _check_net
+
 }
 
 _set_vmfolder() {
@@ -787,16 +786,23 @@ _check_missing_vm_parameters() {
         parameters_to_set+="nodeid "
     fi
 
-    if [ "${isvmx}" = false -a "${ds}" == "" ] ; then
-        parameters_to_set+="ds "
-    fi
+    if [ "${isvmx}" = false ] ; then
+        if [ "${ds}" == "" ] ; then
+            parameters_to_set+="ds "
+        fi
 
-    if [ "${net}" == "" ] ; then
-        parameters_to_set+="net "
-    fi
+        if [ "${net}" == "" ] ; then
+            parameters_to_set+="net "
+        fi
 
-    if [ "${isvmx}" = false -a "${target_uri}" == "" ] ; then
-        parameters_to_set+="target_uri "
+        if [ "${target_uri}" == "" ] ; then
+            parameters_to_set+="target_uri "
+        fi
+    else
+        # install-vmx mode, only need to check net
+        if [ "${net}" != "nat" -a "${net}" != "bridged" ] ; then
+            parameters_to_set+="net "
+        fi
     fi
 }
 
@@ -844,22 +850,16 @@ _show_vm_settings() {
         ${node_id_label}: ${node_id}
         ${vmname_label}: ${vmname}"
     if [ "${isvmx}" = false ] ; then
-        vm_options_summary="${vm_options_summary}
-        ${ds_label}: ${ds}
-        ${dm_label}: ${dm}
-        ${net_label}: ${net}"
-    else
-        vm_options_summary="${vm_options_summary}
-        ${net_mode_label}: ${net}"
+        vm_options_summary+="\n${ds_label}: ${ds}
+        ${dm_label}: ${dm}"
     fi
-    vm_options_summary="${vm_options_summary}
+    vm_options_summary+="\n${net_label}: ${net}
         ${vm_folder_label}: ${vm_folder}
         ${cpu_count_label}: ${cpu_count}
         ${memory_label}: ${memory}"
     
     if [ "${isvmx}" = false ] ; then
-        vm_options_summary="${vm_options_summary}
-        ${poweron_label}: ${poweron}
+        vm_options_summary+="\n${poweron_label}: ${poweron}
         ${username_label}: ${username}
         ${target_uri_label}: ${target_uri}"
     fi
@@ -1117,7 +1117,11 @@ _set_settings_interactive() {
 }
 
 _set_vm_parameters() {
-    parameters_to_set="nodeid vmname ds dm net vmfolder cpucount memory poweron target_uri username password"
+    if [ "${isvmx}" = false ] ; then
+        parameters_to_set="nodeid vmname ds dm net vmfolder cpucount memory poweron target_uri username password"
+    else
+        parameters_to_set="nodeid vmname net vmfolder cpucount memory"
+    fi
     _set_parameters
 }
 
@@ -1396,10 +1400,6 @@ _check_missing_network_parameters() {
     if [ "${has_ipv4_options}" = false -a "${has_ipv6_options}" = false ] ; then
         parameters_to_set+="network_parameters "
     fi
-
-    if [ "${isvmx}" = true -a "${net}" != "nat" -a "${net}" != "bridged" ] ; then
-            parameters_to_set+="net "
-    fi
 }
 
 _parse_target_uri() {
@@ -1513,6 +1513,18 @@ _check_parameters() {
         # install-vmx mode
         isvmx=true
         interactive=true
+        node_count_label="Node count [ 1 (Node count can only be 1 in install-vmx mode) ]"
+        net_label="Network mode [bridged | nat]"
+        if [ "${node_count}" == "" ] ; then
+            node_count=1
+            _set_nodecount
+        else
+            _check_nodecount "${node_count}"
+            if [ $? -ne 0 ] ; then
+                echo "${error_message}"
+                _set_nodecount
+            fi
+        fi
     fi
 
     _check_missing_parameters
@@ -1733,7 +1745,7 @@ ipv6_addresses_labels=([1]="IPv6 address of node 1" [2]="IPv6 address of node 2"
 
 # Other settings
 mode=""
-mode_label="Mode [ install | redeploy ]"
+mode_label="Mode [ install | redeploy | install-vmx]"
 
 node_count=
 node_count_label="Node count [ 1 (evaluation only) | 3 | 5 ]"
@@ -1753,7 +1765,7 @@ ds_label="Datastore"
 
 net=""
 net_label="Network name"
-net_mode_label="Network mode [bridged | nat]"
+
 
 vm_folder=""
 vm_folder_label="Folder"
@@ -1809,6 +1821,14 @@ confirmed="x"
 error_message=""
 show_summary=true
 isvmx=false
+vsphere_only="<Item>
+        <rasd:Address>0</rasd:Address>
+        <rasd:Description>SCSI Controller</rasd:Description>
+        <rasd:ElementName>SCSI Controller 0</rasd:ElementName>
+        <rasd:InstanceID>3</rasd:InstanceID>
+        <rasd:ResourceSubType>VirtualSCSI</rasd:ResourceSubType>
+        <rasd:ResourceType>6</rasd:ResourceType>
+      </Item>"
 
 # If no arguments are given
 # print the usage

@@ -134,7 +134,7 @@ function Usage() {
     Write-Host "-mode: "
     Write-Host "         install              Install a new cluster"
     Write-Host "         redeploy             Redeploy a VM in a cluster"
-	Write-Host "         install-vmx          Install a VM at VMware workstation"
+	Write-Host "         install-vmx          Create a VM at VMware workstation"
     Write-Host "	"
     Write-Host "Install mode options: "
     Write-Host "    -vip:               Public virtual IPv4 address"

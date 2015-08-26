@@ -13,9 +13,9 @@
 _usage() {
     echo "Usage: $0 [-help] [-mode install | redeploy | install-vmx] [options]
            -mode:
-              install            install a new cluster
-              redeploy           redeploy a VM in a cluster
-              install-vmx        install a VM at VMware workstation
+              install            Install a new cluster
+              redeploy           Redeploy a VM in a cluster
+              install-vmx        Create a VM at VMware workstation
 
            Install mode options:
                -vip              Public virtual IPv4 address
@@ -42,17 +42,17 @@ _usage() {
 
                -ds               Data store name
                -net              Network name
-               -vmprefix         (Optional) prefix of virtual machine name
-               -vmname           (Optional) virtual machine name
-               -vmfolder         (Optional) target virtual machine folder
-               -dm               (Optional) disk format:thin, lazyzeroedthick, zeroedthick (default)
+               -vmprefix         (Optional) Prefix of virtual machine name
+               -vmname           (Optional) Virtual machine name
+               -vmfolder         (Optional) Target virtual machine folder
+               -dm               (Optional) Disk format:thin, lazyzeroedthick, zeroedthick (default)
 			   -cpucount:        (Optional) Number of virtual CPUs for each VM (default is 2)
 			   -memory:          (Optional) Amount of memory for each VM (default is 8192)
-               -poweron          (Optional) auto power on the VM after deploy, (no power on by default)
+               -poweron          (Optional) Auto power on the VM after deploy, (no power on by default)
 			   -file:            (Optional) The settings file
-               -username         (Optional) username of vSphere client
-               -password         (Optional) password of vSphere client
-               -interactive      (Optional) interactive way to deploy
+               -username         (Optional) Username of vSphere client
+               -password         (Optional) Password of vSphere client
+               -interactive      (Optional) Interactive way to deploy
 
            example: $0 -mode install -vip 1.2.3.0 -ipaddr_1 1.2.3.1 -ipaddr_2 1.2.3.2 -ipaddr_3 1.2.3.3 -gateway 1.1.1.1 -netmask 255.255.255.0 -nodeid 1 -nodecount 3 -targeturi vi://username:password@vsphere_host_url -ds datastore_name -net network_name -vmprefix vmprefix- -vmfolder vm_folder -dm zeroedthick -cpucount 2 -memory 8192 -poweron
 
@@ -62,14 +62,14 @@ _usage() {
                -targeturi        Target locator
                -ds               Data store name
                -net              Network name
-               -vmprefix         (Optional) prefix of virtual machine name
-               -vmname           (Optional) virtual machine name
-               -vmfolder         (Optional) target virtual machine folder
-               -dm               (Optional) disk format:thin, lazyzeroedthick, zeroedthick (default)
+               -vmprefix         (Optional) Prefix of virtual machine name
+               -vmname           (Optional) Virtual machine name
+               -vmfolder         (Optional) Target virtual machine folder
+               -dm               (Optional) Disk format:thin, lazyzeroedthick, zeroedthick (default)
 			   -cpucount:        (Optional) Number of virtual CPUs for each VM (default is 2)
 			   -memory:          (Optional) Amount of memory for each VM (default is 8192)
-               -poweron          (Optional) auto power on the VM after deploy, (no power on by default)
-               -interactive      (Optional) interactive way to redeploy
+               -poweron          (Optional) Auto power on the VM after deploy, (no power on by default)
+               -interactive      (Optional) Interactive way to redeploy
 
            example: $0 -mode redeploy -file your_setting_file_path -nodeid 1 -targeturi vi://username:password@vsphere_host_url -ds datastore_name -net network_name -vmprefix vmprefix- -vmfolder vm_folder -dm zeroedthick -cpucount 2 -memory 8192 -poweron
 

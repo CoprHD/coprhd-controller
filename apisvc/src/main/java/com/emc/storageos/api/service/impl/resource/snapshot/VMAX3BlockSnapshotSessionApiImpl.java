@@ -185,4 +185,15 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
         controller.restoreSnapshotSession(storageSystem.getId(), snapSession.getId(), taskId);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId) {
+        // Invoke the BlockDeviceController to delete the snapshot session.
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapSessionSourceObj.getStorageController());
+        BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
+        // controller.deleteSnapshotSession(storageSystem.getId(), snapSession.getId(), taskId);
+    }
 }

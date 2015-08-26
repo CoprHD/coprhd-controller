@@ -307,7 +307,7 @@ public class BlockSnapshotSessionManager {
         // Get the platform specific block snapshot session implementation.
         BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObj);
 
-        // Validate that the requested new targets can be linked to the snapshot session.
+        // Validate that the requested targets can be re-linked to the snapshot session.
         snapSessionApiImpl.validateRelinkSnapshotSessionTargets(snapSession, project, linkedTargetURIs, _uriInfo);
 
         // Create a unique task identifier.
@@ -320,7 +320,7 @@ public class BlockSnapshotSessionManager {
         snapSession.getOpStatus().put(taskId, op);
         TaskResourceRep response = toTask(snapSession, taskId);
 
-        // Unlink the targets from the snapshot session.
+        // Re-link the targets to the snapshot session.
         snapSessionApiImpl.relinkTargetVolumesToSnapshotSession(snapSessionSourceObj, snapSession, linkedTargetURIs, taskId);
 
         s_logger.info("FINISH relink targets to snapshot session {}", snapSessionURI);
@@ -362,7 +362,7 @@ public class BlockSnapshotSessionManager {
         // Get the platform specific block snapshot session implementation.
         BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObj);
 
-        // Validate that the requested new targets can be linked to the snapshot session.
+        // Validate that the requested targets can be unlinked from the snapshot session.
         snapSessionApiImpl.validateUnlinkSnapshotSessionTargets(snapSession, snapSessionSourceObj, project, targetMap.keySet(), _uriInfo);
 
         // Create a unique task identifier.
@@ -407,7 +407,7 @@ public class BlockSnapshotSessionManager {
         // Get the platform specific block snapshot session implementation.
         BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObj);
 
-        // Validate that the requested new targets can be linked to the snapshot session.
+        // Validate that the snapshot session can be restored.
         snapSessionApiImpl.validateRestoreSnapshotSession(snapSessionSourceObj, project);
 
         // Create the task identifier.
@@ -419,7 +419,7 @@ public class BlockSnapshotSessionManager {
         _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSession.getId(), taskId, op);
         snapSession.getOpStatus().put(taskId, op);
 
-        // Restore the snapshot.
+        // Restore the snapshot session.
         snapSessionApiImpl.restoreSnapshotSession(snapSession, snapSessionSourceObj, taskId);
 
         // Create the audit log entry.
@@ -440,6 +440,50 @@ public class BlockSnapshotSessionManager {
     public BlockSnapshotSessionRestRep getSnapshotSession(URI snapSessionURI) {
         BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, false);
         return map(_dbClient, snapSession);
+    }
+
+    /**
+     * 
+     * @param snapSessionURI
+     * @return
+     */
+    public TaskResourceRep deleteSnapshotSession(URI snapSessionURI) {
+        s_logger.info("START delete snapshot session {}", snapSessionURI);
+
+        // Get the snapshot session.
+        BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, true);
+
+        // Get the snapshot session source object.
+        URI snapSessionSourceURI = snapSession.getParent().getURI();
+        BlockObject snapSessionSourceObj = BlockObject.fetch(_dbClient, snapSessionSourceURI);
+
+        // Get the project for the snapshot session source object.
+        Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObj, _dbClient);
+
+        // Get the platform specific block snapshot session implementation.
+        BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObj);
+
+        // Validate that the snapshot session can be deleted.
+        snapSessionApiImpl.validateDeleteSnapshotSession(snapSession, project);
+
+        // Create the task identifier.
+        String taskId = UUID.randomUUID().toString();
+
+        // Create the operation status entry in the status map for the snapshot.
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.DELETE_SNAPSHOT_SESSION);
+        _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSession.getId(), taskId, op);
+        snapSession.getOpStatus().put(taskId, op);
+
+        // Delete the snapshot session.
+        snapSessionApiImpl.deleteSnapshotSession(snapSession, snapSessionSourceObj, taskId);
+
+        // Create the audit log entry.
+        auditOp(OperationTypeEnum.DELETE_SNAPSHOT_SESSION, true, AuditLogManager.AUDITOP_BEGIN,
+                snapSessionURI.toString(), snapSessionSourceURI.toString(), snapSessionSourceObj.getStorageController().toString());
+
+        s_logger.info("FINISH delete snapshot session {}", snapSessionURI);
+        return toTask(snapSession, taskId, op);
     }
 
     /**

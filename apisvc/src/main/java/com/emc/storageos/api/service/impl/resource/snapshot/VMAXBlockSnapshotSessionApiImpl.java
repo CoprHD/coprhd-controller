@@ -89,4 +89,12 @@ public class VMAXBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSession
     public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
         throw APIException.methodNotAllowed.notSupportedForVMAX();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateDeleteSnapshotSession(BlockSnapshotSession snapSession, Project project) {
+        throw APIException.methodNotAllowed.notSupportedForVMAX();
+    }
 }

@@ -382,7 +382,8 @@ public enum OperationTypeEnum {
     DELETE_USERGROUP("DELETE USER GROUP", "", "operation to delete a user group."),
 
     CREATE_SNAPSHOT_SESSION("BlockSnapshotSessionCreated", "BlockSnapshotSessionCreateFailed", "BlockSnapshotSession Create"),
-    RESTORE_SNAPSHOT_SESSION("SnapshotSessionRestored", "SnapshotSessionRestoreFailed", "BlockSnapshotSession Restore"),
+    RESTORE_SNAPSHOT_SESSION("BlockSnapshotSessionRestored", "BlockSnapshotSessionRestoreFailed", "BlockSnapshotSession Restore"),
+    DELETE_SNAPSHOT_SESSION("BlockSnapshotSessionDeleted", "BlockSnapshotSessionDeleteFailed", "BlockSnapshotSession Delete"),
 
     ArrayGeneric("", "", "");
 

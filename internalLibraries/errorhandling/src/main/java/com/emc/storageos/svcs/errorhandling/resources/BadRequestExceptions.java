@@ -2367,4 +2367,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException relinkTgtSnapshotSessionHasDifferentSource(final String snapSessionSourceId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException canDeactivateSnapshotSessionWithLinkedTargets();
 }

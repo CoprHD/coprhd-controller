@@ -92,4 +92,12 @@ public class HDSBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionA
     public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
         throw APIException.methodNotAllowed.notSupportedForHDS();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateDeleteSnapshotSession(BlockSnapshotSession snapSession, Project project) {
+        throw APIException.methodNotAllowed.notSupportedForHDS();
+    }
 }

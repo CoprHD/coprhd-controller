@@ -89,4 +89,12 @@ public class ScaleIOBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSess
     public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
         throw APIException.methodNotAllowed.notSupportedForScaleIO();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateDeleteSnapshotSession(BlockSnapshotSession snapSession, Project project) {
+        throw APIException.methodNotAllowed.notSupportedForScaleIO();
+    }
 }

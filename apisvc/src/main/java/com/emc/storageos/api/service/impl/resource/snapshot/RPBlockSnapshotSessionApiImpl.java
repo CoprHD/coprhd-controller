@@ -150,4 +150,12 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
     public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
         throw APIException.methodNotAllowed.notSupportedForRP();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateDeleteSnapshotSession(BlockSnapshotSession snapSession, Project project) {
+        throw APIException.methodNotAllowed.notSupportedForRP();
+    }
 }

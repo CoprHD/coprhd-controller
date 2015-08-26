@@ -89,4 +89,12 @@ public class OpenstackBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSe
     public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
         throw APIException.methodNotAllowed.notSupportedForOpenstack();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateDeleteSnapshotSession(BlockSnapshotSession snapSession, Project project) {
+        throw APIException.methodNotAllowed.notSupportedForOpenstack();
+    }
 }

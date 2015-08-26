@@ -536,6 +536,40 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateDeleteSnapshotSession(BlockSnapshotSession snapSession, Project project) {
+        // Validate the project tenant.
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+        ArgValidator.checkEntity(tenant, project.getTenantOrg().getURI(), false);
+
+        // Verify the user is authorized.
+        BlockServiceUtils.verifyUserIsAuthorizedForRequest(project,
+                BlockServiceUtils.getUserFromContext(_securityContext), _permissionsHelper);
+
+        // Verify the snapshot session has no linked targets.
+        // TBD - Future lift this restriction and just delete them. Maybe a passed
+        // parameter controls this automatic deletion of targets.
+        StringSet linkedTargetIds = snapSession.getLinkedTargets();
+        if ((linkedTargetIds != null) && (!linkedTargetIds.isEmpty())) {
+            List<URI> linkedTargetURIs = URIUtil.toURIList(linkedTargetIds);
+            List<BlockSnapshot> activeLinkedTargets = _dbClient.queryObject(BlockSnapshot.class, linkedTargetURIs, true);
+            if (!activeLinkedTargets.isEmpty()) {
+                throw APIException.badRequests.canDeactivateSnapshotSessionWithLinkedTargets();
+            }
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId) {
+        APIException.methodNotAllowed.notSupported();
+    }
+
+    /**
      * Looks up controller dependency for given hardware
      * 
      * @param clazz controller interface

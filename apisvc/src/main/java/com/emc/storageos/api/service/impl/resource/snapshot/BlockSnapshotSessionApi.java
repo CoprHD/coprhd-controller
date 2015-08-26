@@ -178,9 +178,27 @@ public interface BlockSnapshotSessionApi {
      * Restores the source with the data from the array snapshot point-in-time
      * copy represented by the passed BlockSnapshotSession instance.
      * 
-     * @param snapSession A reference to a BlockSnapshotSessioninstance.
+     * @param snapSession A reference to a BlockSnapshotSession instance.
      * @param snapSessionSourceObj A reference to the snapshot session source.
      * @param taskId A unique task identifier.
      */
     public void restoreSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId);
+
+    /**
+     * Validates a delete snapshot session request.
+     * 
+     * @param snapSession A reference to a BlockSnapshotSession instance.
+     * @param project A reference to the source project.
+     */
+    public void validateDeleteSnapshotSession(BlockSnapshotSession snapSession, Project project);
+
+    /**
+     * Deletes the array snapshot point-in-time copy represented by the passed
+     * BlockSnapshotSession instance.
+     * 
+     * @param snapSession A reference to a BlockSnapshotSession instance.
+     * @param snapSessionSourceObj A reference to the snapshot session source.
+     * @param taskId A unique task identifier.
+     */
+    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId);
 }

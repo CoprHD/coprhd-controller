@@ -19,7 +19,6 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionBulkRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
@@ -129,21 +128,22 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     }
 
     /**
+     * Deletes the BlockSnapshotSession instance with the passed id.
      * 
-     * @brief
+     * @brief Delete a block snapshot session.
      * 
-     * @prereq
+     * @prereq The block snapshot session has no linked target volumes.
      * 
-     * @param
+     * @param id The URI of the BlockSnapshotSession instance to be deleted.
      * 
-     * @return
+     * @return TaskResourceRep representing the snapshot session task.
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskList deactivateSnapshotSession(@PathParam("id") URI id) {
-        return null;
+    public TaskResourceRep deactivateSnapshotSession(@PathParam("id") URI id) {
+        return getSnapshotSessionManager().deleteSnapshotSession(id);
     }
 
     /**
@@ -166,14 +166,16 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     }
 
     /**
+     * Gets the details of the BlockSnapshotSession instances with the ids
+     * specified in the passed data.
      * 
-     * @brief
+     * @brief Gets details for requested block snapshot sessions.
      * 
-     * @prereq
+     * @prereq none
      * 
-     * @param
+     * @param param The ids of the desired BlockSnapshotSession instances.
      * 
-     * @return
+     * @return A BlockSnapshotSessionBulkRep with the snapshot session details.
      */
     @POST
     @Path("/bulk")

@@ -109,12 +109,10 @@ public class IpReconfigManager implements Runnable {
         localIpinfo.loadFromPropertyMap(ovfprops);
 
         String node_id = ovfprops.get(PropertyConstants.NODE_ID_KEY);
-        if (node_id != null) {
-            if (node_id.equals(Constants.STANDALONE_ID)) {
-                localNodeId = 1;
-            } else {
-                localNodeId = Integer.valueOf(node_id.split("vipr")[1]);
-            }
+        if (node_id == null || node_id.equals(Constants.STANDALONE_ID)) {
+            localNodeId = 1;
+        } else {
+            localNodeId = Integer.valueOf(node_id.split("vipr")[1]);
         }
         nodeCount = Integer.valueOf(ovfprops.get(PropertyConstants.NODE_COUNT_KEY));
     }

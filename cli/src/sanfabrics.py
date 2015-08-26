@@ -73,19 +73,22 @@ class SanFabrics(object):
     Returns a list of the active zones (and their zone members)
                                         for the specified
     '''
-    def show_fabrics_zones_by_uri(self, nsuri, fabricid, xml=False):
+    def show_fabrics_zones_by_uri(self, nsuri, fabricid, xml=False, exclude_aliases=False):
 
+        urisanfabric= SanFabrics.URI_SAN_FABRICS_ZONE_LIST
+        if(exclude_aliases == True ):
+            urisanfabric = urisanfabric + "?exclude-aliases=true"
         if(xml == False):
             (s, h) = common.service_json_request(self.__ipAddr, self.__port,
             "GET",
-            SanFabrics.URI_SAN_FABRICS_ZONE_LIST.format(nsuri, fabricid),
+            urisanfabric.format(nsuri, fabricid),
             None)
             return common.json_decode(s)
         else:
             (s, h) = common.service_json_request(self.__ipAddr,
             self.__port,
             "GET",
-            SanFabrics.URI_SAN_FABRICS_ZONE_LIST.format(nsuri, fabricid),
+            urisanfabric.format(nsuri, fabricid),
             None, None, xml)
             return s
 
@@ -266,6 +269,11 @@ def list_san_zones_parser(subcommand_parsers, common_parser):
                              dest='long',
                              help='List sanzones of Fabric or VSAN',
                              action='store_true')
+    list_zones_parser.add_argument('-exclude-aliases', '-ex-al',
+                             dest='exclude-aliases',
+                             help='This excludes the aliases',
+                             action='store_true')    
+    
     list_zones_parser.set_defaults(func=list_fabric_san_zones)
 
 

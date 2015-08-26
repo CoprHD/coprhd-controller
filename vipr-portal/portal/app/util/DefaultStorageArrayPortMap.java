@@ -29,5 +29,7 @@ public enum DefaultStorageArrayPortMap {
     xtremio,
     xtremeio_useSSL,
     vnxe,
-    netappc
+    netappc,
+    ecs,
+    ecs_useSSl
 }

@@ -397,6 +397,16 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
+    public void setDistributedOwnerLockAroundHook(DistributedAroundHook ownerLockAroundHook) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public DistributedAroundHook getDistributedOwnerLockAroundHook() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public String getDbConfigPath(String serviceName) {
         return DB_CONFIG;
     }

@@ -224,6 +224,16 @@ public class TestCoordinator implements CoordinatorClient {
     }
 
     @Override
+    public void setDistributedOwnerLockAroundHook(DistributedAroundHook ownerLockAroundHook) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public DistributedAroundHook getDistributedOwnerLockAroundHook() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public CoordinatorClientInetAddressMap getInetAddessLookupMap() {
         return null;
     }

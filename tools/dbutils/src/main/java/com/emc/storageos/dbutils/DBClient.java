@@ -239,22 +239,29 @@ public class DBClient {
         PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
         Object objValue;
         Class type;
+        Set<String> ignoreList = new HashSet<>();
         for (PropertyDescriptor pd : pds) {
             // skip class property
             if (pd.getName().equals("class") || pd.getName().equals("id")) {
                 continue;
             }
 
+            Name nameAnnotation = pd.getReadMethod().getAnnotation(Name.class);
+            if (nameAnnotation == null) {
+                continue;
+            }
+
             objValue = pd.getReadMethod().invoke(object);
             if (objValue == null) {
+                ignoreList.add(nameAnnotation.value());
                 continue;
             }
 
             if (isEmptyStr(objValue)) {
+                ignoreList.add(nameAnnotation.value());
                 continue;
             }
             
-            Name nameAnnotation = pd.getReadMethod().getAnnotation(Name.class);
             System.out.print("\t" + nameAnnotation.value() + " = ");
 
             Encrypt encryptAnnotation = pd.getReadMethod().getAnnotation(Encrypt.class);
@@ -278,9 +285,8 @@ public class DBClient {
         }
         
         if (this.showModificationTime) {
-            Column<CompositeColumnName> latestField = _dbClient
-                    .getLatestModifiedField(TypeMap.getDoType(clazz),
-                            object.getId());
+            Column<CompositeColumnName> latestField = _dbClient.getLatestModifiedField(
+                    TypeMap.getDoType(clazz), object.getId(), ignoreList);
             if (latestField != null)
                 System.out.println(String.format(
                         "The latest modified time is %s on Field(%s).\n", new Date(

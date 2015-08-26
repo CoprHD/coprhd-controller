@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeImage;
 import com.emc.storageos.db.client.model.ComputeImageJob;
 import com.emc.storageos.db.client.model.ComputeImageJob.JobStatus;
+import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -675,16 +676,17 @@ public class ImageServerControllerImpl implements ImageServerController {
 
             ComputeImageJob job = dbClient.queryObject(ComputeImageJob.class, jobId);
             ComputeImage img = dbClient.queryObject(ComputeImage.class, job.getComputeImageId());
+            ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, job.getComputeImageServerId());
 
             SSHSession session = new SSHSession();
-            session.connect(imageServerConf.getImageServerIp(), imageServerConf.getSshPort(),
-                    imageServerConf.getImageServerUser(), imageServerConf.getImageServerPassword());
-            d = new ImageServerDialog(session, imageServerConf.getSshTimeoutMs());
+            session.connect(imageServer.getImageServerIp(), imageServer.getSshPort(),
+                    imageServer.getImageServerUser(), imageServer.getImageServerPassword());
+            d = new ImageServerDialog(session, imageServer.getSshTimeoutMs());
             d.init();
             log.info("connected to image server");
 
             log.info("verify the image is still there");
-            if (!d.directoryExists(imageServerConf.getTftpbootDir() + img.getPathToDirectory())) {
+            if (!d.directoryExists(imageServer.getTftpbootDir() + img.getPathToDirectory())) {
                 log.error("the image is missing");
                 throw ImageServerControllerException.exceptions.computeImageIsMissing(img.getPathToDirectory());
             }
@@ -702,12 +704,12 @@ public class ImageServerControllerImpl implements ImageServerController {
             }
 
             log.info("make sure the python server is running");
-            pid = d.getServerPid(imageServerConf.getImageServerHttpPort());
+            pid = d.getServerPid(imageServer.getImageServerHttpPort());
             if (pid == null) {
                 log.warn("python server is not running, attempt to start it");
-                d.cd(imageServerConf.getTftpbootDir() + HTTP_DIR);
+                d.cd(imageServer.getTftpbootDir() + HTTP_DIR);
                 d.nohup(String.format("python %s", SERVER_PY_FILE));
-                pid = d.getServerPid(imageServerConf.getImageServerHttpPort());
+                pid = d.getServerPid(imageServer.getImageServerHttpPort());
                 if (pid == null) {
                     throw ImageServerControllerException.exceptions.httpPythonServerNotRunning();
                 }
@@ -741,11 +743,12 @@ public class ImageServerControllerImpl implements ImageServerController {
 
             ComputeImageJob job = dbClient.queryObject(ComputeImageJob.class, jobId);
             ComputeImage img = dbClient.queryObject(ComputeImage.class, job.getComputeImageId());
+            ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, job.getComputeImageServerId());
 
             SSHSession session = new SSHSession();
-            session.connect(imageServerConf.getImageServerIp(), imageServerConf.getSshPort(),
-                    imageServerConf.getImageServerUser(), imageServerConf.getImageServerPassword());
-            d = new ImageServerDialog(session, imageServerConf.getSshTimeoutMs());
+            session.connect(imageServer.getImageServerIp(), imageServer.getSshPort(),
+                    imageServer.getImageServerUser(), imageServer.getImageServerPassword());
+            d = new ImageServerDialog(session, imageServer.getSshTimeoutMs());
             d.init();
             log.info("connected to image server");
 
@@ -779,6 +782,8 @@ public class ImageServerControllerImpl implements ImageServerController {
             WorkflowStepCompleter.stepExecuting(stepId);
 
             ComputeImageJob job = dbClient.queryObject(ComputeImageJob.class, jobId);
+            ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, job.getComputeImageServerId());
+
             if (job.getJobStartTime() == null) {
                 log.info("starting the job");
                 job.setJobStartTime(System.currentTimeMillis());
@@ -790,11 +795,11 @@ public class ImageServerControllerImpl implements ImageServerController {
 
             OsInstallStatus status = null;
 
-            while (System.currentTimeMillis() - job.getJobStartTime() < imageServerConf.getOsInstallTimeoutMs()
+            while (System.currentTimeMillis() - job.getJobStartTime() < imageServer.getOsInstallTimeoutMs()
                     && status == null) {
                 try {
-                    log.info("sleep for {} ms", imageServerConf.getJobPollingIntervalMs());
-                    Thread.sleep(imageServerConf.getJobPollingIntervalMs());
+                    log.info("sleep for {} ms", imageServer.getJobPollingIntervalMs());
+                    Thread.sleep(imageServer.getJobPollingIntervalMs());
                 } catch (InterruptedException e) {
                     log.error(e.getMessage(), e);
                 }
@@ -808,16 +813,16 @@ public class ImageServerControllerImpl implements ImageServerController {
                 ImageServerDialog d = null;
                 try {
                     SSHSession session = new SSHSession();
-                    session.connect(imageServerConf.getImageServerIp(), imageServerConf.getSshPort(),
-                            imageServerConf.getImageServerUser(), imageServerConf.getImageServerPassword());
-                    d = new ImageServerDialog(session, imageServerConf.getSshTimeoutMs());
+                    session.connect(imageServer.getImageServerIp(), imageServer.getSshPort(),
+                            imageServer.getImageServerUser(), imageServer.getImageServerPassword());
+                    d = new ImageServerDialog(session, imageServer.getSshTimeoutMs());
                     d.init();
-                    d.rm(imageServerConf.getTftpbootDir() + HTTP_SUCCESS_DIR + job.getPxeBootIdentifier());
-                    d.rm(imageServerConf.getTftpbootDir() + HTTP_FAILURE_DIR + job.getPxeBootIdentifier());
-                    d.rm(imageServerConf.getTftpbootDir() + HTTP_KICKSTART_DIR + job.getPxeBootIdentifier());
-                    d.rm(imageServerConf.getTftpbootDir() + HTTP_FIRSTBOOT_DIR + job.getPxeBootIdentifier());
-                    d.rm(imageServerConf.getTftpbootDir() + PXELINUX_CFG_DIR + job.getPxeBootIdentifier());
-                    d.rm(imageServerConf.getTftpbootDir() + PXELINUX_CFG_DIR + job.getPxeBootIdentifier() + ".boot.cfg");
+                    d.rm(imageServer.getTftpbootDir() + HTTP_SUCCESS_DIR + job.getPxeBootIdentifier());
+                    d.rm(imageServer.getTftpbootDir() + HTTP_FAILURE_DIR + job.getPxeBootIdentifier());
+                    d.rm(imageServer.getTftpbootDir() + HTTP_KICKSTART_DIR + job.getPxeBootIdentifier());
+                    d.rm(imageServer.getTftpbootDir() + HTTP_FIRSTBOOT_DIR + job.getPxeBootIdentifier());
+                    d.rm(imageServer.getTftpbootDir() + PXELINUX_CFG_DIR + job.getPxeBootIdentifier());
+                    d.rm(imageServer.getTftpbootDir() + PXELINUX_CFG_DIR + job.getPxeBootIdentifier() + ".boot.cfg");
                 } catch (Exception e) {
                     log.error("exception when trying to poll for status", e);
                 } finally {
@@ -849,7 +854,7 @@ public class ImageServerControllerImpl implements ImageServerController {
                 job.setJobStatus(JobStatus.TIMEDOUT.name());
                 dbClient.persistObject(job);
                 WorkflowStepCompleter.stepFailed(stepId,
-                        ImageServerControllerException.exceptions.osInstallationTimedOut(imageServerConf.getOsInstallTimeoutMs() / 1000));
+                        ImageServerControllerException.exceptions.osInstallationTimedOut(imageServer.getOsInstallTimeoutMs() / 1000));
             }
 
         } catch (InternalException e) {

@@ -73,7 +73,7 @@ public class ComputeImageServerService extends TaskResourceService {
 
 		auditOp(OperationTypeEnum.DELETE_COMPUTE_IMAGESERVER, true, null,
 				imageServer.getId().toString(),
-				imageServer.getImageServerAddress(), imageServer.getUsername());
+				imageServer.getImageServerIp(), imageServer.getImageServerUser());
 
 		return Response.ok().build();
 	}

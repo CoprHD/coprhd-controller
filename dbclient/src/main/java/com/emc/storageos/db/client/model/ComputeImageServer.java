@@ -13,120 +13,151 @@ package com.emc.storageos.db.client.model;
 @Cf("ComputeImageServer")
 public class ComputeImageServer extends DataObject {
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+    private String imageServerIp;
+    private String imageServerUser;
+    private String imageServerPassword;
+    private String tftpbootDir;
+    private String imageDir;
+    private String imageServerSecondIp;
+    private String imageServerHttpPort;
+    private Integer sshPort = 22;
+    private Integer sshTimeoutMs = 10000;
+    private Integer imageImportTimeoutMs = 1800000;
+    private Integer osInstallTimeoutMs = 3600000;
+    private Integer jobPollingIntervalMs = 60000;
 
-	private String imageServerAddress;
+	
+    private StringSet computeImage;
 
-	private String osInstallAddress;
+    @Name("imageServerIp")
+    public String getImageServerIp() {
+        return imageServerIp;
+    }
 
-	private String username;
+    public void setImageServerIp(String imageServerIp) {
+        this.imageServerIp = imageServerIp;
+         setChanged("ImageServerIp");
+    }
 
-	private String password;
+    @Name("imageServerUser")
+    public String getImageServerUser() {
+        return imageServerUser;
+    }
 
-	private String bootDir;
+    public void setImageServerUser(String imageServerUser) {
+        this.imageServerUser = imageServerUser;
+         setChanged("ImageServerUser");
+    }
 
-	private long installTimeout;
+    @Name("imageServerPassword")
+    public String getImageServerPassword() {
+        return imageServerPassword;
+    }
 
-	private StringSet computeImage;
+    public void setImageServerPassword(String imageServerPassword) {
+        this.imageServerPassword = imageServerPassword;
+         setChanged("imageServerPassword");
 
-	/**
-	 * @return the osInstallAddress
-	 */
-	@Name("osInstallAddress")
-	public String getOsInstallAddress() {
-		return osInstallAddress;
-	}
+    }
 
-	/**
-	 * @param osInstallAddress
-	 *            the osInstallAddress to set
-	 */
-	public void setOsInstallAddress(String osInstallAddress) {
-		this.osInstallAddress = osInstallAddress;
-	}
+    @Name("tftpbootDir")
+    public String getTftpbootDir() {
+        return tftpbootDir;
+    }
 
-	/**
-	 * @return the username
-	 */
-	@Name("username")
-	public String getUsername() {
-		return username;
-	}
+    public void setTftpbootDir(String tftpbootDir) {
+        String s = tftpbootDir.trim();
+        if (!s.endsWith("/")) {
+            this.tftpbootDir = s + "/";
+        } else {
+            this.tftpbootDir = s;
+        }
+         setChanged("tftpbootDir");
+    }
+    @Name("imageDir")
+    public String getImageDir() {
+        return imageDir;
+    }
 
-	/**
-	 * @param username
-	 *            the username to set
-	 */
-	public void setUsername(String username) {
-		this.username = username;
-	}
+    public void setImageDir(String imageDir) {
+        String s = imageDir.trim();
+        if (s.length() > 0 && !s.endsWith("/")) {
+            this.imageDir = s + "/";
+        } else {
+            this.imageDir = s;
+        }
+         setChanged("imageDir");
+    }
 
-	/**
-	 * @return the password
-	 */
-	@Name("password")
-	public String getPassword() {
-		return password;
-	}
+    @Name("imageServerSecondIp")
+    public String getImageServerSecondIp() {
+        return imageServerSecondIp;
+    }
 
-	/**
-	 * @param password
-	 *            the password to set
-	 */
-	public void setPassword(String password) {
-		this.password = password;
-	}
+    public void setImageServerSecondIp(String imageServerSecondIp) {
+        this.imageServerSecondIp = imageServerSecondIp;
+         setChanged("imageServerSecondIp");
+    }
+    @Name("imageServerHttpPort")
+    public String getImageServerHttpPort() {
+        return imageServerHttpPort;
+    }
 
-	/**
-	 * @return the bootDir
-	 */
-	@Name("bootDir")
-	public String getBootDir() {
-		return bootDir;
-	}
+    public void setImageServerHttpPort(String imageServerHttpPort) {
+        this.imageServerHttpPort = imageServerHttpPort;
+         setChanged("imageServerHttpPort");
+    }
 
-	/**
-	 * @param bootDir
-	 *            the bootDir to set
-	 */
-	public void setBootDir(String bootDir) {
-		this.bootDir = bootDir;
-	}
+    @Name("sshTimeoutMs")
+    public Integer getSshTimeoutMs() {
+        return sshTimeoutMs;
+    }
 
-	/**
-	 * @return the installTimeout
-	 */
-	@Name("installTimeout")
-	public long getInstallTimeout() {
-		return installTimeout;
-	}
+    public void setSshTimeoutMs(Integer sshTimeoutMs) {
+        this.sshTimeoutMs = sshTimeoutMs;
+         setChanged("sshTimeoutMs");
+    }
 
-	/**
-	 * @param installTimeout
-	 *            the installTimeout to set
-	 */
-	public void setInstallTimeout(long installTimeout) {
-		this.installTimeout = installTimeout;
-	}
+   @Name("imageImportTimeoutMs")
+   public Integer getImageImportTimeoutMs() {
+        return imageImportTimeoutMs;
+    }
 
-	/**
-	 * @return the imageServerAddress
-	 */
-	@Name("imageServerAddress")
-	public String getImageServerAddress() {
-		return imageServerAddress;
-	}
+    public void setImageImportTimeoutMs(Integer imageImportTimeoutMs) {
+        this.imageImportTimeoutMs = imageImportTimeoutMs;
+         setChanged("imageImportTimeoutMs");
+    }
 
-	/**
-	 * @param imageServerAddress
-	 *            the imageServerAddress to set
-	 */
-	public void setImageServerAddress(String imageServerAddress) {
-		this.imageServerAddress = imageServerAddress;
-	}
+    @Name("osInstallTimeoutMs")
+    public Integer getOsInstallTimeoutMs() {
+        return osInstallTimeoutMs;
+    }
+
+    public void setOsInstallTimeoutMs(Integer osInstallTimeoutMs) {
+        this.osInstallTimeoutMs = osInstallTimeoutMs;
+         setChanged("osInstallTimeoutMs");
+    }
+
+    @Name("jobPollingIntervalMs")
+    public Integer getJobPollingIntervalMs() {
+        return jobPollingIntervalMs;
+    }
+
+    public void setJobPollingIntervalMs(Integer jobPollingIntervalMs) {
+        this.jobPollingIntervalMs = jobPollingIntervalMs;
+         setChanged("jobPollingIntervalMs");
+    }
+
+    @Name("sshPort")
+    public Integer getSshPort() {
+        return sshPort;
+    }
+
+    public void setSshPort(Integer sshPort) {
+        this.sshPort = sshPort;
+         setChanged("sshPort");
+    }
+
 
 	/**
 	 * @return the computeImage

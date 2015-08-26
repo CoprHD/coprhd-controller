@@ -1902,6 +1902,7 @@ public class HostService extends TaskResourceService {
         job.setDnsServers(param.getDnsServers());
         job.setManagementNetwork(param.getManagementNetwork());
         job.setPxeBootIdentifier(ImageServerUtils.uuidFromString(host.getUuid()).toString());
+        job.setComputeImageServerId(cs.getComputeImageServer());
 
         // volume id is optional
         if (!NullColumnValueGetter.isNullURI(param.getVolume())

@@ -202,9 +202,6 @@ _generate_disk4() {
 }
 
 _generate_ovf_file() {
-    if [ "${isvmx}" = true ] ; then
-        vsphere_only=""
-    fi
     cat > "${1}" <<EOF
 ${include="storageos-vsphere-template.xml"}
 EOF
@@ -544,7 +541,7 @@ _check_net() {
         return 1
     fi
     if [ "${isvmx}" = true -a "$1" != "nat" -a "$1" != "bridged" ] ; then
-        error_message="The valid values for option net is nat and bridged in install-vmx mode"
+        error_message="The valid values for option net is nat or bridged in install-vmx mode"
         return 1
     fi
     return 0
@@ -1517,7 +1514,7 @@ _check_parameters() {
     else
         # install-vmx mode
         isvmx=true
-        interactive=true
+        vsphere_only=""
         node_count_label="Node count [ 1 (Node count can only be 1 in install-vmx mode) ]"
         net_label="Network mode [bridged | nat]"
         _init_nodecount
@@ -1533,7 +1530,7 @@ _check_parameters() {
         vmname=${vmname:-${vmname_prefix}${product_name}${node_id}}
     fi
 
-    if [ -f "${setting_file}" -a "${isvmx}" = false ] ; then
+    if [ -f "${setting_file}" ] ; then
         local ipv4_options=${has_ipv4_options}
         local ipv6_options=${has_ipv6_options}
 
@@ -1843,7 +1840,7 @@ if [ ! -f "${setting_file}" ] ; then
 fi
 
 #if -file is given, use it to initalize the settings again.
-if [ "${config_file}" != "" -a "${isvmx}" = false ] ; then
+if [ "${config_file}" != "" ] ; then
     _parse_setting_file "${config_file}"
     _init_parameters
 fi
@@ -1870,9 +1867,7 @@ _generate_file_names
 
 #All parameters are passed check
 #so save them to .settings file
-if [ "${isvmx}" = false ] ; then
-    _persist_settings
-fi
+_persist_settings
 _set_traps
 _set_data_disks_path
 _set_common_ovftool_options

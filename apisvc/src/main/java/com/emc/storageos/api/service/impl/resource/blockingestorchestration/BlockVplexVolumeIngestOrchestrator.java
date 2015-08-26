@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -168,7 +169,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         return virtualVolume;
     }
 
-    private void validateContext(VirtualPool vPool, 
+    private void validateContext(VirtualPool vpool, 
             TenantOrg tenant, VplexBackendIngestionContext context) throws Exception {
         UnManagedVolume unManagedVirtualVolume = context.getUnmanagedVirtualVolume();
         List<UnManagedVolume> unManagedBackendVolumes = context.getUnmanagedBackendVolumes();
@@ -194,18 +195,59 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         List<URI> unManagedBackendVolumeUris = new ArrayList<URI>();
         for (UnManagedVolume vol : unManagedBackendVolumes) {
             unManagedBackendVolumeUris.add(vol.getId());
+            
+            _logger.info("checking for non native mirrors on backend volume " + vol.getNativeGuid());
+            StringSet mirrors = PropertySetterUtil.extractValuesFromStringSet(
+                    SupportedVolumeInformation.MIRRORS.toString(), vol.getVolumeInformation());
+            Iterator<String> mirrorator = mirrors.iterator();
+            while (mirrorator.hasNext()) {
+                String mirrorGuid = mirrorator.next();
+                _logger.info("\tvolume has mirror " + mirrorGuid);
+                for (Entry<UnManagedVolume, String> entry : context.getUnmanagedMirrors().entrySet()) {
+                    if (mirrorGuid.equals(entry.getKey().getNativeGuid())) {
+                        _logger.info("\tbut it's native, so it's okay...");
+                        mirrorator.remove();
+                    }
+                }
+            }
+            if (!mirrors.isEmpty()) {
+                throw IngestionException.exceptions.generalException("backend volume has non-native vplex mirrors!");
+            }
         }
         
         // TODO more validation - needs further analysis
-        // check if selected vpool can contain all the backend volumes
-
+        // check that vpool supports mirrors
+        int mirrorCount = context.getUnmanagedMirrors().size();
+        if (mirrorCount > 0) {
+            if (VirtualPool.vPoolSpecifiesMirrors(vpool, _dbClient)) {
+                if (vpool.getMaxNativeContinuousCopies() > mirrorCount) {
+                    // TODO better exception
+                    throw IngestionException.exceptions.generalException("more continuous copies (mirrors) for volume that vpool allows");
+                }
+            } else {
+                // TODO better exception
+                throw IngestionException.exceptions.generalException("vpool does not allow continuous copies, but a vplex mirror is present");
+            }
+        }
         
+        int snapshotCount = context.getUnmanagedSnapshots().size();
+        if (snapshotCount > 0) {
+            if (VirtualPool.vPoolSpecifiesSnapshots(vpool)) {
+                if (vpool.getMaxNativeSnapshots() > snapshotCount) {
+                    // TODO better exception
+                    throw IngestionException.exceptions.generalException("more snapshots for volume that vpool allows");
+                }
+            } else {
+                // TODO better exception
+                throw IngestionException.exceptions.generalException("vpool does not allow snapshots, but volume has snapshots");
+            }
+        }
         
         // check for Quotas
         long unManagedVolumesCapacity = VolumeIngestionUtil.getTotalUnManagedVolumeCapacity(_dbClient, unManagedBackendVolumeUris);
         _logger.info("UnManagedVolume provisioning quota validation successful");
-        CapacityUtils.validateQuotasForProvisioning(_dbClient, vPool, context.getBackendProject(), tenant, unManagedVolumesCapacity, "volume");
-        VolumeIngestionUtil.checkIngestionRequestValidForUnManagedVolumes(unManagedBackendVolumeUris, vPool, _dbClient);
+        CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, context.getBackendProject(), tenant, unManagedVolumesCapacity, "volume");
+        VolumeIngestionUtil.checkIngestionRequestValidForUnManagedVolumes(unManagedBackendVolumeUris, vpool, _dbClient);
     }
 
     private void ingestBackendVolumes(List<URI> systemCache,
@@ -352,9 +394,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     private void createVplexMirrorObjects(VplexBackendIngestionContext context, Volume virtualVolume) {
         if (!context.getUnmanagedMirrors().isEmpty()) {
             _logger.info("creating VplexMirror object");
-            for (UnManagedVolume umv : context.getUnmanagedMirrors()) {
+            for (Entry<UnManagedVolume, String> entry : context.getUnmanagedMirrors().entrySet()) {
                 // find mirror and create a VplexMirror object
-                BlockObject mirror = context.getCreatedObjectMap().get(umv.getNativeGuid()
+                BlockObject mirror = context.getCreatedObjectMap().get(entry.getKey().getNativeGuid()
                     .replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
                         VolumeIngestionUtil.VOLUME));
                 if (null != mirror) {
@@ -365,13 +407,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         StringSet associatedVolumes = new StringSet();
                         associatedVolumes.add(mirrorVolume.getId().toString());
                         vplexMirror.setAssociatedVolumes(associatedVolumes);
-                        String deviceName = PropertySetterUtil.extractValueFromStringSet(
-                                SupportedVolumeInformation.VPLEX_SUPPORTING_DEVICE_NAME.toString(),
-                                    context.getUnmanagedVirtualVolume().getVolumeInformation());
+                        String[] devicePathParts = entry.getValue().split("/");
+                        String deviceName = devicePathParts[devicePathParts.length - 1];
                         vplexMirror.setDeviceLabel(deviceName);
                         vplexMirror.setCapacity(mirrorVolume.getCapacity());
                         vplexMirror.setLabel(mirrorVolume.getLabel());
-                        vplexMirror.setNativeId(umv.getNativeGuid());
+                        vplexMirror.setNativeId(entry.getValue());
                         vplexMirror.setProject(new NamedURI(
                                 context.getFrontendProject().getId(), mirrorVolume.getLabel()));
                         vplexMirror.setProvisionedCapacity(mirrorVolume.getProvisionedCapacity());
@@ -379,11 +420,17 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         vplexMirror.setStorageController(mirrorVolume.getStorageController());
                         vplexMirror.setTenant(mirrorVolume.getTenant());
                         vplexMirror.setThinPreAllocationSize(mirrorVolume.getThinVolumePreAllocationSize());
-                        vplexMirror.setThinlyProvisioned(vplexMirror.getThinlyProvisioned());
-                        vplexMirror.setVirtualArray(vplexMirror.getVirtualArray());
-                        vplexMirror.setVirtualPool(vplexMirror.getVirtualPool());
+                        vplexMirror.setThinlyProvisioned(mirrorVolume.getThinlyProvisioned());
+                        vplexMirror.setVirtualArray(mirrorVolume.getVirtualArray());
+                        vplexMirror.setVirtualPool(mirrorVolume.getVirtualPool());
                         
                         _dbClient.createObject(vplexMirror);
+                        StringSet mirrors = virtualVolume.getMirrors();
+                        if (mirrors == null) {
+                            mirrors = new StringSet();
+                        }
+                        mirrors.add(vplexMirror.getId().toString());
+                        virtualVolume.setMirrors(mirrors);
                     }
                 }
             }
@@ -391,8 +438,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     }
     
     private void setAssociatedVolumes(VplexBackendIngestionContext context, Volume virtualVolume) {
+        Collection<BlockObject> createdObjects = context.getCreatedObjectMap().values();
         if (null != virtualVolume && virtualVolume instanceof Volume) {
-            Collection<BlockObject> createdObjects = context.getCreatedObjectMap().values();
             StringSet vols = new StringSet();
             for (BlockObject vol : createdObjects) {
                 if (context.getBackendVolumeGuids().contains(vol.getNativeGuid())) {
@@ -402,7 +449,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             ((Volume) virtualVolume).setAssociatedVolumes(vols);
             // TODO: set associated vol on clone
         }
-
+        for (UnManagedVolume unmanagedClone : context.getUnmanagedFullClones().values()) {
+            if (context.getCreatedObjectMap().keySet().contains(unmanagedClone.getNativeGuid())) {
+                BlockObject clone = context.getCreatedObjectMap().get(unmanagedClone.getNativeGuid());
+                virtualVolume.setAssociatedSourceVolume(clone.getId());
+            }
+        }
     }
 
     private void handleFinalDetails(VplexBackendIngestionContext context) {

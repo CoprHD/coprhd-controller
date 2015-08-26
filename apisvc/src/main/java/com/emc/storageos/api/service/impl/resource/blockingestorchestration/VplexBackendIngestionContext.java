@@ -45,7 +45,7 @@ public class VplexBackendIngestionContext {
     private List<UnManagedVolume> unmanagedSnapshots;
     private Map<UnManagedVolume, UnManagedVolume> unmanagedFullClones;
     private Map<UnManagedVolume, Set<UnManagedVolume>> unmanagedBackendOnlyClones;
-    private List<UnManagedVolume> unmanagedMirrors;
+    private Map<UnManagedVolume, String> unmanagedMirrors;
     private Map<String, Map<String, VPlexDeviceInfo>> mirrorMap;
     private Map<String, VPlexStorageVolumeInfo> backendVolumeWwnToInfoMap ;
     
@@ -83,7 +83,7 @@ public class VplexBackendIngestionContext {
         for (Set<UnManagedVolume> backendClones : getUnmanagedBackendOnlyClones().values()) {
             allVolumes.addAll(backendClones);
         }
-        allVolumes.addAll(getUnmanagedMirrors());
+        allVolumes.addAll(getUnmanagedMirrors().keySet());
         _logger.info("collected all unmanaged volumes: " + allVolumes);
         return allVolumes;
     }
@@ -273,13 +273,13 @@ public class VplexBackendIngestionContext {
         return unmanagedBackendOnlyClones;
     }
     
-    public List<UnManagedVolume> getUnmanagedMirrors() {
+    public Map<UnManagedVolume, String> getUnmanagedMirrors() {
         if (null != unmanagedMirrors) {
             return unmanagedMirrors;
         }
         
         _logger.info("getting unmanaged mirrors");
-        unmanagedMirrors = new ArrayList<UnManagedVolume>();
+        unmanagedMirrors = new HashMap<UnManagedVolume, String>();
         
         if (!getMirrorMap().isEmpty()) {
             for (Entry<String, Map<String, VPlexDeviceInfo>> mirrorMapEntry : getMirrorMap().entrySet()) {
@@ -304,7 +304,7 @@ public class VplexBackendIngestionContext {
                                 + "vols and adding to mirrors", associatedVolumeMirror.getLabel());
                         getUnmanagedBackendVolumes().remove(associatedVolumeMirror);
                         _logger.info("getUnmanagedBackendVolumes() is now: " + getUnmanagedBackendVolumes());
-                        unmanagedMirrors.add(associatedVolumeMirror);
+                        unmanagedMirrors.put(associatedVolumeMirror, slotToDeviceMap.get("1").getPath());
                         StringSet set = new StringSet();
                         set.add(associatedVolumeMirror.getNativeGuid());
                         _logger.info("adding mirror set {} to source unmanaged volume {}", set, associatedVolumeSource);
@@ -329,14 +329,14 @@ public class VplexBackendIngestionContext {
         _logger.info("associated volume device context path: " + devicePath);
         for (Entry<String, VPlexStorageVolumeInfo> entry : getBackendVolumeWwnToInfoMap().entrySet()) {
             String storageVolumePath = entry.getValue().getPath();
-            _logger.info("   storage volume context path: " + storageVolumePath);
+            _logger.info("\tstorage volume context path: " + storageVolumePath);
             // context paths should overlap if the device contains the storage volume...
             if (null != storageVolumePath && storageVolumePath.startsWith(devicePath)) {
-                _logger.info("      this storage volume is a match, trying to find unmanaged backend volume");
+                _logger.info("\t\tthis storage volume is a match, trying to find unmanaged backend volume");
                 for (UnManagedVolume vol : getUnmanagedBackendVolumes()) {
-                    _logger.info("         looking at " + vol.getNativeGuid());
+                    _logger.info("\t\t\tlooking at " + vol.getNativeGuid());
                     if (vol.getWwn().equalsIgnoreCase(entry.getKey())) {
-                        _logger.info("             it's a match for " + vol.getWwn());
+                        _logger.info("\t\t\t\tit's a match for " + vol.getWwn());
                         return vol;
                     }
                 }
@@ -467,11 +467,13 @@ public class VplexBackendIngestionContext {
         s.append("unmanaged mirrors: ").append(this.getUnmanagedMirrors()).append(" \n\t\t ");
         s.append("ingested objects: ").append(this.getIngestedObjects()).append(" \n\t\t ");
         s.append("created objects map: ").append(this.getCreatedObjectMap()).append(" \n\t\t ");
+        s.append("updated objects map: ").append("\n");
         for (Entry<String, List<DataObject>> e : this.getUpdatedObjectMap().entrySet()) {
-            s.append(e.getKey()).append(": ").append(" \n\t\t\t ");
+            s.append(e.getKey()).append(": ");
             for (DataObject o : e.getValue()) {
-                s.append(o.getLabel()).append(" \n\t\t\t ");
+                s.append(" \n\t\t\t ").append(o.getLabel());
             }
+            s.append("\n");
         }
         s.append("processed unmanaged volumes: ").append(this.getProcessedUnManagedVolumeMap());
         return s.toString();

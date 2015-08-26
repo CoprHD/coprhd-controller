@@ -88,6 +88,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private static final String CREATE_SRDF_RESUME_PAIR_METHOD = "resumeSyncPairStep";
     private static final String CHANGE_SRDF_TO_NONSRDF_STEP_DESC = "Converting SRDF Devices to Non Srdf devices";
     private static final String CONVERT_TO_NONSRDF_DEVICES_METHOD = "convertToNonSrdfDevicesMethodStep";
+    private static final String CREATE_LIST_REPLICAS_METHOD = "createListReplicas";
 
     private WorkflowService workflowService;
     private DbClient dbClient;
@@ -934,7 +935,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     }
 
     private Workflow.Method createListReplicasMethod(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs) {
-        return new Workflow.Method("createListReplicas", systemURI, sourceURIs, targetURIs);
+        return new Workflow.Method(CREATE_LIST_REPLICAS_METHOD, systemURI, sourceURIs, targetURIs);
     }
 
     public boolean createListReplicas(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, String opId) {

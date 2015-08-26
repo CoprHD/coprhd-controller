@@ -5,7 +5,9 @@
 package com.emc.storageos.model.compute;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 
+@XmlRootElement(name = "compute_imageserver_create")
 public class ComputeImageServerCreate {
     private String imageServerIp;
 

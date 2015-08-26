@@ -178,6 +178,10 @@ public abstract class CommandHandler {
         private static final String REGEX_NUMBERS = "\\d+";
 
         public ListHandler(String[] args, DBClient client) {
+            if (args.length < 2) {
+                throw new IllegalArgumentException("Invalid list command ");
+            }
+
             if (args[1].equalsIgnoreCase(TYPE_EVENTS) ||
                     args[1].equalsIgnoreCase(TYPE_STATS) ||
                     args[1].equalsIgnoreCase(TYPE_AUDITS)) {

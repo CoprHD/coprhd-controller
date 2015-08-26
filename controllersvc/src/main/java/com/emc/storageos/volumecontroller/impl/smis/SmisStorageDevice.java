@@ -2178,6 +2178,23 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void doDeleteBlockSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+            throws DeviceControllerException {
+        try {
+            // TBD - Determine group operation.
+            _snapshotOperations.deleteSnapshotSession(system, snapSessionURI, completer);
+        } catch (Exception e) {
+            _log.error(String.format("Exception trying to delete block snapshot session %s on array %s",
+                    snapSessionURI, system.getSerialNumber()), e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doDeleteBlockSnapshotSession", e.getMessage());
+            completer.error(_dbClient, error);
+        }
+    }
+
+    /**
      * Determines whether we do group snapshot session creation on the array.
      * 
      * @param snapSessions The session(s) to be created.

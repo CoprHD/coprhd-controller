@@ -706,4 +706,13 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void deleteSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

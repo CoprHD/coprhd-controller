@@ -6184,7 +6184,7 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
-     * Get the SMI-S input arguments when restore an array snapshot associated
+     * Get the SMI-S input arguments when restoring an array snapshot associated
      * with a snapshot session.
      * 
      * @param settingsStatePath The CIM object path of the CIM_SettingsDefineState for the array snapshot.
@@ -6194,6 +6194,21 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getModifySettingsDefinedStateForRestoreSession(CIMObjectPath settingsStatePath) {
         return new CIMArgument[] {
                 _cimArgument.uint16(CP_OPERATION, RESTORE_FROM_SYNC_SETTINGS),
+                _cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath)
+        };
+    }
+
+    /**
+     * Get the SMI-S input arguments when deleting an array snapshot associated
+     * with a snapshot session.
+     * 
+     * @param settingsStatePath The CIM object path of the CIM_SettingsDefineState for the array snapshot.
+     * 
+     * @return An array of CIMArgument
+     */
+    public CIMArgument[] getModifySettingsDefinedStateForDeleteSession(CIMObjectPath settingsStatePath) {
+        return new CIMArgument[] {
+                _cimArgument.uint16(CP_OPERATION, DELETE_FROM_SYNC_SETTINGS),
                 _cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath)
         };
     }

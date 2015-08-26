@@ -776,4 +776,17 @@ public interface BlockStorageDevice {
      */
     public void doRestoreBlockSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
             throws DeviceControllerException;
+
+    /**
+     * Deletes the snapshot session.
+     * 
+     * @param system A reference to the storage system.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance in ViPR
+     *            that represents the array snapshot.
+     * @param completer A reference to the task completer.
+     * 
+     * @throws DeviceControllerException
+     */
+    public void doDeleteBlockSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+            throws DeviceControllerException;
 }

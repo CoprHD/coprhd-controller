@@ -74,6 +74,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateCGSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotSessionJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockDeleteSnapshotSessionJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockLinkSnapshotSessionTargetJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRelinkSnapshotSessionTargetJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotJob;
@@ -1391,6 +1392,38 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
                 CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockRestoreSnapshotSessionJob(jobPath,
+                        system.getId(), completer)));
+            } catch (Exception e) {
+                _log.info("Exception restoring snapshot session", e);
+                ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
+                completer.error(_dbClient, error);
+            }
+        } else {
+            throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @SuppressWarnings("rawtypes")
+    @Override
+    public void deleteSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+            throws DeviceControllerException {
+        if (system.checkIfVmax3()) {
+            // Only supported for VMAX3 storage systems.
+            try {
+                _log.info("Delete snapshot session {} START", snapSessionURI);
+                BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+                CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
+                String settingsStateInstanceId = snapSession.getSessionInstance();
+                CIMObjectPath settingsStatePath = _cimPath.objectPath(settingsStateInstanceId);
+                CIMArgument[] inArgs = null;
+                CIMArgument[] outArgs = new CIMArgument[5];
+                inArgs = _helper.getModifySettingsDefinedStateForDeleteSession(settingsStatePath);
+                _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
+                CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
+                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockDeleteSnapshotSessionJob(jobPath,
                         system.getId(), completer)));
             } catch (Exception e) {
                 _log.info("Exception restoring snapshot session", e);

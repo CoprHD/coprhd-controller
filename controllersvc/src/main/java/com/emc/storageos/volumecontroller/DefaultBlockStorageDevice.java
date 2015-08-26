@@ -610,4 +610,13 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void doDeleteBlockSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

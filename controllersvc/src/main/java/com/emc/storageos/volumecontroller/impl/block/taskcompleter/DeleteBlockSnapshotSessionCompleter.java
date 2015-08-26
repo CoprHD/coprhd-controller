@@ -14,18 +14,18 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 
 /**
- * Task completer invoked when SMI-S request to restore a snapshot session completes.
+ * Task completer invoked when SMI-S request to delete a snapshot session completes.
  */
 @SuppressWarnings("serial")
-public class RestoreBlockSnapshotSessionCompleter extends TaskCompleter {
+public class DeleteBlockSnapshotSessionCompleter extends TaskCompleter {
 
     /**
      * Constructor
      * 
      * @param snapSessionURI The id of the BlockSnapshotSession instance in the database.
-     * @param stepId The id of the WF step in which the session is being restored.
+     * @param stepId The id of the WF step in which the session is being deleted.
      */
-    public RestoreBlockSnapshotSessionCompleter(URI snapSessionURI, String stepId) {
+    public DeleteBlockSnapshotSessionCompleter(URI snapSessionURI, String stepId) {
         super(BlockSnapshotSession.class, snapSessionURI, stepId);
     }
 

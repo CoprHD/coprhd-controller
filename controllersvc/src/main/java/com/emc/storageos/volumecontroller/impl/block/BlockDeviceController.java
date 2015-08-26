@@ -105,6 +105,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneFracture
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CreateBlockSnapshotSessionCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.DeleteBlockSnapshotSessionCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.LinkBlockSnapshotSessionTargetCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.LinkBlockSnapshotSessionTargetsWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MultiVolumeTaskCompleter;
@@ -172,6 +173,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String RELINK_SNAPSHOT_SESSION_TARGETS_WF_NAME = "relinkSnapshotSessionTargetsWF";
     private static final String UNLINK_SNAPSHOT_SESSION_TARGETS_WF_NAME = "unlinkSnapshotSessionTargetsWF";
     private static final String RESTORE_SNAPSHOT_SESSION_WF_NAME = "restoreSnapshotSessionWF";
+    private static final String DELETE_SNAPSHOT_SESSION_WF_NAME = "deleteSnapshotSessionWF";
     private static final String CREATE_SNAPSHOT_SESSION_STEP_GROUP = "createSnapshotSession";
     private static final String CREATE_SNAPSHOT_SESSION_METHOD = "createBlockSnapshotSession";
     private static final String LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP = "LinkSnapshotSessionTarget";
@@ -183,6 +185,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String UNLINK_SNAPSHOT_SESSION_TARGET_METHOD = "unlinkBlockSnapshotSessionTarget";
     private static final String RESTORE_SNAPSHOT_SESSION_STEP_GROUP = "RestoreSnapshotSession";
     private static final String RESTORE_SNAPSHOT_SESSION_METHOD = "restoreBlockSnapshotSession";
+    private static final String DELETE_SNAPSHOT_SESSION_STEP_GROUP = "DeleteSnapshotSession";
+    private static final String DELETE_SNAPSHOT_SESSION_METHOD = "deleteBlockSnapshotSession";
 
     public static final String BLOCK_VOLUME_EXPAND_GROUP = "BlockDeviceExpandVolume";
 
@@ -3871,7 +3875,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public void restoreSnapshotSession(URI systemURI, URI snapSessionURI, String opId) {
         TaskCompleter completer = new SimpleTaskCompleter(BlockSnapshotSession.class, snapSessionURI, opId);
         try {
-            // Get a new workflow to unlinking of the targets from session.
+            // Get a new workflow to restore the snapshot session.
             Workflow workflow = _workflowService.getNewWorkflow(this, RESTORE_SNAPSHOT_SESSION_WF_NAME, false, opId);
             _log.info("Created new workflow to restore snapshot session {} with operation id {}",
                     snapSessionURI, opId);
@@ -3899,7 +3903,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Create the workflow method that is invoked by the workflow service
      * to restore the data on the array snapshot represented by the
-     * BlockSnapshotSessionInstance with the passed URI to its source.
+     * BlockSnapshotSession instance with the passed URI to its source.
      * 
      * @param systemURI The URI of the storage system.
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.
@@ -3912,7 +3916,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Restore the data on the array snapshot represented by the
-     * BlockSnapshotSessioninstnace with the passed URI to its source.
+     * BlockSnapshotSession instance with the passed URI to its source.
      * 
      * @param systemURI The URI of the storage system.
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.
@@ -3924,6 +3928,72 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
             completer = new RestoreBlockSnapshotSessionCompleter(snapSessionURI, stepId);
             getDevice(system.getSystemType()).doRestoreBlockSnapshotSession(system, snapSessionURI, completer);
+        } catch (Exception e) {
+            if (completer != null) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+                completer.error(_dbClient, serviceError);
+            } else {
+                throw DeviceControllerException.exceptions.restoreBlockSnapshotSessionFailed(e);
+            }
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void deleteSnapshotSession(URI systemURI, URI snapSessionURI, String opId) {
+        TaskCompleter completer = new SimpleTaskCompleter(BlockSnapshotSession.class, snapSessionURI, opId);
+        try {
+            // Get a new workflow delete the snapshot session.
+            Workflow workflow = _workflowService.getNewWorkflow(this, DELETE_SNAPSHOT_SESSION_WF_NAME, false, opId);
+            _log.info("Created new workflow to delet snapshot session {} with operation id {}",
+                    snapSessionURI, opId);
+
+            // Create the workflow step to delete the snapshot session.
+            workflow.createStep(DELETE_SNAPSHOT_SESSION_STEP_GROUP,
+                    String.format("Delete snapshot session %s", snapSessionURI),
+                    null, systemURI, getDeviceType(systemURI), getClass(),
+                    deleteBlockSnapshotSessionMethod(systemURI, snapSessionURI),
+                    null, null);
+
+            // Execute the workflow.
+            workflow.executePlan(completer, "Delete block snapshot session successful");
+        } catch (Exception e) {
+            _log.error("Delete block snapshot session failed", e);
+            ServiceCoded serviceException = DeviceControllerException.exceptions.deleteBlockSnapshotSessionFailed(e);
+            completer.error(_dbClient, serviceException);
+        }
+    }
+
+    /**
+     * Create the workflow method that is invoked by the workflow service
+     * to delete the array snapshot represented by the BlockSnapshotSession
+     * instance with the passed URI to its source.
+     * 
+     * @param systemURI The URI of the storage system.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance.
+     * 
+     * @return A reference to a Workflow.Method for deleting the array snapshot.
+     */
+    public static Workflow.Method deleteBlockSnapshotSessionMethod(URI systemURI, URI snapSessionURI) {
+        return new Workflow.Method(DELETE_SNAPSHOT_SESSION_METHOD, systemURI, snapSessionURI);
+    }
+
+    /**
+     * Delete the array snapshot represented by the BlockSnapshotSession instance
+     * with the passed URI to its source.
+     * 
+     * @param systemURI The URI of the storage system.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance.
+     * @param stepId The unique id of the workflow step in which the session is deleted.
+     */
+    public void deleteBlockSnapshotSession(URI systemURI, URI snapSessionURI, String stepId) {
+        TaskCompleter completer = null;
+        try {
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+            completer = new DeleteBlockSnapshotSessionCompleter(snapSessionURI, stepId);
+            getDevice(system.getSystemType()).doDeleteBlockSnapshotSession(system, snapSessionURI, completer);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);

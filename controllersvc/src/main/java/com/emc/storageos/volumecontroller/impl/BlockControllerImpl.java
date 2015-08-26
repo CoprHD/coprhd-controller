@@ -472,4 +472,12 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     public void restoreSnapshotSession(URI systemURI, URI snapSessionURI, String opId) {
         blockRMI("restoreSnapshotSession", systemURI, snapSessionURI, opId);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void deleteSnapshotSession(URI systemURI, URI snapSessionURI, String opId) {
+        blockRMI("deleteSnapshotSession", systemURI, snapSessionURI, opId);
+    }
 }

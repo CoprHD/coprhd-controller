@@ -458,4 +458,14 @@ public interface BlockController extends BlockStorageManagementController {
      * @param opId The unique task identifier.
      */
     public void restoreSnapshotSession(URI systemURI, URI snapSessionURI, String opId);
+
+    /**
+     * Deletes the array snapshot point-in-time copy represented by the
+     * passed BlockSnapshotSession instance.
+     * 
+     * @param systemURI The URI of the storage system.
+     * @param snapSessionURI The URI of the snapshot session.
+     * @param opId The unique task identifier.
+     */
+    public void deleteSnapshotSession(URI systemURI, URI snapSessionURI, String opId);
 }

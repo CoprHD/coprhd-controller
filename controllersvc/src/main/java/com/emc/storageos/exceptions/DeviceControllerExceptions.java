@@ -435,4 +435,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException restoreBlockSnapshotSessionFailed(final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException deleteBlockSnapshotSessionFailed(final Throwable cause);
 }

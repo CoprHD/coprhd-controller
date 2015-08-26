@@ -37,6 +37,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.Operation;
@@ -72,8 +73,8 @@ import com.emc.storageos.recoverpoint.responses.RecoverPointVolumeProtectionInfo
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
-import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
+import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -619,6 +620,20 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                         Network network = _dbClient.queryObject(Network.class, networkURI);
                         StringMap discoveredEndpoints = network.getEndpointsMap();
 
+                        // Create an initiator object (if it does not already exist) for this initiator
+        				List<Initiator> initiators = new ArrayList<Initiator>();
+        				for (String wwn : wwns.keySet()) {
+        					Initiator initiator = new Initiator();
+        					initiator.addInternalFlags(Flag.RECOVERPOINT);
+        					initiator.setHostName(rpSiteName);
+        					initiator.setInitiatorPort(wwn);
+        					initiator.setInitiatorNode(wwns.get(wwn));
+        					initiator.setProtocol("FC");
+        					initiator.setIsManualCreation(false);                    
+        					initiator = getInitiator(initiator);
+        					initiators.add(initiator);
+        				}
+                        
                         if (discoveredEndpoints.containsKey(wwn.toUpperCase())) {
                             _log.info("WWN " + wwn + " is in Network : " + network.getLabel());
                             isNetworkSystemConfigured = true; // Set this to true as we found the RP initiators in a Network on the Network System

@@ -33,6 +33,8 @@ public class IngestStrategyFactory {
     private BlockIngestOrchestrator blockVolumeIngestOrchestrator;
 
     private BlockIngestOrchestrator blockRemoteReplicationIngestOrchestrator;
+
+    private BlockIngestOrchestrator blockRecoverPointIngestOrchestrator;
     
     private BlockIngestOrchestrator blockVplexVolumeIngestOrchestrator;
 

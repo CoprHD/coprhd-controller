@@ -247,22 +247,25 @@ public class DBClient {
             }
 
             Name nameAnnotation = pd.getReadMethod().getAnnotation(Name.class);
+            String objKey;
             if (nameAnnotation == null) {
-                continue;
+                objKey = pd.getName();
+            } else {
+                objKey = nameAnnotation.value();
             }
 
             objValue = pd.getReadMethod().invoke(object);
             if (objValue == null) {
-                ignoreList.add(nameAnnotation.value());
+                ignoreList.add(objKey);
                 continue;
             }
 
             if (isEmptyStr(objValue)) {
-                ignoreList.add(nameAnnotation.value());
+                ignoreList.add(objKey);
                 continue;
             }
             
-            System.out.print("\t" + nameAnnotation.value() + " = ");
+            System.out.print("\t" + objKey + " = ");
 
             Encrypt encryptAnnotation = pd.getReadMethod().getAnnotation(Encrypt.class);
             if (encryptAnnotation != null) {

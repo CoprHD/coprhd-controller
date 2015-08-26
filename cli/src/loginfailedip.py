@@ -4,7 +4,7 @@
 # All Rights Reserved
 
 '''
-This module contains the block-ip view and delete implementation
+This module contains the login-failed-ip view and delete implementation
 
 '''
 
@@ -12,13 +12,13 @@ import common
 import json
 from common import SOSError
 
-class BlockIP(object):
+class LoginFailedIP(object):
 
     '''
-    The class definition for operations on 'block ip'.
+    The class definition for operations on 'login failed ip'.
     '''
 
-    URI_BLOCKIPS = '/config/block-ips'
+    URI_LOGIN_FAILED_IPS = '/config/login-failed-ips'
 
 
     def __init__(self, ipAddr, port):
@@ -30,12 +30,12 @@ class BlockIP(object):
         self.__port = port
 
     '''
-    Get block ip list information
+    Get login-failed-ip list information
     '''
 
-    def blockip_list(self):
+    def login_failed_ip_list(self):
         (s, h) = common.service_json_request(self.__ipAddr,
-                self.__port, "GET", BlockIP.URI_BLOCKIPS, None)
+                self.__port, "GET", LoginFailedIP.URI_LOGIN_FAILED_IPS, None)
         o = common.json_decode(s)
         if(o):
             return o
@@ -43,70 +43,70 @@ class BlockIP(object):
         return None
 
     '''
-    Delete specified ip from block ip list, * for deleting all ips
+    Delete specified ip from login-failed-ip list
     '''
 
-    def blockip_delete(self, ip):
+    def login_failed_delete(self, ip):
 
-        delete_uri = BlockIP.URI_BLOCKIPS + "/" + ip
+        delete_uri = LoginFailedIP.URI_LOGIN_FAILED_IPS + "/" + ip
         (s, h) = common.service_json_request(self.__ipAddr,
                             self.__port, "DELETE", delete_uri, None)
         return None
 
 
-# block ip Delete routines
+# login-failed-ip Delete routines
 def delete_parser(subcommand_parsers, common_parser):
     # delete command parser
     delete_parser = subcommand_parsers.add_parser(
         'delete',
-        description='ViPR Block IP Delete CLI usage.',
+        description='ViPR Login-Failed-IP Delete CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='remove IP(s) from block list')
+        help='remove IP(s) from login-failed-ip list')
 
     mandatory_args = delete_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-blockip',
-                                dest='blockip',
-                                metavar='blockip',
+    mandatory_args.add_argument('-loginfailedip',
+                                dest='loginfailedip',
+                                metavar='loginfailedip',
                                 required=True)
 
-    delete_parser.set_defaults(func=blockip_delete)
+    delete_parser.set_defaults(func=login_failed_ip_delete)
 
-def blockip_delete(args):
-    obj = BlockIP(args.ip, args.port)
+def login_failed_ip_delete(args):
+    obj = LoginFailedIP(args.ip, args.port)
     try:
-        obj.blockip_delete(args.blockip)
+        obj.login_failed_delete(args.loginfailedip)
     except SOSError as e:
         if(e.err_code == SOSError.NOT_FOUND_ERR):
             raise SOSError(SOSError.NOT_FOUND_ERR,
-                           "block ip delete failed: " + e.err_text)
+                           "login-failed-ip delete failed: " + e.err_text)
         else:
             raise e
 
 
-# block ip List routines
+# login-failed-ip List routines
 def list_parser(subcommand_parsers, common_parser):
     # list command parser
     list_parser = subcommand_parsers.add_parser(
         'list',
-        description='ViPR Block IP List CLI usage.',
+        description='ViPR Login_Failed_IP List CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='List subtenants of a Tenant')
+        help='List login failed ips')
 
-    list_parser.set_defaults(func=blockip_list)
+    list_parser.set_defaults(func=login_failed_ip_list)
 
 
-def blockip_list(args):
-    obj = BlockIP(args.ip, args.port)
+def login_failed_ip_list(args):
+    obj = LoginFailedIP(args.ip, args.port)
 
     try:
-        res = obj.blockip_list()
+        res = obj.login_failed_ip_list()
         return common.format_json_object(res)
     except SOSError as e:
         if(e.err_code == SOSError.NOT_FOUND_ERR):
             raise SOSError(SOSError.NOT_FOUND_ERR,
-                           "Blockip list failed: " + e.err_text)
+                           "login-failed-ip list failed: " + e.err_text)
         else:
             raise e
 
@@ -114,11 +114,11 @@ def blockip_list(args):
     #CLASS - END
 
 def blockip_parser(parent_subparser, common_parser):
-    parser = parent_subparser.add_parser('blockip',
-                                         description='vipr block ip CLI usage',
+    parser = parent_subparser.add_parser('loginfailedip',
+                                         description='vipr login-failed-ip CLI usage',
                                          parents=[common_parser],
                                          conflict_handler='resolve',
-                                         help='Operations on block ips')
+                                         help='Operations on login failed ips')
     subcommand_parsers = parser.add_subparsers(help='Use One Of Commands')
 
     # delete command parser

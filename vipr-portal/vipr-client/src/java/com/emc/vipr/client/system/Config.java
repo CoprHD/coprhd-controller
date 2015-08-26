@@ -137,23 +137,23 @@ public class Config {
 
 
 	/**
-	 * Remove specified IP from block-ip list
+	 * Remove specified IP from login-failed-ip list
 	 * <p>
-	 * API Call: DELETE /config/block-ips/{ip}
+	 * API Call: DELETE /config/login-failed-ips/{ip}
 	 *
-	 * @param ip the ip to be deleted from block-ip list.
+	 * @param ip the ip to be deleted from login-failed-ip list.
 	 */
-	public void deleteBlockIP(String ip) {
+	public void deleteLoginFailedIP(String ip) {
 		client.delete(String.class, CONFIG_DELETE_BLOCK_IP, ip);
 	}
 
 
 	/**
-	 * list block ips with information of their last-access-time and failed-login-attempts
+	 * list login-failed-ip with information of their last-access-time and failed-login-attempts
 	 *
 	 * @return
 	 */
-	public LoginFailedIPList listBlockIPs() {
+	public LoginFailedIPList listLoginFailedIPs() {
 		return client.get(LoginFailedIPList.class, CONFIG_LIST_BLOCK_IPS);
 	}
 }

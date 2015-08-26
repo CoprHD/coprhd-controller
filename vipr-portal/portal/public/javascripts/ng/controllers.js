@@ -395,9 +395,24 @@ angular.module("portalApp").controller({
     AssociateProjectCtrl: function($scope, $http, $window, translate) {
     	$scope.populateModal = function(ids) {
     		$scope.nasIds = ids;
+    		$scope.projectOptions = [];
             $http.get(routes.StorageSystems_getProjectsForNas()).success(function(data) {
-            	$scope.projectOptions = data;
+            	$scope.projectTenantOptions = data;
             });
+            $scope.getProjects = function(value){
+            	
+            	if (value) {
+            		value = value.substring(1);
+            		value = value.substring(0,value.length-1);
+            	}
+            	 var projects = value.split(",");
+            	 var myNewOptions = [];
+            	 for (var j = 0; j < projects.length; j++) {
+                     var project = projects[j].split("~~~");
+                    myNewOptions.push({ id: project[0], name: project[1] });
+                 }
+            	 $scope.projectOptions = myNewOptions;
+            };
             
     	    $scope.$apply();
        }

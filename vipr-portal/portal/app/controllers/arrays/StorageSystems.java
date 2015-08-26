@@ -10,6 +10,7 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -70,6 +71,8 @@ import com.emc.storageos.model.vnas.VirtualNASRestRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import controllers.Common;
 import controllers.arrays.StorageProviders.StorageProviderForm;
@@ -391,6 +394,46 @@ public class StorageSystems extends ViprResourceController {
 	   virtualNasServers(storageId);
     }
     
+    public static void dissociateProject(@As(",") String[] ids,String storageId){
+    	
+    	List<URI> uris = Lists.newArrayList();
+    	for(String id:ids){
+    		uris.add(uri(id));
+    	}
+    	Map<URI,Set<String>> projectVNas = Maps.newHashMap();
+    	List<VirtualNASRestRep> vNasServers = getViprClient().virtualNasServers().getByIds(uris);
+    	for (VirtualNASRestRep vnasServer:vNasServers){
+    		if(vnasServer.getProject() == null){
+    			continue;
+    		}
+    		URI projectId =  vnasServer.getProject().getId();
+    		URI vNasId = vnasServer.getId();
+    		
+    		if(projectVNas.get(projectId) == null){
+    			Set<String> vnasIds = Sets.newTreeSet();
+    			vnasIds.add(vNasId.toString());
+    			projectVNas.put(projectId, vnasIds);
+    		}else{
+    			Set<String> vnasIds = projectVNas.get(projectId);
+    			vnasIds.add(vNasId.toString());
+    			projectVNas.put(projectId, vnasIds);
+    		}
+    	}
+    	List<URI> projectIds = new ArrayList<URI>(projectVNas.keySet());
+    	for (URI uri : projectIds) {
+    	    
+    	    VirtualNasParam vNasParam = new VirtualNasParam();
+    	    vNasParam.setVnasServers(projectVNas.get(uri));
+    	    try {
+				getViprClient().virtualNasServers().unassignVnasServers(uri, vNasParam);
+			} catch (Exception e) {
+				
+				e.printStackTrace();
+			}
+    	}
+    	virtualNasServers(storageId);
+    }
+    
     public static void virtualNasServersJson(String storageId) {
         List<VirtualNasServerInfo> results = Lists.newArrayList();
         List<VirtualNASRestRep> vNasServers = getViprClient().virtualNasServers().getByStorageSystem(uri(storageId));
@@ -402,13 +445,20 @@ public class StorageSystems extends ViprResourceController {
     }
     
     public static void getProjectsForNas(){
-        String tenantId = Models.currentAdminTenant();
-        List<ProjectRestRep> projects = getViprClient().projects().getByTenant(uri(tenantId));
-        List<StringOption> projectOptions = Lists.newArrayList();
-        for(ProjectRestRep project : projects){
-            projectOptions.add(new StringOption(project.getId().toString(), project.getName()));
+        //String tenantId = Models.currentAdminTenant();
+        List<URI> tenants = getViprClient().tenants().listBulkIds();
+        List<StringOption> projectTenantOptions = Lists.newArrayList();
+        for(URI tenantId:tenants){
+        	 String tenantName = getViprClient().tenants().get(tenantId).getName();
+        	 List<ProjectRestRep> projects = getViprClient().projects().getByTenant(tenantId);
+             List<String> projectOptions = Lists.newArrayList();
+             for(ProjectRestRep project : projects){
+            	 projectOptions.add(project.getId().toString()+"~~~"+project.getName());
+             }
+             projectTenantOptions.add(new StringOption(projectOptions.toString(), tenantName));
         }
-        renderJSON(projectOptions);
+       
+        renderJSON(projectTenantOptions);
     }
    
     public static void vNasMoreDetails(String id){

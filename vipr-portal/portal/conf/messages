@@ -1741,6 +1741,7 @@ vNasServers.cifsServers=CIFS Servers
 vNasServers.vNasTag=Tag
 vNasServers.baseDirPath=Path
 vNasServers.associateToProject=Associate to a Project
+vNasServers.dissociate.Confirm=Are you sure you want to dissociate these vNas Server(s) from the project?
 
 storageArrayPool.name=Name
 storageArrayPool.maxPoolUtilizationPercentage=Maximum Utilization

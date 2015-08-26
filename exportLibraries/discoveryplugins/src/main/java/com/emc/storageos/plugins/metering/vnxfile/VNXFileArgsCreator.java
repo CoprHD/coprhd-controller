@@ -283,6 +283,93 @@ public class VNXFileArgsCreator extends ArgsCreator {
         }
         return iStream;
     }
+    
+    /**
+     * get FileSystem capcacity input XML request and returns stream after marshalling.
+     * 
+     * @param argument
+     * @param keyMap
+     * @param index
+     * @return
+     * @throws VNXFilePluginException
+     */
+    public InputStream fetchfscapacityInfo(final Argument argument,
+            final Map<String, Object> keyMap, int index)
+            throws VNXFilePluginException {
+        _logger.info("filesystem capacity info query");
+        InputStream iStream = null;
+        try {
+            String moverId = (String) keyMap.get(VNXFileConstants.MOVER_ID);
+            String isVDM = (String) keyMap.get(VNXFileConstants.ISVDM);
+            
+            FileSystemQueryParams fsQueryParam = new FileSystemQueryParams();
+            AspectSelection selection = new AspectSelection();
+            selection.setFileSystemCapacityInfos(true);
+            //get the filesystem for given vdm
+            if (moverId != null && isVDM != null) {
+                if (isVDM.equalsIgnoreCase("true")) {
+                    VdmRef vdmRef = new VdmRef();
+                    vdmRef.setVdm(moverId);
+                    fsQueryParam.setVdm(vdmRef);
+                } else {
+                    MoverRef moverRef = new MoverRef();
+                    moverRef.setMover(moverId);
+                    fsQueryParam.setMover(moverRef);
+                }
+             }
+            
+            fsQueryParam.setAspectSelection(selection);
+            Query query = new Query();
+            query.getQueryRequestChoice().add(fsQueryParam);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(fsQueryParam, true);
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for fetchfscapacityInfo",
+                    jaxbException.getCause());
+        }
+        return iStream;
+    }
+    
+    /**
+     * get FileSystem capcacity input XML request and returns stream after marshalling.
+     * 
+     * @param argument
+     * @param keyMap
+     * @param index
+     * @return
+     * @throws VNXFilePluginException
+     */
+    public InputStream fetchsnapcapacityInfo(final Argument argument,
+            final Map<String, Object> keyMap, int index)
+            throws VNXFilePluginException {
+        _logger.info("Snapshot info query");
+        InputStream iStream = null;
+        try {
+            String moverId = (String) keyMap.get(VNXFileConstants.MOVER_ID);
+            String isVDM = (String) keyMap.get(VNXFileConstants.ISVDM);
+            //prepare the checkpoint query params
+            CheckpointQueryParams cheQueryParams = new CheckpointQueryParams();
+            if (moverId != null && isVDM != null) {
+                if (isVDM.equalsIgnoreCase("true")) {
+                    VdmRef vdmRef = new VdmRef();
+                    vdmRef.setVdm(moverId);
+                    cheQueryParams.setVdm(vdmRef);
+                } else {
+                    MoverRef moverRef = new MoverRef();
+                    moverRef.setMover(moverId);
+                    cheQueryParams.setMover(moverRef);
+                }
+             }
+            Query query = new Query();
+            query.getQueryRequestChoice().add(cheQueryParams);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(cheQueryParams, false);
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for fetchsnapcapacityInfo",
+                    jaxbException.getCause());
+        }
+        return iStream;
+    }
 
     /**
      * Create Filesystem information and FileSystem capcacity input XML request and returns stream after marshalling.

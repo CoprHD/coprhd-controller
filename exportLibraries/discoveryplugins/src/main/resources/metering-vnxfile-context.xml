@@ -25,6 +25,7 @@
 		<property name="nsList">
 			<map>
 				<entry key="metering-file" value-ref="vnxfilenamespace" />
+				<entry key="vnx-file-static-load-metrics" value-ref="vnxfilestaticloadnamespace" />
             </map>
 		</property>
 	</bean>
@@ -46,6 +47,48 @@
 			</list>
 		</property>
 	</bean>
+	
+	<bean id="vnxfilestaticloadnamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+                <ref bean="loginoperation" />
+                <ref bean="fscapacitycalccoperation" />
+                <ref bean="snapcapacitycalccoperation" />
+                <ref bean="sessioncleanoperation" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="fscapacitycalccoperation"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="processor" ref="vnxfsprovcapacityprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="method" value="execute" />
+        <property name="arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxfscapacityquery" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="snapcapacitycalccoperation"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="processor" ref="vnxsnapprovcapacityprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="method" value="execute" />
+        <property name="arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxsnapcapacityquery" />
+            </list>
+        </property>
+    </bean>
 	
 	
 	<bean id="vnxdatamoverquery"
@@ -211,6 +254,20 @@
         <property name="method" value="fetchDataMoverInfo" />
         <property name="value" value="" />
     </bean>
+    
+    <bean id="vnxfscapacityquery"
+        class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="fetchfscapacityInfo" />
+        <property name="value" value="" />
+    </bean>
+    
+    <bean id="vnxsnapcapacityquery"
+        class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="fetchsnapcapacityInfo" />
+        <property name="value" value="" />
+    </bean>
 
 	<bean id="filesharequery"
 		class="com.emc.storageos.plugins.common.domainmodel.Argument">
@@ -313,6 +370,15 @@
 		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemInfoProcessor">
 		<property name="unmarshaller" ref="unmarshaller"/>
 	</bean>
+	
+	<bean id="vnxfsprovcapacityprocessor"
+        class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFSProvCapacityProcessor" >
+    	<property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+    <bean id="vnxsnapprovcapacityprocessor"
+        class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXSnapProvCapacityProcessor" >
+    	<property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
 		
     <bean id="volumestatsprocessor"
         class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXVolumeStatsProcessor" >

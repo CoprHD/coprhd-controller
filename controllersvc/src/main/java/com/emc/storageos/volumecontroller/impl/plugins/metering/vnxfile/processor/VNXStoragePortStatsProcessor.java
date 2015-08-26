@@ -34,7 +34,7 @@ import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileP
 
 public class VNXStoragePortStatsProcessor extends VNXFileProcessor{
     
-    private final Logger _logger = LoggerFactory.getLogger(VNXFileProcessor.class);
+    private final Logger _logger = LoggerFactory.getLogger(VNXStoragePortStatsProcessor.class);
     private PortMetricsProcessor portMetricsProcessor;
     @Override
     public void processResult(Operation operation, Object resultObj, 

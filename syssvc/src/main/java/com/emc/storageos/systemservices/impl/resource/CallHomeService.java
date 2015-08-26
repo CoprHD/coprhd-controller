@@ -38,34 +38,40 @@ public interface CallHomeService {
     @Path("internal/alert/")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public SysSvcTask sendInternalAlert(@QueryParam("source") String source,
-            @DefaultValue(CallHomeConstants
-            .SYMPTOM_CODE_REQUEST_LOGS) @QueryParam("event_id") int eventId,
-            @QueryParam(LogRequestParam.NODE_ID) List<String>
-            nodeIds,
-            @QueryParam(LogRequestParam.LOG_NAME) List<String> logNames,
-            @DefaultValue(LogSeverity.DEFAULT_VALUE_AS_STR) @QueryParam(LogRequestParam.SEVERITY) int severity,
-            @QueryParam(LogRequestParam.START_TIME) String
-            start,
-            @QueryParam(LogRequestParam.END_TIME) String end,
-            @QueryParam(LogRequestParam.MSG_REGEX) String
-            msgRegex,
-            @QueryParam(LogRequestParam.MAX_COUNT) int maxCount,
-            EventParameters eventParameters) throws Exception;
+                                        @DefaultValue(CallHomeConstants
+                                                .SYMPTOM_CODE_REQUEST_LOGS)
+                                        @QueryParam("event_id") int eventId,
+                                        @QueryParam(LogRequestParam.NODE_ID) List<String>
+                                                nodeIds,
+                                        @QueryParam(LogRequestParam.NODE_NAME) List<String> 
+                                                nodeNames,
+                                        @QueryParam(LogRequestParam.LOG_NAME)
+                                        List<String> logNames,
+                                        @DefaultValue(LogSeverity.DEFAULT_VALUE_AS_STR)
+                                        @QueryParam(LogRequestParam.SEVERITY) int severity,
+                                        @QueryParam(LogRequestParam.START_TIME) String
+                                                start,
+                                        @QueryParam(LogRequestParam.END_TIME) String end,
+                                        @QueryParam(LogRequestParam.MSG_REGEX) String
+                                                msgRegex,
+                                        @QueryParam(LogRequestParam.MAX_COUNT) int maxCount,
+                                        EventParameters eventParameters) throws Exception;
 
     /**
      * Create an alert event with error logs attached, which aid in
      * troubleshooting customer issues and sends it to ConnectEMC
-     * 
      * @brief Create an alert event
-     * 
-     * @param source The service from which this API is invoked.
-     *            Allowed values: CONTROLLER, OBJECT
-     *            Default: CONTROLLER
-     * @param eventId Event id for these alerts
-     *            Allowed values: 999, 599
-     *            Default: 999
-     * @param nodeIds The ids of the nodes for which log data is collected.
-     *            Allowed values: standalone,syssvc-node1,syssvc-node2 etc
+     *
+     * @param source   The service from which this API is invoked.
+     *                 Allowed values: CONTROLLER, OBJECT
+     *                 Default: CONTROLLER
+     * @param eventId  Event id for these alerts
+     *                 Allowed values: 999, 599
+     *                 Default: 999
+     * @param nodeIds  The ids of the nodes for which log data is collected.
+     *                 Allowed values: standalone,syssvc-node1,syssvc-node2 etc
+     * @param nodeNames    The names of the nodes for which log data is collected.
+     *                     Allowed values: Current values of node_x_name properties
      * @param logNames The names of the log files to process.
      * @param severity The minimum severity level for a logged message.
      *            Allowed values:0-9. Default value: 7
@@ -105,6 +111,7 @@ public interface CallHomeService {
             @Deprecated @QueryParam("source") String source,
             @DefaultValue(CallHomeConstants.SYMPTOM_CODE_REQUEST_LOGS) @QueryParam("event_id") int eventId,
             @QueryParam(LogRequestParam.NODE_ID) List<String> nodeIds,
+            @QueryParam(LogRequestParam.NODE_NAME) List<String> nodeNames,
             @QueryParam(LogRequestParam.LOG_NAME) List<String> logNames,
             @DefaultValue(LogSeverity.DEFAULT_VALUE_AS_STR) @QueryParam(LogRequestParam.SEVERITY) int severity,
             @QueryParam(LogRequestParam.START_TIME) String start,

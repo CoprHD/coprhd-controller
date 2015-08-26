@@ -5,14 +5,11 @@
 package com.emc.vipr.client.system;
 
 import static com.emc.vipr.client.impl.jersey.ClientUtils.addQueryParam;
-import static com.emc.vipr.client.system.impl.PathConstants.CONFIG_CONNECT_EMC_EMAIL_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.CONFIG_CONNECT_EMC_FTPS_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.CONFIG_PROPERTIES_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.CONFIG_PROP_METADATA_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.CONFIG_PROP_RESET_URL;
+import static com.emc.vipr.client.system.impl.PathConstants.*;
 
 import javax.ws.rs.core.UriBuilder;
 
+import com.emc.storageos.model.auth.LoginFailedIPList;
 import com.emc.storageos.model.property.PropertiesMetadata;
 import com.emc.storageos.model.property.PropertyInfoRestRep;
 import com.emc.storageos.model.property.PropertyInfoUpdate;
@@ -135,4 +132,28 @@ public class Config {
     public ClusterInfo resetProps(PropertyList propertyList) {
         return resetProps(propertyList, true);
     }
+
+
+
+
+	/**
+	 * Remove specified IP from login-failed-ip list
+	 * <p>
+	 * API Call: DELETE /config/login-failed-ips/{ip}
+	 *
+	 * @param ip the ip to be deleted from login-failed-ip list.
+	 */
+	public void deleteLoginFailedIP(String ip) {
+		client.delete(String.class, CONFIG_DELETE_BLOCK_IP, ip);
+	}
+
+
+	/**
+	 * list login-failed-ip with information of their last-access-time and failed-login-attempts
+	 *
+	 * @return
+	 */
+	public LoginFailedIPList listLoginFailedIPs() {
+		return client.get(LoginFailedIPList.class, CONFIG_LIST_BLOCK_IPS);
+	}
 }

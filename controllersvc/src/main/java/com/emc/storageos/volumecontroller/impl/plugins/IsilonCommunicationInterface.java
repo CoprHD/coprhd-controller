@@ -9,17 +9,16 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
-import java.util.HashSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.*;
-import com.emc.storageos.isilon.restapi.*;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -36,10 +35,13 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.isilon.restapi.IsilonApi;
@@ -47,6 +49,7 @@ import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonClusterConfig;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonExport;
+import com.emc.storageos.isilon.restapi.IsilonSMBShare;
 import com.emc.storageos.isilon.restapi.IsilonSmartConnectInfo;
 import com.emc.storageos.isilon.restapi.IsilonSmartConnectInfoV2;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
@@ -688,10 +691,20 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         UnManagedCifsShareACL existingACL = null;
                         List<UnManagedCifsShareACL> tempunManagedCifsShareACL = new ArrayList<UnManagedCifsShareACL>();
                         int noOfShares = 0;
-                        HashSet<String> smbShares = allSMBShares.get(fs.getPath());
-                        if (smbShares != null && !smbShares.isEmpty()) {
+                        String fsPathName = fs.getPath();
+                        // get all shares for given file system path
+                        HashSet<String> smbShareHashSet = new HashSet<String>();
+                        for (Entry<String, HashSet<String>> entry : allSMBShares.entrySet()) {
+                            if (entry.getKey().equalsIgnoreCase(fsPathName) || entry.getKey().startsWith(fsPathName + "/")) {
+                                _log.info("filesystem path : {} and share path: {}", fs.getPath(), entry.getKey());
+                                smbShareHashSet.addAll(entry.getValue());
+                                noOfShares += 1;
+                            }
+                        }
+
+                        if (!smbShareHashSet.isEmpty()) {
                             // get UnManaged ACL and also set the shares in fs object
-                            getUnmanagedCifsShareACL(unManagedFs, smbShares,
+                            getUnmanagedCifsShareACL(unManagedFs, smbShareHashSet,
                                     tempunManagedCifsShareACL, storagePort, fs.getName(), isilonApi);
                             noOfShares += 1;
                             if (!tempunManagedCifsShareACL.isEmpty()) {
@@ -1175,7 +1188,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     unManagedSMBFileShare.setPermissionType(FileControllerConstants.CIFS_SHARE_PERMISSION_TYPE_ALLOW);
 
                     // set Unmanaged SMB Share
-                    unManagedSmbShareMap.put(fsname, unManagedSMBFileShare);
+                    unManagedSmbShareMap.put(isilonSMBShare.getName(), unManagedSMBFileShare);
                     _log.info("smb share name {} and fs mount point {} ", unManagedSMBFileShare.getName(),
                             unManagedSMBFileShare.getMountPoint());
                     // process ACL permission

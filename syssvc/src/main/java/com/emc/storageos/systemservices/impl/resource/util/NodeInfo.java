@@ -14,6 +14,9 @@ public class NodeInfo {
     // The node id
     private String _nodeId;
 
+    // The node name
+    private String _nodeName;
+
     // The node IP address.
     private String _ipAddress;
 
@@ -29,8 +32,9 @@ public class NodeInfo {
      * @param nodeId The id of the node.
      * @throws Exception If the passed connection info is not valid.
      */
-    public NodeInfo(String nodeId, URI endPointURI) throws Exception {
+    public NodeInfo(String nodeId, String nodeName, URI endPointURI) throws Exception {
         _nodeId = nodeId;
+        _nodeName = nodeName;
         _log.debug("Creating node info or node {}", _nodeId);
         _ipAddress = endPointURI.getHost();
         _log.debug("Node IP address is {}", _ipAddress);
@@ -45,6 +49,15 @@ public class NodeInfo {
      */
     public String getId() {
         return _nodeId;
+    }
+
+    /**
+     * Getter for the cluster node name.
+     *
+     * @return The cluster node name.
+     */
+    public String getName() {
+        return _nodeName;
     }
 
     /**

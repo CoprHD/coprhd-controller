@@ -24,13 +24,9 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
     
     // NAS Server name
     private String nasName;
-    
-    
     // storageSystem, which it belongs
     private RelatedResourceRep storageDeviceURI;
-    private String maxFSID;
-    private String maxExports;
-    private String maxProvisionedCapacity;
+    
     private Set<String> protocols;
     
     // Set of Authentication providers for the VNasServer - set values will of type AunthnProvider
@@ -53,17 +49,29 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
     // Place holder for Tag
     private Set<String> nasTag;
     
-    
     // Project name which this VNAS belongs to
     private RelatedResourceRep project;
-
-    private String vNasType;
 
     // Base directory Path for the VNAS applicable in AccessZones & vFiler device types
     private String baseDirPath;
 
     // place holder for the Parent NAS server the Data Mover
     private RelatedResourceRep parentNASURI;
+    
+    // Limits on vNAS
+    private String maxStorageObjects;
+    private String maxStorageCapacity;
+    
+    // Static Load on vNAS
+    private String storageObjects;
+    private String storageCapacity;
+    
+    // Dynamic load on vNAS
+    private String avgPercentagebusy;
+	private String avgEmaPercentagebusy;
+	
+	// Indicate, whether the vNAS is overloaded or not!!!
+    private Boolean isOverloaded;
 
 
     public VirtualNASRestRep() {
@@ -80,7 +88,6 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
         this.nasName = nasName;
     }
 
-
     @XmlElement(name="storage_device")
     public RelatedResourceRep getStorageDeviceURI() {
         return storageDeviceURI;
@@ -90,40 +97,6 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
     public void setStorageDeviceURI(RelatedResourceRep storageDeviceURI) {
         this.storageDeviceURI = storageDeviceURI;
     }
-
-
-    @XmlElement(name="max_fsid")
-    public String getMaxFSID() {
-        return maxFSID;
-    }
-
-
-    public void setMaxFSID(String maxFSID) {
-        this.maxFSID = maxFSID;
-    }
-
-
-    @XmlElement(name="max_exports")
-    public String getMaxExports() {
-        return maxExports;
-    }
-
-
-    public void setMaxExports(String maxExports) {
-        this.maxExports = maxExports;
-    }
-
-
-    @XmlElement(name="max_provisioned_capacity")
-    public String getMaxProvisionedCapacity() {
-        return maxProvisionedCapacity;
-    }
-
-
-    public void setMaxProvisionedCapacity(String maxProvisionedCapacity) {
-        this.maxProvisionedCapacity = maxProvisionedCapacity;
-    }
-
 
     @XmlElementWrapper(name = "protocols")
     @XmlElement(name="protocol")
@@ -237,18 +210,6 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
         this.project = project;
     }
 
-
-    @XmlElement(name="vnas_type")
-    public String getvNasType() {
-        return vNasType;
-    }
-
-
-    public void setvNasType(String vNasType) {
-        this.vNasType = vNasType;
-    }
-
-
     @XmlElement(name="base_dir_path")
     public String getBaseDirPath() {
         return baseDirPath;
@@ -270,4 +231,75 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
         this.parentNASURI = parentNASURI;
     }
     
+    @XmlElement(name="max_storage_objects")
+    public String getMaxStorageObjects() {
+ 		return maxStorageObjects;
+ 	}
+
+
+ 	public void setMaxStorageObjects(String maxStorageObjects) {
+ 		this.maxStorageObjects = maxStorageObjects;
+ 	}
+
+ 	@XmlElement(name="max_storage_capacity")
+ 	public String getMaxStorageCapacity() {
+ 		return maxStorageCapacity;
+ 	}
+
+
+ 	public void setMaxStorageCapacity(String maxStorageCapacity) {
+ 		this.maxStorageCapacity = maxStorageCapacity;
+ 	}
+
+ 	@XmlElement(name="storage_objects")
+ 	public String getStorageObjects() {
+ 		return storageObjects;
+ 	}
+
+
+ 	public void setStorageObjects(String storageObjects) {
+ 		this.storageObjects = storageObjects;
+ 	}
+
+ 	@XmlElement(name="storage_capacity")
+ 	public String getStorageCapacity() {
+ 		return storageCapacity;
+ 	}
+
+
+ 	public void setStorageCapacity(String storageCapacity) {
+ 		this.storageCapacity = storageCapacity;
+ 	}
+
+ 	@XmlElement(name="avg_percentage_busy")
+ 	public String getAvgPercentagebusy() {
+		return avgPercentagebusy;
+	}
+
+
+	public void setAvgPercentagebusy(String avgPercentagebusy) {
+		this.avgPercentagebusy = avgPercentagebusy;
+	}
+
+	@XmlElement(name="avg_ema_percentage_busy")
+	public String getAvgEmaPercentagebusy() {
+		return avgEmaPercentagebusy;
+	}
+
+
+	public void setAvgEmaPercentagebusy(String avgEmaPercentagebusy) {
+		this.avgEmaPercentagebusy = avgEmaPercentagebusy;
+	}
+
+	@XmlElement(name="over_loaded")
+	public Boolean getIsOverloaded() {
+		return isOverloaded;
+	}
+
+
+	public void setIsOverloaded(Boolean isOverloaded) {
+		this.isOverloaded = isOverloaded;
+	}
+
+
 }

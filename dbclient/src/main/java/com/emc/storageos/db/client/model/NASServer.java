@@ -26,16 +26,14 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
     // NAS Server name
     private String nasName;
     
+    private String nativeId;
     
-    // storageSystem, which it belongs
+   	// storageSystem, which it belongs
     private URI storageDeviceURI;
-    private String maxFSID="-1";
-    private String maxExports="-1";
-    private String maxProvisionedCapacity="-1";
     private StringSet protocols;
     
     // Set of Authentication providers for the VNasServer - set values will of type AunthnProvider
-    private StringSet cifsServers;
+    private CifsServerMap cifsServersMap;
     
     // List of Storage Ports associated with this Nas Server
     private StringSet storagePorts;
@@ -83,36 +81,15 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
         setChanged("storageDevice");
     }
 
-    @Name("maxFSID")
-    public String getMaxFSID() {
-        return maxFSID;
-    }
+    @Name("nativeId")
+    public String getNativeId() {
+		return nativeId;
+	}
 
-    public void setMaxFSID(String maxFSID) {
-        this.maxFSID = maxFSID;
-        setChanged("maxFSID");
-    }
-
-    @Name("maxExports")
-    public String getMaxExports() {
-        return maxExports;
-    }
-
-    public void setMaxExports(String maxExports) {
-        this.maxExports = maxExports;
-        setChanged("maxExports");
-    }
-
-    @Name("maxProvisionedCapacity")
-    public String getMaxProvisionedCapacity() {
-        return maxProvisionedCapacity;
-    }
-
-    public void setMaxProvisionedCapacity(String maxProvisionedCapacity) {
-        this.maxProvisionedCapacity = maxProvisionedCapacity;
-        setChanged("maxProvisionedCapacity");
-    }
-
+	public void setNativeId(String nativeId) {
+		this.nativeId = nativeId;
+	}
+	
     @Name("protocols")
     public StringSet getProtocols() {
         return protocols;
@@ -124,21 +101,25 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
     }
 
     @Name("cifsServers")
-    public StringSet getCifsServers() {
-        return cifsServers;
-    }
+    public CifsServerMap getCifsServersMap() {
+		return cifsServersMap;
+	}
 
-    public void setCifsServers(StringSet cifsServers) {
-        this.cifsServers = cifsServers;
-        setChanged("cifsServers");
-    }
+	public void setCifsServersMap(CifsServerMap cifsServersMap) {
+		this.cifsServersMap = cifsServersMap;
+	}
 
     @Name("storagePorts")
     public StringSet getStoragePorts() {
+    	if(storagePorts == null){
+    		storagePorts = new StringSet();
+    	}
         return storagePorts;
     }
 
-    public void setStoragePorts(StringSet storagePorts) {
+    
+
+	public void setStoragePorts(StringSet storagePorts) {
         this.storagePorts = storagePorts;
         setChanged("storagePorts");
     }
@@ -214,7 +195,6 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
         this.nasTag = vNAStag;
         setChanged("nasTag");
     }
-
     
 }
 

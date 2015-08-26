@@ -23,8 +23,6 @@ public class VirtualNAS extends NASServer {
     // Project name which this VNAS belongs to
     private URI project;
 
-    private String vNasType;
-
     // Base directory Path for the VNAS applicable in AccessZones & vFiler device types
     private String baseDirPath;
 
@@ -39,17 +37,6 @@ public class VirtualNAS extends NASServer {
     public void setProject(URI project) {
         this.project = project;
         setChanged("project");
-    }
-
-    @EnumType(vNasType.class)
-    @Name("vNasType")
-    public String getvNasType() {
-        return vNasType;
-    }
-
-    public void setvNasType(String vNasType) {
-        this.vNasType = vNasType;
-        setChanged("vNasType");
     }
 
     @Name("String")
@@ -112,33 +99,4 @@ public class VirtualNAS extends NASServer {
             return UNKNOWN.toString();
         }
     };
-
-    // Defines different vNAS types.
-    public static enum vNasType {
-        LOCAL("local"),
-        DOMAIN("domain"),
-        UNKNOWN("N/A");
-
-        private final String vNasType;
-
-        private vNasType(String state) {
-            vNasType = state;
-        }
-
-        public String getNasType() {
-            return vNasType;
-        }
-
-        private static vNasType[] copyValues = values();
-
-        public static String getNasType(String name) {
-            for (vNasType type : copyValues) {
-                if (type.getNasType().equalsIgnoreCase(name)) {
-                    return type.name();
-                }
-            }
-            return UNKNOWN.toString();
-        }
-    };
-
 }

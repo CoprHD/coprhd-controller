@@ -162,6 +162,11 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(VirtualNAS.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
+        
+        public static AlternateIdConstraint getPhysicalNasByNativeGuidConstraint(String nativeGuid) {
+            DataObjectType doType = TypeMap.getDoType(PhysicalNAS.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
+        }
 
         public static AlternateIdConstraint getStoragePoolByNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(StoragePool.class);

@@ -436,26 +436,40 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doDeleteSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
+    public void doDeleteSnapshot(StorageSystem storage, URI snapshot, Boolean isConsistencyGroupOperation, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("SnapShot Deletion..... Started");
-        snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
+        if (isConsistencyGroupOperation) {
+            snapshotOperations.deleteGroupSnapshots(storage, snapshot, taskCompleter);
+        } else {
+            snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
+        }
         _log.info("SnapShot Deletion..... End");
     }
 
     @Override
-    public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+    public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot, Boolean isConsistencyGroupOperation,
+            TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("SnapShot Restore..... Started");
-        snapshotOperations.restoreSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);
+        if (isConsistencyGroupOperation) {
+            snapshotOperations.restoreGroupSnapshots(storage, volume, snapshot, taskCompleter);
+        } else {
+            snapshotOperations.restoreSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);
+        }
         _log.info("SnapShot Restore..... End");
     }
 
     @Override
-    public void doResyncSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+    public void doResyncSnapshot(StorageSystem storage, URI volume, URI snapshot, Boolean isConsistencyGroupOperation,
+            TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("SnapShot Restore..... Started");
-        snapshotOperations.resyncSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);
+        if (isConsistencyGroupOperation) {
+            snapshotOperations.resyncGroupSnapshots(storage, volume, snapshot, taskCompleter);
+        } else {
+            snapshotOperations.resyncSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);
+        }
         _log.info("SnapShot Restore..... End");
     }
 

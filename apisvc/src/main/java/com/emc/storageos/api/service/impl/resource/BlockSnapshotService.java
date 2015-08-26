@@ -217,7 +217,7 @@ public class BlockSnapshotService extends TaskResourceService {
         // should be returned.
         BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(volume, _dbClient);
 
-        blockServiceApiImpl.deleteSnapshot(snap, task);
+        blockServiceApiImpl.deleteSnapshot(snap, false, task);
 
         auditOp(OperationTypeEnum.DELETE_VOLUME_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
                 id.toString(), snap.getLabel(), snap.getParent().getName(), device.getId().toString());
@@ -285,12 +285,6 @@ public class BlockSnapshotService extends TaskResourceService {
                     String.format("Snapshot restore is not possible on third-party storage systems"));
         }
 
-        // restore for XtremIO storage system type is not supported from regular snapshots. They have to be read only.
-        if (Type.xtremio.name().equalsIgnoreCase(storage.getSystemType()) && !snapshot.getIsReadOnly())
-        {
-            throw APIException.badRequests.cantRestoreFromRegularSnapshot(snapshot.getLabel(), snapshot.getDeviceLabel());
-        }
-
         BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(volume, _dbClient);
 
         // Validate the restore snapshot request.
@@ -306,7 +300,7 @@ public class BlockSnapshotService extends TaskResourceService {
         snapshot.getOpStatus().put(taskId, op);
 
         // Restore the snapshot.
-        blockServiceApiImpl.restoreSnapshot(snapshot, volume, taskId);
+        blockServiceApiImpl.restoreSnapshot(snapshot, volume, false, taskId);
 
         // Create the audit log entry.
         auditOp(OperationTypeEnum.RESTORE_VOLUME_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
@@ -375,7 +369,7 @@ public class BlockSnapshotService extends TaskResourceService {
         snapshot.getOpStatus().put(taskId, op);
 
         // Resync the snapshot.
-        blockServiceApiImpl.resynchronizeSnapshot(snapshot, volume, taskId);
+        blockServiceApiImpl.resynchronizeSnapshot(snapshot, volume, false, taskId);
 
         // Create the audit log entry.
         auditOp(OperationTypeEnum.RESYNCHRONIZE_VOLUME_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,

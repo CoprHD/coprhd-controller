@@ -323,25 +323,27 @@ public interface BlockStorageDevice {
     /**
      * @param storage
      * @param snapshot
+     * @param isConsistencyGroupOperation TODO
      * @param taskCompleter
      * @throws DeviceControllerException
      */
-    public void doDeleteSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
+    public void doDeleteSnapshot(StorageSystem storage, URI snapshot, Boolean isConsistencyGroupOperation, TaskCompleter taskCompleter)
             throws DeviceControllerException;
 
     public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot,
-            TaskCompleter taskCompleter) throws DeviceControllerException;
+            Boolean isConsistencyGroupOperation, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
      * Resynchronize snapsht
      * @param storage Storage system the snapshot created on
      * @param volume The URI of the snapshot's parent volume
      * @param snapshot The URI of the snapshot to be resynchronized
+     * @param isConsistencyGroupOperation TODO
      * @param taskCompleter The task completer
      * @throws DeviceControllerException
      */
     public void doResyncSnapshot(StorageSystem storage, URI volume, URI snapshot,
-            TaskCompleter taskCompleter) throws DeviceControllerException;
+            Boolean isConsistencyGroupOperation, TaskCompleter taskCompleter) throws DeviceControllerException;
     
     /**
      * Create a mirror for a volume

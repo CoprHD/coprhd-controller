@@ -703,7 +703,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doDeleteSnapshot(StorageSystem storageSystem, URI snapshotURI,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            Boolean isConsistencyGroupOperation, TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             StringBuilder logMsgBuilder = new StringBuilder(String.format(
                     "Delete Snapshot Start - Array:%s", storageSystem.getSerialNumber()));

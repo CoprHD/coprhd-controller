@@ -137,11 +137,12 @@ public interface BlockController extends BlockStorageManagementController {
      * Open issue: need to allow snapshots with different CoS & pool
      * 
      * @param storage URI of the storage controller.
-     * @param snapshotList URIs of the snapshots.
+     * @param isConsistencyGroupOperation TODO
      * @param opId Operation ID.
+     * @param snapshotList URIs of the snapshots.
      * @throws InternalException When an exception occurs deleting the snapshot
      */
-    public void deleteSnapshot(URI storage, URI snapshot, String opId) throws InternalException;
+    public void deleteSnapshot(URI storage, URI snapshot, Boolean isConsistencyGroupOperation, String opId) throws InternalException;
 
     /**
      * Restore contents of a volume from a given snapshot.
@@ -150,10 +151,11 @@ public interface BlockController extends BlockStorageManagementController {
      * @param pool URI of pool where the volume belongs.
      * @param volume URI of volume to be restored.
      * @param snapshot URI of snapshot used for restoration.
+     * @param isConsistencyGroupOperation TODO
      * @param opId Operation ID
      * @throws InternalException When an exception occurs restoring the volume
      */
-    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
+    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean isConsistencyGroupOperation, Boolean updateOpStatus, String opId)
             throws InternalException;
 
     /**
@@ -162,10 +164,11 @@ public interface BlockController extends BlockStorageManagementController {
      * @param storage URI of storage controller.
      * @param volume URI of snapshot's parent volume.
      * @param snapshot URI of snapshot used for resynchronization.
+     * @param isConsistencyGroupOperation TODO
      * @param opId Operation ID
      * @throws InternalException When an exception occurs during snapshot resynchronization
      */
-    public void resyncSnapshot(URI storage, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
+    public void resyncSnapshot(URI storage, URI volume, URI snapshot, Boolean isConsistencyGroupOperation, Boolean updateOpStatus, String opId)
             throws InternalException;
     
     /**

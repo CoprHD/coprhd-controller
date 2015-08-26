@@ -41,8 +41,8 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
@@ -61,8 +61,8 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
@@ -83,8 +83,8 @@ import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
-import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Protection;
 import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
@@ -1890,7 +1890,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     @Override
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-            String snapshotType, Boolean createInactive,  Boolean readOnly, String taskId) {
+            String snapshotType, Boolean createInactive, Boolean readOnly, String taskId) {
         boolean vplex = RPHelper.isVPlexVolume(reqVolume);
         ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, reqVolume.getProtectionController());
         URI storageControllerURI = null;
@@ -1903,7 +1903,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         if (isProtectionBasedSnapshot(reqVolume, snapshotType)) {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageControllerURI);
-            RPController controller = (RPController) getController(RPController.class, protectionSystem.getSystemType());
+            RPController controller = getController(RPController.class, protectionSystem.getSystemType());
             controller.createSnapshot(protectionSystem.getId(), storageSystem.getId(), snapshotURIs, createInactive, readOnly, taskId);
         } else {
             if (vplex) {
@@ -1923,14 +1923,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param taskId The unique task identifier
      */
     @Override
-    public void deleteSnapshot(BlockSnapshot snapshot, String taskId) {
+    public void deleteSnapshot(BlockSnapshot snapshot, Boolean isConsistencyGroupSnapshot, String taskId) {
         // If the volume is under protection
         if (TechnologyType.RP.name().equals(snapshot.getTechnologyType())) {
             Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent());
             RPController rpController = getController(RPController.class, ProtectionSystem._RP);
             rpController.deleteSnapshot(volume.getProtectionController(), snapshot.getId(), taskId);
         } else {
-            super.deleteSnapshot(snapshot, taskId);
+            super.deleteSnapshot(snapshot, isConsistencyGroupSnapshot, taskId);
         }
     }
 
@@ -1964,6 +1964,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param snapshot The snapshot to restore.
      * @param parent The parent of the snapshot
      */
+    @Override
     public void validateRestoreSnapshot(BlockSnapshot snapshot, Volume parent) {
         // RecoverPoint snapshots (bookmarks) will be automatically activated
         // before restore.
@@ -1980,7 +1981,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param taskId The unique task identifier.
      */
     @Override
-    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
+    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, Boolean isConsistencyGroupOperation, String taskId) {
         // If the volume is under protection
         if (snapshot.getEmName() != null) {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
@@ -1989,7 +1990,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             controller.restoreVolume(parentVolume.getProtectionController(),
                     storageSystem.getId(), snapshot.getId(), taskId);
         } else {
-            super.restoreSnapshot(snapshot, parentVolume, taskId);
+            super.restoreSnapshot(snapshot, parentVolume, isConsistencyGroupOperation, taskId);
         }
     }
 

@@ -50,13 +50,12 @@ import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -65,6 +64,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -2881,6 +2881,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      *            activated, false otherwise.
      * @param taskId The unique task identifier.
      */
+    @Override
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
             String snapshotType, Boolean createInactive, Boolean readOnly, String taskId) {
 
@@ -2956,6 +2957,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param snapshot The snapshot to restore.
      * @param parent The parent of the snapshot
      */
+    @Override
     public void validateRestoreSnapshot(BlockSnapshot snapshot, Volume parentVolume) {
         if (!snapshot.getIsSyncActive()) {
             throw APIException.badRequests.snapshotNotActivated(snapshot.getLabel());
@@ -3000,6 +3002,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param volume Volume to check for mirrors against
      * @return List of active VplexMirror URI's
      */
+    @Override
     protected List<URI> getActiveMirrorsForVolume(Volume volume) {
         List<URI> activeMirrorURIs = new ArrayList<>();
         if (hasMirrors(volume)) {
@@ -3030,7 +3033,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param taskId The unique task identifier.
      */
     @Override
-    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
+    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, Boolean isConsistencyGroupOperation, String taskId) {
 
         // Get the VLPEX volume for this backend volume.
         URI parentVolumeURI = parentVolume.getId();
@@ -3045,7 +3048,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         URI vplexSystemURI = vplexVolume.getStorageController();
         StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, vplexSystemURI);
         VPlexController controller = getController(VPlexController.class, vplexSystem.getSystemType());
-        controller.restoreVolume(vplexSystemURI, snapshot.getId(), taskId);
+        controller.restoreVolume(vplexSystemURI, snapshot.getId(), isConsistencyGroupOperation, taskId);
     }
 
     /**
@@ -3102,6 +3105,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * {@inheritDoc}
      */
+    @Override
     public int getMaxVolumesForConsistencyGroup(BlockConsistencyGroup consistencyGroup) {
         return MAX_VOLUMES_IN_CG;
     }
@@ -3109,6 +3113,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * {@inheritDoc}
      */
+    @Override
     public void validateConsistencyGroupName(BlockConsistencyGroup consistencyGroup) {
         // VPLEX CG names cannot start with a number only "_" or a letter.
         // Note that when a CG is created in ViPR there are already restrictions

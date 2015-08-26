@@ -603,7 +603,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doDeleteSnapshot(StorageSystem storage, URI snapshot,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            Boolean isConsistencyGroupOperation, TaskCompleter taskCompleter) throws DeviceControllerException {
         snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
     }
 
@@ -615,7 +615,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            Boolean isConsistencyGroupOperation, TaskCompleter taskCompleter) throws DeviceControllerException {
         snapshotOperations.restoreSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);
     }
 

@@ -420,7 +420,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doDeleteSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
+    public void doDeleteSnapshot(StorageSystem storage, URI snapshot, Boolean isConsistencyGroupOperation, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         try {
             BlockSnapshot blockSnapshot = dbClient.queryObject(BlockSnapshot.class, snapshot);
@@ -452,7 +452,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+    public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot, Boolean isConsistencyGroupOperation, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         completeTaskAsUnsupported(taskCompleter);
     }

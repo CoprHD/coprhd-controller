@@ -1668,7 +1668,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     @Override
-    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId) throws ControllerException {
+    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
+            throws ControllerException {
         TaskCompleter completer = null;
         try {
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -1703,13 +1704,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     @Override
-    public void deleteSnapshot(URI storage, URI snapshot, String opId) throws ControllerException {
+    public void deleteSnapshot(URI storage, URI snapshot, Boolean isConsistencyGroupOperation, String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             BlockSnapshot snapObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             completer = BlockSnapshotDeleteCompleter.createCompleter(_dbClient, snapObj, opId);
-            getDevice(storageObj.getSystemType()).doDeleteSnapshot(storageObj, snapshot, completer);
+            getDevice(storageObj.getSystemType()).doDeleteSnapshot(storageObj, snapshot, isConsistencyGroupOperation, completer);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -1724,7 +1725,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String POST_BLOCK_VOLUME_RESTORE_GROUP = "PostBlockDeviceRestoreVolume";
 
     @Override
-    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
+    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean isConsistencyGroupOperation, Boolean updateOpStatus,
+            String opId)
             throws ControllerException {
 
         SimpleTaskCompleter completer = new SimpleTaskCompleter(BlockSnapshot.class, snapshot, opId);
@@ -1762,7 +1764,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             waitFor = workflow.createStep(BLOCK_VOLUME_RESTORE_GROUP, description, waitFor,
                     storage, getDeviceType(storage), BlockDeviceController.class,
-                    restoreVolumeMethod(storage, pool, volume, snapshot, updateOpStatus),
+                    restoreVolumeMethod(storage, pool, volume, snapshot, isConsistencyGroupOperation, updateOpStatus),
                     rollbackMethodNullMethod(), null);
 
             // Skip the step for VMAX3, as restore operation may still be in progress (OPT#476325)
@@ -1803,18 +1805,19 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @return Workflow.Method
      */
     public static Workflow.Method restoreVolumeMethod(URI storage, URI pool, URI volume, URI snapshot,
-            Boolean updateOpStatus) {
-        return new Workflow.Method("restoreVolumeStep", storage, pool, volume, snapshot, updateOpStatus);
+            Boolean isConsistencyGroupOperation, Boolean updateOpStatus) {
+        return new Workflow.Method("restoreVolumeStep", storage, pool, volume, snapshot, isConsistencyGroupOperation, updateOpStatus);
     }
 
-    public boolean restoreVolumeStep(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
-            throws ControllerException {
+    public boolean restoreVolumeStep(URI storage, URI pool, URI volume, URI snapshot, Boolean isConsistencyGroupOperation,
+            Boolean updateOpStatus, String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {
             StorageSystem storageDevice = _dbClient.queryObject(StorageSystem.class, storage);
             BlockSnapshot snapObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             completer = new BlockSnapshotRestoreCompleter(snapObj, opId, updateOpStatus);
-            getDevice(storageDevice.getSystemType()).doRestoreFromSnapshot(storageDevice, volume, snapshot, completer);
+            getDevice(storageDevice.getSystemType()).doRestoreFromSnapshot(storageDevice, volume, snapshot, isConsistencyGroupOperation,
+                    completer);
         } catch (Exception e) {
             _log.error(String.format("restoreVolume failed - storage: %s, pool: %s, volume: %s, snapshot: %s",
                     storage.toString(), pool.toString(), volume.toString(), snapshot.toString()));
@@ -3506,19 +3509,21 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public void setSrdfDeviceController(SRDFDeviceController srdfDeviceController) {
         this.srdfDeviceController = srdfDeviceController;
     }
-    
+
     @Override
-    public void resyncSnapshot(URI storage, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
+    public void resyncSnapshot(URI storage, URI volume, URI snapshot, Boolean isConsistencyGroupOperation, Boolean updateOpStatus,
+            String opId)
             throws ControllerException {
         TaskCompleter completer = null;
         try {
             StorageSystem storageDevice = _dbClient.queryObject(StorageSystem.class, storage);
             BlockSnapshot snapObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             completer = new BlockSnapshotResyncCompleter(snapObj, opId, updateOpStatus);
-            getDevice(storageDevice.getSystemType()).doResyncSnapshot(storageDevice, volume, snapshot, completer);
+            getDevice(storageDevice.getSystemType()).doResyncSnapshot(storageDevice, volume, snapshot, isConsistencyGroupOperation,
+                    completer);
         } catch (Exception e) {
             _log.error(String.format("resync snapshot failed - storage: %s, volume: %s, snapshot: %s",
-                    storage.toString(),  volume.toString(), snapshot.toString()));
+                    storage.toString(), volume.toString(), snapshot.toString()));
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             completer.error(_dbClient, serviceError);
             doFailTask(BlockSnapshot.class, snapshot, opId, serviceError);

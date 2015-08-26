@@ -1055,6 +1055,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param completer -- VolumeWorkflowCompleter
      * @return -- Returns waitFor of next step
      */
+    @Override
     public String addStepsForPostDeleteVolumes(
             Workflow workflow, String waitFor,
             List<VolumeDescriptor> volumes,
@@ -3225,7 +3226,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Calculate the path parameters for the volumes in this ExportMask
             Collection<URI> volumeURIs = new HashSet<URI>();
             if (exportMask.getVolumes() != null && !exportMask.getVolumes().isEmpty()) {
-                volumeURIs = (Collection<URI>) (Collections2.transform(exportMask.getVolumes().keySet(),
+                volumeURIs = (Collections2.transform(exportMask.getVolumes().keySet(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
             } else if (exportGroup.getVolumes() != null && !exportGroup.getVolumes().isEmpty()) {  // Hit this condition in CTRL-9944
                                                                                                   // (unknown why)
@@ -7489,7 +7490,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         List<Initiator> initiators =
                 _dbClient.queryObject(Initiator.class, newInitiators);
         Collection<URI> volumeURIs =
-                (Collection<URI>) (Collections2.transform(exportMask.getVolumes().keySet(),
+                (Collections2.transform(exportMask.getVolumes().keySet(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
                 volumeURIs, exportGroup.getNumPaths());
@@ -7557,7 +7558,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * {@inheritDoc}
      */
     @Override
-    public void restoreVolume(URI vplexURI, URI snapshotURI, String opId)
+    public void restoreVolume(URI vplexURI, URI snapshotURI, Boolean isConsistencyGroupOperation, String opId)
             throws InternalException {
 
         BlockSnapshot snapshot = getDataObject(BlockSnapshot.class, snapshotURI, _dbClient);
@@ -7633,8 +7634,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // the cache now has invalid data and a cache read hit could return
                 // invalid data.
                 createWorkflowStepForRestoreNativeSnapshot(workflow, parentSystem,
-                        parentVolumeURI, snapshotURI, parentPoolURI, waitFor,
-                        null);
+                        parentVolumeURI, snapshotURI, parentPoolURI, isConsistencyGroupOperation,
+                        waitFor, null);
             } else {
                 for (URI vplexVolumeURI : vplexVolumeURIs) {
                     // For distributed volumes we take snapshots of and restore the
@@ -7683,8 +7684,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // means there will be no read cache hits on the volume for a
                 // while until the cache is repopulated.
                 createWorkflowStepForRestoreNativeSnapshot(workflow, parentSystem,
-                        parentVolumeURI, snapshotURI, parentPoolURI, INVALIDATE_CACHE_STEP,
-                        rollbackMethodNullMethod());
+                        parentVolumeURI, snapshotURI, parentPoolURI, isConsistencyGroupOperation,
+                        INVALIDATE_CACHE_STEP, rollbackMethodNullMethod());
             }
 
             // Execute the workflow.
@@ -7711,20 +7712,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * the backend snapshot with the passed URI.
      * 
      * @param workflow A reference to a workflow.
-     * @param nativeSystem A reference to the native storage system.
-     * @param nativeFullCopyURIs The URIs of the native full copies.
+     * @param isConsistencyGroupOperation TODO
      * @param waitFor The step to wait for or null.
      * @param rollbackMethod A reference to a rollback method or null.
-     * 
+     * @param nativeSystem A reference to the native storage system.
+     * @param nativeFullCopyURIs The URIs of the native full copies.
      * @return RESTORE_VOLUME_STEP
      */
     private String createWorkflowStepForRestoreNativeSnapshot(Workflow workflow,
-            StorageSystem parentSystem, URI parentVolumeURI, URI snapshotURI, URI parentPoolURI, String waitFor,
-            Workflow.Method rollbackMethod) {
+            StorageSystem parentSystem, URI parentVolumeURI, URI snapshotURI, URI parentPoolURI, Boolean isConsistencyGroupOperation,
+            String waitFor, Workflow.Method rollbackMethod) {
         URI parentSystemURI = parentSystem.getId();
         Workflow.Method restoreVolumeMethod = new Workflow.Method(
                 RESTORE_VOLUME_METHOD_NAME, parentSystemURI, parentPoolURI,
-                parentVolumeURI, snapshotURI, Boolean.FALSE);
+                parentVolumeURI, snapshotURI, isConsistencyGroupOperation, Boolean.FALSE);
         workflow.createStep(RESTORE_VOLUME_STEP, String.format(
                 "Restore VPLEX backend volume %s from snapshot %s",
                 parentVolumeURI, snapshotURI), waitFor,
@@ -9236,6 +9237,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * 
      * @return true if the Storage Provider connection is valid
      */
+    @Override
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber) {
         boolean connectionValid;
 

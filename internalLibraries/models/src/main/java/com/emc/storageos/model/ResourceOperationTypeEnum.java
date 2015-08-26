@@ -238,6 +238,7 @@ public enum ResourceOperationTypeEnum {
     DEACTIVATE_CONSISTENCY_GROUP_SNAPSHOT("DEACTIVATE CONSISTENCY GROUP SNAPSHOT", "deactivate a consistency group snapshot"),
     ACTIVATE_CONSISTENCY_GROUP_SNAPSHOT("ACTIVATE CONSISTENCY GROUP SNAPSHOT", "activate a consistency group snapshot"),
     RESTORE_CONSISTENCY_GROUP_SNAPSHOT("RESTORE CONSISTENCY GROUP SNAPSHOT", "restore a consistency group snapshot"),
+    RESYNCHRONIZE_CONSISTENCY_GROUP_SNAPSHOT("RESYNCHRONIZE CONSISTENCY GROUP SNAPSHOT", "resynchronize a consistency group snapshot"),
     CREATE_STORAGE_VIEW("CREATE STORAGE VIEW", "create a storage view"),
     DELETE_STORAGE_VIEW("DELETE STORAGE VIEW", "delete a storage view"),
     ADD_EXPORT_INITIATOR("ADD INITIATOR TO EXPORT GROUP", "add initiator to export group"),

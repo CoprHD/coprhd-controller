@@ -325,7 +325,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                 String activeSourceCopyName = "";
                 String standbySourceCopyName = "";
                 if (metroPointEnabled) {
-                    VPlexProtectionRecommendation secondaryProtectionRecommendation = (VPlexProtectionRecommendation) secondaryRecommendation;
+                    VPlexProtectionRecommendation secondaryProtectionRecommendation = secondaryRecommendation;
                     VirtualArray recHaVarray = _dbClient.queryObject(VirtualArray.class,
                             secondaryProtectionRecommendation.getVirtualArray());
                     activeSourceCopyName = varray.getLabel() + MP_ACTIVE_COPY_SUFFIX;
@@ -473,7 +473,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                 // If MetroPoint is enabled we need to create the secondary journal volume
                 if (metroPointEnabled) {
                     if (secondarySourceJournalVolume == null) {
-                        VPlexProtectionRecommendation secondaryProtectionRecommendation = (VPlexProtectionRecommendation) secondaryRecommendation;
+                        VPlexProtectionRecommendation secondaryProtectionRecommendation = secondaryRecommendation;
                         String secondarySourceJournalVolumeName = new StringBuilder(newVolumeLabel).append(SECONDARY_SRC_JOURNAL_SUFFIX)
                                 .toString();
                         String secondarySourceJournalInternalSiteName = ((RPProtectionRecommendation) secondaryProtectionRecommendation)
@@ -1872,8 +1872,8 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
      * @param taskId The unique task identifier
      */
     @Override
-    public void deleteSnapshot(BlockSnapshot snapshot, String taskId) {
-        rpBlockServiceApiImpl.deleteSnapshot(snapshot, taskId);
+    public void deleteSnapshot(BlockSnapshot snapshot, Boolean isConsistencyGroupSnapshot, String taskId) {
+        rpBlockServiceApiImpl.deleteSnapshot(snapshot, isConsistencyGroupSnapshot, taskId);
     }
 
     /**
@@ -1906,6 +1906,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
      * @param snapshot The snapshot to restore.
      * @param parent The parent of the snapshot
      */
+    @Override
     public void validateRestoreSnapshot(BlockSnapshot snapshot, Volume parent) {
         rpBlockServiceApiImpl.validateRestoreSnapshot(snapshot, parent);
     }
@@ -1918,8 +1919,8 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
      * @param taskId The unique task identifier.
      */
     @Override
-    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
-        rpBlockServiceApiImpl.restoreSnapshot(snapshot, parentVolume, taskId);
+    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, Boolean isConsistencyGroupOperation, String taskId) {
+        rpBlockServiceApiImpl.restoreSnapshot(snapshot, parentVolume, isConsistencyGroupOperation, taskId);
     }
 
     /**
@@ -1967,6 +1968,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
     /**
      * {@inheritDoc}
      */
+    @Override
     public void validateConsistencyGroupName(BlockConsistencyGroup consistencyGroup) {
         rpBlockServiceApiImpl.validateConsistencyGroupName(consistencyGroup);
         vplexBlockServiceApiImpl.validateConsistencyGroupName(consistencyGroup);

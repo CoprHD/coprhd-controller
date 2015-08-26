@@ -64,6 +64,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
      * @return
      * @throws ControllerException
      */
+    @Override
     protected Controller lookupDeviceController(DiscoveredSystemObject device)
             throws ControllerException {
         if (device == null) {
@@ -101,15 +102,18 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
         queueTask(_dbClient, StorageSystem.class, _dispatcher, methodName, args);
     }
 
+    @Override
     public void createVolumes(URI storage, URI pool, List<URI> volumes, VirtualPoolCapabilityValuesWrapper capabilities, String opId)
             throws InternalException {
         blockRMI("createVolumes", storage, pool, volumes, capabilities, opId);
     }
 
+    @Override
     public void modifyVolumes(URI storage, URI pool, List<URI> volumes, String opId) throws InternalException {
         blockRMI("modifyVolumes", storage, pool, volumes, opId);
     }
 
+    @Override
     public void createMetaVolume(URI storage, URI pool, URI volume, VirtualPoolCapabilityValuesWrapper capabilities, String opId)
             throws InternalException {
         blockRMI("createMetaVolume", storage, pool, volume, capabilities, opId);
@@ -188,21 +192,21 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
-    public void deleteSnapshot(URI storage, URI snapshot, String opId)
+    public void deleteSnapshot(URI storage, URI snapshot, Boolean isConsistencyGroupOperation, String opId)
             throws InternalException {
-        blockRMI("deleteSnapshot", storage, snapshot, opId);
+        blockRMI("deleteSnapshot", storage, snapshot, isConsistencyGroupOperation, opId);
     }
 
     @Override
-    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
-            throws InternalException {
-        blockRMI("restoreVolume", storage, pool, volume, snapshot, updateOpStatus, opId);
+    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean isConsistencyGroupOperation, Boolean updateOpStatus,
+            String opId) throws InternalException {
+        blockRMI("restoreVolume", storage, pool, volume, snapshot, isConsistencyGroupOperation, updateOpStatus, opId);
     }
-    
+
     @Override
-    public void resyncSnapshot(URI storage, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
-            throws InternalException {
-        blockRMI("resyncSnapshot", storage, volume, snapshot, updateOpStatus, opId);
+    public void resyncSnapshot(URI storage, URI volume, URI snapshot, Boolean isConsistencyGroupOperation, Boolean updateOpStatus,
+            String opId) throws InternalException {
+        blockRMI("resyncSnapshot", storage, volume, snapshot, isConsistencyGroupOperation, updateOpStatus, opId);
     }
 
     @Override

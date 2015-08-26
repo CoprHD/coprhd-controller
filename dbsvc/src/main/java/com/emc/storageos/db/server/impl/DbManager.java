@@ -219,7 +219,7 @@ public class DbManager implements DbManagerMBean {
                 String lockName = DbRepairRunnable.getLockName();
                 InterProcessLock lock = coordinator.getLock(lockName);
 
-                String currentHolder = DbRepairRunnable.getSelfLockNodeName(lock);
+                String currentHolder = DbRepairRunnable.getSelfLockNodeId(lock);
                 if (currentHolder == null) { // No thread is actually driving the repair, we need to resume it
                     if (startNodeRepair(this.schemaUtil.getKeyspaceName(), this.repairRetryTimes, false, true)) {
                         log.info("Successfully resumed a previously paused repair");

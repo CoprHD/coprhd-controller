@@ -477,10 +477,52 @@ _initialize_ovfenv_props() {
    /etc/getovfproperties --readCDROM &>/dev/null
 }
 
+_initialize_iterable_props() {
+    local expanded_props="$(_expand_iterable_props "${iters_file}" "$(<${ovf_props_file})")"
+    _props_append "${dflts_file}" "${expanded_props}"
+    chown storageos:storageos "${dflts_file}"
+}
+
+_props_append() {
+    chmod 400 "${1}" &&
+    for i in ${2} ; do
+        grep -q -F "${i%=*}" ${1} || echo $i >> "${1}"
+    done
+    sort "${1}" -o "${1}"
+}
+
+_expand_iterable_props() {
+    while read line ; do
+        for nodeid in $(_get_node_ids "${2}") ; do
+            if [ "${nodeid}" == "standalone" ]; then
+                line="${line/vipr/}"
+            fi
+            echo "${line//\$\{iter\}/${nodeid}}"
+        done
+    done < "${1}"
+}
+
+_get_node_ids() {
+    if _get_ovf_property 'network_1_ipaddr' "${1}" &>/dev/null ; then
+        seq --separator=' ' $(_get_ovf_property 'node_count' "${1}")
+    else
+        echo 'standalone'
+    fi
+}
+
+_get_ovf_property() {
+   ( IFS="${nl}" ; for arg in ${2} ; do
+          [ "${1}" = "${arg%%=*}" ] && arg="${arg#*=}" && arg="${arg//\\n/${nl}}" && echo "${arg}" && return 0
+      done
+      return 1
+   )
+}
+
 _initialize_props() {
     _migrate_props && 
     _props_symlink &&
-    _initialize_ovfenv_props
+    _initialize_ovfenv_props &&
+    _initialize_iterable_props 
     
 }
 
@@ -673,6 +715,7 @@ old_dflts_file='/etc/patch-props.defaults'
 dflts_file='/etc/config.defaults'
 ovf_props_file='/etc/ovfenv.properties'
 ssl_props_file='/etc/ssl.properties'
+iters_file='/etc/.iterable.properties'
 props_temp='/tmp/config.properties'
 tmp_mutated_file='/tmp/mutated.properties'
 controller_props='controller-ovf.properties'

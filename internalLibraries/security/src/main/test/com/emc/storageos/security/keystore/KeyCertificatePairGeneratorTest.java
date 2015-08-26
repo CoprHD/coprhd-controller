@@ -127,7 +127,7 @@ public class KeyCertificatePairGeneratorTest {
         coordinatorClient.setZkConnection(connection);
 
         CoordinatorClientInetAddressMap map = new CoordinatorClientInetAddressMap();
-        map.setNodeName("standalone");
+        map.setNodeId("standalone");
         DualInetAddress localAddress = DualInetAddress.fromAddresses("127.0.0.1", "::1");
         map.setDualInetAddress(localAddress);
         Map<String, DualInetAddress> controllerNodeIPLookupMap =

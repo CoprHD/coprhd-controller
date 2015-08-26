@@ -33,7 +33,11 @@ public class LogMessage {
     @JsonProperty("node")
     private String nodeId;
 
-    // The line number in the class.
+    // The Bourne node identifier.
+    @JsonProperty("node_name")
+    private String nodeName;
+    
+    // The line number in the class. 
     @JsonProperty("line")
     private String lineNumber;
 
@@ -82,12 +86,13 @@ public class LogMessage {
 
     }
 
-    // Constructor for Service logs
-    public LogMessage(String nodeId, String svcName, long timeMS, String thread,
-            String severity, String className, String lineNumber, String message) {
+    //Constructor for Service logs
+    public LogMessage(String nodeId, String nodeName, String svcName, long timeMS, String thread,
+                      String severity, String className, String lineNumber, String message) {
 
         this.message = message;
         this.nodeId = nodeId;
+        this.nodeName = nodeName;
         this.lineNumber = lineNumber;
         this.className = className;
         this.svcName = svcName;
@@ -97,11 +102,12 @@ public class LogMessage {
         setTimeStr();
     }
 
-    // Constructor for Sys logs
-    public LogMessage(String nodeId, long timeMS, String facility,
-            String severity, String svcName, String message) {
+    //Constructor for Sys logs
+    public LogMessage(String nodeId, String nodeName, long timeMS, String facility,
+                      String severity, String svcName, String message) {
         this.message = message;
         this.nodeId = nodeId;
+        this.nodeName = nodeName;
         this.svcName = svcName;
         this.severity = LogSeverity.find(severity.toUpperCase());
         this.timeMS = timeMS;
@@ -142,6 +148,25 @@ public class LogMessage {
      */
     public void setNodeId(String nodeId) {
         this.nodeId = nodeId;
+    }
+
+    /**
+     * Getter for the ViPR node name on which the message was logged.
+     *
+     * @return The ViPR node name on which the message was logged.
+     */
+    @XmlElement(name = "node_name")
+    public String getNodeName() {
+        return nodeName;
+    }
+
+    /**
+     * Setter for the ViPR node name on which the message was logged.
+     *
+     * @param nodeName The ViPR node name on which the message was logged.
+     */
+    public void setNodeName(String nodeName) {
+        this.nodeName = nodeName;
     }
 
     /**
@@ -315,6 +340,8 @@ public class LogMessage {
             sb.append(LogConstants.GAP);
             sb.append(nodeId);
             sb.append(LogConstants.GAP);
+            sb.append(nodeName);
+            sb.append(LogConstants.GAP);
             sb.append(svcName);
             sb.append(LogConstants.GAP);
             sb.append(LogConstants.OPEN_SQUARE);
@@ -337,6 +364,8 @@ public class LogMessage {
             sb.append(getTime());
             sb.append(LogConstants.GAP);
             sb.append(nodeId);
+            sb.append(LogConstants.GAP);
+            sb.append(nodeName);
             sb.append(LogConstants.GAP);
             sb.append(LogConstants.OPEN_SQUARE);
             sb.append(facility);

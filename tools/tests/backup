@@ -1,0 +1,110 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# backup cli functions
+#----------------------------------------------------------------------
+
+def create_backup(args):
+    bourne.connect(args.ip)
+    bourne.create_backup(args.name)
+
+def delete_backup(args):
+    bourne.connect(args.ip)
+    bourne.delete_backup(args.name)
+
+def list_backup(args):
+    bourne.connect(args.ip)
+    backuparray = bourne.list_backup()
+    if backuparray is None:
+        print None
+    elif backuparray['backupsets_info'] is None:
+        print None
+    else:
+        for backup in backuparray['backupsets_info']:
+            if(backup['name'] == args.name):
+                print backup['name']
+
+def download_backup(args):
+    bourne.connect(args.ip)
+    if (args.filepath.endswith(".zip") is False):
+        args.filepath += ".zip"
+    response=bourne.download_backup(args.name)
+    filename=args.filepath
+    if (filename):
+        with open(filename, 'wb') as fp:
+            fp.write(str(response))
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# backup [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne tenant cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | list | delete | download)')
+parser.add_argument('--ip', metavar = 'ipaddr', help = 'IP address of bourne', default=bourne_ip)
+
+# create backup
+backupcreate = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+backupcreate.add_argument('name', help = 'name of backup file', type=str)
+
+# list backup
+backuplist = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+backuplist.add_argument('name', help = 'name of backup file', type=str)
+
+# delete backup
+backupdelete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+backupdelete.add_argument('name', help = 'name of backup file', type=str)
+
+# download backup
+backupdownload = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+backupdownload.add_argument('name', help = 'name of backup file', type=str)
+backupdownload.add_argument('filepath', help= 'path of target file', type=str)
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "create"):
+        args = backupcreate.parse_args()
+        create_backup(args)
+    elif (cmd == "list"):
+        args = backuplist.parse_args()
+        list_backup(args)
+    elif (cmd == "delete"):
+        args = backupdelete.parse_args()
+        delete_backup(args)
+    elif (cmd == "download"):
+        args = backupdownload.parse_args()
+        download_backup(args)
+    else:
+        parser.print_help()
+except:
+    raise

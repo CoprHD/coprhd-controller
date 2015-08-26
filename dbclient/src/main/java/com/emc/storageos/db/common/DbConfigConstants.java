@@ -46,4 +46,6 @@ public abstract class DbConfigConstants {
 
     // we change the token number from 256 to 16 in jedi, this will reduce db repair time.
     public static final Integer DEFUALT_NUM_TOKENS = 16;
+    public static final String DEFAULT_VDC_DB_VERSION = "2.2";
+    public static final String VERSION_PART_SEPERATOR = ".";
 }

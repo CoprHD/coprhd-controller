@@ -244,6 +244,7 @@
         <property name="handlers">
             <list>
                 <ref bean="passwordExpireRuleHandler" />
+                <ref bean="uniqueNodeNameHandler" />
                 <bean class="com.emc.storageos.systemservices.impl.propertyhandler.PasswordChangeIntervalRuleHandler" />
                 <bean class="com.emc.storageos.systemservices.impl.propertyhandler.UpgradeCheckFrequencyRuleHandler" />
             </list>
@@ -251,6 +252,10 @@
     </bean>
     <bean id="passwordExpireRuleHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.PasswordExpireRuleHandler">
         <property name="passwordHandler" ref="localPasswordHandler"/>
+    </bean>
+
+    <bean id="uniqueNodeNameHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.UniqueNodeNameHandler">
+        <property name="coordinator" ref="coordinatorclientext"/>
     </bean>
 
     <bean id="notificationManager" class="com.emc.storageos.security.password.NotificationManager" init-method="init">

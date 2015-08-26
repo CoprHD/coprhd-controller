@@ -73,6 +73,9 @@ public class SystemHealth extends Controller {
     public static final String PARAM_START_TIME = "startTime";
     public static final String PARAM_END_TIME = "endTime";
     public static final String PARAM_CONFIG_PROP = "redeploy";
+    public static final String DBHEALTH_STATUS_SUCCESS = "SUCCESS";
+    public static final String DBHEALTH_STATUS_FAIL = "FAILED";
+    public static final String DBHEALTH_STATUS_FINISH = "FINISHED";
 
     public static final String DEFAULT_SEVERITY = "7";
     public static final String[] SEVERITIES = { "4", "5", "7", "8" };
@@ -112,7 +115,10 @@ public class SystemHealth extends Controller {
         int progress = dbstatus.getProgress();
         String health = dbstatus.getStatus().toString();
         angularRenderArgs().put("progress", progress + "%");
-        angularRenderArgs().put("health", health);
+        if (health == DBHEALTH_STATUS_SUCCESS || health == DBHEALTH_STATUS_FAIL) {
+        	health = DBHEALTH_STATUS_FINISH;
+        }
+        renderArgs.put("health", health);
         if (dbstatus.getStartTime() != null) {
             DateTime startTime = new DateTime(dbstatus.getStartTime().getTime());
             renderArgs.put("startTime", startTime);
@@ -127,6 +133,14 @@ public class SystemHealth extends Controller {
     public static void nodeRecovery() {
         ViPRSystemClient client = BourneUtil.getSysClient();
         RecoveryStatus recoveryStatus = client.control().getRecoveryStatus();
+        if (recoveryStatus.getStartTime()!= null ) {
+        	DateTime startTime = new DateTime(recoveryStatus.getStartTime().getTime());
+        	renderArgs.put("startTime", startTime);
+        }
+        if (recoveryStatus.getEndTime() != null) {
+        	DateTime endTime = new DateTime(recoveryStatus.getEndTime().getTime());
+        	renderArgs.put("endTime", endTime);
+        }
         ClusterInfo clusterInfo = AdminDashboardUtils.getClusterInfo();
 
         render(recoveryStatus, clusterInfo);
@@ -216,12 +230,14 @@ public class SystemHealth extends Controller {
                 angularRenderArgs().put("serviceCount", serviceHealthList.size());
                 angularRenderArgs().put("statusCount", getStatusCount(serviceHealthList));
                 angularRenderArgs().put("nodeId", nodeId);
+                angularRenderArgs().put("nodeName", nodeHealth.getNodeName());
                 render(nodeId);
             }
             else {
-                flash.error(Messages.get("system.node.services.error", nodeId));
+                flash.error(Messages.get("system.node.services.error", nodeHealth.getNodeName()));
             }
         } else {
+            Logger.warn("Could not determine node name.");
             flash.error(Messages.get("system.node.error", nodeId));
         }
         systemHealth();
@@ -238,10 +254,18 @@ public class SystemHealth extends Controller {
             angularRenderArgs().put("nodeIp", nodeStats.getIp());
             renderArgs.put("healthDetails", healthDetails(nodeStats, nodeHealth));
             angularRenderArgs().put("nodeId", nodeId);
+            angularRenderArgs().put("nodeName", nodeHealth.getNodeName());
             render(nodeId);
         }
         else {
             flash.error(Messages.get("system.node.error", nodeId));
+            String nodeError= nodeId;
+            try {
+                nodeError = nodeHealth.getNodeName();
+            }catch (NullPointerException e){
+                Logger.warn("Could not determine node name.");
+            }
+            flash.error(Messages.get("system.node.error", nodeError));
             systemHealth();
         }
     }
@@ -512,12 +536,18 @@ public class SystemHealth extends Controller {
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void nodeReboot(@Required String nodeId) {
         NodeHealth nodeHealth = MonitorUtils.getNodeHealth(nodeId);
+        String node= nodeId;
+        try {
+            node = MonitorUtils.getNodeHealth(nodeId).getNodeName();
+        }catch (NullPointerException e){
+            Logger.warn("Could not determine node name.");
+        }
         if(nodeHealth!=null && nodeHealth.getStatus().equals("Good")){
             new RebootNodeJob(getSysClient(), nodeId).in(3);
-            flash.success(Messages.get("adminDashboard.nodeRebooting", nodeId));
+            flash.success(Messages.get("adminDashboard.nodeRebooting", node));
             Maintenance.maintenance(Common.reverseRoute(SystemHealth.class, "systemHealth"));
         }else{
-            flash.error("systemHealth.message.reboot.unavailable", nodeId);
+            flash.error(Messages.get("systemHealth.message.reboot.unavailable", node));
             systemHealth();
         }
     }
@@ -539,8 +569,14 @@ public class SystemHealth extends Controller {
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void serviceRestart(@Required String nodeId, @Required String serviceName) {
         new RestartServiceJob(getSysClient(), serviceName, nodeId).in(3);
-        flash.success(Messages.get("adminDashboard.serviceRestarting", serviceName, nodeId));
-        Maintenance.maintenance(Common.reverseRoute(SystemHealth.class, "services", "nodeId", nodeId));
+        String node= nodeId;
+        try {
+            node = MonitorUtils.getNodeHealth(nodeId).getNodeName();
+        }catch (NullPointerException e){
+            Logger.warn("Could not determine node name.");
+        }
+        flash.success(Messages.get("adminDashboard.serviceRestarting", serviceName, node));
+        Maintenance.maintenance(Common.reverseRoute(SystemHealth.class, "services","nodeId", nodeId));
     }
 
     public static void downloadConfigParameters() throws UnsupportedEncodingException {

@@ -184,7 +184,7 @@ public class LogNetworkStreamMerger extends AbstractLogStreamMerger {
                 InputStream nodeResponseStream = sysClient.post(SysClientFactory
                         .URI_NODE_LOGS, InputStream.class, req);
                 if (nodeResponseStream != null && nodeResponseStream.available() > 0) {
-                    LogNetworkReader reader = new LogNetworkReader(node.getId(), nodeResponseStream, status);
+                    LogNetworkReader reader = new LogNetworkReader(node.getId(),node.getName(),nodeResponseStream,status);
                     logNetworkStreams.add(reader);
                 }
             } catch (Exception e) {

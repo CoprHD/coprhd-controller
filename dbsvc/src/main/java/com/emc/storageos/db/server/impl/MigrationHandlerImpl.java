@@ -262,7 +262,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 return true;
             } catch (Exception e) {
                 if (isUnRetryableException(e)) {
-                    markMigrationFail(currentSchemaVersion, e);
+                    markMigrationFailure(currentSchemaVersion, e);
                     return false;
                 } else {
                     log.warn("Retryable exception during migration ", e);
@@ -279,24 +279,31 @@ public class MigrationHandlerImpl implements MigrationHandler {
             }
             sleepBeforeRetry();
         }  // while -- not done
+        markMigrationFailure(currentSchemaVersion);
         return false;
     }
 
-	private void markMigrationFail(String currentSchemaVersion, Exception e) {
+    private void markMigrationFailure(String currentSchemaVersion, Exception e) {
         schemaUtil.setMigrationStatus(MigrationStatus.FAILED);
 
         String errMsg =
-                String.format("The DB migration fails from %s to %s due to some unexpected error.",
+                String.format("DB schema migration from %s to %s failed due to an unexpected error.",
                         currentSchemaVersion, targetVersion);
 
         if (failedCallbackName != null) {
-            errMsg += "(The failed DB migration callback is " + failedCallbackName + ").";
+            errMsg += " (The failing callback is " + failedCallbackName + ").";
         }
 
         errMsg += " Please contract the EMC support team.";
 
         alertLog.error(errMsg);
-        log.error(e.getMessage(), e);
+        if (e != null) {
+            log.error(e.getMessage(), e);
+        }
+    }
+    
+    private void markMigrationFailure(String currentSchemaVersion) {
+        markMigrationFailure(currentSchemaVersion, null);
     }
 
     private boolean isUnRetryableException(Exception e) {

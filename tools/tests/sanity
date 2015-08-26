@@ -86,7 +86,7 @@ QUICK=0
 
 SS=${3}
 if [ ${SS} = "vplex" ]; then
-        VPLEX_QUICK_PARAM=${4:-'quick'}
+        VPLEX_QUICK_PARAM=${4:-'normal'}
 	AUTH=${5:-ldap}
 	EXTRA_PARAM=${6}
 elif [ ${SS} = "recoverpoint" ]; then
@@ -1571,8 +1571,8 @@ vplex_setup_once()
 	echo "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
 	run networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
 	transportzone listall
-	transportzone assign ${SIMULATOR_VSAN_11} ${NH}
-        transportzone assign ${SIMULATOR_VSAN_12} ${NH2}
+	run transportzone assign ${SIMULATOR_VSAN_11} ${NH}
+        run transportzone assign ${SIMULATOR_VSAN_12} ${NH2}
 
 	# Discover the storage systems 
 	echo "Discovering back-end storage arrays using ECOM/SMIS simulator on: $VPLEX_SIM_SMIS_IP..."
@@ -1698,8 +1698,8 @@ vplex_tests()
 	initiator create $hostLbl FC $PWWN2 --node $WWNN2
 	
 	echo "**** Adding WWNs to Network"
-	transportzone add ${NH}/${CLUSTER1NET_NAME} $PWWN1
-	transportzone add ${NH}/${CLUSTER1NET_NAME} $PWWN2
+	run transportzone add ${NH}/${CLUSTER1NET_NAME} $PWWN1
+	run transportzone add ${NH}/${CLUSTER1NET_NAME} $PWWN2
 	
 	echo "**** Exporting VPLEX volumes to host in varray " $NH
 	run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$distVolume1+1" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
@@ -1739,6 +1739,7 @@ vplex_tests()
 
 	echo "**** Deleting VPLEX exports"
 	run export_group delete $PROJECT/$hname-1$host
+	# run export_group delete $PROJECT/$hname-2$host
 
 	echo "**** Deleting VPLEX volumes"
 	run volume delete $PROJECT/$localVolume1 --wait

@@ -73,10 +73,10 @@ class SanFabrics(object):
     Returns a list of the active zones (and their zone members)
                                         for the specified
     '''
-    def show_fabrics_zones_by_uri(self, nsuri, fabricid, xml=False, exclude_aliases=False):
+    def show_fabrics_zones_by_uri(self, nsuri, fabricid, xml=False, excludealiases=False):
 
         urisanfabric= SanFabrics.URI_SAN_FABRICS_ZONE_LIST
-        if(exclude_aliases == True ):
+        if(excludealiases == True ):
             urisanfabric = urisanfabric + "?exclude-aliases=true"
         if(xml == False):
             (s, h) = common.service_json_request(self.__ipAddr, self.__port,
@@ -92,10 +92,10 @@ class SanFabrics(object):
             None, None, xml)
             return s
 
-    def san_fabrics_zones_list(self, networkname, fabricid, xml=False):
+    def san_fabrics_zones_list(self, networkname, fabricid, xml=False , excludealiases=False):
         obj = Networksystem(self.__ipAddr, self.__port)
         nsuri = obj.networksystem_query(networkname)
-        return self.show_fabrics_zones_by_uri(nsuri, fabricid, xml)
+        return self.show_fabrics_zones_by_uri(nsuri, fabricid, xml ,excludealiases )
 
     '''
     Returns a list of the active zones (and their zone members)
@@ -270,7 +270,7 @@ def list_san_zones_parser(subcommand_parsers, common_parser):
                              help='List sanzones of Fabric or VSAN',
                              action='store_true')
     list_zones_parser.add_argument('-excludealiases', '-exal',
-                             dest='exclude-aliases',
+                             dest='excludealiases',
                              help='This excludes the aliases',
                              action='store_true')    
     
@@ -280,7 +280,7 @@ def list_san_zones_parser(subcommand_parsers, common_parser):
 def list_fabric_san_zones(args):
     obj = SanFabrics(args.ip, args.port)
     try:
-        zones = obj.san_fabrics_zones_list(args.name, args.fabricid)
+        zones = obj.san_fabrics_zones_list(args.name, args.fabricid, None, args.excludealiases)
         sanzone = zones['san_zone']
 
         output = []

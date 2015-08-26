@@ -269,7 +269,7 @@ def list_san_zones_parser(subcommand_parsers, common_parser):
                              dest='long',
                              help='List sanzones of Fabric or VSAN',
                              action='store_true')
-    list_zones_parser.add_argument('-exclude-aliases', '-ex-al',
+    list_zones_parser.add_argument('-excludealiases', '-exal',
                              dest='exclude-aliases',
                              help='This excludes the aliases',
                              action='store_true')    

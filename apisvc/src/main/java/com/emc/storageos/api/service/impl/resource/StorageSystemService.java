@@ -260,12 +260,14 @@ public class StorageSystemService extends TaskResourceService {
                 param.getSystemType(), param.getIpAddress(), param.getPortNumber());
 
         //Temp code to be removed: Sreenidhi
-        if (system.getSystemType() == "isilon")
+        if (system.getSystemType().equals("isilon"))
         	system.setSystemType("ecs");
-        	
+        
+        system.setSystemType("ecs");
+
         startStorageSystem(system);
 
-        FileController controller = getController(FileController.class, param.getSystemType());
+        ObjectController controller = getController(ObjectController.class, param.getSystemType());
         ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
         String taskId = UUID.randomUUID().toString();
         tasks.add(new AsyncTask(StorageSystem.class, system.getId(), taskId));

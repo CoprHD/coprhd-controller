@@ -10,7 +10,7 @@ public class ECSApiFactory {
      * Initialize
      */
     public void init() {
-        _log.info(" ECSApi factory initialized");
+        _log.info(" ECSApiFactory ECSApi factory initialized");
     }
     
     /**

@@ -3,17 +3,26 @@ package com.emc.storageos.volumecontroller.impl;
 import java.net.URI;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ObjectController;
+import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
+import com.emc.storageos.volumecontroller.impl.monitoring.MonitoringJob;
+import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.MonitorTaskCompleter;
 
 public class ObjectControllerImpl extends AbstractDiscoveredSystemController
 		implements ObjectController {
+	 private final static Logger _log = LoggerFactory.getLogger(FileControllerImpl.class);
 
     // device specific ObjectController implementations
     private Set<ObjectController> _deviceImpl;
@@ -34,41 +43,64 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     
 	@Override
 	public void connectStorage(URI storage) throws InternalException {
-		// TODO Auto-generated method stub
+		_log.info("ObjectControllerImpl connectStorage");
+		 execFS("connectStorage", storage);
 
 	}
 
 	@Override
 	public void disconnectStorage(URI storage) throws InternalException {
-		// TODO Auto-generated method stub
+		execFS("disconnectStorage", storage);
 
 	}
 
 	@Override
 	public void discoverStorageSystem(AsyncTask[] tasks)
 			throws InternalException {
-		// TODO Auto-generated method stub
+		_log.info("ObjectControllerImpl discoverStorageSystem");
+        try {
+            ControllerServiceImpl.scheduleDiscoverJobs(tasks, Lock.DISCOVER_COLLECTION_LOCK, ControllerServiceImpl.DISCOVERY);
+        } catch (Exception e) {
+            _log.error(
+                    "Problem in discoverStorageSystem due to {} ",
+                    e.getMessage());
+            throw ClientControllerException.fatals.unableToScheduleDiscoverJobs(tasks, e);
+        }
 
 	}
 
 	@Override
 	public void scanStorageProviders(AsyncTask[] tasks)
 			throws InternalException {
-		// TODO Auto-generated method stub
+		_log.info("ObjectControllerImpl scanStorageProviders");
+		 throw ClientControllerException.fatals.unableToScanSMISProviders(tasks, "ObjectController", null);
 
 	}
 
 	@Override
 	public void startMonitoring(AsyncTask task, Type deviceType)
 			throws InternalException {
-		// TODO Auto-generated method stub
-
+        try {
+            MonitoringJob job = new MonitoringJob();
+            job.setCompleter(new MonitorTaskCompleter(task));
+            job.setDeviceType(deviceType);
+            ControllerServiceImpl.enqueueMonitoringJob(job);
+        } catch (Exception e) {
+            throw ClientControllerException.fatals.unableToMonitorSMISProvider(task, deviceType.toString(), e);
+        }
 	}
 
 	@Override
 	protected Controller lookupDeviceController(DiscoveredSystemObject device) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+        // dummy impl that returns the first one
+		_log.info("ObjectControllerImpl lookupDeviceController");
+        return _deviceImpl.iterator().next();	
+        }
+	
+    private void execFS(String methodName, Object... args) throws InternalException {
+    	StringBuilder logMsgBuilder = new StringBuilder(String.format(
+                "ObjectControllerImpl Method=%s StorageSystem.class:%s", methodName, StorageSystem.class));
+        queueTask(_dbClient, StorageSystem.class, _dispatcher, methodName, args);
+    }
 
 }

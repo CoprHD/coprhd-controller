@@ -30,8 +30,9 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
     /**
      * @param ecsApiFactory the ecsApiFactory to set
      */
-    public void setEcsApiFactory(ECSApiFactory ecsApiFactory) {
+    public void setecsApiFactory(ECSApiFactory ecsApiFactory) {
         this.ecsApiFactory = ecsApiFactory;
+        _logger.info("ECSCommunicationInterface setecsApiFactory");
     }
 	
 	@Override
@@ -45,7 +46,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 	public void scan(AccessProfile accessProfile)
 			throws BaseCollectionException {
 		// TODO Auto-generated method stub
-		
+		 _logger.info("ECSCommunicationInterface ECS scan Access Profile Details :" + accessProfile.toString());
 	}
 
 	@Override
@@ -57,7 +58,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
         long startTime = System.currentTimeMillis();
 
 		try {
-            _logger.info("Access Profile Details :" + accessProfile.toString());
+            _logger.info("ECSCommunicationInterface ECS discover Access Profile Details :" + accessProfile.toString());
             
 		}  catch (Exception e) {
             detailedStatusMessage = String.format("Discovery failed for Storage System: %s because %s",

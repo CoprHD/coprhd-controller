@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins;
 
-import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;

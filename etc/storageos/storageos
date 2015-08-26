@@ -118,7 +118,7 @@ _set_variant() {
 # Do not start if already running!
 #
 case ${1} in
-start|startcoverage|runcontroller|controller|runapi|api|authsvc)
+start|startcoverage|controller|api)
     _running=""
     for svc in @systemd_storageos@ ; do
         _checkactive ${svc} 
@@ -140,20 +140,17 @@ startcoverage)
     _set_variant 
     _start_services
     ;;
-runapi|api)
+api)
     echo -n "Starting @product_brand@ api services"
     for svc in auth coordinator db geodb api geo ; do
         _startsvc ${svc}
     done
     ;;
-runcontroller|controller)
+controller)
     echo -n "Starting @product_brand@ controller service"
-    _startsvc controllersvc
+    _startsvc controller
     ;;
 stop)
-    _stop_services
-    ;;
-stopcoverage)
     _stop_services
     ;;
 status)
@@ -161,7 +158,7 @@ status)
         _checksvc ${svc}
     done
     ;;
-reload|restart)
+restart)
     $0 stop
     $0 start
     ;;
@@ -176,7 +173,7 @@ disable)
     done
     ;;
 *)
-    echo "Usage: $0 [ start | startcoverage | stop | status | restart | runapi | api | runcontroller | controller | authsvc ]"
+    echo "Usage: $0 [ start | startcoverage | stop | status | restart | api | controller | enable | disable ]"
     exit 7
 esac
 

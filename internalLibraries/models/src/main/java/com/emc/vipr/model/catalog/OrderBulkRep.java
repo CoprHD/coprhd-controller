@@ -29,7 +29,7 @@ public class OrderBulkRep extends BulkRestRep {
      * List of projects
      * 
      * @valid none
-     * @return
+     * @return List of projects
      */
     @XmlElement(name = "order")
     public List<OrderRestRep> getOrders() {

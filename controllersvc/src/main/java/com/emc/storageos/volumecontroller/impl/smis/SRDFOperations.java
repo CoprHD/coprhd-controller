@@ -632,6 +632,51 @@ public class SRDFOperations implements SmisConstants {
         }
     }
 
+    public void createListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer) {
+        try {
+            List<Volume> sourceVolumes = dbClient.queryObject(Volume.class, sources);
+            List<Volume> targetVolumes = dbClient.queryObject(Volume.class, targets);
+
+            Volume firstTarget = targetVolumes.get(0);
+            RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class, firstTarget.getSrdfGroup());
+            StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, firstTarget.getStorageController());
+            int modeValue = Mode.valueOf(firstTarget.getSrdfCopyMode()).getMode();
+            CIMObjectPath srcRepSvcPath = cimPath.getControllerReplicationSvcPath(system);
+            CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(system, group);
+            CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(system, modeValue);
+
+            List<CIMObjectPath> sourcePaths = new ArrayList<>();
+            List<CIMObjectPath> targetPaths = new ArrayList<>();
+            for (Volume sourceVolume : sourceVolumes) {
+                sourcePaths.add(cimPath.getVolumePath(system, sourceVolume.getNativeId()));
+            }
+            for (Volume targetVolume : targetVolumes) {
+                targetPaths.add(cimPath.getVolumePath(targetSystem, targetVolume.getNativeId()));
+            }
+
+            CIMArgument[] inArgs = helper.getCreateListReplicaInputArguments(system,
+                    sourcePaths.toArray(new CIMObjectPath[]{}),
+                    targetPaths.toArray(new CIMObjectPath[]{}),
+                    modeValue, repCollectionPath, replicationSettingDataInstance);
+            CIMArgument[] outArgs = new CIMArgument[5];
+
+            helper.invokeMethodSynchronously(system, srcRepSvcPath,
+                    SmisConstants.CREATE_LIST_REPLICA, inArgs, outArgs,
+                    new SmisSRDFCreateMirrorJob(null, system.getId(), completer));
+        } catch (WBEMException wbeme) {
+            log.error("SMI-S error creating mirrors for {}", Joiner.on(',').join(sources), wbeme);
+            ServiceError error = SmisException.errors.jobFailed(wbeme.getMessage());
+            WorkflowStepCompleter.stepFailed(completer.getOpId(), error);
+            completer.error(dbClient, error);
+
+        } catch (Exception e) {
+            log.error("Error creating mirrors for {}", Joiner.on(',').join(sources), e);
+            ServiceError error = SmisException.errors.jobFailed(e.getMessage());
+            WorkflowStepCompleter.stepFailed(completer.getOpId(), error);
+            completer.error(dbClient, error);
+        }
+    }
+
     public void refreshStorageSystem(final URI storageSystemURI) {
         StorageSystem targetSystem = null;
         try {

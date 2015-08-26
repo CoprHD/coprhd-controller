@@ -5855,6 +5855,31 @@ public class SmisCommandHelper implements SmisConstants {
         return args.toArray(new CIMArgument[args.size()]);
     }
 
+    public CIMArgument[] getCreateListReplicaInputArguments(StorageSystem storageDevice,
+                                                            CIMObjectPath[] sourceVolumePath,
+                                                            CIMObjectPath[] targetVolumePath,
+                                                            int mode,
+                                                            CIMObjectPath repCollection,
+                                                            CIMInstance repSetting) {
+        List<CIMArgument> args = new ArrayList<>();
+        args.add(_cimArgument.referenceArray(CP_SOURCE_ELEMENTS, sourceVolumePath));
+        args.add(_cimArgument.referenceArray(CP_TARGET_ELEMENTS, targetVolumePath));
+        args.add(_cimArgument.uint16(CP_SYNC_TYPE, MIRROR_VALUE));
+        args.add(_cimArgument.uint16(CP_MODE, mode));
+        args.add(_cimArgument.reference(CP_CONNECTIVITY_COLLECTION, repCollection));
+
+        // WaitForCopyState only valid for Synchronous mode.
+        if (SRDFOperations.Mode.SYNCHRONOUS.getMode() == mode) {
+            args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, SYNCHRONIZED));
+        }
+
+        if (repSetting != null) {
+            args.add(_cimArgument.object(CP_REPLICATION_SETTING_DATA, repSetting));
+        }
+
+        return args.toArray(new CIMArgument[args.size()]);
+    }
+
     public CIMArgument[] getModifyListReplicaInputArguments(CIMObjectPath[] syncObjectPaths, int operationValue) {
         return new CIMArgument[] {
                 _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),

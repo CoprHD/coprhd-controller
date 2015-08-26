@@ -1872,6 +1872,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
+    public void doCreateListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer) {
+        _srdfOperations.createListReplicas(system, sources, targets, completer);
+    }
+
+    @Override
     public void doDetachLink(final StorageSystem system, final URI sourceURI,
             final URI targetURI, final boolean onGroup, final TaskCompleter completer) {
         Volume target = _dbClient.queryObject(Volume.class, targetURI);

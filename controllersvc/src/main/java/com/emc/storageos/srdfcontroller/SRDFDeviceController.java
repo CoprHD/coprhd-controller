@@ -441,27 +441,29 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         URI vpoolChangeUri = getVirtualPoolChangeVolume(sourceDescriptors);
         log.info("VPoolChange URI {}", vpoolChangeUri);
         String stepId = waitFor;
-        List<URI> targetURIs = new ArrayList<URI>();
+        List<URI> targetURIs = new ArrayList<>();
 
         for (URI sourceURI : sourceURIs) {
             Volume source = uriVolumeMap.get(sourceURI);
             StringSet srdfTargets = source.getSrdfTargets();
             for (String targetStr : srdfTargets) {
-                /*
-                 * 1. Create Element Replicas for each source/target pairing
-                 */
                 URI targetURI = URI.create(targetStr);
                 targetURIs.add(targetURI);
-                Workflow.Method createMethod = createSRDFVolumePairMethod(
-                        system.getId(), source.getId(), targetURI, null);
-                Workflow.Method rollbackMethod = rollbackSRDFLinkMethod(system.getId(),
-                        source.getId(), targetURI, false);
-                stepId = workflow.createStep(CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP,
-                        CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_DESC, stepId, system.getId(),
-                        system.getSystemType(), getClass(), createMethod, rollbackMethod,
-                        null);
             }
         }
+
+        /*
+         * 1. Invoke CreateListReplica with all source/target pairings.
+         */
+
+        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs);
+        // false here because we want to rollback individual links not the entire (pre-existing) group.
+        Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
+
+        workflow.createStep(CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP,
+                CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_DESC, stepId, system.getId(),
+                system.getSystemType(), getClass(), createListMethod, rollbackMethod, null);
+
         /*
          * 2. Invoke AddSyncpair with the created StorageSynchronized from Step 1
          */
@@ -926,6 +928,37 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 completer.ready(dbClient);
             }
             WorkflowStepCompleter.stepSucceded(opId);
+            return false;
+        }
+        return true;
+    }
+
+    private Workflow.Method createListReplicasMethod(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs) {
+        return new Workflow.Method("createListReplicas", systemURI, sourceURIs, targetURIs);
+    }
+
+    public boolean createListReplicas(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, String opId) {
+        log.info("START Creating list of replicas");
+        TaskCompleter completer = null;
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem system = getStorageSystem(systemURI);
+
+            List<URI> combined = new ArrayList<>();
+            combined.addAll(sourceURIs);
+            combined.addAll(targetURIs);
+
+            completer = new SRDFMirrorCreateCompleter(combined, null, opId);
+            getRemoteMirrorDevice().doCreateListReplicas(system, sourceURIs, targetURIs, completer);
+            log.info("Sources: {}", Joiner.on(',').join(sourceURIs));
+            log.info("Targets: {}", Joiner.on(',').join(targetURIs));
+            log.info("OpId: {}", opId);
+        } catch (Exception e) {
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            if (null != completer) {
+                completer.error(dbClient, error);
+            }
+            WorkflowStepCompleter.stepFailed(opId, error);
             return false;
         }
         return true;

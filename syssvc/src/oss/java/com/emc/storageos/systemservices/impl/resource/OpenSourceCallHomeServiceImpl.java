@@ -19,14 +19,14 @@ import com.emc.storageos.model.event.EventParameters;
 public class OpenSourceCallHomeServiceImpl extends BaseLogSvcResource implements CallHomeService {
 
     @Override
-    public SysSvcTask sendInternalAlert(String source, int eventId, List<String> nodeIds, List<String> logNames,
+    public SysSvcTask sendInternalAlert(String source, int eventId, List<String> nodeIds,  List<String> nodeNames, List<String> logNames,
                               int severity, String start, String end, String msgRegex, int maxCount,
                               EventParameters eventParameters) throws Exception {
         throw new WebApplicationException(501);
     }
 
     @Override
-    public SysSvcTask sendAlert(String source, int eventId, List<String> nodeIds, List<String> logNames, int severity,
+    public SysSvcTask sendAlert(String source, int eventId, List<String> nodeIds, List<String> nodeNames, List<String> logNames, int severity,
                               String start, String end, String msgRegex, int maxCount, boolean forceAttachLogs,
                               int force, EventParameters eventParameters) throws Exception {
         throw new WebApplicationException(501);

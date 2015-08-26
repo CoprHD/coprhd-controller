@@ -667,6 +667,15 @@ public interface BadRequestExceptions {
     public BadRequestException invalidHostNamesAreNotUnique();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidNodeNamesAreNotUnique(String nodeName,String prop1, String prop2);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidNodeShortNamesAreNotUnique(String shortName,String prop1, String prop2);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidNodeNameIsIdOfAnotherNode(String name,String value);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterHostAlreadyHasOs(String os);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

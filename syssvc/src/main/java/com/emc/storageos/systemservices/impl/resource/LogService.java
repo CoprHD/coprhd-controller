@@ -97,14 +97,17 @@ public class LogService extends BaseLogSvcResource {
      * messages back to the client as JSON formatted strings.
      * 
      * @brief Show logs from all or specified virtual machine
-     * @param nodeIds The ids of the virtual machines for which log data is
-     *            collected.
-     *            Allowed values: standalone,
-     *            control nodes: vipr1,vipr2 etc
-     *            data services nodes: dataservice-10-111-111-222 (node-ip-address)
-     * @param logNames The names of the log files to process.
-     * @param severity The minimum severity level for a logged message.
-     *            Allowed values:0-9. Default value: 7
+     * @param nodeIds      The ids of the virtual machines for which log data is
+     *                     collected.
+     *                     Allowed values: standalone,
+     *                     control nodes: vipr1,vipr2 etc
+     *                     data services nodes: dataservice-10-111-111-222 (node-ip-address)
+     * @param nodeNames    The custom names of the vipr nodes for which log data is
+     *                     collected.
+     *                     Allowed values: Current values of node_x_name properties
+     * @param logNames     The names of the log files to process.
+     * @param severity     The minimum severity level for a logged message.
+     *                     Allowed values:0-9. Default value: 7
      * @param startTimeStr The start datetime of the desired time window. Value is
      *            inclusive.
      *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or
@@ -137,6 +140,7 @@ public class LogService extends BaseLogSvcResource {
     @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN })
     public Response getLogs(
             @QueryParam(LogRequestParam.NODE_ID) List<String> nodeIds,
+            @QueryParam(LogRequestParam.NODE_NAME) List<String> nodeNames,
             @QueryParam(LogRequestParam.LOG_NAME) List<String> logNames,
             @DefaultValue(LogSeverity.DEFAULT_VALUE_AS_STR) @QueryParam(LogRequestParam
             .SEVERITY) int severity,
@@ -150,7 +154,9 @@ public class LogService extends BaseLogSvcResource {
         enforceRunningRequestLimit();
 
         final MediaType mediaType = getMediaType();
-        _log.info("Logs request media type {}", mediaType);
+        _log.info("Logs request media type {}",mediaType);
+
+        nodeIds=_coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames,nodeIds);
 
         // Validate the passed node ids.
         validateNodeIds(nodeIds);
@@ -309,10 +315,13 @@ public class LogService extends BaseLogSvcResource {
      * Get current logging levels for all services and virtual machines
      * 
      * @brief Get current log levels
-     * @param nodeIds The ids of the virtual machines for which log data is
-     *            collected.
-     *            Allowed values: standalone,vipr1,vipr2 etc
-     * @param logNames The names of the log files to process.
+     * @param nodeIds      The ids of the virtual machines for which log data is
+     *                     collected.
+     *                     Allowed values: standalone,vipr1,vipr2 etc
+     * @param nodeNames    The custom names of the vipr nodes for which log data is
+     *                     collected.
+     *                     Allowed values: standalone,vipr1,vipr2 etc
+     * @param logNames     The names of the log files to process.
      * @prereq none
      * @return A list of log levels
      * @throws WebApplicationException When an invalid request is made.
@@ -323,6 +332,7 @@ public class LogService extends BaseLogSvcResource {
     @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
     public LogLevels getLogLevels(
             @QueryParam(LogRequestParam.NODE_ID) List<String> nodeIds,
+            @QueryParam(LogRequestParam.NODE_NAME) List<String> nodeNames,
             @QueryParam(LogRequestParam.LOG_NAME) List<String> logNames)
             throws WebApplicationException {
         _log.info("Received getloglevels request");
@@ -330,6 +340,8 @@ public class LogService extends BaseLogSvcResource {
 
         MediaType mediaType = getMediaType();
         _log.debug("Get MediaType in header");
+
+        nodeIds=_coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames,nodeIds);
 
         // Validate the passed node ids.
         validateNodeIds(nodeIds);
@@ -390,6 +402,10 @@ public class LogService extends BaseLogSvcResource {
 
         MediaType mediaType = getMediaType();
         _log.debug("Get MediaType {} in header", mediaType);
+
+        //get nodeIds for node names
+        List<String> nodeIds=_coordinatorClientExt.combineNodeNamesWithNodeIds(param.getNodeNames(),param.getNodeIds());
+        param.setNodeIds(nodeIds);
 
         // Validate the passed node ids.
         validateNodeIds(param.getNodeIds());
@@ -484,7 +500,8 @@ public class LogService extends BaseLogSvcResource {
                 if (isGetReq) {
                     level = LoggingOps.getLevel(logName);
                     _log.debug("log level of service {} is {}", logName, level);
-                    logLevels.getLogLevels().add(new LogLevels.LogLevel(nodeId, logName,
+                    String nodeName = _coordinatorClientExt.getMatchingNodeName(nodeId);
+                    logLevels.getLogLevels().add(new LogLevels.LogLevel(nodeId, nodeName, logName,
                             level));
                 } else {
                     // set logger level

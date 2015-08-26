@@ -61,8 +61,7 @@ public abstract class CommandHandler {
     }
 
     public static class CountHandler extends CommandHandler {
-        private static final String COUNT_ACTIVE = "-activeonly";
-        private boolean isActiveOnly = false;
+        private boolean isActiveOnly = true;
 
         public CountHandler(String args[]) {
             if (args.length < 2) {
@@ -70,10 +69,10 @@ public abstract class CommandHandler {
             }
             if (args.length == 3) {
                 String isActiveOnlyStr = args[1];
-                if (!isActiveOnlyStr.equalsIgnoreCase(COUNT_ACTIVE)) {
+                if (!isActiveOnlyStr.equalsIgnoreCase(Main.INACTIVE)) {
                     throw new IllegalArgumentException("Invalid command option: " + isActiveOnlyStr);
                 }
-                isActiveOnly = true;
+                isActiveOnly = false;
                 cfName = args[2];
             } else {
                 cfName = args[1];
@@ -175,23 +174,24 @@ public abstract class CommandHandler {
         private static final String TYPE_EVENTS = "events";
         private static final String TYPE_STATS = "stats";
         private static final String TYPE_AUDITS = "audits";
-        private static final String LIST_ACTIVE = "-activeonly";
         private static final String LIST_LIMIT = "-limit";
         private static final String REGEX_NUMBERS = "\\d+";
 
-        public ListHandler(String[] args, DBClient _client) {
+        public ListHandler(String[] args, DBClient client) {
             if (args[1].equalsIgnoreCase(TYPE_EVENTS) ||
                     args[1].equalsIgnoreCase(TYPE_STATS) ||
                     args[1].equalsIgnoreCase(TYPE_AUDITS)) {
                 if (args.length < 3) {
                     throw new IllegalArgumentException("The file name prefix is missing");
                 }
-                processTimeSeriesReq(args, _client);
+                processTimeSeriesReq(args, client);
                 return;
             }
-            if (args[1].equalsIgnoreCase(LIST_ACTIVE) ||
-                    args[1].equalsIgnoreCase(LIST_LIMIT)) {
-                processListArgs(args, _client);
+            
+            if (args[1].equalsIgnoreCase(Main.INACTIVE)
+                    || args[1].equalsIgnoreCase(LIST_LIMIT)
+                    || args[1].equalsIgnoreCase(Main.MODIFICATION_TIME)) {
+                processListArgs(args, client);
             }
             cfName = args[args.length - 1];
         }
@@ -282,20 +282,23 @@ public abstract class CommandHandler {
 
         private static void processListArgs(String[] args, DBClient _client) {
             if (args[args.length - 1].equalsIgnoreCase(LIST_LIMIT)
-                    || args[args.length - 1].equalsIgnoreCase(LIST_ACTIVE)
+                    || args[args.length - 1].equalsIgnoreCase(Main.INACTIVE)
                     || args[args.length - 1].matches(REGEX_NUMBERS)) {
                 System.err.println("The Column Family Name is missing");
                 throw new IllegalArgumentException("The Column Family Name is missing");
             }
             for (int i = 1; i < args.length - 1; i++) {
-                if (args[i].equalsIgnoreCase(LIST_ACTIVE)) {
-                    _client.setActiveOnly(true);
+                if (args[i].equalsIgnoreCase(Main.INACTIVE)) {
+                    _client.setActiveOnly(false);
                 }
                 if (args[i].equalsIgnoreCase(LIST_LIMIT)) {
                     _client.setTurnOnLimit(true);
                     if (args[i + 1].matches(REGEX_NUMBERS)) {
                         _client.setListLimit(Integer.valueOf(args[i + 1]));
                     }
+                }
+                if (args[i].equalsIgnoreCase(Main.MODIFICATION_TIME)) {
+                    _client.setShowModificationTime(true);
                 }
             }
         }
@@ -304,12 +307,17 @@ public abstract class CommandHandler {
     public static class QueryHandler extends CommandHandler {
         String id = null;
 
-        public QueryHandler(String[] args) {
+        public QueryHandler(String[] args, DBClient client) {
             if (args.length < 3) {
                 throw new IllegalArgumentException("Invalid query command ");
             }
-            cfName = args[1];
-            id = args[2];
+
+            if (args[1].equalsIgnoreCase(Main.MODIFICATION_TIME)) {
+                client.setShowModificationTime(true);
+            }
+
+            cfName = args[args.length - 2];
+            id = args[args.length - 1];
         }
 
         @Override

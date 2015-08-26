@@ -128,7 +128,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
 
     @Override
     public void discover(AccessProfile accessProfile) throws BaseCollectionException {
-        StorageSystem.CompatibilityStatus compatibilityStatus = StorageSystem.CompatibilityStatus.COMPATIBLE;
+    	StorageSystem.CompatibilityStatus compatibilityStatus = StorageSystem.CompatibilityStatus.COMPATIBLE;
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
         _locker.acquireLock(accessProfile.getIpAddress(), LOCK_WAIT_SECONDS);
         log.info("Starting discovery of ScaleIO StorageProvider. IP={} StorageSystem {}",
@@ -141,7 +141,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                 List<ScaleIOSDC> allSDCs = scaleIOHandle.queryAllSDC();
                 List<ScaleIOSDS> allSDSs = scaleIOHandle.queryAllSDS();
                 List<ScaleIOScsiInitiator> allSCSIInitiators = scaleIOHandle.queryAllSCSIInitiators();
-
+                
                 List<StoragePort> ports = new ArrayList<>();
                 List<StoragePool> newPools = new ArrayList<StoragePool>();
                 List<StoragePool> updatePools = new ArrayList<StoragePool>();
@@ -150,11 +150,11 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                 String installationId = sioSystem.getInstallId();
                 String version = sioSystem.getVersion().replaceAll("_", ".");
                 String minimumSupported = VersionChecker.getMinimumSupportedVersion(StorageSystem.Type.scaleio);
-                String compatibility = (VersionChecker.verifyVersionDetails(minimumSupported, version) < 0) ?
-                        StorageSystem.CompatibilityStatus.INCOMPATIBLE.name() :
-                        StorageSystem.CompatibilityStatus.COMPATIBLE.name();
+                compatibilityStatus = (VersionChecker.verifyVersionDetails(minimumSupported, version) < 0) ?
+                        StorageSystem.CompatibilityStatus.INCOMPATIBLE :
+                        StorageSystem.CompatibilityStatus.COMPATIBLE;
                 storageSystem.setFirmwareVersion(version);
-                storageSystem.setCompatibilityStatus(compatibility);
+                storageSystem.setCompatibilityStatus(compatibilityStatus.name());
                 storageSystem.setReachableStatus(true);
                 storageSystem.setLabel(storageSystem.getNativeGuid());
 
@@ -179,12 +179,13 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                         }
                     }
                     List<StoragePort> thesePorts =
-                            createStoragePorts(storageSystem, compatibility, network, sdsList, domainName);
+                            createStoragePorts(storageSystem, compatibilityStatus.name(), network, sdsList, domainName);
                     ports.addAll(thesePorts);
                     createHost(network, allSDCs);
                     boolean hasSCSIInitiators =
                             createSCSIInitiatorsAndStoragePorts(storageSystem, domainName, compatibilityStatus,
                                     installationId, allSCSIInitiators, allSDCs, ports);
+                    
                     List<StoragePort> notVisiblePorts = DiscoveryUtils.checkStoragePortsNotVisible(ports, _dbClient,
                             storageSystem.getId());
                     if (notVisiblePorts != null && !notVisiblePorts.isEmpty()) {
@@ -206,7 +207,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                             pool.setStorageDevice(accessProfile.getSystemId());
                             pool.setPoolServiceType(StoragePool.PoolServiceType.block.toString());
                             pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.name());
-                            pool.setCompatibilityStatus(compatibility);
+                            pool.setCompatibilityStatus(compatibilityStatus.name());
                             pool.setThinVolumePreAllocationSupported(false);
                             pool.addDriveTypes(Collections.singleton(StoragePool.SupportedDriveTypeValues.SATA.name()));
                             StringSet copyTypes = new StringSet();
@@ -520,7 +521,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
         }
         return initiator;
     }
-
+    
     /**
      * Create a Network object for the ScaleIO instance and associate it with the VArray
      * 
@@ -614,7 +615,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
         _dbClient.updateAndReindexObject(network);
         return ports;
     }
-
+    
     /**
      * Create an iSCSI StoragePort for each SDC in the ScaleIO instance. The SDC would present iSCSI
      * targets to iSCSI initiators. These are psuedo-StoragePorts or the purpose of tying up

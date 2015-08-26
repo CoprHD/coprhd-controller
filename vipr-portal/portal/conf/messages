@@ -84,7 +84,7 @@ nav.systemNodeRecovery=Recovery
 nav.properties=General Configuration
 nav.clusterInfo=Network Configuration
 nav.adminDashboard=System
-nav.dbHealthDashboard=Database Consistency Status
+nav.dbHealthDashboard=Database Housekeeping Status
 nav.adminDashboardPage=Dashboard
 nav.localPasswords=Local Passwords
 nav.keystores=Keystore
@@ -807,7 +807,7 @@ system.about.support.title=Support
 system.about.license=Licenses
 
 #Database Consistency Page
-db.healthdashboard.title=Database Consistency Check
+db.healthdashboard.title=Database Housekeeping Status
 
 # System Node Recovery
 system.noderecovery.title=Node Recovery
@@ -828,6 +828,8 @@ health.end=End time
 dbstatus.lastCompletionTime=Last Completed Database Check: 
 dbstatus.progress=Percentage completed: 
 dbstatus.startTime=Start Time of Database Repair: 
+dbstatus.status=Status
+dbstatus.inprogress.info=Normal Provisioning is not affected when Database Housekeeping status is "In Progress"
 
 system.nodes.total=Total Nodes
 system.stats.node.status=Node Status
@@ -840,6 +842,7 @@ system.node.stats.root=Root Storage
 system.node.error=Cannot access %s's health information. Node may be unavailable or restarting
 system.node.services.error=Cannot access the services of %s. Node may be unavailable or restarting
 systemNodes.name=Name
+systemNodes.id=Id
 systemNodes.status=Status
 systemNodes.type=Type
 systemNodes.ip=IP Address
@@ -886,7 +889,8 @@ system.stats.diagnostics.status=Status
 
 # System Logs
 system.logs.title=System Logs <small>All times are displayed in <span style="font-weight: bold;">local time</span>.</small>
-system.logs.node=Node
+system.logs.nodeId=Node Id
+system.logs.nodeName=Node Name
 system.logs.service=Service
 system.logs.minseverity=Level
 system.logs.minseverity.help=Return all logs with the selected level and above.

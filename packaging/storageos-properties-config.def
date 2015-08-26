@@ -2462,5 +2462,19 @@
         rebootRequired : false,
         controlNodeOnly : true,
         value : "5.0",
+    },
+    {
+     key : "use_short_node_name",
+     label : "Enable Short Node Name",
+     description : "Short node names can be used for API query parameters and SSH between nodes. A Node short name is everything before the first '.' in the node name and must be unique.",
+     type : "string",
+     allowedValues : ( "true", "false" ),
+     tag : "Custom Node Names",
+     userMutable : true,
+     userConfigurable : true,
+     reconfigRequired : true,
+     rebootRequired : true,
+     value : "false",
+     controlNodeOnly : true,
     }
 ]

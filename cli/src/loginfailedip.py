@@ -113,7 +113,7 @@ def login_failed_ip_list(args):
 
     #CLASS - END
 
-def blockip_parser(parent_subparser, common_parser):
+def loginfailedip_parser(parent_subparser, common_parser):
     parser = parent_subparser.add_parser('loginfailedip',
                                          description='vipr login-failed-ip CLI usage',
                                          parents=[common_parser],

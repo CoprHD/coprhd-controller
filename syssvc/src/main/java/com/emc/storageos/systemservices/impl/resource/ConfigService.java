@@ -910,7 +910,7 @@ public class ConfigService {
     @DELETE
     @Path("/login-failed-ips/{ip}")
     @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
-    public Response removeBlockedIP(@PathParam("ip") String ip) {
+    public Response removeLoginFailedIP(@PathParam("ip") String ip) {
         if (StringUtils.isEmpty(ip)) {
             throw APIException.badRequests.propertyIsNullOrEmpty();
         }
@@ -928,7 +928,7 @@ public class ConfigService {
     @GET
     @Path("/login-failed-ips")
     @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
-    public LoginFailedIPList getBlockedIPs() {
+    public LoginFailedIPList getLoginFailedIPs() {
         LoginFailedIPList response = new LoginFailedIPList();
         response.setLockoutTimeInMinutes(_invLoginManager.getMaxAuthnLoginAttemtsLifeTimeInMins());
         response.setMaxLoginAttempts(_invLoginManager.getMaxAuthnLoginAttemtsCount());

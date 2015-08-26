@@ -2091,6 +2091,23 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         exportMasksToCreateOnDevice.add(exportMask);
     }
 
+    /**
+     * This method is used to setup exportMask for the two cases as below
+     * 1. When initiators to be added are already present on the StorageView on VPLEX
+     * 2. When there is a sharedStorageView on VPLEX for the hosts in the exportGroup then new host
+     * is added to the same ExportMask in database and same storage view on the VPLEX
+     * 
+     * @param blockObjectMap the map of URIs to block volumes for export
+     * @param vplexSystem reference to VPLEX storage system
+     * @param exportGroup reference to EXportGroup object
+     * @param varrayUri -- NOTE: may not be same as ExportGroup varray
+     * @param exportMasksToUpdateOnDevice Out param to track exportMasks that needs to be updated
+     * @param exportMasksToUpdateOnDeviceWithInitiators Out Param to track exportMasks that needs to be updated with the initiators
+     * @param exportMasksToUpdateOnDeviceWithStoragePorts Out Param to track exportMasks that needs to be updated with the storageports
+     * @param inits List of initiators that needs to be added
+     * @param sharedVplexExportMask ExportMask which represents multiple host.
+     * @throws Exception
+     */
     private void setupExistingExportMaskWithNewHost(Map<URI, Integer> blockObjectMap,
             StorageSystem vplexSystem, ExportGroup exportGroup,
             URI varrayUri, List<ExportMask> exportMasksToUpdateOnDevice,
@@ -3823,8 +3840,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 // Get the initiators (and initiator URIs) for this host
                 List<Initiator> initiators = hostInitiatorsMap.get(hostURI);
-
-                // TODO:Find shared exportMask from the exportGroup
 
                 // Find the ExportMask for my host.
                 List<ExportMask> exportMasks = getExportMaskForHost(exportGroup, hostURI, vplexURI);
@@ -8056,6 +8071,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         if (maskIds == null) {
             return null;
         }
+        // Create a list of sharedExportMask URIs for the src varray and ha varray if its set in the altVirtualArray
+        // in the exportGroup
         List<URI> sharedExportMaskURIs = new ArrayList<URI>();
         ExportMask sharedExportMask = VPlexUtil.getSharedExportMasksInViPR(exportGroup, vplexURI, _dbClient, exportGroup.getVirtualArray(),
                 null, null);
@@ -8063,7 +8080,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             sharedExportMaskURIs.add(sharedExportMask.getId());
         }
         if (exportGroup.hasAltVirtualArray(vplexURI.toString())) {
-            // If we've already chosen an haVarray, go with with the choice
             URI haVarray = URI.create(exportGroup.getAltVirtualArrays().get(vplexURI.toString()));
             ExportMask haSharedExportMask = VPlexUtil.getSharedExportMasksInViPR(exportGroup, vplexURI, _dbClient, haVarray,
                     null, null);

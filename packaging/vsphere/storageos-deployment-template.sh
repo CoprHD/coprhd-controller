@@ -364,7 +364,6 @@ vmci0.unrestricted = \"false\""
     fi
 
     echo "Done"
-    return "${ret}"
 }
 
 # functions to check parameters
@@ -846,22 +845,25 @@ Network properties
 
 _show_vm_settings() {
     vm_options_summary="\nVM Settings
-        ${mode_label}: ${mode}
-        ${node_id_label}: ${node_id}
-        ${vmname_label}: ${vmname}"
+       ${mode_label}: ${mode}
+       ${node_id_label}: ${node_id}
+       ${vmname_label}: ${vmname}"
     if [ "${isvmx}" = false ] ; then
-        vm_options_summary+="\n${ds_label}: ${ds}
-        ${dm_label}: ${dm}"
+        vm_options_summary+="
+       ${ds_label}: ${ds}
+       ${dm_label}: ${dm}"
     fi
-    vm_options_summary+="\n${net_label}: ${net}
-        ${vm_folder_label}: ${vm_folder}
-        ${cpu_count_label}: ${cpu_count}
-        ${memory_label}: ${memory}"
+    vm_options_summary+="
+       ${net_label}: ${net}
+       ${vm_folder_label}: ${vm_folder}
+       ${cpu_count_label}: ${cpu_count}
+       ${memory_label}: ${memory}"
     
     if [ "${isvmx}" = false ] ; then
-        vm_options_summary+="\n${poweron_label}: ${poweron}
-        ${username_label}: ${username}
-        ${target_uri_label}: ${target_uri}"
+        vm_options_summary+="
+       ${poweron_label}: ${poweron}
+       ${username_label}: ${username}
+       ${target_uri_label}: ${target_uri}"
     fi
 
     echo -e "${vm_options_summary}" | more
@@ -1123,6 +1125,28 @@ _set_vm_parameters() {
         parameters_to_set="nodeid vmname net vmfolder cpucount memory"
     fi
     _set_parameters
+}
+
+_init_nodecount() {
+    if [ "${node_count}" = "" ] ; then
+        node_count=1
+        if [ "${isvmx}" = false ] ; then
+            node_count=3
+            if [ "${ipv4_addresses[4]}" != "" -o "${ipv4_addresses[5]}" != "" \
+                -o "${ipv6_addresses[4]}" != "" -o "${ipv6_addresses[5]}" != "" ] ; then
+                node_count=5
+            fi
+        fi
+        _set_nodecount
+        interactive=true
+    else
+        _check_nodecount "${node_count}"
+        if [ $? -ne 0 ] ; then
+            echo "${error_message}"
+            _set_nodecount
+            interactive=true
+        fi
+    fi
 }
 
 _init_parameters() {
@@ -1481,26 +1505,7 @@ _check_parameters() {
     fi
 
     if [ "${mode}" == "install" ] ; then
-        if [ "${node_count}" = "" ] ; then
-            node_count=3
-            if [ "${ipv4_addresses[4]}" != "" -o "${ipv4_addresses[5]}" != "" \
-                 -o "${ipv6_addresses[4]}" != "" -o "${ipv6_addresses[5]}" != "" ] ; then
-                node_count=5
-            fi
-
-            _set_nodecount
-
-            interactive=true
-        else
-            _check_nodecount "${node_count}"
-
-            if [ $? -ne 0 ] ; then
-                echo "${error_message}"
-                _set_nodecount
-
-                interactive=true
-            fi
-        fi
+        _init_nodecount
     elif [ "${mode}" == "redeploy" ] ; then
         # redeploy mode
         if [ "${config_file}" = "" ] ; then
@@ -1515,16 +1520,7 @@ _check_parameters() {
         interactive=true
         node_count_label="Node count [ 1 (Node count can only be 1 in install-vmx mode) ]"
         net_label="Network mode [bridged | nat]"
-        if [ "${node_count}" == "" ] ; then
-            node_count=1
-            _set_nodecount
-        else
-            _check_nodecount "${node_count}"
-            if [ $? -ne 0 ] ; then
-                echo "${error_message}"
-                _set_nodecount
-            fi
-        fi
+        _init_nodecount
     fi
 
     _check_missing_parameters
@@ -1537,7 +1533,7 @@ _check_parameters() {
         vmname=${vmname:-${vmname_prefix}${product_name}${node_id}}
     fi
 
-    if [ -f "${setting_file}" ] ; then
+    if [ -f "${setting_file}" -a "${isvmx}" = false ] ; then
         local ipv4_options=${has_ipv4_options}
         local ipv6_options=${has_ipv6_options}
 
@@ -1847,7 +1843,7 @@ if [ ! -f "${setting_file}" ] ; then
 fi
 
 #if -file is given, use it to initalize the settings again.
-if [ "${config_file}" != ""  ] ; then
+if [ "${config_file}" != "" -a "${isvmx}" = false ] ; then
     _parse_setting_file "${config_file}"
     _init_parameters
 fi
@@ -1874,7 +1870,9 @@ _generate_file_names
 
 #All parameters are passed check
 #so save them to .settings file
-_persist_settings
+if [ "${isvmx}" = false ] ; then
+    _persist_settings
+fi
 _set_traps
 _set_data_disks_path
 _set_common_ovftool_options

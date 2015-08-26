@@ -1568,8 +1568,8 @@ vplex_setup_once()
 	echo "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
 
 	# Discover the Brocade SAN switch.
-	echo "Configuring MDS/Cisco Simulator using SSH on: $SIMULATOR_CISCO_MDS"
-	run networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS --devport 22 --username $SIMULATOR_CISCO_MDS_USER --password $SIMULATOR_CISCO_MDS_PW
+	echo "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
+	run networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
 	transportzone listall
 	transportzone assign ${SIMULATOR_VSAN_11} ${NH}
         transportzone assign ${SIMULATOR_VSAN_12} ${NH2}

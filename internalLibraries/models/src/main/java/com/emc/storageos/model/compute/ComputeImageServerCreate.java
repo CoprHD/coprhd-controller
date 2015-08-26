@@ -7,129 +7,129 @@ package com.emc.storageos.model.compute;
 import javax.xml.bind.annotation.XmlElement;
 
 public class ComputeImageServerCreate {
+    private String imageServerIp;
 
-	private String imageServerAddress;
+    private String imageServerSecondIp;
 
-	private String osInstallAddress;
+    private String imageServerUser;
 
-	private String username;
+    private String imageServerPassword;
 
-	private String password;
+    private String tftpbootDir;
 
-	private String bootDir;
+    private Integer osInstallTimeoutMs;
 
-	private long installTimeout;
+    public ComputeImageServerCreate() {
 
-	public ComputeImageServerCreate() {
+    }
 
-	}
+    public ComputeImageServerCreate(String imageServerAddress,
+            String imageServerSecondIp, String imageServerUser,
+            String imageServerPassword, String tftpbootDir,
+            Integer osInstallTimeoutMs) {
+        super();
+        this.imageServerIp = imageServerAddress;
+        this.imageServerSecondIp = imageServerSecondIp;
+        this.imageServerUser = imageServerUser;
+        this.imageServerPassword = imageServerPassword;
+        this.tftpbootDir = tftpbootDir;
+        this.osInstallTimeoutMs = osInstallTimeoutMs;
+    }
 
-	public ComputeImageServerCreate(String imageServerAddress,
-			String osInstallAddress, String username, String password,
-			String bootDir, long installTimeout) {
-		super();
-		this.imageServerAddress = imageServerAddress;
-		this.osInstallAddress = osInstallAddress;
-		this.username = username;
-		this.password = password;
-		this.bootDir = bootDir;
-		this.installTimeout = installTimeout;
-	}
+    /**
+     * @return the imageServerIp
+     */
+    @XmlElement(required = true, name = "imageServerIp")
+    public String getImageServerIp() {
+        return imageServerIp;
+    }
 
-	/**
-	 * @return the imageServerAddress
-	 */
-	@XmlElement(required = true, name = "imageServerAddress")
-	public String getImageServerAddress() {
-		return imageServerAddress;
-	}
+    /**
+     * @param imageServerIp
+     *            the imageServerIp to set
+     */
+    public void setImageServerIp(String imageServerIp) {
+        this.imageServerIp = imageServerIp;
+    }
 
-	/**
-	 * @param imageServerAddress
-	 *            the imageServerAddress to set
-	 */
-	public void setImageServerAddress(String imageServerAddress) {
-		this.imageServerAddress = imageServerAddress;
-	}
+    /**
+     * @return the imageServerSecondIp
+     */
+    @XmlElement(required = true, name = "imageServerSecondIp")
+    public String getImageServerSecondIp() {
+        return imageServerSecondIp;
+    }
 
-	/**
-	 * @return the osInstallAddress
-	 */
-	@XmlElement(required = true, name = "osInstallAddress")
-	public String getOsInstallAddress() {
-		return osInstallAddress;
-	}
+    /**
+     * @param imageServerSecondIp
+     *            the imageServerSecondIp to set
+     */
+    public void setImageServerSecondIp(String imageServerSecondIp) {
+        this.imageServerSecondIp = imageServerSecondIp;
+    }
 
-	/**
-	 * @param osInstallAddress
-	 *            the osInstallAddress to set
-	 */
-	public void setOsInstallAddress(String osInstallAddress) {
-		this.osInstallAddress = osInstallAddress;
-	}
+    /**
+     * @return the imageServerUser
+     */
+    @XmlElement(required = true, name = "imageServerUser")
+    public String getImageServerUser() {
+        return imageServerUser;
+    }
 
-	/**
-	 * @return the username
-	 */
-	@XmlElement(required = true, name = "username")
-	public String getUsername() {
-		return username;
-	}
+    /**
+     * @param imageServerUser
+     *            the imageServerUser to set
+     */
+    public void setImageServerUser(String imageServerUser) {
+        this.imageServerUser = imageServerUser;
+    }
 
-	/**
-	 * @param username
-	 *            the username to set
-	 */
-	public void setUsername(String username) {
-		this.username = username;
-	}
+    /**
+     * @return the password
+     */
+    @XmlElement(required = true)
+    public String getImageServerPassword() {
+        return imageServerPassword;
+    }
 
-	/**
-	 * @return the password
-	 */
-	@XmlElement(required = true)
-	public String getPassword() {
-		return password;
-	}
+    /**
+     * @param password
+     *            the password to set
+     */
+    public void setImageServerPassword(String imageServerPassword) {
+        this.imageServerPassword = imageServerPassword;
+    }
 
-	/**
-	 * @param password
-	 *            the password to set
-	 */
-	public void setPassword(String password) {
-		this.password = password;
-	}
+    /**
+     * @return the tftpbootDir
+     */
+    @XmlElement(required = true, name = "tftpbootDir")
+    public String getTftpbootDir() {
+        return tftpbootDir;
+    }
 
-	/**
-	 * @return the bootDir
-	 */
-	@XmlElement(required = true, name = "bootDir")
-	public String getBootDir() {
-		return bootDir;
-	}
+    /**
+     * @param tftpbootDir
+     *            the tftpbootDir to set
+     */
+    public void setTftpbootDir(String tftpbootDir) {
+        this.tftpbootDir = tftpbootDir;
+    }
 
-	/**
-	 * @param bootDir
-	 *            the bootDir to set
-	 */
-	public void setBootDir(String bootDir) {
-		this.bootDir = bootDir;
-	}
+    /**
+     * @return the osInstallTimeoutMs
+     */
+    @XmlElement(required = true, name = "osInstallTimeoutMs")
+    public Integer getOsInstallTimeoutMs() {
+        return osInstallTimeoutMs;
+    }
 
-	/**
-	 * @return the installTimeout
-	 */
-	@XmlElement(required = true, name = "installTimeout")
-	public long getInstallTimeout() {
-		return installTimeout;
-	}
-
-	/**
-	 * @param installTimeout
-	 *            the installTimeout to set
-	 */
-	public void setInstallTimeout(long installTimeout) {
-		this.installTimeout = installTimeout;
-	}
+    /**
+     * @param osInstallTimeoutMs
+     *            the osInstallTimeoutMs to set
+     */
+    public void setOsInstallTimeoutMs(Integer osInstallTimeoutMs) {
+        this.osInstallTimeoutMs = osInstallTimeoutMs;
+    }
 
 }

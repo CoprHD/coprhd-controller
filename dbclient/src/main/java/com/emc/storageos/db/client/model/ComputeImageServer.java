@@ -26,7 +26,6 @@ public class ComputeImageServer extends DataObject {
     private Integer osInstallTimeoutMs = 3600000;
     private Integer jobPollingIntervalMs = 60000;
 
-	
     private StringSet computeImage;
 
     @Name("imageServerIp")
@@ -36,7 +35,7 @@ public class ComputeImageServer extends DataObject {
 
     public void setImageServerIp(String imageServerIp) {
         this.imageServerIp = imageServerIp;
-         setChanged("ImageServerIp");
+        setChanged("ImageServerIp");
     }
 
     @Name("imageServerUser")
@@ -46,7 +45,7 @@ public class ComputeImageServer extends DataObject {
 
     public void setImageServerUser(String imageServerUser) {
         this.imageServerUser = imageServerUser;
-         setChanged("ImageServerUser");
+        setChanged("ImageServerUser");
     }
 
     @Name("imageServerPassword")
@@ -56,7 +55,7 @@ public class ComputeImageServer extends DataObject {
 
     public void setImageServerPassword(String imageServerPassword) {
         this.imageServerPassword = imageServerPassword;
-         setChanged("imageServerPassword");
+        setChanged("imageServerPassword");
 
     }
 
@@ -72,8 +71,9 @@ public class ComputeImageServer extends DataObject {
         } else {
             this.tftpbootDir = s;
         }
-         setChanged("tftpbootDir");
+        setChanged("tftpbootDir");
     }
+
     @Name("imageDir")
     public String getImageDir() {
         return imageDir;
@@ -86,7 +86,7 @@ public class ComputeImageServer extends DataObject {
         } else {
             this.imageDir = s;
         }
-         setChanged("imageDir");
+        setChanged("imageDir");
     }
 
     @Name("imageServerSecondIp")
@@ -96,8 +96,9 @@ public class ComputeImageServer extends DataObject {
 
     public void setImageServerSecondIp(String imageServerSecondIp) {
         this.imageServerSecondIp = imageServerSecondIp;
-         setChanged("imageServerSecondIp");
+        setChanged("imageServerSecondIp");
     }
+
     @Name("imageServerHttpPort")
     public String getImageServerHttpPort() {
         return imageServerHttpPort;
@@ -105,7 +106,7 @@ public class ComputeImageServer extends DataObject {
 
     public void setImageServerHttpPort(String imageServerHttpPort) {
         this.imageServerHttpPort = imageServerHttpPort;
-         setChanged("imageServerHttpPort");
+        setChanged("imageServerHttpPort");
     }
 
     @Name("sshTimeoutMs")
@@ -115,17 +116,17 @@ public class ComputeImageServer extends DataObject {
 
     public void setSshTimeoutMs(Integer sshTimeoutMs) {
         this.sshTimeoutMs = sshTimeoutMs;
-         setChanged("sshTimeoutMs");
+        setChanged("sshTimeoutMs");
     }
 
-   @Name("imageImportTimeoutMs")
-   public Integer getImageImportTimeoutMs() {
+    @Name("imageImportTimeoutMs")
+    public Integer getImageImportTimeoutMs() {
         return imageImportTimeoutMs;
     }
 
     public void setImageImportTimeoutMs(Integer imageImportTimeoutMs) {
         this.imageImportTimeoutMs = imageImportTimeoutMs;
-         setChanged("imageImportTimeoutMs");
+        setChanged("imageImportTimeoutMs");
     }
 
     @Name("osInstallTimeoutMs")
@@ -135,7 +136,7 @@ public class ComputeImageServer extends DataObject {
 
     public void setOsInstallTimeoutMs(Integer osInstallTimeoutMs) {
         this.osInstallTimeoutMs = osInstallTimeoutMs;
-         setChanged("osInstallTimeoutMs");
+        setChanged("osInstallTimeoutMs");
     }
 
     @Name("jobPollingIntervalMs")
@@ -145,7 +146,7 @@ public class ComputeImageServer extends DataObject {
 
     public void setJobPollingIntervalMs(Integer jobPollingIntervalMs) {
         this.jobPollingIntervalMs = jobPollingIntervalMs;
-         setChanged("jobPollingIntervalMs");
+        setChanged("jobPollingIntervalMs");
     }
 
     @Name("sshPort")
@@ -155,25 +156,24 @@ public class ComputeImageServer extends DataObject {
 
     public void setSshPort(Integer sshPort) {
         this.sshPort = sshPort;
-         setChanged("sshPort");
+        setChanged("sshPort");
     }
 
+    /**
+     * @return the computeImage
+     */
+    @RelationIndex(cf = "RelationIndex", type = ComputeImage.class)
+    @Name("computeImage")
+    public StringSet getComputeImage() {
+        return computeImage;
+    }
 
-	/**
-	 * @return the computeImage
-	 */
-	@RelationIndex(cf = "RelationIndex", type = ComputeImage.class)
-	@Name("computeImage")
-	public StringSet getComputeImage() {
-		return computeImage;
-	}
-
-	/**
-	 * @param computeImage
-	 *            the computeImageUri to set
-	 */
-	public void setComputeImage(StringSet computeImageUri) {
-		this.computeImage = computeImageUri;
-	}
+    /**
+     * @param computeImage
+     *            the computeImageUri to set
+     */
+    public void setComputeImage(StringSet computeImageUri) {
+        this.computeImage = computeImageUri;
+    }
 
 }

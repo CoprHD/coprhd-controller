@@ -15,31 +15,31 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 @XmlRootElement(name = "compute_imageservers")
 public class ComputeImageServerList {
 
-	private List<NamedRelatedResourceRep> computeImageServers;
+    private List<NamedRelatedResourceRep> computeImageServers;
 
-	public ComputeImageServerList() {
-	}
+    public ComputeImageServerList() {
+    }
 
-	public ComputeImageServerList(
-			List<NamedRelatedResourceRep> computeImageServers) {
-		this.computeImageServers = computeImageServers;
-	}
+    public ComputeImageServerList(
+            List<NamedRelatedResourceRep> computeImageServers) {
+        this.computeImageServers = computeImageServers;
+    }
 
-	/**
-	 * List of compute imager server URLs with name
-	 * 
-	 * @valid none
-	 */
-	@XmlElement(name = "compute_imageserver")
-	public List<NamedRelatedResourceRep> getComputeImageServers() {
-		if (computeImageServers == null) {
-			computeImageServers = new ArrayList<NamedRelatedResourceRep>();
-		}
-		return computeImageServers;
-	}
+    /**
+     * List of compute imager server URLs with name
+     *
+     * @valid none
+     */
+    @XmlElement(name = "compute_imageserver")
+    public List<NamedRelatedResourceRep> getComputeImageServers() {
+        if (computeImageServers == null) {
+            computeImageServers = new ArrayList<NamedRelatedResourceRep>();
+        }
+        return computeImageServers;
+    }
 
-	public void setComputeImageServers(
-			List<NamedRelatedResourceRep> computeImageServers) {
-		this.computeImageServers = computeImageServers;
-	}
+    public void setComputeImageServers(
+            List<NamedRelatedResourceRep> computeImageServers) {
+        this.computeImageServers = computeImageServers;
+    }
 }

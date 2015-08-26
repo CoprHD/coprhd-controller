@@ -20,84 +20,83 @@ import com.emc.storageos.model.RelatedResourceRep;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class ComputeImageServerRestRep extends DataObjectRestRep {
 
-	private String imageServerAddress;
+    private String imageServerIp;
 
-	private String osInstallAddress;
+    private String imageServerSecondIp;
 
-	private String bootDir;
+    private String tftpbootDir;
 
-	private List<RelatedResourceRep> computeImage;
+    private List<RelatedResourceRep> computeImage;
 
-	public ComputeImageServerRestRep() {
+    public ComputeImageServerRestRep() {
 
-	}
+    }
 
-	/**
-	 * @return the imageServerAddress
-	 */
-	@XmlElement(name = "imageServerAddress")
-	public String getImageServerAddress() {
-		return imageServerAddress;
-	}
+    /**
+     * @return the imageServerIp
+     */
+    @XmlElement(name = "imageServerIp")
+    public String getImageServerIp() {
+        return imageServerIp;
+    }
 
-	/**
-	 * @param imageServerAddress
-	 *            the imageServerAddress to set
-	 */
-	public void setImageServerAddress(String imageServerAddress) {
-		this.imageServerAddress = imageServerAddress;
-	}
+    /**
+     * @param imageServerIp
+     *            the imageServerIp to set
+     */
+    public void setImageServerIp(String imageServerIp) {
+        this.imageServerIp = imageServerIp;
+    }
 
-	/**
-	 * @return the osInstallAddress
-	 */
-	@XmlElement(name = "osInstallAddress")
-	public String getOsInstallAddress() {
-		return osInstallAddress;
-	}
+    /**
+     * @return the imageServerSecondIp
+     */
+    @XmlElement(name = "imageServerSecondIp")
+    public String getImageServerSecondIp() {
+        return imageServerSecondIp;
+    }
 
-	/**
-	 * @param osInstallAddress
-	 *            the osInstallAddress to set
-	 */
-	public void setOsInstallAddress(String osInstallAddress) {
-		this.osInstallAddress = osInstallAddress;
-	}
+    /**
+     * @param imageServerSecondIp
+     *            the imageServerSecondIp to set
+     */
+    public void setImageServerSecondIp(String imageServerSecondIp) {
+        this.imageServerSecondIp = imageServerSecondIp;
+    }
 
-	/**
-	 * @return the bootDir
-	 */
-	@XmlElement(name = "bootDir")
-	public String getBootDir() {
-		return bootDir;
-	}
+    /**
+     * @return the computeImage
+     */
+    @XmlElementWrapper(name = "compute_image")
+    @XmlElement(name = "compute_image")
+    public List<RelatedResourceRep> getComputeImage() {
+        if (null == computeImage) {
+            computeImage = new ArrayList<RelatedResourceRep>();
+        }
+        return computeImage;
+    }
 
-	/**
-	 * @param bootDir
-	 *            the bootDir to set
-	 */
-	public void setBootDir(String bootDir) {
-		this.bootDir = bootDir;
-	}
+    /**
+     * @param computeImage
+     *            the computeImage to set
+     */
+    public void setComputeImage(List<RelatedResourceRep> computeImage) {
+        this.computeImage = computeImage;
+    }
 
-	/**
-	 * @return the computeImage
-	 */
-	@XmlElementWrapper(name = "compute_image")
-	@XmlElement(name = "compute_image")
-	public List<RelatedResourceRep> getComputeImage() {
-		if (null == computeImage) {
-			computeImage = new ArrayList<RelatedResourceRep>();
-		}
-		return computeImage;
-	}
+    /**
+     * @return the tftpbootDir
+     */
+    @XmlElement(name = "tftpbootDir")
+    public String getTftpbootDir() {
+        return tftpbootDir;
+    }
 
-	/**
-	 * @param computeImage
-	 *            the computeImage to set
-	 */
-	public void setComputeImage(List<RelatedResourceRep> computeImage) {
-		this.computeImage = computeImage;
-	}
-
+    /**
+     * @param tftpbootDir
+     *            the tftpbootDir to set
+     */
+    public void setTftpbootDir(String tftpbootDir) {
+        this.tftpbootDir = tftpbootDir;
+    }
 }

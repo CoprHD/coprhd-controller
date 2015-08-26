@@ -5,12 +5,13 @@ from datetime import timedelta, datetime, tzinfo
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print "Error: Need specify data file and expired time as following:"
+        print "Usage:\nNeed to specify Data File and Expired Time(Time Unit: Hour) as following:"
         print "delete_pendingTask.py TaskDumpFile 24"
+        print "(You can issue 'dbutils list Task > TaskDumpFile' to dump all task records into file)"
         sys.exit(1)
     name = sys.argv[1]
-    hour = int(sys.argv[2])
-    print "Analyze pending task over %s hours from file: %s" % (hour, name)
+    hours = int(sys.argv[2])
+    print "Analyze pending task over %s hours from file: %s" % (hours, name)
     f = open(name, "r")
 
     def readCreationTime():
@@ -36,7 +37,7 @@ if __name__ == "__main__":
                 line = f.readline()
 
     longPendingTaskIds = []
-    expiredTime = datetime.now() - timedelta(hours=hour)
+    expiredTime = datetime.now() - timedelta(hours=hours)
     line = f.readline()
     while len(line) > 0:
         if "id: " in line:
@@ -49,7 +50,7 @@ if __name__ == "__main__":
 
         line = f.readline()
     f.close()
-    print "Total pending tasks over %s hours found: %s." % (hour, len(longPendingTaskIds))
+    print "Total pending tasks over %s hours found: %s." % (hours, len(longPendingTaskIds))
     BATCHSIZE = 100
     for i in range(0, len(longPendingTaskIds), BATCHSIZE):
         cmd = "/opt/storageos/bin/dbutils delete Task %s " % (" ".join(longPendingTaskIds[i:i + BATCHSIZE]))

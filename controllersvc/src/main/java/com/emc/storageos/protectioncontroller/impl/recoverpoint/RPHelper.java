@@ -850,7 +850,6 @@ public class RPHelper {
      * @param copyInternalSiteName RP internal site of the volume
      * @return existing Journal volume to be used/shared by volumes
      */
- 
     public Volume selectExistingJournalForTargetVolume(List<Volume> cgVolumes, Map<URI, URI> protectionVarrayTgtJournal,  
     				URI varray, String copyInternalSiteName) {
     	Volume existingCGJournalVolume = null;

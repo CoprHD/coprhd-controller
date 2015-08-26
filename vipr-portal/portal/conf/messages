@@ -199,6 +199,8 @@ DefaultStorageArrayPortMap.openstack=22
 DefaultStorageArrayPortMap.openstack_useSSL=22
 DefaultStorageArrayPortMap.scaleio=22
 DefaultStorageArrayPortMap.scaleio_useSSL=22
+DefaultStorageArrayPortMap.scaleioapi=443
+DefaultStorageArrayPortMap.scaleioapi_useSSL=443
 DefaultStorageArrayPortMap.datadomain=3009
 DefaultStorageArrayPortMap.datadomain_useSSL=3009
 

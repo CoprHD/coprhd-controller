@@ -246,12 +246,22 @@
                 <ref bean="passwordExpireRuleHandler" />
                 <ref bean="uniqueNodeNameHandler" />
                 <bean class="com.emc.storageos.systemservices.impl.propertyhandler.PasswordChangeIntervalRuleHandler" />
+                <ref bean="authLoginAttemptsHandler" />
+                <ref bean="authLockoutTimeHandler" />
                 <bean class="com.emc.storageos.systemservices.impl.propertyhandler.UpgradeCheckFrequencyRuleHandler" />
             </list>
         </property>
     </bean>
     <bean id="passwordExpireRuleHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.PasswordExpireRuleHandler">
         <property name="passwordHandler" ref="localPasswordHandler"/>
+    </bean>
+    <bean id="authLoginAttemptsHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.AuthLoginAttemptsHandler">
+        <property name="invalidLoginManager" ref="invalidLoginManager"/>
+        <property name="apiNotifier" ref="apiNotifier"/>
+    </bean>
+    <bean id="authLockoutTimeHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.AuthLockoutTimeHandler">
+        <property name="invalidLoginManager" ref="invalidLoginManager"/>
+        <property name="apiNotifier" ref="apiNotifier"/>
     </bean>
 
     <bean id="uniqueNodeNameHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.UniqueNodeNameHandler">
@@ -349,9 +359,6 @@
 
     <bean id="invalidLoginManager" class="com.emc.storageos.security.password.InvalidLoginManager">
         <property name="coordinator" ref="coordinator"/>
-        <property name="maxAuthnLoginAttemtsCount" value="10"/>
-        <property name="maxAuthnLoginAttemtsLifeTimeInMins" value="10"/>
-        <property name="cleanupThreadInitialDelay" value="10"/>
     </bean>
 
     <bean id="backupScheduler" class="com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupScheduler" init-method="startLeaderSelector">
@@ -367,5 +374,9 @@
 
     <bean id="IpReconfigManager" class="com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager" init-method="init">
         <property name="ovfProperties" ref="ovfProperties"/>
+    </bean>
+
+    <bean id="apiNotifier" class="com.emc.storageos.systemservices.impl.property.APINotifier">
+        <property name="coordinator" ref="coordinator"/>
     </bean>
 </beans>

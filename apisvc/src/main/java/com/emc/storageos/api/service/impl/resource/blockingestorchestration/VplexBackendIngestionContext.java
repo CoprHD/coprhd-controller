@@ -178,17 +178,6 @@ public class VplexBackendIngestionContext {
             unmanagedSnapshots.addAll(VolumeIngestionUtil.getUnManagedSnaphots(sourceVolume, _dbClient));
         }
         
-        String errorMessage = "";
-        for (UnManagedVolume snapshot : unmanagedSnapshots) {
-            if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(snapshot)) {
-                errorMessage += "Backend snapshot " + snapshot.getLabel() + " is added to a consistency group. ";
-            }
-        }
-        if (!errorMessage.isEmpty()) {
-            _logger.error(errorMessage);
-            throw IngestionException.exceptions.generalException(errorMessage);
-        }
-        
         _logger.info("found these associated snapshots: " + unmanagedSnapshots);
         if (!unmanagedSnapshots.isEmpty()) {
             _logger.info("TIMER: fetching unmanaged snapshots took {}ms", 
@@ -259,18 +248,6 @@ public class VplexBackendIngestionContext {
             }
         }
         
-        String errorMessage = "";
-        for (Entry<UnManagedVolume, UnManagedVolume> entry : unmanagedFullClones.entrySet()) {
-            UnManagedVolume clone = entry.getValue();
-            if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(clone)) {
-                errorMessage += "Backend clone " + clone.getLabel() + " is added to a consistency group. ";
-            }
-        }
-        if (!errorMessage.isEmpty()) {
-            _logger.error(errorMessage);
-            throw IngestionException.exceptions.generalException(errorMessage);
-        }
-        
         _logger.info("unmanaged full clones found: " + unmanagedFullClones);
         if (!unmanagedFullClones.isEmpty()) {
             _logger.info("TIMER: fetching unmanaged full clones took {}ms", 
@@ -309,19 +286,6 @@ public class VplexBackendIngestionContext {
                     }
                 }
             }
-        }
-        
-        String errorMessage = "";
-        for (Entry<UnManagedVolume, Set<UnManagedVolume>> entry : unmanagedBackendOnlyClones.entrySet()) {
-            for (UnManagedVolume clone : entry.getValue()) {
-                if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(clone)) {
-                    errorMessage += "Backend clone " + clone.getLabel() + " is added to a consistency group. ";
-                }
-            }
-        }
-        if (!errorMessage.isEmpty()) {
-            _logger.error(errorMessage);
-            throw IngestionException.exceptions.generalException(errorMessage);
         }
         
         _logger.info("unmanaged backend-only clones found: " + unmanagedBackendOnlyClones);

@@ -418,7 +418,7 @@ public class VcenterService extends TaskResourceService {
             // check the user permissions for this tenant org
             tenantId = URI.create(getUserFromContext().getTenantId());
         }
-        _log.debug("Fetching the vCenterDataCenters for the tenant {}", tenantId.toString());
+        _log.debug("Fetching the vCenterDataCenters for the tenant {}", tenantId);
 
         // get the vcenters
         VcenterDataCenterList list = new VcenterDataCenterList();

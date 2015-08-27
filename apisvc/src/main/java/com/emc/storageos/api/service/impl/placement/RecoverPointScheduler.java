@@ -2184,21 +2184,24 @@ public class RecoverPointScheduler implements Scheduler {
 		RPRecommendation rpRecommendation = new RPRecommendation();		
 		rpRecommendation.setRpSiteAssociateStorageSystem(associatedStorageSystem);		
 		rpRecommendation.setSourceStoragePool(sourcePool.getId());
-		rpRecommendation.setSourceStorageSystem(sourcePool.getStorageDevice());
-		if (DiscoveredDataObject.Type.vplex.name().equals(type)) {
-			VPlexRecommendation virtualVolumeRecommendation = new VPlexRecommendation();
-			virtualVolumeRecommendation.setVirtualArray(rpRecommendation.getVirtualArray());
-			virtualVolumeRecommendation.setVirtualPool(rpRecommendation.getVirtualPool());
-			virtualVolumeRecommendation.setVPlexStorageSystem((sourceStorageSytemUri));
-			virtualVolumeRecommendation.setSourceStoragePool(sourcePool.getId());
-			virtualVolumeRecommendation.setSourceStorageSystem(sourcePool.getStorageDevice());
-			virtualVolumeRecommendation.setResourceCount(1);
-			rpRecommendation.setVirtualVolumeRecommendation(virtualVolumeRecommendation);
-		}						
+		rpRecommendation.setSourceStorageSystem(sourcePool.getStorageDevice());								
     	rpRecommendation.setResourceCount(satisfiedSourceVolCount);
     	rpRecommendation.setVirtualArray(vArray.getId());
     	rpRecommendation.setVirtualPool(vPool);    	 
     	rpRecommendation.setInternalSiteName(sourceInternalSiteName);
+    	
+    	// Set the virtualVolumeRecommendation with the same info if this is for VPLEX.
+    	// VPLEX will consume this to create the virtual volumes.
+    	if (DiscoveredDataObject.Type.vplex.name().equals(type)) {
+            VPlexRecommendation virtualVolumeRecommendation = new VPlexRecommendation();
+            virtualVolumeRecommendation.setVirtualArray(rpRecommendation.getVirtualArray());
+            virtualVolumeRecommendation.setVirtualPool(rpRecommendation.getVirtualPool());
+            virtualVolumeRecommendation.setVPlexStorageSystem((sourceStorageSytemUri));
+            virtualVolumeRecommendation.setSourceStoragePool(sourcePool.getId());
+            virtualVolumeRecommendation.setSourceStorageSystem(sourcePool.getStorageDevice());
+            virtualVolumeRecommendation.setResourceCount(1);
+            rpRecommendation.setVirtualVolumeRecommendation(virtualVolumeRecommendation);
+        }
     	
     	_log.info("RP Placement : Source Recommendation \n" + rpRecommendation.toString(dbClient, ps));
 		return rpRecommendation;

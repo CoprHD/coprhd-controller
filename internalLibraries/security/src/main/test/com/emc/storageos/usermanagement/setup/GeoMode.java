@@ -25,7 +25,7 @@ public class GeoMode extends TenantMode {
     private static List<VirtualDataCenterRestRep> vdcList = new ArrayList<VirtualDataCenterRestRep>();
 
     @BeforeClass
-    public static void setup_GeoTenantModeBase() throws Exception {
+    public static void setupGeoTenantModeBase() throws Exception {
 
         VirtualDataCenters vdcs = superUserClient.vdcs();
 
@@ -60,7 +60,7 @@ public class GeoMode extends TenantMode {
     }
 
     @AfterClass
-    public static void teardown_GeoTenantModeBase() throws Exception {
+    public static void teardownGeoTenantModeBase() throws Exception {
 
     }
 

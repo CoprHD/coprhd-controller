@@ -440,6 +440,17 @@
 	      "baseService": "UpdateVcenterCluster"	      	      	    	    
 	    }
 	  ]
-	}
+	},
+    {
+      "title": "migration.title",
+      "image": "icon_migration_services.png",
+      "description": "migration.description",
+      "services": [
+        {
+          "image": "icon_VPLEX_data_migration.png",
+          "baseService": "VplexDataMigration"
+        }
+      ]
+    }
   ]
 }

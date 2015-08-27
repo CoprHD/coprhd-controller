@@ -81,7 +81,7 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
  */
 @Deprecated
 @Path("/vdc/smis-providers")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, write_roles = { Role.SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = { Role.SYSTEM_ADMIN })
 public class SMISProviderService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(SMISProviderService.class);

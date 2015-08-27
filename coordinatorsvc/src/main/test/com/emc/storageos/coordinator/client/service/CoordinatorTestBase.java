@@ -107,10 +107,10 @@ public class CoordinatorTestBase {
 
     protected static CoordinatorClientInetAddressMap createLocalInetAddressLookupMap() throws UnknownHostException {
         CoordinatorClientInetAddressMap lookup = new CoordinatorClientInetAddressMap();
-        lookup.setNodeName("localhost");
+        lookup.setNodeId("localhost");
         lookup.setDualInetAddress(DualInetAddress.fromAddress("127.0.0.1"));
         Map<String, DualInetAddress> addressMap = new HashMap<>();
-        addressMap.put(lookup.getNodeName(), lookup.getDualInetAddress());
+        addressMap.put(lookup.getNodeId(), lookup.getDualInetAddress());
         lookup.setControllerNodeIPLookupMap(addressMap);
         return lookup;
     }

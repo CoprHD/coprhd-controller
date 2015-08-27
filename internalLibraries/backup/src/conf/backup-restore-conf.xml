@@ -19,7 +19,7 @@
         <property name="dbRestoreHandler" ref="dbRestoreHandler"/>
         <property name="zkRestoreHandler" ref="zkRestoreHandler"/>
         <property name="geoDbRestoreHandler" ref="geoDbRestoreHandler"/>
-        <property name="nodeName" ref="nodeName"/>
+        <property name="nodeId" ref="nodeId"/>
         <property name="nodeCount" ref="nodeCount"/>
         <property name="ipAddress4" ref="networkIpAddress4"/>
         <property name="ipAddress6" ref="networkIpAddress6"/>

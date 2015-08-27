@@ -151,16 +151,18 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             
             throw IngestionException.exceptions.failedToIngestVplexBackend(ex.getLocalizedMessage());
         }
-
-        _logger.info("About to ingest the actual VPLEX virtual volume...");
-        T virtualVolume = super.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray, project, tenant,
-                unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz, taskStatusMap);
         
         try {
+            _logger.info("About to ingest the actual VPLEX virtual volume...");
+            T virtualVolume = super.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray, project, tenant,
+                    unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz, taskStatusMap);
             setAssociatedVolumes(context, (Volume) virtualVolume);
+            
             createVplexMirrorObjects(context, (Volume) virtualVolume);
             sortOutCloneAssociations(context, (Volume) virtualVolume);
             handlePersistence(context);
+
+            return virtualVolume;
         } catch (Exception ex) {
             _logger.error("error during VPLEX backend ingestion wrap up: ", ex);
             
@@ -173,8 +175,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             
             throw ex;
         }
-
-        return virtualVolume;
     }
 
     private void validateContext(VirtualPool vpool, 

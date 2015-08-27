@@ -208,6 +208,10 @@ public class UnManagedVolumeService extends TaskResourceService {
         if (param.getUnManagedVolumes().size() > getMaxBulkSize()) {
             throw APIException.badRequests.exceedingLimit("unmanaged volumes", getMaxBulkSize());
         }
+        
+        // TODO: temporary for UI testing
+        _logger.info("VPLEX ingestion method is " + param.getVplexIngestionMethod());
+        
         TaskList taskList = new TaskList();
         List<UnManagedVolume> unManagedVolumes = new ArrayList<UnManagedVolume>();
         Map<String, String> taskMap = new HashMap<String, String>();
@@ -539,6 +543,10 @@ public class UnManagedVolumeService extends TaskResourceService {
     @Path("/volumes/ingest-exported")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskList ingestExportedVolumes(VolumeExportIngestParam exportIngestParam) throws InternalException {
+        
+        // TODO: temporary for UI testing
+        _logger.info("VPLEX ingestion method is " + exportIngestParam.getVplexIngestionMethod());
+        
         TaskList taskList = new TaskList();
         Map<String, TaskResourceRep> taskMap = new HashMap<String, TaskResourceRep>();
         Map<String, StringBuffer> taskStatusMap = new HashMap<String, StringBuffer>();

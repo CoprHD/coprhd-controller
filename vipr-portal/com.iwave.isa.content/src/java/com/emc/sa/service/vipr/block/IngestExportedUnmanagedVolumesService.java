@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.HOST;
+import static com.emc.sa.service.ServiceParams.INGESTION_METHOD;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
@@ -34,6 +35,9 @@ public class IngestExportedUnmanagedVolumesService extends ViPRService {
 
     @Param(VIRTUAL_ARRAY)
     protected URI virtualArray;
+    
+    @Param(value = INGESTION_METHOD, required = false)
+    protected String ingestionMethod;
 
     @Param(VOLUMES)
     protected List<String> volumeIds;

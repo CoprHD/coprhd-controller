@@ -262,11 +262,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("rpConsistencyGroupByProject")
     public List<AssetOption> getVirtualArrayByConsistencyGroup(AssetOptionsContext ctx, URI consistencyGroupId) {
         ViPRCoreClient client = api(ctx);
-        RelatedResourceRep varray = client.blockConsistencyGroups().get(consistencyGroupId).getVirtualArray();
-        VirtualArrayRestRep virtualArray = client.varrays().get(varray);
-
+        List<RelatedResourceRep> volumes = client.blockConsistencyGroups().get(consistencyGroupId).getVolumes();
         List<AssetOption> targets = Lists.newArrayList();
-        targets.add(createBaseResourceOption(virtualArray));
+
+        if (!volumes.isEmpty()) {
+            RelatedResourceRep varrayId = client.blockVolumes().get(volumes.get(0)).getVirtualArray();
+            VirtualArrayRestRep virtualArray = client.varrays().get(varrayId);
+            targets.add(createBaseResourceOption(virtualArray));
+        }
         return targets;
     }
 

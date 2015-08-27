@@ -21,7 +21,6 @@ import com.emc.nas.vnxfile.xmlapi.MoverRole;
 import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
 import com.emc.nas.vnxfile.xmlapi.Severity;
 import com.emc.nas.vnxfile.xmlapi.Status;
-import com.emc.nas.vnxfile.xmlapi.Vdm;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
@@ -85,7 +84,7 @@ public class VNXDataMoverIdProcessor extends VNXFileProcessor {
                     if (dm.getRole() == MoverRole.STANDBY) {
                         continue;
                     }
-                    
+
                     moverIds.add(dm.getMover());
                     moverNames.add(dm.getName());
                 }

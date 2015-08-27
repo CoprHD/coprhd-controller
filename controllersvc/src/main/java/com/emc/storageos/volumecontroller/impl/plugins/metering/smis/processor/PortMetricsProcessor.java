@@ -185,7 +185,7 @@ public class PortMetricsProcessor {
      * @param port -- the StoragePort this port metric is for.
      * @param sampleTime -- The statistic time that the collection was made on the array. Given as a string, see convertCimStatisticTime.
      */
-    public void processFEPortMetrics(Long kbytes, Long iops, StoragePort port, Long sampleTime) {
+    public void processIPPortMetrics(Long kbytes, Long iops, StoragePort port, Long sampleTime) {
         StringMap dbMetrics = port.getMetrics();
         _log.info(String.format("FEPortMetrics %s %s kbytes %d iops %d sampleTime %d",
                 port.getNativeGuid(), portName(port), kbytes, iops, sampleTime));
@@ -205,8 +205,8 @@ public class PortMetricsProcessor {
         Long iopsDelta = iops - iopsValue;
         Long portSpeed = port.getPortSpeed();
         if (portSpeed == 0) {
-            _log.error("Port speed is zero- assuming 8 GBit: " + port.getNativeGuid());
-            portSpeed = 8L;
+            _log.error("Port speed is zero- assuming 1 GBit: " + port.getNativeGuid());
+            portSpeed = 1L;
         }
         // portSpeed is in Gbit/sec. Compute kbytes/sec.
         Long maxKBytesPerSecond = portSpeed * KBYTES_PER_GBIT;

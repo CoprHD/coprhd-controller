@@ -261,7 +261,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     vNasURI);
             if (vNas != null && !vNas.getInactive()) {
                 _keyMap.put(VNXFileConstants.MOVER_ID, vNas.getNativeId());
-                _keyMap.put(VNXFileConstants.ISVDM, true);
+                _keyMap.put(VNXFileConstants.ISVDM, "true");
+                _logger.info("filesystem capacity info for Mover", vNas.getNativeId());
                 executor.execute((Namespace) namespaces.getNsList().get(VNX_COMPUTE_STATIC_LOAD));
                 //get capacity info
                 fsCapacityMap = (Map<String, Long>) _discExecutor.getKeyMap()
@@ -287,8 +288,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     vNasURI);
             if (physicalNAS != null && !physicalNAS.getInactive()) {
                 _keyMap.put(VNXFileConstants.MOVER_ID, physicalNAS.getNativeId());
-                _keyMap.put(VNXFileConstants.ISVDM, false);
-                
+                _keyMap.put(VNXFileConstants.ISVDM, "false");
+                _logger.info("snapshot capacity info for Mover", physicalNAS.getNativeId());
                 executor.execute((Namespace) namespaces.getNsList().get(VNX_COMPUTE_STATIC_LOAD));
                 
                 fsCapacityMap = (Map<String, Long>) _discExecutor.getKeyMap()

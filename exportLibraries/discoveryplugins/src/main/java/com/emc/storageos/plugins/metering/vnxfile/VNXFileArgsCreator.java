@@ -301,7 +301,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
         try {
             String moverId = (String) keyMap.get(VNXFileConstants.MOVER_ID);
             String isVDM = (String) keyMap.get(VNXFileConstants.ISVDM);
-            
+            _logger.info("filesystem capacity info for Mover {} and isVDM {}", moverId, isVDM);
             FileSystemQueryParams fsQueryParam = new FileSystemQueryParams();
             AspectSelection selection = new AspectSelection();
             selection.setFileSystemCapacityInfos(true);
@@ -321,7 +321,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
             fsQueryParam.setAspectSelection(selection);
             Query query = new Query();
             query.getQueryRequestChoice().add(fsQueryParam);
-            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(fsQueryParam, true);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(fsQueryParam, false);
         } catch (JAXBException jaxbException) {
             throw new VNXFilePluginException(
                     "Exception occurred while generating input xml for fetchfscapacityInfo",
@@ -347,6 +347,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
         try {
             String moverId = (String) keyMap.get(VNXFileConstants.MOVER_ID);
             String isVDM = (String) keyMap.get(VNXFileConstants.ISVDM);
+            _logger.info("snapshot capacity info for Mover {} and isVDM {}", moverId, isVDM);
             //prepare the checkpoint query params
             CheckpointQueryParams cheQueryParams = new CheckpointQueryParams();
             if (moverId != null && isVDM != null) {

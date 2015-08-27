@@ -5,7 +5,8 @@ from datetime import timedelta, datetime, tzinfo
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print "Usage:\nNeed to specify Data File and Expired Time(Time Unit: Hour) as following:"
+        print "Usage:\nThis script is to clean up the pending tasks that out of date."
+        print "Need to specify Data File and Expired Time(Time Unit: Hour) as following:"
         print "delete_pendingTask.py TaskDumpFile 24"
         print "(You can issue 'dbutils list Task > TaskDumpFile' to dump all task records into file)"
         sys.exit(1)

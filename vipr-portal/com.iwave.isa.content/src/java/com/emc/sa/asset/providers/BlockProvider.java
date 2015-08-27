@@ -258,6 +258,18 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return targets;
     }
 
+    @Asset("virtualArrayByConsistencyGroup")
+    @AssetDependencies("rpConsistencyGroupByProject")
+    public List<AssetOption> getVirtualArrayByConsistencyGroup(AssetOptionsContext ctx, URI consistencyGroupId) {
+        ViPRCoreClient client = api(ctx);
+        RelatedResourceRep varray = client.blockConsistencyGroups().get(consistencyGroupId).getVirtualArray();
+        VirtualArrayRestRep virtualArray = client.varrays().get(varray);
+
+        List<AssetOption> targets = Lists.newArrayList();
+        targets.add(createBaseResourceOption(virtualArray));
+        return targets;
+    }
+
     @Asset("targetVirtualPool")
     @AssetDependencies({ "sourceBlockVolume", "virtualPoolChangeOperation" })
     public List<AssetOption> getTargetVirtualPools(AssetOptionsContext ctx, URI volumeId, String vpoolChangeOperation) {
@@ -425,6 +437,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         debug("getting virtualPoolsForVirtualArray(virtualArray=%s)", virtualArray);
         List<BlockVirtualPoolRestRep> virtualPools = api(ctx).blockVpools().getByVirtualArray(virtualArray);
         return createVirtualPoolResourceOptions(virtualPools);
+    }
+
+    @Asset("blockVirtualPool")
+    @AssetDependencies({ "virtualArrayByConsistencyGroup" })
+    public List<AssetOption> getVirtualPoolsForVirtualArrayByCG(AssetOptionsContext ctx, URI virtualArray) {
+        return getVirtualPoolsForVirtualArray(ctx, virtualArray);
     }
 
     @Asset("blockVolume")

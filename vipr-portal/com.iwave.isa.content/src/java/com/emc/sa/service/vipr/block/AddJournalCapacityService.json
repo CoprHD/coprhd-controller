@@ -2,32 +2,24 @@
     baseKey:"AddJournalCapacity.Block",
     serviceId:"AddJournalCapacity",
     fields:{
+            project:{
+            type:"assetType.vipr.project",
+            lockable: true
+        },
+    
+        consistencyGroup:{
+            type:"assetType.vipr.rpConsistencyGroupByProject",
+            required:false
+        },
+        
         virtualArray:{
-            type:"assetType.vipr.virtualArray",
+            type:"assetType.vipr.virtualArrayByConsistencyGroup",
             lockable: true
         },
 
         virtualPool:{
             type:"assetType.vipr.blockVirtualPool",
             lockable: true
-        },
-
-        project:{
-            type:"assetType.vipr.project",
-            lockable: true
-        },
-
-        name:{
-            type:"text",
-            validation:{
-                min:2,
-                max:128
-            }
-        },
-
-        consistencyGroup:{
-            type:"assetType.vipr.consistencyGroupByProject",
-            required:false
         },
 
         numberOfVolumes:{

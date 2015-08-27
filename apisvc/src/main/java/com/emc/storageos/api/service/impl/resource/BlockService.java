@@ -142,7 +142,9 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.srdfcontroller.SRDFController;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -997,16 +999,7 @@ public class BlockService extends TaskResourceService {
                         varray, project, vpool, capabilities);
 
                 if (recommendations.isEmpty()) {
-                    for (TaskResourceRep taskObj : taskList.getTaskList()) {
-                        APIException ex = APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
-                        _dbClient.error(Volume.class, taskObj.getResource().getId(), taskObj.getOpId(), ex);
-                        _log.error(ex.getMessage(), ex);
-                        taskObj.setMessage(ex.getMessage());
-                        // Set the volumes to inactive
-                        Volume volume = _dbClient.queryObject(Volume.class, taskObj.getResource().getId());
-                        volume.setInactive(true);
-                        _dbClient.updateAndReindexObject(volume);
-                    }
+                    throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
                 }
 
                 // At this point we are committed to initiating the request.
@@ -1020,8 +1013,13 @@ public class BlockService extends TaskResourceService {
                 blockServiceImpl.createVolumes(param, project, varray, vpool, recommendations, taskList, task, capabilities);
             } catch (Exception ex) {
                 for (TaskResourceRep taskObj : taskList.getTaskList()) {
-                    APIException ex1 = APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
-                    _dbClient.error(Volume.class, taskObj.getResource().getId(), taskObj.getOpId(), ex1);
+                    if (ex instanceof ServiceCoded) {
+                        _dbClient.error(Volume.class, taskObj.getResource().getId(), taskObj.getOpId(), (ServiceCoded)ex);
+                    } else {
+                        _dbClient.error(Volume.class, taskObj.getResource().getId(), taskObj.getOpId(), 
+                                InternalServerErrorException.internalServerErrors
+                                .unexpectedErrorVolumePlacement(ex));
+                    }
                     _log.error(ex.getMessage(), ex);
                     taskObj.setMessage(ex.getMessage());
                     // Set the volumes to inactive

@@ -185,6 +185,79 @@ public class PortMetricsProcessor {
      * @param port -- the StoragePort this port metric is for.
      * @param sampleTime -- The statistic time that the collection was made on the array. Given as a string, see convertCimStatisticTime.
      */
+    public void processFEPortMetrics(Long kbytes, Long iops, StoragePort port, Long sampleTime) {
+        StringMap dbMetrics = port.getMetrics();
+        _log.info(String.format("FEPortMetrics %s %s kbytes %d iops %d sampleTime %d",
+                port.getNativeGuid(), portName(port), kbytes, iops, sampleTime));
+
+        // Read the current value of the database variables
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, port.getStorageDevice());
+        Long iopsValue = MetricsKeys.getLong(MetricsKeys.iopsValue, dbMetrics);
+        Long kbytesValue = MetricsKeys.getLong(MetricsKeys.kbytesValue, dbMetrics);
+        Long lastSampleTimeValue = MetricsKeys.getLong(MetricsKeys.lastSampleTime, dbMetrics);
+
+        // Compute the deltas, numerator, and denominator.
+        Long kbytesDelta = kbytes - kbytesValue;
+        // Handle roll over, where the number will be negative
+        if (kbytesDelta < 0) {
+            _log.info("Kbytes rolled over - delta is negative: " + kbytesDelta);
+        }
+        Long iopsDelta = iops - iopsValue;
+        Long portSpeed = port.getPortSpeed();
+        if (portSpeed == 0) {
+            _log.error("Port speed is zero- assuming 8 GBit: " + port.getNativeGuid());
+            portSpeed = 8L;
+        }
+        // portSpeed is in Gbit/sec. Compute kbytes/sec.
+        Long maxKBytesPerSecond = portSpeed * KBYTES_PER_GBIT;
+        // Convert the maximum port speed to the maximum data transferred in the sample,
+        // by multiplying by the number of seconds we collected data.
+        Long secondsDelta = (sampleTime - lastSampleTimeValue) / MSEC_PER_SEC;
+        // Handle rollover, where the number will be negative
+        if (secondsDelta < 0) {
+            secondsDelta = -secondsDelta;
+        }
+
+        // We do this to avoid sampling from the beginning of time in one
+        // giant sample, which makes the starting sample unreasonable.
+        // If time has progressed, but the delta time is less than a year
+        // and the kbytesDelta is not negative, add it to the average.
+        if (kbytesDelta >= 0 && secondsDelta > 0 && secondsDelta < SECONDS_PER_YEAR) {
+            computePercentBusyAverages(kbytesDelta / secondsDelta, maxKBytesPerSecond, iopsDelta,
+                    dbMetrics, port.getNativeGuid(), portName(port), sampleTime, system);
+            // Compute the current port metric.
+            List<StoragePort> portList = new ArrayList<StoragePort>();
+            portList.add(port);
+            updateStaticPortUsage(portList);
+            Double portMetric = computePortMetric(port);
+            MetricsKeys.putDouble(MetricsKeys.portMetric, portMetric, dbMetrics);
+            MetricsKeys.putLong(MetricsKeys.lastProcessingTime, System.currentTimeMillis(), dbMetrics);
+        }
+
+        // Save the new values and persist.
+        MetricsKeys.putLong(MetricsKeys.kbytesValue, kbytes, dbMetrics);
+        MetricsKeys.putLong(MetricsKeys.iopsValue, iops, dbMetrics);
+        MetricsKeys.putLong(MetricsKeys.lastSampleTime, sampleTime, dbMetrics);
+        // Update the Unmanaged Initiator and Volume Count.
+        // We count meta-members for the volumes only if it's a VMAX2
+        boolean countMetaMembers = (
+                system.getSystemType().equals(DiscoveredDataObject.Type.vmax.name())
+                && !system.checkIfVmax3());
+        updateUnmanagedVolumeAndInitiatorCounts(port, countMetaMembers, dbMetrics);
+        port.setMetrics(dbMetrics);
+        _dbClient.persistObject(port);
+    }
+
+    /**
+     * Process a port metric sample. The values passed in are compared with the previous sample that was captured
+     * and used to calculate deltas and are then converted to a port percent busy metric. Short and long term
+     * averages for the port percent busy metric are updated.
+     * 
+     * @param kbytes -- a cumulative counter of the kilobytes transferred. This counter is ever increasing (but rolls over).
+     * @param iops -- a cumulative counter of the iops (I/O operations). This counter is ever increasing (but rolls over).
+     * @param port -- the StoragePort this port metric is for.
+     * @param sampleTime -- The statistic time that the collection was made on the array. Given as a string, see convertCimStatisticTime.
+     */
     public void processIPPortMetrics(Long kbytes, Long iops, StoragePort port, Long sampleTime) {
         StringMap dbMetrics = port.getMetrics();
         _log.info(String.format("FEPortMetrics %s %s kbytes %d iops %d sampleTime %d",

@@ -8,6 +8,7 @@ package com.emc.storageos.auth;
 
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.security.password.Constants;
 import org.apache.commons.lang.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,8 +20,6 @@ public class SystemPropertyUtil {
 
     private static final Logger _log = LoggerFactory.getLogger(SystemPropertyUtil.class);
 
-    // Ldap connection timeout property name and default value (in seconds).
-    public static final String LDAP_CONNECTION_TIMEOUT = "ldap_connection_timeout";
     public static final int DEFAULT_LDAP_CONNECTION_TIMEOUT_IN_SECS = 10;
 
 
@@ -47,7 +46,8 @@ public class SystemPropertyUtil {
      * if the property dese not exist, or exception when loading, use default value 10.
      */
     public static int getLdapConnectionTimeout(CoordinatorClient coordinatorClient) {
-        String strTimeout = retreiveSystemProperty(coordinatorClient, LDAP_CONNECTION_TIMEOUT);
+        String strTimeout = retreiveSystemProperty(coordinatorClient,
+                Constants.LDAP_CONNECTION_TIMEOUT);
         return NumberUtils.toInt(strTimeout, DEFAULT_LDAP_CONNECTION_TIMEOUT_IN_SECS);
     }
 

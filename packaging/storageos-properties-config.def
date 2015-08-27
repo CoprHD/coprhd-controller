@@ -2304,7 +2304,6 @@
         rebootRequired : false,
         controlNodeOnly : true,
         value : "10",
-        notifiers : ( "authsvc" ),
     },
     {
         key : "password_change_interval",

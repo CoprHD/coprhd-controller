@@ -433,13 +433,11 @@ public class ImmutableAuthenticationProviders {
      * 
      * @param param contains the connection parameter
      * @param errorString will contain the message from the exception in case an exception is
-     * @param timeout value in seconds for how long we should wait for LDAP to respond (ldap only. Cannot be used for ldaps)
-     *            thrown
      * @return true if success, false if failure
      */
     public static boolean checkProviderStatus(CoordinatorClient coordinator,
             final AuthnProviderParamsToValidate param,
-            StringBuilder errorString, int timeout, DbClient dbClient) {
+            StringBuilder errorString, DbClient dbClient) {
         AuthnProvider authConfig = new AuthnProvider();
         authConfig.setManagerDN(param.getManagerDN());
         authConfig.setManagerPassword(param.getManagerPwd());
@@ -449,7 +447,8 @@ public class ImmutableAuthenticationProviders {
         authConfig.setServerUrls(urls);
 
         LdapContextSource contextSource =
-                createConfiguredLDAPContextSource(coordinator, authConfig, timeout);
+                createConfiguredLDAPContextSource(coordinator, authConfig,
+                        SystemPropertyUtil.getLdapConnectionTimeout(coordinator));
         LdapTemplate template = new LdapTemplate(contextSource);
         template.setIgnorePartialResultException(true);
         if (!checkManagerDNAndSearchBase(template, param, errorString)) {

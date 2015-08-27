@@ -28,7 +28,6 @@ import javax.ws.rs.core.Response.Status;
 @Path("/internal/authnProviderValidate")
 public class AuthnProviderValidatorResource {
 
-    private int _ldapConnectionTimeoutInSecs;
     private CoordinatorClient coordinator;
     private DbClient dbClient;
 
@@ -37,7 +36,6 @@ public class AuthnProviderValidatorResource {
 
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
-        _ldapConnectionTimeoutInSecs = SystemPropertyUtil.getLdapConnectionTimeout(coordinator);
     }
 
     public void setDbClient(DbClient dbClient) {
@@ -57,7 +55,7 @@ public class AuthnProviderValidatorResource {
     public Response validateAuthenticationProvider(AuthnProviderParamsToValidate param) {
         StringBuilder errorString = new StringBuilder();
         if (!ImmutableAuthenticationProviders.checkProviderStatus(coordinator, param,
-                errorString, _ldapConnectionTimeoutInSecs, dbClient)) {
+                errorString, dbClient)) {
             return Response.status(Status.BAD_REQUEST).entity(errorString.toString()).build();
         }
         return Response.status(Status.OK).build();

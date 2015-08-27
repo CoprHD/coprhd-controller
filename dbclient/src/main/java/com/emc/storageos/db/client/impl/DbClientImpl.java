@@ -26,7 +26,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import com.emc.storageos.db.client.model.NoInactiveIndex;
+import com.emc.storageos.db.client.model.*;
 import com.netflix.astyanax.Execution;
 import com.netflix.astyanax.model.ByteBufferRange;
 import com.netflix.astyanax.partitioner.Partitioner;
@@ -51,22 +51,6 @@ import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.constraint.impl.ConstraintImpl;
-import com.emc.storageos.db.client.model.AllowedGeoVersion;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.EncryptionProvider;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.HostInterface;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.OpStatusMap;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.ProjectResource;
-import com.emc.storageos.db.client.model.ProjectResourceSnapshot;
-import com.emc.storageos.db.client.model.Task;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.TenantResource;
-import com.emc.storageos.db.client.model.TimeSeries;
-import com.emc.storageos.db.client.model.TimeSeriesSerializer;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
@@ -988,7 +972,7 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public <T extends DataObject> void createObject(T object) {
-        createObject(new DataObject[] { object });
+        createObject(new DataObject[]{object});
     }
 
     @Override
@@ -1006,7 +990,7 @@ public class DbClientImpl implements DbClient {
         if (doType == null || object.getId() == null) {
             throw new IllegalArgumentException();
         }
-        internalPersistObject(Arrays.asList(new DataObject[] { object }), updateIndex);
+        internalPersistObject(Arrays.asList(new DataObject[]{object}), updateIndex);
     }
 
     @Override
@@ -1222,7 +1206,7 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public void markForDeletion(DataObject object) {
-        markForDeletion(Arrays.asList(new DataObject[] { object }));
+        markForDeletion(Arrays.asList(new DataObject[]{object}));
     }
 
     @Override
@@ -1704,7 +1688,11 @@ public class DbClientImpl implements DbClient {
                         task.setTenant(TenantOrg.SYSTEM_TENANT);
                     }
                     else {
-                        task.setTenant(tenantId);
+                        if (dataObject instanceof Vcenter) {
+                            task.setTenant(((Vcenter) dataObject).findVcenterTenant());
+                        } else {
+                            task.setTenant(tenantId);
+                        }
                     }
 
                     _log.info("Created task {}, {}", task.getId() + " (" + task.getRequestId() + ")", task.getLabel());

@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.emc.vipr.client.exceptions.ServiceErrorException;
 import models.deadbolt.Role;
 import models.security.UserInfo;
 
@@ -28,6 +29,10 @@ import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.google.common.collect.Lists;
 
 import controllers.security.Security;
+import util.TenantUtils;
+
+import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+import static util.BourneUtil.getViprClient;
 
 /**
  * Utility controller for handling many model-type queries.
@@ -199,6 +204,18 @@ public class Models extends Controller {
     public static String currentAdminTenantForVcenter() {
         String sessionTenant = session.get(TENANT_ID);
         if (sessionTenant != null && canSelectTenantForVcenters(sessionTenant)) {
+            try{
+                if (!(TenantUtils.ALL_TENANT_RESOURCES.equalsIgnoreCase(sessionTenant) ||
+                        TenantUtils.TENANT_RESOURCES_WITH_NO_TENANTS.equalsIgnoreCase(sessionTenant))) {
+                    if (getViprClient().tenants().get(uri(sessionTenant)).getInactive()) {
+                        Models.resetAdminTenantId();
+                        sessionTenant = Models.currentAdminTenantForVcenter();
+                    }
+                }
+            } catch (ServiceErrorException tenantNotFound) {
+                Models.resetAdminTenantId();
+                sessionTenant = Models.currentAdminTenantForVcenter();
+            }
             return sessionTenant;
         } else {
             session.remove(TENANT_ID);

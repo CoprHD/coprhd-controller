@@ -422,7 +422,7 @@ public class ComputeSystemHelper {
         if (!NullColumnValueGetter.isNullURI(host.getProject())) {
             return CustomQueryUtility.queryActiveResourcesByRelation(
                     dbClient, host.getProject(), FileShare.class, "project");
-        } else if (!NullColumnValueGetter.isNullURI(host.getProject())) {
+        } else if (!NullColumnValueGetter.isNullURI(host.getTenant())) {
             return CustomQueryUtility.queryActiveResourcesByRelation(
                     dbClient, host.getTenant(), FileShare.class, "tenant");
         }

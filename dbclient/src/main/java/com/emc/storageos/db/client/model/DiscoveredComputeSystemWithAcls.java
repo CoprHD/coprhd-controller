@@ -8,6 +8,8 @@ package com.emc.storageos.db.client.model;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 import java.beans.Transient;
@@ -21,6 +23,8 @@ import java.util.Set;
 
 public abstract class DiscoveredComputeSystemWithAcls extends AbstractDiscoveredTenantResource implements Serializable {
     private static final long serialVersionUID = 2131442061913781875L;
+
+    protected final static Logger _log = LoggerFactory.getLogger(DiscoveredComputeSystemWithAcls.class);
 
     @Deprecated
     private URI _tenant;
@@ -87,6 +91,40 @@ public abstract class DiscoveredComputeSystemWithAcls extends AbstractDiscovered
     @Name("tenant")
     @RelationIndex(cf = "RelationIndex", type = TenantOrg.class)
     public URI getTenant() {
+        return _tenant;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.db.client.model.TenantResource#setTenant(java.net.URI)
+     */
+    @Override
+    public void setTenant(URI tenant) {
+        _tenant = tenant;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.db.client.model.TenantResource#auditParameters()
+     */
+    @Override
+    public abstract Object[] auditParameters();
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.db.client.model.TenantResource#getDataObject()
+     */
+    @Override
+    public DataObject findDataObject() {
+        return (DataObject) this;
+    }
+
+    /**
+     * Finds the vCenter tenant based on the first acls configured.
+     * This tenant information is used to populate the vCenter
+     * GET request response in case of upgrade. The same is also
+     * used for any vCenter tasks.
+     *
+     * @return
+     */
+    public URI findVcenterTenant() {
         if (CollectionUtils.isEmpty(_acls)) {
             return NullColumnValueGetter.getNullURI();
         }
@@ -106,28 +144,7 @@ public abstract class DiscoveredComputeSystemWithAcls extends AbstractDiscovered
             tenant = URI.create(permissionKey.split(",")[1]);
         }
 
+        _log.debug("Vcenter {} tenant ", this.getLabel(), tenant);
         return tenant;
-    }
-
-    /* (non-Javadoc)
-     * @see com.emc.storageos.db.client.model.TenantResource#setTenant(java.net.URI)
-     */
-    @Override
-    public void setTenant(URI tenant) {
-        //Do nothing.
-    }
-
-    /* (non-Javadoc)
-     * @see com.emc.storageos.db.client.model.TenantResource#auditParameters()
-     */
-    @Override
-    public abstract Object[] auditParameters();
-
-    /* (non-Javadoc)
-     * @see com.emc.storageos.db.client.model.TenantResource#getDataObject()
-     */
-    @Override
-    public DataObject findDataObject() {
-        return (DataObject) this;
     }
 }

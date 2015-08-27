@@ -109,21 +109,27 @@ angular.module("services", []).directive({
                     type = '<select-many>';
                     // TODO: support for select many 'choice'
                 } else if (item.type.match(/^assetType\./)) {
-                    item.options = scope.$root[scope.item.type + "-options"];
-                    tagAttrs = {
-                        'options': "item.options",
-                        'value-property': "key",
-                        'label-property': "value",
-                        'ng-disabled': "item.disabled",
-                        'auto-select-if-one': item.required
-                    };
-                    if (item.select == 'many') {
-                    	type = '<select-many>';
-                    }
-                    else {
-                    	type = '<select-one>';
-                    	addBlankOptionIfRequired(item);
-                    }
+                	if (item.select == 'field') {
+                		type = '<input-text>';
+                		item.value = scope.$root[scope.item.type + "-options"][0].key;
+                	}
+                	else {
+	                    item.options = scope.$root[scope.item.type + "-options"];
+	                    tagAttrs = {
+	                        'options': "item.options",
+	                        'value-property': "key",
+	                        'label-property': "value",
+	                        'ng-disabled': "item.disabled",
+	                        'auto-select-if-one': item.required
+	                    };
+	                    if (item.select == 'many') {
+	                    	type = '<select-many>';
+	                    }
+	                    else {
+	                    	type = '<select-one>';
+	                    	addBlankOptionIfRequired(item);
+	                    }
+                	}
                 } else {
                     item.error = " ";
                     type = "<p class='help-inline'>" + translate('serviceField.unsupportedType',item.type) + "</p>";

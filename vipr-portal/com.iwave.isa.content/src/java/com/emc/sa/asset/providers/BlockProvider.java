@@ -42,6 +42,7 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.StringHashMapEntry;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
@@ -947,6 +948,35 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("volumeWithContinuousCopies")
     public List<AssetOption> getContinuousCopies(AssetOptionsContext ctx, URI volume) {
         return createBaseResourceOptions(api(ctx).blockVolumes().getContinuousCopies(volume));
+    }
+
+    @Asset("blockJournalSize")
+    @AssetDependencies("rpConsistencyGroupByProject")
+    public List<AssetOption> getBlockJournalSize(AssetOptionsContext ctx, URI consistencyGroup) {
+
+        String minimumSize = null;
+
+        BlockConsistencyGroupRestRep cg = api(ctx).blockConsistencyGroups().get(consistencyGroup);
+        for (RelatedResourceRep vol : cg.getVolumes()) {
+            VolumeRestRep volume = api(ctx).blockVolumes().get(vol);
+            RelatedResourceRep protectionSetId = volume.getProtection().getRpRep().getProtectionSet();
+            ProtectionSetRestRep protectionSet = api(ctx).blockVolumes().getProtectionSet(volume.getId(), protectionSetId.getId());
+            for (RelatedResourceRep protectionVolume : protectionSet.getVolumes()) {
+                VolumeRestRep vol1 = api(ctx).blockVolumes().get(protectionVolume);
+                if (vol1.getProtection().getRpRep().getPersonality().equalsIgnoreCase("METADATA")) {
+                    String capacity = api(ctx).blockVolumes().get(protectionVolume).getCapacity();
+                    if (minimumSize == null || Integer.parseInt(capacity) < Integer.parseInt(minimumSize)) {
+                        minimumSize = capacity;
+                    }
+                }
+            }
+        }
+
+        if (minimumSize == null) {
+            return Lists.newArrayList();
+        } else {
+            return Lists.newArrayList(newAssetOption(minimumSize, minimumSize));
+        }
     }
 
     @Asset("volumeWithoutConsistencyGroup")

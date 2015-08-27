@@ -31,7 +31,9 @@
         },
 
         size:{
-            type:"storageSize",
+            type:"assetType.vipr.blockJournalSize",
+            select: "field",
+            lockable: false,
             validation:{
                 min:1
             }

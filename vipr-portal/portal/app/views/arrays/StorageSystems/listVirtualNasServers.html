@@ -21,8 +21,8 @@
 
 
   #{DataTable.buttonBar}
-    #{Form.button name:'button.associate', class:'info', icon:'plus', action:'showDialogClick()', data:['enabled':'selected']/}
-    #{Form.button name:'button.dissociate', class:'warning', icon:'trash', submit:'dissociateProject', data:['enabled':'selected']/}
+    #{Form.button name:'button.associate', class:'info', icon:'plus', action:'showDialogClick()', data:['enabled':'selected', 'property':'project', 'value':'']/}
+    #{Form.button name:'button.dissociate', class:'warning', icon:'trash', submit:'dissociateProject', data:['enabled':'selected', 'property':'project', 'not-value':'']/}
   #{/DataTable.buttonBar}
 #{/DataTable.table}
 #{DataTable.expandHtml @vNasMoreDetails(':id'), table:'vNasServers'/}

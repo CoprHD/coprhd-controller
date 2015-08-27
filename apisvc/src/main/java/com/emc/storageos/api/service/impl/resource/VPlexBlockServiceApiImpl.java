@@ -3204,7 +3204,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // also need to check that the backend volumes used by VPLEX
         // volume are on the same array as the backend CGs. Note that CGs
         // created prior to release 2.2 will not have backend CGs.
-        if (cg.checkForType(Types.LOCAL)) {
+        /*if (cg.checkForType(Types.LOCAL)) {
             List<URI> backendCGSystemURIs = BlockConsistencyGroupUtils
                     .getLocalSystems(cg, _dbClient);
             StringSet assocVolumes = vplexVolume.getAssociatedVolumes();
@@ -3217,7 +3217,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     }
                 }
             }
-        }
+        }*/
     }
 
     private void checkIfClusterIsUnknown(String cluster, String varrayURI, String vplexStorageSystemURI) {

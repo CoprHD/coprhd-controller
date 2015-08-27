@@ -25,6 +25,7 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
 import com.emc.storageos.volumecontroller.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1486,14 +1487,17 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             }
             _dbClient.persistObject(consistencyGroup);
             // Set task to ready
-
-            taskCompleter.ready(_dbClient);
+            if (taskCompleter != null) {
+                taskCompleter.ready(_dbClient);
+            }
         } catch (Exception e) {
             _log.info("Failed to create consistency group: " + e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed(
                     "doCreateConsistencyGroup", e.getMessage());
             // Set task to error
-            taskCompleter.error(_dbClient, error);
+            if (taskCompleter != null) {
+                taskCompleter.error(_dbClient, error);
+            }
         }
     }
 
@@ -1759,25 +1763,53 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 consistencyGroupId);
         try {
             // Check if the consistency group exists
+            boolean createCG = false;
+            CIMObjectPath cgPath = null;
+            CIMInstance cgPathInstance = null;
+            boolean isVPlex = consistencyGroup.checkForType(Types.VPLEX);
             String groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
-            storage = findProviderFactory.withGroup(storage, groupName).find();
-
-            if (storage == null) {
-                ServiceError error = DeviceControllerErrors.smis.noConsistencyGroupWithGivenName();
-                taskCompleter.error(_dbClient, error);
-                return;
+            if (groupName == null || groupName.isEmpty()) {
+                if (isVPlex) {
+                    createCG = true;
+                    _log.info("No consistency group exists for the storage: " + storage.getId());
+                } else {
+                    ServiceError error = DeviceControllerErrors.smis.noConsistencyGroupWithGivenName();
+                    taskCompleter.error(_dbClient, error);
+                    return;
+                }
+            } else {
+                StorageSystem storageSystem = findProviderFactory.withGroup(storage, groupName).find();
+                if (storageSystem == null) {
+                    if (isVPlex) {
+                        _log.info("Could not find consistency group with the name: %s", groupName);
+                        createCG = true;
+                    } else {
+                        ServiceError error = DeviceControllerErrors.smis.noConsistencyGroupWithGivenName();
+                        taskCompleter.error(_dbClient, error);
+                        return;
+                    }
+                } else {
+                    storage = storageSystem;
+                    cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
+                    cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
+                    // If there is no consistency group with the given name, set the
+                    // operation to error
+                    if (cgPathInstance == null) {
+                        taskCompleter.error(_dbClient, DeviceControllerException.exceptions
+                                .consistencyGroupNotFound(consistencyGroup.getLabel(),
+                                        consistencyGroup.fetchArrayCgName(storage.getId())));
+                        return;
+                    }
+                }
             }
-
-            CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
-            CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
-            // If there is no consistency group with the given name, set the
-            // operation to error
-            if (cgPathInstance == null) {
-                taskCompleter.error(_dbClient, DeviceControllerException.exceptions
-                        .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                                consistencyGroup.fetchArrayCgName(storage.getId())));
-                return;
+            if (createCG) {
+                doCreateConsistencyGroup(storage, consistencyGroupId, null);
+                consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
+                        consistencyGroupId);
+                groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
+                cgPath = _cimPath.getReplicationGroupPath(storage, groupName);                
             }
+            
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
             String[] blockObjectNames = _helper.getBlockObjectAlternateNames(blockObjects);
             CIMObjectPath[] members = _cimPath.getVolumePaths(storage, blockObjectNames);

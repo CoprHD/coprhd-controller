@@ -51,6 +51,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -467,7 +468,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                                                 sourceRec.getInternalSiteName(), 
                                                                 (metroPointEnabled ? activeSourceCopyName : srcCopyName), null, 
                                                                 sourceJournal,
-                                                                (metroPointEnabled ? standbyJournal : null));        
+                                                                (metroPointEnabled ? standbyJournal : null), vplex);        
                             }
                             else {
                                 // Fill in additional information that prepare would have filled in that's specific to RP.
@@ -659,7 +660,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                          protectionSystemURI, 
                                          personalityType,
                                          rsetName, rpInternalSiteName, copyName, 
-                                         sourceVolume, journalVolume, standbyJournal);
+                                         sourceVolume, journalVolume, standbyJournal, vplex);
 
             return rpVolume;
     }
@@ -1117,7 +1118,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 			                    VirtualPool vpool, String size, RPRecommendation recommendation, String label, 
 			                    BlockConsistencyGroup consistencyGroup, String token, boolean remote, URI protectionSystemURI,
 			                    Volume.PersonalityTypes personality, String rsetName, String internalSiteName, String rpCopyName, 
-			                    Volume sourceVolume, Volume journalVolume, Volume standbyJournal) {
+			                    Volume sourceVolume, Volume journalVolume, Volume standbyJournal, boolean vplex) {
         boolean isNewVolume = (volume == null);
         if (isNewVolume) {
             volume = new Volume();
@@ -1150,15 +1151,15 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     volume.getProtocol()
                             .addAll(VirtualPoolUtil.getMatchingProtocols(
                                     vpool.getProtocols(), pool.getProtocols()));
+                    
+                    if (!vplex) {
+                        volume.setPool(pool.getId());
+                        volume.setStorageController(pool.getStorageDevice());
+                    }
                 }
             }
 
-            URI storagePoolUri = recommendation.getSourceStoragePool();
-            URI virtualArrayUri = varray.getId();
-
-            volume.setVirtualArray(virtualArrayUri);
-            volume.setPool(storagePoolUri);
-            volume.setStorageController(_dbClient.queryObject(StoragePool.class, storagePoolUri).getStorageDevice());
+            volume.setVirtualArray(varray.getId());            
 
             volume.setOpStatus(new OpStatusMap());
             Operation op = new Operation();
@@ -2498,22 +2499,64 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     private void logVolumeInfo(Volume volume) {     
         if (null != volume && !NullColumnValueGetter.isNullURI(volume.getId())) {
             StringBuilder buff =  new StringBuilder();
-            buff.append(String.format("%nPreparing Volume:%n"));
-            buff.append(String.format("\t VolumePersonality : [%s]%n", volume.getPersonality()));
-            buff.append(String.format("\t Volume Internal Site : [%s]%n", volume.getInternalSiteName()));
-            buff.append(String.format("\t URI : [%s] - Name : [%s]%n", volume.getId(), volume.getLabel()));
+            buff.append(String.format("%n-------------------------------------------------%n"));
+            buff.append(String.format("%nPreparing RP Volume:%n"));
+            buff.append(String.format("\t URI : [%s] %n", volume.getId()));
+            buff.append(String.format("\t Name : [%s]%n", volume.getLabel()));
+            
+            if (RPHelper.isVPlexVolume(volume)) {
+                buff.append(String.format("\t VPLEX : [%s] %n", ((volume.getAssociatedVolumes().size() > 1) ? "Distributed" : "Local")));
+                buff.append(String.format("%n=====%n"));
+                for (String uriString : volume.getAssociatedVolumes()) {
+                    Volume backingVolume = _dbClient.queryObject(Volume.class, URI.create(uriString));
+                    VirtualArray varray = _dbClient.queryObject(VirtualArray.class, backingVolume.getVirtualArray());
+                    VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, backingVolume.getVirtualPool());
+                    StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, backingVolume.getStorageController());
+                    StoragePool pool = _dbClient.queryObject(StoragePool.class, backingVolume.getPool());
+                    
+                    buff.append(String.format("\t\t Backing Volume URI : [%s] %n", backingVolume.getId()));
+                    buff.append(String.format("\t\t Backing Volume Name : [%s] %n", backingVolume.getLabel()));
+                    buff.append(String.format("\t\t Backing Volume Virtual Array : [%s] %n", varray.getLabel()));
+                    buff.append(String.format("\t\t Backing Volume Virtual Pool : [%s] %n", vpool.getLabel()));
+                    buff.append(String.format("\t\t Backing Volume Internal Site : [%s] %n", backingVolume.getInternalSiteName()));
+                    buff.append(String.format("\t\t Backing Volume Storage System : [%s] %n", storageSystem.getLabel()));
+                    buff.append(String.format("\t\t Backing Volume Storage Pool : [%s] %n", pool.getLabel()));
+                    buff.append(String.format("%n=====%n"));
+                }
+            }
+            
+            VirtualArray varray = _dbClient.queryObject(VirtualArray.class, volume.getVirtualArray());
+            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+            ProtectionSystem ps = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
+            BlockConsistencyGroup consistencyGroup =  _dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
+            
+            buff.append(String.format("\t Consistency Group : [%s]%n", consistencyGroup.getLabel()));            
+            buff.append(String.format("\t Personality : [%s]%n", volume.getPersonality()));
+            buff.append(String.format("\t Internal Site : [%s]%n", volume.getInternalSiteName()));
+            buff.append(String.format("\t Virtual Array : [%s]%n", varray.getLabel()));
+            buff.append(String.format("\t Virtual Pool : [%s]%n", vpool.getLabel()));
+            buff.append(String.format("\t Capacity : [%s]%n", volume.getCapacity()));
             
             if (!NullColumnValueGetter.isNullURI(volume.getStorageController())) {
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-                buff.append(String.format("\t StorageSystem : [%s]%n", storageSystem.getLabel()));
-                
+                buff.append(String.format("\t Storage System : [%s]%n", storageSystem.getLabel()));                
             }
         
             if (!NullColumnValueGetter.isNullURI(volume.getPool())) {        
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, volume.getPool());
-                buff.append(String.format("\t StoragePool : [%s]%n", pool.getLabel()));
-            }   
+                buff.append(String.format("\t Storage Pool : [%s]%n", pool.getLabel()));
+            }
             
+            if (!NullColumnValueGetter.isNullURI(volume.getAutoTieringPolicyUri())) { 
+                AutoTieringPolicy policy =  _dbClient.queryObject(AutoTieringPolicy.class, volume.getAutoTieringPolicyUri());
+                buff.append(String.format("\t Auto Tier Policy : [%s]%n", policy.getPolicyName()));
+            }
+            
+            buff.append(String.format("\t RP Protection System : [%s]%n", ps.getLabel()));
+            buff.append(String.format("\t RP Replication Set : [%s]%n", volume.getRSetName()));
+            buff.append(String.format("\t RP Copy Name : [%s]%n", volume.getRpCopyName()));            
+            
+            buff.append(String.format("%n-------------------------------------------------%n"));
             _log.info(buff.toString());
         }
     }
@@ -2540,35 +2583,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         
         _log.info(sb.toString());               
     }
-    
-//    /**
-//     * Modifies the passed in recommendation object to be re-used by VPlexBlockServiceApiImpl for
-//     * RP src, RP src-jrnl, RP tgt, and RP tgt-jrnl creation on VPlex.
-//     * 
-//     * @param recommendation
-//     * @param vplexId
-//     * @param varrayId
-//     * @param vpool
-//     * @param storageSystemId
-//     * @param storagePoolId
-//     * @return Modified recommendation object.
-//     */
-//    private RPProtectionRecommendation createTempRecommendation(RPProtectionRecommendation recommendation, 
-//                                                                URI vplexId, 
-//                                                                URI varrayId,
-//                                                                VirtualPool vpool, 
-//                                                                URI storageSystemId,
-//                                                                URI storagePoolId) {
-//        
-//        RPProtectionRecommendation newRecommendation = new RPProtectionRecommendation(recommendation);      
-//        newRecommendation.setSourceDevice(vplexId);
-//        newRecommendation.setVirtualArray(varrayId);
-//        newRecommendation.setVirtualPool(vpool);                        
-//        newRecommendation.setSourceDevice(storageSystemId);
-//        newRecommendation.setSourcePool(storagePoolId);
-//        newRecommendation.setResourceCount(1);      
-//        return newRecommendation;
-//    }
     
     /**
      * Parses the volume list and returns the VPLEX virtual volume

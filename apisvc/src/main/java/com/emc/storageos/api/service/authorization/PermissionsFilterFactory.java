@@ -364,8 +364,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
         Class<? extends DataObject> blockResourceClass = Volume.class;
         if (URIUtil.isType(URI.create(uriStr), BlockMirror.class)) {
             blockResourceClass = BlockMirror.class;
-        }
-        if (URIUtil.isType(URI.create(uriStr), VplexMirror.class)) {
+        } else if (URIUtil.isType(URI.create(uriStr), VplexMirror.class)) {
             blockResourceClass = VplexMirror.class;
         }
         return blockResourceClass;

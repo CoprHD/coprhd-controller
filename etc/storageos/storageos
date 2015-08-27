@@ -95,7 +95,8 @@ _start_services() {
     /etc/storageos/ipchecktool --panic
     echo -n "Starting @product_brand@ ${STORAGEOS_VARIANT} services "
     for svc in @systemd_storageos@ ; do
-        _startsvc ${svc}
+        _checkactive ${svc}
+        [ $? == 1 ] && _startsvc ${svc}
         echo -n "."
     done
     echo " Done"
@@ -115,18 +116,6 @@ _set_variant() {
     sed -i "s,STORAGEOS_VARIANT=\"[a-z\-]*\",STORAGEOS_VARIANT=\"${STORAGEOS_VARIANT}\",g" ${STORAGEOS_SYSCONFIG}
 }
 
-# Do not start if already running!
-#
-case ${1} in
-start|startcoverage|controller|api)
-    _running=""
-    for svc in @systemd_storageos@ ; do
-        _checkactive ${svc} 
-        [ $? == 0 ] && _running="${_running} ${svc}"
-    done
-    [ -n "${_running}" ] && echo "@product_brand@ services already running!" && exit 7
-esac
-
 # Actions
 #
 case ${1} in
@@ -143,12 +132,14 @@ startcoverage)
 api)
     echo -n "Starting @product_brand@ api services"
     for svc in auth coordinator db geodb api geo ; do
-        _startsvc ${svc}
+        _checkactive ${svc}
+        [ $? == 1 ] && _startsvc ${svc}
     done
     ;;
 controller)
     echo -n "Starting @product_brand@ controller service"
-    _startsvc controller
+    _checkactive controller
+    [ $? == 1 ] && _startsvc controller
     ;;
 stop)
     _stop_services

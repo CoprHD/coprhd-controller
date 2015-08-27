@@ -225,13 +225,12 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             // construct the map and use the request attributes
             // to execute operations & process the result.
             populateMap(accessProfile);
+            computeVNXStaticLoadMetrics(accessProfile);
             // Read the operations and execute them.
             executor.execute((Namespace) namespaces.getNsList().get(METERINGFILE));
-            
-           
-            computeVNXStaticLoadMetrics(accessProfile);
+
             dumpStatRecords();
-            
+
             injectStats();
             _logger.info("End collecting statistics for ip address {}",
                     accessProfile.getIpAddress());
@@ -239,18 +238,18 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             releaseResources();
         }
     }
-    
+
     private void computeVNXStaticLoadMetrics(AccessProfile accessProfile) {
-        
+
         _logger.info("Start compute static load for ip address {}",
                 accessProfile.getIpAddress());
-        
+
         URI systemId = accessProfile.getSystemId();
         Map<String, Long> fsCapacityMap = null;
         Map<String, Map<String, Long>> fsSnapCapacityHashMap = null;
-        
+
         URIQueryResultList vNasURIs = new URIQueryResultList();
-        //process virtual nas server
+        // process virtual nas server
         _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getStorageDeviceVirtualNasConstraint(systemId),
                 vNasURIs);
@@ -264,19 +263,19 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 _keyMap.put(VNXFileConstants.ISVDM, "true");
                 _logger.info("filesystem capacity info for Mover", vNas.getNativeId());
                 executor.execute((Namespace) namespaces.getNsList().get(VNX_COMPUTE_STATIC_LOAD));
-                //get capacity info
+                // get capacity info
                 fsCapacityMap = (Map<String, Long>) _discExecutor.getKeyMap()
                         .get(VNXFileConstants.FILE_CAPACITY_MAP);
                 fsSnapCapacityHashMap = (Map<String, Map<String, Long>>) _discExecutor.getKeyMap()
                         .get(VNXFileConstants.SNAP_CAPACITY_MAP);
                 StringMap dbMetrics = vNas.getMetrics();
-                //get the vdm metrics
+                // get the vdm metrics
                 getLoadMetrics(dbMetrics, fsCapacityMap, fsSnapCapacityHashMap);
                 _dbClient.persistObject(vNas);
             }
-        }     
-        
-        //process physical nas server
+        }
+
+        // process physical nas server
         vNasURIs.clear();
         _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getStorageDevicePhysicalNasConstraint(systemId),
@@ -291,47 +290,45 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 _keyMap.put(VNXFileConstants.ISVDM, "false");
                 _logger.info("snapshot capacity info for Mover", physicalNAS.getNativeId());
                 executor.execute((Namespace) namespaces.getNsList().get(VNX_COMPUTE_STATIC_LOAD));
-                
+
                 fsCapacityMap = (Map<String, Long>) _discExecutor.getKeyMap()
-                                            .get(VNXFileConstants.FILE_CAPACITY_MAP);
+                        .get(VNXFileConstants.FILE_CAPACITY_MAP);
                 fsSnapCapacityHashMap = (Map<String, Map<String, Long>>) _discExecutor.getKeyMap()
-                                            .get(VNXFileConstants.SNAP_CAPACITY_MAP);
-                //we have optimize this part
-                if(fsCapacityMap != null && fsSnapCapacityHashMap != null) {
+                        .get(VNXFileConstants.SNAP_CAPACITY_MAP);
+                // we have optimize this part
+                if (fsCapacityMap != null && fsSnapCapacityHashMap != null) {
                     StringMap dbMetrics = physicalNAS.getMetrics();
                     getLoadMetrics(dbMetrics, fsCapacityMap, fsSnapCapacityHashMap);
                     _dbClient.persistObject(physicalNAS);
                 }
             }
         }
-        
+
         _logger.info("End compute static load for ip address {}",
                 accessProfile.getIpAddress());
     }
-    
-    
-    
+
     private void getLoadMetrics(StringMap dbMetrics,
-                                Map<String, Long> fsCapacityMap, 
-                                Map<String, Map<String, Long>> fsSnapCapacityHashMap) {
-        
+            Map<String, Long> fsCapacityMap,
+            Map<String, Map<String, Long>> fsSnapCapacityHashMap) {
+
         long totalFileSystemsCapacity = 0;
         long totalSnapshotCapacity = 0;
         long numberOfSnapshots = 0;
         long numberOfFileSystems = fsCapacityMap.size();
 
-        if( fsCapacityMap != null && !fsCapacityMap.isEmpty()) {
+        if (fsCapacityMap != null && !fsCapacityMap.isEmpty()) {
             for (Entry<String, Long> entry : fsCapacityMap.entrySet()) {
-                //get total filesystem capacity
+                // get total filesystem capacity
                 totalFileSystemsCapacity = totalFileSystemsCapacity + entry.getValue();
-                //get the no. of snapshots on fs
-                
-                if(fsSnapCapacityHashMap!= null && !fsSnapCapacityHashMap.isEmpty()) {
+                // get the no. of snapshots on fs
+
+                if (fsSnapCapacityHashMap != null && !fsSnapCapacityHashMap.isEmpty()) {
                     Map<String, Long> snapshotCapacityMap = fsSnapCapacityHashMap.get(entry.getKey());
-                    
+
                     if (snapshotCapacityMap != null && !snapshotCapacityMap.isEmpty()) {
                         numberOfSnapshots = numberOfSnapshots + snapshotCapacityMap.size();
-                        //calculate snap capacity
+                        // calculate snap capacity
                         for (Entry<String, Long> snapCapacity : snapshotCapacityMap.entrySet()) {
                             totalSnapshotCapacity = totalSnapshotCapacity + snapCapacity.getValue();
                         }
@@ -340,12 +337,12 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             }
         }
         // update vdm with stati load metrix
-        
-        dbMetrics.put(MetricsKeys.filesystemCount.name(), String.valueOf(numberOfFileSystems) );
+
+        dbMetrics.put(MetricsKeys.filesystemCount.name(), String.valueOf(numberOfFileSystems));
         dbMetrics.put(MetricsKeys.snapshotCount.name(), String.valueOf(totalSnapshotCapacity));
         dbMetrics.put(MetricsKeys.totalfsCapacityOnMover.name(), String.valueOf(totalFileSystemsCapacity));
         dbMetrics.put(MetricsKeys.totalsnapshotCapacityOnMover.name(), String.valueOf(totalSnapshotCapacity));
-        
+
         return;
     }
 
@@ -1032,8 +1029,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             if (vNas != null && tempList != null) {
                 _logger.info("VirtualNAS : {} : NativeID : {} ", vNas.getId(), nativeId);
                 _logger.info("StoragePort : {} ", tempList);
-               _logger.info("VirtualNAS : {} : NativeID : {} ",vNas.getId(), nativeId);
-               _logger.info("StoragePort : {} ",tempList);
+                _logger.info("VirtualNAS : {} : NativeID : {} ", vNas.getId(), nativeId);
+                _logger.info("StoragePort : {} ", tempList);
                 vNas.setStoragePorts(tempList);
                 _dbClient.persistObject(vNas);
             } else {

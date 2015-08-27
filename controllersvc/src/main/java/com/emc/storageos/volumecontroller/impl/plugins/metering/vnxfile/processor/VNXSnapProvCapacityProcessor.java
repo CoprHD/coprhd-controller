@@ -1,13 +1,12 @@
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Iterator;
 
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.methods.PostMethod;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,8 +15,8 @@ import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
 import com.emc.nas.vnxfile.xmlapi.Status;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
-import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
 
 public class VNXSnapProvCapacityProcessor extends VNXFileProcessor {
     private final Logger _logger = LoggerFactory
@@ -36,10 +35,10 @@ public class VNXSnapProvCapacityProcessor extends VNXFileProcessor {
                 Status status = responsePacket.getPacketFault();
                 processErrorStatus(status, keyMap);
             } else {
-                String moverId = null;
-                
-                Map<String, Map<String, Long>> fsSnapshotCapacityMap = new HashMap<String, Map<String, java.lang.Long>>();
-                
+                String moverId = (String) keyMap.get(VNXFileConstants.MOVER_ID);
+
+                Map<String, Map<String, Long>> fsSnapshotCapacityMap = new HashMap<String, Map<String, Long>>();
+                int snapCount = 0;
                 List<Object> queryResponse = getQueryResponse(responsePacket);
                 Iterator<Object> queryRespItr = queryResponse.iterator();
                 Map<String, Long> snapshotCapacityMap = null;
@@ -48,15 +47,15 @@ public class VNXSnapProvCapacityProcessor extends VNXFileProcessor {
                     if (responseObj instanceof Checkpoint) {
                         Checkpoint checkpoint = (Checkpoint) responseObj;
                         snapshotCapacityMap = fsSnapshotCapacityMap.get(checkpoint.getCheckpointOf());
-                        if(snapshotCapacityMap == null) {
+                        if (snapshotCapacityMap == null) {
                             snapshotCapacityMap = new HashMap<String, Long>();
                         }
                         snapshotCapacityMap.put(checkpoint.getCheckpoint(), checkpoint.getFileSystemSize());
-
+                        snapCount++;
                         fsSnapshotCapacityMap.put(checkpoint.getCheckpointOf(), snapshotCapacityMap);
                     }
                 }
-                //_logger.info("Number of Snapshot found {} on Data mover : {}", , moverId);
+                _logger.info("Number of Snapshot found {} on Data mover : {}", String.valueOf(snapCount), moverId);
                 keyMap.put(VNXFileConstants.SNAP_CAPACITY_MAP, fsSnapshotCapacityMap);
                 // Extract session information from the response header.
                 Header[] headers = result

@@ -12,9 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.nas.vnxfile.xmlapi.FileSystemCapacityInfo;
 import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
-import com.emc.nas.vnxfile.xmlapi.VolumeSetStats;
-import com.emc.nas.vnxfile.xmlapi.VolumeSetStats.Sample;
-import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
@@ -28,11 +25,11 @@ public class VNXFSProvCapacityProcessor extends VNXFileProcessor {
         // TODO Auto-generated method stub
         final PostMethod result = (PostMethod) resultObj;
         _logger.info("processing filesystem capacity response" + resultObj);
-        
+
         try {
-            String moverId = null;
+            String moverId = (String) keyMap.get(VNXFileConstants.MOVER_ID);
             Map<String, Long> fileSystemCapacityMap = new HashMap<String, Long>();
-            
+
             ResponsePacket responsePacket = (ResponsePacket) _unmarshaller
                     .unmarshal(result.getResponseBodyAsStream());
             List<Object> queryResponse = getQueryResponse(responsePacket);
@@ -45,7 +42,7 @@ public class VNXFSProvCapacityProcessor extends VNXFileProcessor {
                     fileSystemCapacityMap.put(fsCapacityInfo.getFileSystem(), fsCapacityInfo.getVolumeSize());
                 }
             }
-            _logger.info("Number of FileSystem found {} on Data mover : {}", fileSystemCapacityMap.size(), moverId);
+            _logger.info("Number of FileSystem found {} on Data mover- : {}", fileSystemCapacityMap.size(), moverId);
             keyMap.put(VNXFileConstants.FILE_CAPACITY_MAP, fileSystemCapacityMap);
             // Extract session information from the response header.
             Header[] headers = result

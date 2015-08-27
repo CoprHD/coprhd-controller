@@ -77,7 +77,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         // a BlockTaskList containing the list of task resources to be
         // returned for the purpose of monitoring the volume creation
         // operation for each volume to be created.
-        int volumeCounter = 1;
+        int volumeCounter = 0;
         String volumeLabel = param.getName();
         List<Volume> preparedVolumes = new ArrayList<Volume>();
         final BlockConsistencyGroup consistencyGroup = cosCapabilities.getBlockConsistencyGroup() == null ? null : _dbClient

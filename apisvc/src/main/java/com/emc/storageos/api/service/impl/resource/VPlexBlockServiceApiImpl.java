@@ -403,20 +403,15 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // volumes and associate the virtual volumes with their associated
         // backend volumes.
         s_logger.info("Preparing virtual volumes");
-        int volumeCounter = 1;
         List<URI> virtualVolumeURIs = new ArrayList<URI>();
         URI nullPoolURI = NullColumnValueGetter.getNullURI();
         poolVolumeMap.put(nullPoolURI, virtualVolumeURIs);
         vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, null);
         for (int i = 0; i < vPoolCapabilities.getResourceCount(); i++) {
-            StringBuilder volumeLabelBuilder = new StringBuilder(volumeLabel);
-            if (vPoolCapabilities.getResourceCount() > 1) {
-                volumeLabelBuilder.append("-");
-                volumeLabelBuilder.append(volumeCounter++);
-            }
-            s_logger.info("Volume label is {}", volumeLabelBuilder.toString());
+            String volumeLabelBuilt = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, i);
+            s_logger.info("Volume label is {}", volumeLabelBuilt);
 
-            Volume volume = StorageScheduler.getPrecreatedVolume(_dbClient, taskList, volumeLabelBuilder.toString(), i);
+            Volume volume = StorageScheduler.getPrecreatedVolume(_dbClient, taskList, volumeLabelBuilt, 0);
             boolean volumePrecreated = false;
             if (volume != null) {
                 volumePrecreated = true;
@@ -432,9 +427,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             volume = prepareVolume(VolumeType.VPLEX_VIRTUAL_VOLUME, volume,
                     size, thinVolumePreAllocationSize, project, vArray,
                     vPool, vplexStorageSystemURI, nullPoolURI,
-                    volumeLabelBuilder.toString(), consistencyGroup, vPoolCapabilities);
-            Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
-                    task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+                    volumeLabelBuilt, consistencyGroup, vPoolCapabilities);
 
             StringSet associatedVolumes = new StringSet();
             associatedVolumes.add(varrayVolumeURIs[0][i].toString());
@@ -456,6 +449,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     (vPoolCapabilities.getPersonality() != null && vPoolCapabilities.getPersonality().equals(
                             Volume.PersonalityTypes.SOURCE.name()))) {
                 if (!volumePrecreated) {
+                    Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
+                            task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
                     TaskResourceRep volumeTask = toTask(volume, task, op);
                     taskList.getTaskList().add(volumeTask);
                 }

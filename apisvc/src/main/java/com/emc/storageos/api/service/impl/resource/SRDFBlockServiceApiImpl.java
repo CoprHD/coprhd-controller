@@ -201,7 +201,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                 // operation for each volume to be created.
                 for (int i = 0; i < volumeCount; i++) {
                     // get generated volume name
-                    String newVolumeLabel = generateDefaultVolumeLabel(param.getName(), i, volumeCount);
+                    String newVolumeLabel = generateDefaultVolumeLabel(param.getName(), i);
 
                     // Assemble a Replication Set; A Collection of volumes. One production, and any
                     // number of targets.

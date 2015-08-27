@@ -885,7 +885,7 @@ public class StorageScheduler implements Scheduler {
             }
             // prepare block volume
             if (recommendation.getType().toString().equals(VolumeRecommendation.VolumeType.BLOCK_VOLUME.toString())) {
-                String newVolumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, volumeCounter, volumeCount);
+                String newVolumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, volumeCounter);
 
                 // Grab the existing volume and task object from the incoming task list
                 Volume volume = getPrecreatedVolume(_dbClient, taskList, newVolumeLabel, volumeCounter);
@@ -955,14 +955,10 @@ public class StorageScheduler implements Scheduler {
      * @return Volume object
      */
     public static Volume getPrecreatedVolume(DbClient dbClient, TaskList taskList, String label, int volumeCounter) {
-        StringBuilder volumeLabelBuilder = new StringBuilder(label);
-        if (volumeCounter > 1) {
-            volumeLabelBuilder.append("-");
-            volumeLabelBuilder.append(volumeCounter++);
-        }
+        String volumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(label, volumeCounter);
         for (TaskResourceRep task : taskList.getTaskList()) {
             Volume volume = dbClient.queryObject(Volume.class, task.getResource().getId());
-            if (volume.getLabel().equalsIgnoreCase(volumeLabelBuilder.toString())) {
+            if (volume.getLabel().equalsIgnoreCase(volumeLabel)) {
                 return volume;
             }
         }
@@ -1094,20 +1090,16 @@ public class StorageScheduler implements Scheduler {
 
         Volume volume = new Volume();
         volume.setId(URIUtil.createId(Volume.class));
-        StringBuilder volumeLabelBuilder = new StringBuilder(label);
-        if (volNumber > 1) {
-            volumeLabelBuilder.append("-");
-            volumeLabelBuilder.append(volNumber++);
-        }
+        String volumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(label, volNumber);
 
         List<Volume> volumeList = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Volume.class,
                 ContainmentPrefixConstraint.Factory.getFullMatchConstraint(Volume.class, "project",
-                        project.getId(), volumeLabelBuilder.toString()));
+                        project.getId(), volumeLabel));
         if (!volumeList.isEmpty()) {
-            throw APIException.badRequests.duplicateLabel(volumeLabelBuilder.toString());
+            throw APIException.badRequests.duplicateLabel(volumeLabel);
         }
 
-        volume.setLabel(volumeLabelBuilder.toString());
+        volume.setLabel(volumeLabel);
         volume.setCapacity(size);
         volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType()));
         volume.setVirtualPool(vpool.getId());

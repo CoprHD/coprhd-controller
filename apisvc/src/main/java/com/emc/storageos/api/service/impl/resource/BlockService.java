@@ -11,6 +11,7 @@ import static com.emc.storageos.api.mapper.ProtectionMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getBlockSnapshotByConsistencyGroup;
 import static com.emc.storageos.model.block.Copy.SyncDirection.SOURCE_TO_TARGET;
+import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.parseBoolean;
 
 import java.net.URI;
@@ -709,7 +710,7 @@ public class BlockService extends TaskResourceService {
         BlockServiceApi blockServiceImpl = getBlockServiceImpl(vpool, _dbClient);
 
         BlockConsistencyGroup consistencyGroup = null;
-        final Boolean isMultiVolumeConsistencyOn = vpool.getMultivolumeConsistency() == null ? Boolean.FALSE
+        final Boolean isMultiVolumeConsistencyOn = vpool.getMultivolumeConsistency() == null ? FALSE
                 : vpool.getMultivolumeConsistency();
 
         /*

@@ -1257,18 +1257,17 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     }
 
     /**
-     * Generate a unique volume label based on the given base name and its index for RP or SRDF
+     * Generate a unique volume label based on the given base name and index.
      * 
      * @param baseVolumeLabel - prefix of volume name
      * @param volumeIndex - index to append to prefix for name
-     * @param volumeCount - number of volume to generate name for
      * @return generated volume name
      */
-    public static String generateDefaultVolumeLabel(String baseVolumeLabel, int volumeIndex, int volumeCount) {
+    public static String generateDefaultVolumeLabel(String baseVolumeLabel, int volumeIndex) {
         StringBuilder volumeLabelBuilder = new StringBuilder(baseVolumeLabel);
-        if (volumeCount > 1) {
+        if (volumeIndex > 0) {
             volumeLabelBuilder.append("-");
-            volumeLabelBuilder.append(volumeIndex + 1);
+            volumeLabelBuilder.append(volumeIndex+1);
         }
         return volumeLabelBuilder.toString();
     }
@@ -1290,7 +1289,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             // by the storage system. As such we will need to update the
             // actual volumes after they are created to match the names
             // given here.
-            String newVolumeLabel = generateDefaultVolumeLabel(baseVolumeLabel, i, volumeCount);
+            String newVolumeLabel = generateDefaultVolumeLabel(baseVolumeLabel, i);
 
             // to throw exception if duplicate label found
             validateVolumeLabel(newVolumeLabel, project);

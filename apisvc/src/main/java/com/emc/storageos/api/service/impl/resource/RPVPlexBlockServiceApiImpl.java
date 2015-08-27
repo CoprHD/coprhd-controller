@@ -301,7 +301,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                     secondaryRecommendation.setResourceCount(1);
                 }
 
-                String newVolumeLabel = generateDefaultVolumeLabel(volumeName, volumeCount, numberOfVolumesInRequest);
+                String newVolumeLabel = generateDefaultVolumeLabel(volumeName, volumeCount);
 
                 // Assemble a Replication Set; A Collection of volumes. One production, and any number of targets.
                 String rsetName = null;

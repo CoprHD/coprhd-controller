@@ -78,7 +78,7 @@ public class VplexBackendIngestionContext {
         List<UnManagedVolume> allVolumes = new ArrayList<UnManagedVolume>();
         allVolumes.addAll(getUnmanagedBackendVolumes());
         allVolumes.addAll(getUnmanagedSnapshots());
-        allVolumes.addAll(getUnmanagedFullClones().keySet());
+        // allVolumes.addAll(getUnmanagedFullClones().keySet()); only need vvols
         allVolumes.addAll(getUnmanagedFullClones().values());
         for (Set<UnManagedVolume> backendClones : getUnmanagedBackendOnlyClones().values()) {
             allVolumes.addAll(backendClones);
@@ -93,6 +93,7 @@ public class VplexBackendIngestionContext {
             return unmanagedBackendVolumes;
         }
         
+        long start = System.currentTimeMillis();
         _logger.info("getting unmanaged backend volumes");
         unmanagedBackendVolumes = new ArrayList<UnManagedVolume>();
         List<URI> associatedVolumeUris = new ArrayList<URI>();
@@ -118,6 +119,8 @@ public class VplexBackendIngestionContext {
         unmanagedBackendVolumes = _dbClient.queryObject(UnManagedVolume.class, associatedVolumeUris);
         
         _logger.info("for VPLEX UnManagedVolume {} found these associated volumes: " + unmanagedBackendVolumes, _unmanagedVirtualVolume.getId());
+        _logger.info("TIMER: getting backend volume info took {}ms", 
+                System.currentTimeMillis() - start);
         return unmanagedBackendVolumes;
     }
     
@@ -126,6 +129,7 @@ public class VplexBackendIngestionContext {
             return backendVolumeWwnToInfoMap;
         }
         
+        long start = System.currentTimeMillis();
         _logger.info("getting backend volume wwn to api info map");
         try {
             backendVolumeWwnToInfoMap = 
@@ -141,6 +145,10 @@ public class VplexBackendIngestionContext {
         }
         
         _logger.info("backend volume wwn to api info map: " + backendVolumeWwnToInfoMap);
+        if (!backendVolumeWwnToInfoMap.isEmpty()) {
+            _logger.info("TIMER: fetching backend volume wwn to info map took {}ms", 
+                    System.currentTimeMillis() - start);
+        }
         return backendVolumeWwnToInfoMap;
     }
     
@@ -161,7 +169,8 @@ public class VplexBackendIngestionContext {
         if (null != unmanagedSnapshots) {
             return unmanagedSnapshots;
         }
-        
+
+        long start = System.currentTimeMillis();
         _logger.info("getting unmanaged snapshots");
         unmanagedSnapshots = new ArrayList<UnManagedVolume>();
         
@@ -170,6 +179,10 @@ public class VplexBackendIngestionContext {
         }
         
         _logger.info("found these associated snapshots: " + unmanagedSnapshots);
+        if (!unmanagedSnapshots.isEmpty()) {
+            _logger.info("TIMER: fetching unmanaged snapshots took {}ms", 
+                    System.currentTimeMillis() - start);
+        }
         return unmanagedSnapshots;
     }
 
@@ -179,6 +192,7 @@ public class VplexBackendIngestionContext {
             return unmanagedFullClones;
         }
         
+        long start = System.currentTimeMillis();
         _logger.info("getting unmanaged full clones");
         unmanagedFullClones = new HashMap<UnManagedVolume, UnManagedVolume>();
         
@@ -235,6 +249,10 @@ public class VplexBackendIngestionContext {
         }
         
         _logger.info("unmanaged full clones found: " + unmanagedFullClones);
+        if (!unmanagedFullClones.isEmpty()) {
+            _logger.info("TIMER: fetching unmanaged full clones took {}ms", 
+                    System.currentTimeMillis() - start);
+        }
         return unmanagedFullClones;
     }
 
@@ -244,6 +262,7 @@ public class VplexBackendIngestionContext {
             return unmanagedBackendOnlyClones;
         }
         
+        long start = System.currentTimeMillis();
         _logger.info("getting unmanaged backend-only clones");
         unmanagedBackendOnlyClones = new HashMap<UnManagedVolume, Set<UnManagedVolume>>();
         
@@ -269,7 +288,11 @@ public class VplexBackendIngestionContext {
             }
         }
         
-        _logger.info("unmanaged backend-only clones found: " + unmanagedFullClones);
+        _logger.info("unmanaged backend-only clones found: " + unmanagedBackendOnlyClones);
+        if (!unmanagedBackendOnlyClones.isEmpty()) {
+            _logger.info("TIMER: fetching unmanaged backend-only clones took {}ms", 
+                    System.currentTimeMillis() - start);
+        }
         return unmanagedBackendOnlyClones;
     }
     
@@ -278,6 +301,7 @@ public class VplexBackendIngestionContext {
             return unmanagedMirrors;
         }
         
+        long start = System.currentTimeMillis();
         _logger.info("getting unmanaged mirrors");
         unmanagedMirrors = new HashMap<UnManagedVolume, String>();
         
@@ -321,6 +345,10 @@ public class VplexBackendIngestionContext {
         }
 
         _logger.info("unmanaged mirrors found: " + unmanagedMirrors);
+        if (!unmanagedMirrors.isEmpty()) {
+            _logger.info("TIMER: fetching unmanaged mirrors took {}ms", 
+                    System.currentTimeMillis() - start);
+        }
         return unmanagedMirrors;
     }
 
@@ -389,16 +417,16 @@ public class VplexBackendIngestionContext {
             return topLevelDevice;
         }
         
-        _logger.info("getting top level device");
         long start = System.currentTimeMillis();
+        _logger.info("getting top level device");
         topLevelDevice = VPlexControllerUtils.getSupportingDeviceInfo(
                 getSupportingDeviceName(), getLocality(), 
                 getUnmanagedVirtualVolume().getStorageSystemUri(), 
                 _dbClient);
-        _logger.info("TIMER: fetching top level device took {}ms", 
-                System.currentTimeMillis() - start);
         
         _logger.info("top level device is: " + topLevelDevice);
+        _logger.info("TIMER: fetching top level device took {}ms", 
+                System.currentTimeMillis() - start);
         return topLevelDevice;
     }
 

@@ -1014,7 +1014,7 @@ public class VolumeIngestionUtil {
      */
     public static <T extends BlockObject> boolean validateStoragePortsInVarray(DbClient dbClient, T volume, URI varray,
             Set<String> portsInUnManagedMask, UnManagedExportMask mask) {
-
+        _logger.info("validating storage ports in varray " + varray);
         List<URI> storagePortUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getVirtualArrayStoragePortsConstraint(varray.toString()));
         storagePortUris = filterOutUnregisteredPorts(dbClient, storagePortUris);

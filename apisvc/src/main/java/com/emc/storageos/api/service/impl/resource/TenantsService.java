@@ -576,7 +576,10 @@ public class TenantsService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN, Role.PROJECT_ADMIN })
     public ProjectElement createProject(@PathParam("id") URI id, ProjectParam param) {
-        return createProject(id, param, getUserFromContext().getName(), getUserFromContext().getTenantId().toString());
+        ProjectElement projectElement = createProject(id, param, getUserFromContext().getName(), getUserFromContext().getTenantId().toString());
+        auditOp(OperationTypeEnum.CREATE_PROJECT, true, null, param.getName(),
+                id.toString(), projectElement.getId().toString());
+        return projectElement;        
     }
 
     /**
@@ -609,9 +612,6 @@ public class TenantsService extends TaggedResource {
 
         recordTenantEvent(OperationTypeEnum.CREATE_PROJECT, tenant.getId(),
                 project.getId());
-
-        auditOp(OperationTypeEnum.CREATE_PROJECT, true, null, param.getName(),
-                id.toString(), project.getId().toString());
 
         return new ProjectElement(project.getId(), toLink(ResourceTypeEnum.PROJECT,
                 project.getId()), project.getLabel());

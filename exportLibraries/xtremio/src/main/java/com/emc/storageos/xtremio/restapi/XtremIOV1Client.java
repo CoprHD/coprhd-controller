@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.xtremio.restapi;
 
 import java.net.URI;
@@ -28,11 +32,10 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroups;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiators;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorsInfo;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPort;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOPortInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPorts;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPortsInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOResponse;
@@ -40,23 +43,23 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTags;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumeInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumes;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumesInfo;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 
 public class XtremIOV1Client extends XtremIOClient {
-    
+
     private static Logger log = LoggerFactory.getLogger(XtremIOV1Client.class);
 
     public XtremIOV1Client(URI baseURI, String username, String password, Client client) {
         super(baseURI, username, password, client);
     }
-    
-    public List<XtremIOVolume> getXtremIOVolumesForLinks(List<XtremIOVolumeInfo> volumeLinks, String clusterName) throws Exception {
+
+    @Override
+    public List<XtremIOVolume> getXtremIOVolumesForLinks(List<XtremIOObjectInfo> volumeLinks, String clusterName) throws Exception {
         List<XtremIOVolume> volumeList = new ArrayList<XtremIOVolume>();
-        for (XtremIOVolumeInfo volumeInfo : volumeLinks) {
+        for (XtremIOObjectInfo volumeInfo : volumeLinks) {
             log.debug("Trying to get volume details for {}", volumeInfo.getHref());
             try {
                 URI volumeURI = URI.create(volumeInfo.getHref());
@@ -98,7 +101,7 @@ public class XtremIOV1Client extends XtremIOClient {
         XtremIOPortsInfo targetPortLinks = getResponseObject(XtremIOPortsInfo.class, response);
         log.info("Returned Target Links size : {}", targetPortLinks.getPortInfo().length);
         List<XtremIOPort> targetPortList = new ArrayList<XtremIOPort>();
-        for (XtremIOPortInfo targetPortInfo : targetPortLinks.getPortInfo()) {
+        for (XtremIOObjectInfo targetPortInfo : targetPortLinks.getPortInfo()) {
             URI targetPortUri = URI.create(targetPortInfo.getHref());
             response = get(targetPortUri);
             XtremIOPorts targetPorts = getResponseObject(XtremIOPorts.class, response);
@@ -116,7 +119,7 @@ public class XtremIOV1Client extends XtremIOClient {
                 response);
         log.info("Returned Initiator Links size : {}", initiatorPortLinks.getInitiators().length);
         List<XtremIOInitiator> initiatorPortList = new ArrayList<XtremIOInitiator>();
-        for (XtremIOInitiatorInfo initiatorPortInfo : initiatorPortLinks.getInitiators()) {
+        for (XtremIOObjectInfo initiatorPortInfo : initiatorPortLinks.getInitiators()) {
             URI initiatorPortUri = URI.create(initiatorPortInfo.getHref());
             response = get(initiatorPortUri);
             XtremIOInitiators initiatorPorts = getResponseObject(XtremIOInitiators.class, response);
@@ -138,7 +141,7 @@ public class XtremIOV1Client extends XtremIOClient {
     }
 
     @Override
-    public List<XtremIOVolumeInfo> getXtremIOVolumeLinks(String clusterName) throws Exception {
+    public List<XtremIOObjectInfo> getXtremIOVolumeLinks(String clusterName) throws Exception {
         ClientResponse response = get(XtremIOConstants.XTREMIO_VOLUMES_URI);
         XtremIOVolumesInfo volumeLinks = getResponseObject(XtremIOVolumesInfo.class, response);
 
@@ -147,9 +150,9 @@ public class XtremIOV1Client extends XtremIOClient {
 
     @Override
     public void createTag(String tagName, String parentTag, String entityType, String clusterName) throws Exception {
-        if(XtremIOConstants.XTREMIO_ENTITY_TYPE.Volume.name().equals(entityType)) {
+        if (XtremIOConstants.XTREMIO_ENTITY_TYPE.Volume.name().equals(entityType)) {
             createVolumeFolder(tagName, parentTag);
-        } else if(XtremIOConstants.XTREMIO_ENTITY_TYPE.InitiatorGroup.name().equals(entityType)) {
+        } else if (XtremIOConstants.XTREMIO_ENTITY_TYPE.InitiatorGroup.name().equals(entityType)) {
             createInitiatorGroupFolder(tagName, clusterName);
         }
     }
@@ -170,7 +173,7 @@ public class XtremIOV1Client extends XtremIOClient {
                 log.warn("Volume folder {} already created by a different operation at the same time", projectName);
             }
         }
-        
+
     }
 
     private void createInitiatorGroupFolder(String igFolderName, String clusterName) throws Exception {
@@ -183,7 +186,7 @@ public class XtremIOV1Client extends XtremIOClient {
         } catch (Exception e) {
             log.warn("Initiator Group Folder  {} already available", igFolderName);
         }
-        
+
     }
 
     private void deleteInitiatorGroupFolder(String igFolderName, String clusterName) throws Exception {
@@ -228,12 +231,14 @@ public class XtremIOV1Client extends XtremIOClient {
     }
 
     @Override
-    public XtremIOResponse createVolumeSnapshot(String parentVolumeName, String snapName, String folderName, String snapType, String clusterName) throws Exception {
+    public XtremIOResponse createVolumeSnapshot(String parentVolumeName, String snapName, String folderName, String snapType,
+            String clusterName) throws Exception {
         XtremIOV1SnapCreate snapCreate = new XtremIOV1SnapCreate();
         snapCreate.setParentName(parentVolumeName);
         snapCreate.setSnapName(snapName);
         snapCreate.setFolderId(folderName);
-        log.info("Calling Snapshot Create with URI: {} and paramaters: {}", XtremIOConstants.XTREMIO_SNAPS_URI.toString(), snapCreate.toString());
+        log.info("Calling Snapshot Create with URI: {} and paramaters: {}", XtremIOConstants.XTREMIO_SNAPS_URI.toString(),
+                snapCreate.toString());
 
         ClientResponse response = post(XtremIOConstants.XTREMIO_SNAPS_URI,
                 getJsonForEntity(snapCreate));
@@ -358,7 +363,7 @@ public class XtremIOV1Client extends XtremIOClient {
                 initiatorGroupFolderName);
         return null;
     }
-    
+
     private XtremIOTag getVolumeGroupFolder(String volumeFolderName, String clusterName) throws Exception {
         try {
             String uriStr = XtremIOConstants.XTREMIO_VOLUME_FOLDERS_STR.concat(
@@ -489,34 +494,34 @@ public class XtremIOV1Client extends XtremIOClient {
                     + xioSystem.getContent().getVersion());
             return xioSystem.getContent().getVersion();
         }
-        
+
         return version;
     }
 
     @Override
     public XtremIOSystem getClusterDetails(String clusterSerialNumber) throws Exception {
         List<XtremIOSystem> clusters = getXtremIOSystemInfo();
-        if(!clusters.isEmpty()) {
+        if (!clusters.isEmpty()) {
             return clusters.get(0);
         }
-        
+
         return null;
     }
 
     @Override
     public void deleteTag(String tagName, String tagEntityType, String clusterName) throws Exception {
-        if(XtremIOConstants.XTREMIO_ENTITY_TYPE.Volume.name().equals(tagEntityType)) {
+        if (XtremIOConstants.XTREMIO_ENTITY_TYPE.Volume.name().equals(tagEntityType)) {
             deleteVolumeFolder(XtremIOConstants.V1_ROOT_FOLDER.concat(tagName), clusterName);
-        } else if(XtremIOConstants.XTREMIO_ENTITY_TYPE.InitiatorGroup.name().equals(tagEntityType)) {
+        } else if (XtremIOConstants.XTREMIO_ENTITY_TYPE.InitiatorGroup.name().equals(tagEntityType)) {
             deleteInitiatorGroupFolder(XtremIOConstants.V1_ROOT_FOLDER.concat(tagName), clusterName);
         }
     }
 
     @Override
     public XtremIOTag getTagDetails(String tagName, String tagEntityType, String clusterName) throws Exception {
-        if(XTREMIO_ENTITY_TYPE.InitiatorGroup.name().equals(tagEntityType)) {
+        if (XTREMIO_ENTITY_TYPE.InitiatorGroup.name().equals(tagEntityType)) {
             return getInitiatorGroupFolder(XtremIOConstants.V1_ROOT_FOLDER.concat(tagName), clusterName);
-        } else if(XTREMIO_ENTITY_TYPE.Volume.name().equals(tagEntityType)) {
+        } else if (XTREMIO_ENTITY_TYPE.Volume.name().equals(tagEntityType)) {
             return getVolumeGroupFolder(XtremIOConstants.V1_ROOT_FOLDER.concat(tagName), clusterName);
         }
         return null;

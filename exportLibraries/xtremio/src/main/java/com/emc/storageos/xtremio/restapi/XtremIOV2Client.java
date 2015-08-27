@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.xtremio.restapi;
 
 import java.net.URI;
@@ -28,12 +32,10 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroups;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiators;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorsInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPort;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOPortInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPorts;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPortsInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOResponse;
@@ -42,7 +44,6 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTags;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTagsInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumeInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumes;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumesInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMSResponse;
@@ -84,7 +85,7 @@ public class XtremIOV2Client extends XtremIOClient {
         XtremIOPortsInfo targetPortLinks = getResponseObject(XtremIOPortsInfo.class, response);
         log.info("Returned Target Links size : {}", targetPortLinks.getPortInfo().length);
         List<XtremIOPort> targetPortList = new ArrayList<XtremIOPort>();
-        for (XtremIOPortInfo targetPortInfo : targetPortLinks.getPortInfo()) {
+        for (XtremIOObjectInfo targetPortInfo : targetPortLinks.getPortInfo()) {
             URI targetPortUri = URI.create(targetPortInfo.getHref().concat(XtremIOConstants.getInputClusterString(clusterName)));
             response = get(targetPortUri);
             XtremIOPorts targetPorts = getResponseObject(XtremIOPorts.class, response);
@@ -103,7 +104,7 @@ public class XtremIOV2Client extends XtremIOClient {
                 response);
         log.info("Returned Initiator Links size : {}", initiatorPortLinks.getInitiators().length);
         List<XtremIOInitiator> initiatorPortList = new ArrayList<XtremIOInitiator>();
-        for (XtremIOInitiatorInfo initiatorPortInfo : initiatorPortLinks.getInitiators()) {
+        for (XtremIOObjectInfo initiatorPortInfo : initiatorPortLinks.getInitiators()) {
             URI initiatorPortUri = URI.create(initiatorPortInfo.getHref().concat(XtremIOConstants.getInputClusterString(clusterName)));
             response = get(initiatorPortUri);
             XtremIOInitiators initiatorPorts = getResponseObject(XtremIOInitiators.class, response);
@@ -126,9 +127,9 @@ public class XtremIOV2Client extends XtremIOClient {
     }
 
     @Override
-    public List<XtremIOVolume> getXtremIOVolumesForLinks(List<XtremIOVolumeInfo> volumeLinks, String clusterName) throws Exception {
+    public List<XtremIOVolume> getXtremIOVolumesForLinks(List<XtremIOObjectInfo> volumeLinks, String clusterName) throws Exception {
         List<XtremIOVolume> volumeList = new ArrayList<XtremIOVolume>();
-        for (XtremIOVolumeInfo volumeInfo : volumeLinks) {
+        for (XtremIOObjectInfo volumeInfo : volumeLinks) {
             log.debug("Trying to get volume details for {}", volumeInfo.getHref());
             try {
                 URI volumeURI = URI.create(volumeInfo.getHref().concat(XtremIOConstants.getInputClusterString(clusterName)));
@@ -146,7 +147,7 @@ public class XtremIOV2Client extends XtremIOClient {
     }
 
     @Override
-    public List<XtremIOVolumeInfo> getXtremIOVolumeLinks(String clusterName) throws Exception {
+    public List<XtremIOObjectInfo> getXtremIOVolumeLinks(String clusterName) throws Exception {
         String uriString = XtremIOConstants.XTREMIO_V2_VOLUMES_STR.concat(XtremIOConstants.getInputClusterString(clusterName));
         ClientResponse response = get(URI.create(uriString));
         XtremIOVolumesInfo volumeLinks = getResponseObject(XtremIOVolumesInfo.class, response);

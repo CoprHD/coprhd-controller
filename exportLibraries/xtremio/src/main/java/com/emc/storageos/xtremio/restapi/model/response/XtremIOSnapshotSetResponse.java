@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.xtremio.restapi.model.response;
 
 import org.codehaus.jackson.annotate.JsonProperty;

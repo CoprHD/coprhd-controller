@@ -51,8 +51,8 @@ import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumeInfo;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
@@ -170,11 +170,11 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
         String xioClusterName = xtremIOClient.getClusterDetails(storageSystem.getSerialNumber()).getName();
         // get the xtremio volume links and process them in batches
-        List<XtremIOVolumeInfo> volLinks = xtremIOClient.getXtremIOVolumeLinks(xioClusterName);
+        List<XtremIOObjectInfo> volLinks = xtremIOClient.getXtremIOVolumeLinks(xioClusterName);
 
         // Get the volume details
-        List<List<XtremIOVolumeInfo>> volume_partitions = Lists.partition(volLinks, Constants.DEFAULT_PARTITION_SIZE);
-        for (List<XtremIOVolumeInfo> partition : volume_partitions) {
+        List<List<XtremIOObjectInfo>> volume_partitions = Lists.partition(volLinks, Constants.DEFAULT_PARTITION_SIZE);
+        for (List<XtremIOObjectInfo> partition : volume_partitions) {
             List<XtremIOVolume> volumes = xtremIOClient.getXtremIOVolumesForLinks(partition, xioClusterName);
             for (XtremIOVolume volume : volumes) {
                 // If the volume is a snap don't process it. We will get the snap info from the

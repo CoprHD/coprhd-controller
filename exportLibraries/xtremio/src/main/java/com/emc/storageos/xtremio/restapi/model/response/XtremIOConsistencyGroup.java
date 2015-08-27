@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.xtremio.restapi.model.response;
 
 import java.util.List;
@@ -9,21 +13,21 @@ import com.google.gson.annotations.SerializedName;
 
 @JsonRootName(value = "xtremio_consistency_group")
 public class XtremIOConsistencyGroup {
-    
+
     @SerializedName("name")
-    @JsonProperty(value="name")
+    @JsonProperty(value = "name")
     private String name;
-    
+
     @SerializedName("num-of-vols")
-    @JsonProperty(value="num-of-vols")
+    @JsonProperty(value = "num-of-vols")
     private String numOfVols;
-    
+
     @SerializedName("vol-list")
-    @JsonProperty(value="vol-list")
+    @JsonProperty(value = "vol-list")
     private List<List<Object>> volList;
-    
+
     @SerializedName("tag-list")
-    @JsonProperty(value="tag-list")
+    @JsonProperty(value = "tag-list")
     private List<List<Object>> tagList;
 
     public String getName() {
@@ -57,5 +61,5 @@ public class XtremIOConsistencyGroup {
     public void setTagList(List<List<Object>> tagList) {
         this.tagList = tagList;
     }
-    
+
 }

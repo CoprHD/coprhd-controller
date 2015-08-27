@@ -60,6 +60,7 @@ import computevpool
 import computelement
 import quotadirectory
 import sanfabrics
+import loginfailedip
 import keystore
 import truststore
 
@@ -167,9 +168,11 @@ computesystem.computesystem_parser(module_parsers, common_parser)
 computeimage.computeimage_parser(module_parsers, common_parser)
 computelement.computelement_parser(module_parsers, common_parser)
 computevpool.computevpool_parser(module_parsers, common_parser)
+loginfailedip.loginfailedip_parser(module_parsers, common_parser)
 keystore.keystore_parser(module_parsers, common_parser)
 truststore.truststore_parser(module_parsers, common_parser)
 network.network_parser(module_parsers, common_parser)
+
 
 
 # Parse Command line Arguments and execute the corresponding routines

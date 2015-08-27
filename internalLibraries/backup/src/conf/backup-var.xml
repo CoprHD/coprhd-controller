@@ -19,6 +19,10 @@
         <constructor-arg value="standalone"/>
     </bean>
 
+    <bean id="nodeName" class="java.lang.String">
+        <constructor-arg value="${node_name}"/>
+    </bean>
+
     <bean id="nodeCount" class="java.lang.Integer">
         <constructor-arg value="1"/>
     </bean>

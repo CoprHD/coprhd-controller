@@ -10,12 +10,13 @@
     <context:property-placeholder location="classpath:syssvc-info.properties" />
 
     <bean id="serviceinfo" class="com.emc.storageos.coordinator.common.impl.ServiceImpl">
-		<property name="name" value="${syssvc.name}" />
-		<property name="id" value="syssvc-standalone" />
-                <property name="nodeId" value="standalone" />
-		<property name="endpoint" value="http://localhost:9998/" />
-		<property name="version" value="${syssvc.version}" />
-	</bean>
+        <property name="name" value="${syssvc.name}" />
+        <property name="id" value="syssvc-standalone" />
+        <property name="nodeId" value="standalone" />
+        <property name="nodeName" value="${node_name}" />
+        <property name="endpoint" value="http://localhost:9998/" />
+        <property name="version" value="${syssvc.version}" />
+    </bean>
 
     <bean id="beacon" class="com.emc.storageos.systemservices.impl.SysSvcBeaconImpl" init-method="init" destroy-method="stop">
         <property name="zkConnection" ref="zkconn" />

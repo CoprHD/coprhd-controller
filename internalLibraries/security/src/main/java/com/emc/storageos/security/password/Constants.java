@@ -86,4 +86,14 @@ public class Constants {
 
     public static final String SYSTEM_PASSWORD_EXPIRY_FORMAT = "system_%s_expiry_date"; // NOSONAR
 
+    // Login attempts and lockout constants
+    public static final String AUTH_LOGIN_ATTEMPTS = "max_auth_login_attempts";
+    public static final int MIN_AUTH_LOGIN_ATTEMPTS = 0;
+    public static final int MAX_AUTH_LOGIN_ATTEMPTS = 20;
+    public static final int DEFAULT_AUTH_LOGIN_ATTEMPTS = 10;
+
+    public static final String AUTH_LOGOUT_TIMEOUT = "auth_lockout_time_in_minutes";
+    public static final int MIN_AUTH_LOCKOUT_TIME_IN_MINUTES = 0;
+    public static final int MAX_AUTH_LOCKOUT_TIME_IN_MINUTES = 1440;
+    public static final int DEFAULT_AUTH_LOCKOUT_TIME_IN_MINUTES = 10;
 }

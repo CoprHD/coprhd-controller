@@ -841,7 +841,8 @@ system.node.stats.data=Data Storage
 system.node.stats.root=Root Storage
 system.node.error=Cannot access %s's health information. Node may be unavailable or restarting
 system.node.services.error=Cannot access the services of %s. Node may be unavailable or restarting
-systemNodes.id=Name
+systemNodes.name=Name
+systemNodes.id=Id
 systemNodes.status=Status
 systemNodes.type=Type
 systemNodes.ip=IP Address
@@ -888,7 +889,8 @@ system.stats.diagnostics.status=Status
 
 # System Logs
 system.logs.title=System Logs <small>All times are displayed in <span style="font-weight: bold;">local time</span>.</small>
-system.logs.node=Node
+system.logs.nodeId=Node Id
+system.logs.nodeName=Node Name
 system.logs.service=Service
 system.logs.minseverity=Level
 system.logs.minseverity.help=Return all logs with the selected level and above.

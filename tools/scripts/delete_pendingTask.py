@@ -57,3 +57,4 @@ if __name__ == "__main__":
         cmd = "/opt/storageos/bin/dbutils delete Task %s " % (" ".join(longPendingTaskIds[i:i + BATCHSIZE]))
         print cmd
         os.system(cmd)
+    print "Delete the pending tasks successfully."

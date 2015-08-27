@@ -572,7 +572,7 @@ public class XtremIOV2Client extends XtremIOClient {
 
     @Override
     public void deleteTag(String tagName, String tagEntityType, String clusterName) throws Exception {
-        String rootFolder = XtremIOConstants.getRootFolderForEntityType(tagEntityType);
+        String rootFolder = XtremIOConstants.getV2RootFolderForEntityType(tagEntityType);
         String xioTagName = rootFolder.concat(tagName);
         String uriString = XtremIOConstants.XTREMIO_V2_TAGS_STR
                 .concat(XtremIOConstants.getInputNameForClusterString(xioTagName, clusterName));
@@ -585,7 +585,7 @@ public class XtremIOV2Client extends XtremIOClient {
     @Override
     public XtremIOTag getTagDetails(String tagName, String tagEntityType, String clusterName) throws Exception {
         try {
-            String rootFolder = XtremIOConstants.getRootFolderForEntityType(tagEntityType);
+            String rootFolder = XtremIOConstants.getV2RootFolderForEntityType(tagEntityType);
             String xioTagName = rootFolder.concat(tagName);
             String uriString = XtremIOConstants.XTREMIO_V2_TAGS_STR
                     .concat(XtremIOConstants.getInputNameForClusterString(xioTagName, clusterName));

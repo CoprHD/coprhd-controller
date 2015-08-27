@@ -80,9 +80,8 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
 
     @Override
     public void createSnapshot(URI protectionDevice, URI storageDevice, List<URI> snapshotList, Boolean createInactive, Boolean readOnly,
-            String opId)
-            throws InternalException {
-        execFS("createSnapshot", protectionDevice, storageDevice, snapshotList, createInactive, opId);
+            String opId) throws InternalException {
+        execFS("createSnapshot", protectionDevice, storageDevice, snapshotList, createInactive, readOnly, opId);
     }
 
     @Override

@@ -21,12 +21,12 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.StoragePool.SupportedDriveTypeValues;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StoragePort.OperationalStatus;
 import com.emc.storageos.db.client.model.StoragePort.PortType;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.plugins.AccessProfile;
@@ -93,7 +93,7 @@ public class XtremIOCommunicationInterface extends
                     StorageSystem.CompatibilityStatus.COMPATIBLE.name();
             provider.setCompatibilityStatus(compatibility);
             provider.setVersionString(xmsVersion);
-            
+
             String systemType = StorageSystem.Type.xtremio.name();
             List<XtremIOSystem> xioSystems = xtremIOClient.getXtremIOSystemInfo();
             _logger.info("Found {} clusters during scan of XMS {}", xioSystems.size(), accessProfile.getIpAddress());
@@ -183,7 +183,7 @@ public class XtremIOCommunicationInterface extends
         try {
             List<StoragePool> pools = new ArrayList<StoragePool>();
             XtremIOSystem clusterObject = restClient.getClusterDetails(systemInDB.getSerialNumber());
-            
+
             updateStorageSystemAndPools(clusterObject, systemInDB, pools);
             Map<String, List<StoragePort>> portMap = discoverPorts(restClient, systemInDB);
             List<StoragePort> allPorts = new ArrayList<StoragePort>();
@@ -211,7 +211,7 @@ public class XtremIOCommunicationInterface extends
     private void updateStorageSystemAndPools(XtremIOSystem system, StorageSystem systemInDB, List<StoragePool> pools) {
         StoragePool xioSystemPool = null;
         if (null != systemInDB) {
-            //systemInDB.set
+            // systemInDB.set
             String minimumSupported = VersionChecker
                     .getMinimumSupportedVersion(StorageSystem.Type.xtremio).replace("-", ".");
             _logger.info("Minimum Supported Version {}", minimumSupported);
@@ -277,93 +277,109 @@ public class XtremIOCommunicationInterface extends
         }
     }
 
+    private StorageHADomain createStorageHADomain(StorageSystem system, String scName, int numOfPorts) {
+        StorageHADomain haDomain = null;
+        String haDomainNativeGUID = NativeGUIDGenerator.generateNativeGuid(system, scName, NativeGUIDGenerator.ADAPTER);
+        _logger.info("HA Domain Native Guid : {}", haDomainNativeGUID);
+        @SuppressWarnings("deprecation")
+        List<URI> uriHaList = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getStorageHADomainByNativeGuidConstraint(haDomainNativeGUID));
+        if (uriHaList.isEmpty()) {
+            haDomain = new StorageHADomain();
+            haDomain.setId(URIUtil.createId(StorageHADomain.class));
+            haDomain.setNativeGuid(haDomainNativeGUID);
+            haDomain.setName(scName);
+            haDomain.setAdapterName(scName);
+            haDomain.setStorageDeviceURI(system.getId());
+            haDomain.setNumberofPorts(String.valueOf(numOfPorts));
+            _dbClient.createObject(haDomain);
+        } else {
+            haDomain = _dbClient.queryObject(StorageHADomain.class, uriHaList.get(0));
+            haDomain.setNumberofPorts(String.valueOf(numOfPorts));
+            _dbClient.persistObject(haDomain);
+        }
+
+        return haDomain;
+    }
+
     private Map<String, List<StoragePort>> discoverPorts(XtremIOClient restClient, StorageSystem system) {
         Map<String, List<StoragePort>> portMap = new HashMap<String, List<StoragePort>>();
         try {
             String clusterName = restClient.getClusterDetails(system.getSerialNumber()).getName();
             List<XtremIOPort> targetPorts = restClient.getXtremIOPortInfo(clusterName);
-            // Default HA Domain for all ports
-            String haDomainNativeGUID = NativeGUIDGenerator.generateNativeGuid(system,
-                    system.getSerialNumber(), NativeGUIDGenerator.ADAPTER);
-            _logger.info("HA Domain Native Guid : {}", haDomainNativeGUID);
-            @SuppressWarnings("deprecation")
-            List<URI> uriHaList = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getStorageHADomainByNativeGuidConstraint(haDomainNativeGUID));
-            StorageHADomain haDomain = null;
-            if (uriHaList.isEmpty()) {
-                haDomain = new StorageHADomain();
-                haDomain.setId(URIUtil.createId(StorageHADomain.class));
-                haDomain.setNativeGuid(haDomainNativeGUID);
-                haDomain.setName(XTREMIO_PORT_GROUP);
-                haDomain.setAdapterName(XTREMIO_PORT_GROUP);
-                haDomain.setStorageDeviceURI(system.getId());
-                haDomain.setNumberofPorts(String.valueOf(targetPorts.size()));
-                _dbClient.createObject(haDomain);
-            } else {
-                haDomain = _dbClient.queryObject(StorageHADomain.class, uriHaList.get(0));
-                haDomain.setNumberofPorts(String.valueOf(targetPorts.size()));
-                _dbClient.persistObject(haDomain);
-            }
-
-            Long portSpeed = 0L;
-            StoragePort port = null;
-            portMap.put(NEW, new ArrayList<StoragePort>());
-            portMap.put(EXISTING, new ArrayList<StoragePort>());
-
+            Map<String, List<XtremIOPort>> storageControllerPortMap = new HashMap<String, List<XtremIOPort>>();
             for (XtremIOPort targetPort : targetPorts) {
-                String portSpeedStr = targetPort.getPortSpeed().split("G")[0];
-                try {
-                    portSpeed = Long.parseLong(portSpeedStr);
-                } catch (NumberFormatException nfe) {
-                    portSpeed = 0L;
+                String scName = targetPort.getNodeInfo().get(1);
+                List<XtremIOPort> scPorts = storageControllerPortMap.get(scName);
+                if (scPorts == null) {
+                    scPorts = new ArrayList<XtremIOPort>();
                 }
-
-                String nativeGuid = NativeGUIDGenerator.generateNativeGuid(system, targetPort.getPortAddress(), NativeGUIDGenerator.PORT);
-                _logger.info("Speed, Target Port Native Guid {} {}", portSpeed, nativeGuid);
-
-                @SuppressWarnings("deprecation")
-                List<URI> uriList = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                        .getStoragePortByNativeGuidConstraint(nativeGuid));
-                if (uriList.isEmpty()) {
-                    _logger.info("Creating a Target Port {}", nativeGuid);
-                    port = new StoragePort();
-                    port.setId(URIUtil.createId(StoragePort.class));
-                    port.setNativeGuid(nativeGuid);
-                    port.setPortSpeed(portSpeed);
-                    port.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.toString());
-                    port.setPortType(PortType.frontend.toString());
-                    if ("iscsi".equalsIgnoreCase(targetPort.getPortType().toLowerCase())) {
-                        port.setTransportType(StoragePort.TransportType.IP.toString());
-                        port.setPortNetworkId(targetPort.getPortAddress().toLowerCase());
-                    } else {
-                        port.setTransportType(targetPort.getPortType().toUpperCase());
-                        // to make it uniform across other arrays
-                        port.setPortNetworkId(targetPort.getPortAddress().toUpperCase());
-                    }
-                    port.setStorageDevice(system.getId());
-                    port.setPortName(targetPort.getName());
-                    port.setLabel(nativeGuid);
-                    port.setOperationalStatus(getOperationalStatus(targetPort).toString());
-                    port.setPortGroup(XTREMIO_PORT_GROUP);
-                    port.setStorageHADomain(haDomain.getId());
-                    port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
-                    portMap.get(NEW).add(port);
-                    _dbClient.createObject(port);
-                } else {
-                    _logger.info("Updating a Target Port {}", nativeGuid);
-                    port = _dbClient.queryObject(StoragePort.class, uriList.get(0));
-                    port.setPortSpeed(portSpeed);
-                    port.setPortName(targetPort.getName());
-                    port.setLabel(nativeGuid);
-                    port.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.toString());
-                    port.setOperationalStatus(getOperationalStatus(targetPort).toString());
-                    port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
-                    portMap.get(EXISTING).add(port);
-                    _dbClient.persistObject(port);
-                }
-
+                scPorts.add(targetPort);
             }
 
+            for (String scName : storageControllerPortMap.keySet()) {
+                List<XtremIOPort> scPorts = storageControllerPortMap.get(scName);
+                StorageHADomain haDomain = createStorageHADomain(system, scName, scPorts.size());
+
+                Long portSpeed = 0L;
+                StoragePort port = null;
+                portMap.put(NEW, new ArrayList<StoragePort>());
+                portMap.put(EXISTING, new ArrayList<StoragePort>());
+
+                for (XtremIOPort targetPort : scPorts) {
+                    String portSpeedStr = targetPort.getPortSpeed().split("G")[0];
+                    try {
+                        portSpeed = Long.parseLong(portSpeedStr);
+                    } catch (NumberFormatException nfe) {
+                        portSpeed = 0L;
+                    }
+
+                    String nativeGuid = NativeGUIDGenerator.generateNativeGuid(system, targetPort.getPortAddress(),
+                            NativeGUIDGenerator.PORT);
+                    _logger.info("Speed, Target Port Native Guid {} {}", portSpeed, nativeGuid);
+
+                    @SuppressWarnings("deprecation")
+                    List<URI> uriList = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                            .getStoragePortByNativeGuidConstraint(nativeGuid));
+                    if (uriList.isEmpty()) {
+                        _logger.info("Creating a Target Port {}", nativeGuid);
+                        port = new StoragePort();
+                        port.setId(URIUtil.createId(StoragePort.class));
+                        port.setNativeGuid(nativeGuid);
+                        port.setPortSpeed(portSpeed);
+                        port.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.toString());
+                        port.setPortType(PortType.frontend.toString());
+                        if ("iscsi".equalsIgnoreCase(targetPort.getPortType().toLowerCase())) {
+                            port.setTransportType(StoragePort.TransportType.IP.toString());
+                            port.setPortNetworkId(targetPort.getPortAddress().toLowerCase());
+                        } else {
+                            port.setTransportType(targetPort.getPortType().toUpperCase());
+                            // to make it uniform across other arrays
+                            port.setPortNetworkId(targetPort.getPortAddress().toUpperCase());
+                        }
+                        port.setStorageDevice(system.getId());
+                        port.setPortName(targetPort.getName());
+                        port.setLabel(nativeGuid);
+                        port.setOperationalStatus(getOperationalStatus(targetPort).toString());
+                        port.setPortGroup(XTREMIO_PORT_GROUP);
+                        port.setStorageHADomain(haDomain.getId());
+                        port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
+                        portMap.get(NEW).add(port);
+                        _dbClient.createObject(port);
+                    } else {
+                        _logger.info("Updating a Target Port {}", nativeGuid);
+                        port = _dbClient.queryObject(StoragePort.class, uriList.get(0));
+                        port.setPortSpeed(portSpeed);
+                        port.setPortName(targetPort.getName());
+                        port.setLabel(nativeGuid);
+                        port.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.toString());
+                        port.setOperationalStatus(getOperationalStatus(targetPort).toString());
+                        port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
+                        portMap.get(EXISTING).add(port);
+                        _dbClient.persistObject(port);
+                    }
+                }
+            }
         } catch (Exception e) {
             _logger.error("Discovering XtremIO target ports failed", e);
         }
@@ -373,7 +389,7 @@ public class XtremIOCommunicationInterface extends
     private void discoverInitiators(XtremIOClient restClient, StorageSystem system) {
         try {
             String clusterName = restClient.getClusterDetails(system.getSerialNumber()).getName();
-            
+
             List<XtremIOInitiator> initiators = restClient.getXtremIOInitiatorsInfo(clusterName);
             for (XtremIOInitiator initiator : initiators) {
                 @SuppressWarnings("deprecation")

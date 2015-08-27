@@ -10,7 +10,7 @@ import com.emc.sa.engine.service.Service;
 public class AddJournalCapacityService extends CreateVolumeService {
     @Override
     public void execute() throws Exception {
-        BlockStorageUtils.addJournalCapacity(project, virtualArray, virtualPool, volumeName, sizeInGb, count,
+        BlockStorageUtils.addJournalCapacity(project, virtualArray, virtualPool, sizeInGb, count,
                 consistencyGroup);
     }
 }

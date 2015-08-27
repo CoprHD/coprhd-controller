@@ -196,11 +196,11 @@ public class BlockStorageUtils {
         return execute(new FindExportsContainingHost(host, projectId, varrayId));
     }
 
-    public static List<URI> addJournalCapacity(URI projectId, URI virtualArrayId, URI virtualPoolId,
-            String baseVolumeName, double sizeInGb, Integer count, URI consistencyGroupId) {
+    public static List<URI> addJournalCapacity(URI projectId, URI virtualArrayId, URI virtualPoolId, double sizeInGb, Integer count,
+            URI consistencyGroupId) {
         String volumeSize = gbToVolumeSize(sizeInGb);
         Tasks<VolumeRestRep> tasks = execute(new AddJournalCapacity(virtualPoolId, virtualArrayId, projectId, volumeSize,
-                count, baseVolumeName, consistencyGroupId));
+                count, consistencyGroupId));
         List<URI> volumeIds = Lists.newArrayList();
         for (Task<VolumeRestRep> task : tasks.getTasks()) {
             URI volumeId = task.getResourceId();

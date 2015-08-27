@@ -114,5 +114,9 @@ public class VNXFileConstants {
     public static final String SHARE_UMASK = "umask";
     public static final String SHARE_MAXUSR = "maxusr";
     public static final String SHARE_NETBIOS = "netbios";
+    
+    //for totalcapacity filesystems on vdm
+    public static final String FILE_CAPACITY_MAP            = "filesystemCapacity";
+    public static final String SNAP_CAPACITY_MAP            = "snapshotCapacity";
 
 }

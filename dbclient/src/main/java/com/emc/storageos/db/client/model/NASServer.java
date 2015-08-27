@@ -43,6 +43,8 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
     // State of the NAS server
     private String nasState;
     
+    private String nativeId;
+    
     
     // Place holder for hosting storageDomain's information
     private StringSet storageDomain;
@@ -213,6 +215,16 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
     public void setNAStag(StringSet vNAStag) {
         this.nasTag = vNAStag;
         setChanged("nasTag");
+    }
+    
+    @Name("nativeId")
+    public String getNativeId() {
+        return nativeId;
+    }
+
+    public void setNativeId(String nativeId) {
+        this.nativeId = nativeId;
+        setChanged("nativeId");
     }
 
     

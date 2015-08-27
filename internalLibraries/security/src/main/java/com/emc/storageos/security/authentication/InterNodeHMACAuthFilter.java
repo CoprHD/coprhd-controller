@@ -49,11 +49,6 @@ public class InterNodeHMACAuthFilter extends AbstractHMACAuthFilter {
      * @return true if the URI pattern in the request matches the internal APIs
      */
     public static boolean isInternalRequest(HttpServletRequest req) {
-        try {
-            return ((req != null) && req.getRequestURI().contains(INTERNAL_URI));
-        } catch (IllegalStateException e) {
-            // This occurs when the request is non-null, but invalid
-            return false;
-        }
+        return ((req != null) && req.getRequestURI().contains(INTERNAL_URI));
     }
 }

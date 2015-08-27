@@ -751,7 +751,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
         // Create the project
         ProjectParam projectParam = new ProjectParam(vplexSystem.getNativeGuid());
-        ProjectElement projectElement = tenantsService.createProject(rootTenant.getId(), projectParam);
+        ProjectElement projectElement = tenantsService.createProject(rootTenant.getId(), projectParam, 
+                TenantOrg.PROVIDER_TENANT_ORG, rootTenant.getId().toString());
         URI projectId = projectElement.getId();
         Project project = dbClient.queryObject(Project.class, projectId);
         project.addInternalFlags(DataObject.Flag.INTERNAL_OBJECT);

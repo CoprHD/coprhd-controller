@@ -15,7 +15,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-import com.emc.storageos.security.geo.GeoDependencyChecker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +25,12 @@ import com.emc.storageos.api.service.impl.resource.utils.AsynchJobExecutorServic
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.*;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -36,13 +40,14 @@ import com.emc.storageos.db.common.DbDependencyPurger;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RestLinkRep;
+import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InterNodeHMACAuthFilter;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.security.geo.GeoDependencyChecker;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.sun.jersey.api.NotFoundException;
 
 /**
@@ -195,9 +200,14 @@ public abstract class ResourceService {
      * @return true if the StorageOSUser is present
      */
     protected boolean hasValidUserInContext() {
-        if ((sc != null) && (sc.getUserPrincipal() instanceof StorageOSUser)) {
-            return true;
-        } else {
+        try {
+            if ((sc != null) && (sc.getUserPrincipal() instanceof StorageOSUser)) {
+                return true;
+            } else {
+                return false;
+            }
+        } catch (IllegalStateException e) {
+            // This happens when the security context is non-null, but invalid.
             return false;
         }
     }
@@ -408,6 +418,11 @@ public abstract class ResourceService {
 
         if (!hasValidUserInContext() && InterNodeHMACAuthFilter.isInternalRequest(_request)) {
             // use default values for internal datasvc requests that lack a user context
+            tenantId = _permissionsHelper.getRootTenant().getId();
+            username = INTERNAL_DATASVC_USER;
+        } else if (!hasValidUserInContext()) {
+            // use default values for other requests that lack a user context,
+            // such as VPLEX creating an internal project
             tenantId = _permissionsHelper.getRootTenant().getId();
             username = INTERNAL_DATASVC_USER;
         } else {

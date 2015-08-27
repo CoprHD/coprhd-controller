@@ -911,10 +911,6 @@ public class BlockService extends TaskResourceService {
         String task = UUID.randomUUID().toString();
         TaskList taskList = createVolumeTaskList(param.getSize(), project, varray, vpool, param.getName(), task, volumeCount);
 
-        // This was causing exceptions when run in the thread.
-        auditOp(OperationTypeEnum.CREATE_BLOCK_VOLUME, true, AuditLogManager.AUDITOP_BEGIN,
-                param.getName(), volumeCount, varray.getId().toString(), actualId.toString());
-
         // call thread that does the work.
         CreateVolumeSchedulingThread cvst = new CreateVolumeSchedulingThread(varray, project, vpool, capabilities, taskList, task, 
                 consistencyGroup, requestedTypes, param, volumeCount, actualId, blockServiceImpl);
@@ -1014,6 +1010,10 @@ public class BlockService extends TaskResourceService {
                     consistencyGroup.addRequestedTypes(requestedTypes);
                     _dbClient.updateAndReindexObject(consistencyGroup);
                 }
+
+                // This is causing exceptions when run in the thread.
+                auditOp(OperationTypeEnum.CREATE_BLOCK_VOLUME, true, AuditLogManager.AUDITOP_BEGIN,
+                        param.getName(), volumeCount, varray.getId().toString(), actualId.toString());
 
                 // Call out to the respective block service implementation to prepare
                 // and create the volumes based on the recommendations.

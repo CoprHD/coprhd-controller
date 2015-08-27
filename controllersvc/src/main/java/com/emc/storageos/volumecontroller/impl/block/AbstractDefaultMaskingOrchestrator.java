@@ -691,7 +691,7 @@ abstract public class AbstractDefaultMaskingOrchestrator implements MaskingOrche
                 initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, exportGroup.getVirtualArray(), token);
         Map<URI, List<URI>> assignments =
                 _blockScheduler.assignStoragePorts(storage, exportGroup.getVirtualArray(), initiators,
-                        pathParams, existingAndPrezonedZoningMap, volumeMap.keySet(), _networkDeviceController);
+                        pathParams, existingAndPrezonedZoningMap, volumeMap.keySet());
         List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, existingAndPrezonedZoningMap);
 
         String maskName = useComputedMaskName() ? getComputedExportMaskName(storage, exportGroup, initiators) : null;
@@ -895,7 +895,7 @@ abstract public class AbstractDefaultMaskingOrchestrator implements MaskingOrche
                 exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray(), token);
         Map<URI, List<URI>> assignments =
                 _blockScheduler.assignStoragePorts(storage, exportGroup.getVirtualArray(), initiators,
-                        pathParams, preZonedZoningMap, newVolumeURIs, _networkDeviceController);
+                        pathParams, preZonedZoningMap, newVolumeURIs);
         newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, preZonedZoningMap);
         exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments, preZonedZoningMap));
         _dbClient.persistObject(exportMask);

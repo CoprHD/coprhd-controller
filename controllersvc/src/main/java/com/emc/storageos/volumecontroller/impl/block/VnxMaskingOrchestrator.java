@@ -130,7 +130,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray(), token);
         Map<URI, List<URI>> assignments =
                 _blockScheduler.assignStoragePorts(storage, exportGroup.getVirtualArray(), initiators,
-                        pathParams, existingAndPrezonedZoningMap, null, _networkDeviceController);
+                        pathParams, existingAndPrezonedZoningMap, null);
         newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, existingAndPrezonedZoningMap);
         exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments, existingAndPrezonedZoningMap));
         _dbClient.persistObject(exportMask);

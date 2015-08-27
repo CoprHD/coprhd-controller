@@ -1786,7 +1786,7 @@ public class ExportGroupService extends TaskResourceService {
             ExportPathParams pathParams = blockScheduler.calculateExportPathParamForVolumes(
                     volumes, 0, storageSystem.getId());
             blockScheduler.assignStoragePorts(storageSystem,
-                    varray, initiators, pathParams, null, volumes, null);
+                    varray, initiators, pathParams, null, volumes);
         } catch (ControllerException ex) {
             _log.error(ex.getLocalizedMessage());
             throw (ex);

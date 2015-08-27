@@ -24,6 +24,7 @@
     <bean id="blockscheduler" class="com.emc.storageos.volumecontroller.placement.BlockStorageScheduler">
         <property name="dbClient" ref="dbclient"/>
         <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
+        <property name="networkScheduler" ref="networkScheduler"/>
     </bean>
 
     <bean id="vmaxMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.VmaxMaskingOrchestrator">

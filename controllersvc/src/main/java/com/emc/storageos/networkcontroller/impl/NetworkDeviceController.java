@@ -121,12 +121,12 @@ public class NetworkDeviceController implements NetworkController {
         _devices = deviceInterfaces;
     }
 
-    public void setNetworkScheduler(NetworkScheduler networkScheduler) {
-        _networkScheduler = networkScheduler;
-    }
-
     private NetworkSystemDevice getDevice(String deviceType) {
         return _devices.get(deviceType);
+    }
+
+    public void setNetworkScheduler(NetworkScheduler networkScheduler) {
+        _networkScheduler = networkScheduler;
     }
 
     /**
@@ -2377,7 +2377,7 @@ public class NetworkDeviceController implements NetworkController {
                     for (String val : allZonesMap.get(key)) {
                         port = DataObjectUtils.findInCollection(allStoragePorts, val);
                         _log.info("Zone between initiator {} and port {} was removed from the network system" +
-                                "or no longer belongs to this mask.", key, val);
+                                " or no longer belongs to this mask.", key, val);
                         if (port == null || initiator == null) {
                             // the port or initiator were removed at some point
                             exportMask.getZoningMap().remove(key, val);
@@ -2614,24 +2614,5 @@ public class NetworkDeviceController implements NetworkController {
                     + ex.getMessage());
         }
         return alwaysRefresh;
-    }
-
-    /**
-     * Returns the flag settable by the user in the system config that indicates if port allocation should
-     * consider existing zones in port allocation logic or if it should proceed with allocations using
-     * port metrics and hard redundancy only as criteria.
-     * 
-     * @return true/false
-     */
-    public boolean portAllocationIgnoreExistingZones() {
-        boolean metricOnlyBasedAllocation = false; // default to true
-        try {
-            metricOnlyBasedAllocation = Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(
-                    _coordinator, "controller_port_alloc_ignore_existing_zones"));
-        } catch (Exception ex) {
-            _log.warn("Failed to get the values for controller_port_alloc_ignore_existing_zones from resource bundle "
-                    + ex.getMessage());
-        }
-        return metricOnlyBasedAllocation;
     }
 }

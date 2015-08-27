@@ -1943,7 +1943,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     initsToAdd, exportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
             Map<URI, List<URI>> assignments =
                     _blockScheduler.assignStoragePorts(vplexSystem, varrayUri, inits,
-                            pathParams, existingAndPrezonedZoningMap, null, _networkDeviceController);
+                            pathParams, existingAndPrezonedZoningMap, null);
             // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
             ExportUtils.addPrezonedAssignments(exportMask, assignments, existingAndPrezonedZoningMap);
             if (assignments != null && !assignments.isEmpty()) {
@@ -2007,7 +2007,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     inits, viprExportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
             Map<URI, List<URI>> assignments =
                     _blockScheduler.assignStoragePorts(vplexSystem, varrayUri, inits,
-                            pathParams, existingAndPrezonedZoningMap, null, _networkDeviceController);
+                            pathParams, existingAndPrezonedZoningMap, null);
             // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
             ExportUtils.addPrezonedAssignments(viprExportMask, assignments, existingAndPrezonedZoningMap);
             if (assignments != null && !assignments.isEmpty()) {
@@ -3263,7 +3263,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     initiators, exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, varrayURI, opId);
             Map<URI, List<URI>> assignments =
                     _blockScheduler.assignStoragePorts(vplex, varrayURI, initiators,
-                            pathParams, existingAndPrezonedZoningMap, volumeURIs, _networkDeviceController);
+                            pathParams, existingAndPrezonedZoningMap, volumeURIs);
             List<URI> newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, existingAndPrezonedZoningMap);
             exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments, existingAndPrezonedZoningMap));
             _dbClient.persistObject(exportMask);
@@ -7526,7 +7526,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         Map<URI, List<URI>> assignments =
                 _blockScheduler.
                         assignStoragePorts(vplex, varrayURI, initiators,
-                                pathParams, existingAndPrezonedZoningMap, volumeURIs, _networkDeviceController);
+                                pathParams, existingAndPrezonedZoningMap, volumeURIs);
         List<URI> newTargets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, existingAndPrezonedZoningMap);
         exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments, existingAndPrezonedZoningMap));
         _dbClient.persistObject(exportMask);
@@ -9541,7 +9541,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param varrayURI
      * @param initiatorURIs
      * @param volumeMap
-     * @param opId 
+     * @param opId
      * @param targets - OUT parameter containing list of StoragePort target URIs
      * @return an Initialized ExportMask
      * @throws Exception
@@ -9558,7 +9558,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         StringSetMap prezonedZoningMap = _blockScheduler.assignPrezonedStoragePorts(storage, exportGroup,
                 initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, varrayURI, opId);
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts
-                (storage, varrayURI, initiators, pathParams, prezonedZoningMap, volumeMap.keySet(), _networkDeviceController);
+                (storage, varrayURI, initiators, pathParams, prezonedZoningMap, volumeMap.keySet());
         List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, prezonedZoningMap);
         String maskName = getComputedExportMaskName(storage, varrayURI, initiators,
                 CustomConfigConstants.VPLEX_STORAGE_VIEW_NAME);

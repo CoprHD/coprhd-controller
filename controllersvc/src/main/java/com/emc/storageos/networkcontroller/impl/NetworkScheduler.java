@@ -868,8 +868,8 @@ public class NetworkScheduler {
      * to the newly added Initiator.
      * 
      * @param exportGroup - The ExportGroup structure.
-     * @param varrayUri - The URI of the virtual array, this can be the export group's 
-     *        virtual array or its alternate virtual array
+     * @param varrayUri - The URI of the virtual array, this can be the export group's
+     *            virtual array or its alternate virtual array
      * @param exportMask - The ExportMask structure.
      * @param initiators - Contains the initiators
      * @param zonesMap a list of existing zones mapped by the initiator port WWN
@@ -1307,5 +1307,30 @@ public class NetworkScheduler {
             fabricInfo.setFabricWwn(NetworkUtil.getNetworkWwn(network));
         }
         return fabricInfo;
+    }
+
+    /**
+     * Returns the flag settable by the user in the custom config that indicates if port allocation should
+     * consider existing zones in port allocation logic or if it should proceed with allocations using
+     * port metrics and hard redundancy only as criteria.
+     * 
+     * @return true/false
+     */
+    public boolean hostPortAllocationUseExistingZones() {
+        return customConfigHandler.getComputedCustomConfigBooleanValue(
+                CustomConfigConstants.ZONE_USE_PREZONED_PORT_FRONTEND,
+                CustomConfigConstants.DEFAULT_KEY, null);
+    }
+
+    /**
+     * Returns the flag settable by the user in the custom config that indicates if port allocation should
+     * consider existing zones in port allocation logic or if it should proceed with allocations using
+     * port metrics and hard redundancy only as criteria.
+     * 
+     * @return true/false
+     */
+    public boolean backendPortAllocationUseExistingZones(String systemType) {
+        return customConfigHandler.getComputedCustomConfigBooleanValue(
+                CustomConfigConstants.ZONE_USE_PREZONED_PORT_BACKEND, systemType, null);
     }
 }

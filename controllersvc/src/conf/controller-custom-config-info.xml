@@ -22,6 +22,7 @@
     	<property name="customConfigTypes">
             <list>
                 <ref bean="sanZoneName"/>
+                <ref bean="sanZoneUsePrezonedPortsFe"/>
                 <ref bean="vnxHostStorageGroupName"/>
                 <ref bean="vmaxHostMaskingViewName"/>
                 <ref bean="vmaxClusterMaskingViewName"/>
@@ -925,6 +926,39 @@
                 <ref bean="illegalCharsConstraint"/>
                 <ref bean="maxLengthConstraint"/>
             </list>
+        </property>
+    </bean>
+
+    <!--bean id="sanZoneUsePrezonedPortsBe" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="SanZoneUsePrezonedPortsBackEnd"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+                <entry key="systemType" value="vmax,vnxblock,xtremio,hds"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="false"/>
+            </map>
+        </property>
+    </bean-->
+
+    <bean id="sanZoneUsePrezonedPortsFe" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="SanZoneUsePrezonedPortsFrontEnd"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="false"/>
+            </map>
         </property>
     </bean>
     

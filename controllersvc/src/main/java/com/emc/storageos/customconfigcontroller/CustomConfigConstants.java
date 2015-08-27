@@ -16,6 +16,8 @@ public interface CustomConfigConstants {
     public String HOST_TYPE_SCOPE = "hostType";
     /** The config_name for zone name */
     public String ZONE_MASK_NAME = "SanZoneName";
+    public String ZONE_USE_PREZONED_PORT_BACKEND = "SanZoneUsePrezonedPortsBackEnd";
+    public String ZONE_USE_PREZONED_PORT_FRONTEND = "SanZoneUsePrezonedPortsFrontEnd";
 
     public String HDS_STORAGE_PORT_NUMBER = "hdsPortNumber";
     public String AUTO_TIERING_POLICY_NAME = "auto_tiering_policy_name";

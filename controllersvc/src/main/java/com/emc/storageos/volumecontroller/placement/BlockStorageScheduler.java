@@ -75,6 +75,7 @@ public class BlockStorageScheduler {
     protected static final Logger _log = LoggerFactory.getLogger(BlockStorageScheduler.class);
     private DbClient _dbClient;
     private PortMetricsProcessor _portMetricsProcessor;
+    private NetworkScheduler _networkScheduler;
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
@@ -83,6 +84,12 @@ public class BlockStorageScheduler {
     public void setPortMetricsProcessor(PortMetricsProcessor portMetricsProcessor) {
         if (_portMetricsProcessor == null) {
             _portMetricsProcessor = portMetricsProcessor;
+        }
+    }
+
+    public void setNetworkScheduler(NetworkScheduler networkScheduler) {
+        if (_networkScheduler == null) {
+            _networkScheduler = networkScheduler;
         }
     }
 
@@ -126,13 +133,12 @@ public class BlockStorageScheduler {
      * for all assignments(existing and new).
      * 
      * @param storage
-     * @param the export virtual array
      * @param initiators - The new initiators to be provisioned.
      * @param pathParams - the Export Path parameters (maxPaths, pathsPerInitiator)
      * @param existingZoningMap the zones that already exist on the mask plus any new mapping added
-     *        by assigning pre-zoned ports.
+     *            by assigning pre-zoned ports.
      * @param volumeURIs the URIs of the volumes in the mask
-     * @param networkDeviceController - a reference to NetworkDeviceController
+     * @param the export virtual array
      * @return Map<URI, List<URI> map of Initiator URIs to list of StoragePort URIs to be used by Initiator
      * @throws DeviceControllerException if there is an unexpected error
      * @throws PlacementException if we were unable to meet the placement constraints (such as minPaths.)
@@ -141,10 +147,9 @@ public class BlockStorageScheduler {
             List<Initiator> initiators,
             ExportPathParams pathParams,
             StringSetMap existingZoningMap,
-            Collection<URI> volumeURIs,
-            NetworkDeviceController networkDeviceController) throws DeviceControllerException {
+            Collection<URI> volumeURIs) throws DeviceControllerException {
         Map<URI, List<URI>> assignmentMap = null;
-        if (!allocateFromPrezonedPortsOnly(networkDeviceController, virtualArray)) {
+        if (!allocateFromPrezonedPortsOnly(virtualArray)) {
             try {
                 assignmentMap = internalAssignStoragePorts(storage, virtualArray,
                         initiators, volumeURIs, pathParams, existingZoningMap);
@@ -671,7 +676,7 @@ public class BlockStorageScheduler {
         for (Initiator initiator : assignments.keySet()) {
             URI key = initiator.getId();
             if (assignments.get(initiator) != null && !assignments.get(initiator).isEmpty()) {
-                if (newZoningMap.get(key) == null) {
+                if (newZoningMap.get(key.toString()) == null) {
                     newZoningMap.put(key.toString(), new StringSet());
                 }
                 if (assignments.get(initiator) != null) {
@@ -1897,7 +1902,7 @@ public class BlockStorageScheduler {
             newZoningMap.putAll(existingZoningMap);
         }
         // Adjust the paths param based on whether at the end of this call the ports selected should meet the paths requirement
-        ExportPathParams prezoningPathParams = getPrezoningPathParam(networkDeviceController, virtualArrayUri, pathParams);
+        ExportPathParams prezoningPathParams = getPrezoningPathParam(virtualArrayUri, pathParams);
         try {
             if (networkDeviceController == null) {
                 return newZoningMap;
@@ -1906,7 +1911,7 @@ public class BlockStorageScheduler {
                 _log.info("Cannot discover existing zones. There are no network systems discovered.");
                 return newZoningMap;
             }
-            if (networkDeviceController.portAllocationIgnoreExistingZones()) {
+            if (!_networkScheduler.hostPortAllocationUseExistingZones()) {
                 _log.info("The system configuration requests port selection to be based on metrics only "
                         + "i.e. ignore existing zones when selecting ports.");
                 return newZoningMap;
@@ -1938,33 +1943,11 @@ public class BlockStorageScheduler {
                 Map<NetworkLite, List<Initiator>> initiatorsByNetwork = NetworkUtil.getInitiatorsByNetwork(newInitiators, _dbClient);
                 Map<NetworkLite, List<StoragePort>> portByNetwork = ExportUtils.mapStoragePortsToNetworks(ports,
                         initiatorsByNetwork.keySet(), _dbClient);
-                Map<NetworkLite, List<StoragePort>> preZonedPortsByNetwork = new HashMap<NetworkLite, List<StoragePort>>();
                 Map<NetworkLite, StringSetMap> zonesByNetwork = new HashMap<NetworkLite, StringSetMap>();
 
-                // so now we have a a collection of initiators and ports, let's get the zones
-                StringSetMap zonesInNetwork = null;
-                Map<String, List<Zone>> initiatorWwnToZonesMap = new HashMap<String, List<Zone>>();
-                for (NetworkLite network : portByNetwork.keySet()) {
-                    if (!Transport.FC.toString().equals(network.getTransportType())) {
-                        continue;
-                    }
-                    List<Initiator> networkInitiators = initiatorsByNetwork.get(network);
-                    if (networkInitiators == null || networkInitiators.isEmpty()) {
-                        continue;
-                    }
-                    Map<String, StoragePort> portByWwn = DataObjectUtils.mapByProperty(portByNetwork.get(network), "portNetworkId");
-                    zonesInNetwork = networkDeviceController.getZoningMap(network, networkInitiators,
-                            portByWwn, initiatorWwnToZonesMap);
-                    _log.info("Existing zones in network {} are {}", network.getNativeGuid(), zonesInNetwork);
-                    zonesByNetwork.put(network, zonesInNetwork);
-                    for (String iniId : zonesInNetwork.keySet()) {
-                        for (String portId : zonesInNetwork.get(iniId)) {
-                            StringMapUtil.addToListMap(preZonedPortsByNetwork,
-                                    network, DataObjectUtils.findInCollection(portByNetwork.get(network), URI.create(portId)));
-                        }
-                    }
-                }
-                WorkflowService.getInstance().storeWorkflowData(token, "zonemap", initiatorWwnToZonesMap);
+                // get all the prezoned ports for the initiators
+                Map<NetworkLite, List<StoragePort>> preZonedPortsByNetwork =
+                        getPrezonedPortsForInitiators(networkDeviceController, portByNetwork, initiatorsByNetwork, zonesByNetwork, token);
 
                 if (!preZonedPortsByNetwork.isEmpty()) {
                     // trim the initiators to the pre-zoned ports
@@ -1985,7 +1968,7 @@ public class BlockStorageScheduler {
                     addAssignmentsToZoningMap(assignments, newZoningMap);
                 }
                 // if manual zoning is on, then make sure the paths discovered meet the path requirement
-                if (allocateFromPrezonedPortsOnly(networkDeviceController, virtualArrayUri)) {
+                if (allocateFromPrezonedPortsOnly(virtualArrayUri)) {
                     validateMinPaths(storage, prezoningPathParams, existingAssignments, assignments,
                             newInitiators);
                 }
@@ -1993,11 +1976,15 @@ public class BlockStorageScheduler {
             }
         } catch (PlacementException pex) {
             _log.error("There are fewer pre-zoned paths than required by the virtual pool."
-                    + " Please either add the needed paths or enable automatic SAN zoning in the virtual array "
-                    + "so that the additional paths can be added by the application.", pex);
+                    + " Please either add the needed paths or enable automatic SAN zoning in the virtual array"
+                    + " so that the additional paths can be added by the application.", pex);
             throw pex;
         } catch (Exception ex) {
-            _log.error("Failed to process existing zones for re-use in port allocation. Resuming workflow.", ex);
+            if (allocateFromPrezonedPortsOnly(virtualArrayUri)) {
+                throw ex;
+            } else {
+                _log.error("Failed to process existing zones for re-use in port allocation. Resuming workflow.", ex);
+            }
         }
         return newZoningMap;
     }
@@ -2008,16 +1995,16 @@ public class BlockStorageScheduler {
      * When additional paths cannot be added, then pre-zoned ports allocation need not verify paths requirements.
      * This function ensures the proper paths parameters are passed to pre-zoned ports allocation.
      * 
-     * @param networkDeviceController -- the network controller
      * @param virtualArrayUri -- the export virtual array
      * @param exportPathParams -- the required paths
+     * 
      * @return the paths parameter for allocating pre-zoned ports.
      */
-    private ExportPathParams getPrezoningPathParam(NetworkDeviceController networkDeviceController,
-            URI virtualArrayUri, ExportPathParams exportPathParams) {
+    private ExportPathParams getPrezoningPathParam(URI virtualArrayUri,
+            ExportPathParams exportPathParams) {
         ExportPathParams prezoningPathParams = new ExportPathParams(exportPathParams.getMaxPaths(),
                 exportPathParams.getMinPaths(), exportPathParams.getPathsPerInitiator(), exportPathParams.getExportGroupType());
-        if (!allocateFromPrezonedPortsOnly(networkDeviceController, virtualArrayUri)) {
+        if (!allocateFromPrezonedPortsOnly(virtualArrayUri)) {
             // If the application is expected to supply missing paths, then the export path needs to be
             // changed to avoid failure on minPath check when prezoned paths do not meet the requirements
             prezoningPathParams.setMinPaths(0);
@@ -2031,12 +2018,12 @@ public class BlockStorageScheduler {
      * paths will not be added. In this case we need to ensure the pre-zoned paths meet the required paths. This
      * check indicates if additional paths will or will not be added.
      * 
-     * @param networkDeviceController -- the network controller
      * @param virtualArrayUri -- the export virtual array
+     * 
      * @return true if additional paths can be added to pre-zoned ones
      */
-    private boolean allocateFromPrezonedPortsOnly(NetworkDeviceController networkDeviceController, URI virtualArrayUri) {
-        return networkDeviceController != null && !networkDeviceController.portAllocationIgnoreExistingZones()
+    private boolean allocateFromPrezonedPortsOnly(URI virtualArrayUri) {
+        return _networkScheduler.hostPortAllocationUseExistingZones()
                 && !NetworkScheduler.isZoningRequired(_dbClient, virtualArrayUri);
     }
 
@@ -2090,5 +2077,49 @@ public class BlockStorageScheduler {
             StringMapUtil.addToListMap(map, network, initiator);
         }
         return map;
+    }
+
+    /**
+     * Reads the existing zones for the initiators from the network system and finds all ports that are
+     * already prezoned to one or more of the initiators.
+     * 
+     * @param networkDeviceController an instance of networkDeviceController
+     * @param portByNetwork the ports in the export mask grouped by network
+     * @param initiatorsByNetwork the initiators of interest grouped by network
+     * @param zonesByNetwork an OUT param to collect the zones found grouped by network
+     * @param token the workflow step id
+     * @return a map of ports in networks that are already zoned to one or more of the initiators
+     */
+    public Map<NetworkLite, List<StoragePort>> getPrezonedPortsForInitiators(NetworkDeviceController networkDeviceController,
+            Map<NetworkLite, List<StoragePort>> portByNetwork, Map<NetworkLite, List<Initiator>> initiatorsByNetwork,
+            Map<NetworkLite, StringSetMap> zonesByNetwork, String token) {
+        // so now we have a a collection of initiators and ports, let's get the zones
+        Map<NetworkLite, List<StoragePort>> preZonedPortsByNetwork = new HashMap<NetworkLite, List<StoragePort>>();
+        StringSetMap zonesInNetwork = null;
+        Map<String, List<Zone>> initiatorWwnToZonesMap = new HashMap<String, List<Zone>>();
+        for (NetworkLite network : portByNetwork.keySet()) {
+            if (!Transport.FC.toString().equals(network.getTransportType())) {
+                continue;
+            }
+            List<Initiator> networkInitiators = initiatorsByNetwork.get(network);
+            if (networkInitiators == null || networkInitiators.isEmpty()) {
+                continue;
+            }
+            Map<String, StoragePort> portByWwn = DataObjectUtils.mapByProperty(portByNetwork.get(network), "portNetworkId");
+            zonesInNetwork = networkDeviceController.getZoningMap(network, networkInitiators,
+                    portByWwn, initiatorWwnToZonesMap);
+            _log.info("Existing zones in network {} are {}", network.getNativeGuid(), zonesInNetwork);
+            if (zonesByNetwork != null) {
+                zonesByNetwork.put(network, zonesInNetwork);
+            }
+            for (String iniId : zonesInNetwork.keySet()) {
+                for (String portId : zonesInNetwork.get(iniId)) {
+                    StringMapUtil.addToListMap(preZonedPortsByNetwork,
+                            network, DataObjectUtils.findInCollection(portByNetwork.get(network), URI.create(portId)));
+                }
+            }
+        }
+        WorkflowService.getInstance().storeWorkflowData(token, "zonemap", initiatorWwnToZonesMap);
+        return preZonedPortsByNetwork;
     }
 }

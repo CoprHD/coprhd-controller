@@ -366,12 +366,9 @@ public interface BlockServiceApi {
      * Uses the appropriate controller to delete the snapshot.
      * 
      * @param snapshot The snapshot to delete
-     * @param isConsistencyGroupOperation indicates whether this operation is for the whole consistency group
-     *            if the volume belongs to a consistency group
-     *            TODO-Need to revisit this to handle the consistency group operations better
      * @param taskId The unique task identifier
      */
-    public void deleteSnapshot(BlockSnapshot snapshot, Boolean isConsistencyGroupOperation, String taskId);
+    public void deleteSnapshot(BlockSnapshot snapshot, String taskId);
 
     /**
      * Get the snapshots for the passed volume.
@@ -403,24 +400,18 @@ public interface BlockServiceApi {
      * 
      * @param snapshot The snapshot to restore
      * @param parentVolume The volume to be restored.
-     * @param isConsistencyGroupOperation indicates whether this operation is for the whole consistency group
-     *            if the volume belongs to a consistency group
-     *            TODO-Need to revisit this to handle the consistency group operations better
      * @param taskId The unique task identifier.
      */
-    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, Boolean isConsistencyGroupOperation, String taskId);
+    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId);
 
     /**
      * Resynchronize the passed snapshot.
      * 
      * @param snapshot The snapshot to be resynchronized
      * @param parentVolume The volume to resynchronize from.
-     * @param isConsistencyGroupOperation indicates whether this operation is for the whole consistency group
-     *            if the volume belongs to a consistency group
-     *            TODO-Need to revisit this to handle the consistency group operations better
      * @param taskId The unique task identifier.
      */
-    public void resynchronizeSnapshot(BlockSnapshot snapshot, Volume parentVolume, Boolean isConsistencyGroupOperation, String taskId);
+    public void resynchronizeSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId);
 
     /**
      * Returns the maximum number of volumes that are allowed in the passed consistency group.

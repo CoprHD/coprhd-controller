@@ -1872,8 +1872,8 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
      * @param taskId The unique task identifier
      */
     @Override
-    public void deleteSnapshot(BlockSnapshot snapshot, Boolean isConsistencyGroupSnapshot, String taskId) {
-        rpBlockServiceApiImpl.deleteSnapshot(snapshot, isConsistencyGroupSnapshot, taskId);
+    public void deleteSnapshot(BlockSnapshot snapshot, String taskId) {
+        rpBlockServiceApiImpl.deleteSnapshot(snapshot, taskId);
     }
 
     /**
@@ -1919,8 +1919,8 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
      * @param taskId The unique task identifier.
      */
     @Override
-    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, Boolean isConsistencyGroupOperation, String taskId) {
-        rpBlockServiceApiImpl.restoreSnapshot(snapshot, parentVolume, isConsistencyGroupOperation, taskId);
+    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
+        rpBlockServiceApiImpl.restoreSnapshot(snapshot, parentVolume, taskId);
     }
 
     /**

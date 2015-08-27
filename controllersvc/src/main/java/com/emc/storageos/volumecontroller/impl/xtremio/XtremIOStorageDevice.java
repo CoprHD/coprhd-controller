@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.xtremio;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -436,10 +437,11 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doDeleteSnapshot(StorageSystem storage, URI snapshot, Boolean isConsistencyGroupOperation, TaskCompleter taskCompleter)
+    public void doDeleteSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("SnapShot Deletion..... Started");
-        if (isConsistencyGroupOperation) {
+        List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
+        if (ControllerUtils.inReplicationGroup(snapshots, dbClient)) {
             snapshotOperations.deleteGroupSnapshots(storage, snapshot, taskCompleter);
         } else {
             snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
@@ -448,11 +450,11 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot, Boolean isConsistencyGroupOperation,
-            TaskCompleter taskCompleter)
+    public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("SnapShot Restore..... Started");
-        if (isConsistencyGroupOperation) {
+        List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
+        if (ControllerUtils.inReplicationGroup(snapshots, dbClient)) {
             snapshotOperations.restoreGroupSnapshots(storage, volume, snapshot, taskCompleter);
         } else {
             snapshotOperations.restoreSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);
@@ -461,11 +463,11 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doResyncSnapshot(StorageSystem storage, URI volume, URI snapshot, Boolean isConsistencyGroupOperation,
-            TaskCompleter taskCompleter)
+    public void doResyncSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("SnapShot Restore..... Started");
-        if (isConsistencyGroupOperation) {
+        List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
+        if (ControllerUtils.inReplicationGroup(snapshots, dbClient)) {
             snapshotOperations.resyncGroupSnapshots(storage, volume, snapshot, taskCompleter);
         } else {
             snapshotOperations.resyncSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);

@@ -1188,10 +1188,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @param taskId The unique task identifier
      */
     @Override
-    public void deleteSnapshot(BlockSnapshot snapshot, Boolean isConsistencyGroupOperation, String taskId) {
+    public void deleteSnapshot(BlockSnapshot snapshot, String taskId) {
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, snapshot.getStorageController());
         BlockController controller = getController(BlockController.class, device.getSystemType());
-        controller.deleteSnapshot(device.getId(), snapshot.getId(), isConsistencyGroupOperation, taskId);
+        controller.deleteSnapshot(device.getId(), snapshot.getId(), taskId);
     }
 
     /**
@@ -1250,11 +1250,11 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @param taskId The unique task identifier.
      */
     @Override
-    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, Boolean isConsistencyGroupOperation, String taskId) {
+    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapshot.getStorageController());
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
         controller.restoreVolume(storageSystem.getId(), parentVolume.getPool(),
-                parentVolume.getId(), snapshot.getId(), isConsistencyGroupOperation, Boolean.TRUE, taskId);
+                parentVolume.getId(), snapshot.getId(), Boolean.TRUE, taskId);
     }
 
     /**
@@ -1265,11 +1265,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @param taskId The unique task identifier.
      */
     @Override
-    public void resynchronizeSnapshot(BlockSnapshot snapshot, Volume parentVolume, Boolean isConsistencyGroupOperation, String taskId) {
+    public void resynchronizeSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapshot.getStorageController());
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-        controller.resyncSnapshot(storageSystem.getId(), parentVolume.getId(), snapshot.getId(), isConsistencyGroupOperation, Boolean.TRUE,
-                taskId);
+        controller.resyncSnapshot(storageSystem.getId(), parentVolume.getId(), snapshot.getId(), Boolean.TRUE, taskId);
     }
 
     /**

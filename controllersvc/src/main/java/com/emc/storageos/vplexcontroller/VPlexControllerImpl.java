@@ -116,9 +116,9 @@ public class VPlexControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
-    public void restoreVolume(URI vplexURI, URI snapshotURI, Boolean isConsistencyGroupOperation, String opId)
+    public void restoreVolume(URI vplexURI, URI snapshotURI, String opId)
             throws InternalException {
-        queueRequest("restoreVolume", vplexURI, snapshotURI, isConsistencyGroupOperation, opId);
+        queueRequest("restoreVolume", vplexURI, snapshotURI, opId);
     }
 
     @Override

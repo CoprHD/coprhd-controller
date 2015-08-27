@@ -190,12 +190,11 @@ public interface VPlexController extends Controller {
      * 
      * @param vplexURI The URI of the VPLEX storage system.
      * @param snapshotURI The URI of the backend native block snapshot.
-     * @param isConsistencyGroupOperation TODO
      * @param opId The unique task identifier.
      * @throws InternalException When an error occurs configuring the snapshot
      *             restore workflow.
      */
-    public abstract void restoreVolume(URI vplexURI, URI snapshotURI, Boolean isConsistencyGroupOperation, String opId)
+    public abstract void restoreVolume(URI vplexURI, URI snapshotURI, String opId)
             throws InternalException;
 
     /**

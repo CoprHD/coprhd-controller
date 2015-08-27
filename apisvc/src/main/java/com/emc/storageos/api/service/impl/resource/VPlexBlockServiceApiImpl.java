@@ -3033,7 +3033,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param taskId The unique task identifier.
      */
     @Override
-    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, Boolean isConsistencyGroupOperation, String taskId) {
+    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
 
         // Get the VLPEX volume for this backend volume.
         URI parentVolumeURI = parentVolume.getId();
@@ -3048,7 +3048,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         URI vplexSystemURI = vplexVolume.getStorageController();
         StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, vplexSystemURI);
         VPlexController controller = getController(VPlexController.class, vplexSystem.getSystemType());
-        controller.restoreVolume(vplexSystemURI, snapshot.getId(), isConsistencyGroupOperation, taskId);
+        controller.restoreVolume(vplexSystemURI, snapshot.getId(), taskId);
     }
 
     /**

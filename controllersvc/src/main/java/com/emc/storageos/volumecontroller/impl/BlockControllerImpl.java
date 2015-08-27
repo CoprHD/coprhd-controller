@@ -192,21 +192,20 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
-    public void deleteSnapshot(URI storage, URI snapshot, Boolean isConsistencyGroupOperation, String opId)
+    public void deleteSnapshot(URI storage, URI snapshot, String opId)
             throws InternalException {
-        blockRMI("deleteSnapshot", storage, snapshot, isConsistencyGroupOperation, opId);
+        blockRMI("deleteSnapshot", storage, snapshot, opId);
     }
 
     @Override
-    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean isConsistencyGroupOperation, Boolean updateOpStatus,
-            String opId) throws InternalException {
-        blockRMI("restoreVolume", storage, pool, volume, snapshot, isConsistencyGroupOperation, updateOpStatus, opId);
+    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
+            throws InternalException {
+        blockRMI("restoreVolume", storage, pool, volume, snapshot, updateOpStatus, opId);
     }
 
     @Override
-    public void resyncSnapshot(URI storage, URI volume, URI snapshot, Boolean isConsistencyGroupOperation, Boolean updateOpStatus,
-            String opId) throws InternalException {
-        blockRMI("resyncSnapshot", storage, volume, snapshot, isConsistencyGroupOperation, updateOpStatus, opId);
+    public void resyncSnapshot(URI storage, URI volume, URI snapshot, Boolean updateOpStatus, String opId) throws InternalException {
+        blockRMI("resyncSnapshot", storage, volume, snapshot, updateOpStatus, opId);
     }
 
     @Override

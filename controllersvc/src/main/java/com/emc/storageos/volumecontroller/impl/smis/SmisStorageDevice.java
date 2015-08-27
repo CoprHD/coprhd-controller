@@ -913,7 +913,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doDeleteSnapshot(final StorageSystem storage, final URI snapshot,
-            Boolean isConsistencyGroupOperation, final TaskCompleter taskCompleter) throws DeviceControllerException {
+            final TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class,
                     Arrays.asList(snapshot));
@@ -935,7 +935,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doRestoreFromSnapshot(final StorageSystem storage, final URI volume,
-            final URI snapshot, Boolean isConsistencyGroupOperation, final TaskCompleter taskCompleter) throws DeviceControllerException {
+            final URI snapshot, final TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class,
                     Arrays.asList(snapshot));
@@ -958,7 +958,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     
     @Override
     public void doResyncSnapshot(final StorageSystem storage, final URI volume,
-            final URI snapshot, Boolean isConsistencyGroupOperation, final TaskCompleter taskCompleter) throws DeviceControllerException {
+            final URI snapshot, final TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class,
                     Arrays.asList(snapshot));

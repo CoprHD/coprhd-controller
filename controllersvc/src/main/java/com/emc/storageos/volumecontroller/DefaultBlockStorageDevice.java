@@ -167,14 +167,14 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
 
     @Override
     public void doDeleteSnapshot(StorageSystem storage, URI snapshot,
-            Boolean isConsistencyGroupOperation, TaskCompleter taskCompleter) throws DeviceControllerException {
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
     }
 
     @Override
     public void doRestoreFromSnapshot(StorageSystem storage, URI volume,
-            URI snapshot, Boolean isConsistencyGroupOperation, TaskCompleter taskCompleter)
+            URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
@@ -568,7 +568,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     
     @Override
     public void doResyncSnapshot(StorageSystem storage, URI volume,
-            URI snapshot, Boolean isConsistencyGroupOperation, TaskCompleter taskCompleter)
+            URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();

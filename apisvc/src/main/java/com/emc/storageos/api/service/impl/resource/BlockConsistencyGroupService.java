@@ -689,7 +689,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         Volume volume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
         BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(volume, _dbClient);
 
-        blockServiceApiImpl.deleteSnapshot(snapshot, true, task);
+        blockServiceApiImpl.deleteSnapshot(snapshot, task);
 
         auditBlockConsistencyGroup(OperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT,
                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, snapshot.getId()
@@ -747,7 +747,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 snapshot.getId(), taskId, ResourceOperationTypeEnum.RESTORE_CONSISTENCY_GROUP_SNAPSHOT);
 
         // Restore the snapshot.
-        blockServiceApiImpl.restoreSnapshot(snapshot, snapshotParentVolume, true, taskId);
+        blockServiceApiImpl.restoreSnapshot(snapshot, snapshotParentVolume, taskId);
 
         auditBlockConsistencyGroup(OperationTypeEnum.RESTORE_CONSISTENCY_GROUP_SNAPSHOT,
                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN,
@@ -819,7 +819,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 snapshot.getId(), taskId, ResourceOperationTypeEnum.RESYNCHRONIZE_CONSISTENCY_GROUP_SNAPSHOT);
 
         // Resync the snapshot.
-        blockServiceApiImpl.resynchronizeSnapshot(snapshot, snapshotParentVolume, true, taskId);
+        blockServiceApiImpl.resynchronizeSnapshot(snapshot, snapshotParentVolume, taskId);
 
         auditBlockConsistencyGroup(OperationTypeEnum.RESTORE_CONSISTENCY_GROUP_SNAPSHOT,
                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN,
@@ -1003,12 +1003,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Adding/removing volumes to/from a consistency group
         // is not supported when the consistency group has active
-        // snapshots. This is supported in XtremIO.
+        // snapshots.
         URIQueryResultList cgSnapshotsResults = new URIQueryResultList();
         _dbClient.queryByConstraint(getBlockSnapshotByConsistencyGroup(id), cgSnapshotsResults);
         Iterator<URI> cgSnapshotsIter = cgSnapshotsResults.iterator();
-        while (!systemType.equals(DiscoveredDataObject.Type.xtremio.name()) &&
-                cgSnapshotsIter.hasNext()) {
+        while (cgSnapshotsIter.hasNext()) {
             BlockSnapshot cgSnapshot = _dbClient.queryObject(BlockSnapshot.class, cgSnapshotsIter.next());
             if ((cgSnapshot != null) && (!cgSnapshot.getInactive())) {
                 throw APIException.badRequests.notAllowedWhenCGHasSnapshots();

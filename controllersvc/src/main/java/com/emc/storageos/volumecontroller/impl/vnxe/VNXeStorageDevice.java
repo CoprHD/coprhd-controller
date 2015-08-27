@@ -1234,7 +1234,7 @@ public class VNXeStorageDevice extends VNXeOperations
 
     @Override
     public void doDeleteSnapshot(StorageSystem storage, URI snapshot,
-            Boolean isConsistencyGroupOperation, TaskCompleter taskCompleter) throws DeviceControllerException {
+            TaskCompleter taskCompleter) throws DeviceControllerException {
 
         _logger.info("{} doDeleteSnapshot START ...", storage.getSerialNumber());
         List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
@@ -1251,7 +1251,7 @@ public class VNXeStorageDevice extends VNXeOperations
 
     @Override
     public void doRestoreFromSnapshot(StorageSystem storage, URI volume,
-            URI snapshot, Boolean isConsistencyGroupOperation, TaskCompleter taskCompleter)
+            URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _logger.info("{} doRestoreFromSnapshot START ...", storage.getSerialNumber());
         List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
@@ -2315,7 +2315,7 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
-    public void doResyncSnapshot(StorageSystem storage, URI volume, URI snapshot, Boolean isConsistencyGroupOperation, TaskCompleter taskCompleter)
+    public void doResyncSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
         

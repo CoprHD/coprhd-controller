@@ -1923,14 +1923,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param taskId The unique task identifier
      */
     @Override
-    public void deleteSnapshot(BlockSnapshot snapshot, Boolean isConsistencyGroupSnapshot, String taskId) {
+    public void deleteSnapshot(BlockSnapshot snapshot, String taskId) {
         // If the volume is under protection
         if (TechnologyType.RP.name().equals(snapshot.getTechnologyType())) {
             Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent());
             RPController rpController = getController(RPController.class, ProtectionSystem._RP);
             rpController.deleteSnapshot(volume.getProtectionController(), snapshot.getId(), taskId);
         } else {
-            super.deleteSnapshot(snapshot, isConsistencyGroupSnapshot, taskId);
+            super.deleteSnapshot(snapshot, taskId);
         }
     }
 
@@ -1981,7 +1981,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param taskId The unique task identifier.
      */
     @Override
-    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, Boolean isConsistencyGroupOperation, String taskId) {
+    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
         // If the volume is under protection
         if (snapshot.getEmName() != null) {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
@@ -1990,7 +1990,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             controller.restoreVolume(parentVolume.getProtectionController(),
                     storageSystem.getId(), snapshot.getId(), taskId);
         } else {
-            super.restoreSnapshot(snapshot, parentVolume, isConsistencyGroupOperation, taskId);
+            super.restoreSnapshot(snapshot, parentVolume, taskId);
         }
     }
 

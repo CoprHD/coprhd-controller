@@ -7558,7 +7558,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * {@inheritDoc}
      */
     @Override
-    public void restoreVolume(URI vplexURI, URI snapshotURI, Boolean isConsistencyGroupOperation, String opId)
+    public void restoreVolume(URI vplexURI, URI snapshotURI, String opId)
             throws InternalException {
 
         BlockSnapshot snapshot = getDataObject(BlockSnapshot.class, snapshotURI, _dbClient);
@@ -7634,8 +7634,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // the cache now has invalid data and a cache read hit could return
                 // invalid data.
                 createWorkflowStepForRestoreNativeSnapshot(workflow, parentSystem,
-                        parentVolumeURI, snapshotURI, parentPoolURI, isConsistencyGroupOperation,
-                        waitFor, null);
+                        parentVolumeURI, snapshotURI, parentPoolURI, waitFor,
+                        null);
             } else {
                 for (URI vplexVolumeURI : vplexVolumeURIs) {
                     // For distributed volumes we take snapshots of and restore the
@@ -7684,8 +7684,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // means there will be no read cache hits on the volume for a
                 // while until the cache is repopulated.
                 createWorkflowStepForRestoreNativeSnapshot(workflow, parentSystem,
-                        parentVolumeURI, snapshotURI, parentPoolURI, isConsistencyGroupOperation,
-                        INVALIDATE_CACHE_STEP, rollbackMethodNullMethod());
+                        parentVolumeURI, snapshotURI, parentPoolURI, INVALIDATE_CACHE_STEP,
+                        rollbackMethodNullMethod());
             }
 
             // Execute the workflow.
@@ -7712,7 +7712,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * the backend snapshot with the passed URI.
      * 
      * @param workflow A reference to a workflow.
-     * @param isConsistencyGroupOperation TODO
      * @param waitFor The step to wait for or null.
      * @param rollbackMethod A reference to a rollback method or null.
      * @param nativeSystem A reference to the native storage system.
@@ -7720,12 +7719,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @return RESTORE_VOLUME_STEP
      */
     private String createWorkflowStepForRestoreNativeSnapshot(Workflow workflow,
-            StorageSystem parentSystem, URI parentVolumeURI, URI snapshotURI, URI parentPoolURI, Boolean isConsistencyGroupOperation,
-            String waitFor, Workflow.Method rollbackMethod) {
+            StorageSystem parentSystem, URI parentVolumeURI, URI snapshotURI, URI parentPoolURI, String waitFor,
+            Workflow.Method rollbackMethod) {
         URI parentSystemURI = parentSystem.getId();
         Workflow.Method restoreVolumeMethod = new Workflow.Method(
                 RESTORE_VOLUME_METHOD_NAME, parentSystemURI, parentPoolURI,
-                parentVolumeURI, snapshotURI, isConsistencyGroupOperation, Boolean.FALSE);
+                parentVolumeURI, snapshotURI, Boolean.FALSE);
         workflow.createStep(RESTORE_VOLUME_STEP, String.format(
                 "Restore VPLEX backend volume %s from snapshot %s",
                 parentVolumeURI, snapshotURI), waitFor,

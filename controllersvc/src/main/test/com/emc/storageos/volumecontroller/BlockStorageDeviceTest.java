@@ -387,7 +387,7 @@ public class BlockStorageDeviceTest {
         TaskCompleter taskCompleter = new BlockSnapshotRestoreCompleter(
                 snapshot, token);
         _deviceController.doRestoreFromSnapshot(_storageSystem, volume,
-                snapshot.getId(), false, taskCompleter);
+                snapshot.getId(), taskCompleter);
     }
 
     @Test
@@ -399,7 +399,7 @@ public class BlockStorageDeviceTest {
         TaskCompleter taskCompleter = BlockSnapshotDeleteCompleter.createCompleter(_dbClient,
                 snapshot, token);
         _deviceController.doDeleteSnapshot(_storageSystem, snapshot.getId(),
-                false, taskCompleter);
+                taskCompleter);
     }
 
     @Test(expected = com.emc.storageos.exceptions.DeviceControllerException.class)

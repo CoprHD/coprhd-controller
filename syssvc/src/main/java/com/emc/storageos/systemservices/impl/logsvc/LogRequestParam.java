@@ -14,6 +14,7 @@ public class LogRequestParam {
 
     public static final String ID = "id";
     public static final String NODE_ID = "node_id";
+    public static final String NODE_NAME = "node_name";
     public static final String LOG_NAME = "log_name";
     public static final String SEVERITY = "severity";
     public static final String START_TIME = "start";

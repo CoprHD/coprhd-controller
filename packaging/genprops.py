@@ -135,8 +135,7 @@ METAMAP_END        = '</bean>'
 # Valid fields of the property metadata class
 BEAN_KEYS = ( "key", "label", "description", "type", "minLen", "maxLen", "allowedValues", "tag", "hidden", "advanced", "userMutable", "userConfigurable", "reconfigRequired", "rebootRequired", "value", "controlNodeOnly", "notifiers")
 
-
-def emit_ovf(ovf_props, config_props, props_vars, pattern, subst, loop):
+def emit_ovf(iter_props, ovf_props, config_props, props_vars, pattern, subst, loop):
     def ovf_encode(s, qdollar = True):
         special = { '&' : '&amp;', '<' : '&lt;', '>' : '&gt;', '\'' : '&apos;', '"' : '&quot;', '\n' : '&#10;' }
         return "".join(map(lambda c: special[c] if c in special else c, s)).replace(pattern, subst)
@@ -222,7 +221,7 @@ def emit_ovf(ovf_props, config_props, props_vars, pattern, subst, loop):
             emit_property(lines, prop, props_vars)
     return lines2text(indent(lines, 3, "  "))
 
-def emit_config_defaults(ovf_props, config_props, props_vars, pattern, subst, loop):
+def emit_config_defaults(iter_props, ovf_props, config_props, props_vars, pattern, subst, loop):
     lines = []
 
     for prop in config_props:
@@ -232,7 +231,7 @@ def emit_config_defaults(ovf_props, config_props, props_vars, pattern, subst, lo
     lines = sorted(lines)
     return lines2text(lines)
 
-def emit_ovf_defaults(ovf_props, controller_props, props_vars, pattern, subst, loop):
+def emit_ovf_defaults(iter_props, ovf_props, controller_props, props_vars, pattern, subst, loop):
     lines = []
 
     for prop in ovf_props:
@@ -245,9 +244,19 @@ def emit_ovf_defaults(ovf_props, controller_props, props_vars, pattern, subst, l
     lines = sorted(lines)
     return lines2text(lines)
 
+def emit_iter_defaults(iter_props, ovf_props, controller_props, props_vars, pattern, subst, loop):
+    lines = []
+
+    for prop in iter_props:
+        if 'value' in prop:
+            lines.append(prop["key"].replace(pattern, subst) + '=' + expand_vars(prop["value"], props_vars))
+
+    lines = sorted(lines)
+    return lines2text(lines)
+
 # Generate Spring Framework bean with a map of properties metadata
-def emit_bean(ovf_props, config_props, props_vars, pattern, subst, loop):
-    props = ovf_props + config_props
+def emit_bean(iter_props, ovf_props, config_props, props_vars, pattern, subst, loop):
+    props = iter_props + ovf_props + config_props
     def bean_encode(s, qdollar = True):
         # bean_encode is basically the same with ovf_encode except that '\n' is converted to '\\n' for later plain text use. e.g. config.properties
         special = { '&' : '&amp;', '<' : '&lt;', '>' : '&gt;', '\'' : '&apos;', '"' : '&quot;', '\n' : '\\n' }
@@ -312,6 +321,7 @@ if __name__ == "__main__":
         "--ovf-cluster-properties"     : ( emit_ovf,              ( "${iter}", "${iter}",     True  ) ),
         "--config-defaults"            : ( emit_config_defaults,  ( "${iter}", "standalone",  False ) ),
         "--ovf-controller-defaults"    : ( emit_ovf_defaults,     ( "${iter}", "${iter}",     True  ) ),
+        "--iter-defaults"              : ( emit_iter_defaults,    ( "${iter}", "${iter}",     True  ) ),
         "--metadata-var"               : ( emit_bean,             ( "${iter}", "standalone",  False ) ),
         "--metadata-var-template"      : ( emit_bean,             ( "${iter}", "${iter}",     True  ) ),
     }
@@ -323,17 +333,18 @@ if __name__ == "__main__":
         sys.stderr.write(s)
         sys.exit(2)
 
-    if len(sys.argv) < 4 or sys.argv[1] not in methods:
+    if len(sys.argv) < 5 or sys.argv[1] not in methods:
        usage()
 
     try:
         f, args        = methods[sys.argv[1]]
-        ovf_props      = getprops(sys.argv[2])
-        config_props   = getprops(sys.argv[3])
-        props_vars     = dict(map(lambda arg: tuple(arg.split('=',1)), sys.argv[4:]))
+        iter_props     = getprops(sys.argv[2])
+        ovf_props      = getprops(sys.argv[3])
+        config_props   = getprops(sys.argv[4])
+        props_vars     = dict(map(lambda arg: tuple(arg.split('=',1)), sys.argv[5:]))
         _src_pattern   = re.compile('.*@{(.*)}.*')
         _parent_dir    = os.path.dirname(os.path.realpath(__file__))
-        sys.stdout.write(f(ovf_props, config_props, props_vars, *args))
+        sys.stdout.write(f(iter_props, ovf_props, config_props, props_vars, *args))
         sys.exit(0)
     except Exception, e:
         #import traceback; traceback.print_exc()

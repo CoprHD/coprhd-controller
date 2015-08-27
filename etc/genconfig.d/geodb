@@ -55,7 +55,9 @@ _get_rackdc_props() {
     echo "vdc_myid=${_GENCONFIG_vdc_myid}"
 }
 
-_genconfig_exec _gen_template           /opt/storageos/conf/geodb-var.xml               $(_get_geodbvar_props)
+# _gen_template will generate properties based on *-template.xml, replace macro in *-template.*
+# _gen_template_cluster will generate properties based on *-template.* for cluster, *.* for standalone env
+_genconfig_exec _gen_template_cluster   /opt/storageos/conf/geodb-var.xml               $(_get_geodbvar_props)
 _genconfig_exec _gen_template           /opt/storageos/conf/geodb-jmx-var.xml           $(_get_geodb_jmx_props)
 _genconfig_exec _gen_template_cluster   /opt/storageos/conf/geodb-conf.yaml             $(_get_geodbconf_props)
 _genconfig_exec _gen_template           /opt/storageos/conf/cassandra-rackdc.properties $(_get_rackdc_props)

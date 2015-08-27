@@ -4,7 +4,11 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.UUID;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -16,8 +20,13 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ComputeImageServer;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.compute.ComputeImageServerCreate;
@@ -29,11 +38,16 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.volumecontroller.AsyncTask;
 
 @Path("/compute/compute-imageservers")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = {
         Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class ComputeImageServerService extends TaskResourceService {
+
+    private static final Logger log = LoggerFactory.getLogger(ComputeImageServerService.class);
+
+    private static final String EVENT_SERVICE_TYPE = "ComputeImageServer";
 
     @Override
     protected ComputeImageServer queryResource(URI id) {
@@ -48,6 +62,11 @@ public class ComputeImageServerService extends TaskResourceService {
     @Override
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.COMPUTE_IMAGESERVER;
+    }
+
+    @Override
+    public String getServiceType() {
+        return EVENT_SERVICE_TYPE;
     }
 
     /**
@@ -123,13 +142,20 @@ public class ComputeImageServerService extends TaskResourceService {
         imageServer.setImageServerUser(username);
         imageServer.setImageServerPassword(password);
         imageServer.setOsInstallTimeoutMs((int) installTimeout);
+        imageServer.setImageServerSecondIp(osInstallAddress);
 
         _dbClient.createObject(imageServer);
 
         auditOp(OperationTypeEnum.CREATE_COMPUTE_IMAGESERVER, true,
-                AuditLogManager.AUDITOP_BEGIN, imageServer.getId().toString(),
+                AuditLogManager.AUDITOP_END, imageServer.getId().toString(),
                 imageServer.getImageServerIp());
-        return null;
+        ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
+        String taskId = UUID.randomUUID().toString();
+        tasks.add(new AsyncTask(ComputeImageServer.class, imageServer.getId(), taskId));
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.CREATE_COMPUTE_IMAGE_SERVER);
+        _dbClient.createTaskOpStatus(ComputeImageServer.class, imageServer.getId(), taskId, op);
+        return toTask(imageServer, taskId, op);
     }
 
     /**

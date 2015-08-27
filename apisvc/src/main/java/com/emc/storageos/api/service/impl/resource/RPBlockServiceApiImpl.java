@@ -1255,24 +1255,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         return true;
     }
     
-    /**
-     * Given a recommendation object, return the protection info based on the site that is protecting to the given varray.
-     * The protection info for that varray copy site could be a VPLEX or non-VPLEX protection info. 
-     * @param varray
-     * @param recommendation
-     * @return
-     */
-    private Protection getProtectionInfo(VirtualArray varray, RPProtectionRecommendation recommendation) {
-    	/*
-    	//Find the protection info for this varray, first check if the target is non-vplex by checking the varray protection map, then vplex protection map
-    	Protection protectionInfo =  recommendation.getVirtualArrayProtectionMap().get(varray.getId());
-    	if (protectionInfo == null) {
-    		protectionInfo = recommendation.getVirtualArrayProtectionMap().get(varray.getId());
-    	}
-    	*/
-    	return null;
-    }
-    
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray varray,
             VirtualPool vpool, List<Recommendation> recommendations, String task,
@@ -1313,6 +1295,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             try {
                 volumeDescriptors.addAll(createVolumeDescriptors(recommendation, volumeURIs, capabilities));                
                 logDescriptors(volumeDescriptors);
+                
+                if (true) {
+                    //TODO BBB remove
+                    _log.error("STOP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                    throw new WebApplicationException(Response
+                            .status(Response.Status.INTERNAL_SERVER_ERROR).entity(taskList).build());
+                }
                 
                 BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                         BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
@@ -1374,13 +1363,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 throw new WebApplicationException(Response
                     .status(Response.Status.INTERNAL_SERVER_ERROR).entity(taskList).build());
             }            
-        }
-
-        if (true) {
-            //TODO BBB remove
-            _log.error("STOP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-            throw new WebApplicationException(Response
-                    .status(Response.Status.INTERNAL_SERVER_ERROR).entity(taskList).build());
         }
         
         return taskList;

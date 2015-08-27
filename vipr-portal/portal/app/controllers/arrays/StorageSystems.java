@@ -723,6 +723,7 @@ public class StorageSystems extends ViprResourceController {
 
             if (isNew()) { 
             	if (isScaleIOApi()) {
+            		Validation.required(fieldName + ".secondaryUsername", this.secondaryUsername);
             		Validation.required(fieldName + ".secondaryPassword", this.secondaryPassword);
             		Validation.required(fieldName + ".secondaryPasswordConfirm", this.secondaryPasswordConfirm);
             	}

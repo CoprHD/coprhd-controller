@@ -450,14 +450,23 @@
     #{/field}
     
     #{field 'storageArray.secondaryUsername'}
+    %{
+        field.required = !editMode
+      }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}
  
     #{field 'storageArray.secondaryPassword'}
+    %{
+        field.required = !editMode
+      }%
       #{Form.inputPasswordControlGroup field:field /}
     #{/field}
  
     #{field 'storageArray.secondaryPasswordConfirm'}
+    %{
+        field.required = !editMode
+      }%
       #{Form.inputPasswordControlGroup field:field /}
     #{/field}
  

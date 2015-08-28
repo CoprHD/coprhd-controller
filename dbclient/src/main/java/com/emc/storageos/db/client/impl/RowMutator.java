@@ -105,8 +105,7 @@ public class RowMutator {
                 _indexMutator.execute();
             }
         } catch (ConnectionException e) {
-        	String ip=e.getHost().getIpAddress();
-            throw DatabaseException.retryables.connectionFailed(e,ip);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
     }
 
@@ -122,8 +121,7 @@ public class RowMutator {
                 _recordMutator.execute();
             }
         } catch (ConnectionException e) {
-        	String ip=e.getHost().getIpAddress();
-            throw DatabaseException.retryables.connectionFailed(e,ip);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
     }
 }

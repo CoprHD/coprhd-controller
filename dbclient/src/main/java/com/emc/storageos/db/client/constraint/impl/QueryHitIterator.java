@@ -36,8 +36,7 @@ public abstract class QueryHitIterator<T> implements Iterator<T> {
         try {
             result = _query.execute().getResult();
         } catch (final ConnectionException e) {
-        	String ip=e.getHost().getIpAddress();
-            throw DatabaseException.retryables.connectionFailed(e,ip);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
         if (!result.isEmpty()) {
             _currentIt = result.iterator();

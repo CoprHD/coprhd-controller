@@ -689,8 +689,7 @@ public class DbClientImpl implements DbClient {
                         .execute();
             }
         } catch (ConnectionException e) {
-        	String ip=e.getHost().getIpAddress();
-            throw DatabaseException.retryables.connectionFailed(e,ip);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
         Iterator<Row<String, CompositeColumnName>> it = result.getResult().iterator();
         while (it.hasNext()) {
@@ -785,8 +784,7 @@ public class DbClientImpl implements DbClient {
 
             return exec.execute().getResult();
         } catch (ConnectionException e) {
-        	String ip=e.getHost().getIpAddress();
-            throw DatabaseException.retryables.connectionFailed(e,ip);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
     }
 
@@ -984,8 +982,7 @@ public class DbClientImpl implements DbClient {
                     .getCount();
             return countQuery.execute().getResult();
         } catch (ConnectionException e) {
-        	String ip=e.getHost().getIpAddress();
-            throw DatabaseException.retryables.connectionFailed(e,ip);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
     }
 
@@ -1312,8 +1309,7 @@ public class DbClientImpl implements DbClient {
             batch.execute();
             return rowId;
         } catch (ConnectionException e) {
-        	String ip=e.getHost().getIpAddress();
-            throw DatabaseException.retryables.connectionFailed(e,ip);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
     }
 
@@ -1339,8 +1335,7 @@ public class DbClientImpl implements DbClient {
             mutation.putValue(type.getSerializer().serialize(data), type.getTtl()).execute();
             return rowId;
         } catch (ConnectionException e) {
-        	String ip=e.getHost().getIpAddress();
-            throw DatabaseException.retryables.connectionFailed(e,ip);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
     }
 
@@ -1439,8 +1434,7 @@ public class DbClientImpl implements DbClient {
                             .execute();
             return result.getResult();
         } catch (ConnectionException e) {
-        	String ip=e.getHost().getIpAddress();
-            throw DatabaseException.retryables.connectionFailed(e,ip);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
     }
 
@@ -1467,8 +1461,7 @@ public class DbClientImpl implements DbClient {
                     .execute();
             return result.getResult();
         } catch (ConnectionException e) {
-        	String ip=e.getHost().getIpAddress();
-            throw DatabaseException.retryables.connectionFailed(e,ip);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
     }
 

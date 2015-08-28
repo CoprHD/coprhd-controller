@@ -39,10 +39,8 @@ public class DatabaseExceptionTest extends BaseServiceCodeExceptionTest {
 
     @Test
     public void connectionException() {
-    	UnknownException e=new UnknownException(EXCEPTION_MESSAGE);
-    	String ip=e.getHost().getIpAddress();
-        final DatabaseException exception = DatabaseException.retryables.connectionFailed(e,ip);
-        assertInternalException(SERVICE_UNAVAILABLE, DBSVC_CONNECTION_ERROR, "Database connection failed.Please check the database service of "+ip, exception);
+        final DatabaseException exception = DatabaseException.retryables.connectionFailed(new UnknownException(EXCEPTION_MESSAGE));
+        assertInternalException(SERVICE_UNAVAILABLE, DBSVC_CONNECTION_ERROR, "Database connection failed. Please check all the database service of the whole federation.", exception);
     }
 
     @Test

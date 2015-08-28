@@ -198,8 +198,7 @@ public class DbsvcGeoTestBase {
                                 .execute();
                 return result.getResult();
             } catch (ConnectionException e) {
-                String ip=e.getHost().getIpAddress();
-                throw DatabaseException.retryables.connectionFailed(e,ip);
+                throw DatabaseException.retryables.connectionFailed(e);
             }
         }
 

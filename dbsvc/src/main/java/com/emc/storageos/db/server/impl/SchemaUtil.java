@@ -937,8 +937,7 @@ public class SchemaUtil {
         } catch (final OperationException e) {
             throw DatabaseException.retryables.operationFailed(e);
         } catch (final ConnectionException e) {
-        	String ip=e.getHost().getIpAddress();
-            throw DatabaseException.retryables.connectionFailed(e,ip);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
     }
 
@@ -969,8 +968,7 @@ public class SchemaUtil {
         } catch (final OperationException e) {
             throw DatabaseException.retryables.operationFailed(e);
         } catch (final ConnectionException e) {
-        	String ip=e.getHost().getIpAddress();
-            throw DatabaseException.retryables.connectionFailed(e,ip);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
     }
 
@@ -1000,8 +998,7 @@ public class SchemaUtil {
         } catch (final OperationException e) {
             throw DatabaseException.retryables.operationFailed(e);
         } catch (final ConnectionException e) {
-        	String ip=e.getHost().getIpAddress();
-            throw DatabaseException.retryables.connectionFailed(e,ip);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
     }
 
@@ -1019,8 +1016,7 @@ public class SchemaUtil {
             try {
                 versions = cluster.describeSchemaVersions();
             } catch (final ConnectionException e) {
-            	String ip=e.getHost().getIpAddress();
-                throw DatabaseException.retryables.connectionFailed(e,ip);
+                throw DatabaseException.retryables.connectionFailed(e);
             }
 
             _log.info("schema version to sync to: {}", schemaVersion);
@@ -1077,8 +1073,7 @@ public class SchemaUtil {
                     }
                 }
             } catch (final ConnectionException e) {
-            	String ip=e.getHost().getIpAddress();
-                throw DatabaseException.retryables.connectionFailed(e,ip);
+                throw DatabaseException.retryables.connectionFailed(e);
             } finally {
                 if (clusterContext != null) {
                     clusterContext.shutdown();

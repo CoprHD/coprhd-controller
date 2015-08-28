@@ -185,7 +185,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             Iterator<Recommendation> recommendationsIter = recommendations.iterator();
             while (recommendationsIter.hasNext()) {
                 SRDFRecommendation recommendation = (SRDFRecommendation) recommendationsIter.next();
-                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceDevice());
+                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
                 // Prepare the Bourne Volumes to be created and associated
                 // with the actual storage system volumes created. Also create
                 // a BlockTaskList containing the list of task resources to be
